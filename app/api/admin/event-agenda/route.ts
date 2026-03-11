@@ -6,7 +6,7 @@ import type { EventAgendaItem } from "@/lib/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
@@ -15,7 +15,7 @@ function clamp(v: unknown, max: number) {
   return String(v).slice(0, max)
 }
 
-export async function GET(req: Request) {
+export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url)
   const event_id = searchParams.get("event_id")
   if (!event_id) return json({ error: "Missing event_id" }, 400)
@@ -26,18 +26,17 @@ export async function GET(req: Request) {
       "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,created_at"
     )
     .eq("event_id", event_id)
-    .order("start_at", { ascending: true, nullsLast: true })
+    .order("start_at", { ascending: true })
     .order("sort_index", { ascending: true })
 
   if (error) return json({ error: error.message }, 400)
   return json({ items: data || [] })
 }
 
-export async function POST(req: Request) {
-  const authResult = await requireAdmin()
-  if (authResult instanceof Response) return authResult
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.event_id || !body?.title) {
     return json({ error: "Missing fields" }, 400)
   }
@@ -66,11 +65,10 @@ export async function POST(req: Request) {
   return json({ item: data })
 }
 
-export async function PUT(req: Request) {
-  const authResult = await requireAdmin()
-  if (authResult instanceof Response) return authResult
+export async function PUT(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.id) return json({ error: "Missing id" }, 400)
 
   const patch: Partial<EventAgendaItem> = {}
@@ -107,11 +105,10 @@ export async function PUT(req: Request) {
   return json({ item: data })
 }
 
-export async function DELETE(req: Request) {
-  const authResult = await requireAdmin()
-  if (authResult instanceof Response) return authResult
+export async function DELETE(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.id) return json({ error: "Missing id" }, 400)
 
   const { error } = await supabaseAdmin
