@@ -18,7 +18,7 @@ async function assertAdmin() {
   )
 }
 
-export async function updateMeetingLink(formData: FormData) {
+export async function updateMeetingLink(formData: FormData): Promise<void> {
   await assertAdmin()
 
   const webinarId = String(formData.get("webinarId") || "").trim()
@@ -31,13 +31,11 @@ export async function updateMeetingLink(formData: FormData) {
   const join_url = sanitizeMeetingUrl(joinUrlRaw)
   const detected = join_url ? detectProvider(join_url) : "manual"
 
-  // If user sets provider to "auto" we infer from link; else we use the selected value.
   const provider =
     providerRaw === "auto"
       ? detected
       : (providerRaw as MeetingProvider)
 
-  // basic guard to avoid nonsense
   if (!["manual", "zoom", "teams"].includes(provider)) {
     throw new Error("Invalid provider value.")
   }
@@ -54,6 +52,4 @@ export async function updateMeetingLink(formData: FormData) {
     .eq("id", webinarId)
 
   if (error) throw new Error(error.message)
-
-  return { ok: true }
 }
