@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
@@ -13,10 +13,9 @@ function json(data: any, status = 200) {
  * Kick a viewer session (soft-kick)
  * Table: general_session_kicks (room_key, session_id, kicked_at, reason)
  */
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => ({}))
   const room_key = (body?.room_key as string) || "general"
   const session_id = (body?.session_id as string) || ""
@@ -35,5 +34,6 @@ export async function POST(req: Request) {
   })
 
   if (error) return json({ error: error.message }, 400)
+
   return json({ ok: true })
 }
