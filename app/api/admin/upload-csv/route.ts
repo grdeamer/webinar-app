@@ -34,14 +34,16 @@ function detectDelimiter(sample: string): string {
   return best
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
     const formData = await req.formData()
     const file = formData.get("file") as File | null
-    if (!file) return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
+
+    if (!file) {
+      return NextResponse.json({ error: "No file uploaded" }, { status: 400 })
+    }
 
     const raw = await file.text()
     const delimiter = detectDelimiter(raw.slice(0, 2000))
@@ -71,7 +73,6 @@ export async function POST(req: Request) {
       )
     }
 
-    // ✅ Group rows by email so we can replace assignments per user
     const byEmail = new Map<string, any[]>()
     for (const row of rowsRaw) {
       const email = (row.email ?? "").toString().trim().toLowerCase()
@@ -90,7 +91,6 @@ export async function POST(req: Request) {
     let assignmentsDeleted = 0
 
     for (const [email, rows] of byEmail.entries()) {
-      // 1) Upsert user
       const { data: user, error: userErr } = await supabaseAdmin
         .from("users")
         .upsert({ email }, { onConflict: "email" })
@@ -103,14 +103,13 @@ export async function POST(req: Request) {
       }
       users++
 
-      // Keep a list of webinar IDs that *should remain* assigned to this user
       const keepWebinarIds: string[] = []
 
       for (const row of rows) {
         const title = (row.title ?? "").toString().trim()
         const date = (row.date ?? "").toString().trim()
         const time = (row.time ?? "").toString().trim()
-        const tag = ((row.tag ?? "upcoming").toString().trim() || "upcoming")
+        const tag = (row.tag ?? "upcoming").toString().trim() || "upcoming"
         const speaker = (row.speaker ?? "").toString().trim()
         const description = (row.description ?? "").toString().trim()
         const join_link = (row.join_link ?? "").toString().trim()
@@ -121,7 +120,6 @@ export async function POST(req: Request) {
 
         processed++
 
-        // 2) Upsert webinar (stable unique key)
         const import_key = `${title.toLowerCase()}__${dt.toISOString()}`
 
         const { data: webinar, error: webinarErr } = await supabaseAdmin
@@ -145,23 +143,25 @@ export async function POST(req: Request) {
           console.error("webinar upsert error", webinarErr)
           continue
         }
+
         webinars++
         keepWebinarIds.push(webinar.id)
 
-        // 3) Upsert assignment
         const { error: assignErr } = await supabaseAdmin
           .from("user_webinars")
-          .upsert({ user_id: user.id, webinar_id: webinar.id }, { onConflict: "user_id,webinar_id" })
+          .upsert(
+            { user_id: user.id, webinar_id: webinar.id },
+            { onConflict: "user_id,webinar_id" }
+          )
 
         if (assignErr) {
           console.error("assignment upsert error", assignErr)
           continue
         }
+
         assignmentsInserted++
       }
 
-      // 4) ✅ Delete assignments that are NOT in keep list (replace behavior)
-      // If keep list is empty, we skip deletion to avoid wiping user accidentally
       if (keepWebinarIds.length > 0) {
         const { data: current } = await supabaseAdmin
           .from("user_webinars")
