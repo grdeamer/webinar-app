@@ -4,10 +4,9 @@ import { requireAdmin } from "@/lib/requireAdmin"
 
 export const runtime = "nodejs"
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
     const body = await req.json()
 
@@ -23,6 +22,7 @@ export async function POST(req: Request) {
 
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
     if (!title) return NextResponse.json({ error: "Missing title" }, { status: 400 })
+
     if (!["mp4", "hls"].includes(source_type)) {
       return NextResponse.json({ error: "Invalid source_type" }, { status: 400 })
     }
@@ -30,7 +30,10 @@ export async function POST(req: Request) {
     if (source_type === "hls") {
       const v = String(hls_playback_url || "").trim()
       if (!v || !v.includes(".m3u8")) {
-        return NextResponse.json({ error: "HLS playback URL must be a .m3u8 URL" }, { status: 400 })
+        return NextResponse.json(
+          { error: "HLS playback URL must be a .m3u8 URL" },
+          { status: 400 }
+        )
       }
     }
 
