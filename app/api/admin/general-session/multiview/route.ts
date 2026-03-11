@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
@@ -14,7 +14,7 @@ function cleanSlot(n: any) {
   return Number.isFinite(v) ? v : null
 }
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   const { data, error } = await supabaseAdmin
     .from("general_session_multiview")
     .select("*")
@@ -26,15 +26,13 @@ export async function GET() {
   return json({ state: data || { id: 1, slots: {} } })
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => ({}))
   const slot = cleanSlot(body?.slot)
   if (!slot || slot < 1 || slot > 7) return json({ error: "Invalid slot (1-7)" }, 400)
 
-  // store slots as a jsonb map: {"1": {source}, ...}
   const source = body?.source ?? null
 
   const { data: current, error: readErr } = await supabaseAdmin
@@ -63,5 +61,6 @@ export async function POST(req: Request) {
     .single()
 
   if (error) return json({ error: error.message }, 400)
+
   return json({ state: data })
 }
