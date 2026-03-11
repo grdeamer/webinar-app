@@ -6,7 +6,9 @@ import AdminAgendaEditor from "./ui"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-export default async function AdminEventAgendaPage(props: { params: Promise<{ id: string }> }) {
+export default async function AdminEventAgendaPage(props: {
+  params: Promise<{ id: string }>
+}) {
   const { id } = await props.params
 
   const { data: event, error: e1 } = await supabaseAdmin
@@ -37,10 +39,15 @@ export default async function AdminEventAgendaPage(props: { params: Promise<{ id
           <h1 className="text-3xl font-bold">Agenda</h1>
           <div className="mt-1 text-white/60">{event.title}</div>
         </div>
+
         <div className="flex gap-2">
-          <Link href={`/admin/events/${id}`} className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10">
+          <Link
+            href={`/admin/events/${id}`}
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
+          >
             Back
           </Link>
+
           <a
             href={`/events/${event.slug}/agenda`}
             target="_blank"
@@ -53,13 +60,14 @@ export default async function AdminEventAgendaPage(props: { params: Promise<{ id
       </div>
 
       <AdminAgendaEditor
-  eventId={id}
-  eventSlug={event.slug}
-  initialItems={(data || []).map((item) => ({
-    ...item,
-    created_at: item.created_at ?? "",
-  }))}
-/>
+        eventId={id}
+        eventSlug={event.slug}
+        initialItems={(data || []).map((item) => ({
+          ...item,
+          created_at: item.created_at ?? "",
+          sort_index: item.sort_index ?? 0,
+        }))}
+      />
     </div>
   )
 }
