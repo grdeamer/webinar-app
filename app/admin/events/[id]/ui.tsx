@@ -284,7 +284,10 @@ export default function AdminEventEditor({
 
       <AdminEventSponsorManager
         eventId={row.id}
-        initialSponsors={row.event_sponsors || []}
+        initialSponsors={(row.event_sponsors || []).map((s) => ({
+          ...s,
+          event_id: s.event_id ?? row.id,
+        }))}
       />
     </div>
   )
