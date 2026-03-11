@@ -5,11 +5,11 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   const { data, error } = await supabaseAdmin
     .from("general_session_settings")
     .select("*")
@@ -20,10 +20,9 @@ export async function GET() {
   return json({ settings: data || null })
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => ({}))
 
   const source_type = body?.source_type
@@ -42,7 +41,7 @@ export async function POST(req: Request) {
   const is_published = Boolean(body?.is_published)
 
   const publish_state =
-    typeof body?.publish_state === "string" ? body.publish_state : null // draft|published|scheduled
+    typeof body?.publish_state === "string" ? body.publish_state : null
 
   const publish_at =
     typeof body?.publish_at === "string" && body.publish_at.trim()
@@ -58,7 +57,6 @@ export async function POST(req: Request) {
     return json({ error: "Invalid source_type" }, 400)
   }
 
-  // Source validation
   if (source_type === "mp4" && !mp4_path) {
     return json({ error: "mp4_path is required for source_type=mp4" }, 400)
   }
@@ -84,12 +82,10 @@ export async function POST(req: Request) {
         publish_state: publish_state ?? (is_published ? "published" : "draft"),
         publish_at,
         presenter_key,
-
         source_type,
         mp4_path: source_type === "mp4" ? mp4_path : null,
         m3u8_url: source_type === "m3u8" ? m3u8_url : null,
         rtmp_url: source_type === "rtmp" ? rtmp_url : null,
-
         updated_at: new Date().toISOString(),
       },
       { onConflict: "id" }
@@ -98,5 +94,6 @@ export async function POST(req: Request) {
     .single()
 
   if (error) return json({ error: error.message }, 400)
+
   return json({ settings: data })
 }
