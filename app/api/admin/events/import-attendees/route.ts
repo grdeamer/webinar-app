@@ -7,6 +7,9 @@ import type { CsvCell, CsvRow } from "@/lib/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+function json(data: any, status = 200) {
+  return NextResponse.json(data, { status })
+}
 
 function normEmail(v: unknown) {
   return typeof v === "string" ? v.trim().toLowerCase() : ""
@@ -34,12 +37,16 @@ function isUuid(v: string) {
 async function resolveEventId(eventIdFromForm: string | null, rows: CsvRow[]) {
   if (eventIdFromForm) return eventIdFromForm
 
-  // fallback to event slug column
   const first = rows[0] || {}
   const slug = pick(first, ["event", "event_slug", "eventSlug", "Event"])
   if (!slug) return null
 
-  const { data: ev } = await supabaseAdmin.from("events").select("id").eq("slug", slug).single()
+  const { data: ev } = await supabaseAdmin
+    .from("events")
+    .select("id")
+    .eq("slug", slug)
+    .single()
+
   return ev?.id || null
 }
 
@@ -47,26 +54,30 @@ async function resolveWebinarId(identifierRaw: string) {
   const identifier = String(identifierRaw || "").trim()
   if (!identifier) return { id: null as string | null, reason: "Empty webinar identifier" }
 
-  // Try by ID
   if (isUuid(identifier)) {
-    const { data } = await supabaseAdmin.from("webinars").select("id").eq("id", identifier).maybeSingle()
+    const { data } = await supabaseAdmin
+      .from("webinars")
+      .select("id")
+      .eq("id", identifier)
+      .maybeSingle()
+
     if (data?.id) return { id: data.id, reason: null as string | null }
   }
 
-  // Try by import_key
   const { data: byKey } = await supabaseAdmin
     .from("webinars")
     .select("id")
     .eq("import_key", identifier)
     .maybeSingle()
+
   if (byKey?.id) return { id: byKey.id, reason: null as string | null }
 
-  // Try by exact title
   const { data: byTitle } = await supabaseAdmin
     .from("webinars")
     .select("id")
     .eq("title", identifier)
     .maybeSingle()
+
   if (byTitle?.id) return { id: byTitle.id, reason: null as string | null }
 
   return { id: null as string | null, reason: `Unknown webinar: ${identifier}` }
@@ -74,15 +85,15 @@ async function resolveWebinarId(identifierRaw: string) {
 
 export async function POST(req: Request) {
   try {
-    const unauthorized = await requireAdmin()
-    if (unauthorized) return unauthorized
+    const authResult = await requireAdmin()
+    if (authResult instanceof Response) return authResult
 
     const form = await req.formData()
     const file = form.get("file")
     const event_id = (form.get("event_id") as string | null) || null
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "CSV file is required" }, { status: 400 })
+      return json({ error: "CSV file is required" }, 400)
     }
 
     const csvText = await file.text()
@@ -93,26 +104,33 @@ export async function POST(req: Request) {
     })
 
     if (parsed.errors?.length) {
-      return NextResponse.json(
+      return json(
         { error: "CSV parse error", details: parsed.errors.slice(0, 5) },
-        { status: 400 }
+        400
       )
     }
 
     const rows = (parsed.data ?? []).filter(Boolean)
     if (!rows.length) {
-      return NextResponse.json({ error: "CSV has no rows" }, { status: 400 })
+      return json({ error: "CSV has no rows" }, 400)
     }
 
     const finalEventId = await resolveEventId(event_id, rows)
     if (!finalEventId) {
-      return NextResponse.json({ error: "Missing event. Provide event_id or include an 'event' column with the event slug." }, { status: 400 })
+      return json(
+        {
+          error:
+            "Missing event. Provide event_id or include an 'event' column with the event slug.",
+        },
+        400
+      )
     }
 
-    // Determine format
     const headers = (parsed.meta?.fields || []).map((h) => h.trim())
 
-    const hasRowPerWebinar = headers.some((h) => ["webinar", "webinar_slug", "webinar_id", "webinarId"].includes(h))
+    const hasRowPerWebinar = headers.some((h) =>
+      ["webinar", "webinar_slug", "webinar_id", "webinarId"].includes(h)
+    )
 
     const baseCols = new Set([
       "event",
@@ -136,7 +154,10 @@ export async function POST(req: Request) {
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
 
-      const email = normEmail(pick(row, ["email", "Email", "user", "user_email", "userEmail"]))
+      const email = normEmail(
+        pick(row, ["email", "Email", "user", "user_email", "userEmail"])
+      )
+
       if (!email || !email.includes("@")) {
         rowErrors.push({ row: i + 2, error: "Missing/invalid email" })
         continue
@@ -149,9 +170,13 @@ export async function POST(req: Request) {
         .single()
 
       if (uErr || !user?.id) {
-        rowErrors.push({ row: i + 2, error: `User upsert failed: ${uErr?.message || "unknown"}` })
+        rowErrors.push({
+          row: i + 2,
+          error: `User upsert failed: ${uErr?.message || "unknown"}`,
+        })
         continue
       }
+
       usersUpserted++
 
       let webinarIdentifiers: string[] = []
@@ -159,18 +184,19 @@ export async function POST(req: Request) {
       if (hasRowPerWebinar) {
         const w = pick(row, ["webinar", "webinar_slug", "webinar_id", "webinarId"])
         if (!w) {
-          rowErrors.push({ row: i + 2, error: "Missing webinar (webinar/webinar_slug/webinar_id)" })
+          rowErrors.push({
+            row: i + 2,
+            error: "Missing webinar (webinar/webinar_slug/webinar_id)",
+          })
           continue
         }
         webinarIdentifiers = [w]
       } else {
-        // matrix format: webinar columns are all non-base headers
         webinarIdentifiers = headers
           .filter((h) => !baseCols.has(h))
           .filter((h) => truthyCell(row[h]))
 
         if (!webinarIdentifiers.length) {
-          // allow row with no assignments
           processed++
           continue
         }
@@ -178,22 +204,27 @@ export async function POST(req: Request) {
 
       for (const ident of webinarIdentifiers) {
         const { id: webinarId, reason } = await resolveWebinarId(ident)
+
         if (!webinarId) {
           rowErrors.push({ row: i + 2, error: reason || "Unknown webinar" })
           continue
         }
 
-        // Always keep global assignment for existing app logic
         const { error: uwErr } = await supabaseAdmin
           .from("user_webinars")
-          .upsert({ user_id: user.id, webinar_id: webinarId }, { onConflict: "user_id,webinar_id" })
+          .upsert(
+            { user_id: user.id, webinar_id: webinarId },
+            { onConflict: "user_id,webinar_id" }
+          )
 
         if (uwErr) {
-          rowErrors.push({ row: i + 2, error: `user_webinars upsert failed: ${uwErr.message}` })
+          rowErrors.push({
+            row: i + 2,
+            error: `user_webinars upsert failed: ${uwErr.message}`,
+          })
           continue
         }
 
-        // Event-scoped assignment (if table exists)
         try {
           await supabaseAdmin
             .from("event_user_webinars")
@@ -202,7 +233,7 @@ export async function POST(req: Request) {
               { onConflict: "event_id,user_id,webinar_id" }
             )
         } catch {
-          // table may not exist yet; ignore so import still works
+          // ignore if table does not exist yet
         }
 
         assignmentsUpserted++
@@ -211,7 +242,7 @@ export async function POST(req: Request) {
       processed++
     }
 
-    return NextResponse.json({
+    return json({
       success: true,
       event_id: finalEventId,
       processed,
@@ -221,6 +252,6 @@ export async function POST(req: Request) {
     })
   } catch (err: any) {
     console.error("import-attendees error:", err)
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+    return json({ error: "Server error" }, 500)
   }
 }
