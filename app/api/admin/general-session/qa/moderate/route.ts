@@ -5,9 +5,8 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST(req: Request) {
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
   const body = await req.json().catch(() => null)
   const id = typeof body?.id === "string" ? body.id : ""
@@ -15,6 +14,7 @@ export async function POST(req: Request) {
   const pinned = typeof body?.pinned === "boolean" ? body.pinned : null
 
   if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+
   if (!status && pinned === null) {
     return NextResponse.json({ error: "No changes provided." }, { status: 400 })
   }
@@ -38,7 +38,11 @@ export async function POST(req: Request) {
   if (status) patch.status = status
   if (pinned !== null) patch.pinned = pinned
 
-  const { error } = await supabaseAdmin.from("qa_questions").update(patch).eq("id", id)
+  const { error } = await supabaseAdmin
+    .from("qa_questions")
+    .update(patch)
+    .eq("id", id)
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
