@@ -6,13 +6,12 @@ import type { SlideAssetRow } from "@/lib/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
-export async function GET() {
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
+export async function GET(): Promise<Response> {
+  await requireAdmin()
 
   const { data, error } = await supabaseAdmin
     .from("general_session_slides")
@@ -22,5 +21,6 @@ export async function GET() {
     .returns<SlideAssetRow[]>()
 
   if (error) return json({ error: error.message }, 400)
+
   return json({ slides: data || [] })
 }
