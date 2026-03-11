@@ -43,7 +43,15 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n))
 }
 
-type NodeKey = "Lobby" | "General Session" | "Q&A" | "Webinars" | "Webinar Detail" | "Other"
+type NodeKey =
+  | "Lobby"
+  | "General Session"
+  | "Q&A"
+  | "Webinars"
+  | "Webinar Detail"
+  | "Admin"
+  | "Login"
+  | "Other"
 
 const DEFAULT_NODES: { key: NodeKey; x: number; y: number }[] = [
   { key: "Lobby", x: 110, y: 150 },
