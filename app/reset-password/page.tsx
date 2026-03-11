@@ -3,11 +3,11 @@
 import * as React from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { createSupabaseBrowserClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
-  const supabase = createSupabaseBrowserClient()
+  const supabase = createClient()
 
   const [password, setPassword] = React.useState("")
   const [confirmPassword, setConfirmPassword] = React.useState("")

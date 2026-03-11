@@ -156,9 +156,6 @@ export async function clearAdminTokenCookie(response: NextResponse) {
   return response
 }
 
-/*
-  Compatibility aliases in case other files import older helper names.
-*/
 export const ADMIN_TOKEN_COOKIE_NAME = COOKIE_NAME
 export const makeAdminToken = createAdminToken
 export const isValidAdminToken = verifyAdminToken
