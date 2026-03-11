@@ -8,6 +8,7 @@ export const dynamic = "force-dynamic"
 export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params
   const event = await getEventBySlug(slug)
+
   const { data, error } = await supabaseAdmin
     .from("event_networking_profiles")
     .select("id,name,title,company,bio,interests,created_at")
@@ -22,8 +23,12 @@ export async function GET(_req: Request, ctx: { params: Promise<{ slug: string }
 export async function POST(req: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params
   const event = await getEventBySlug(slug)
-  const body = await req.json().catch(() => null)
-  if (!body?.session_id || !body?.name) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
+
+  const body = await req.json().catch((): null => null)
+
+  if (!body?.session_id || !body?.name) {
+    return NextResponse.json({ error: "Missing fields" }, { status: 400 })
+  }
 
   const row = {
     event_id: event.id,
@@ -40,5 +45,6 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
     .upsert(row, { onConflict: "event_id,session_id" })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+
   return NextResponse.json({ ok: true })
 }
