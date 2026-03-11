@@ -1,8 +1,19 @@
 import { redirect } from "next/navigation"
+import type { User } from "@supabase/supabase-js"
 import { createClient } from "@/lib/supabase/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
-export async function requireAdmin() {
+type AdminProfile = {
+  role: string | null
+  is_active: boolean | null
+}
+
+type RequireAdminResult = {
+  user: User
+  profile: AdminProfile
+}
+
+export async function requireAdmin(): Promise<RequireAdminResult> {
   const supabase = await createClient()
 
   const {
@@ -18,11 +29,14 @@ export async function requireAdmin() {
     .from("profiles")
     .select("role,is_active")
     .eq("id", user.id)
-    .maybeSingle()
+    .maybeSingle<AdminProfile>()
 
   if (profileError || !profile || profile.role !== "admin" || profile.is_active === false) {
     redirect("/admin/login")
   }
 
-  return { user, profile }
+  return {
+    user,
+    profile,
+  }
 }
