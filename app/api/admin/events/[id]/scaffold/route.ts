@@ -5,15 +5,19 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST(_: Request, props: { params: Promise<{ id: string }> }) {
+function json(data: any, status = 200) {
+  return NextResponse.json(data, { status })
+}
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
+export async function POST(_: Request, props: { params: Promise<{ id: string }> }) {
+  const authResult = await requireAdmin()
+  if (authResult instanceof Response) return authResult
+
   try {
     const { id } = await props.params
     const summary = await scaffoldEventContent(id)
-    return NextResponse.json({ ok: true, summary })
+    return json({ ok: true, summary })
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Failed to scaffold event" }, { status: 400 })
+    return json({ error: error?.message || "Failed to scaffold event" }, 400)
   }
 }
