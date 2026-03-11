@@ -26,9 +26,12 @@ export async function GET(req: Request, ctx: { params: Promise<{ slug: string }>
 export async function POST(req: Request, ctx: { params: Promise<{ slug: string }> }) {
   const { slug } = await ctx.params
   const event = await getEventBySlug(slug)
-  const body = await req.json().catch(() => null)
 
-  if (!body?.message) return NextResponse.json({ error: "Missing message" }, { status: 400 })
+  const body = await req.json().catch((): null => null)
+
+  if (!body?.message) {
+    return NextResponse.json({ error: "Missing message" }, { status: 400 })
+  }
 
   const row = {
     event_id: event.id,
@@ -39,6 +42,7 @@ export async function POST(req: Request, ctx: { params: Promise<{ slug: string }
   }
 
   const { error } = await supabaseAdmin.from("event_chat_messages").insert(row)
+
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
   return NextResponse.json({ ok: true })
