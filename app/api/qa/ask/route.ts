@@ -6,7 +6,8 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function POST(req: Request) {
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
+
   const slug = typeof body?.slug === "string" ? body.slug : "general-session"
   const question = typeof body?.question === "string" ? body.question.trim() : ""
   const askedBy = typeof body?.askedBy === "string" ? body.askedBy.trim() : null
@@ -15,7 +16,6 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Question is required." }, { status: 400 })
   }
 
-  // Read session config
   const { data: session, error: sErr } = await supabaseAdmin
     .from("qa_sessions")
     .select("id, enabled, allow_anonymous")
@@ -26,14 +26,14 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: "Q&A session not found." }, { status: 404 })
   if (!session.enabled) return NextResponse.json({ error: "Q&A is currently closed." }, { status: 403 })
 
-  // Auth
-const supabase = await createClient()
+  const supabase = await createClient()
   const { data: auth, error: authErr } = await supabase.auth.getUser()
   const user = auth?.user || null
 
   if (!session.allow_anonymous && !user) {
     return NextResponse.json({ error: "Please log in to submit a question." }, { status: 401 })
   }
+
   if (authErr && !user) {
     return NextResponse.json({ error: "Auth error. Please log in again." }, { status: 401 })
   }
@@ -51,7 +51,9 @@ const supabase = await createClient()
     status: "pending",
   })
 
-  if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 })
+  if (insErr) {
+    return NextResponse.json({ error: insErr.message }, { status: 500 })
+  }
 
   return NextResponse.json({ ok: true })
 }
