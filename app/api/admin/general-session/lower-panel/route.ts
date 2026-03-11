@@ -5,11 +5,11 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
-export async function GET() {
+export async function GET(): Promise<Response> {
   const { data, error } = await supabaseAdmin
     .from("general_session_lower_panel")
     .select("*")
@@ -20,10 +20,9 @@ export async function GET() {
   return json({ panel: data || null })
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => ({}))
   const kind = typeof body?.kind === "string" ? body.kind : null
   const name = typeof body?.name === "string" ? body.name.slice(0, 300) : null
@@ -49,5 +48,6 @@ export async function POST(req: Request) {
     .single()
 
   if (error) return json({ error: error.message }, 400)
+
   return json({ panel: data })
 }
