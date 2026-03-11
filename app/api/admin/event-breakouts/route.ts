@@ -26,7 +26,7 @@ export async function GET(req: Request) {
       "id,event_id,title,description,join_link,start_at,end_at,speaker_name,speaker_avatar_url,manual_live,auto_open,created_at"
     )
     .eq("event_id", event_id)
-    .order("start_at", { ascending: true, nullsLast: true })
+    .order("start_at", { ascending: true, nullsFirst: false })
     .order("created_at", { ascending: true })
 
   if (error) return json({ error: error.message }, 400)
