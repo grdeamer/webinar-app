@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const authResult = await requireAdmin()
   if (authResult instanceof Response) return authResult
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.event_id || !body?.title) {
     return json({ error: "Missing fields" }, 400)
   }
@@ -71,7 +71,7 @@ export async function PUT(req: Request) {
   const authResult = await requireAdmin()
   if (authResult instanceof Response) return authResult
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.id) return json({ error: "Missing id" }, 400)
 
   const patch: Partial<EventBreakout> = {}
@@ -112,7 +112,7 @@ export async function DELETE(req: Request) {
   const authResult = await requireAdmin()
   if (authResult instanceof Response) return authResult
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.id) return json({ error: "Missing id" }, 400)
 
   const { error } = await supabaseAdmin

@@ -56,11 +56,11 @@ export default async function EventBreakoutsPage(props: {
 
   const [{ data, error }, liveState] = await Promise.all([
     supabaseAdmin
-    .from("event_breakouts")
-    .select("id,title,description,join_link,start_at,end_at,speaker_name,speaker_avatar_url,manual_live,auto_open")
-    .eq("event_id", event.id)
-    .order("manual_live", { ascending: false })
-    .order("start_at", { ascending: true, nullsLast: true }),
+      .from("event_breakouts")
+      .select("id,title,description,join_link,start_at,end_at,speaker_name,speaker_avatar_url,manual_live,auto_open")
+      .eq("event_id", event.id)
+      .order("manual_live", { ascending: false })
+      .order("start_at", { ascending: true, nullsFirst: false }),
     getEventLiveState(event.id),
   ])
 
@@ -124,7 +124,10 @@ export default async function EventBreakoutsPage(props: {
               whenLabel: formatWhen(item.start_at, item.end_at),
               speakerName: item.speaker_name,
               speakerAvatarUrl: item.speaker_avatar_url,
-              status: getBreakoutRuntimeStatus({ id: item.id, start_at: item.start_at, end_at: item.end_at, manual_live: !!item.manual_live }, liveState),
+              status: getBreakoutRuntimeStatus(
+                { id: item.id, start_at: item.start_at, end_at: item.end_at, manual_live: !!item.manual_live },
+                liveState
+              ),
               autoOpen: !!item.auto_open,
             }))}
           />

@@ -1,3 +1,4 @@
+import type { ReactNode } from "react"
 import Link from "next/link"
 import { getEventBySlug } from "@/lib/events"
 import { getEventUserOrNull } from "@/lib/eventAuth"
@@ -25,7 +26,7 @@ export default async function EventHomePage(props: { params: Promise<{ slug: str
       .from("event_agenda_items")
       .select("id,title,start_at,end_at,track,speaker,description")
       .eq("event_id", event.id)
-      .order("start_at", { ascending: true, nullsLast: true })
+      .order("start_at", { ascending: true, nullsFirst: false })
       .limit(6),
     supabaseAdmin
       .from("event_sponsors")
@@ -42,24 +43,28 @@ export default async function EventHomePage(props: { params: Promise<{ slug: str
       .from("event_breakouts")
       .select("id,title,description,join_link,start_at,end_at")
       .eq("event_id", event.id)
-      .order("start_at", { ascending: true, nullsLast: true })
+      .order("start_at", { ascending: true, nullsFirst: false })
       .limit(3),
     getEventLiveState(event.id),
   ])
 
   const sessions = (webinarRows || []).map((row: any) => row.webinars).filter(Boolean)
   const liveDestination = getEventLiveDestination({
-    slug,
-    liveState,
-    breakouts: ((breakouts as EventBreakoutPreview[] | null) || []).map((item) => ({
+  slug,
+  liveState,
+  breakouts: (((breakouts as EventBreakoutPreview[] | null) || []).map(
+    (item): any => ({
       ...item,
       event_id: event.id,
-      speaker_name: null,
-      speaker_avatar_url: null,
+      speaker_name: null as string | null,
+      speaker_avatar_url: null as string | null,
       manual_live: false,
       auto_open: false,
-    })),
-  })
+      created_at: item.start_at ?? new Date().toISOString(),
+    })
+  )),
+})
+ 
   const featuredSpeakers = parseSpeakerCards(
     ...(agenda || []).map((item: any) => item.speaker),
     ...sessions.map((session: any) => session.speaker_cards),
@@ -135,11 +140,10 @@ export default async function EventHomePage(props: { params: Promise<{ slug: str
 
       <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
         <EventCountdownCard
-          title={nextAgenda?.title || event.title}
-          targetIso={countdownTarget}
-          subtitle={nextAgenda ? "Countdown to next session" : "Countdown to event start"}
-          detail={nextAgenda ? formatAgendaRange(nextAgenda.start_at, nextAgenda.end_at) : formatEventWindow(event.start_at, event.end_at)}
-        />
+  title={nextAgenda?.title || event.title}
+  targetIso={countdownTarget}
+  subtitle={nextAgenda ? "Countdown to next session" : "Countdown to event start"}
+/>
 
         <EventSpeakerSpotlight speaker={spotlightSpeaker} />
       </div>

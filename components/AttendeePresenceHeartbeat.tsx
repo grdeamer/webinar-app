@@ -2,26 +2,30 @@
 
 import * as React from "react"
 
-export default function AttendeePresenceHeartbeat() {
+export default function AttendeePresenceHeartbeat(): React.JSX.Element | null {
   React.useEffect(() => {
     let stopped = false
 
-    async function ping() {
+    async function beat(): Promise<void> {
       try {
-        await fetch("/api/presence/heartbeat", { method: "POST", cache: "no-store" })
+        await fetch("/api/attendee/presence", {
+          method: "POST",
+          credentials: "include",
+        })
       } catch {
         // ignore
       }
     }
 
-    ping()
-    const t = setInterval(() => {
-      if (!stopped) ping()
-    }, 20_000)
+    void beat()
+
+    const id = window.setInterval(() => {
+      if (!stopped) void beat()
+    }, 30000)
 
     return () => {
       stopped = true
-      clearInterval(t)
+      window.clearInterval(id)
     }
   }, [])
 

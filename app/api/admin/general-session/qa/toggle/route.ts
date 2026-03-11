@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 export async function POST(req: Request): Promise<Response> {
   await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   const slug = typeof body?.slug === "string" ? body.slug : "general-session"
   const enabled = typeof body?.enabled === "boolean" ? body.enabled : null
   const allowAnonymous = typeof body?.allow_anonymous === "boolean" ? body.allow_anonymous : null

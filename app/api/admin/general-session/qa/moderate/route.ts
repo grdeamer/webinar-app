@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic"
 export async function POST(req: Request): Promise<Response> {
   await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   const id = typeof body?.id === "string" ? body.id : ""
   const status = typeof body?.status === "string" ? body.status : null
   const pinned = typeof body?.pinned === "boolean" ? body.pinned : null

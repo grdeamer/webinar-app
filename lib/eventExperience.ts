@@ -12,14 +12,24 @@ function normalizeSpeakerCard(input: unknown): SpeakerCard | null {
   if (!input) return null
 
   if (typeof input === "object" && !Array.isArray(input)) {
-    const name = String(input.name || "").trim()
+    const value = input as {
+      name?: unknown
+      role?: unknown
+      company?: unknown
+      bio?: unknown
+      imageUrl?: unknown
+      image_url?: unknown
+    }
+
+    const name = String(value.name || "").trim()
     if (!name) return null
+
     return {
       name,
-      role: cleanText(input.role),
-      company: cleanText(input.company),
-      bio: cleanText(input.bio),
-      imageUrl: cleanText(input.imageUrl || input.image_url),
+      role: cleanText(value.role),
+      company: cleanText(value.company),
+      bio: cleanText(value.bio),
+      imageUrl: cleanText(value.imageUrl ?? value.image_url),
     }
   }
 
@@ -109,7 +119,13 @@ export function formatSpeakerCardsForEditor(cards: unknown): string {
     .map((card) => {
       const normalized = normalizeSpeakerCard(card)
       if (!normalized) return ""
-      return [normalized.name, normalized.role || "", normalized.company || "", normalized.imageUrl || "", normalized.bio || ""]
+      return [
+        normalized.name,
+        normalized.role || "",
+        normalized.company || "",
+        normalized.imageUrl || "",
+        normalized.bio || "",
+      ]
         .join(" | ")
         .replace(/\s+\|\s+\|\s+\|\s+$/, "")
         .replace(/\s+\|\s+\|\s+$/, "")
@@ -131,6 +147,6 @@ export function getPlaybackSource(webinar: Partial<WebinarRecord> | null | undef
   return null
 }
 
-function cleanText(value: unknown) {
+function cleanText(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null
 }

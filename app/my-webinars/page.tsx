@@ -84,7 +84,10 @@ async function toSignedUrl(maybeStorageUrl: string | null, expiresIn = 60 * 60) 
 }
 
 function normalizeWebinarRow(row: WebinarAssignmentRow): WebinarRow | null {
-  const webinar = row.webinars
+  const webinar = Array.isArray((row as any).webinars)
+    ? ((row as any).webinars[0] ?? null)
+    : row.webinars
+
   if (!webinar) return null
 
   return {
@@ -151,7 +154,7 @@ export default async function MyWebinarsPage() {
     console.error("my-webinars query error:", error)
   }
 
-  const assignments = (data ?? []) as WebinarAssignmentRow[]
+  const assignments = (data ?? []) as unknown as WebinarAssignmentRow[]
   const rawRows = assignments.map(normalizeWebinarRow).filter((row): row is WebinarRow => Boolean(row))
 
   const assignmentsCount = assignments.length

@@ -7,7 +7,7 @@ import GeneralSessionPlayer from "./player"
 type Mode = "video" | "slides" | "side"
 
 type ControlRow = {
-  id: boolean
+  id: number
   state: "holding" | "live" | "paused" | "ended"
   message: string | null
   updated_at: string | null

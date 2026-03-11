@@ -3,7 +3,7 @@
 import React from "react"
 import { usePathname } from "next/navigation"
 
-function getSessionId() {
+function getSessionId(): string | null {
   const key = "attendee_session_id"
 
   if (typeof window === "undefined") return null
@@ -18,11 +18,14 @@ function getSessionId() {
   return v
 }
 
-export default function ActivityTracker({ roomKey = "general" }: { roomKey?: string }) {
+export default function ActivityTracker({
+  roomKey = "general",
+}: {
+  roomKey?: string
+}): React.JSX.Element | null {
   const pathname = usePathname()
   const [sessionId, setSessionId] = React.useState<string | null>(null)
 
-  // Create session ID safely in browser
   React.useEffect(() => {
     const id = getSessionId()
     setSessionId(id)
@@ -33,7 +36,7 @@ export default function ActivityTracker({ roomKey = "general" }: { roomKey?: str
 
     let stop = false
 
-    async function ping() {
+    async function ping(): Promise<void> {
       try {
         await fetch("/api/activity/heartbeat", {
           method: "POST",
@@ -49,12 +52,10 @@ export default function ActivityTracker({ roomKey = "general" }: { roomKey?: str
       }
     }
 
-    // ping immediately on route change
     ping()
 
-    // keep alive every 15s
     const id = setInterval(() => {
-      if (!stop) ping()
+      if (!stop) void ping()
     }, 15000)
 
     return () => {

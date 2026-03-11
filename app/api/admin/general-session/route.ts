@@ -27,7 +27,7 @@ function clean(body: any) {
 export async function POST(req: Request) {
   await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.event_id) {
     return NextResponse.json({ error: "event_id is required" }, { status: 400 })
   }
@@ -58,7 +58,7 @@ export async function POST(req: Request) {
 export async function PUT(req: Request) {
   await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 })
   }
@@ -90,7 +90,7 @@ export async function PUT(req: Request) {
 export async function DELETE(req: Request) {
   await requireAdmin()
 
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
   if (!body?.id) {
     return NextResponse.json({ error: "id is required" }, { status: 400 })
   }

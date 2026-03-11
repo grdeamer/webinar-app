@@ -4,7 +4,7 @@ import React from "react"
 import { createClient } from "@supabase/supabase-js"
 
 type ControlRow = {
-  id: boolean
+  id: number
   state: "holding" | "live" | "paused" | "ended"
   message: string | null
   updated_at: string | null

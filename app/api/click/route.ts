@@ -13,14 +13,13 @@ function isUuid(v: string) {
 
 export async function POST(req: Request) {
   try {
-    const body = await req.json().catch(() => null)
+    const body = await req.json().catch((): null => null)
     const webinarId = body?.webinarId
 
     if (typeof webinarId !== "string" || !isUuid(webinarId)) {
       return NextResponse.json({ error: "Invalid webinarId" }, { status: 400 })
     }
 
-    // optional: identify user from cookie token (if present)
     const cookieStore = await cookies()
     const token = cookieStore.get("user_token")?.value
     const JWT_SECRET = process.env.JWT_SECRET
@@ -39,7 +38,7 @@ export async function POST(req: Request) {
 
     const { error } = await supabaseAdmin.from("webinar_clicks").insert({
       webinar_id: webinarId,
-      user_id: userId, // can be null
+      user_id: userId,
     })
 
     if (error) {

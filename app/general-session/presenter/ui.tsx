@@ -5,7 +5,7 @@ import React from "react"
 type GateState = "holding" | "live" | "paused" | "ended"
 
 type ControlRow = {
-  id: boolean
+  id: number
   state: GateState
   message: string | null
   updated_at: string | null

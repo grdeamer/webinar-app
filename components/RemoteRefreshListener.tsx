@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef } from "react"
+import React, { useEffect, useRef } from "react"
 import { createClient } from "@supabase/supabase-js"
 
 type Props = {
@@ -13,7 +13,7 @@ export default function RemoteRefreshListener({
   scopeType,
   scopeId,
   hardReload = true,
-}: Props) {
+}: Props): React.JSX.Element | null {
   const lastSeenRef = useRef<string | null>(null)
 
   useEffect(() => {
@@ -34,7 +34,7 @@ export default function RemoteRefreshListener({
           table: "refresh_signals",
           filter: `scope_type=eq.${scopeType}`,
         },
-        (payload) => {
+        (payload): void => {
           const row = payload.new as {
             scope_id?: string
             refresh_token?: string
@@ -57,7 +57,7 @@ export default function RemoteRefreshListener({
           window.location.reload()
         }
       )
-      .subscribe((status) => {
+      .subscribe((status): void => {
         console.log("[RemoteRefreshListener] status:", status, {
           scopeType,
           scopeId,

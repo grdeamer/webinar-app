@@ -16,7 +16,7 @@ export async function POST(req: Request): Promise<Response> {
   await requireAdmin()
 
   try {
-    const body = await req.json().catch(() => ({}))
+    const body = await req.json().catch((): {} => ({}))
     const fileName: string = body?.fileName || "general-session.mp4"
     const fileSize: number | null =
       typeof body?.fileSize === "number" ? body.fileSize : null
@@ -38,7 +38,7 @@ export async function POST(req: Request): Promise<Response> {
 
     const { data, error } = await supabaseAdmin.storage
       .from("private")
-      .createSignedUploadUrl(path, 60)
+      .createSignedUploadUrl(path)
 
     if (error) return json({ error: error.message }, 400)
 

@@ -287,6 +287,7 @@ export default function AdminEventEditor({
         initialSponsors={(row.event_sponsors || []).map((s) => ({
           ...s,
           event_id: s.event_id ?? row.id,
+          sort_index: s.sort_index ?? 0,
         }))}
       />
     </div>

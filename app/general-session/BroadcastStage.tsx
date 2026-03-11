@@ -5,7 +5,7 @@ import { createClient } from "@supabase/supabase-js"
 import GeneralSessionPlayer from "./player"
 
 type ControlRow = {
-  id: boolean
+  id: number
   state: "holding" | "live" | "paused" | "ended"
   message: string | null
   updated_at: string | null

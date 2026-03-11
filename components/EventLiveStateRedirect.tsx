@@ -9,7 +9,7 @@ type Payload = {
   destination: EventLiveDestination
 }
 
-export default function EventLiveStateRedirect({ slug }: { slug: string }) {
+export default function EventLiveStateRedirect({ slug }: { slug: string }): React.JSX.Element | null {
   const pathname = usePathname()
   const router = useRouter()
   const hasRedirected = useRef(false)
@@ -18,7 +18,7 @@ export default function EventLiveStateRedirect({ slug }: { slug: string }) {
   useEffect(() => {
     let cancelled = false
 
-    async function load() {
+    async function load(): Promise<void> {
       try {
         const res = await fetch(`/api/events/${slug}/live-state`, { cache: "no-store" })
         if (!res.ok) return
@@ -29,9 +29,14 @@ export default function EventLiveStateRedirect({ slug }: { slug: string }) {
       }
     }
 
-    load()
-    const handler = () => load()
+    void load()
+
+    const handler = (): void => {
+      void load()
+    }
+
     window.addEventListener("admin-live-state-updated", handler)
+
     return () => {
       cancelled = true
       window.removeEventListener("admin-live-state-updated", handler)
@@ -48,12 +53,15 @@ export default function EventLiveStateRedirect({ slug }: { slug: string }) {
 
   useEffect(() => {
     if (!shouldRedirect || !payload?.destination?.href) return
+
     hasRedirected.current = true
     const href = payload.destination.href
+
     if (/^https?:\/\//i.test(href)) {
       window.location.assign(href)
       return
     }
+
     router.replace(href)
   }, [shouldRedirect, payload, router])
 

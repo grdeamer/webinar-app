@@ -1,5 +1,43 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
+type AgendaSeedRow = {
+  event_id: string
+  title: string
+  description: string | null
+  speaker: string | null
+  track: string | null
+  location: string | null
+  start_at: string | null
+  end_at: string | null
+  sort_index: number
+}
+
+type BreakoutSeedRow = {
+  event_id: string
+  title: string
+  description: string | null
+  join_link: string | null
+  start_at: string | null
+  end_at: string | null
+}
+
+type SponsorSeedRow = {
+  event_id: string
+  name: string
+  description: string | null
+  tier: string | null
+  sort_index: number
+}
+
+type LibrarySeedRow = {
+  event_id: string
+  kind: string
+  title: string
+  description: string | null
+  url: string | null
+  sort_index: number
+}
+
 export async function scaffoldEventContent(eventId: string) {
   const summary = {
     agendaCreated: 0,
@@ -20,7 +58,12 @@ export async function scaffoldEventContent(eventId: string) {
   const eventTitle = String((eventData as any).title || "Event")
   const baseDescription = String((eventData as any).description || "").trim()
 
-  const [{ count: agendaCount, error: agendaCountError }, { count: breakoutsCount, error: breakoutsCountError }, { count: sponsorsCount, error: sponsorsCountError }, { count: libraryCount, error: libraryCountError }] = await Promise.all([
+  const [
+    { count: agendaCount, error: agendaCountError },
+    { count: breakoutsCount, error: breakoutsCountError },
+    { count: sponsorsCount, error: sponsorsCountError },
+    { count: libraryCount, error: libraryCountError },
+  ] = await Promise.all([
     supabaseAdmin.from("event_agenda_items").select("id", { count: "exact", head: true }).eq("event_id", eventId),
     supabaseAdmin.from("event_breakouts").select("id", { count: "exact", head: true }).eq("event_id", eventId),
     supabaseAdmin.from("event_sponsors").select("id", { count: "exact", head: true }).eq("event_id", eventId),
@@ -35,10 +78,12 @@ export async function scaffoldEventContent(eventId: string) {
   const start = new Date()
   start.setMinutes(0, 0, 0)
   start.setHours(start.getHours() + 1)
-  const plusMinutes = (minutes: number) => new Date(start.getTime() + minutes * 60_000).toISOString()
+
+  const plusMinutes = (minutes: number): string =>
+    new Date(start.getTime() + minutes * 60_000).toISOString()
 
   if ((agendaCount || 0) === 0) {
-    const agendaRows = [
+    const agendaRows: AgendaSeedRow[] = [
       {
         event_id: eventId,
         title: `${eventTitle} Opening Session`,
@@ -80,7 +125,7 @@ export async function scaffoldEventContent(eventId: string) {
   }
 
   if ((breakoutsCount || 0) === 0) {
-    const breakoutRows = [
+    const breakoutRows: BreakoutSeedRow[] = [
       {
         event_id: eventId,
         title: "Clinical Innovation Room",
@@ -105,7 +150,7 @@ export async function scaffoldEventContent(eventId: string) {
   }
 
   if ((sponsorsCount || 0) === 0) {
-    const sponsorRows = [
+    const sponsorRows: SponsorSeedRow[] = [
       {
         event_id: eventId,
         name: "Northstar Health",
@@ -128,7 +173,7 @@ export async function scaffoldEventContent(eventId: string) {
   }
 
   if ((libraryCount || 0) === 0) {
-    const libraryRows = [
+    const libraryRows: LibrarySeedRow[] = [
       {
         event_id: eventId,
         kind: "link",

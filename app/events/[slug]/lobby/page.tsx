@@ -43,7 +43,7 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
     getEventLiveState(event.id),
   ])
 
-  const assignments = (rows ?? []) as EventWebinarAssignmentRow[]
+  const assignments = (rows ?? []) as unknown as EventWebinarAssignmentRow[]
   const webinars = assignments.map((row) => row.webinars).filter(isEventAssignedWebinar)
   const nextWebinar = [...webinars].sort((a, b) => {
     const aTime = a.webinar_date ? new Date(a.webinar_date).getTime() : Number.MAX_SAFE_INTEGER

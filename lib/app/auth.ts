@@ -1,7 +1,7 @@
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 
-export async function isAdminRequest() {
-  const supabase = await createSupabaseServerClient()
+export async function isAdminRequest(): Promise<boolean> {
+  const supabase = await createClient()
 
   const {
     data: { user },
@@ -21,7 +21,7 @@ export async function isAdminRequest() {
   return profile.role === "admin" && profile.is_active !== false
 }
 
-export async function assertAdminRequest() {
+export async function assertAdminRequest(): Promise<void> {
   if (!(await isAdminRequest())) {
     throw new Error("UNAUTHORIZED")
   }
