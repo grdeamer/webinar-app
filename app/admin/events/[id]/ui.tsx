@@ -8,7 +8,13 @@ import AdminEventScaffoldButton from "@/components/admin/AdminEventScaffoldButto
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 import AdminRefreshButton from "@/components/admin/AdminRefreshButton"
 import AdminEventLiveStatePanel from "@/components/admin/AdminEventLiveStatePanel"
-import type { EventBreakout, EventLiveStateRecord, EventSponsorRecord } from "@/lib/types"
+import AdminLogoutButton from "@/components/admin/AdminLogoutButton"
+
+import type {
+  EventBreakout,
+  EventLiveStateRecord,
+  EventSponsorRecord,
+} from "@/lib/types"
 
 type EventRow = {
   id: string
@@ -25,11 +31,13 @@ export default function AdminEventEditor({
   initialBreakouts,
   initialLiveState,
   importRegistrantsHref,
+  directorHref,
 }: {
   initial: EventRow
   initialBreakouts: EventBreakout[]
   initialLiveState: EventLiveStateRecord | null
   importRegistrantsHref?: string
+  directorHref?: string
 }) {
   const [row, setRow] = useState<EventRow>(initial)
   const [busy, setBusy] = useState(false)
@@ -62,13 +70,17 @@ export default function AdminEventEditor({
 
   return (
     <div className="space-y-6">
+
+      {/* HEADER */}
       <div className="flex items-center justify-between gap-4">
+
         <div>
           <h1 className="text-3xl font-bold">{row.title}</h1>
           <div className="mt-1 text-sm text-white/60">/{row.slug}</div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2 items-center">
+
           <Link
             href="/admin/events"
             className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
@@ -76,14 +88,23 @@ export default function AdminEventEditor({
             Back
           </Link>
 
-          {importRegistrantsHref ? (
+          {directorHref && (
+            <Link
+              href={directorHref}
+              className="rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-2 font-semibold text-cyan-100 hover:bg-cyan-500/20"
+            >
+              Director Mode
+            </Link>
+          )}
+
+          {importRegistrantsHref && (
             <Link
               href={importRegistrantsHref}
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
             >
               Import Registrants
             </Link>
-          ) : null}
+          )}
 
           <a
             href={`/events/${row.slug}/lobby`}
@@ -95,9 +116,15 @@ export default function AdminEventEditor({
           </a>
 
           <AdminRefreshButton scopeType="event" scopeId={row.id} />
+
+          {/* LOGOUT BUTTON */}
+          <AdminLogoutButton />
+
         </div>
       </div>
 
+
+      {/* LIVE STATE CONTROL PANEL */}
       <AdminEventLiveStatePanel
         eventId={row.id}
         eventSlug={row.slug}
@@ -105,8 +132,12 @@ export default function AdminEventEditor({
         initialLiveState={initialLiveState}
       />
 
+
       <div className="grid gap-6 lg:grid-cols-3">
+
+        {/* MAIN EVENT SETTINGS */}
         <section className="space-y-6 rounded-2xl border border-white/10 bg-white/5 p-6 lg:col-span-2">
+
           <div>
             <div className="text-sm text-white/70">Title</div>
             <input
@@ -126,11 +157,11 @@ export default function AdminEventEditor({
               onChange={(e) =>
                 setRow((prev) => ({ ...prev, description: e.target.value }))
               }
-              placeholder="Welcome text for your lobby…"
             />
           </div>
 
           <div className="grid gap-6 xl:grid-cols-2">
+
             <AdminDateTimeField
               label="Event start"
               value={row.start_at}
@@ -138,7 +169,6 @@ export default function AdminEventEditor({
                 setRow((prev) => ({ ...prev, start_at: next }))
               }
               disabled={busy}
-              helperText="This new project-wide control replaces raw ISO typing with a cleaner date, time, and timezone picker."
             />
 
             <AdminDateTimeField
@@ -148,12 +178,12 @@ export default function AdminEventEditor({
                 setRow((prev) => ({ ...prev, end_at: next }))
               }
               disabled={busy}
-              helperText="Use this for countdown windows, event summaries, and attendee-facing timing."
             />
+
           </div>
 
-          {err ? <div className="text-sm text-red-400">{err}</div> : null}
-          {msg ? <div className="text-sm text-emerald-400">{msg}</div> : null}
+          {err && <div className="text-sm text-red-400">{err}</div>}
+          {msg && <div className="text-sm text-emerald-400">{msg}</div>}
 
           <button
             disabled={busy}
@@ -162,26 +192,35 @@ export default function AdminEventEditor({
           >
             Save
           </button>
+
         </section>
 
+
+        {/* SIDEBAR */}
         <aside className="space-y-3 rounded-2xl border border-white/10 bg-white/5 p-6">
+
           <AdminEventScaffoldButton eventId={row.id} />
           <AdminRefreshButton scopeType="event" scopeId={row.id} />
 
           <div className="text-sm text-white/60">Build your event</div>
 
-          <div className="pt-2 text-xs font-semibold uppercase tracking-wider text-white/40">
-            Admin tools
-          </div>
+          {directorHref && (
+            <Link
+              className="block rounded-xl border border-cyan-400/20 bg-cyan-500/10 px-4 py-2 font-semibold text-cyan-100 hover:bg-cyan-500/20"
+              href={directorHref}
+            >
+              Director Mode
+            </Link>
+          )}
 
-          {importRegistrantsHref ? (
+          {importRegistrantsHref && (
             <Link
               className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
               href={importRegistrantsHref}
             >
               Import Registrants CSV
             </Link>
-          ) : null}
+          )}
 
           <Link
             className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
@@ -197,90 +236,10 @@ export default function AdminEventEditor({
             Manage Sessions
           </Link>
 
-          <Link
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 opacity-70 hover:bg-white/10"
-            href={`/admin/events/${row.id}/breakouts`}
-          >
-            Legacy Breakouts
-          </Link>
-
-          <div className="pt-4 text-xs font-semibold uppercase tracking-wider text-white/40">
-            Event Pages
-          </div>
-
-          <a
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href={`/events/${row.slug}/agenda`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Agenda
-          </a>
-
-          <a
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href={`/events/${row.slug}/breakouts`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Sessions
-          </a>
-
-          <a
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href={`/events/${row.slug}/sponsors`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Sponsors
-          </a>
-
-          <a
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href={`/events/${row.slug}/chat`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Chat
-          </a>
-
-          <a
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href={`/events/${row.slug}/networking`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            Networking
-          </a>
-
-          <a
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href={`/events/${row.slug}/on-demand`}
-            target="_blank"
-            rel="noreferrer"
-          >
-            On-Demand
-          </a>
-
-          <Link
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href="/admin/sponsors"
-          >
-            Sponsor Overview
-          </Link>
-
-          <Link
-            className="block rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-            href="/admin/speakers"
-          >
-            Speaker Overview
-          </Link>
-
-          <div className="pt-2 text-xs text-white/40">
-            Sessions are the new system. Breakouts remain available for legacy events.
-          </div>
         </aside>
+
       </div>
+
 
       <AdminEventSponsorManager
         eventId={row.id}
@@ -290,6 +249,7 @@ export default function AdminEventEditor({
           sort_index: s.sort_index ?? 0,
         }))}
       />
+
     </div>
   )
 }

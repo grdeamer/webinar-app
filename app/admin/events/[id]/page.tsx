@@ -39,6 +39,7 @@ export default async function AdminEventDetailPage(props: { params: Promise<{ id
       initialBreakouts={initialBreakouts}
       initialLiveState={liveState}
       importRegistrantsHref={`/admin/import?eventId=${id}`}
+      directorHref={`/admin/events/${id}/director`}
     />
   )
 }
