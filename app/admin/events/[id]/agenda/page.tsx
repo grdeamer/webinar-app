@@ -23,7 +23,7 @@ export default async function AdminEventAgendaPage(props: { params: Promise<{ id
       "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,created_at"
     )
     .eq("event_id", id)
-    .order("start_at", { ascending: true, nullsLast: true })
+    .order("start_at", { ascending: true })
     .order("sort_index", { ascending: true })
     .returns<EventAgendaItem[]>()
 
