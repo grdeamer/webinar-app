@@ -14,10 +14,9 @@ function isUuid(v: string) {
 export async function PATCH(
   req: Request,
   context: { params: Promise<{ id: string }> }
-) {
+): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
     const { id } = await context.params
 
