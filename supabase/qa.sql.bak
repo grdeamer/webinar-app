@@ -1,0 +1,30 @@
+-- Run this in Supabase SQL Editor to add Q&A for General Session
+
+create table if not exists public.qa_sessions (
+  id uuid primary key default gen_random_uuid(),
+  slug text unique not null,
+  enabled boolean not null default true,
+  allow_anonymous boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+insert into public.qa_sessions (slug, enabled, allow_anonymous)
+values ('general-session', true, false)
+on conflict (slug) do nothing;
+
+create table if not exists public.qa_questions (
+  id uuid primary key default gen_random_uuid(),
+  session_id uuid not null references public.qa_sessions(id) on delete cascade,
+  asked_by text null,
+  asked_by_user_id uuid null,
+  question text not null,
+  status text not null default 'pending', -- pending | approved | hidden
+  pinned boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists qa_questions_session_created_idx
+  on public.qa_questions(session_id, created_at desc);
+
+create index if not exists qa_questions_session_status_idx
+  on public.qa_questions(session_id, status);
