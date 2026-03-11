@@ -53,6 +53,17 @@ type NodeKey =
   | "Login"
   | "Other"
 
+function normalizePath(p: string): NodeKey {
+  if (p.startsWith("/admin")) return "Admin"
+  if (p.startsWith("/general-session/qa") || p.includes("/qa")) return "Q&A"
+  if (p.startsWith("/general-session")) return "General Session"
+  if (p.startsWith("/webinars/")) return "Webinar Detail"
+  if (p.startsWith("/webinars")) return "Webinars"
+  if (p.startsWith("/login")) return "Login"
+  if (p === "/") return "Lobby"
+  return "Other"
+}
+
 const DEFAULT_NODES: { key: NodeKey; x: number; y: number }[] = [
   { key: "Lobby", x: 110, y: 150 },
   { key: "General Session", x: 370, y: 95 },
