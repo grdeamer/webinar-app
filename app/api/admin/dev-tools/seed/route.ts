@@ -119,10 +119,7 @@ async function assignAttendeeToWebinarSafe(webinarId: string, attendeeEmail: str
   try {
     const { error } = await supabaseAdmin
       .from("event_user_webinars")
-      .upsert(
-        { webinar_id: webinarId, email },
-        { onConflict: "webinar_id,email" }
-      )
+      .upsert({ webinar_id: webinarId, email }, { onConflict: "webinar_id,email" })
 
     if (!error) return { ok: true, mode: "event_user_webinars(webinar_id,email)" }
   } catch {}
@@ -130,10 +127,7 @@ async function assignAttendeeToWebinarSafe(webinarId: string, attendeeEmail: str
   try {
     const { error } = await supabaseAdmin
       .from("user_webinars")
-      .upsert(
-        { webinar_id: webinarId, email },
-        { onConflict: "webinar_id,email" }
-      )
+      .upsert({ webinar_id: webinarId, email }, { onConflict: "webinar_id,email" })
 
     if (!error) return { ok: true, mode: "user_webinars(webinar_id,email)" }
   } catch {}
@@ -142,15 +136,21 @@ async function assignAttendeeToWebinarSafe(webinarId: string, attendeeEmail: str
 }
 
 export async function POST(req: Request) {
-
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
+    const authResult = await requireAdmin()
+
+    // If requireAdmin returns a Response/NextResponse, return it.
+    if (authResult instanceof Response) {
+      return authResult
+    }
+
     const body = await req.json().catch(() => ({}))
 
     const eventSlug = slugify(body?.eventSlug || "test-event")
     const eventTitle = String(body?.eventTitle || "Test Event").trim()
-    const userEmail = String(body?.userEmail || "attendee@testevent.com").trim().toLowerCase()
+    const userEmail = String(body?.userEmail || "attendee@testevent.com")
+      .trim()
+      .toLowerCase()
     const webinarTitle = String(body?.webinarTitle || "Welcome Session").trim()
 
     const posterUrl = String(body?.posterUrl || body?.thumbnailUrl || "").trim()
