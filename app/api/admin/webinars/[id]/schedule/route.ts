@@ -19,15 +19,19 @@ async function updateFieldSafe(id: string, key: string, value: any) {
   return { skipped: false }
 }
 
-export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+export async function POST(
+  req: Request,
+  props: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
     const { id } = await props.params
     const body = await req.json().catch(() => ({}))
 
-    if (!id) return NextResponse.json({ error: "Missing webinar id" }, { status: 400 })
+    if (!id) {
+      return NextResponse.json({ error: "Missing webinar id" }, { status: 400 })
+    }
 
     const applied: string[] = []
     const skipped: string[] = []
@@ -44,6 +48,9 @@ export async function POST(req: Request, props: { params: Promise<{ id: string }
 
     return NextResponse.json({ ok: true, applied, skipped })
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || "Failed to save schedule" }, { status: 500 })
+    return NextResponse.json(
+      { error: error?.message || "Failed to save schedule" },
+      { status: 500 }
+    )
   }
 }
