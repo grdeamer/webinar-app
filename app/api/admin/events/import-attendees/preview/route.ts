@@ -7,6 +7,9 @@ import type { CsvCell, CsvRow } from "@/lib/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+function json(data: any, status = 200) {
+  return NextResponse.json(data, { status })
+}
 
 function normEmail(v: unknown) {
   return typeof v === "string" ? v.trim().toLowerCase() : ""
@@ -47,7 +50,11 @@ async function resolveWebinarId(identifierRaw: string) {
   if (!identifier) return { id: null as string | null, reason: "Empty webinar identifier" }
 
   if (isUuid(identifier)) {
-    const { data } = await supabaseAdmin.from("webinars").select("id").eq("id", identifier).maybeSingle()
+    const { data } = await supabaseAdmin
+      .from("webinars")
+      .select("id")
+      .eq("id", identifier)
+      .maybeSingle()
     if (data?.id) return { id: data.id, reason: null as string | null }
   }
 
@@ -70,15 +77,15 @@ async function resolveWebinarId(identifierRaw: string) {
 
 export async function POST(req: Request) {
   try {
-    const unauthorized = await requireAdmin()
-    if (unauthorized) return unauthorized
+    const authResult = await requireAdmin()
+    if (authResult instanceof Response) return authResult
 
     const form = await req.formData()
     const file = form.get("file")
     const event_id = (form.get("event_id") as string | null) || null
 
     if (!(file instanceof File)) {
-      return NextResponse.json({ error: "CSV file is required" }, { status: 400 })
+      return json({ error: "CSV file is required" }, 400)
     }
 
     const csvText = await file.text()
@@ -89,25 +96,30 @@ export async function POST(req: Request) {
     })
 
     if (parsed.errors?.length) {
-      return NextResponse.json(
+      return json(
         { error: "CSV parse error", details: parsed.errors.slice(0, 5) },
-        { status: 400 }
+        400
       )
     }
 
     const rows = (parsed.data ?? []).filter(Boolean)
-    if (!rows.length) return NextResponse.json({ error: "CSV has no rows" }, { status: 400 })
+    if (!rows.length) return json({ error: "CSV has no rows" }, 400)
 
     const finalEventId = await resolveEventId(event_id, rows)
     if (!finalEventId) {
-      return NextResponse.json(
-        { error: "Missing event. Provide event_id or include an 'event' column with the event slug." },
-        { status: 400 }
+      return json(
+        {
+          error:
+            "Missing event. Provide event_id or include an 'event' column with the event slug.",
+        },
+        400
       )
     }
 
     const headers = (parsed.meta?.fields || []).map((h) => h.trim())
-    const hasRowPerWebinar = headers.some((h) => ["webinar", "webinar_slug", "webinar_id", "webinarId"].includes(h))
+    const hasRowPerWebinar = headers.some((h) =>
+      ["webinar", "webinar_slug", "webinar_id", "webinarId"].includes(h)
+    )
 
     const baseCols = new Set([
       "event",
@@ -132,7 +144,6 @@ export async function POST(req: Request) {
     let invalidEmailCount = 0
     let missingWebinarCount = 0
 
-    // Pass 1: collect identifiers + row-level issues
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
       const email = normEmail(pick(row, ["email", "Email", "user", "user_email", "userEmail"]))
@@ -147,7 +158,10 @@ export async function POST(req: Request) {
         const w = pick(row, ["webinar", "webinar_slug", "webinar_id", "webinarId"])
         if (!w) {
           missingWebinarCount++
-          rowErrors.push({ row: i + 2, error: "Missing webinar (webinar/webinar_slug/webinar_id)" })
+          rowErrors.push({
+            row: i + 2,
+            error: "Missing webinar (webinar/webinar_slug/webinar_id)",
+          })
           continue
         }
         webinarIdents.add(w)
@@ -163,7 +177,6 @@ export async function POST(req: Request) {
       }
     }
 
-    // Pass 2: resolve webinars
     const cache = new Map<string, { id: string | null; reason: string | null }>()
     const unknownWebinars: string[] = []
 
@@ -173,9 +186,7 @@ export async function POST(req: Request) {
       if (!r.id) unknownWebinars.push(ident)
     }
 
-    // If unknown webinars exist, add a few row errors (helpful)
     if (unknownWebinars.length) {
-      // for matrix format, we can just flag headers
       if (!hasRowPerWebinar) {
         for (const ident of unknownWebinars.slice(0, 25)) {
           rowErrors.push({ row: 1, error: `Unknown webinar column: ${ident}` })
@@ -183,7 +194,7 @@ export async function POST(req: Request) {
       }
     }
 
-    return NextResponse.json({
+    return json({
       success: true,
       event_id: finalEventId,
       format: hasRowPerWebinar ? "row_per_webinar" : "matrix",
@@ -201,6 +212,6 @@ export async function POST(req: Request) {
     })
   } catch (err: any) {
     console.error("import-attendees preview error:", err)
-    return NextResponse.json({ error: "Server error" }, { status: 500 })
+    return json({ error: "Server error" }, 500)
   }
 }
