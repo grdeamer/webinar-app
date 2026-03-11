@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { createSupabaseServerClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/server"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
   if (!session.enabled) return NextResponse.json({ error: "Q&A is currently closed." }, { status: 403 })
 
   // Auth
-  const supabase = createSupabaseServerClient()
+const supabase = await createClient()
   const { data: auth, error: authErr } = await supabase.auth.getUser()
   const user = auth?.user || null
 

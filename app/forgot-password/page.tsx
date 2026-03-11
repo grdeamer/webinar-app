@@ -2,10 +2,10 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { createSupabaseBrowserClient } from "@/lib/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 
 export default function ForgotPasswordPage() {
-  const supabase = createSupabaseBrowserClient()
+const supabase = createClient()
 
   const [email, setEmail] = React.useState("")
   const [loading, setLoading] = React.useState(false)
