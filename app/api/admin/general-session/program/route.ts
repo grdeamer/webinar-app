@@ -5,14 +5,13 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => ({}))
   const action = String(body?.action || "").trim()
 
@@ -24,6 +23,7 @@ export async function POST(req: Request) {
       .select("*")
       .eq("id", 1)
       .maybeSingle()
+
     if (error) return json({ error: error.message }, 400)
 
     const s = settings as any
@@ -94,6 +94,7 @@ export async function POST(req: Request) {
       )
       .select("*")
       .single()
+
     if (error) return json({ error: error.message }, 400)
     return json({ program: data })
   }
@@ -113,10 +114,10 @@ export async function POST(req: Request) {
       )
       .select("*")
       .single()
+
     if (error) return json({ error: error.message }, 400)
     return json({ program: data })
   }
-
 
   if (action === "get") {
     const { data, error } = await supabaseAdmin
@@ -124,13 +125,16 @@ export async function POST(req: Request) {
       .select("*")
       .eq("id", 1)
       .maybeSingle()
+
     if (error) return json({ error: error.message }, 400)
     return json({ program: data || null })
   }
 
   if (action === "set_preview_slot") {
     const slot = Number(body?.slot)
-    if (!Number.isFinite(slot) || slot < 1 || slot > 7) return json({ error: "Invalid slot" }, 400)
+    if (!Number.isFinite(slot) || slot < 1 || slot > 7) {
+      return json({ error: "Invalid slot" }, 400)
+    }
 
     const { data, error } = await supabaseAdmin
       .from("general_session_program")
@@ -144,12 +148,14 @@ export async function POST(req: Request) {
       )
       .select("*")
       .single()
+
     if (error) return json({ error: error.message }, 400)
     return json({ program: data })
   }
 
   if (action === "set_transition_ms") {
     const ms = Math.max(0, Math.min(5000, Number(body?.ms || 0)))
+
     const { data, error } = await supabaseAdmin
       .from("general_session_program")
       .upsert(
@@ -162,17 +168,20 @@ export async function POST(req: Request) {
       )
       .select("*")
       .single()
+
     if (error) return json({ error: error.message }, 400)
     return json({ program: data })
   }
 
   if (action === "cut_to_preview" || action === "auto_to_preview") {
     const isAuto = action === "auto_to_preview"
+
     const { data: row, error: rErr } = await supabaseAdmin
       .from("general_session_program")
       .select("*")
       .eq("id", 1)
       .maybeSingle()
+
     if (rErr) return json({ error: rErr.message }, 400)
 
     const preview_slot = (row as any)?.preview_slot ?? null
@@ -183,12 +192,12 @@ export async function POST(req: Request) {
       .select("*")
       .eq("id", 1)
       .maybeSingle()
+
     if (mvErr) return json({ error: mvErr.message }, 400)
 
     const slotSource = (mv as any)?.slots?.[String(preview_slot)] || null
     if (!slotSource) return json({ error: "Preview slot is empty" }, 400)
 
-    // Derive program update from the slot source
     const kind = slotSource.kind as string
     const now = new Date().toISOString()
 
@@ -204,8 +213,8 @@ export async function POST(req: Request) {
       base.program_kind = "slides"
       base.program_slide_path = slotSource.slide_path
     } else {
-      // default to video-ish; for HLS we can use preview_url directly
       base.program_kind = "video"
+
       if (kind === "hls") {
         base.program_source_type = "m3u8"
         base.program_m3u8_url = slotSource.preview_url || null
@@ -218,8 +227,6 @@ export async function POST(req: Request) {
         base.program_m3u8_url = null
       } else {
         base.program_source_type = "mp4"
-        // If the slot is settings_video we don't know the path; use take_video separately. Otherwise we can store mp4_path in id? 
-        // Best effort: keep existing fields unchanged.
       }
     }
 
@@ -228,11 +235,11 @@ export async function POST(req: Request) {
       .upsert(base, { onConflict: "id" })
       .select("*")
       .single()
+
     if (error) return json({ error: error.message }, 400)
 
     return json({ program: data })
   }
-
 
   return json({ error: "Unknown action" }, 400)
 }
