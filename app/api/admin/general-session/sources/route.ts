@@ -1,18 +1,21 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
-import type { GeneralSessionSettingsRow, GeneralSessionSourceOption, SlideAssetRow } from "@/lib/types"
+import type {
+  GeneralSessionSettingsRow,
+  GeneralSessionSourceOption,
+  SlideAssetRow,
+} from "@/lib/types"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: unknown, status = 200) {
+function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
-export async function GET() {
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
+export async function GET(): Promise<Response> {
+  await requireAdmin()
 
   const sources: GeneralSessionSourceOption[] = []
 
@@ -30,7 +33,10 @@ export async function GET() {
   const rtmpUrl = settings?.rtmp_url || null
 
   if (sourceType === "mp4" && mp4Path) {
-    const { data } = await supabaseAdmin.storage.from("private").createSignedUrl(mp4Path, 60 * 20)
+    const { data } = await supabaseAdmin.storage
+      .from("private")
+      .createSignedUrl(mp4Path, 60 * 20)
+
     sources.push({
       id: "settings_video",
       kind: "video",
@@ -73,7 +79,9 @@ export async function GET() {
       lower.endsWith(".webp")
 
     if (isImage) {
-      const { data } = await supabaseAdmin.storage.from("private").createSignedUrl(path, 60 * 20)
+      const { data } = await supabaseAdmin.storage
+        .from("private")
+        .createSignedUrl(path, 60 * 20)
       previewUrl = data?.signedUrl || null
     }
 
