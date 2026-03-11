@@ -21,22 +21,18 @@ function toImportKey(title: string, dateISO: string, time: string) {
 }
 
 function toDateISO(dateRaw: string) {
-  // Accepts: 2026-02-20, 2/20/2026, Feb 20 2026, etc.
   const d = new Date(dateRaw)
   if (Number.isNaN(d.getTime())) return ""
-  // keep date portion stable
   const yyyy = d.getFullYear()
   const mm = String(d.getMonth() + 1).padStart(2, "0")
   const dd = String(d.getDate()).padStart(2, "0")
   return `${yyyy}-${mm}-${dd}`
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   try {
-    const unauthorized = await requireAdmin()
-    if (unauthorized) return unauthorized
+    await requireAdmin()
 
-    // ---- Read uploaded file ----
     const form = await req.formData()
     const file = form.get("file")
     if (!(file instanceof File)) {
@@ -68,13 +64,11 @@ export async function POST(req: Request) {
     let webinarsUpserted = 0
     let assignmentsUpserted = 0
 
-    // Optional: collect row-level errors instead of failing everything
     const rowErrors: Array<{ row: number; error: string }> = []
 
     for (let i = 0; i < rows.length; i++) {
       const row = rows[i]
 
-      // Accept flexible column names
       const email = normEmail(pick(row, ["email", "Email", "user_email", "userEmail"]))
       const title = pick(row, ["title", "Title", "webinar_title", "webinarTitle"])
       const description = pick(row, ["description", "Description", "desc"])
@@ -103,12 +97,8 @@ export async function POST(req: Request) {
       }
 
       const import_key = toImportKey(title, dateISO, time)
-
-      // We store webinar_date as a timestamp. If you only provide a date, this becomes midnight.
-      // You can later improve to combine date + time if desired.
       const webinar_date = `${dateISO}T00:00:00.000Z`
 
-      // ---- upsert user by email ----
       const { data: user, error: userErr } = await supabaseAdmin
         .from("users")
         .upsert({ email }, { onConflict: "email" })
@@ -121,7 +111,6 @@ export async function POST(req: Request) {
       }
       usersUpserted++
 
-      // ---- upsert webinar by import_key ----
       const { data: webinar, error: webErr } = await supabaseAdmin
         .from("webinars")
         .upsert(
@@ -149,7 +138,6 @@ export async function POST(req: Request) {
       }
       webinarsUpserted++
 
-      // ---- upsert assignment (user_id + webinar_id unique) ----
       const { error: linkErr } = await supabaseAdmin
         .from("user_webinars")
         .upsert(
@@ -161,6 +149,7 @@ export async function POST(req: Request) {
         rowErrors.push({ row: i + 2, error: `Assignment failed: ${linkErr.message}` })
         continue
       }
+
       assignmentsUpserted++
       processed++
     }
