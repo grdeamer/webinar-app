@@ -5,9 +5,8 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST(req: Request) {
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
   const body = await req.json().catch(() => null)
   const slug = typeof body?.slug === "string" ? body.slug : "general-session"
@@ -22,7 +21,11 @@ export async function POST(req: Request) {
   if (enabled !== null) patch.enabled = enabled
   if (allowAnonymous !== null) patch.allow_anonymous = allowAnonymous
 
-  const { error } = await supabaseAdmin.from("qa_sessions").update(patch).eq("slug", slug)
+  const { error } = await supabaseAdmin
+    .from("qa_sessions")
+    .update(patch)
+    .eq("slug", slug)
+
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   return NextResponse.json({ ok: true })
