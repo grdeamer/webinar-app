@@ -163,3 +163,10 @@ export const getAdminToken = getAdminTokenFromCookies
 export const requireAdminToken = requireValidAdminToken
 export const setAdminCookie = setAdminTokenCookie
 export const clearAdminCookie = clearAdminTokenCookie
+export async function isAdminFromCookie(token?: string | null) {
+  if (typeof token === "string") {
+    return verifyAdminToken(token)
+  }
+
+  return hasValidAdminToken()
+}
