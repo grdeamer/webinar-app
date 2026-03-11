@@ -48,8 +48,8 @@ export interface EventAgendaItem {
   speaker: string | null
   start_at: string | null
   end_at: string | null
-  sort_index: number
-  created_at?: string
+  sort_index: number | null
+  created_at: string | null
 }
 
 export interface EventBreakout {
@@ -64,7 +64,7 @@ export interface EventBreakout {
   speaker_avatar_url: string | null
   manual_live: boolean
   auto_open: boolean
-  created_at?: string
+  created_at: string | null
 }
 
 export interface GeneralSessionSettingsRow {
@@ -109,7 +109,6 @@ export interface QAQuestionRow {
   created_at: string | null
 }
 
-
 export interface EventUser {
   id: string
   email: string
@@ -119,6 +118,7 @@ export interface EventUser {
 
 export interface EventSponsorRecord {
   id: string
+  event_id?: string | null
   name: string
   description: string | null
   logo_url: string | null
@@ -160,7 +160,6 @@ export interface EventWebinarAssignmentRow {
   webinar_id: string
   webinars: EventAssignedWebinar | null
 }
-
 
 export type EventLiveMode = "lobby" | "general_session" | "breakout" | "replay" | "off_air"
 
