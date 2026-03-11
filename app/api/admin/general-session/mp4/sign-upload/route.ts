@@ -6,16 +6,15 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
 const MAX_BYTES = 2_000_000_000 // 2GB
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
     const body = await req.json().catch(() => ({}))
     const fileName: string = body?.fileName || "general-session.mp4"
