@@ -32,6 +32,11 @@ export default async function AdminEventBreakoutsPage(props: {
 
   if (error) throw new Error(error.message)
 
+  const initialItems = (data || []).map((item) => ({
+    ...item,
+    created_at: item.created_at ?? "",
+  }))
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -62,7 +67,11 @@ export default async function AdminEventBreakoutsPage(props: {
         </div>
       </div>
 
-      <AdminBreakoutsEditor eventId={id} eventSlug={event.slug} initialItems={data || []} />
+      <AdminBreakoutsEditor
+        eventId={id}
+        eventSlug={event.slug}
+        initialItems={initialItems}
+      />
     </div>
   )
 }
