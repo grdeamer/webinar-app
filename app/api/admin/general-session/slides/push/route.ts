@@ -5,21 +5,19 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
 type Action = "set" | "next" | "prev" | "clear"
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => ({}))
   const action = String(body?.action || "") as Action
   const slideId = typeof body?.slide_id === "string" ? body.slide_id : null
 
-  // Load slides ordered by created_at asc so Next feels natural.
   const { data: slides, error: sErr } = await supabaseAdmin
     .from("general_session_slides")
     .select("id,name,slide_path,created_at")
@@ -28,7 +26,6 @@ export async function POST(req: Request) {
   if (sErr) return json({ error: sErr.message }, 400)
   const list = Array.isArray(slides) ? slides : []
 
-  // Load current program row (we store current slide_id + path)
   const { data: prog, error: pErr } = await supabaseAdmin
     .from("general_session_program")
     .select("program_slide_id,program_slide_path")
@@ -42,8 +39,14 @@ export async function POST(req: Request) {
   if (action === "clear") {
     const { error: uErr } = await supabaseAdmin
       .from("general_session_program")
-      .update({ program_kind: "video", program_slide_id: null, program_slide_path: null, updated_at: new Date().toISOString() })
+      .update({
+        program_kind: "video",
+        program_slide_id: null,
+        program_slide_path: null,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", 1)
+
     if (uErr) return json({ error: uErr.message }, 400)
     return json({ ok: true })
   }
@@ -53,7 +56,6 @@ export async function POST(req: Request) {
     nextSlide = list.find((s: any) => s.id === slideId) || null
     if (!nextSlide) return json({ error: "Slide not found" }, 404)
   } else {
-    // next/prev
     const currentId = prog?.program_slide_id || null
     const idx = currentId ? list.findIndex((s: any) => s.id === currentId) : -1
 
