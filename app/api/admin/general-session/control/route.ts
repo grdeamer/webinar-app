@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: any, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
@@ -16,7 +16,7 @@ function json(data: any, status = 200) {
  *  - message: text nullable
  *  - updated_at: timestamptz
  */
-export async function GET() {
+export async function GET(): Promise<Response> {
   const { data, error } = await supabaseAdmin
     .from("general_session_control")
     .select("*")
@@ -37,10 +37,9 @@ export async function GET() {
   })
 }
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => ({}))
 
   const state = typeof body?.state === "string" ? body.state : null
@@ -68,5 +67,6 @@ export async function POST(req: Request) {
     .single()
 
   if (error) return json({ error: error.message }, 400)
+
   return json({ control: data })
 }
