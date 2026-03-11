@@ -6,10 +6,9 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
     const form = await req.formData()
     const file = form.get("file")
