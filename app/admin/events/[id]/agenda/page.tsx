@@ -52,7 +52,14 @@ export default async function AdminEventAgendaPage(props: { params: Promise<{ id
         </div>
       </div>
 
-      <AdminAgendaEditor eventId={id} eventSlug={event.slug} initialItems={data || []} />
+      <AdminAgendaEditor
+  eventId={id}
+  eventSlug={event.slug}
+  initialItems={(data || []).map((item) => ({
+    ...item,
+    created_at: item.created_at ?? "",
+  }))}
+/>
     </div>
   )
 }
