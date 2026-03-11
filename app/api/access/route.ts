@@ -6,9 +6,9 @@ import { supabaseAdmin } from "../../../lib/supabaseAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST(req: Request) {
+export async function POST(req: Request): Promise<Response> {
   try {
-    const body = await req.json().catch(() => null)
+    const body = await req.json().catch((): null => null)
     const emailRaw = body?.email
 
     if (typeof emailRaw !== "string") {
@@ -25,7 +25,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "JWT_SECRET missing" }, { status: 500 })
     }
 
-    // Create or find user
     const { data: user, error } = await supabaseAdmin
       .from("users")
       .upsert({ email }, { onConflict: "email" })
@@ -40,14 +39,12 @@ export async function POST(req: Request) {
       )
     }
 
-    // Signed cookie token for the user
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, {
       expiresIn: "30d",
     })
 
     const res = NextResponse.json({ success: true })
 
-    // httpOnly auth cookie (server-trusted)
     res.cookies.set({
       name: "user_token",
       value: token,
@@ -58,11 +55,9 @@ export async function POST(req: Request) {
       maxAge: 60 * 60 * 24 * 30,
     })
 
-    // Presence session (used for realtime "who is in the lobby")
     const sessionId = crypto.randomUUID()
     const ua = req.headers.get("user-agent") || null
 
-    // non-httpOnly session cookie (client-readable if you want)
     res.cookies.set({
       name: "attendee_session_id",
       value: sessionId,
@@ -70,10 +65,9 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
       path: "/",
-      maxAge: 60 * 60 * 24, // 1 day
+      maxAge: 60 * 60 * 24,
     })
 
-    // Upsert attendee session row (server-side)
     const { error: pErr } = await supabaseAdmin.from("attendee_sessions").upsert(
       {
         session_id: sessionId,
@@ -87,7 +81,6 @@ export async function POST(req: Request) {
 
     if (pErr) {
       console.error("presence upsert error:", pErr)
-      // non-fatal; user can still proceed
     }
 
     return res
