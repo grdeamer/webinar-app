@@ -11,13 +11,24 @@ type ActivityRow = {
   updated_at: string
 }
 
+type NodeKey =
+  | "Lobby"
+  | "General Session"
+  | "Q&A"
+  | "Webinars"
+  | "Webinar Detail"
+  | "Admin"
+  | "Login"
+  | "Other"
+
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 )
 
-function normalizePath(p: string) {
+function normalizePath(p: string): NodeKey {
   if (p.startsWith("/admin")) return "Admin"
+  if (p.startsWith("/general-session/qa") || p.includes("/qa")) return "Q&A"
   if (p.startsWith("/general-session")) return "General Session"
   if (p.startsWith("/webinars/")) return "Webinar Detail"
   if (p.startsWith("/webinars")) return "Webinars"
@@ -43,27 +54,6 @@ function clamp(n: number, a: number, b: number) {
   return Math.max(a, Math.min(b, n))
 }
 
-type NodeKey =
-  | "Lobby"
-  | "General Session"
-  | "Q&A"
-  | "Webinars"
-  | "Webinar Detail"
-  | "Admin"
-  | "Login"
-  | "Other"
-
-function normalizePath(p: string): NodeKey {
-  if (p.startsWith("/admin")) return "Admin"
-  if (p.startsWith("/general-session/qa") || p.includes("/qa")) return "Q&A"
-  if (p.startsWith("/general-session")) return "General Session"
-  if (p.startsWith("/webinars/")) return "Webinar Detail"
-  if (p.startsWith("/webinars")) return "Webinars"
-  if (p.startsWith("/login")) return "Login"
-  if (p === "/") return "Lobby"
-  return "Other"
-}
-
 const DEFAULT_NODES: { key: NodeKey; x: number; y: number }[] = [
   { key: "Lobby", x: 110, y: 150 },
   { key: "General Session", x: 370, y: 95 },
@@ -85,19 +75,18 @@ function edgeId(a: string, b: string) {
   return `edge-${a.replace(/\W/g, "")}-${b.replace(/\W/g, "")}`
 }
 
-// Color theme by destination
 function routeColor(dest: string) {
   switch (dest) {
     case "General Session":
-      return "#22d3ee" // cyan
+      return "#22d3ee"
     case "Q&A":
-      return "#a78bfa" // purple
+      return "#a78bfa"
     case "Webinars":
-      return "#34d399" // green
+      return "#34d399"
     case "Webinar Detail":
-      return "#fbbf24" // amber
+      return "#fbbf24"
     case "Other":
-      return "#94a3b8" // slate
+      return "#94a3b8"
     default:
       return "#e5e7eb"
   }
@@ -116,7 +105,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
   const [status, setStatus] = React.useState("")
   const [selectedNode, setSelectedNode] = React.useState<string | null>(null)
 
-  // ✅ draggable layout state
   const storageKey = `activityTreeLayout:${roomKey}`
   const [pos, setPos] = React.useState<PosMap>(() => {
     if (typeof window === "undefined") return defaultPosMap()
@@ -141,7 +129,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
     window.localStorage.setItem(storageKey, JSON.stringify(pos))
   }, [pos, storageKey])
 
-  // ✅ svg ref + drag state
   const svgRef = React.useRef<SVGSVGElement | null>(null)
   const draggingRef = React.useRef<{
     key: NodeKey
@@ -163,7 +150,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
   }
 
   function onNodePointerDown(e: React.PointerEvent, key: NodeKey) {
-    // Allow click-to-drill; only start drag for primary button / touch
     if (e.button !== 0 && e.pointerType === "mouse") return
     e.preventDefault()
     e.stopPropagation()
@@ -189,7 +175,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
     const nx = p.x - drag.offsetX
     const ny = p.y - drag.offsetY
 
-    // keep inside viewBox bounds a bit
     const x = clamp(nx, 60, 740)
     const y = clamp(ny, 50, 380)
 
@@ -319,7 +304,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
-      {/* Left: attendee list */}
       <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-center justify-between">
           <div className="text-sm font-semibold">Live attendees</div>
@@ -385,7 +369,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
         </div>
       </div>
 
-      {/* Right: visualizer + drilldown */}
       <div className="lg:col-span-2 rounded-2xl border border-white/10 bg-white/5 p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
@@ -431,7 +414,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
               `}</style>
             </defs>
 
-            {/* Edge paths for packets */}
             <defs>
               {EDGES.map(([a, b]) => {
                 const A = nodePos(a)
@@ -442,7 +424,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
               })}
             </defs>
 
-            {/* Draw edges */}
             {EDGES.map(([a, b]) => {
               const key = `${a}->${b}`
               const count = edgeCounts.get(key) || 0
@@ -503,7 +484,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
               )
             })}
 
-            {/* Nodes (drag + click) */}
             {(Object.keys(pos) as NodeKey[]).map((k) => {
               const p = nodePos(k)
               const c = nodeCounts.get(k) || 0
@@ -618,7 +598,6 @@ export default function ActivityTreeClient({ roomKey }: { roomKey: string }) {
           </svg>
         </div>
 
-        {/* Drilldown */}
         <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
           <div className="flex items-center justify-between gap-3">
             <div className="text-sm font-semibold">
