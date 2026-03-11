@@ -6,9 +6,8 @@ import type { QASessionRow, QAQuestionRow } from "@/lib/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function GET(req: Request) {
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
+export async function GET(req: Request): Promise<Response> {
+  await requireAdmin()
 
   const url = new URL(req.url)
   const slug = url.searchParams.get("slug") || "general-session"
