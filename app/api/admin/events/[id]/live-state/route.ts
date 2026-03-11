@@ -1,63 +1,113 @@
 import { NextResponse } from "next/server"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
-import { getEventLiveState, upsertEventLiveState } from "@/lib/app/liveState"
-import type { EventLiveMode } from "@/lib/types"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-const MODES: EventLiveMode[] = ["lobby", "general_session", "breakout", "replay", "off_air"]
 
 function json(data: any, status = 200) {
   return NextResponse.json(data, { status })
 }
 
-export async function GET(_: Request, context: { params: Promise<{ id: string }> }) {
+type Params = { params: Promise<{ id: string }> }
+
+export async function GET(_req: Request, ctx: Params) {
   const authResult = await requireAdmin()
   if (authResult instanceof Response) return authResult
 
-  const { id } = await context.params
+  const { id: eventId } = await ctx.params
 
-  try {
-    const liveState = await getEventLiveState(id)
-    return json({ liveState })
-  } catch (error) {
-    return json(
-      { error: error instanceof Error ? error.message : "Failed to load live state" },
-      400
-    )
-  }
+  const { data, error } = await supabaseAdmin
+    .from("event_live_state")
+    .select("id,event_id,mode,breakout_id,force_redirect,updated_at")
+    .eq("event_id", eventId)
+    .maybeSingle()
+
+  if (error) return json({ error: error.message }, 400)
+
+  return json({
+    liveState:
+      data || {
+        event_id: eventId,
+        mode: "lobby",
+        breakout_id: null,
+        force_redirect: false,
+        updated_at: null,
+      },
+  })
 }
 
-export async function POST(req: Request, context: { params: Promise<{ id: string }> }) {
+export async function POST(req: Request, ctx: Params) {
   const authResult = await requireAdmin()
   if (authResult instanceof Response) return authResult
 
-  const { id } = await context.params
-  const body = await req.json().catch(() => ({}))
-  const mode = typeof body?.mode === "string" ? (body.mode as EventLiveMode) : null
+  const { id: eventId } = await ctx.params
+  const body = await req.json().catch((): null => null)
 
-  if (!mode || !MODES.includes(mode)) {
+  const allowedModes = new Set(["lobby", "general", "breakout", "networking", "ondemand"])
+  const mode = typeof body?.mode === "string" ? body.mode : "lobby"
+  const breakout_id = typeof body?.breakout_id === "string" ? body.breakout_id : null
+  const force_redirect = !!body?.force_redirect
+
+  if (!allowedModes.has(mode)) {
     return json({ error: "Invalid mode" }, 400)
   }
 
-  try {
-    const liveState = await upsertEventLiveState({
-      eventId: id,
-      mode,
-      activeBreakoutId:
-        typeof body?.active_breakout_id === "string" ? body.active_breakout_id : null,
-      headline: typeof body?.headline === "string" ? body.headline : null,
-      message: typeof body?.message === "string" ? body.message : null,
-      forceRedirect: !!body?.force_redirect,
-      updatedBy: "admin",
-    })
+  if (mode !== "breakout") {
+    const { error } = await supabaseAdmin
+      .from("event_live_state")
+      .upsert(
+        {
+          event_id: eventId,
+          mode,
+          breakout_id: null,
+          force_redirect,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "event_id" }
+      )
 
-    return json({ liveState })
-  } catch (error) {
-    return json(
-      { error: error instanceof Error ? error.message : "Failed to save live state" },
-      400
-    )
+    if (error) return json({ error: error.message }, 400)
+  } else {
+    if (!breakout_id) return json({ error: "Missing breakout_id" }, 400)
+
+    const { error } = await supabaseAdmin
+      .from("event_live_state")
+      .upsert(
+        {
+          event_id: eventId,
+          mode,
+          breakout_id,
+          force_redirect,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "event_id" }
+      )
+
+    if (error) return json({ error: error.message }, 400)
   }
+
+  try {
+    await supabaseAdmin
+      .from("refresh_signals")
+      .insert({
+        scope_type: "event",
+        scope_id: eventId,
+        refresh_token: crypto.randomUUID(),
+      })
+      .select("id")
+      .maybeSingle()
+  } catch {
+    // ignore refresh signal failures
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("event_live_state")
+    .select("id,event_id,mode,breakout_id,force_redirect,updated_at")
+    .eq("event_id", eventId)
+    .maybeSingle()
+
+  if (error) return json({ error: error.message }, 400)
+
+  return json({ ok: true, liveState: data })
 }
