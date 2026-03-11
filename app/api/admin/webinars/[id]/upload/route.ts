@@ -17,19 +17,19 @@ function safeName(name: string) {
 export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> }
-) {
+): Promise<Response> {
+  await requireAdmin()
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   try {
     const { id } = await context.params
+
     if (!id || !isUuid(id)) {
       return NextResponse.json({ error: "Invalid webinar id" }, { status: 400 })
     }
 
     const form = await req.formData()
     const file = form.get("file")
-    const kind = String(form.get("kind") ?? "material") // "agenda" | "material"
+    const kind = String(form.get("kind") ?? "material")
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "Missing file" }, { status: 400 })
@@ -55,7 +55,6 @@ export async function POST(
       return NextResponse.json({ error: uploadError.message }, { status: 500 })
     }
 
-    // private bucket → store refs
     const storageUrl = `storage:${bucket}/${path}`
 
     return NextResponse.json({
