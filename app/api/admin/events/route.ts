@@ -5,30 +5,45 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-export async function POST(req: Request) {
+function json(data: any, status = 200) {
+  return NextResponse.json(data, { status })
+}
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
+export async function POST(req: Request) {
+  const authResult = await requireAdmin()
+  if (authResult instanceof Response) return authResult
+
   const body = await req.json().catch(() => null)
-  if (!body?.title || !body?.slug) return NextResponse.json({ error: "Missing fields" }, { status: 400 })
+  if (!body?.title || !body?.slug) {
+    return json({ error: "Missing fields" }, 400)
+  }
 
   const row = {
     title: String(body.title).slice(0, 200),
     slug: String(body.slug).toLowerCase().trim().slice(0, 120),
   }
 
-  const { data, error } = await supabaseAdmin.from("events").insert(row).select("id").single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  const { data, error } = await supabaseAdmin
+    .from("events")
+    .insert(row)
+    .select("id")
+    .single()
 
-  return NextResponse.json({ id: data.id })
+  if (error) {
+    return json({ error: error.message }, 400)
+  }
+
+  return json({ id: data.id })
 }
 
 export async function PUT(req: Request) {
+  const authResult = await requireAdmin()
+  if (authResult instanceof Response) return authResult
 
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
   const body = await req.json().catch(() => null)
-  if (!body?.id) return NextResponse.json({ error: "Missing id" }, { status: 400 })
+  if (!body?.id) {
+    return json({ error: "Missing id" }, 400)
+  }
 
   const patch = {
     title: body.title ? String(body.title).slice(0, 200) : null,
@@ -38,8 +53,14 @@ export async function PUT(req: Request) {
     updated_at: new Date().toISOString(),
   }
 
-  const { error } = await supabaseAdmin.from("events").update(patch).eq("id", body.id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+  const { error } = await supabaseAdmin
+    .from("events")
+    .update(patch)
+    .eq("id", body.id)
 
-  return NextResponse.json({ ok: true })
+  if (error) {
+    return json({ error: error.message }, 400)
+  }
+
+  return json({ ok: true })
 }
