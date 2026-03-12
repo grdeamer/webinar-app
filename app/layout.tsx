@@ -7,9 +7,10 @@ const inter = Inter({
   variable: "--font-inter",
 })
 
-export const metadata: Metadata = {
-  title: "Webinar App",
-  description: "Modern Webinar Management App",
+export const metadata = {
+  title: "Jupiter.events",
+  description:
+    "Host events with gravity. Run webinars, summits, and live broadcasts on a platform built to scale.",
 }
 
 export default function RootLayout({

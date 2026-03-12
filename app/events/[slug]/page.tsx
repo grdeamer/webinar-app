@@ -86,12 +86,12 @@ export default async function EventHomePage(props: { params: Promise<{ slug: str
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr] lg:items-end">
           <div>
             <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-white/70">
-              Homepage-style event landing screen · v10
+              Powered by Jupiter.events
             </div>
             <h1 className="mt-4 text-4xl font-bold tracking-tight lg:text-5xl">{event.title}</h1>
             <p className="mt-4 max-w-3xl text-sm leading-7 text-white/70">
               {event.description ||
-                "Welcome to your event portal. Use this home screen for a polished conference-style experience, then enter the lobby for assigned sessions and playback."}
+                "Welcome to your Jupiter event experience. Explore the schedule, speakers, sponsors, and live sessions from one polished event hub."}
             </p>
 
             <div className="mt-5 flex flex-wrap gap-3 text-sm text-white/65">
@@ -99,7 +99,7 @@ export default async function EventHomePage(props: { params: Promise<{ slug: str
               <Badge>{agenda?.length || 0} agenda item{agenda?.length === 1 ? "" : "s"}</Badge>
               <Badge>{sponsors?.length || 0} sponsor{(sponsors?.length || 0) === 1 ? "" : "s"}</Badge>
               <Badge>{breakouts?.length || 0} featured breakout{(breakouts?.length || 0) === 1 ? "" : "s"}</Badge>
-              {authed ? <Badge>Signed in as {(authed.user as any).email}</Badge> : <Badge>Guest preview mode</Badge>}
+              {authed ? <Badge>Signed in as {(authed.user as any).email}</Badge> : <Badge>"Jupiter guest preview"</Badge>}
             </div>
 
             <div className="mt-6 flex flex-wrap gap-3">

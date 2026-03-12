@@ -2,9 +2,11 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 
 export default function AccessPage() {
   const router = useRouter()
+
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -31,23 +33,41 @@ export default function AccessPage() {
 
       router.push("/lobby")
       router.refresh()
-    } catch (err: any) {
+    } catch (err) {
       setError("Network error. Try again.")
       setLoading(false)
     }
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-6">
-      <div className="w-full max-w-lg rounded-3xl bg-white/5 border border-white/10 p-8 shadow-2xl shadow-black/30">
-        <h1 className="text-3xl font-bold tracking-tight">Access Webinars</h1>
+    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center p-6">
+
+      {/* Header */}
+      <Link
+        href="/"
+        className="fixed top-6 left-6 flex items-center gap-2 text-white/70 hover:text-white transition"
+      >
+        🪐 <span className="font-semibold">Jupiter.events</span>
+      </Link>
+
+      {/* Card */}
+      <div className="w-full max-w-lg rounded-3xl bg-white/5 border border-white/10 p-8 shadow-2xl shadow-black/30 backdrop-blur">
+
+        <h1 className="text-3xl font-bold tracking-tight">
+          Access Your Event
+        </h1>
+
         <p className="text-white/70 mt-2">
           Enter your email to view your assigned webinars.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
+
           <div>
-            <label className="block text-sm text-white/70 mb-2">Email</label>
+            <label className="block text-sm text-white/70 mb-2">
+              Email
+            </label>
+
             <input
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -68,10 +88,28 @@ export default function AccessPage() {
             disabled={loading}
             className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 transition px-5 py-3 font-medium shadow-lg shadow-indigo-600/20"
           >
-            {loading ? "Loading..." : "Continue →"}
+            {loading ? "Continuing..." : "Continue →"}
           </button>
+
         </form>
+
+        {/* Back link */}
+        <div className="mt-6 text-sm text-white/50">
+          <Link href="/" className="hover:text-white transition">
+            ← Back to Jupiter.events
+          </Link>
+        </div>
+
       </div>
-    </div>
+
+      {/* Admin button */}
+      <Link
+        href="/admin/login"
+        className="fixed bottom-6 right-6 rounded-xl border border-white/10 bg-white/10 hover:bg-white/15 transition px-4 py-2 text-sm"
+      >
+        Admin
+      </Link>
+
+    </main>
   )
 }
