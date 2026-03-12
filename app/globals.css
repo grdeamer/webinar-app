@@ -1,4 +1,15 @@
 @import "tailwindcss";
+
+/* Prevent iPhone horizontal overflow */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
 @font-face {
   font-family: "JohnsonDisplay";
   src: url("/fonts/JohnsonDisplay-Regular.ttf") format("truetype");
