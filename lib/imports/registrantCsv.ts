@@ -1,6 +1,11 @@
 import Papa from "papaparse"
 import type { CsvRow } from "@/lib/types"
-import { normalizeEmail, normalizeNullableString, normalizeSessionCode, normalizeString } from "@/lib/imports/normalize"
+import {
+  normalizeEmail,
+  normalizeNullableString,
+  normalizeSessionCode,
+  normalizeString,
+} from "@/lib/imports/normalize"
 import { isValidEmail } from "@/lib/imports/validators"
 
 export type ParsedRegistrantImportRow = {
@@ -34,7 +39,9 @@ function getFirstValue(row: CsvRow, keys: string[]) {
 }
 
 function getSessionHeaders(headers: string[]) {
-  return headers.filter((h) => /^session_code(_\d+)?$/i.test(h) || /^session_code_\d+$/i.test(h))
+  return headers.filter(
+    (h) => /^session_code(_\d+)?$/i.test(h) || /^session_code_\d+$/i.test(h)
+  )
 }
 
 export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
@@ -55,17 +62,26 @@ export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
   const rows: ParsedRegistrantImportRow[] = (parsed.data || []).map((rawRow, idx) => {
     const rowNumber = idx + 2
     const eventSlugRaw = getFirstValue(rawRow, ["event_slug", "event", "eventSlug"])
-    const email = normalizeEmail(getFirstValue(rawRow, ["email", "Email", "user_email", "userEmail"]))
-    const firstName = normalizeNullableString(getFirstValue(rawRow, ["first_name", "firstName"]))
-    const lastName = normalizeNullableString(getFirstValue(rawRow, ["last_name", "lastName"]))
+    const email = normalizeEmail(
+      getFirstValue(rawRow, ["email", "Email", "user_email", "userEmail"])
+    )
+    const firstName = normalizeNullableString(
+      getFirstValue(rawRow, ["first_name", "firstName"])
+    )
+    const lastName = normalizeNullableString(
+      getFirstValue(rawRow, ["last_name", "lastName"])
+    )
     const tag = normalizeNullableString(getFirstValue(rawRow, ["tag"]))
     const notes = normalizeNullableString(getFirstValue(rawRow, ["notes"]))
 
-    const sessionCodes = sessionHeaders
-      .map((header) => normalizeSessionCode(rawRow[header]))
-      .filter(Boolean)
+    const sessionCodes = Array.from(
+      new Set(
+        sessionHeaders
+          .map((header) => normalizeSessionCode(rawRow[header]))
+          .filter(Boolean)
+      )
+    )
 
-    const dedupedSessionCodes = Array.from(new Set(sessionCodes))
     const errors: string[] = []
 
     if (!email) {
@@ -78,19 +94,15 @@ export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
       errors.push("Missing event_slug")
     }
 
-    if (sessionCodes.length !== dedupedSessionCodes.length) {
-      errors.push("Duplicate session code on same row")
-    }
-
     return {
       rowNumber,
-      eventSlug: eventSlugRaw ? eventSlugRaw : null,
+      eventSlug: eventSlugRaw || null,
       email,
       firstName,
       lastName,
       tag,
       notes,
-      sessionCodes: dedupedSessionCodes,
+      sessionCodes,
       errors,
     }
   })
