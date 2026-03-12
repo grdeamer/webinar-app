@@ -278,22 +278,19 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/10 backdrop-blur">
-  <div className="absolute inset-0 rounded-2xl bg-indigo-400/20 blur-sm" />
+      <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 sm:px-6 lg:px-8">
+        <header className="flex items-center justify-between gap-4 py-6">
+          <div className="flex items-center gap-3">
+            <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/10 backdrop-blur">
+              <div className="absolute inset-0 rounded-2xl bg-indigo-400/20 blur-sm" />
 
-  <div className="relative h-6 w-6 rounded-full bg-gradient-to-br from-[#f6d2a2] via-[#d88d52] to-[#8e4f2c] shadow-[0_0_18px_rgba(251,146,60,0.35)]">
-
-    {/* Jupiter cloud bands */}
-
-    <div className="absolute left-[-8%] top-[22%] h-[3px] w-[116%] rounded-full bg-[#f1d8b8]/70 blur-[0.5px]" />
-    <div className="absolute left-[-6%] top-[42%] h-[2.5px] w-[112%] rounded-full bg-[#c97843]/45" />
-    <div className="absolute left-[-8%] top-[60%] h-[3px] w-[116%] rounded-full bg-[#efd0a2]/55 blur-[0.5px]" />
-
-    {/* mini storm */}
-
-    <div className="absolute left-[22%] top-[54%] h-[4px] w-[7px] rounded-full bg-[#c96d47]/55"/>
-  </div>
-</div>
+              <div className="relative h-6 w-6 rounded-full bg-gradient-to-br from-[#f6d2a2] via-[#d88d52] to-[#8e4f2c] shadow-[0_0_18px_rgba(251,146,60,0.35)]">
+                <div className="absolute left-[-8%] top-[22%] h-[3px] w-[116%] rounded-full bg-[#f1d8b8]/70 blur-[0.5px]" />
+                <div className="absolute left-[-6%] top-[42%] h-[2.5px] w-[112%] rounded-full bg-[#c97843]/45" />
+                <div className="absolute left-[-8%] top-[60%] h-[3px] w-[116%] rounded-full bg-[#efd0a2]/55 blur-[0.5px]" />
+                <div className="absolute left-[22%] top-[54%] h-[4px] w-[7px] rounded-full bg-[#c96d47]/55" />
+              </div>
+            </div>
 
             <div>
               <div className="text-lg font-semibold tracking-tight">Jupiter.events</div>
