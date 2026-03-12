@@ -13,6 +13,7 @@ import RemoteRefreshListener from "@/components/RemoteRefreshListener"
 import { getEventLiveDestination, getEventLiveState } from "@/lib/app/liveState"
 import type { EventBreakoutPreview, EventLiveDestination, EventLiveStateRecord } from "@/lib/types"
 
+
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 

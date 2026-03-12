@@ -9,14 +9,17 @@ function slugify(v: string) {
   return v
     .toLowerCase()
     .trim()
+    .replace(/['"]/g, "")
     .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)+/g, "")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120)
 }
 
 export default function NewEventPage() {
   const r = useRouter()
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
+  const [slugTouched, setSlugTouched] = useState(false)
   const [startAt, setStartAt] = useState<string | null>(null)
   const [endAt, setEndAt] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -25,22 +28,34 @@ export default function NewEventPage() {
 
   async function create() {
     setErr(null)
-    const s = (slug || slugify(title)).trim()
-    if (!title.trim()) return setErr("Title is required")
+
+    const cleanTitle = title.trim()
+    const s = slugify(slug || cleanTitle)
+
+    if (!cleanTitle) return setErr("Title is required")
     if (!s) return setErr("Slug is required")
 
     setBusy(true)
+
     try {
       const res = await fetch("/api/admin/events", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title: title.trim(), slug: s, start_at: startAt, end_at: endAt }),
+        body: JSON.stringify({
+          title: cleanTitle,
+          slug: s,
+          start_at: startAt,
+          end_at: endAt,
+        }),
       })
+
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed to create")
+
       if (scaffold) {
         await fetch(`/api/admin/events/${json.id}/scaffold`, { method: "POST" })
       }
+
       r.push(`/admin/events/${json.id}`)
     } catch (e: any) {
       setErr(e.message || "Failed")
@@ -49,11 +64,18 @@ export default function NewEventPage() {
     }
   }
 
+  const previewSlug = slugify(slug || title) || "your-slug"
+
   return (
     <div className="max-w-4xl space-y-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold">New Event</h1>
-        <Link href="/admin/events" className="text-sm text-white/70 hover:text-white">← Back</Link>
+        <Link
+          href="/admin/events"
+          className="text-sm text-white/70 hover:text-white"
+        >
+          ← Back
+        </Link>
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-6">
@@ -63,10 +85,15 @@ export default function NewEventPage() {
             className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
             value={title}
             onChange={(e) => {
-              setTitle(e.target.value)
-              if (!slug) setSlug(slugify(e.target.value))
+              const nextTitle = e.target.value
+              setTitle(nextTitle)
+
+              if (!slugTouched) {
+                setSlug(slugify(nextTitle))
+              }
             }}
             placeholder="Spring Summit 2026"
+            disabled={busy}
           />
         </div>
 
@@ -75,10 +102,16 @@ export default function NewEventPage() {
           <input
             className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
             value={slug}
-            onChange={(e) => setSlug(e.target.value)}
+            onChange={(e) => {
+              setSlugTouched(true)
+              setSlug(slugify(e.target.value))
+            }}
             placeholder="spring-summit-2026"
+            disabled={busy}
           />
-          <div className="mt-1 text-xs text-white/40">Event URL will be /events/{slug || "your-slug"}/lobby</div>
+          <div className="mt-1 text-xs text-white/40">
+            Event URL will be /events/{previewSlug}/lobby
+          </div>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-2">
@@ -101,7 +134,13 @@ export default function NewEventPage() {
         {err ? <div className="text-sm text-red-400">{err}</div> : null}
 
         <label className="flex items-center gap-3 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white/75">
-          <input type="checkbox" checked={scaffold} onChange={(e) => setScaffold(e.target.checked)} className="h-4 w-4 rounded border-white/20 bg-transparent" />
+          <input
+            type="checkbox"
+            checked={scaffold}
+            onChange={(e) => setScaffold(e.target.checked)}
+            className="h-4 w-4 rounded border-white/20 bg-transparent"
+            disabled={busy}
+          />
           Auto-create starter portal content (agenda, breakouts, sponsors, library)
         </label>
 
@@ -110,7 +149,7 @@ export default function NewEventPage() {
           onClick={create}
           className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-500 disabled:opacity-60"
         >
-          Create Event
+          {busy ? "Creating..." : "Create Event"}
         </button>
       </div>
     </div>
