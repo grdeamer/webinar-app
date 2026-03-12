@@ -57,17 +57,17 @@ export default function NewEventPage() {
       if (!res.ok) throw new Error(json.error || "Failed to create")
 
       if (scaffold) {
-        const scaffoldRes = await fetch(`/api/admin/events/${json.id}/scaffold`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ template }),
-        })
+  const scaffoldRes = await fetch(`/api/admin/events/${json.id}/scaffold`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ template }),
+  })
 
-        const scaffoldJson = await scaffoldRes.json().catch(() => null)
-        if (!scaffoldRes.ok) {
-          throw new Error(scaffoldJson?.error || "Failed to scaffold event")
-        }
-      }
+  const scaffoldJson = await scaffoldRes.json().catch((): null => null)
+  if (!scaffoldRes.ok) {
+    throw new Error(scaffoldJson?.error || "Failed to scaffold event")
+  }
+}
 
       r.push(`/admin/events/${json.id}`)
     } catch (e: any) {
