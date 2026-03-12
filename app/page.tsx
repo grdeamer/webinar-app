@@ -1,25 +1,26 @@
 "use client"
 
 import Link from "next/link"
+import { Globe, Mic, Server, Zap } from "lucide-react"
 
 const features = [
   {
-    icon: "🚀",
+    icon: Server,
     title: "Built to Scale",
     body: "Whether you’re hosting 20 people or 20,000, Jupiter handles it with reliable, high-performance streaming built for real audience size.",
   },
   {
-    icon: "🎤",
+    icon: Mic,
     title: "Designed for Real Events",
     body: "Run webinars, summits, panels, and live broadcasts with tools made for professional hosts instead of patched-together meeting software.",
   },
   {
-    icon: "⚡",
+    icon: Zap,
     title: "Simple for Hosts",
     body: "Launch events in minutes with a clean admin experience, flexible media controls, and no technical headaches.",
   },
   {
-    icon: "🌎",
+    icon: Globe,
     title: "Engage Your Audience",
     body: "Keep audiences involved with live chat, Q&A, and interactive features that carry attention from start to finish.",
   },
@@ -71,6 +72,33 @@ function JupiterHudOverlay() {
       <circle cx="334" cy="112" r="3" fill="#818cf8" />
       <circle cx="360" cy="198" r="3" fill="#38bdf8" />
     </svg>
+  )
+}
+
+function FeatureCard({
+  icon: Icon,
+  title,
+  body,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  title: string
+  body: string
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur transition duration-300 hover:-translate-y-1 hover:border-indigo-300/20 hover:bg-white/[0.06]">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(129,140,248,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(56,189,248,0.08),transparent_32%)] opacity-80" />
+
+      <div className="relative">
+        <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-400/10 shadow-[0_0_30px_rgba(129,140,248,0.12)] backdrop-blur">
+          <div className="absolute inset-0 rounded-2xl bg-indigo-300/10 blur-md" />
+          <Icon className="relative h-5 w-5 text-indigo-200" />
+        </div>
+
+        <h3 className="text-xl font-semibold tracking-tight text-white">{title}</h3>
+
+        <p className="mt-3 text-sm leading-7 text-white/65">{body}</p>
+      </div>
+    </div>
   )
 }
 
@@ -215,7 +243,6 @@ export default function HomePage() {
         }
       `}</style>
 
-      {/* BACKGROUND STARFIELD */}
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_20%,rgba(99,102,241,0.16),transparent_22%),radial-gradient(circle_at_80%_18%,rgba(56,189,248,0.12),transparent_20%),radial-gradient(circle_at_50%_75%,rgba(244,114,182,0.08),transparent_24%)]" />
 
@@ -252,7 +279,6 @@ export default function HomePage() {
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-screen w-full max-w-7xl flex-col px-5 sm:px-6 lg:px-8">
-        {/* HEADER */}
         <header className="flex items-center justify-between gap-4 py-6">
           <div className="flex items-center gap-3">
             <div className="relative flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/10 backdrop-blur">
@@ -269,9 +295,7 @@ export default function HomePage() {
           </div>
         </header>
 
-        {/* HERO */}
         <section className="grid flex-1 items-center gap-14 py-10 lg:grid-cols-[1.08fr_0.92fr]">
-          {/* LEFT */}
           <div>
             <div className="inline-flex items-center rounded-full border border-indigo-400/30 bg-indigo-400/10 px-4 py-2 text-sm text-indigo-100 backdrop-blur">
               Webinar platform • Summits • Live broadcasts
@@ -314,27 +338,20 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* RIGHT PLANET */}
           <div className="relative mx-auto flex w-full max-w-xl flex-col items-center justify-center pb-32">
             <div className="relative h-[320px] w-[320px] planet-float sm:h-[380px] sm:w-[380px] md:h-[460px] md:w-[460px]">
-              {/* glow */}
               <div className="absolute inset-0 rounded-full bg-indigo-500/10 blur-3xl" />
 
-              {/* planet */}
               <div className="absolute left-1/2 top-1/2 h-[200px] w-[200px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-gradient-to-br from-[#f6d2a2] via-[#d88d52] to-[#8e4f2c] shadow-[0_0_80px_rgba(251,146,60,0.32)]">
-                {/* cloud bands */}
                 <div className="absolute inset-0 overflow-hidden rounded-full">
                   <div className="absolute -left-[10%] top-[18%] h-5 w-[120%] rounded-full bg-[#f1d8b8]/70 blur-sm" />
                   <div className="absolute -left-[10%] top-[32%] h-4 w-[120%] rounded-full bg-[#c97843]/40" />
                   <div className="absolute -left-[10%] top-[46%] h-6 w-[120%] rounded-full bg-[#efd0a2]/60 blur-sm" />
                   <div className="absolute -left-[10%] top-[60%] h-4 w-[120%] rounded-full bg-[#9f5a34]/40" />
                   <div className="absolute -left-[10%] top-[74%] h-6 w-[120%] rounded-full bg-[#e5bf92]/40 blur-sm" />
-
-                  {/* storm */}
                   <div className="storm-drift absolute left-[22%] top-[55%] h-8 w-14 rounded-full bg-[#c96d47]/60 blur-[1px]" />
                 </div>
 
-                {/* HUD overlays */}
                 <div className="pointer-events-none absolute inset-[-20%] hud-rotate">
                   <JupiterHudOverlay />
                 </div>
@@ -361,22 +378,18 @@ export default function HomePage() {
                 </div>
               </div>
 
-              {/* SATELLITE 1 */}
               <div className="satellite-orbit">
                 <div className="h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full bg-indigo-300 shadow-[0_0_12px_rgba(129,140,248,0.9)]" />
               </div>
 
-              {/* SATELLITE 2 */}
               <div className="satellite-orbit-slow">
                 <div className="h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-300 shadow-[0_0_10px_rgba(56,189,248,0.9)]" />
               </div>
 
-              {/* SATELLITE 3 */}
               <div className="satellite-orbit" style={{ animationDuration: "26s" }}>
                 <div className="h-2 w-2 -translate-x-1/2 -translate-y-1/2 rounded-full bg-fuchsia-300 shadow-[0_0_10px_rgba(244,114,182,0.9)]" />
               </div>
 
-              {/* outer ring hint */}
               <div className="absolute left-1/2 top-1/2 h-[290px] w-[290px] -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/5 md:h-[360px] md:w-[360px]" />
             </div>
 
@@ -402,7 +415,6 @@ export default function HomePage() {
           </div>
         </section>
 
-        {/* WHY */}
         <section id="why" className="pb-20">
           <div className="max-w-2xl">
             <div className="text-sm font-medium uppercase tracking-[0.25em] text-indigo-300/80">
@@ -421,14 +433,12 @@ export default function HomePage() {
 
           <div className="mt-10 grid gap-6 md:grid-cols-2 xl:grid-cols-4">
             {features.map((feature) => (
-              <div
+              <FeatureCard
                 key={feature.title}
-                className="rounded-[1.75rem] border border-white/10 bg-white/[0.04] p-6 shadow-xl backdrop-blur"
-              >
-                <div className="text-3xl">{feature.icon}</div>
-                <h3 className="mt-5 text-xl font-semibold">{feature.title}</h3>
-                <p className="mt-3 text-sm leading-7 text-white/65">{feature.body}</p>
-              </div>
+                icon={feature.icon}
+                title={feature.title}
+                body={feature.body}
+              />
             ))}
           </div>
         </section>
