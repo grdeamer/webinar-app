@@ -24,11 +24,7 @@ function normalizeSessionCode(value: string) {
 
 function uniqueSessionCodes(codes: string[]) {
   return Array.from(
-    new Set(
-      (codes || [])
-        .map(normalizeSessionCode)
-        .filter(Boolean)
-    )
+    new Set((codes || []).map(normalizeSessionCode).filter(Boolean))
   )
 }
 
@@ -68,12 +64,10 @@ async function ensureEventSessionsExist(
 
   if (!stillMissing.length) return
 
-  const insertRows = stillMissing.map((code, index) => ({
+  const insertRows = stillMissing.map((code) => ({
     event_id: eventId,
     code,
     title: `Session ${code}`,
-    description: "Auto-created during registrant CSV import.",
-    sort_index: index,
   }))
 
   const { data: insertedRows, error: insertError } = await supabaseAdmin
@@ -173,7 +167,9 @@ export async function POST(req: Request) {
       const event =
         forcedEventId
           ? Array.from(eventMap.values())[0] || null
-          : (row.eventSlug ? eventMap.get(row.eventSlug) || null : null)
+          : row.eventSlug
+            ? eventMap.get(row.eventSlug) || null
+            : null
 
       if (!event) {
         errors.push(`Unknown event slug: ${row.eventSlug || "(blank)"}`)
