@@ -18,9 +18,82 @@ type SessionRow = {
   title: string
 }
 
+function normalizeSessionCode(value: string) {
+  return String(value || "").trim().toUpperCase()
+}
+
+function uniqueSessionCodes(codes: string[]) {
+  return Array.from(
+    new Set(
+      (codes || [])
+        .map(normalizeSessionCode)
+        .filter(Boolean)
+    )
+  )
+}
+
+async function ensureEventSessionsExist(
+  eventId: string,
+  codes: string[],
+  sessionMap: Map<string, SessionRow>
+) {
+  const normalizedCodes = uniqueSessionCodes(codes)
+  if (!normalizedCodes.length) return
+
+  const missingCodes = normalizedCodes.filter((code) => {
+    const key = `${eventId}::${code}`
+    return !sessionMap.has(key)
+  })
+
+  if (!missingCodes.length) return
+
+  const { data: existingRows, error: existingError } = await supabaseAdmin
+    .from("event_sessions")
+    .select("id,event_id,code,title")
+    .eq("event_id", eventId)
+    .in("code", missingCodes)
+
+  if (existingError) {
+    throw new Error(existingError.message)
+  }
+
+  for (const row of (existingRows || []) as SessionRow[]) {
+    sessionMap.set(`${row.event_id}::${normalizeSessionCode(row.code)}`, row)
+  }
+
+  const stillMissing = missingCodes.filter((code) => {
+    const key = `${eventId}::${code}`
+    return !sessionMap.has(key)
+  })
+
+  if (!stillMissing.length) return
+
+  const insertRows = stillMissing.map((code, index) => ({
+    event_id: eventId,
+    code,
+    title: `Session ${code}`,
+    description: "Auto-created during registrant CSV import.",
+    sort_index: index,
+  }))
+
+  const { data: insertedRows, error: insertError } = await supabaseAdmin
+    .from("event_sessions")
+    .insert(insertRows)
+    .select("id,event_id,code,title")
+
+  if (insertError) {
+    throw new Error(insertError.message)
+  }
+
+  for (const row of (insertedRows || []) as SessionRow[]) {
+    sessionMap.set(`${row.event_id}::${normalizeSessionCode(row.code)}`, row)
+  }
+}
+
 export async function POST(req: Request) {
   try {
-    await requireAdmin()
+    const authResult = await requireAdmin()
+    if (authResult instanceof Response) return authResult
 
     const form = await req.formData()
     const file = form.get("file")
@@ -86,11 +159,15 @@ export async function POST(req: Request) {
 
     const sessionMap = new Map<string, SessionRow>()
     for (const session of sessionRows) {
-      sessionMap.set(`${session.event_id}::${String(session.code).toUpperCase()}`, session)
+      sessionMap.set(
+        `${session.event_id}::${normalizeSessionCode(session.code)}`,
+        session
+      )
     }
 
     const seenEventEmail = new Set<string>()
-    const validatedRows = parsed.rows.map((row: ParsedRegistrantImportRow) => {
+
+    const prevalidatedRows = parsed.rows.map((row: ParsedRegistrantImportRow) => {
       const errors = [...row.errors]
 
       const event =
@@ -111,44 +188,25 @@ export async function POST(req: Request) {
         }
       }
 
-      const resolvedSessionIds: string[] = []
-      const unknownSessionCodes: string[] = []
-
-      if (event) {
-        for (const code of row.sessionCodes) {
-          const key = `${event.id}::${code}`
-          const session = sessionMap.get(key)
-          if (!session) {
-            unknownSessionCodes.push(code)
-          } else {
-            resolvedSessionIds.push(session.id)
-          }
-        }
-      }
-
-      if (unknownSessionCodes.length) {
-        errors.push(`Unknown session code(s): ${unknownSessionCodes.join(", ")}`)
-      }
-
       return {
         ...row,
+        normalizedSessionCodes: uniqueSessionCodes(row.sessionCodes || []),
         resolvedEventId: event?.id || null,
-        resolvedSessionIds,
         errors,
       }
     })
 
-    const invalidRows = validatedRows.filter((r) => r.errors.length > 0)
-    if (invalidRows.length) {
+    const earlyInvalidRows = prevalidatedRows.filter((r) => r.errors.length > 0)
+    if (earlyInvalidRows.length) {
       return NextResponse.json(
         {
           error: "Import contains invalid rows. Run preview or fix the CSV first.",
           summary: {
-            totalRows: validatedRows.length,
-            validRows: validatedRows.length - invalidRows.length,
-            invalidRows: invalidRows.length,
+            totalRows: prevalidatedRows.length,
+            validRows: prevalidatedRows.length - earlyInvalidRows.length,
+            invalidRows: earlyInvalidRows.length,
           },
-          rowErrors: invalidRows.map((r) => ({
+          rowErrors: earlyInvalidRows.map((r) => ({
             rowNumber: r.rowNumber,
             email: r.email,
             errors: r.errors,
@@ -158,9 +216,67 @@ export async function POST(req: Request) {
       )
     }
 
+    const eventToCodes = new Map<string, Set<string>>()
+    for (const row of prevalidatedRows) {
+      const eventId = row.resolvedEventId!
+      if (!eventToCodes.has(eventId)) {
+        eventToCodes.set(eventId, new Set<string>())
+      }
+      const bucket = eventToCodes.get(eventId)!
+      for (const code of row.normalizedSessionCodes) {
+        bucket.add(code)
+      }
+    }
+
+    for (const [eventId, codeSet] of eventToCodes.entries()) {
+      await ensureEventSessionsExist(eventId, Array.from(codeSet), sessionMap)
+    }
+
+    const validatedRows = prevalidatedRows.map((row) => {
+      const resolvedSessionIds: string[] = []
+
+      if (row.resolvedEventId) {
+        for (const code of row.normalizedSessionCodes) {
+          const key = `${row.resolvedEventId}::${code}`
+          const session = sessionMap.get(key)
+          if (session) {
+            resolvedSessionIds.push(session.id)
+          }
+        }
+      }
+
+      return {
+        ...row,
+        resolvedSessionIds,
+      }
+    })
+
     let registrantsCreated = 0
     let registrantsUpdated = 0
     let assignmentsWritten = 0
+    let sessionsAutoCreated = 0
+
+    {
+      const uniqueSessionKeys = new Set<string>()
+      for (const row of validatedRows) {
+        for (const code of row.normalizedSessionCodes) {
+          uniqueSessionKeys.add(`${row.resolvedEventId}::${code}`)
+        }
+      }
+
+      let existingBefore = 0
+      for (const original of sessionRows) {
+        const key = `${original.event_id}::${normalizeSessionCode(original.code)}`
+        if (uniqueSessionKeys.has(key)) existingBefore++
+      }
+
+      let existingAfter = 0
+      for (const key of uniqueSessionKeys) {
+        if (sessionMap.has(key)) existingAfter++
+      }
+
+      sessionsAutoCreated = Math.max(0, existingAfter - existingBefore)
+    }
 
     for (const row of validatedRows) {
       const eventId = row.resolvedEventId!
@@ -251,6 +367,7 @@ export async function POST(req: Request) {
         registrantsCreated,
         registrantsUpdated,
         assignmentsWritten,
+        sessionsAutoCreated,
       },
     })
   } catch (err: any) {
