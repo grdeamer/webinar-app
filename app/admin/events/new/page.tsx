@@ -15,11 +15,14 @@ function slugify(v: string) {
     .slice(0, 120)
 }
 
+type EventTemplate = "blank" | "webinar" | "pharma" | "conference"
+
 export default function NewEventPage() {
   const r = useRouter()
   const [title, setTitle] = useState("")
   const [slug, setSlug] = useState("")
   const [slugTouched, setSlugTouched] = useState(false)
+  const [template, setTemplate] = useState<EventTemplate>("webinar")
   const [startAt, setStartAt] = useState<string | null>(null)
   const [endAt, setEndAt] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
@@ -46,6 +49,7 @@ export default function NewEventPage() {
           slug: s,
           start_at: startAt,
           end_at: endAt,
+          template,
         }),
       })
 
@@ -53,7 +57,16 @@ export default function NewEventPage() {
       if (!res.ok) throw new Error(json.error || "Failed to create")
 
       if (scaffold) {
-        await fetch(`/api/admin/events/${json.id}/scaffold`, { method: "POST" })
+        const scaffoldRes = await fetch(`/api/admin/events/${json.id}/scaffold`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ template }),
+        })
+
+        const scaffoldJson = await scaffoldRes.json().catch(() => null)
+        if (!scaffoldRes.ok) {
+          throw new Error(scaffoldJson?.error || "Failed to scaffold event")
+        }
       }
 
       r.push(`/admin/events/${json.id}`)
@@ -114,6 +127,24 @@ export default function NewEventPage() {
           </div>
         </div>
 
+        <div>
+          <div className="text-sm text-white/70">Template</div>
+          <select
+            className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+            value={template}
+            onChange={(e) => setTemplate(e.target.value as EventTemplate)}
+            disabled={busy}
+          >
+            <option value="blank">Blank Event</option>
+            <option value="webinar">Webinar Template</option>
+            <option value="pharma">Pharma Summit Template</option>
+            <option value="conference">Conference Template</option>
+          </select>
+          <div className="mt-1 text-xs text-white/40">
+            Start with a prebuilt event structure instead of building everything manually.
+          </div>
+        </div>
+
         <div className="grid gap-6 lg:grid-cols-2">
           <AdminDateTimeField
             label="Event start"
@@ -141,7 +172,7 @@ export default function NewEventPage() {
             className="h-4 w-4 rounded border-white/20 bg-transparent"
             disabled={busy}
           />
-          Auto-create starter portal content (agenda, breakouts, sponsors, library)
+          Auto-create starter portal content based on selected template
         </label>
 
         <button
