@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type EventOption = {
   id: string;
@@ -79,6 +79,8 @@ type ImportJobResponse = {
 
 type ImportStatus = "idle" | "running" | "success" | "error";
 
+const ACTIVE_IMPORT_JOB_KEY = "activeRegistrantImportJobId";
+
 export default function ImportRegistrantsClient({
   initialEvents,
   initialSelectedEventId = "",
@@ -106,6 +108,7 @@ export default function ImportRegistrantsClient({
   const [jobId, setJobId] = useState<string | null>(null);
   const [processedRows, setProcessedRows] = useState<number>(0);
   const [totalRows, setTotalRows] = useState<number>(0);
+  const [resumedJob, setResumedJob] = useState(false);
 
   const pollTimerRef = useRef<number | null>(null);
 
@@ -130,6 +133,42 @@ export default function ImportRegistrantsClient({
       pollTimerRef.current = null;
     }
   }
+
+  function clearSavedActiveJob() {
+    window.localStorage.removeItem(ACTIVE_IMPORT_JOB_KEY);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("jobId");
+    window.history.replaceState({}, "", url.toString());
+  }
+
+  function saveActiveJob(nextJobId: string) {
+    window.localStorage.setItem(ACTIVE_IMPORT_JOB_KEY, nextJobId);
+
+    const url = new URL(window.location.href);
+    url.searchParams.set("jobId", nextJobId);
+    window.history.replaceState({}, "", url.toString());
+  }
+
+  useEffect(() => {
+    const savedJobId =
+      new URLSearchParams(window.location.search).get("jobId") ||
+      window.localStorage.getItem(ACTIVE_IMPORT_JOB_KEY);
+
+    if (!savedJobId) return;
+
+    setJobId(savedJobId);
+    setResumedJob(true);
+    setCommitLoading(true);
+    setImportStatus("running");
+    setImportMessage("Reconnecting to active import job...");
+
+    void pollImportJob(savedJobId, true);
+
+    return () => {
+      stopPolling();
+    };
+  }, []);
 
   async function downloadTemplate() {
     if (!selectedEventId) {
@@ -189,6 +228,7 @@ export default function ImportRegistrantsClient({
       setJobId(null);
       setProcessedRows(0);
       setTotalRows(0);
+      setResumedJob(false);
       stopPolling();
 
       const fd = new FormData();
@@ -215,7 +255,7 @@ export default function ImportRegistrantsClient({
     }
   }
 
-  async function pollImportJob(nextJobId: string) {
+  async function pollImportJob(nextJobId: string, isResume = false) {
     stopPolling();
 
     const pollOnce = async () => {
@@ -249,6 +289,7 @@ export default function ImportRegistrantsClient({
         stopPolling();
         setCommitLoading(false);
         setImportStatus("success");
+        clearSavedActiveJob();
 
         const result = json.result as CommitResponse | undefined;
         if (result?.summary) {
@@ -281,6 +322,8 @@ export default function ImportRegistrantsClient({
         stopPolling();
         setCommitLoading(false);
         setImportStatus("error");
+        clearSavedActiveJob();
+
         const message = (json.error_message as string) || "Import failed";
         setImportMessage(message);
         setError(message);
@@ -290,7 +333,7 @@ export default function ImportRegistrantsClient({
       setImportStatus("running");
       setImportMessage(
         total > 0
-          ? `Processing ${processed.toLocaleString()} of ${total.toLocaleString()} rows...`
+          ? `${isResume || resumedJob ? "Reconnected. " : ""}Processing ${processed.toLocaleString()} of ${total.toLocaleString()} rows...`
           : "Preparing import job...",
       );
     };
@@ -319,6 +362,7 @@ export default function ImportRegistrantsClient({
       setProcessedRows(0);
       setTotalRows(0);
       setJobId(null);
+      setResumedJob(false);
       stopPolling();
 
       const fd = new FormData();
@@ -343,6 +387,7 @@ export default function ImportRegistrantsClient({
       }
 
       setJobId(nextJobId);
+      saveActiveJob(nextJobId);
       await pollImportJob(nextJobId);
     } catch (e: any) {
       stopPolling();
@@ -356,9 +401,32 @@ export default function ImportRegistrantsClient({
 
   const validPreviewRows = preview?.rows?.filter((r) => r.valid) || [];
   const invalidPreviewRows = preview?.rows?.filter((r) => !r.valid) || [];
+  const hasRunningImport = importStatus === "running" && !!jobId;
 
   return (
     <div className="space-y-6">
+      {hasRunningImport ? (
+        <div className="rounded-2xl border border-sky-500/20 bg-sky-500/10 px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-sm font-semibold text-sky-100">
+                Import in progress
+              </div>
+              <div className="mt-1 text-xs text-sky-200/80">
+                You can move around the admin panel and come back later. This job will reconnect automatically.
+              </div>
+            </div>
+
+            <a
+              href="/admin/imports"
+              className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-sm font-semibold text-white hover:bg-white/15"
+            >
+              View Import History
+            </a>
+          </div>
+        </div>
+      ) : null}
+
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
           <div>
@@ -447,18 +515,29 @@ export default function ImportRegistrantsClient({
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-            <div className="text-sm font-semibold text-white/80">
-              How this works
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="text-sm font-semibold text-white/80">
+                  How this works
+                </div>
+                <ul className="mt-3 space-y-2 text-sm text-white/60">
+                  <li>1. Create the event first.</li>
+                  <li>
+                    2. Session codes in the CSV can be auto-created if missing.
+                  </li>
+                  <li>3. Preview the CSV before import.</li>
+                  <li>4. Start the import job.</li>
+                  <li>5. Watch real progress as rows are processed.</li>
+                </ul>
+              </div>
+
+              <a
+                href="/admin/imports"
+                className="rounded-xl border border-white/10 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/15"
+              >
+                Import History
+              </a>
             </div>
-            <ul className="mt-3 space-y-2 text-sm text-white/60">
-              <li>1. Create the event first.</li>
-              <li>
-                2. Session codes in the CSV can be auto-created if missing.
-              </li>
-              <li>3. Preview the CSV before import.</li>
-              <li>4. Start the import job.</li>
-              <li>5. Watch real progress as rows are processed.</li>
-            </ul>
 
             <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-100/90">
               Import replaces existing session assignments for each registrant
