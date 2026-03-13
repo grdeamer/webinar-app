@@ -22,7 +22,6 @@ type SessionRow = {
   ends_at: string | null
   join_link: string | null
 }
-}
 
 function formatDatePretty(iso: string | null) {
   if (!iso) return null
