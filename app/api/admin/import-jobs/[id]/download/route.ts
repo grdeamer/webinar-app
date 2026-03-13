@@ -24,5 +24,13 @@ export async function GET(
     return NextResponse.json({ error: error.message }, { status: 400 })
   }
 
-  return NextResponse.json(data)
+  const body = JSON.stringify(data, null, 2)
+
+  return new NextResponse(body, {
+    status: 200,
+    headers: {
+      "Content-Type": "application/json; charset=utf-8",
+      "Content-Disposition": `attachment; filename="import-job-${id}.json"`,
+    },
+  })
 }

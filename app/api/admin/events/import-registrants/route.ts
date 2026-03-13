@@ -47,9 +47,7 @@ async function ensureEventSessionsExist(
     .eq("event_id", eventId)
     .in("code", missingCodes)
 
-  if (existingError) {
-    throw new Error(existingError.message)
-  }
+  if (existingError) throw new Error(existingError.message)
 
   for (const row of (existingRows || []) as SessionRow[]) {
     sessionMap.set(`${row.event_id}::${normalizeSessionCode(row.code)}`, row)
@@ -73,9 +71,7 @@ async function ensureEventSessionsExist(
     .insert(insertRows)
     .select("id,event_id,code,title")
 
-  if (insertError) {
-    throw new Error(insertError.message)
-  }
+  if (insertError) throw new Error(insertError.message)
 
   for (const row of (insertedRows || []) as SessionRow[]) {
     sessionMap.set(`${row.event_id}::${normalizeSessionCode(row.code)}`, row)
@@ -92,6 +88,7 @@ export async function POST(req: Request) {
     const form = await req.formData()
     const file = form.get("file")
     const forcedEventId = String(form.get("event_id") || "").trim() || null
+    const existingJobId = String(form.get("job_id") || "").trim() || null
 
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "CSV file is required" }, { status: 400 })
@@ -104,31 +101,52 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "CSV has no rows" }, { status: 400 })
     }
 
-    const { data: job, error: jobCreateError } = await supabaseAdmin
-      .from("import_jobs")
-      .insert({
-        kind: "registrant_import",
-        status: "running",
-        event_id: forcedEventId,
-        file_name: file.name,
-        total_rows: parsed.rows.length,
-        processed_rows: 0,
-        progress_pct: 0,
-        registrants_created: 0,
-        registrants_updated: 0,
-        assignments_written: 0,
-        sessions_auto_created: 0,
-        started_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .select("id")
-      .single()
+    if (existingJobId) {
+      jobId = existingJobId
 
-    if (jobCreateError) {
-      throw new Error(jobCreateError.message)
+      await supabaseAdmin
+        .from("import_jobs")
+        .update({
+          status: "running",
+          event_id: forcedEventId,
+          file_name: file.name,
+          total_rows: parsed.rows.length,
+          processed_rows: 0,
+          progress_pct: 0,
+          registrants_created: 0,
+          registrants_updated: 0,
+          assignments_written: 0,
+          sessions_auto_created: 0,
+          error_message: null,
+          started_at: new Date().toISOString(),
+          finished_at: null,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+    } else {
+      const { data: job, error: jobCreateError } = await supabaseAdmin
+        .from("import_jobs")
+        .insert({
+          kind: "registrant_import",
+          status: "running",
+          event_id: forcedEventId,
+          file_name: file.name,
+          total_rows: parsed.rows.length,
+          processed_rows: 0,
+          progress_pct: 0,
+          registrants_created: 0,
+          registrants_updated: 0,
+          assignments_written: 0,
+          sessions_auto_created: 0,
+          started_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select("id")
+        .single()
+
+      if (jobCreateError) throw new Error(jobCreateError.message)
+      jobId = job?.id ?? null
     }
-
-    jobId = job?.id ?? null
 
     let eventMap = new Map<string, EventRow>()
 
@@ -139,9 +157,7 @@ export async function POST(req: Request) {
         .eq("id", forcedEventId)
         .maybeSingle()
 
-      if (error || !event) {
-        throw new Error("Provided event_id was not found")
-      }
+      if (error || !event) throw new Error("Provided event_id was not found")
 
       eventMap.set(event.slug, event as EventRow)
     } else {
@@ -154,9 +170,7 @@ export async function POST(req: Request) {
         .select("id,slug")
         .in("slug", eventSlugs)
 
-      if (error) {
-        throw new Error(error.message)
-      }
+      if (error) throw new Error(error.message)
 
       eventMap = new Map((events || []).map((e) => [e.slug, e as EventRow]))
     }
@@ -170,9 +184,7 @@ export async function POST(req: Request) {
         .select("id,event_id,code,title")
         .in("event_id", eventIds)
 
-      if (error) {
-        throw new Error(error.message)
-      }
+      if (error) throw new Error(error.message)
 
       sessionRows = (sessions || []) as SessionRow[]
     }
@@ -284,9 +296,7 @@ export async function POST(req: Request) {
         for (const code of row.normalizedSessionCodes) {
           const key = `${row.resolvedEventId}::${code}`
           const session = sessionMap.get(key)
-          if (session) {
-            resolvedSessionIds.push(session.id)
-          }
+          if (session) resolvedSessionIds.push(session.id)
         }
       }
 
