@@ -12,7 +12,7 @@ type UserTokenPayload = {
   email?: string
 }
 
-ttype SessionRow = {
+type SessionRow = {
   id: string
   event_id: string
   code: string | null
