@@ -23,9 +23,7 @@ function normalizeSessionCode(value: string) {
 }
 
 function uniqueSessionCodes(codes: string[]) {
-  return Array.from(
-    new Set((codes || []).map(normalizeSessionCode).filter(Boolean))
-  )
+  return Array.from(new Set((codes || []).map(normalizeSessionCode).filter(Boolean)))
 }
 
 async function ensureEventSessionsExist(
@@ -85,6 +83,8 @@ async function ensureEventSessionsExist(
 }
 
 export async function POST(req: Request) {
+  let jobId: string | null = null
+
   try {
     const authResult = await requireAdmin()
     if (authResult instanceof Response) return authResult
@@ -104,6 +104,32 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "CSV has no rows" }, { status: 400 })
     }
 
+    const { data: job, error: jobCreateError } = await supabaseAdmin
+      .from("import_jobs")
+      .insert({
+        kind: "registrant_import",
+        status: "running",
+        event_id: forcedEventId,
+        file_name: file.name,
+        total_rows: parsed.rows.length,
+        processed_rows: 0,
+        progress_pct: 0,
+        registrants_created: 0,
+        registrants_updated: 0,
+        assignments_written: 0,
+        sessions_auto_created: 0,
+        started_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single()
+
+    if (jobCreateError) {
+      throw new Error(jobCreateError.message)
+    }
+
+    jobId = job?.id ?? null
+
     let eventMap = new Map<string, EventRow>()
 
     if (forcedEventId) {
@@ -114,7 +140,7 @@ export async function POST(req: Request) {
         .maybeSingle()
 
       if (error || !event) {
-        return NextResponse.json({ error: "Provided event_id was not found" }, { status: 400 })
+        throw new Error("Provided event_id was not found")
       }
 
       eventMap.set(event.slug, event as EventRow)
@@ -129,7 +155,7 @@ export async function POST(req: Request) {
         .in("slug", eventSlugs)
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 })
+        throw new Error(error.message)
       }
 
       eventMap = new Map((events || []).map((e) => [e.slug, e as EventRow]))
@@ -145,7 +171,7 @@ export async function POST(req: Request) {
         .in("event_id", eventIds)
 
       if (error) {
-        return NextResponse.json({ error: error.message }, { status: 400 })
+        throw new Error(error.message)
       }
 
       sessionRows = (sessions || []) as SessionRow[]
@@ -153,10 +179,7 @@ export async function POST(req: Request) {
 
     const sessionMap = new Map<string, SessionRow>()
     for (const session of sessionRows) {
-      sessionMap.set(
-        `${session.event_id}::${normalizeSessionCode(session.code)}`,
-        session
-      )
+      sessionMap.set(`${session.event_id}::${normalizeSessionCode(session.code)}`, session)
     }
 
     const seenEventEmail = new Set<string>()
@@ -194,6 +217,31 @@ export async function POST(req: Request) {
 
     const earlyInvalidRows = prevalidatedRows.filter((r) => r.errors.length > 0)
     if (earlyInvalidRows.length) {
+      if (jobId) {
+        await supabaseAdmin
+          .from("import_jobs")
+          .update({
+            status: "error",
+            progress_pct: 100,
+            error_message: "Import contains invalid rows. Run preview or fix the CSV first.",
+            result: {
+              summary: {
+                totalRows: prevalidatedRows.length,
+                validRows: prevalidatedRows.length - earlyInvalidRows.length,
+                invalidRows: earlyInvalidRows.length,
+              },
+              rowErrors: earlyInvalidRows.map((r) => ({
+                rowNumber: r.rowNumber,
+                email: r.email,
+                errors: r.errors,
+              })),
+            },
+            finished_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", jobId)
+      }
+
       return NextResponse.json(
         {
           error: "Import contains invalid rows. Run preview or fix the CSV first.",
@@ -207,6 +255,7 @@ export async function POST(req: Request) {
             email: r.email,
             errors: r.errors,
           })),
+          jobId,
         },
         { status: 400 }
       )
@@ -254,6 +303,7 @@ export async function POST(req: Request) {
 
     {
       const uniqueSessionKeys = new Set<string>()
+
       for (const row of validatedRows) {
         for (const code of row.normalizedSessionCodes) {
           uniqueSessionKeys.add(`${row.resolvedEventId}::${code}`)
@@ -273,6 +323,8 @@ export async function POST(req: Request) {
 
       sessionsAutoCreated = Math.max(0, existingAfter - existingBefore)
     }
+
+    let processed = 0
 
     for (const row of validatedRows) {
       const eventId = row.resolvedEventId!
@@ -299,13 +351,8 @@ export async function POST(req: Request) {
         .single()
 
       if (upsertError || !registrant?.id) {
-        return NextResponse.json(
-          {
-            error: `Failed to upsert registrant for ${row.email}`,
-            details: upsertError?.message || "Unknown error",
-            rowNumber: row.rowNumber,
-          },
-          { status: 400 }
+        throw new Error(
+          `Failed to upsert registrant for ${row.email}: ${upsertError?.message || "Unknown error"}`
         )
       }
 
@@ -320,13 +367,8 @@ export async function POST(req: Request) {
         .eq("registrant_id", registrantId)
 
       if (deleteError) {
-        return NextResponse.json(
-          {
-            error: `Failed clearing existing session assignments for ${row.email}`,
-            details: deleteError.message,
-            rowNumber: row.rowNumber,
-          },
-          { status: 400 }
+        throw new Error(
+          `Failed clearing existing session assignments for ${row.email}: ${deleteError.message}`
         )
       }
 
@@ -342,21 +384,35 @@ export async function POST(req: Request) {
           .insert(insertRows)
 
         if (insertError) {
-          return NextResponse.json(
-            {
-              error: `Failed inserting session assignments for ${row.email}`,
-              details: insertError.message,
-              rowNumber: row.rowNumber,
-            },
-            { status: 400 }
+          throw new Error(
+            `Failed inserting session assignments for ${row.email}: ${insertError.message}`
           )
         }
 
         assignmentsWritten += insertRows.length
       }
+
+      processed++
+
+      if (jobId && (processed % 25 === 0 || processed === validatedRows.length)) {
+        const progressPct = Math.round((processed / validatedRows.length) * 100)
+
+        await supabaseAdmin
+          .from("import_jobs")
+          .update({
+            processed_rows: processed,
+            progress_pct: progressPct,
+            registrants_created: registrantsCreated,
+            registrants_updated: registrantsUpdated,
+            assignments_written: assignmentsWritten,
+            sessions_auto_created: sessionsAutoCreated,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", jobId)
+      }
     }
 
-    return NextResponse.json({
+    const result = {
       success: true,
       summary: {
         totalRows: validatedRows.length,
@@ -365,11 +421,45 @@ export async function POST(req: Request) {
         assignmentsWritten,
         sessionsAutoCreated,
       },
-    })
+      jobId,
+    }
+
+    if (jobId) {
+      await supabaseAdmin
+        .from("import_jobs")
+        .update({
+          status: "success",
+          processed_rows: validatedRows.length,
+          progress_pct: 100,
+          registrants_created: registrantsCreated,
+          registrants_updated: registrantsUpdated,
+          assignments_written: assignmentsWritten,
+          sessions_auto_created: sessionsAutoCreated,
+          result,
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+    }
+
+    return NextResponse.json(result)
   } catch (err: any) {
     console.error("import-registrants error:", err)
+
+    if (jobId) {
+      await supabaseAdmin
+        .from("import_jobs")
+        .update({
+          status: "error",
+          error_message: err?.message || "Server error",
+          finished_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", jobId)
+    }
+
     return NextResponse.json(
-      { error: err?.message || "Server error" },
+      { error: err?.message || "Server error", jobId },
       { status: 500 }
     )
   }

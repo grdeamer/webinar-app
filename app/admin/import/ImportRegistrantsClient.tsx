@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useMemo, useRef, useState } from "react"
 
 type EventOption = {
   id: string
@@ -46,6 +46,29 @@ type CommitResponse = {
     assignmentsWritten: number
     sessionsAutoCreated?: number
   }
+  jobId?: string | null
+}
+
+type ImportJobResponse = {
+  id: string
+  kind: string
+  status: string
+  event_id: string | null
+  file_name: string | null
+  total_rows: number
+  processed_rows: number
+  progress_pct: number
+  registrants_created: number
+  registrants_updated: number
+  assignments_written: number
+  sessions_auto_created: number
+  error_message: string | null
+  started_at: string | null
+  finished_at: string | null
+  created_at: string
+  updated_at: string
+  progress?: number | null
+  result?: CommitResponse | null
 }
 
 type ImportStatus = "idle" | "running" | "success" | "error"
@@ -72,6 +95,11 @@ export default function ImportRegistrantsClient({
   const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
   const [importMessage, setImportMessage] = useState<string>("")
   const [progressPct, setProgressPct] = useState<number>(0)
+  const [jobId, setJobId] = useState<string | null>(null)
+  const [processedRows, setProcessedRows] = useState<number>(0)
+  const [totalRows, setTotalRows] = useState<number>(0)
+
+  const pollTimerRef = useRef<number | null>(null)
 
   const selectedEvent = useMemo(
     () => initialEvents.find((e) => e.id === selectedEventId) || null,
@@ -88,21 +116,12 @@ export default function ImportRegistrantsClient({
     [selectedEvent?.slug]
   )
 
-  useEffect(() => {
-    if (importStatus !== "running") return
-
-    setProgressPct(8)
-
-    const id = window.setInterval(() => {
-      setProgressPct((current) => {
-        if (current >= 92) return current
-        const step = Math.max(1, Math.round((92 - current) / 6))
-        return Math.min(92, current + step)
-      })
-    }, 350)
-
-    return () => window.clearInterval(id)
-  }, [importStatus])
+  function stopPolling() {
+    if (pollTimerRef.current != null) {
+      window.clearInterval(pollTimerRef.current)
+      pollTimerRef.current = null
+    }
+  }
 
   async function downloadTemplate() {
     if (!selectedEventId) {
@@ -155,6 +174,10 @@ export default function ImportRegistrantsClient({
       setImportStatus("idle")
       setImportMessage("")
       setProgressPct(0)
+      setJobId(null)
+      setProcessedRows(0)
+      setTotalRows(0)
+      stopPolling()
 
       const fd = new FormData()
       fd.append("file", file)
@@ -180,6 +203,87 @@ export default function ImportRegistrantsClient({
     }
   }
 
+  async function pollImportJob(nextJobId: string) {
+    stopPolling()
+
+    const pollOnce = async () => {
+      const res = await fetch(`/api/admin/import-jobs/${nextJobId}`, {
+        method: "GET",
+        cache: "no-store",
+      })
+
+      const json = (await res.json().catch((): Record<string, unknown> => ({}))) as Partial<ImportJobResponse>
+      setRawResponse(json)
+
+      if (!res.ok) {
+        throw new Error((json?.error_message as string) || "Failed to fetch import progress")
+      }
+
+      const total = Number(json.total_rows || 0)
+      const processed = Number(json.processed_rows || 0)
+      const pct = Number(json.progress_pct || json.progress || 0)
+
+      setTotalRows(total)
+      setProcessedRows(processed)
+      setProgressPct(pct)
+
+      if (json.status === "success") {
+        stopPolling()
+        setCommitLoading(false)
+        setImportStatus("success")
+
+        const result = json.result as CommitResponse | undefined
+        if (result?.summary) {
+          setCommitResult(result)
+          const summary = result.summary
+          setImportMessage(
+            `Imported ${summary.totalRows} rows. ${summary.registrantsCreated} created, ${summary.registrantsUpdated} updated, ${summary.assignmentsWritten} assignments written${summary.sessionsAutoCreated != null ? `, ${summary.sessionsAutoCreated} sessions auto-created` : ""}.`
+          )
+        } else {
+          setCommitResult({
+            success: true,
+            summary: {
+              totalRows: total,
+              registrantsCreated: Number(json.registrants_created || 0),
+              registrantsUpdated: Number(json.registrants_updated || 0),
+              assignmentsWritten: Number(json.assignments_written || 0),
+              sessionsAutoCreated: Number(json.sessions_auto_created || 0),
+            },
+            jobId: nextJobId,
+          })
+          setImportMessage(
+            `Imported ${total} rows. ${Number(json.registrants_created || 0)} created, ${Number(json.registrants_updated || 0)} updated, ${Number(json.assignments_written || 0)} assignments written${json.sessions_auto_created != null ? `, ${Number(json.sessions_auto_created)} sessions auto-created` : ""}.`
+          )
+        }
+
+        return
+      }
+
+      if (json.status === "error") {
+        stopPolling()
+        setCommitLoading(false)
+        setImportStatus("error")
+        const message = (json.error_message as string) || "Import failed"
+        setImportMessage(message)
+        setError(message)
+        return
+      }
+
+      setImportStatus("running")
+      setImportMessage(
+        total > 0
+          ? `Processing ${processed.toLocaleString()} of ${total.toLocaleString()} rows...`
+          : "Preparing import job..."
+      )
+    }
+
+    await pollOnce()
+
+    pollTimerRef.current = window.setInterval(() => {
+      void pollOnce()
+    }, 1000)
+  }
+
   async function runImport() {
     if (!file) {
       setError("Choose a CSV file first.")
@@ -192,14 +296,18 @@ export default function ImportRegistrantsClient({
       setCommitResult(null)
       setRawResponse(null)
       setImportStatus("running")
-      setImportMessage("Uploading CSV and processing registrants...")
-      setProgressPct(10)
+      setImportMessage("Starting import job...")
+      setProgressPct(0)
+      setProcessedRows(0)
+      setTotalRows(0)
+      setJobId(null)
+      stopPolling()
 
       const fd = new FormData()
       fd.append("file", file)
       if (selectedEventId) fd.append("event_id", selectedEventId)
 
-      const res = await fetch("/api/admin/events/import-registrants", {
+      const res = await fetch("/api/admin/events/import-registrants/start", {
         method: "POST",
         body: fd,
       })
@@ -207,26 +315,24 @@ export default function ImportRegistrantsClient({
       const json = await res.json().catch((): Record<string, unknown> => ({}))
       setRawResponse(json)
 
-      if (!res.ok || !json?.success) {
-        throw new Error((json?.error as string) || "Import failed")
+      if (!res.ok) {
+        throw new Error((json?.error as string) || "Failed to start import")
       }
 
-      const typedJson = json as CommitResponse
-      setCommitResult(typedJson)
-      setImportStatus("success")
-      setProgressPct(100)
+      const nextJobId = String(json?.jobId || "")
+      if (!nextJobId) {
+        throw new Error("Import started but no job ID was returned")
+      }
 
-      const summary = typedJson.summary
-      setImportMessage(
-        `Imported ${summary.totalRows} rows. ${summary.registrantsCreated} created, ${summary.registrantsUpdated} updated, ${summary.assignmentsWritten} assignments written${summary.sessionsAutoCreated != null ? `, ${summary.sessionsAutoCreated} sessions auto-created` : ""}.`
-      )
+      setJobId(nextJobId)
+      await pollImportJob(nextJobId)
     } catch (e: any) {
+      stopPolling()
+      setCommitLoading(false)
       setImportStatus("error")
       setProgressPct(100)
       setImportMessage(e?.message || "Import failed")
       setError(e?.message || "Import failed")
-    } finally {
-      setCommitLoading(false)
     }
   }
 
@@ -310,7 +416,7 @@ export default function ImportRegistrantsClient({
                   disabled={commitLoading || previewLoading || !file}
                   className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {commitLoading ? "Importing..." : "Run import"}
+                  {commitLoading ? "Starting..." : "Run import"}
                 </button>
               </div>
             </div>
@@ -320,10 +426,10 @@ export default function ImportRegistrantsClient({
             <div className="text-sm font-semibold text-white/80">How this works</div>
             <ul className="mt-3 space-y-2 text-sm text-white/60">
               <li>1. Create the event first.</li>
-              <li>2. Session codes in the CSV can now be auto-created if missing.</li>
-              <li>3. Use a unique session code for each session in the event.</li>
-              <li>4. Upload a CSV using those session codes.</li>
-              <li>5. Preview first, then run the import.</li>
+              <li>2. Session codes in the CSV can be auto-created if missing.</li>
+              <li>3. Preview the CSV before import.</li>
+              <li>4. Start the import job.</li>
+              <li>5. Watch real progress as rows are processed.</li>
             </ul>
 
             <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3 text-xs text-amber-100/90">
@@ -351,6 +457,9 @@ export default function ImportRegistrantsClient({
                 {importMessage ? (
                   <div className="mt-1 text-sm text-white/75">{importMessage}</div>
                 ) : null}
+                {jobId ? (
+                  <div className="mt-1 text-xs text-white/45">Job ID: {jobId}</div>
+                ) : null}
               </div>
 
               <div
@@ -367,9 +476,14 @@ export default function ImportRegistrantsClient({
 
             <div className="mt-4">
               <div className="mb-2 flex items-center justify-between text-xs text-white/60">
-                <span>Status</span>
+                <span>
+                  {totalRows > 0
+                    ? `${processedRows.toLocaleString()} / ${totalRows.toLocaleString()} rows`
+                    : "Status"}
+                </span>
                 <span>{progressPct}%</span>
               </div>
+
               <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
                 <div
                   className={[
@@ -409,7 +523,7 @@ export default function ImportRegistrantsClient({
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-xl font-semibold">CSV format</h2>
         <p className="mt-2 text-sm text-white/60">
-          Use this exact header format. Missing session codes can now be created automatically during import.
+          Use this exact header format. Missing session codes can be created automatically during import.
         </p>
 
         <pre className="mt-4 overflow-auto rounded-2xl border border-white/10 bg-black/40 p-5 text-xs text-slate-200">
