@@ -112,8 +112,8 @@ export default async function MyWebinarsPage() {
           code,
           title,
           description,
-          start_at,
-          end_at,
+          starts_at,
+          ends_at,
           join_link
         )
       `
@@ -137,16 +137,14 @@ export default async function MyWebinarsPage() {
             code: s.code ?? null,
             title: String(s.title ?? ""),
             description: s.description ?? null,
-            stars_at: s.starts_at ?? null,
+            starts_at: s.starts_at ?? null,
             ends_at: s.ends_at ?? null,
             join_link: s.join_link ?? null,
           })) || []
     }
   }
 
-  const uniqueSessions = Array.from(
-    new Map(sessions.map((s) => [s.id, s])).values()
-  )
+  const uniqueSessions = Array.from(new Map(sessions.map((s) => [s.id, s])).values())
 
   uniqueSessions.sort((a, b) => {
     const ta = a.starts_at ? new Date(a.starts_at).getTime() : Number.POSITIVE_INFINITY
@@ -168,7 +166,9 @@ export default async function MyWebinarsPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">My Sessions</h1>
-            <p className="mt-1 text-white/60">View the sessions assigned to your email and join when ready.</p>
+            <p className="mt-1 text-white/60">
+              View the sessions assigned to your email and join when ready.
+            </p>
           </div>
 
           <div className="flex items-center gap-3">
@@ -223,13 +223,13 @@ export default async function MyWebinarsPage() {
                   className="rounded-3xl border border-white/10 bg-white/5 p-7 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]"
                 >
                   <div className="flex items-center justify-between gap-3">
-                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}>
+                    <span
+                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}
+                    >
                       {badge.label}
                     </span>
 
-                    {datePretty && (
-                      <span className="text-xs text-white/60">{datePretty}</span>
-                    )}
+                    {datePretty && <span className="text-xs text-white/60">{datePretty}</span>}
                   </div>
 
                   <h3 className="mt-4 text-xl font-semibold leading-snug">{session.title}</h3>
@@ -247,29 +247,29 @@ export default async function MyWebinarsPage() {
                   )}
 
                   <div className="mt-6 flex gap-3">
-  <a
-    href={`/sessions/${session.id}`}
-    className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-medium text-slate-950 hover:bg-slate-100 transition"
-  >
-    View Session
-  </a>
+                    <a
+                      href={`/sessions/${session.id}`}
+                      className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-medium text-slate-950 hover:bg-slate-100 transition"
+                    >
+                      View Session
+                    </a>
 
-  {session.join_link ? (
-    <a
-      href={session.join_link}
-      className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-700 transition"
-    >
-      Join session
-    </a>
-  ) : (
-    <button
-      disabled
-      className="inline-flex items-center justify-center rounded-xl bg-white/10 px-5 py-3 font-medium opacity-60 cursor-not-allowed"
-    >
-      No link available
-    </button>
-  )}
-</div>
+                    {session.join_link ? (
+                      <a
+                        href={session.join_link}
+                        className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-700 transition"
+                      >
+                        Join session
+                      </a>
+                    ) : (
+                      <button
+                        disabled
+                        className="inline-flex items-center justify-center rounded-xl bg-white/10 px-5 py-3 font-medium opacity-60 cursor-not-allowed"
+                      >
+                        No link available
+                      </button>
+                    )}
+                  </div>
                 </div>
               )
             })}
