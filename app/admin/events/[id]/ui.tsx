@@ -9,6 +9,7 @@ import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 import AdminRefreshButton from "@/components/admin/AdminRefreshButton"
 import AdminEventLiveStatePanel from "@/components/admin/AdminEventLiveStatePanel"
 import AdminLogoutButton from "@/components/admin/AdminLogoutButton"
+import AdminEventThemePanel from "@/components/admin/AdminEventThemePanel"
 
 import type {
   EventBreakout,
@@ -314,7 +315,7 @@ export default function AdminEventEditor({
         </aside>
       </div>
 
-      <AdminEventSponsorManager
+            <AdminEventSponsorManager
         eventId={row.id}
         initialSponsors={(row.event_sponsors || []).map((s) => ({
           ...s,
@@ -322,6 +323,8 @@ export default function AdminEventEditor({
           sort_index: s.sort_index ?? 0,
         }))}
       />
+
+      <AdminEventThemePanel eventId={row.id} />
     </div>
   )
 }
