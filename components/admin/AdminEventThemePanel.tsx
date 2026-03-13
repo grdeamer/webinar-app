@@ -19,6 +19,12 @@ type Props = {
   eventId: string
 }
 
+type ThemeApiResponse = {
+  themes?: ThemeRow[]
+  theme?: ThemeRow
+  error?: string
+} | null
+
 const pageOptions = [
   { value: "event_landing", label: "Event Landing Page" },
   { value: "sessions_landing", label: "Sessions Landing Page" },
@@ -31,7 +37,7 @@ export default function AdminEventThemePanel({ eventId }: Props) {
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
 
-  const current =
+  const current: ThemeRow =
     themes.find((t) => t.page_key === pageKey) ?? {
       event_id: eventId,
       page_key: pageKey,
@@ -44,6 +50,14 @@ export default function AdminEventThemePanel({ eventId }: Props) {
       overlay_opacity: 45,
     }
 
+  async function readJsonSafe(res: Response): Promise<ThemeApiResponse> {
+    try {
+      return (await res.json()) as ThemeApiResponse
+    } catch {
+      return null
+    }
+  }
+
   async function loadThemes() {
     setLoading(true)
     setMessage(null)
@@ -52,7 +66,7 @@ export default function AdminEventThemePanel({ eventId }: Props) {
       cache: "no-store",
     })
 
-    const data = await res.json().catch(() => null)
+    const data = await readJsonSafe(res)
 
     if (!res.ok) {
       setMessage(data?.error || "Failed to load themes")
@@ -65,7 +79,7 @@ export default function AdminEventThemePanel({ eventId }: Props) {
   }
 
   useEffect(() => {
-    loadThemes()
+    void loadThemes()
   }, [eventId])
 
   function updateField<K extends keyof ThemeRow>(key: K, value: ThemeRow[K]) {
@@ -104,7 +118,7 @@ export default function AdminEventThemePanel({ eventId }: Props) {
       body: JSON.stringify(current),
     })
 
-    const data = await res.json().catch(() => null)
+    const data = await readJsonSafe(res)
 
     if (!res.ok) {
       setMessage(data?.error || "Failed to save theme")
@@ -178,7 +192,9 @@ export default function AdminEventThemePanel({ eventId }: Props) {
             <div className="mb-2 text-sm text-white/70">Logo Position</div>
             <select
               value={current.brand_logo_position ?? "left"}
-              onChange={(e) => updateField("brand_logo_position", e.target.value as "left" | "center" | "right")}
+              onChange={(e) =>
+                updateField("brand_logo_position", e.target.value as "left" | "center" | "right")
+              }
               className="w-full rounded-xl border border-white/10 bg-slate-950 px-4 py-3 text-sm"
             >
               <option value="left">Upper Left</option>
