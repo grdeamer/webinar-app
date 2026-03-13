@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { requireAdmin } from "@/lib/requireAdmin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -24,9 +23,6 @@ export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
-
   const { id } = await ctx.params
 
   const { data, error } = await supabaseAdmin
@@ -43,9 +39,6 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const unauthorized = await requireAdmin()
-  if (unauthorized) return unauthorized
-
   const { id } = await ctx.params
   const body = await req.json().catch(() => null)
 
