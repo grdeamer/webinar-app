@@ -18,8 +18,8 @@ type SessionRow = {
   code: string | null
   title: string
   description: string | null
-  start_at: string | null
-  end_at: string | null
+  starts_at: string | null
+  ends_at: string | null
   join_link: string | null
 }
 
@@ -137,8 +137,8 @@ export default async function MyWebinarsPage() {
             code: s.code ?? null,
             title: String(s.title ?? ""),
             description: s.description ?? null,
-            start_at: s.start_at ?? null,
-            end_at: s.end_at ?? null,
+            start_at: s.starts_at ?? null,
+            end_at: s.ends_at ?? null,
             join_link: s.join_link ?? null,
           })) || []
     }
