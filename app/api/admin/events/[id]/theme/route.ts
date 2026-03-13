@@ -40,7 +40,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
 
   const page_key =
     body?.page_key === "event_landing" || body?.page_key === "sessions_landing"
