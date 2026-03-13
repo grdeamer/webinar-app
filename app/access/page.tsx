@@ -31,7 +31,7 @@ export default function AccessPage() {
         return
       }
 
-      router.push("/lobby")
+      router.push("/sessions")
       router.refresh()
     } catch (err) {
       setError("Network error. Try again.")
@@ -58,7 +58,7 @@ export default function AccessPage() {
         </h1>
 
         <p className="text-white/70 mt-2">
-          Enter your email to view your assigned webinars.
+          Enter your email to view your assigned sessions.
         </p>
 
         <form onSubmit={onSubmit} className="mt-8 space-y-4">
