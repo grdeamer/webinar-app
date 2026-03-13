@@ -22,6 +22,25 @@ function normalizeSessionCode(value: string) {
   return String(value || "").trim().toUpperCase()
 }
 
+function normalizeEventSlug(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120)
+}
+
+function titleFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+    .slice(0, 200) || "New Event"
+}
+
 export async function POST(req: Request) {
   try {
     const authResult = await requireAdmin()
@@ -55,10 +74,10 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Provided event_id was not found" }, { status: 400 })
       }
 
-      eventMap.set(event.slug, event as EventRow)
+      eventMap.set(normalizeEventSlug(event.slug), event as EventRow)
     } else {
       const eventSlugs = Array.from(
-        new Set(parsed.rows.map((r) => r.eventSlug).filter(Boolean) as string[])
+        new Set(parsed.rows.map((r) => normalizeEventSlug(r.eventSlug || "")).filter(Boolean))
       )
 
       const { data: events, error } = await supabaseAdmin
@@ -70,7 +89,9 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: error.message }, { status: 400 })
       }
 
-      eventMap = new Map((events || []).map((e) => [e.slug, e as EventRow]))
+      eventMap = new Map(
+        (events || []).map((e) => [normalizeEventSlug(e.slug), e as EventRow])
+      )
     }
 
     const eventIds = Array.from(new Set(Array.from(eventMap.values()).map((e) => e.id)))
@@ -98,22 +119,37 @@ export async function POST(req: Request) {
     }
 
     const seenEventEmail = new Set<string>()
+    const eventsToAutoCreateMap = new Map<string, { slug: string; title: string }>()
+    const sessionAutoCreateKeys = new Set<string>()
 
     const previewRows = parsed.rows.map((row: ParsedRegistrantImportRow) => {
       const errors = [...row.errors]
 
-      const event =
+      const normalizedSlug = normalizeEventSlug(row.eventSlug || "")
+      const existingEvent =
         forcedEventId
           ? Array.from(eventMap.values())[0] || null
-          : row.eventSlug
-            ? eventMap.get(row.eventSlug) || null
+          : normalizedSlug
+            ? eventMap.get(normalizedSlug) || null
             : null
 
-      if (!event) {
+      const willAutoCreateEvent =
+        !forcedEventId && normalizedSlug && !existingEvent ? true : false
+
+      if (!forcedEventId && !normalizedSlug) {
         errors.push(`Unknown event slug: ${row.eventSlug || "(blank)"}`)
       }
 
-      const dedupeKey = event ? `${event.id}::${row.email}` : `missing::${row.email}`
+      if (willAutoCreateEvent) {
+        eventsToAutoCreateMap.set(normalizedSlug, {
+          slug: normalizedSlug,
+          title: titleFromSlug(normalizedSlug),
+        })
+      }
+
+      const dedupeEventKey = existingEvent?.id || (willAutoCreateEvent ? normalizedSlug : "missing")
+      const dedupeKey = `${dedupeEventKey}::${row.email}`
+
       if (row.email) {
         if (seenEventEmail.has(dedupeKey)) {
           errors.push("Duplicate email row for same event in this file")
@@ -125,16 +161,25 @@ export async function POST(req: Request) {
       const resolvedSessionIds: string[] = []
       const missingSessionCodes: string[] = []
 
-      if (event) {
+      if (existingEvent) {
         for (const rawCode of row.sessionCodes) {
           const code = normalizeSessionCode(rawCode)
-          const key = `${event.id}::${code}`
+          const key = `${existingEvent.id}::${code}`
           const session = sessionMap.get(key)
 
           if (session) {
             resolvedSessionIds.push(session.id)
           } else if (code) {
             missingSessionCodes.push(code)
+            sessionAutoCreateKeys.add(`${existingEvent.id}::${code}`)
+          }
+        }
+      } else if (willAutoCreateEvent) {
+        for (const rawCode of row.sessionCodes) {
+          const code = normalizeSessionCode(rawCode)
+          if (code) {
+            missingSessionCodes.push(code)
+            sessionAutoCreateKeys.add(`${normalizedSlug}::${code}`)
           }
         }
       }
@@ -142,7 +187,7 @@ export async function POST(req: Request) {
       return {
         rowNumber: row.rowNumber,
         eventSlug: row.eventSlug,
-        resolvedEventId: event?.id || null,
+        resolvedEventId: existingEvent?.id || null,
         email: row.email,
         firstName: row.firstName,
         lastName: row.lastName,
@@ -151,6 +196,8 @@ export async function POST(req: Request) {
         sessionCodes: row.sessionCodes,
         resolvedSessionIds,
         missingSessionCodes,
+        willAutoCreateEvent,
+        autoCreateEventTitle: willAutoCreateEvent ? titleFromSlug(normalizedSlug) : null,
         valid: errors.length === 0,
         errors,
       }
@@ -159,16 +206,6 @@ export async function POST(req: Request) {
     const validRows = previewRows.filter((r) => r.valid)
     const invalidRows = previewRows.filter((r) => !r.valid)
 
-    const sessionsToAutoCreate = Array.from(
-      new Set(
-        previewRows.flatMap((r) =>
-          (r.resolvedEventId
-            ? r.missingSessionCodes.map((code) => `${r.resolvedEventId}::${code}`)
-            : [])
-        )
-      )
-    ).length
-
     return NextResponse.json({
       success: true,
       summary: {
@@ -176,7 +213,11 @@ export async function POST(req: Request) {
         validRows: validRows.length,
         invalidRows: invalidRows.length,
         eventsDetected: eventMap.size,
-        sessionsToAutoCreate,
+        sessionsToAutoCreate: sessionAutoCreateKeys.size,
+        eventsToAutoCreate: eventsToAutoCreateMap.size,
+      },
+      autoCreate: {
+        events: Array.from(eventsToAutoCreateMap.values()),
       },
       rows: previewRows,
     })
