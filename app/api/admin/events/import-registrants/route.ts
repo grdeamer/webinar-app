@@ -26,6 +26,61 @@ function uniqueSessionCodes(codes: string[]) {
   return Array.from(new Set((codes || []).map(normalizeSessionCode).filter(Boolean)))
 }
 
+function normalizeEventSlug(value: string) {
+  return String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/['"]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120)
+}
+
+function titleFromSlug(slug: string) {
+  return slug
+    .split("-")
+    .filter(Boolean)
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ")
+    .slice(0, 200) || "New Event"
+}
+
+async function ensureEventsExist(
+  rows: ParsedRegistrantImportRow[],
+  eventMap: Map<string, EventRow>
+) {
+  const normalizedCsvSlugs = Array.from(
+    new Set(
+      rows
+        .map((row) => normalizeEventSlug(row.eventSlug || ""))
+        .filter(Boolean)
+    )
+  )
+
+  const missingSlugs = normalizedCsvSlugs.filter((slug) => !eventMap.has(slug))
+  if (!missingSlugs.length) return 0
+
+  const insertRows = missingSlugs.map((slug) => ({
+    slug,
+    title: titleFromSlug(slug),
+  }))
+
+  const { data: inserted, error } = await supabaseAdmin
+    .from("events")
+    .insert(insertRows)
+    .select("id,slug")
+
+  if (error) {
+    throw new Error(`Failed to auto-create missing events: ${error.message}`)
+  }
+
+  for (const row of (inserted || []) as EventRow[]) {
+    eventMap.set(normalizeEventSlug(row.slug), row)
+  }
+
+  return missingSlugs.length
+}
+
 async function ensureEventSessionsExist(
   eventId: string,
   codes: string[],
@@ -47,7 +102,9 @@ async function ensureEventSessionsExist(
     .eq("event_id", eventId)
     .in("code", missingCodes)
 
-  if (existingError) throw new Error(existingError.message)
+  if (existingError) {
+    throw new Error(existingError.message)
+  }
 
   for (const row of (existingRows || []) as SessionRow[]) {
     sessionMap.set(`${row.event_id}::${normalizeSessionCode(row.code)}`, row)
@@ -71,7 +128,9 @@ async function ensureEventSessionsExist(
     .insert(insertRows)
     .select("id,event_id,code,title")
 
-  if (insertError) throw new Error(insertError.message)
+  if (insertError) {
+    throw new Error(insertError.message)
+  }
 
   for (const row of (insertedRows || []) as SessionRow[]) {
     sessionMap.set(`${row.event_id}::${normalizeSessionCode(row.code)}`, row)
@@ -149,6 +208,7 @@ export async function POST(req: Request) {
     }
 
     let eventMap = new Map<string, EventRow>()
+    let eventsAutoCreated = 0
 
     if (forcedEventId) {
       const { data: event, error } = await supabaseAdmin
@@ -157,22 +217,30 @@ export async function POST(req: Request) {
         .eq("id", forcedEventId)
         .maybeSingle()
 
-      if (error || !event) throw new Error("Provided event_id was not found")
+      if (error || !event) {
+        throw new Error("Provided event_id was not found")
+      }
 
-      eventMap.set(event.slug, event as EventRow)
+      eventMap.set(normalizeEventSlug(event.slug), event as EventRow)
     } else {
       const eventSlugs = Array.from(
-        new Set(parsed.rows.map((r) => r.eventSlug).filter(Boolean) as string[])
+        new Set(parsed.rows.map((r) => normalizeEventSlug(r.eventSlug || "")).filter(Boolean))
       )
 
-      const { data: events, error } = await supabaseAdmin
-        .from("events")
-        .select("id,slug")
-        .in("slug", eventSlugs)
+      if (eventSlugs.length) {
+        const { data: events, error } = await supabaseAdmin
+          .from("events")
+          .select("id,slug")
+          .in("slug", eventSlugs)
 
-      if (error) throw new Error(error.message)
+        if (error) throw new Error(error.message)
 
-      eventMap = new Map((events || []).map((e) => [e.slug, e as EventRow]))
+        eventMap = new Map(
+          (events || []).map((e) => [normalizeEventSlug(e.slug), e as EventRow])
+        )
+      }
+
+      eventsAutoCreated = await ensureEventsExist(parsed.rows, eventMap)
     }
 
     const eventIds = Array.from(new Set(Array.from(eventMap.values()).map((e) => e.id)))
@@ -199,11 +267,12 @@ export async function POST(req: Request) {
     const prevalidatedRows = parsed.rows.map((row: ParsedRegistrantImportRow) => {
       const errors = [...row.errors]
 
+      const normalizedSlug = normalizeEventSlug(row.eventSlug || "")
       const event =
         forcedEventId
           ? Array.from(eventMap.values())[0] || null
-          : row.eventSlug
-            ? eventMap.get(row.eventSlug) || null
+          : normalizedSlug
+            ? eventMap.get(normalizedSlug) || null
             : null
 
       if (!event) {
@@ -223,6 +292,7 @@ export async function POST(req: Request) {
         ...row,
         normalizedSessionCodes: uniqueSessionCodes(row.sessionCodes || []),
         resolvedEventId: event?.id || null,
+        resolvedEventSlug: event?.slug || null,
         errors,
       }
     })
@@ -430,6 +500,7 @@ export async function POST(req: Request) {
         registrantsUpdated,
         assignmentsWritten,
         sessionsAutoCreated,
+        eventsAutoCreated,
       },
       jobId,
     }
