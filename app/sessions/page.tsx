@@ -55,7 +55,7 @@ function sessionBadge(iso: string | null) {
   }
 }
 
-export default async function SessionsPage()
+export default async function SessionsPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get("user_token")?.value
 
