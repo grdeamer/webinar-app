@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 
 type EventOption = {
   id: string
@@ -19,6 +19,8 @@ type PreviewRow = {
   tag: string | null
   notes: string | null
   sessionCodes: string[]
+  resolvedSessionIds?: string[]
+  missingSessionCodes?: string[]
   valid: boolean
   errors: string[]
 }
@@ -30,6 +32,7 @@ type PreviewResponse = {
     validRows: number
     invalidRows: number
     eventsDetected: number
+    sessionsToAutoCreate?: number
   }
   rows: PreviewRow[]
 }
@@ -41,8 +44,11 @@ type CommitResponse = {
     registrantsCreated: number
     registrantsUpdated: number
     assignmentsWritten: number
+    sessionsAutoCreated?: number
   }
 }
+
+type ImportStatus = "idle" | "running" | "success" | "error"
 
 export default function ImportRegistrantsClient({
   initialEvents,
@@ -63,6 +69,10 @@ export default function ImportRegistrantsClient({
   const [commitResult, setCommitResult] = useState<CommitResponse | null>(null)
   const [rawResponse, setRawResponse] = useState<any>(null)
 
+  const [importStatus, setImportStatus] = useState<ImportStatus>("idle")
+  const [importMessage, setImportMessage] = useState<string>("")
+  const [progressPct, setProgressPct] = useState<number>(0)
+
   const selectedEvent = useMemo(
     () => initialEvents.find((e) => e.id === selectedEventId) || null,
     [initialEvents, selectedEventId]
@@ -77,6 +87,22 @@ export default function ImportRegistrantsClient({
       ].join("\n"),
     [selectedEvent?.slug]
   )
+
+  useEffect(() => {
+    if (importStatus !== "running") return
+
+    setProgressPct(8)
+
+    const id = window.setInterval(() => {
+      setProgressPct((current) => {
+        if (current >= 92) return current
+        const step = Math.max(1, Math.round((92 - current) / 6))
+        return Math.min(92, current + step)
+      })
+    }, 350)
+
+    return () => window.clearInterval(id)
+  }, [importStatus])
 
   async function downloadTemplate() {
     if (!selectedEventId) {
@@ -94,8 +120,8 @@ export default function ImportRegistrantsClient({
       )
 
       if (!res.ok) {
-        const json = await res.json().catch(() => ({}))
-        throw new Error(json?.error || "Failed to download template")
+        const json = await res.json().catch((): Record<string, unknown> => ({}))
+        throw new Error((json?.error as string) || "Failed to download template")
       }
 
       const blob = await res.blob()
@@ -126,6 +152,9 @@ export default function ImportRegistrantsClient({
       setCommitResult(null)
       setPreview(null)
       setRawResponse(null)
+      setImportStatus("idle")
+      setImportMessage("")
+      setProgressPct(0)
 
       const fd = new FormData()
       fd.append("file", file)
@@ -136,14 +165,14 @@ export default function ImportRegistrantsClient({
         body: fd,
       })
 
-      const json = await res.json().catch(() => ({}))
+      const json = await res.json().catch((): Record<string, unknown> => ({}))
       setRawResponse(json)
 
       if (!res.ok || !json?.success) {
-        throw new Error(json?.error || "Preview failed")
+        throw new Error((json?.error as string) || "Preview failed")
       }
 
-      setPreview(json)
+      setPreview(json as PreviewResponse)
     } catch (e: any) {
       setError(e?.message || "Preview failed")
     } finally {
@@ -162,6 +191,9 @@ export default function ImportRegistrantsClient({
       setError(null)
       setCommitResult(null)
       setRawResponse(null)
+      setImportStatus("running")
+      setImportMessage("Uploading CSV and processing registrants...")
+      setProgressPct(10)
 
       const fd = new FormData()
       fd.append("file", file)
@@ -172,15 +204,26 @@ export default function ImportRegistrantsClient({
         body: fd,
       })
 
-      const json = await res.json().catch(() => ({}))
+      const json = await res.json().catch((): Record<string, unknown> => ({}))
       setRawResponse(json)
 
       if (!res.ok || !json?.success) {
-        throw new Error(json?.error || "Import failed")
+        throw new Error((json?.error as string) || "Import failed")
       }
 
-      setCommitResult(json)
+      const typedJson = json as CommitResponse
+      setCommitResult(typedJson)
+      setImportStatus("success")
+      setProgressPct(100)
+
+      const summary = typedJson.summary
+      setImportMessage(
+        `Imported ${summary.totalRows} rows. ${summary.registrantsCreated} created, ${summary.registrantsUpdated} updated, ${summary.assignmentsWritten} assignments written${summary.sessionsAutoCreated != null ? `, ${summary.sessionsAutoCreated} sessions auto-created` : ""}.`
+      )
     } catch (e: any) {
+      setImportStatus("error")
+      setProgressPct(100)
+      setImportMessage(e?.message || "Import failed")
       setError(e?.message || "Import failed")
     } finally {
       setCommitLoading(false)
@@ -209,6 +252,7 @@ export default function ImportRegistrantsClient({
                   value={selectedEventId}
                   onChange={(e) => setSelectedEventId(e.target.value)}
                   className="w-full rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-white outline-none"
+                  disabled={previewLoading || commitLoading || templateLoading}
                 >
                   <option value="">Use CSV event_slug values</option>
                   {initialEvents.map((event) => (
@@ -232,6 +276,7 @@ export default function ImportRegistrantsClient({
                   accept=".csv,text/csv"
                   onChange={(e) => setFile(e.target.files?.[0] ?? null)}
                   className="block w-full text-sm text-white file:mr-4 file:rounded-xl file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-white hover:file:bg-white/15"
+                  disabled={previewLoading || commitLoading}
                 />
                 {file ? (
                   <div className="mt-2 text-xs text-emerald-300">
@@ -244,7 +289,7 @@ export default function ImportRegistrantsClient({
                 <button
                   type="button"
                   onClick={downloadTemplate}
-                  disabled={templateLoading || !selectedEventId}
+                  disabled={templateLoading || !selectedEventId || commitLoading}
                   className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {templateLoading ? "Preparing template..." : "Download CSV template"}
@@ -253,7 +298,7 @@ export default function ImportRegistrantsClient({
                 <button
                   type="button"
                   onClick={runPreview}
-                  disabled={previewLoading || !file}
+                  disabled={previewLoading || commitLoading || !file}
                   className="rounded-2xl bg-sky-600 px-5 py-3 text-sm font-semibold text-white hover:bg-sky-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {previewLoading ? "Previewing..." : "Preview import"}
@@ -262,7 +307,7 @@ export default function ImportRegistrantsClient({
                 <button
                   type="button"
                   onClick={runImport}
-                  disabled={commitLoading || !file}
+                  disabled={commitLoading || previewLoading || !file}
                   className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {commitLoading ? "Importing..." : "Run import"}
@@ -275,8 +320,8 @@ export default function ImportRegistrantsClient({
             <div className="text-sm font-semibold text-white/80">How this works</div>
             <ul className="mt-3 space-y-2 text-sm text-white/60">
               <li>1. Create the event first.</li>
-              <li>2. Create sessions for that event.</li>
-              <li>3. Give each session a unique session code.</li>
+              <li>2. Session codes in the CSV can now be auto-created if missing.</li>
+              <li>3. Use a unique session code for each session in the event.</li>
               <li>4. Upload a CSV using those session codes.</li>
               <li>5. Preview first, then run the import.</li>
             </ul>
@@ -287,7 +332,60 @@ export default function ImportRegistrantsClient({
           </div>
         </div>
 
-        {error ? (
+        {importStatus !== "idle" ? (
+          <div
+            className={[
+              "mt-6 rounded-2xl border p-5",
+              importStatus === "running" ? "border-sky-500/20 bg-sky-500/10" : "",
+              importStatus === "success" ? "border-emerald-500/20 bg-emerald-500/10" : "",
+              importStatus === "error" ? "border-red-500/25 bg-red-500/10" : "",
+            ].join(" ")}
+          >
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold text-white">
+                  {importStatus === "running" && "Importing registrants..."}
+                  {importStatus === "success" && "Import completed"}
+                  {importStatus === "error" && "Import failed"}
+                </div>
+                {importMessage ? (
+                  <div className="mt-1 text-sm text-white/75">{importMessage}</div>
+                ) : null}
+              </div>
+
+              <div
+                className={[
+                  "flex h-10 w-10 items-center justify-center rounded-full text-lg font-bold",
+                  importStatus === "running" ? "bg-sky-500/20 text-sky-200" : "",
+                  importStatus === "success" ? "bg-emerald-500/20 text-emerald-200" : "",
+                  importStatus === "error" ? "bg-red-500/20 text-red-200" : "",
+                ].join(" ")}
+              >
+                {importStatus === "running" ? "…" : importStatus === "success" ? "✓" : "✕"}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="mb-2 flex items-center justify-between text-xs text-white/60">
+                <span>Status</span>
+                <span>{progressPct}%</span>
+              </div>
+              <div className="h-3 w-full overflow-hidden rounded-full bg-white/10">
+                <div
+                  className={[
+                    "h-full rounded-full transition-all duration-300",
+                    importStatus === "running" ? "bg-sky-500" : "",
+                    importStatus === "success" ? "bg-emerald-500" : "",
+                    importStatus === "error" ? "bg-red-500" : "",
+                  ].join(" ")}
+                  style={{ width: `${progressPct}%` }}
+                />
+              </div>
+            </div>
+          </div>
+        ) : null}
+
+        {error && importStatus !== "error" ? (
           <div className="mt-6 rounded-2xl border border-red-500/25 bg-red-500/10 px-5 py-4 text-sm text-red-100">
             <div className="font-semibold">Import error</div>
             <div className="mt-1">{error}</div>
@@ -296,12 +394,13 @@ export default function ImportRegistrantsClient({
 
         {commitResult ? (
           <div className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-5">
-            <div className="text-sm font-semibold text-emerald-100">Import completed</div>
-            <div className="mt-4 grid gap-4 md:grid-cols-4">
+            <div className="text-sm font-semibold text-emerald-100">Import summary</div>
+            <div className="mt-4 grid gap-4 md:grid-cols-5">
               <Stat label="Rows" value={commitResult.summary.totalRows} />
               <Stat label="Created" value={commitResult.summary.registrantsCreated} />
               <Stat label="Updated" value={commitResult.summary.registrantsUpdated} />
               <Stat label="Assignments" value={commitResult.summary.assignmentsWritten} />
+              <Stat label="Sessions Auto-Created" value={commitResult.summary.sessionsAutoCreated || 0} />
             </div>
           </div>
         ) : null}
@@ -310,7 +409,7 @@ export default function ImportRegistrantsClient({
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-xl font-semibold">CSV format</h2>
         <p className="mt-2 text-sm text-white/60">
-          Use this exact header format. Session codes must match <span className="font-mono">event_sessions.code</span>.
+          Use this exact header format. Missing session codes can now be created automatically during import.
         </p>
 
         <pre className="mt-4 overflow-auto rounded-2xl border border-white/10 bg-black/40 p-5 text-xs text-slate-200">
@@ -329,11 +428,12 @@ export default function ImportRegistrantsClient({
             </div>
           </div>
 
-          <div className="mt-5 grid gap-4 md:grid-cols-4">
+          <div className="mt-5 grid gap-4 md:grid-cols-5">
             <Stat label="Total rows" value={preview.summary.totalRows} />
             <Stat label="Valid rows" value={preview.summary.validRows} />
             <Stat label="Invalid rows" value={preview.summary.invalidRows} />
             <Stat label="Events detected" value={preview.summary.eventsDetected} />
+            <Stat label="Sessions to Auto-Create" value={preview.summary.sessionsToAutoCreate || 0} />
           </div>
 
           {invalidPreviewRows.length ? (
@@ -386,6 +486,7 @@ export default function ImportRegistrantsClient({
                       <th className="px-3 py-2">Name</th>
                       <th className="px-3 py-2">Event</th>
                       <th className="px-3 py-2">Session Codes</th>
+                      <th className="px-3 py-2">Will auto-create</th>
                       <th className="px-3 py-2">Tag</th>
                     </tr>
                   </thead>
@@ -400,6 +501,15 @@ export default function ImportRegistrantsClient({
                         <td className="px-3 py-3">{row.eventSlug || "—"}</td>
                         <td className="px-3 py-3">
                           {row.sessionCodes.length ? row.sessionCodes.join(", ") : "—"}
+                        </td>
+                        <td className="px-3 py-3">
+                          {row.missingSessionCodes?.length ? (
+                            <span className="text-amber-200">
+                              {row.missingSessionCodes.join(", ")}
+                            </span>
+                          ) : (
+                            <span className="text-emerald-300">None</span>
+                          )}
                         </td>
                         <td className="px-3 py-3">{row.tag || "—"}</td>
                       </tr>
