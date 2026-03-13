@@ -12,7 +12,7 @@ type UserTokenPayload = {
   email?: string
 }
 
-type SessionRow = {
+ttype SessionRow = {
   id: string
   event_id: string
   code: string | null
@@ -21,6 +21,7 @@ type SessionRow = {
   starts_at: string | null
   ends_at: string | null
   join_link: string | null
+}
 }
 
 function formatDatePretty(iso: string | null) {
@@ -137,8 +138,8 @@ export default async function MyWebinarsPage() {
             code: s.code ?? null,
             title: String(s.title ?? ""),
             description: s.description ?? null,
-            start_at: s.starts_at ?? null,
-            end_at: s.ends_at ?? null,
+            stars_at: s.starts_at ?? null,
+            ends_at: s.ends_at ?? null,
             join_link: s.join_link ?? null,
           })) || []
     }
@@ -149,8 +150,8 @@ export default async function MyWebinarsPage() {
   )
 
   uniqueSessions.sort((a, b) => {
-    const ta = a.start_at ? new Date(a.start_at).getTime() : Number.POSITIVE_INFINITY
-    const tb = b.start_at ? new Date(b.start_at).getTime() : Number.POSITIVE_INFINITY
+    const ta = a.starts_at ? new Date(a.starts_at).getTime() : Number.POSITIVE_INFINITY
+    const tb = b.starts_at ? new Date(b.starts_at).getTime() : Number.POSITIVE_INFINITY
     return ta - tb
   })
 
@@ -214,8 +215,8 @@ export default async function MyWebinarsPage() {
         {uniqueSessions.length > 0 && (
           <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
             {uniqueSessions.map((session) => {
-              const badge = sessionBadge(session.start_at)
-              const datePretty = formatDatePretty(session.start_at)
+              const badge = sessionBadge(session.starts_at)
+              const datePretty = formatDatePretty(session.starts_at)
 
               return (
                 <div
