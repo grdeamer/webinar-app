@@ -18,9 +18,14 @@ type SessionRow = {
   title: string
 }
 
+function normalizeSessionCode(value: string) {
+  return String(value || "").trim().toUpperCase()
+}
+
 export async function POST(req: Request) {
   try {
-    await requireAdmin()
+    const authResult = await requireAdmin()
+    if (authResult instanceof Response) return authResult
 
     const form = await req.formData()
     const file = form.get("file")
@@ -86,17 +91,23 @@ export async function POST(req: Request) {
 
     const sessionMap = new Map<string, SessionRow>()
     for (const session of sessionRows) {
-      sessionMap.set(`${session.event_id}::${String(session.code).toUpperCase()}`, session)
+      sessionMap.set(
+        `${session.event_id}::${normalizeSessionCode(session.code)}`,
+        session
+      )
     }
 
     const seenEventEmail = new Set<string>()
+
     const previewRows = parsed.rows.map((row: ParsedRegistrantImportRow) => {
       const errors = [...row.errors]
 
       const event =
         forcedEventId
           ? Array.from(eventMap.values())[0] || null
-          : (row.eventSlug ? eventMap.get(row.eventSlug) || null : null)
+          : row.eventSlug
+            ? eventMap.get(row.eventSlug) || null
+            : null
 
       if (!event) {
         errors.push(`Unknown event slug: ${row.eventSlug || "(blank)"}`)
@@ -111,16 +122,21 @@ export async function POST(req: Request) {
         }
       }
 
-      const unknownSessionCodes: string[] = []
-      if (event) {
-        for (const code of row.sessionCodes) {
-          const key = `${event.id}::${code}`
-          if (!sessionMap.has(key)) unknownSessionCodes.push(code)
-        }
-      }
+      const resolvedSessionIds: string[] = []
+      const missingSessionCodes: string[] = []
 
-      if (unknownSessionCodes.length) {
-        errors.push(`Unknown session code(s): ${unknownSessionCodes.join(", ")}`)
+      if (event) {
+        for (const rawCode of row.sessionCodes) {
+          const code = normalizeSessionCode(rawCode)
+          const key = `${event.id}::${code}`
+          const session = sessionMap.get(key)
+
+          if (session) {
+            resolvedSessionIds.push(session.id)
+          } else if (code) {
+            missingSessionCodes.push(code)
+          }
+        }
       }
 
       return {
@@ -133,6 +149,8 @@ export async function POST(req: Request) {
         tag: row.tag,
         notes: row.notes,
         sessionCodes: row.sessionCodes,
+        resolvedSessionIds,
+        missingSessionCodes,
         valid: errors.length === 0,
         errors,
       }
@@ -141,6 +159,16 @@ export async function POST(req: Request) {
     const validRows = previewRows.filter((r) => r.valid)
     const invalidRows = previewRows.filter((r) => !r.valid)
 
+    const sessionsToAutoCreate = Array.from(
+      new Set(
+        previewRows.flatMap((r) =>
+          (r.resolvedEventId
+            ? r.missingSessionCodes.map((code) => `${r.resolvedEventId}::${code}`)
+            : [])
+        )
+      )
+    ).length
+
     return NextResponse.json({
       success: true,
       summary: {
@@ -148,6 +176,7 @@ export async function POST(req: Request) {
         validRows: validRows.length,
         invalidRows: invalidRows.length,
         eventsDetected: eventMap.size,
+        sessionsToAutoCreate,
       },
       rows: previewRows,
     })
