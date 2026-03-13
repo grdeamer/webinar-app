@@ -62,19 +62,7 @@ export default async function SessionsPage() {
   if (!token) redirect("/")
 
   const JWT_SECRET = process.env.JWT_SECRET
-  if (!JWT_SECRET) {
-    return (
-      <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-        <AttendeePresenceHeartbeat />
-        <div className="mx-auto max-w-5xl px-6 py-14">
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
-            <h1 className="text-xl font-semibold">Server misconfigured</h1>
-            <p className="mt-2 text-white/70">Missing JWT_SECRET in environment.</p>
-          </div>
-        </div>
-      </main>
-    )
-  }
+  if (!JWT_SECRET) redirect("/")
 
   let userEmail: string | null = null
 
@@ -87,24 +75,19 @@ export default async function SessionsPage() {
 
   if (!userEmail) redirect("/")
 
-  const { data: registrants, error: registrantError } = await supabaseAdmin
+  const { data: registrants } = await supabaseAdmin
     .from("event_registrants")
     .select("id,event_id,email")
     .eq("email", userEmail)
-
-  if (registrantError) {
-    console.error("event_registrants query error:", registrantError)
-  }
 
   const registrantIds = (registrants ?? []).map((r: any) => r.id).filter(Boolean)
 
   let sessions: SessionRow[] = []
 
   if (registrantIds.length > 0) {
-    const { data: assignments, error: assignmentError } = await supabaseAdmin
+    const { data: assignments } = await supabaseAdmin
       .from("event_registrant_sessions")
-      .select(
-        `
+      .select(`
         session_id,
         event_sessions:session_id (
           id,
@@ -116,74 +99,103 @@ export default async function SessionsPage() {
           ends_at,
           join_link
         )
-      `
-      )
+      `)
       .in("registrant_id", registrantIds)
 
-    if (assignmentError) {
-      console.error("event_registrant_sessions query error:", assignmentError)
-    } else {
-      sessions =
-        (assignments ?? [])
-          .map((row: any) =>
-            Array.isArray(row.event_sessions)
-              ? row.event_sessions[0] ?? null
-              : row.event_sessions
-          )
-          .filter(Boolean)
-          .map((s: any) => ({
-            id: String(s.id),
-            event_id: String(s.event_id),
-            code: s.code ?? null,
-            title: String(s.title ?? ""),
-            description: s.description ?? null,
-            starts_at: s.starts_at ?? null,
-            ends_at: s.ends_at ?? null,
-            join_link: s.join_link ?? null,
-          })) || []
-    }
+    sessions =
+      (assignments ?? [])
+        .map((row: any) =>
+          Array.isArray(row.event_sessions)
+            ? row.event_sessions[0] ?? null
+            : row.event_sessions
+        )
+        .filter(Boolean)
+        .map((s: any) => ({
+          id: String(s.id),
+          event_id: String(s.event_id),
+          code: s.code ?? null,
+          title: String(s.title ?? ""),
+          description: s.description ?? null,
+          starts_at: s.starts_at ?? null,
+          ends_at: s.ends_at ?? null,
+          join_link: s.join_link ?? null,
+        })) || []
   }
 
   const uniqueSessions = Array.from(new Map(sessions.map((s) => [s.id, s])).values())
 
   uniqueSessions.sort((a, b) => {
-    const ta = a.starts_at ? new Date(a.starts_at).getTime() : Number.POSITIVE_INFINITY
-    const tb = b.starts_at ? new Date(b.starts_at).getTime() : Number.POSITIVE_INFINITY
+    const ta = a.starts_at ? new Date(a.starts_at).getTime() : Infinity
+    const tb = b.starts_at ? new Date(b.starts_at).getTime() : Infinity
     return ta - tb
   })
 
+  const activeEventId = uniqueSessions[0]?.event_id ?? registrants?.[0]?.event_id ?? null
+
+  let sessionsTheme: any = null
+
+  if (activeEventId) {
+    const { data } = await supabaseAdmin
+      .from("event_page_themes")
+      .select(
+        "bg_color,text_color,accent_color,brand_logo_url,brand_logo_position,background_image_url,overlay_opacity"
+      )
+      .eq("event_id", activeEventId)
+      .eq("page_key", "sessions_landing")
+      .maybeSingle()
+
+    sessionsTheme = data ?? null
+  }
+
   const showNoAssigned = uniqueSessions.length === 0
 
+  const pageStyle = sessionsTheme?.background_image_url
+    ? {
+        backgroundColor: sessionsTheme.bg_color || "#020617",
+        color: sessionsTheme.text_color || "#ffffff",
+        backgroundImage: `linear-gradient(rgba(2,6,23,${
+          (sessionsTheme.overlay_opacity ?? 45) / 100
+        }), rgba(2,6,23,${
+          (sessionsTheme.overlay_opacity ?? 45) / 100
+        })), url(${sessionsTheme.background_image_url})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {
+        backgroundColor: sessionsTheme?.bg_color || "#020617",
+        color: sessionsTheme?.text_color || "#ffffff",
+      }
+
   return (
-    <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
+    <main className="min-h-screen text-white" style={pageStyle}>
       <AttendeePresenceHeartbeat />
 
-      <div className="pointer-events-none fixed inset-0 opacity-40">
-        <div className="absolute -top-24 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-indigo-500 blur-[140px]" />
-      </div>
-
       <div className="relative mx-auto max-w-6xl px-6 py-12">
+
+        {sessionsTheme?.brand_logo_url && (
+          <div
+            className={`mb-6 flex ${
+              sessionsTheme.brand_logo_position === "center"
+                ? "justify-center"
+                : sessionsTheme.brand_logo_position === "right"
+                ? "justify-end"
+                : "justify-start"
+            }`}
+          >
+            <img
+              src={sessionsTheme.brand_logo_url}
+              alt="Event logo"
+              className="h-14 w-auto max-w-[220px]"
+            />
+          </div>
+        )}
+
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">My Sessions</h1>
             <p className="mt-1 text-white/60">
               View the sessions assigned to your email and join when ready.
             </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <a
-              href="/webinars"
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium hover:bg-white/10 transition"
-            >
-              Public List
-            </a>
-            <a
-              href="/access"
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium hover:bg-white/10 transition"
-            >
-              Change Email
-            </a>
           </div>
         </div>
 
@@ -193,21 +205,6 @@ export default async function SessionsPage() {
             <p className="mt-2 text-white/60">
               If you think this is a mistake, contact the admin.
             </p>
-
-            <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <a
-                href="/access"
-                className="rounded-xl bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-700 transition"
-              >
-                Re-enter email →
-              </a>
-              <a
-                href="/webinars"
-                className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 font-medium hover:bg-white/10 transition"
-              >
-                Browse public list
-              </a>
-            </div>
           </div>
         )}
 
@@ -220,54 +217,41 @@ export default async function SessionsPage() {
               return (
                 <div
                   key={session.id}
-                  className="rounded-3xl border border-white/10 bg-white/5 p-7 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]"
+                  className="rounded-3xl border border-white/10 bg-white/5 p-7"
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between">
                     <span
-                      className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}
+                      className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}
                     >
                       {badge.label}
                     </span>
 
-                    {datePretty && <span className="text-xs text-white/60">{datePretty}</span>}
+                    {datePretty && (
+                      <span className="text-xs text-white/60">{datePretty}</span>
+                    )}
                   </div>
 
-                  <h3 className="mt-4 text-xl font-semibold leading-snug">{session.title}</h3>
+                  <h3 className="mt-4 text-xl font-semibold">{session.title}</h3>
 
-                  {session.code ? (
-                    <div className="mt-2 text-xs font-mono text-white/45">
-                      Session code: {session.code}
-                    </div>
-                  ) : null}
-
-                  {session.description ? (
-                    <p className="mt-3 text-white/65 line-clamp-3">{session.description}</p>
-                  ) : (
-                    <p className="mt-3 text-white/45">No description provided.</p>
+                  {session.description && (
+                    <p className="mt-3 text-white/65">{session.description}</p>
                   )}
 
                   <div className="mt-6 flex gap-3">
                     <a
                       href={`/sessions/${session.id}`}
-                      className="inline-flex items-center justify-center rounded-xl bg-white px-5 py-3 font-medium text-slate-950 hover:bg-slate-100 transition"
+                      className="rounded-xl bg-white px-5 py-3 font-medium text-slate-950"
                     >
                       View Session
                     </a>
 
-                    {session.join_link ? (
+                    {session.join_link && (
                       <a
                         href={session.join_link}
-                        className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-700 transition"
+                        className="rounded-xl bg-indigo-600 px-5 py-3 font-medium"
                       >
                         Join session
                       </a>
-                    ) : (
-                      <button
-                        disabled
-                        className="inline-flex items-center justify-center rounded-xl bg-white/10 px-5 py-3 font-medium opacity-60 cursor-not-allowed"
-                      >
-                        No link available
-                      </button>
                     )}
                   </div>
                 </div>
