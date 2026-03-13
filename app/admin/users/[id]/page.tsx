@@ -10,12 +10,19 @@ function isUuid(v: string) {
   )
 }
 
-type WebinarRow = {
+type RegistrantRow = {
+  id: string
+  email: string
+  created_at: string | null
+  event_id: string | null
+}
+
+type SessionRow = {
   id: string
   title: string
-  webinar_date: string | null
-  tag?: string | null
-  speaker?: string | null
+  code: string | null
+  start_at: string | null
+  join_link: string | null
 }
 
 export default async function AdminUserDetailPage(props: {
@@ -25,111 +32,98 @@ export default async function AdminUserDetailPage(props: {
 
   if (!id || typeof id !== "string" || !isUuid(id)) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white p-10">
+      <main className="min-h-screen bg-slate-950 p-10 text-white">
         <Link href="/admin/users" className="text-white/70 hover:text-white">
           ← Back to users
         </Link>
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8">
-          <div className="text-xl font-semibold">User not found</div>
-          <div className="mt-2 text-white/60">Invalid user id in URL.</div>
+          <div className="text-xl font-semibold">Registrant not found</div>
+          <div className="mt-2 text-white/60">Invalid registrant id in URL.</div>
         </div>
       </main>
     )
   }
 
-  const { data: user, error: userError } = await supabaseAdmin
-    .from("users")
-    .select("id,email,created_at")
+  const { data: registrant, error: registrantError } = await supabaseAdmin
+    .from("event_registrants")
+    .select("id,email,created_at,event_id")
     .eq("id", id)
     .single()
 
-  if (userError || !user) {
+  if (registrantError || !registrant) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white p-10">
+      <main className="min-h-screen bg-slate-950 p-10 text-white">
         <Link href="/admin/users" className="text-white/70 hover:text-white">
           ← Back to users
         </Link>
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8">
-          <div className="text-xl font-semibold">User not found</div>
+          <div className="text-xl font-semibold">Registrant not found</div>
           <div className="mt-2 text-white/60">
-            {userError?.message ?? "No record returned."}
+            {registrantError?.message ?? "No record returned."}
           </div>
         </div>
       </main>
     )
   }
 
-  // assignments
-  const { data: userWebinars, error: uwError } = await supabaseAdmin
-    .from("user_webinars")
-    .select("webinar_id,created_at")
-    .eq("user_id", user.id)
+  const r = registrant as RegistrantRow
 
-  if (uwError) {
+  const { data: assignments, error: assignmentError } = await supabaseAdmin
+    .from("event_registrant_sessions")
+    .select(
+      `
+      session_id,
+      created_at,
+      event_sessions:session_id (
+        id,
+        title,
+        code,
+        start_at,
+        join_link
+      )
+    `
+    )
+    .eq("registrant_id", r.id)
+
+  if (assignmentError) {
     return (
-      <main className="min-h-screen bg-slate-950 text-white p-10">
+      <main className="min-h-screen bg-slate-950 p-10 text-white">
         <Link href="/admin/users" className="text-white/70 hover:text-white">
           ← Back to users
         </Link>
         <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8 text-red-200">
-          Error loading assignments: {uwError.message}
+          Error loading assignments: {assignmentError.message}
         </div>
       </main>
     )
   }
 
-  const webinarIds = (userWebinars ?? [])
-    .map((r: any) => r.webinar_id)
-    .filter((x: any) => typeof x === "string")
+  const sessions: SessionRow[] =
+    (assignments ?? [])
+      .map((row: any) =>
+        Array.isArray(row.event_sessions)
+          ? row.event_sessions[0] ?? null
+          : row.event_sessions
+      )
+      .filter(Boolean)
+      .map((s: any) => ({
+        id: String(s.id),
+        title: String(s.title ?? ""),
+        code: s.code ?? null,
+        start_at: s.start_at ?? null,
+        join_link: s.join_link ?? null,
+      })) || []
 
-  // webinars for those assignments
-  let webinars: WebinarRow[] = []
-  if (webinarIds.length > 0) {
-    const { data: webinarRows, error: wErr } = await supabaseAdmin
-      .from("webinars")
-      .select("id,title,webinar_date,tag,speaker")
-      .in("id", webinarIds)
+  const uniqueSessions = Array.from(new Map(sessions.map((s) => [s.id, s])).values())
 
-    if (wErr) {
-      console.error("user webinars fetch error:", wErr)
-    } else {
-      webinars = (webinarRows ?? []) as WebinarRow[]
-    }
-  }
-
-  // clicks by this user
-  const { data: clicks } = await supabaseAdmin
-    .from("webinar_clicks")
-    .select("id,webinar_id,created_at")
-    .eq("user_id", user.id)
-
-  const clickCountByWebinar = new Map<string, number>()
-  clicks?.forEach((c: any) => {
-    if (!c.webinar_id) return
-    clickCountByWebinar.set(
-      c.webinar_id,
-      (clickCountByWebinar.get(c.webinar_id) ?? 0) + 1
-    )
-  })
-
-  const totalClicks = clicks?.length ?? 0
-
-  const webinarMap = new Map(webinars.map((w) => [w.id, w] as const))
-  const assignedWebinars: WebinarRow[] = webinarIds
-    .map((wid) => webinarMap.get(wid))
-    .filter(Boolean) as WebinarRow[]
-
-  // Sort upcoming first by date, with nulls at bottom
-  assignedWebinars.sort((a, b) => {
-    const ta = a.webinar_date ? new Date(a.webinar_date).getTime() : Number.POSITIVE_INFINITY
-    const tb = b.webinar_date ? new Date(b.webinar_date).getTime() : Number.POSITIVE_INFINITY
+  uniqueSessions.sort((a, b) => {
+    const ta = a.start_at ? new Date(a.start_at).getTime() : Number.POSITIVE_INFINITY
+    const tb = b.start_at ? new Date(b.start_at).getTime() : Number.POSITIVE_INFINITY
     return ta - tb
   })
 
-  const missingWebinarCount = webinarIds.length - assignedWebinars.length
-
   return (
-    <main className="min-h-screen bg-slate-950 text-white p-10">
+    <main className="min-h-screen bg-slate-950 p-10 text-white">
       <div className="flex items-center justify-between gap-4">
         <Link href="/admin/users" className="text-white/70 hover:text-white">
           ← Back
@@ -137,132 +131,74 @@ export default async function AdminUserDetailPage(props: {
 
         <div className="flex gap-2">
           <Link
-            href="/admin/webinars"
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 transition"
+            href="/admin/imports"
+            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10"
           >
-            Webinar Analytics
+            Import History
           </Link>
         </div>
       </div>
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-8">
-        <div className="text-2xl font-semibold">{user.email}</div>
-        <div className="mt-2 text-white/60 text-sm">
-          Created: {user.created_at ? new Date(user.created_at).toLocaleString() : "—"}
+        <div className="text-2xl font-semibold">{r.email}</div>
+        <div className="mt-2 text-sm text-white/60">
+          Created: {r.created_at ? new Date(r.created_at).toLocaleString() : "—"}
         </div>
 
         <div className="mt-4 flex flex-wrap gap-3">
           <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-2">
-            <div className="text-xs text-white/60">Assigned webinars</div>
-            <div className="text-lg font-semibold">{webinarIds.length}</div>
+            <div className="text-xs text-white/60">Assigned sessions</div>
+            <div className="text-lg font-semibold">{uniqueSessions.length}</div>
           </div>
-
-          <div className="rounded-xl border border-white/10 bg-black/20 px-4 py-2">
-            <div className="text-xs text-white/60">Total clicks</div>
-            <div className="text-lg font-semibold">{totalClicks}</div>
-          </div>
-
-          {missingWebinarCount > 0 && (
-            <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2">
-              <div className="text-xs text-red-200">Missing webinar records</div>
-              <div className="text-lg font-semibold text-red-100">{missingWebinarCount}</div>
-            </div>
-          )}
         </div>
       </div>
 
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8">
-        <div className="text-lg font-semibold mb-4">Assigned webinars</div>
+        <div className="mb-4 text-lg font-semibold">Assigned sessions</div>
 
-        {webinarIds.length === 0 ? (
-          <div className="text-white/60">No webinars assigned.</div>
-        ) : assignedWebinars.length === 0 ? (
-          <div className="text-white/70">
-            Assignments exist, but the referenced webinars weren’t found.
-          </div>
+        {uniqueSessions.length === 0 ? (
+          <div className="text-white/60">No sessions assigned.</div>
         ) : (
           <div className="space-y-3">
-            {assignedWebinars.map((w) => {
-              const count = clickCountByWebinar.get(w.id) ?? 0
-              return (
-                <div
-                  key={w.id}
-                  className="rounded-xl border border-white/10 bg-black/20 p-5"
-                >
-                  <div className="flex items-start justify-between gap-6">
-                    <div>
-                      <div className="text-lg font-medium">{w.title}</div>
-                      <div className="mt-1 text-sm text-white/60">
-                        {w.webinar_date
-                          ? new Date(w.webinar_date).toLocaleString()
-                          : "No date"}
+            {uniqueSessions.map((s) => (
+              <div
+                key={s.id}
+                className="rounded-xl border border-white/10 bg-black/20 p-5"
+              >
+                <div className="flex items-start justify-between gap-6">
+                  <div>
+                    <div className="text-lg font-medium">{s.title}</div>
+                    <div className="mt-1 text-sm text-white/60">
+                      {s.start_at ? new Date(s.start_at).toLocaleString() : "No date"}
+                    </div>
+
+                    {s.code ? (
+                      <div className="mt-3">
+                        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
+                          {s.code}
+                        </span>
                       </div>
+                    ) : null}
+                  </div>
 
-                      {(w.tag || w.speaker) && (
-                        <div className="mt-3 flex flex-wrap gap-2">
-                          {w.tag && (
-                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
-                              {w.tag}
-                            </span>
-                          )}
-                          {w.speaker && (
-                            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/80">
-                              {w.speaker}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="text-right">
-                      <div className="text-2xl font-semibold">{count}</div>
-                      <div className="text-xs text-white/60">Clicks</div>
-
-                      <Link
-                        href={`/admin/webinars/${w.id}`}
-                        className="mt-3 inline-block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 transition"
+                  <div className="text-right">
+                    {s.join_link ? (
+                      <a
+                        href={s.join_link}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-block rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm transition hover:bg-white/10"
                       >
-                        View webinar →
-                      </Link>
-                    </div>
+                        Open join link →
+                      </a>
+                    ) : (
+                      <div className="text-xs text-white/50">No join link</div>
+                    )}
                   </div>
                 </div>
-              )
-            })}
+              </div>
+            ))}
           </div>
-        )}
-      </div>
-
-      <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-8">
-        <div className="text-lg font-semibold mb-4">Recent click log</div>
-
-        {totalClicks === 0 ? (
-          <div className="text-white/60">No clicks recorded yet.</div>
-        ) : (
-          <ul className="space-y-2 text-sm text-white/70">
-            {clicks!
-              .slice()
-              .sort(
-                (a: any, b: any) =>
-                  new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-              )
-              .slice(0, 50)
-              .map((c: any) => (
-                <li
-                  key={c.id}
-                  className="rounded-lg border border-white/10 bg-black/20 px-3 py-2 flex items-center justify-between gap-4"
-                >
-                  <span>{new Date(c.created_at).toLocaleString()}</span>
-                  <span className="text-white/60 text-xs truncate">
-                    webinar: {c.webinar_id}
-                  </span>
-                </li>
-              ))}
-          </ul>
-        )}
-
-        {totalClicks > 50 && (
-          <div className="mt-4 text-xs text-white/50">Showing latest 50 clicks.</div>
         )}
       </div>
     </main>

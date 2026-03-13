@@ -3,33 +3,35 @@ import { redirect } from "next/navigation"
 import jwt from "jsonwebtoken"
 import AttendeePresenceHeartbeat from "@/components/AttendeePresenceHeartbeat"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import MyWebinarsClient, { type WebinarUIRow } from "@/components/MyWebinarsClient"
-import type { Material } from "@/components/ClassMaterialsBubble"
-import type { WebinarAssignmentRow } from "@/lib/types"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 type UserTokenPayload = {
   userId?: string
+  email?: string
 }
 
-type WebinarRow = {
+type SessionRow = {
   id: string
+  event_id: string
+  code: string | null
   title: string
   description: string | null
-  webinar_date: string | null
+  start_at: string | null
+  end_at: string | null
   join_link: string | null
-  tag: string | null
-  agenda_pdf_url: string | null
-  materials: Material[] | null
 }
 
 function formatDatePretty(iso: string | null) {
   if (!iso) return null
   const d = new Date(iso)
   if (isNaN(d.getTime())) return null
-  return d.toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" })
+  return d.toLocaleDateString(undefined, {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  })
 }
 
 function isUpcoming(iso: string | null) {
@@ -39,72 +41,24 @@ function isUpcoming(iso: string | null) {
   return d.getTime() >= Date.now()
 }
 
-function tagBadge(tag: string | null, iso: string | null) {
-  const t = (tag || "").trim().toLowerCase()
-
-  if (t === "live") {
-    return { label: "LIVE", cls: "bg-rose-500/15 text-rose-200 ring-1 ring-rose-500/30" }
-  }
-
-  if (t === "on-demand" || t === "ondemand") {
+function sessionBadge(iso: string | null) {
+  if (isUpcoming(iso)) {
     return {
-      label: "ON-DEMAND",
-      cls: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30",
+      label: "UPCOMING",
+      cls: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/30",
     }
   }
 
-  if (t === "upcoming") {
-    return { label: "UPCOMING", cls: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/30" }
-  }
-
-  if (isUpcoming(iso)) {
-    return { label: "UPCOMING", cls: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/30" }
-  }
-
   return {
-    label: "ON-DEMAND",
+    label: "ASSIGNED",
     cls: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30",
-  }
-}
-
-async function toSignedUrl(maybeStorageUrl: string | null, expiresIn = 60 * 60) {
-  if (!maybeStorageUrl) return null
-  if (!maybeStorageUrl.startsWith("storage:")) return maybeStorageUrl
-
-  const raw = maybeStorageUrl.replace("storage:", "")
-  const firstSlash = raw.indexOf("/")
-  if (firstSlash === -1) return null
-
-  const bucket = raw.slice(0, firstSlash)
-  const path = raw.slice(firstSlash + 1)
-
-  const { data, error } = await supabaseAdmin.storage.from(bucket).createSignedUrl(path, expiresIn)
-  if (error) return null
-  return data.signedUrl
-}
-
-function normalizeWebinarRow(row: WebinarAssignmentRow): WebinarRow | null {
-  const webinar = Array.isArray((row as any).webinars)
-    ? ((row as any).webinars[0] ?? null)
-    : row.webinars
-
-  if (!webinar) return null
-
-  return {
-    id: String(webinar.id),
-    title: String(webinar.title ?? ""),
-    description: webinar.description ?? null,
-    webinar_date: webinar.webinar_date ?? null,
-    join_link: webinar.join_link ?? null,
-    tag: webinar.tag ?? null,
-    agenda_pdf_url: webinar.agenda_pdf_url ?? null,
-    materials: (webinar.materials ?? null) as Material[] | null,
   }
 }
 
 export default async function MyWebinarsPage() {
   const cookieStore = await cookies()
   const token = cookieStore.get("user_token")?.value
+
   if (!token) redirect("/")
 
   const JWT_SECRET = process.env.JWT_SECRET
@@ -122,72 +76,85 @@ export default async function MyWebinarsPage() {
     )
   }
 
-  let userId: string | null = null
+  let userEmail: string | null = null
+
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as UserTokenPayload
-    userId = decoded.userId ?? null
+    userEmail = decoded.email ?? null
   } catch {
     redirect("/")
   }
-  if (!userId) redirect("/")
 
-  const { data, error } = await supabaseAdmin
-    .from("user_webinars")
-    .select(
-      `
-      webinar_id,
-      webinars:webinar_id (
-        id,
-        title,
-        description,
-        webinar_date,
-        join_link,
-        tag,
-        agenda_pdf_url,
-        materials
-      )
-    `
-    )
-    .eq("user_id", userId)
+  if (!userEmail) redirect("/")
 
-  if (error) {
-    console.error("my-webinars query error:", error)
+  const { data: registrants, error: registrantError } = await supabaseAdmin
+    .from("event_registrants")
+    .select("id,event_id,email")
+    .eq("email", userEmail)
+
+  if (registrantError) {
+    console.error("event_registrants query error:", registrantError)
   }
 
-  const assignments = (data ?? []) as unknown as WebinarAssignmentRow[]
-  const rawRows = assignments.map(normalizeWebinarRow).filter((row): row is WebinarRow => Boolean(row))
+  const registrantIds = (registrants ?? []).map((r: any) => r.id).filter(Boolean)
 
-  const assignmentsCount = assignments.length
-  const webinarsCount = rawRows.length
+  let sessions: SessionRow[] = []
 
-  rawRows.sort((a, b) => {
-    const ta = a.webinar_date ? new Date(a.webinar_date).getTime() : Number.POSITIVE_INFINITY
-    const tb = b.webinar_date ? new Date(b.webinar_date).getTime() : Number.POSITIVE_INFINITY
+  if (registrantIds.length > 0) {
+    const { data: assignments, error: assignmentError } = await supabaseAdmin
+      .from("event_registrant_sessions")
+      .select(
+        `
+        session_id,
+        event_sessions:session_id (
+          id,
+          event_id,
+          code,
+          title,
+          description,
+          start_at,
+          end_at,
+          join_link
+        )
+      `
+      )
+      .in("registrant_id", registrantIds)
+
+    if (assignmentError) {
+      console.error("event_registrant_sessions query error:", assignmentError)
+    } else {
+      sessions =
+        (assignments ?? [])
+          .map((row: any) =>
+            Array.isArray(row.event_sessions)
+              ? row.event_sessions[0] ?? null
+              : row.event_sessions
+          )
+          .filter(Boolean)
+          .map((s: any) => ({
+            id: String(s.id),
+            event_id: String(s.event_id),
+            code: s.code ?? null,
+            title: String(s.title ?? ""),
+            description: s.description ?? null,
+            start_at: s.start_at ?? null,
+            end_at: s.end_at ?? null,
+            join_link: s.join_link ?? null,
+          })) || []
+    }
+  }
+
+  const uniqueSessions = Array.from(
+    new Map(sessions.map((s) => [s.id, s])).values()
+  )
+
+  uniqueSessions.sort((a, b) => {
+    const ta = a.start_at ? new Date(a.start_at).getTime() : Number.POSITIVE_INFINITY
+    const tb = b.start_at ? new Date(b.start_at).getTime() : Number.POSITIVE_INFINITY
     return ta - tb
   })
 
-  const rows: WebinarUIRow[] = await Promise.all(
-    rawRows.map(async (w) => {
-      const agendaSigned = await toSignedUrl(w.agenda_pdf_url)
-      const materialsSigned: Material[] = await Promise.all(
-        (w.materials ?? []).map(async (m) => ({
-          ...m,
-          url: (await toSignedUrl(m.url)) ?? m.url,
-        }))
-      )
-
-      return {
-        ...w,
-        agenda_pdf_url: agendaSigned,
-        materials: materialsSigned,
-        _datePretty: formatDatePretty(w.webinar_date),
-        _badge: tagBadge(w.tag, w.webinar_date),
-      }
-    })
-  )
-
-  const showNoAssigned = assignmentsCount === 0
-  const showMissingWebinars = assignmentsCount > 0 && webinarsCount === 0
+  const showNoAssigned = uniqueSessions.length === 0
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
@@ -220,15 +187,11 @@ export default async function MyWebinarsPage() {
           </div>
         </div>
 
-        {(showNoAssigned || showMissingWebinars) && (
+        {showNoAssigned && (
           <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
-            <h2 className="text-xl font-semibold">
-              {showNoAssigned ? "No webinars assigned" : "No webinars found"}
-            </h2>
+            <h2 className="text-xl font-semibold">No sessions assigned</h2>
             <p className="mt-2 text-white/60">
-              {showNoAssigned
-                ? "If you think this is a mistake, contact the admin."
-                : "Assignments exist, but the referenced webinars weren’t found."}
+              If you think this is a mistake, contact the admin.
             </p>
 
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
@@ -248,7 +211,63 @@ export default async function MyWebinarsPage() {
           </div>
         )}
 
-        {rows.length > 0 ? <MyWebinarsClient webinars={rows} /> : null}
+        {uniqueSessions.length > 0 && (
+          <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
+            {uniqueSessions.map((session) => {
+              const badge = sessionBadge(session.start_at)
+              const datePretty = formatDatePretty(session.start_at)
+
+              return (
+                <div
+                  key={session.id}
+                  className="rounded-3xl border border-white/10 bg-white/5 p-7 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]"
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}>
+                      {badge.label}
+                    </span>
+
+                    {datePretty && (
+                      <span className="text-xs text-white/60">{datePretty}</span>
+                    )}
+                  </div>
+
+                  <h3 className="mt-4 text-xl font-semibold leading-snug">{session.title}</h3>
+
+                  {session.code ? (
+                    <div className="mt-2 text-xs font-mono text-white/45">
+                      Session code: {session.code}
+                    </div>
+                  ) : null}
+
+                  {session.description ? (
+                    <p className="mt-3 text-white/65 line-clamp-3">{session.description}</p>
+                  ) : (
+                    <p className="mt-3 text-white/45">No description provided.</p>
+                  )}
+
+                  <div className="mt-6 flex gap-3">
+                    {session.join_link ? (
+                      <a
+                        href={session.join_link}
+                        className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-700 transition"
+                      >
+                        Join session
+                      </a>
+                    ) : (
+                      <button
+                        disabled
+                        className="inline-flex items-center justify-center rounded-xl bg-white/10 px-5 py-3 font-medium opacity-60 cursor-not-allowed"
+                      >
+                        No link available
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </main>
   )
