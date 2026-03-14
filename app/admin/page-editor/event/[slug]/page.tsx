@@ -2,12 +2,18 @@
 
 import Link from "next/link"
 import { use, useState } from "react"
+import Draggable from "react-draggable"
 
 export default function AdminEventPageEditorPreview(props: {
   params: Promise<{ slug: string }>
 }) {
   const { slug } = use(props.params)
+
   const [isEditing, setIsEditing] = useState(false)
+
+  const [elements, setElements] = useState([
+    { id: "1", x: 120, y: 120, content: "Sample Text Block" },
+  ])
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -45,22 +51,40 @@ export default function AdminEventPageEditorPreview(props: {
               <div className="text-sm uppercase tracking-[0.22em] text-white/40">
                 Event Preview
               </div>
+
               <h2 className="mt-3 text-4xl font-bold">Current Event Page</h2>
+
               <p className="mt-4 max-w-2xl text-white/70">
-                This is the preview canvas for the event page. Next we will load the real event
-                page here, then wire in live editing controls.
+                This is the preview canvas for the event page. You can drag
+                overlay elements anywhere on top of the page.
               </p>
 
-              <div className="mt-8">
+              {/* Canvas */}
+              <div className="mt-8 relative h-[800px] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
+
+                {/* Real Event Page */}
                 <iframe
                   src={`/events/${slug}`}
-                  className="h-[800px] w-full rounded-2xl border border-white/10 bg-black"
+                  className="absolute inset-0 h-full w-full"
                 />
+
+                {/* Draggable Elements Layer */}
+                {elements.map((el) => (
+                  <Draggable
+                    key={el.id}
+                    defaultPosition={{ x: el.x, y: el.y }}
+                  >
+                    <div className="absolute cursor-move rounded-xl bg-amber-400 px-4 py-2 text-black shadow-lg">
+                      {el.content}
+                    </div>
+                  </Draggable>
+                ))}
               </div>
             </div>
           </div>
         </div>
 
+        {/* Right Editor Panel */}
         <aside
           className={`border-l border-white/10 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${
             isEditing ? "w-[380px] opacity-100" : "w-0 overflow-hidden opacity-0"
@@ -70,7 +94,9 @@ export default function AdminEventPageEditorPreview(props: {
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">
               Editor Panel
             </div>
+
             <h3 className="mt-2 text-xl font-semibold">Edit Event Page</h3>
+
             <p className="mt-2 text-sm text-white/65">
               This right-side drawer will become your visual controls panel.
             </p>
@@ -79,15 +105,19 @@ export default function AdminEventPageEditorPreview(props: {
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Colors
               </button>
+
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Background
               </button>
+
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Header
               </button>
+
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Hero
               </button>
+
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Add Element
               </button>
