@@ -48,7 +48,7 @@ export default async function AdminEventPageEditorListPage() {
 
               <div className="mt-6 flex gap-3">
                 <Link
-                  href={`/events/${event.slug}`}
+                  href={`/admin/page-editor/event/${event.slug}`}
                   target="_blank"
                   className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950"
                 >
