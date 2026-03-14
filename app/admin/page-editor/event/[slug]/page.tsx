@@ -1,11 +1,12 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
+import { use, useState } from "react"
 
 export default function AdminEventPageEditorPreview(props: {
   params: Promise<{ slug: string }>
 }) {
+  const { slug } = use(props.params)
   const [isEditing, setIsEditing] = useState(false)
 
   return (
@@ -50,8 +51,11 @@ export default function AdminEventPageEditorPreview(props: {
                 page here, then wire in live editing controls.
               </p>
 
-              <div className="mt-8 rounded-3xl border border-dashed border-white/15 bg-black/20 p-12 text-center text-white/50">
-                Preview area
+              <div className="mt-8">
+                <iframe
+                  src={`/events/${slug}`}
+                  className="h-[800px] w-full rounded-2xl border border-white/10 bg-black"
+                />
               </div>
             </div>
           </div>
