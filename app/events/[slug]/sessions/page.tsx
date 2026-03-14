@@ -1,5 +1,6 @@
 import { getEventBySlug } from "@/lib/events"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import Link from "next/link"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -80,7 +81,12 @@ export default async function EventSessionsPage(props: {
                   ) : null}
                 </div>
 
-                <h2 className="mt-4 text-xl font-semibold">{session.title}</h2>
+                <Link
+  href={`/events/${slug}/sessions/${session.id}`}
+  className="mt-4 block text-xl font-semibold hover:text-white/80 transition"
+>
+  {session.title}
+</Link>
 
                 {session.code ? (
                   <div className="mt-2 text-xs font-mono text-white/45">
