@@ -2,12 +2,79 @@
 
 import Link from "next/link"
 import { useParams } from "next/navigation"
-import { useState } from "react"
+import { useRef, useState } from "react"
+
+type EditorElement = {
+  id: string
+  x: number
+  y: number
+  content: string
+}
 
 export default function AdminEventPageEditorPreview() {
   const params = useParams()
   const slug = String(params.slug ?? "")
   const [isEditing, setIsEditing] = useState(false)
+
+  const [elements, setElements] = useState<EditorElement[]>([
+    { id: "1", x: 96, y: 96, content: "Sample Text Block" },
+  ])
+
+  const dragRef = useRef<{
+    id: string
+    offsetX: number
+    offsetY: number
+  } | null>(null)
+
+  function addTextBlock() {
+    setElements((prev) => [
+      ...prev,
+      {
+        id: String(Date.now()),
+        x: 140,
+        y: 140,
+        content: `New Block ${prev.length + 1}`,
+      },
+    ])
+  }
+
+  function startDrag(
+    e: React.PointerEvent<HTMLDivElement>,
+    id: string,
+    x: number,
+    y: number
+  ) {
+    if (!isEditing) return
+    dragRef.current = {
+      id,
+      offsetX: e.clientX - x,
+      offsetY: e.clientY - y,
+    }
+  }
+
+  function onCanvasMove(e: React.PointerEvent<HTMLDivElement>) {
+    if (!dragRef.current) return
+
+    const { id, offsetX, offsetY } = dragRef.current
+    const nextX = e.clientX - offsetX
+    const nextY = e.clientY - offsetY
+
+    setElements((prev) =>
+      prev.map((el) =>
+        el.id === id
+          ? {
+              ...el,
+              x: Math.max(0, nextX),
+              y: Math.max(0, nextY),
+            }
+          : el
+      )
+    )
+  }
+
+  function stopDrag() {
+    dragRef.current = null
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -55,16 +122,30 @@ export default function AdminEventPageEditorPreview() {
                 This is the real event page loaded inside the editor canvas.
               </p>
 
-              <div className="mt-8 relative h-[800px] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
+              <div
+                className="mt-8 relative h-[800px] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
+                onPointerMove={onCanvasMove}
+                onPointerUp={stopDrag}
+                onPointerLeave={stopDrag}
+              >
                 <iframe
                   src={`/events/${slug}`}
                   title="Event preview"
                   className={`absolute inset-0 h-full w-full ${isEditing ? "pointer-events-none" : ""}`}
                 />
 
-                <div className="absolute left-24 top-24 rounded-xl bg-amber-400 px-4 py-2 text-sm font-medium text-black shadow-lg">
-                  Sample Text Block
-                </div>
+                {elements.map((el) => (
+                  <div
+                    key={el.id}
+                    onPointerDown={(e) => startDrag(e, el.id, el.x, el.y)}
+                    className={`absolute rounded-xl bg-amber-400 px-4 py-2 text-sm font-medium text-black shadow-lg ${
+                      isEditing ? "cursor-move" : "cursor-default"
+                    }`}
+                    style={{ left: el.x, top: el.y }}
+                  >
+                    {el.content}
+                  </div>
+                ))}
 
                 {isEditing ? (
                   <div className="pointer-events-none absolute left-4 top-4 rounded-lg bg-black/70 px-3 py-2 text-xs text-white/80">
@@ -105,7 +186,11 @@ export default function AdminEventPageEditorPreview() {
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Hero
               </button>
-              <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
+
+              <button
+                onClick={addTextBlock}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10"
+              >
                 Add Element
               </button>
             </div>
