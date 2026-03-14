@@ -49,7 +49,7 @@ export default function AdminEventPageEditorPreview() {
         cache: "no-store",
       })
 
-      const data = await res.json().catch(() => null)
+      const data = await res.json().catch((): null => null)
 
       if (!res.ok) {
         setElements([{ id: "1", content: "Sample Text Block", x: 96, y: 96, width: 180, height: 56 }])
@@ -219,7 +219,7 @@ export default function AdminEventPageEditorPreview() {
       body: JSON.stringify({ elements: payload }),
     })
 
-    const data = await res.json().catch(() => null)
+    const data = await res.json().catch((): null => null)
 
     if (!res.ok) {
       setSaveMessage(data?.error || "Failed to save")
