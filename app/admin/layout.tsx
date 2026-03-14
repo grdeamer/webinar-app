@@ -172,22 +172,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </Section>
 
               <Section title="Event Content">
-                <NavLink href="/admin/events" icon={<Calendar size={18} />}>
-                  Events
-                </NavLink>
+  <NavLink href="/admin/events" icon={<Calendar size={18} />}>
+    Events
+  </NavLink>
 
-                <NavLink href="/admin/import" icon={<Upload size={18} />}>
-                  Import Registrants
-                </NavLink>
+  <NavLink href="/admin/page-editor" icon={<LayoutDashboard size={18} />}>
+    Page Editor
+  </NavLink>
 
-                <NavLink href="/admin/sponsors" icon={<Building2 size={18} />}>
-                  Sponsors
-                </NavLink>
+  <NavLink href="/admin/import" icon={<Upload size={18} />}>
+    Import Registrants
+  </NavLink>
 
-                <NavLink href="/admin/speakers" icon={<Users size={18} />}>
-                  Speakers
-                </NavLink>
-              </Section>
+  <NavLink href="/admin/sponsors" icon={<Building2 size={18} />}>
+    Sponsors
+  </NavLink>
+
+  <NavLink href="/admin/speakers" icon={<Users size={18} />}>
+    Speakers
+  </NavLink>
+</Section>
 
               <Section title="Platform">
                 <NavLink href="/admin/webinars" icon={<Monitor size={18} />}>
