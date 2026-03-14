@@ -1,19 +1,13 @@
 "use client"
 
 import Link from "next/link"
-import { use, useState } from "react"
-import Draggable from "react-draggable"
+import { useParams } from "next/navigation"
+import { useState } from "react"
 
-export default function AdminEventPageEditorPreview(props: {
-  params: Promise<{ slug: string }>
-}) {
-  const { slug } = use(props.params)
-
+export default function AdminEventPageEditorPreview() {
+  const params = useParams()
+  const slug = String(params.slug ?? "")
   const [isEditing, setIsEditing] = useState(false)
-
-  const [elements, setElements] = useState([
-    { id: "1", x: 120, y: 120, content: "Sample Text Block" },
-  ])
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -24,6 +18,9 @@ export default function AdminEventPageEditorPreview(props: {
               Page Editor Preview
             </div>
             <h1 className="mt-1 text-2xl font-bold">Event Page</h1>
+            <div className="mt-1 text-xs text-white/50">
+              /admin/page-editor/event/{slug}
+            </div>
           </div>
 
           <div className="flex items-center gap-3">
@@ -49,42 +46,36 @@ export default function AdminEventPageEditorPreview(props: {
           <div className="mx-auto max-w-6xl px-6 py-10">
             <div className="rounded-3xl border border-white/10 bg-white/5 p-10">
               <div className="text-sm uppercase tracking-[0.22em] text-white/40">
-                Event Preview
+                Event Preview Canvas
               </div>
 
               <h2 className="mt-3 text-4xl font-bold">Current Event Page</h2>
 
               <p className="mt-4 max-w-2xl text-white/70">
-                This is the preview canvas for the event page. You can drag
-                overlay elements anywhere on top of the page.
+                This is the real event page loaded inside the editor canvas.
               </p>
 
-              {/* Canvas */}
               <div className="mt-8 relative h-[800px] w-full overflow-hidden rounded-2xl border border-white/10 bg-black">
-
-                {/* Real Event Page */}
                 <iframe
                   src={`/events/${slug}`}
-                  className="absolute inset-0 h-full w-full"
+                  title="Event preview"
+                  className={`absolute inset-0 h-full w-full ${isEditing ? "pointer-events-none" : ""}`}
                 />
 
-                {/* Draggable Elements Layer */}
-                {elements.map((el) => (
-                  <Draggable
-                    key={el.id}
-                    defaultPosition={{ x: el.x, y: el.y }}
-                  >
-                    <div className="absolute cursor-move rounded-xl bg-amber-400 px-4 py-2 text-black shadow-lg">
-                      {el.content}
-                    </div>
-                  </Draggable>
-                ))}
+                <div className="absolute left-24 top-24 rounded-xl bg-amber-400 px-4 py-2 text-sm font-medium text-black shadow-lg">
+                  Sample Text Block
+                </div>
+
+                {isEditing ? (
+                  <div className="pointer-events-none absolute left-4 top-4 rounded-lg bg-black/70 px-3 py-2 text-xs text-white/80">
+                    Edit mode: preview locked
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Editor Panel */}
         <aside
           className={`border-l border-white/10 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${
             isEditing ? "w-[380px] opacity-100" : "w-0 overflow-hidden opacity-0"
@@ -105,19 +96,15 @@ export default function AdminEventPageEditorPreview(props: {
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Colors
               </button>
-
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Background
               </button>
-
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Header
               </button>
-
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Hero
               </button>
-
               <button className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10">
                 Add Element
               </button>
