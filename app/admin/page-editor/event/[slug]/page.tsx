@@ -49,10 +49,21 @@ export default function AdminEventPageEditorPreview() {
         cache: "no-store",
       })
 
-      const data = await res.json().catch((): null => null)
+      const data: any = await res.json().catch(() => null)
 
       if (!res.ok) {
-        setElements([{ id: "1", content: "Sample Text Block", x: 96, y: 96, width: 180, height: 56 }])
+        setElements([
+          {
+            id: "1",
+            element_type: "text",
+            content: "Sample Text Block",
+            x: 96,
+            y: 96,
+            width: 180,
+            height: 56,
+            props: {},
+          },
+        ])
         setLoading(false)
         return
       }
@@ -60,7 +71,18 @@ export default function AdminEventPageEditorPreview() {
       const rows = Array.isArray(data?.elements) ? data.elements : []
 
       if (rows.length === 0) {
-        setElements([{ id: "1", content: "Sample Text Block", x: 96, y: 96, width: 180, height: 56 }])
+        setElements([
+          {
+            id: "1",
+            element_type: "text",
+            content: "Sample Text Block",
+            x: 96,
+            y: 96,
+            width: 180,
+            height: 56,
+            props: {},
+          },
+        ])
       } else {
         setElements(
           rows.map((el: any) => ({
@@ -104,7 +126,39 @@ export default function AdminEventPageEditorPreview() {
     setSelectedId(newId)
   }
 
+  function addImageBlock() {
+    const newId = String(Date.now())
+
+    setElements((prev) => [
+      ...prev,
+      {
+        id: newId,
+        element_type: "image",
+        x: 180,
+        y: 180,
+        content: "Image Block",
+        width: 240,
+        height: 160,
+        z_index: prev.length + 1,
+        props: {
+          src: "https://placehold.co/600x400/png",
+          alt: "Image block",
+        },
+      },
+    ])
+
+    setSelectedId(newId)
+  }
+
   function updateSelectedContent(value: string) {
+    if (!selectedId) return
+
+    setElements((prev) =>
+      prev.map((el) => (el.id === selectedId ? { ...el, content: value } : el))
+    )
+  }
+
+  function updateSelectedImageSrc(value: string) {
     if (!selectedId) return
 
     setElements((prev) =>
@@ -112,7 +166,10 @@ export default function AdminEventPageEditorPreview() {
         el.id === selectedId
           ? {
               ...el,
-              content: value,
+              props: {
+                ...(el.props ?? {}),
+                src: value,
+              },
             }
           : el
       )
@@ -163,13 +220,7 @@ export default function AdminEventPageEditorPreview() {
 
       setElements((prev) =>
         prev.map((el) =>
-          el.id === id
-            ? {
-                ...el,
-                width: nextWidth,
-                height: nextHeight,
-              }
-            : el
+          el.id === id ? { ...el, width: nextWidth, height: nextHeight } : el
         )
       )
       return
@@ -219,7 +270,7 @@ export default function AdminEventPageEditorPreview() {
       body: JSON.stringify({ elements: payload }),
     })
 
-    const data = await res.json().catch((): null => null)
+    const data: any = await res.json().catch(() => null)
 
     if (!res.ok) {
       setSaveMessage(data?.error || "Failed to save")
@@ -230,6 +281,7 @@ export default function AdminEventPageEditorPreview() {
   }
 
   const selectedElement = elements.find((el) => el.id === selectedId) ?? null
+  const selectedIsImage = selectedElement?.element_type === "image"
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -299,11 +351,15 @@ export default function AdminEventPageEditorPreview() {
                       key={el.id}
                       onPointerDown={(e) => startDrag(e, el.id, el.x, el.y)}
                       onClick={() => setSelectedId(el.id)}
-                      className={`absolute rounded-xl px-4 py-2 text-sm font-medium shadow-lg ${
+                      className={`absolute overflow-hidden rounded-xl shadow-lg ${
                         isEditing ? "cursor-move" : "cursor-default"
                       } ${
                         selectedId === el.id
-                          ? "bg-amber-300 text-black ring-2 ring-white"
+                          ? "ring-2 ring-white"
+                          : ""
+                      } ${
+                        el.element_type === "image"
+                          ? "bg-white"
                           : "bg-amber-400 text-black"
                       }`}
                       style={{
@@ -314,7 +370,18 @@ export default function AdminEventPageEditorPreview() {
                         height: el.height ?? "auto",
                       }}
                     >
-                      {el.content}
+                      {el.element_type === "image" ? (
+                        <img
+                          src={String(el.props?.src ?? "https://placehold.co/600x400/png")}
+                          alt={String(el.props?.alt ?? "Image block")}
+                          className="h-full w-full object-cover"
+                          draggable={false}
+                        />
+                      ) : (
+                        <div className="px-4 py-2 text-sm font-medium">
+                          {el.content}
+                        </div>
+                      )}
 
                       {isEditing && (
                         <div
@@ -371,7 +438,14 @@ export default function AdminEventPageEditorPreview() {
                 onClick={addTextBlock}
                 className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10"
               >
-                Add Element
+                Add Text Element
+              </button>
+
+              <button
+                onClick={addImageBlock}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10"
+              >
+                Add Image Element
               </button>
             </div>
 
@@ -380,16 +454,30 @@ export default function AdminEventPageEditorPreview() {
 
               {selectedElement ? (
                 <div className="mt-4 space-y-3">
-                  <div>
-                    <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                      Text Content
+                  {selectedIsImage ? (
+                    <div>
+                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                        Image URL
+                      </div>
+                      <input
+                        value={String(selectedElement.props?.src ?? "")}
+                        onChange={(e) => updateSelectedImageSrc(e.target.value)}
+                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                        placeholder="https://..."
+                      />
                     </div>
-                    <textarea
-                      value={selectedElement.content}
-                      onChange={(e) => updateSelectedContent(e.target.value)}
-                      className="min-h-[110px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                    />
-                  </div>
+                  ) : (
+                    <div>
+                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                        Text Content
+                      </div>
+                      <textarea
+                        value={selectedElement.content}
+                        onChange={(e) => updateSelectedContent(e.target.value)}
+                        className="min-h-[110px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                      />
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-2 gap-3 text-xs text-white/60">
                     <div className="rounded-xl border border-white/10 bg-slate-950 px-3 py-2">
