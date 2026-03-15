@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import EventPageRenderer from "@/components/page-editor/EventPageRenderer"
 
 type EditorElement = {
   id: string
@@ -377,15 +378,18 @@ export default function AdminEventPageEditorPreview() {
                 </div>
               ) : (
                 <div
-                  className="mt-8 relative h-[800px] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
+                  className="mt-8 relative min-h-[900px] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
                   onPointerMove={onCanvasMove}
                   onPointerUp={stopInteractions}
                   onPointerLeave={stopInteractions}
                 >
-                  <iframe
-                    src={`/events/${slug}`}
-                    title="Event preview"
-                    className={`absolute inset-0 h-full w-full ${isEditing ? "pointer-events-none" : ""}`}
+                  <EventPageRenderer
+                    mode="editor"
+                    event={{
+                      title: "Event Preview",
+                      description: "Renderer mode is now active inside the Page Editor.",
+                    }}
+                    elements={[]}
                   />
 
                   {elements.map((el) => (
@@ -423,18 +427,14 @@ export default function AdminEventPageEditorPreview() {
                             <div className="text-xs uppercase tracking-[0.18em] text-white/50">
                               PDF
                             </div>
-                            <div className="mt-2 text-base font-semibold">
-                              {el.content}
-                            </div>
+                            <div className="mt-2 text-base font-semibold">{el.content}</div>
                           </div>
-                          <div className="mt-4 text-xs text-white/70 break-all">
+                          <div className="mt-4 break-all text-xs text-white/70">
                             {String(el.props?.url ?? "")}
                           </div>
                         </div>
                       ) : (
-                        <div className="px-4 py-2 text-sm font-medium">
-                          {el.content}
-                        </div>
+                        <div className="px-4 py-2 text-sm font-medium">{el.content}</div>
                       )}
 
                       {isEditing && (
@@ -449,7 +449,7 @@ export default function AdminEventPageEditorPreview() {
 
                   {isEditing ? (
                     <div className="pointer-events-none absolute left-4 top-4 rounded-lg bg-black/70 px-3 py-2 text-xs text-white/80">
-                      Edit mode: preview locked
+                      Edit mode: renderer preview active
                     </div>
                   ) : null}
                 </div>
