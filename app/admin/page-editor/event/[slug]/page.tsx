@@ -49,7 +49,7 @@ export default function AdminEventPageEditorPreview() {
         cache: "no-store",
       })
 
-      const data: any = await res.json().catch(() => null)
+      const data: any = await res.json().catch((): null => null)
 
       if (!res.ok) {
         setElements([
@@ -270,7 +270,7 @@ export default function AdminEventPageEditorPreview() {
       body: JSON.stringify({ elements: payload }),
     })
 
-    const data: any = await res.json().catch(() => null)
+    const data: any = await res.json().catch((): null => null)
 
     if (!res.ok) {
       setSaveMessage(data?.error || "Failed to save")
