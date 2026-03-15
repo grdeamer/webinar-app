@@ -150,6 +150,29 @@ export default function AdminEventPageEditorPreview() {
     setSelectedId(newId)
   }
 
+  function addPdfBlock() {
+    const newId = String(Date.now())
+
+    setElements((prev) => [
+      ...prev,
+      {
+        id: newId,
+        element_type: "pdf",
+        x: 220,
+        y: 220,
+        content: "PDF Asset",
+        width: 260,
+        height: 120,
+        z_index: prev.length + 1,
+        props: {
+          url: "https://example.com/sample.pdf",
+        },
+      },
+    ])
+
+    setSelectedId(newId)
+  }
+
   function updateSelectedContent(value: string) {
     if (!selectedId) return
 
@@ -169,6 +192,24 @@ export default function AdminEventPageEditorPreview() {
               props: {
                 ...(el.props ?? {}),
                 src: value,
+              },
+            }
+          : el
+      )
+    )
+  }
+
+  function updateSelectedPdfUrl(value: string) {
+    if (!selectedId) return
+
+    setElements((prev) =>
+      prev.map((el) =>
+        el.id === selectedId
+          ? {
+              ...el,
+              props: {
+                ...(el.props ?? {}),
+                url: value,
               },
             }
           : el
@@ -282,6 +323,7 @@ export default function AdminEventPageEditorPreview() {
 
   const selectedElement = elements.find((el) => el.id === selectedId) ?? null
   const selectedIsImage = selectedElement?.element_type === "image"
+  const selectedIsPdf = selectedElement?.element_type === "pdf"
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -353,13 +395,11 @@ export default function AdminEventPageEditorPreview() {
                       onClick={() => setSelectedId(el.id)}
                       className={`absolute overflow-hidden rounded-xl shadow-lg ${
                         isEditing ? "cursor-move" : "cursor-default"
-                      } ${
-                        selectedId === el.id
-                          ? "ring-2 ring-white"
-                          : ""
-                      } ${
+                      } ${selectedId === el.id ? "ring-2 ring-white" : ""} ${
                         el.element_type === "image"
                           ? "bg-white"
+                          : el.element_type === "pdf"
+                          ? "bg-red-950/90 text-white"
                           : "bg-amber-400 text-black"
                       }`}
                       style={{
@@ -377,6 +417,20 @@ export default function AdminEventPageEditorPreview() {
                           className="h-full w-full object-cover"
                           draggable={false}
                         />
+                      ) : el.element_type === "pdf" ? (
+                        <div className="flex h-full w-full flex-col justify-between p-4">
+                          <div>
+                            <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+                              PDF
+                            </div>
+                            <div className="mt-2 text-base font-semibold">
+                              {el.content}
+                            </div>
+                          </div>
+                          <div className="mt-4 text-xs text-white/70 break-all">
+                            {String(el.props?.url ?? "")}
+                          </div>
+                        </div>
                       ) : (
                         <div className="px-4 py-2 text-sm font-medium">
                           {el.content}
@@ -447,6 +501,13 @@ export default function AdminEventPageEditorPreview() {
               >
                 Add Image Element
               </button>
+
+              <button
+                onClick={addPdfBlock}
+                className="w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-left hover:bg-white/10"
+              >
+                Add PDF Element
+              </button>
             </div>
 
             <div className="mt-8 rounded-2xl border border-white/10 bg-white/5 p-4">
@@ -466,6 +527,31 @@ export default function AdminEventPageEditorPreview() {
                         placeholder="https://..."
                       />
                     </div>
+                  ) : selectedIsPdf ? (
+                    <>
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          PDF Title
+                        </div>
+                        <input
+                          value={selectedElement.content}
+                          onChange={(e) => updateSelectedContent(e.target.value)}
+                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          PDF URL
+                        </div>
+                        <input
+                          value={String(selectedElement.props?.url ?? "")}
+                          onChange={(e) => updateSelectedPdfUrl(e.target.value)}
+                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </>
                   ) : (
                     <div>
                       <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
