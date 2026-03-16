@@ -29,6 +29,7 @@ export async function GET(
     .select("*")
     .eq("event_id", event.id)
     .eq("page_key", "event_page")
+    .order("z_index", { ascending: true })
     .order("created_at", { ascending: true })
 
   if (elementsError) return json({ error: elementsError.message }, 400)
@@ -45,20 +46,19 @@ export async function GET(
   return json({
     event_id: event.id,
     elements: elements ?? [],
-    sections:
-      (sections ?? []).map((s) => ({
-        id: String(s.section_key),
-        type: String(s.section_type ?? "content"),
-        visible: s.visible !== false,
-        title: s.title ?? null,
-        body: s.body ?? null,
-        adminLabel: s.admin_label ?? null,
-        backgroundStyle: s.background_style ?? null,
-        contentWidth: s.content_width ?? null,
-        paddingY: s.padding_y ?? null,
-        textAlign: s.text_align ?? null,
-        divider: s.divider ?? null,
-      })) ?? [],
+    sections: (sections ?? []).map((s) => ({
+      id: String(s.section_key),
+      type: String(s.section_type ?? "content"),
+      visible: s.visible !== false,
+      title: s.title ?? null,
+      body: s.body ?? null,
+      adminLabel: s.admin_label ?? null,
+      backgroundStyle: s.background_style ?? null,
+      contentWidth: s.content_width ?? null,
+      paddingY: s.padding_y ?? null,
+      textAlign: s.text_align ?? null,
+      divider: s.divider ?? null,
+    })),
   })
 }
 

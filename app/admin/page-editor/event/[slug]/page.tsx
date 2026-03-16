@@ -33,28 +33,18 @@ type EventPageSection = {
 type SectionPreset = "content" | "agenda" | "speakers" | "resources" | "cta"
 type AddableElementType = "text" | "image" | "pdf" | "button" | "spacer"
 
+const GRID_SIZE = 8
+
+function snapToGrid(value: number) {
+  return Math.round(value / GRID_SIZE) * GRID_SIZE
+}
+
 function createElementId() {
   return `el-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-export default function AdminEventPageEditorPreview() {
-  const params = useParams()
-  const slug = String(params.slug ?? "")
-
-  const eventInfo = {
-    title: slug ? slug.replace(/-/g, " ") : "Event Preview",
-    description: "Renderer mode is now active inside the Page Editor.",
-  }
-
-  const [isEditing, setIsEditing] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [saveMessage, setSaveMessage] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
-  const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
-  const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
-  const [elements, setElements] = useState<EditorElement[]>([])
-  const [sections, setSections] = useState<EventPageSection[]>([
+function getDefaultSections(eventInfo: { title: string; description?: string | null }): EventPageSection[] {
+  return [
     {
       id: "hero",
       type: "hero",
@@ -81,7 +71,43 @@ export default function AdminEventPageEditorPreview() {
       textAlign: "left",
       divider: "none",
     },
-  ])
+  ]
+}
+
+function getFallbackElements(): EditorElement[] {
+  return [
+    {
+      id: "1",
+      element_type: "text",
+      content: "Sample Text Block",
+      x: 96,
+      y: 96,
+      width: 224,
+      height: 56,
+      props: {},
+    },
+  ]
+}
+
+export default function AdminEventPageEditorPreview() {
+  const params = useParams()
+  const slug = String(params.slug ?? "")
+
+  const eventInfo = {
+    title: slug ? slug.replace(/-/g, " ") : "Event Preview",
+    description: "Renderer mode is now active inside the Page Editor.",
+  }
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
+  const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
+  const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
+  const [editingElementId, setEditingElementId] = useState<string | null>(null)
+  const [elements, setElements] = useState<EditorElement[]>([])
+  const [sections, setSections] = useState<EventPageSection[]>(getDefaultSections(eventInfo))
 
   const dragRef = useRef<{
     id: string
@@ -97,7 +123,7 @@ export default function AdminEventPageEditorPreview() {
     startHeight: number
   } | null>(null)
 
-    useEffect(() => {
+  useEffect(() => {
     async function loadElements() {
       setLoading(true)
       setSaveMessage(null)
@@ -109,46 +135,8 @@ export default function AdminEventPageEditorPreview() {
       const data: any = await res.json().catch((): null => null)
 
       if (!res.ok) {
-        setElements([
-          {
-            id: "1",
-            element_type: "text",
-            content: "Sample Text Block",
-            x: 96,
-            y: 96,
-            width: 220,
-            height: 56,
-            props: {},
-          },
-        ])
-        setSections([
-          {
-            id: "hero",
-            type: "hero",
-            visible: true,
-            title: eventInfo.title,
-            body: eventInfo.description ?? null,
-            adminLabel: "Hero",
-            backgroundStyle: "subtle",
-            contentWidth: "xl",
-            paddingY: "lg",
-            textAlign: "left",
-            divider: "bottom",
-          },
-          {
-            id: "content",
-            type: "content",
-            visible: true,
-            title: "Main Content",
-            body: "Built-in event sections will move here next.",
-            adminLabel: "Main Content",
-            backgroundStyle: "panel",
-            contentWidth: "xl",
-            paddingY: "md",
-            textAlign: "left",
-            divider: "none",
-          },
-        ])
+        setElements(getFallbackElements())
+        setSections(getDefaultSections(eventInfo))
         setLoading(false)
         return
       }
@@ -157,18 +145,7 @@ export default function AdminEventPageEditorPreview() {
       const loadedSections = Array.isArray(data?.sections) ? data.sections : []
 
       if (rows.length === 0) {
-        setElements([
-          {
-            id: "1",
-            element_type: "text",
-            content: "Sample Text Block",
-            x: 96,
-            y: 96,
-            width: 220,
-            height: 56,
-            props: {},
-          },
-        ])
+        setElements(getFallbackElements())
       } else {
         setElements(
           rows.map((el: any) => ({
@@ -177,7 +154,7 @@ export default function AdminEventPageEditorPreview() {
             content: String(el.content ?? "Untitled Block"),
             x: Number(el.x ?? 0),
             y: Number(el.y ?? 0),
-            width: el.width == null ? 220 : Number(el.width),
+            width: el.width == null ? 224 : Number(el.width),
             height: el.height == null ? 56 : Number(el.height),
             z_index: Number(el.z_index ?? 1),
             props: el.props && typeof el.props === "object" ? el.props : {},
@@ -228,34 +205,7 @@ export default function AdminEventPageEditorPreview() {
           }))
         )
       } else {
-        setSections([
-          {
-            id: "hero",
-            type: "hero",
-            visible: true,
-            title: eventInfo.title,
-            body: eventInfo.description ?? null,
-            adminLabel: "Hero",
-            backgroundStyle: "subtle",
-            contentWidth: "xl",
-            paddingY: "lg",
-            textAlign: "left",
-            divider: "bottom",
-          },
-          {
-            id: "content",
-            type: "content",
-            visible: true,
-            title: "Main Content",
-            body: "Built-in event sections will move here next.",
-            adminLabel: "Main Content",
-            backgroundStyle: "panel",
-            contentWidth: "xl",
-            paddingY: "md",
-            textAlign: "left",
-            divider: "none",
-          },
-        ])
+        setSections(getDefaultSections(eventInfo))
       }
 
       setLoading(false)
@@ -271,7 +221,9 @@ export default function AdminEventPageEditorPreview() {
     y: number
   ) {
     if (!isEditing) return
+    if (editingElementId === id) return
     if ((e.target as HTMLElement).dataset.resizeHandle === "true") return
+    if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
 
     dragRef.current = {
       id,
@@ -290,13 +242,14 @@ export default function AdminEventPageEditorPreview() {
     height: number | null | undefined
   ) {
     if (!isEditing) return
+    if (editingElementId === id) return
     e.stopPropagation()
 
     resizeRef.current = {
       id,
       startX: e.clientX,
       startY: e.clientY,
-      startWidth: width ?? 220,
+      startWidth: width ?? 224,
       startHeight: height ?? 56,
     }
 
@@ -308,8 +261,8 @@ export default function AdminEventPageEditorPreview() {
     if (resizeRef.current) {
       const { id, startX, startY, startWidth, startHeight } = resizeRef.current
 
-      const nextWidth = Math.max(100, startWidth + (e.clientX - startX))
-      const nextHeight = Math.max(32, startHeight + (e.clientY - startY))
+      const nextWidth = snapToGrid(Math.max(96, startWidth + (e.clientX - startX)))
+      const nextHeight = snapToGrid(Math.max(32, startHeight + (e.clientY - startY)))
 
       setElements((prev) =>
         prev.map((el) =>
@@ -323,14 +276,12 @@ export default function AdminEventPageEditorPreview() {
     if (!dragRef.current) return
 
     const { id, offsetX, offsetY } = dragRef.current
-    const nextX = e.clientX - offsetX
-    const nextY = e.clientY - offsetY
+    const nextX = snapToGrid(Math.max(0, e.clientX - offsetX))
+    const nextY = snapToGrid(Math.max(0, e.clientY - offsetY))
 
     setElements((prev) =>
       prev.map((el) =>
-        el.id === id
-          ? { ...el, x: Math.max(0, nextX), y: Math.max(0, nextY) }
-          : el
+        el.id === id ? { ...el, x: nextX, y: nextY } : el
       )
     )
   }
@@ -346,10 +297,10 @@ export default function AdminEventPageEditorPreview() {
     const payload = elements.map((el, idx) => ({
       element_type: el.element_type ?? "text",
       content: el.content,
-      x: el.x,
-      y: el.y,
-      width: el.width ?? null,
-      height: el.height ?? null,
+      x: snapToGrid(el.x),
+      y: snapToGrid(el.y),
+      width: el.width == null ? null : snapToGrid(el.width),
+      height: el.height == null ? null : snapToGrid(el.height),
       z_index: el.z_index ?? idx + 1,
       props: el.props ?? {},
     }))
@@ -401,6 +352,11 @@ export default function AdminEventPageEditorPreview() {
           : el
       )
     )
+  }
+
+  function commitInlineElementEdit(id: string, value: string) {
+    updateElement(id, { content: value })
+    setEditingElementId(null)
   }
 
   function getNextContentId() {
@@ -516,7 +472,7 @@ export default function AdminEventPageEditorPreview() {
           x: 96,
           y: 120,
           width: 320,
-          height: 180,
+          height: 184,
           z_index: elements.length + 10,
           props: {
             src: "https://placehold.co/800x450/png",
@@ -533,7 +489,7 @@ export default function AdminEventPageEditorPreview() {
           x: 96,
           y: 120,
           width: 320,
-          height: 180,
+          height: 184,
           z_index: elements.length + 10,
           props: {
             url: "https://example.com/sample.pdf",
@@ -549,7 +505,7 @@ export default function AdminEventPageEditorPreview() {
           x: 96,
           y: 120,
           width: 200,
-          height: 52,
+          height: 56,
           z_index: elements.length + 10,
           props: {
             href: "#",
@@ -579,7 +535,7 @@ export default function AdminEventPageEditorPreview() {
           content: "New text block",
           x: 96,
           y: 120,
-          width: 260,
+          width: 264,
           height: 56,
           z_index: elements.length + 10,
           props: {},
@@ -590,6 +546,9 @@ export default function AdminEventPageEditorPreview() {
     setElements((prev) => [...prev, nextElement])
     setSelectedId(id)
     setSelectedSectionId(null)
+    if (elementType === "text" || elementType === "button" || elementType === "pdf") {
+      setEditingElementId(id)
+    }
   }
 
   function moveSelectedSection(direction: "up" | "down") {
@@ -684,6 +643,7 @@ export default function AdminEventPageEditorPreview() {
 
     setElements((prev) => prev.filter((el) => el.id !== selectedId))
     setSelectedId(null)
+    setEditingElementId(null)
   }
 
   function duplicateSelectedElement() {
@@ -696,8 +656,8 @@ export default function AdminEventPageEditorPreview() {
     const duplicated: EditorElement = {
       ...selected,
       id: nextId,
-      x: selected.x + 24,
-      y: selected.y + 24,
+      x: snapToGrid(selected.x + 24),
+      y: snapToGrid(selected.y + 24),
       z_index: (selected.z_index ?? 1) + 1,
       props: { ...(selected.props ?? {}) },
     }
@@ -826,6 +786,7 @@ export default function AdminEventPageEditorPreview() {
                   onClick={() => {
                     setSelectedId(null)
                     setSelectedSectionId(null)
+                    setEditingElementId(null)
                   }}
                 >
                   <EventPageRenderer
@@ -838,86 +799,146 @@ export default function AdminEventPageEditorPreview() {
                     onSelectSection={(id: string | null) => {
                       setSelectedSectionId(id)
                       setSelectedId(null)
+                      setEditingElementId(null)
                     }}
                   />
 
-                  {elements.map((el) => (
-                    <div
-                      key={el.id}
-                      onPointerDown={(e) => startDrag(e, el.id, el.x, el.y)}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedId(el.id)
-                        setSelectedSectionId(null)
-                      }}
-                      className={`absolute overflow-hidden rounded-xl shadow-lg ${
-                        isEditing ? "cursor-move" : "cursor-default"
-                      } ${selectedId === el.id ? "ring-2 ring-white" : ""} ${
-                        el.element_type === "image"
-                          ? "bg-white"
-                          : el.element_type === "pdf"
-                          ? "bg-red-950/90 text-white"
-                          : el.element_type === "button"
-                          ? "bg-transparent"
-                          : el.element_type === "spacer"
-                          ? "border border-dashed border-white/20 bg-white/5"
-                          : "bg-amber-400 text-black"
-                      }`}
-                      style={{
-                        left: el.x,
-                        top: el.y,
-                        zIndex: el.z_index ?? 1,
-                        width: el.width ?? "auto",
-                        height: el.height ?? "auto",
-                      }}
-                    >
-                      {el.element_type === "image" ? (
-                        <img
-                          src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
-                          alt={String(el.props?.alt ?? "Image block")}
-                          className="h-full w-full object-cover"
-                          draggable={false}
-                        />
-                      ) : el.element_type === "pdf" ? (
-                        <div className="flex h-full w-full flex-col justify-between p-4">
-                          <div>
-                            <div className="text-xs uppercase tracking-[0.18em] text-white/50">
-                              PDF
-                            </div>
-                            <div className="mt-2 text-base font-semibold">{el.content}</div>
-                          </div>
-                          <div className="mt-4 break-all text-xs text-white/70">
-                            {String(el.props?.url ?? "")}
-                          </div>
-                        </div>
-                      ) : el.element_type === "button" ? (
-                        <div className="flex h-full w-full items-center justify-center">
-                          <button
-                            type="button"
-                            className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white"
-                          >
-                            {el.content || "Button"}
-                          </button>
-                        </div>
-                      ) : el.element_type === "spacer" ? (
-                        <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
-                          Spacer
-                        </div>
-                      ) : (
-                        <div className="px-4 py-2 text-sm font-medium">{el.content}</div>
-                      )}
+                  {elements.map((el) => {
+                    const isInlineEditing = editingElementId === el.id
+                    const showInlineEditor =
+                      isInlineEditing &&
+                      (el.element_type === "text" ||
+                        el.element_type === "button" ||
+                        el.element_type === "pdf")
 
-                      {isEditing && (
-                        <div
-                          data-resize-handle="true"
-                          onPointerDown={(e) =>
-                            startResize(e, el.id, el.width, el.height)
+                    return (
+                      <div
+                        key={el.id}
+                        onPointerDown={(e) => startDrag(e, el.id, el.x, el.y)}
+                        onDoubleClick={(e) => {
+                          e.stopPropagation()
+                          if (
+                            el.element_type === "text" ||
+                            el.element_type === "button" ||
+                            el.element_type === "pdf"
+                          ) {
+                            setEditingElementId(el.id)
+                            setSelectedId(el.id)
+                            setSelectedSectionId(null)
                           }
-                          className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-black/40"
-                        />
-                      )}
-                    </div>
-                  ))}
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setSelectedId(el.id)
+                          setSelectedSectionId(null)
+                        }}
+                        className={`absolute overflow-hidden rounded-xl shadow-lg ${
+                          isEditing ? "cursor-move" : "cursor-default"
+                        } ${selectedId === el.id ? "ring-2 ring-white" : ""} ${
+                          el.element_type === "image"
+                            ? "bg-white"
+                            : el.element_type === "pdf"
+                            ? "bg-red-950/90 text-white"
+                            : el.element_type === "button"
+                            ? "bg-transparent"
+                            : el.element_type === "spacer"
+                            ? "border border-dashed border-white/20 bg-white/5"
+                            : "bg-amber-400 text-black"
+                        }`}
+                        style={{
+                          left: el.x,
+                          top: el.y,
+                          zIndex: el.z_index ?? 1,
+                          width: el.width ?? "auto",
+                          height: el.height ?? "auto",
+                        }}
+                      >
+                        {showInlineEditor ? (
+                          <div className="h-full w-full p-2">
+                            {el.element_type === "text" ? (
+                              <textarea
+                                data-inline-editor="true"
+                                autoFocus
+                                defaultValue={el.content}
+                                onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                                    commitInlineElementEdit(el.id, (e.target as HTMLTextAreaElement).value)
+                                  }
+                                  if (e.key === "Escape") {
+                                    setEditingElementId(null)
+                                  }
+                                }}
+                                className="h-full w-full resize-none rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
+                              />
+                            ) : (
+                              <input
+                                data-inline-editor="true"
+                                autoFocus
+                                defaultValue={el.content}
+                                onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    commitInlineElementEdit(el.id, (e.target as HTMLInputElement).value)
+                                  }
+                                  if (e.key === "Escape") {
+                                    setEditingElementId(null)
+                                  }
+                                }}
+                                className="h-full w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
+                              />
+                            )}
+                          </div>
+                        ) : el.element_type === "image" ? (
+                          <img
+                            src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
+                            alt={String(el.props?.alt ?? "Image block")}
+                            className="h-full w-full object-cover"
+                            draggable={false}
+                          />
+                        ) : el.element_type === "pdf" ? (
+                          <div className="flex h-full w-full flex-col justify-between p-4">
+                            <div>
+                              <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+                                PDF
+                              </div>
+                              <div className="mt-2 text-base font-semibold">{el.content}</div>
+                            </div>
+                            <div className="mt-4 break-all text-xs text-white/70">
+                              {String(el.props?.url ?? "")}
+                            </div>
+                          </div>
+                        ) : el.element_type === "button" ? (
+                          <div className="flex h-full w-full items-center justify-center">
+                            <button
+                              type="button"
+                              className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white"
+                            >
+                              {el.content || "Button"}
+                            </button>
+                          </div>
+                        ) : el.element_type === "spacer" ? (
+                          <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
+                            Spacer
+                          </div>
+                        ) : (
+                          <div className="px-4 py-2 text-sm font-medium whitespace-pre-wrap">
+                            {el.content}
+                          </div>
+                        )}
+
+                        {isEditing && !showInlineEditor && (
+                          <div
+                            data-resize-handle="true"
+                            onPointerDown={(e) =>
+                              startResize(e, el.id, el.width, el.height)
+                            }
+                            className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-black/40"
+                          />
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
@@ -937,47 +958,49 @@ export default function AdminEventPageEditorPreview() {
             <h3 className="mt-2 text-xl font-semibold">Edit Event Page</h3>
 
             <p className="mt-2 text-sm text-white/65">
-              You are now editing real renderer sections instead of only overlays.
+              Live preview is active. Dragging and resizing snap to an {GRID_SIZE}px grid.
             </p>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="mb-3 text-sm font-semibold">Add Section Preset</div>
+              <div className="mb-3 text-sm font-semibold">Section Templates</div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => addSectionPreset("content")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Content
-                </button>
-
-                <button
-                  onClick={() => addSectionPreset("agenda")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Agenda
-                </button>
-
-                <button
-                  onClick={() => addSectionPreset("speakers")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Speakers
-                </button>
-
-                <button
-                  onClick={() => addSectionPreset("resources")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Resources
-                </button>
-
-                <button
-                  onClick={() => addSectionPreset("cta")}
-                  className="col-span-2 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  CTA
-                </button>
+              <div className="grid grid-cols-1 gap-3">
+                {[
+                  {
+                    key: "content" as SectionPreset,
+                    title: "Content",
+                    body: "Generic text/content section.",
+                  },
+                  {
+                    key: "agenda" as SectionPreset,
+                    title: "Agenda",
+                    body: "Agenda/timeline layout starter.",
+                  },
+                  {
+                    key: "speakers" as SectionPreset,
+                    title: "Speakers",
+                    body: "Speaker roster starter section.",
+                  },
+                  {
+                    key: "resources" as SectionPreset,
+                    title: "Resources",
+                    body: "Downloads, PDFs, and links.",
+                  },
+                  {
+                    key: "cta" as SectionPreset,
+                    title: "CTA",
+                    body: "Centered call-to-action section.",
+                  },
+                ].map((preset) => (
+                  <button
+                    key={preset.key}
+                    onClick={() => addSectionPreset(preset.key)}
+                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-left hover:bg-white/5"
+                  >
+                    <div className="text-sm font-semibold text-white">{preset.title}</div>
+                    <div className="mt-1 text-xs text-white/50">{preset.body}</div>
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -1045,6 +1068,7 @@ export default function AdminEventPageEditorPreview() {
                       onClick={() => {
                         setSelectedSectionId(section.id)
                         setSelectedId(null)
+                        setEditingElementId(null)
                       }}
                       className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
                         isActive
@@ -1242,7 +1266,7 @@ export default function AdminEventPageEditorPreview() {
                         value={selectedElement.x}
                         onChange={(e) =>
                           updateElement(selectedElement.id, {
-                            x: Number(e.target.value || 0),
+                            x: snapToGrid(Number(e.target.value || 0)),
                           })
                         }
                         className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
@@ -1258,7 +1282,7 @@ export default function AdminEventPageEditorPreview() {
                         value={selectedElement.y}
                         onChange={(e) =>
                           updateElement(selectedElement.id, {
-                            y: Number(e.target.value || 0),
+                            y: snapToGrid(Number(e.target.value || 0)),
                           })
                         }
                         className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
@@ -1276,7 +1300,7 @@ export default function AdminEventPageEditorPreview() {
                         value={selectedElement.width ?? 0}
                         onChange={(e) =>
                           updateElement(selectedElement.id, {
-                            width: Number(e.target.value || 0),
+                            width: snapToGrid(Number(e.target.value || 0)),
                           })
                         }
                         className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
@@ -1292,12 +1316,16 @@ export default function AdminEventPageEditorPreview() {
                         value={selectedElement.height ?? 0}
                         onChange={(e) =>
                           updateElement(selectedElement.id, {
-                            height: Number(e.target.value || 0),
+                            height: snapToGrid(Number(e.target.value || 0)),
                           })
                         }
                         className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
                       />
                     </div>
+                  </div>
+
+                  <div className="text-xs text-white/40">
+                    Tip: double-click text, button, or PDF blocks on the canvas to edit inline.
                   </div>
                 </div>
               ) : selectedSection ? (

@@ -177,6 +177,7 @@ export default function EventPageRenderer({
           return (
             <div
               key={section.id}
+              data-section-id={section.id}
               onClick={(e) => {
                 e.stopPropagation()
                 if (isEditorClickable) {
@@ -203,7 +204,7 @@ export default function EventPageRenderer({
 
                 {section.body ? (
                   <p
-                    className={`mt-4 text-white/70 ${
+                    className={`mt-4 whitespace-pre-wrap text-white/70 ${
                       section.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
                     }`}
                   >
@@ -221,6 +222,7 @@ export default function EventPageRenderer({
           return (
             <div
               key={section.id}
+              data-section-id={section.id}
               onClick={(e) => {
                 e.stopPropagation()
                 if (isEditorClickable) {
@@ -319,7 +321,9 @@ export default function EventPageRenderer({
               Spacer
             </div>
           ) : (
-            <div className="px-4 py-2 text-sm font-medium">{el.content}</div>
+            <div className="px-4 py-2 text-sm font-medium whitespace-pre-wrap">
+              {el.content}
+            </div>
           )}
         </div>
       ))}
