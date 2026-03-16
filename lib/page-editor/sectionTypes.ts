@@ -11,13 +11,24 @@ export type SectionFieldOption = {
   value: string
 }
 
-export type SectionFieldDefinition = {
-  key: string
-  label: string
-  type: SectionFieldType
-  placeholder?: string
-  options?: SectionFieldOption[]
-}
+export type SectionFieldDefinition =
+  | {
+      key: string
+      label: string
+      type: "text" | "textarea"
+      placeholder?: string
+    }
+  | {
+      key: string
+      label: string
+      type: "checkbox"
+    }
+  | {
+      key: string
+      label: string
+      type: "select"
+      options: readonly SectionFieldOption[]
+    }
 
 export type SectionConfig = {
   title?: string
