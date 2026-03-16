@@ -97,7 +97,7 @@ export default function AdminEventPageEditorPreview() {
     startHeight: number
   } | null>(null)
 
-  useEffect(() => {
+    useEffect(() => {
     async function loadElements() {
       setLoading(true)
       setSaveMessage(null)
@@ -121,11 +121,40 @@ export default function AdminEventPageEditorPreview() {
             props: {},
           },
         ])
+        setSections([
+          {
+            id: "hero",
+            type: "hero",
+            visible: true,
+            title: eventInfo.title,
+            body: eventInfo.description ?? null,
+            adminLabel: "Hero",
+            backgroundStyle: "subtle",
+            contentWidth: "xl",
+            paddingY: "lg",
+            textAlign: "left",
+            divider: "bottom",
+          },
+          {
+            id: "content",
+            type: "content",
+            visible: true,
+            title: "Main Content",
+            body: "Built-in event sections will move here next.",
+            adminLabel: "Main Content",
+            backgroundStyle: "panel",
+            contentWidth: "xl",
+            paddingY: "md",
+            textAlign: "left",
+            divider: "none",
+          },
+        ])
         setLoading(false)
         return
       }
 
       const rows = Array.isArray(data?.elements) ? data.elements : []
+      const loadedSections = Array.isArray(data?.sections) ? data.sections : []
 
       if (rows.length === 0) {
         setElements([
@@ -154,6 +183,79 @@ export default function AdminEventPageEditorPreview() {
             props: el.props && typeof el.props === "object" ? el.props : {},
           }))
         )
+      }
+
+      if (loadedSections.length > 0) {
+        setSections(
+          loadedSections.map((section: any) => ({
+            id: String(section.id),
+            type: section.type === "hero" ? "hero" : "content",
+            visible: section.visible !== false,
+            title: section.title == null ? undefined : String(section.title),
+            body: section.body == null ? null : String(section.body),
+            adminLabel:
+              section.adminLabel == null ? undefined : String(section.adminLabel),
+            backgroundStyle:
+              section.backgroundStyle === "transparent" ||
+              section.backgroundStyle === "subtle" ||
+              section.backgroundStyle === "panel"
+                ? section.backgroundStyle
+                : undefined,
+            contentWidth:
+              section.contentWidth === "md" ||
+              section.contentWidth === "lg" ||
+              section.contentWidth === "xl" ||
+              section.contentWidth === "full"
+                ? section.contentWidth
+                : undefined,
+            paddingY:
+              section.paddingY === "sm" ||
+              section.paddingY === "md" ||
+              section.paddingY === "lg"
+                ? section.paddingY
+                : undefined,
+            textAlign:
+              section.textAlign === "left" || section.textAlign === "center"
+                ? section.textAlign
+                : undefined,
+            divider:
+              section.divider === "none" ||
+              section.divider === "top" ||
+              section.divider === "bottom" ||
+              section.divider === "both"
+                ? section.divider
+                : undefined,
+          }))
+        )
+      } else {
+        setSections([
+          {
+            id: "hero",
+            type: "hero",
+            visible: true,
+            title: eventInfo.title,
+            body: eventInfo.description ?? null,
+            adminLabel: "Hero",
+            backgroundStyle: "subtle",
+            contentWidth: "xl",
+            paddingY: "lg",
+            textAlign: "left",
+            divider: "bottom",
+          },
+          {
+            id: "content",
+            type: "content",
+            visible: true,
+            title: "Main Content",
+            body: "Built-in event sections will move here next.",
+            adminLabel: "Main Content",
+            backgroundStyle: "panel",
+            contentWidth: "xl",
+            paddingY: "md",
+            textAlign: "left",
+            divider: "none",
+          },
+        ])
       }
 
       setLoading(false)
