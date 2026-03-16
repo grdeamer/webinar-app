@@ -3,8 +3,17 @@
 import { useParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import EventPageRenderer from "@/components/page-editor/EventPageRenderer"
+import {
+  SECTION_TEMPLATE_OPTIONS,
+  getDefaultSectionConfig,
+  getSectionRegistryItem,
+} from "@/lib/page-editor/sectionRegistry"
+import type {
+  SectionConfig,
+  SectionType,
+} from "@/lib/page-editor/sectionTypes"
 
-type EditorElement = {
+export type EditorElement = {
   id: string
   element_type?: string
   content: string
@@ -16,22 +25,12 @@ type EditorElement = {
   props?: Record<string, unknown>
 }
 
-type EventPageSection = {
+export type EventPageSection = {
   id: string
-  type: "hero" | "content"
-  visible?: boolean
-  title?: string
-  body?: string | null
-  adminLabel?: string
-  backgroundStyle?: "transparent" | "subtle" | "panel"
-  contentWidth?: "md" | "lg" | "xl" | "full"
-  paddingY?: "sm" | "md" | "lg"
-  textAlign?: "left" | "center"
-  divider?: "none" | "top" | "bottom" | "both"
-  hideOnMobile?: boolean
+  type: SectionType
+  config: SectionConfig
 }
 
-type SectionPreset = "content" | "agenda" | "speakers" | "resources" | "cta"
 type AddableElementType = "text" | "image" | "pdf" | "button" | "spacer"
 
 const GRID_SIZE = 8
@@ -44,35 +43,26 @@ function createElementId() {
   return `el-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 }
 
-function getDefaultSections(eventInfo: { title: string; description?: string | null }): EventPageSection[] {
+function getDefaultSections(eventInfo: {
+  title: string
+  description?: string | null
+}): EventPageSection[] {
   return [
     {
       id: "hero",
       type: "hero",
-      visible: true,
-      title: eventInfo.title,
-      body: eventInfo.description ?? null,
-      adminLabel: "Hero",
-      backgroundStyle: "subtle",
-      contentWidth: "xl",
-      paddingY: "lg",
-      textAlign: "left",
-      divider: "bottom",
-      hideOnMobile: false,
+      config: {
+        ...getDefaultSectionConfig("hero"),
+        title: eventInfo.title,
+        body: eventInfo.description ?? null,
+      },
     },
     {
       id: "content",
       type: "content",
-      visible: true,
-      title: "Main Content",
-      body: "Built-in event sections will move here next.",
-      adminLabel: "Main Content",
-      backgroundStyle: "panel",
-      contentWidth: "xl",
-      paddingY: "md",
-      textAlign: "left",
-      divider: "none",
-      hideOnMobile: false,
+      config: {
+        ...getDefaultSectionConfig("content"),
+      },
     },
   ]
 }
@@ -91,6 +81,27 @@ function getFallbackElements(): EditorElement[] {
       props: { hideOnMobile: false },
     },
   ]
+}
+
+function SectionPanelHeader({
+  title,
+  open,
+  onToggle,
+}: {
+  title: string
+  open: boolean
+  onToggle: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center justify-between text-left"
+    >
+      <span className="text-sm font-semibold">{title}</span>
+      <span className="text-xs text-white/45">{open ? "−" : "+"}</span>
+    </button>
+  )
 }
 
 export default function AdminEventPageEditorPreview() {
@@ -177,43 +188,11 @@ export default function AdminEventPageEditorPreview() {
         setSections(
           loadedSections.map((section: any) => ({
             id: String(section.id),
-            type: section.type === "hero" ? "hero" : "content",
-            visible: section.visible !== false,
-            title: section.title == null ? undefined : String(section.title),
-            body: section.body == null ? null : String(section.body),
-            adminLabel:
-              section.adminLabel == null ? undefined : String(section.adminLabel),
-            backgroundStyle:
-              section.backgroundStyle === "transparent" ||
-              section.backgroundStyle === "subtle" ||
-              section.backgroundStyle === "panel"
-                ? section.backgroundStyle
-                : undefined,
-            contentWidth:
-              section.contentWidth === "md" ||
-              section.contentWidth === "lg" ||
-              section.contentWidth === "xl" ||
-              section.contentWidth === "full"
-                ? section.contentWidth
-                : undefined,
-            paddingY:
-              section.paddingY === "sm" ||
-              section.paddingY === "md" ||
-              section.paddingY === "lg"
-                ? section.paddingY
-                : undefined,
-            textAlign:
-              section.textAlign === "left" || section.textAlign === "center"
-                ? section.textAlign
-                : undefined,
-            divider:
-              section.divider === "none" ||
-              section.divider === "top" ||
-              section.divider === "bottom" ||
-              section.divider === "both"
-                ? section.divider
-                : undefined,
-            hideOnMobile: Boolean(section.hideOnMobile),
+            type: String(section.type ?? "content") as SectionType,
+            config:
+              section.config && typeof section.config === "object"
+                ? section.config
+                : getDefaultSectionConfig(String(section.type ?? "content") as SectionType),
           }))
         )
       } else {
@@ -336,9 +315,19 @@ export default function AdminEventPageEditorPreview() {
     setSaveMessage("Saved")
   }
 
-  function updateSection(id: string, patch: Partial<EventPageSection>) {
+  function updateSectionConfig(id: string, patch: Partial<SectionConfig>) {
     setSections((prev) =>
-      prev.map((section) => (section.id === id ? { ...section, ...patch } : section))
+      prev.map((section) =>
+        section.id === id
+          ? {
+              ...section,
+              config: {
+                ...section.config,
+                ...patch,
+              },
+            }
+          : section
+      )
     )
   }
 
@@ -370,7 +359,7 @@ export default function AdminEventPageEditorPreview() {
   }
 
   function getNextContentId() {
-    const contentCount = sections.filter((section) => section.type === "content").length
+    const contentCount = sections.filter((section) => section.type !== "hero").length
     return contentCount === 0 ? "content" : `content-${contentCount + 1}`
   }
 
@@ -420,101 +409,18 @@ export default function AdminEventPageEditorPreview() {
     })
   }
 
-  function buildPresetSection(preset: SectionPreset, id: string): EventPageSection {
-    switch (preset) {
-      case "agenda":
-        return {
-          id,
-          type: "content",
-          visible: true,
-          adminLabel: "Agenda",
-          title: "Agenda",
-          body:
-            "9:00 AM — Welcome\n10:00 AM — General Session\n11:00 AM — Breakout Sessions\n12:00 PM — Closing Remarks",
-          backgroundStyle: "panel",
-          contentWidth: "xl",
-          paddingY: "md",
-          textAlign: "left",
-          divider: "top",
-          hideOnMobile: false,
-        }
+  function addSectionPreset(type: SectionType) {
+    const nextId = type === "hero" ? "hero" : getNextContentId()
 
-      case "speakers":
-        return {
-          id,
-          type: "content",
-          visible: true,
-          adminLabel: "Speakers",
-          title: "Featured Speakers",
-          body:
-            "Speaker One — Title, Company\nSpeaker Two — Title, Company\nSpeaker Three — Title, Company",
-          backgroundStyle: "subtle",
-          contentWidth: "xl",
-          paddingY: "md",
-          textAlign: "left",
-          divider: "top",
-          hideOnMobile: false,
-        }
+    setSections((prev) => [
+      ...prev,
+      {
+        id: nextId,
+        type,
+        config: getDefaultSectionConfig(type),
+      },
+    ])
 
-      case "resources":
-        return {
-          id,
-          type: "content",
-          visible: true,
-          adminLabel: "Resources",
-          title: "Resources",
-          body:
-            "Download slides\nView agenda PDF\nAccess support materials\nReview follow-up links",
-          backgroundStyle: "panel",
-          contentWidth: "lg",
-          paddingY: "md",
-          textAlign: "left",
-          divider: "top",
-          hideOnMobile: false,
-        }
-
-      case "cta":
-        return {
-          id,
-          type: "content",
-          visible: true,
-          adminLabel: "CTA",
-          title: "Ready to Join?",
-          body: "Register now, access your materials, and join the session when it begins.",
-          backgroundStyle: "subtle",
-          contentWidth: "md",
-          paddingY: "lg",
-          textAlign: "center",
-          divider: "both",
-          hideOnMobile: false,
-        }
-
-      case "content":
-      default: {
-        const count = sections.filter((s) => s.type === "content").length + 1
-        return {
-          id,
-          type: "content",
-          visible: true,
-          adminLabel: `Content ${count}`,
-          title: `Content Section ${count}`,
-          body: "Add content here.",
-          backgroundStyle: "panel",
-          contentWidth: "xl",
-          paddingY: "md",
-          textAlign: "left",
-          divider: "none",
-          hideOnMobile: false,
-        }
-      }
-    }
-  }
-
-  function addSectionPreset(preset: SectionPreset) {
-    const nextId = getNextContentId()
-    const newSection = buildPresetSection(preset, nextId)
-
-    setSections((prev) => [...prev, newSection])
     setSelectedSectionId(nextId)
     setSelectedId(null)
   }
@@ -625,29 +531,20 @@ export default function AdminEventPageEditorPreview() {
     if (!selectedSectionId) return
 
     setSections((prev) => {
-      const currentIndex = prev.findIndex((section) => section.id === selectedSectionId)
-      if (currentIndex === -1) return prev
+      const heroSections = prev.filter((section) => section.type === "hero")
+      const contentSections = prev.filter((section) => section.type !== "hero")
 
-      const current = prev[currentIndex]
-      if (!current || current.type !== "content") return prev
-
-      const hero = prev.find((section) => section.type === "hero") ?? null
-      const contentSections = prev.filter((section) => section.type === "content")
       const contentIndex = contentSections.findIndex((section) => section.id === selectedSectionId)
       if (contentIndex === -1) return prev
 
-      const targetContentIndex =
-        direction === "up" ? contentIndex - 1 : contentIndex + 1
+      const targetIndex = direction === "up" ? contentIndex - 1 : contentIndex + 1
+      if (targetIndex < 0 || targetIndex >= contentSections.length) return prev
 
-      if (targetContentIndex < 0 || targetContentIndex >= contentSections.length) {
-        return prev
-      }
+      const reordered = [...contentSections]
+      const [moved] = reordered.splice(contentIndex, 1)
+      reordered.splice(targetIndex, 0, moved)
 
-      const reorderedContent = [...contentSections]
-      const [moved] = reorderedContent.splice(contentIndex, 1)
-      reorderedContent.splice(targetContentIndex, 0, moved)
-
-      return hero ? [hero, ...reorderedContent] : reorderedContent
+      return [...heroSections, ...reordered]
     })
   }
 
@@ -655,25 +552,13 @@ export default function AdminEventPageEditorPreview() {
     if (!selectedSectionId) return
 
     const selected = sections.find((section) => section.id === selectedSectionId)
-    if (!selected || selected.type !== "content") return
-
-    const contentOnly = sections.filter((section) => section.type === "content")
-    const currentContentIndex = contentOnly.findIndex(
-      (section) => section.id === selectedSectionId
-    )
+    if (!selected || selected.type === "hero") return
 
     const remainingSections = sections.filter((section) => section.id !== selectedSectionId)
-    const remainingContent = remainingSections.filter((section) => section.type === "content")
-
-    let nextSelectedSectionId: string | null = null
-
-    if (remainingContent.length > 0) {
-      const fallbackIndex = Math.min(currentContentIndex, remainingContent.length - 1)
-      nextSelectedSectionId = remainingContent[fallbackIndex]?.id ?? null
-    }
+    const remainingContent = remainingSections.filter((section) => section.type !== "hero")
 
     setSections(remainingSections)
-    setSelectedSectionId(nextSelectedSectionId)
+    setSelectedSectionId(remainingContent[0]?.id ?? null)
     setSelectedId(null)
   }
 
@@ -681,21 +566,25 @@ export default function AdminEventPageEditorPreview() {
     if (!selectedSectionId) return
 
     const selected = sections.find((section) => section.id === selectedSectionId)
-    if (!selected || selected.type !== "content") return
+    if (!selected || selected.type === "hero") return
 
     const selectedIndex = sections.findIndex((section) => section.id === selectedSectionId)
     if (selectedIndex === -1) return
 
-    const contentCount = sections.filter((section) => section.type === "content").length
-    const nextId = `content-${contentCount + 1}`
+    const nextId = getNextContentId()
 
     const duplicatedSection: EventPageSection = {
       ...selected,
       id: nextId,
-      adminLabel: selected.adminLabel
-        ? `${selected.adminLabel} Copy`
-        : "Content Copy",
-      title: selected.title ? `${selected.title} Copy` : "Content Section Copy",
+      config: {
+        ...selected.config,
+        adminLabel: selected.config.adminLabel
+          ? `${selected.config.adminLabel} Copy`
+          : "Content Copy",
+        title: selected.config.title
+          ? `${selected.config.title} Copy`
+          : "Content Section Copy",
+      },
     }
 
     setSections((prev) => {
@@ -741,7 +630,7 @@ export default function AdminEventPageEditorPreview() {
 
   function handleSectionDragStart(sectionId: string) {
     const section = sections.find((s) => s.id === sectionId)
-    if (!section || section.type !== "content") return
+    if (!section || section.type === "hero") return
     setDraggingSectionId(sectionId)
     setDragOverSectionId(null)
     setSelectedSectionId(sectionId)
@@ -757,7 +646,7 @@ export default function AdminEventPageEditorPreview() {
     const draggingSection = sections.find((s) => s.id === draggingSectionId)
 
     if (!targetSection || !draggingSection) return
-    if (targetSection.type !== "content" || draggingSection.type !== "content") return
+    if (targetSection.type === "hero" || draggingSection.type === "hero") return
 
     setDragOverSectionId(sectionId)
   }
@@ -770,8 +659,8 @@ export default function AdminEventPageEditorPreview() {
     }
 
     setSections((prev) => {
-      const hero = prev.find((section) => section.type === "hero") ?? null
-      const contentOnly = prev.filter((section) => section.type === "content")
+      const heroSections = prev.filter((section) => section.type === "hero")
+      const contentOnly = prev.filter((section) => section.type !== "hero")
 
       const fromIndex = contentOnly.findIndex((section) => section.id === draggingSectionId)
       const toIndex = contentOnly.findIndex((section) => section.id === sectionId)
@@ -782,7 +671,7 @@ export default function AdminEventPageEditorPreview() {
       const [moved] = reordered.splice(fromIndex, 1)
       reordered.splice(toIndex, 0, moved)
 
-      return hero ? [hero, ...reordered] : reordered
+      return [...heroSections, ...reordered]
     })
 
     setSelectedSectionId(draggingSectionId)
@@ -802,54 +691,31 @@ export default function AdminEventPageEditorPreview() {
   const selectedElement =
     elements.find((element) => element.id === selectedId) ?? null
 
-  const contentSections = sections.filter((section) => section.type === "content")
+  const contentSections = sections.filter((section) => section.type !== "hero")
   const selectedContentIndex =
-    selectedSection?.type === "content"
+    selectedSection && selectedSection.type !== "hero"
       ? contentSections.findIndex((section) => section.id === selectedSection.id)
       : -1
 
   const normalizedElements = normalizeZIndexes(elements)
   const selectedElementIndex = normalizedElements.findIndex((el) => el.id === selectedId)
 
-  const canMoveUp =
-    selectedSection?.type === "content" && selectedContentIndex > 0
-
+  const canMoveUp = selectedSection?.type !== "hero" && selectedContentIndex > 0
   const canMoveDown =
-    selectedSection?.type === "content" &&
+    selectedSection?.type !== "hero" &&
     selectedContentIndex > -1 &&
     selectedContentIndex < contentSections.length - 1
 
-  const canDeleteSection = selectedSection?.type === "content"
-  const canDuplicateSection = selectedSection?.type === "content"
+  const canDeleteSection = Boolean(selectedSection && selectedSection.type !== "hero")
+  const canDuplicateSection = Boolean(selectedSection && selectedSection.type !== "hero")
   const canDeleteElement = Boolean(selectedElement)
   const canDuplicateElement = Boolean(selectedElement)
-  const canBringForward = selectedElementIndex > -1 && selectedElementIndex < normalizedElements.length - 1
+  const canBringForward =
+    selectedElementIndex > -1 && selectedElementIndex < normalizedElements.length - 1
   const canSendBackward = selectedElementIndex > 0
 
-  const canvasWrapClass = isMobilePreview
-    ? "mx-auto w-[390px] max-w-full"
-    : "w-full"
-
-  function SectionPanelHeader({
-    title,
-    open,
-    onToggle,
-  }: {
-    title: string
-    open: boolean
-    onToggle: () => void
-  }) {
-    return (
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center justify-between text-left"
-      >
-        <span className="text-sm font-semibold">{title}</span>
-        <span className="text-xs text-white/45">{open ? "−" : "+"}</span>
-      </button>
-    )
-  }
+  const canvasWrapClass = isMobilePreview ? "mx-auto w-[390px] max-w-full" : "w-full"
+  const registryItem = selectedSection ? getSectionRegistryItem(selectedSection.type) : null
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -987,9 +853,7 @@ export default function AdminEventPageEditorPreview() {
                                           (e.target as HTMLTextAreaElement).value
                                         )
                                       }
-                                      if (e.key === "Escape") {
-                                        setEditingElementId(null)
-                                      }
+                                      if (e.key === "Escape") setEditingElementId(null)
                                     }}
                                     className="h-full w-full resize-none rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
                                   />
@@ -1006,9 +870,7 @@ export default function AdminEventPageEditorPreview() {
                                           (e.target as HTMLInputElement).value
                                         )
                                       }
-                                      if (e.key === "Escape") {
-                                        setEditingElementId(null)
-                                      }
+                                      if (e.key === "Escape") setEditingElementId(null)
                                     }}
                                     className="h-full w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
                                   />
@@ -1100,33 +962,7 @@ export default function AdminEventPageEditorPreview() {
 
               {sectionTemplatesOpen && (
                 <div className="mt-3 grid grid-cols-1 gap-3">
-                  {[
-                    {
-                      key: "content" as SectionPreset,
-                      title: "Content",
-                      body: "Generic text/content section.",
-                    },
-                    {
-                      key: "agenda" as SectionPreset,
-                      title: "Agenda",
-                      body: "Agenda/timeline layout starter.",
-                    },
-                    {
-                      key: "speakers" as SectionPreset,
-                      title: "Speakers",
-                      body: "Speaker roster starter section.",
-                    },
-                    {
-                      key: "resources" as SectionPreset,
-                      title: "Resources",
-                      body: "Downloads, PDFs, and links.",
-                    },
-                    {
-                      key: "cta" as SectionPreset,
-                      title: "CTA",
-                      body: "Centered call-to-action section.",
-                    },
-                  ].map((preset) => (
+                  {SECTION_TEMPLATE_OPTIONS.map((preset) => (
                     <button
                       key={preset.key}
                       onClick={() => addSectionPreset(preset.key)}
@@ -1155,28 +991,24 @@ export default function AdminEventPageEditorPreview() {
                   >
                     Text
                   </button>
-
                   <button
                     onClick={() => addElement("image")}
                     className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
                   >
                     Image
                   </button>
-
                   <button
                     onClick={() => addElement("pdf")}
                     className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
                   >
                     PDF
                   </button>
-
                   <button
                     onClick={() => addElement("button")}
                     className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
                   >
                     Button
                   </button>
-
                   <button
                     onClick={() => addElement("spacer")}
                     className="col-span-2 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
@@ -1202,13 +1034,13 @@ export default function AdminEventPageEditorPreview() {
                       const isDragging = draggingSectionId === section.id
                       const isDragOver = dragOverSectionId === section.id
                       const label =
-                        section.adminLabel ||
-                        (section.type === "hero" ? "Hero Section" : "Content Section")
+                        section.config.adminLabel ||
+                        getSectionRegistryItem(section.type).label
 
                       return (
                         <button
                           key={section.id}
-                          draggable={section.type === "content"}
+                          draggable={section.type !== "hero"}
                           onDragStart={() => handleSectionDragStart(section.id)}
                           onDragOver={(e) => handleSectionDragOver(e, section.id)}
                           onDrop={() => handleSectionDrop(section.id)}
@@ -1228,13 +1060,13 @@ export default function AdminEventPageEditorPreview() {
                         >
                           <div className="flex items-center gap-3">
                             <div className="text-white/35">
-                              {section.type === "content" ? "⋮⋮" : ""}
+                              {section.type !== "hero" ? "⋮⋮" : ""}
                             </div>
 
                             <div>
                               <div className="text-sm font-medium">{label}</div>
                               <div className="mt-1 text-xs text-white/45">
-                                {section.type === "hero" ? "Hero section" : "Content section"}
+                                {getSectionRegistryItem(section.type).label}
                               </div>
                             </div>
                           </div>
@@ -1242,15 +1074,15 @@ export default function AdminEventPageEditorPreview() {
                           <div className="flex flex-col items-end gap-1">
                             <div
                               className={`text-[10px] uppercase tracking-[0.18em] ${
-                                section.visible === false
+                                section.config.visible === false
                                   ? "text-red-300/80"
                                   : "text-emerald-300/80"
                               }`}
                             >
-                              {section.visible === false ? "Hidden" : "Visible"}
+                              {section.config.visible === false ? "Hidden" : "Visible"}
                             </div>
 
-                            {section.hideOnMobile && (
+                            {section.config.hideOnMobile && (
                               <div className="text-[10px] uppercase tracking-[0.18em] text-amber-300/80">
                                 No Mobile
                               </div>
@@ -1274,8 +1106,8 @@ export default function AdminEventPageEditorPreview() {
                   selectedElement
                     ? "Selected Element"
                     : selectedSection
-                    ? selectedSection.adminLabel ||
-                      (selectedSection.type === "hero" ? "Hero Section" : "Content Section")
+                    ? selectedSection.config.adminLabel ||
+                      getSectionRegistryItem(selectedSection.type).label
                     : "Editor"
                 }
                 open={editorDetailsOpen}
@@ -1288,9 +1120,7 @@ export default function AdminEventPageEditorPreview() {
                     {selectedElement
                       ? `${selectedElement.element_type ?? "text"} element`
                       : selectedSection
-                      ? selectedSection.type === "hero"
-                        ? "Hero section"
-                        : "Content section"
+                      ? `${getSectionRegistryItem(selectedSection.type).label} section`
                       : "Select a section or canvas element"}
                   </div>
 
@@ -1359,20 +1189,18 @@ export default function AdminEventPageEditorPreview() {
                         />
                       </div>
 
-                      <div>
-                        <label className="flex items-center gap-2 text-sm text-white/80">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(selectedElement.props?.hideOnMobile)}
-                            onChange={(e) =>
-                              updateElementProps(selectedElement.id, {
-                                hideOnMobile: e.target.checked,
-                              })
-                            }
-                          />
-                          Hide on Mobile
-                        </label>
-                      </div>
+                      <label className="flex items-center gap-2 text-sm text-white/80">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(selectedElement.props?.hideOnMobile)}
+                          onChange={(e) =>
+                            updateElementProps(selectedElement.id, {
+                              hideOnMobile: e.target.checked,
+                            })
+                          }
+                        />
+                        Hide on Mobile
+                      </label>
 
                       <div>
                         <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
@@ -1539,14 +1367,10 @@ export default function AdminEventPageEditorPreview() {
                           />
                         </div>
                       </div>
-
-                      <div className="text-xs text-white/40">
-                        Tip: double-click text, button, or PDF blocks on the canvas to edit inline.
-                      </div>
                     </div>
                   ) : selectedSection ? (
                     <div className="mt-4 space-y-4">
-                      {selectedSection.type === "content" && (
+                      {selectedSection.type !== "hero" && (
                         <>
                           <div className="grid grid-cols-2 gap-3">
                             <button
@@ -1600,180 +1424,92 @@ export default function AdminEventPageEditorPreview() {
                         </>
                       )}
 
-                      <div>
-                        <label className="flex items-center gap-2 text-sm text-white/80">
-                          <input
-                            type="checkbox"
-                            checked={Boolean(selectedSection.hideOnMobile)}
-                            onChange={(e) =>
-                              updateSection(selectedSection.id, {
-                                hideOnMobile: e.target.checked,
-                              })
-                            }
-                          />
-                          Hide on Mobile
-                        </label>
-                      </div>
+                      {registryItem?.fields.map((field) => {
+                        const value = (selectedSection.config as any)?.[field.key]
 
-                      <div>
-                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                          Admin Label
-                        </div>
-                        <input
-                          value={selectedSection.adminLabel ?? ""}
-                          onChange={(e) =>
-                            updateSection(selectedSection.id, { adminLabel: e.target.value })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                          placeholder="Internal section name"
-                        />
-                      </div>
+                        if (field.type === "checkbox") {
+                          return (
+                            <label
+                              key={field.key}
+                              className="flex items-center gap-2 text-sm text-white/80"
+                            >
+                              <input
+                                type="checkbox"
+                                checked={Boolean(value)}
+                                onChange={(e) =>
+                                  updateSectionConfig(selectedSection.id, {
+                                    [field.key]: e.target.checked,
+                                  })
+                                }
+                              />
+                              {field.label}
+                            </label>
+                          )
+                        }
 
-                      <label className="flex items-center gap-2 text-sm text-white/80">
-                        <input
-                          type="checkbox"
-                          checked={selectedSection.visible !== false}
-                          onChange={(e) =>
-                            updateSection(selectedSection.id, {
-                              visible: e.target.checked,
-                            })
-                          }
-                        />
-                        Visible
-                      </label>
+                        if (field.type === "textarea") {
+                          return (
+                            <div key={field.key}>
+                              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                {field.label}
+                              </div>
+                              <textarea
+                                value={String(value ?? "")}
+                                onChange={(e) =>
+                                  updateSectionConfig(selectedSection.id, {
+                                    [field.key]: e.target.value,
+                                  })
+                                }
+                                placeholder={field.placeholder}
+                                className="min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                              />
+                            </div>
+                          )
+                        }
 
-                      <div>
-                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                          {selectedSection.type === "hero" ? "Hero Title" : "Content Title"}
-                        </div>
-                        <input
-                          value={selectedSection.title ?? ""}
-                          onChange={(e) =>
-                            updateSection(selectedSection.id, { title: e.target.value })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                        />
-                      </div>
+                        if (field.type === "select") {
+                          return (
+                            <div key={field.key}>
+                              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                {field.label}
+                              </div>
+                              <select
+                                value={String(value ?? "")}
+                                onChange={(e) =>
+                                  updateSectionConfig(selectedSection.id, {
+                                    [field.key]: e.target.value,
+                                  })
+                                }
+                                className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                              >
+                                {field.options?.map((opt) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )
+                        }
 
-                      <div>
-                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                          {selectedSection.type === "hero" ? "Hero Body" : "Content Body"}
-                        </div>
-                        <textarea
-                          value={selectedSection.body ?? ""}
-                          onChange={(e) =>
-                            updateSection(selectedSection.id, { body: e.target.value })
-                          }
-                          className="min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                            Background
+                        return (
+                          <div key={field.key}>
+                            <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                              {field.label}
+                            </div>
+                            <input
+                              value={String(value ?? "")}
+                              onChange={(e) =>
+                                updateSectionConfig(selectedSection.id, {
+                                  [field.key]: e.target.value,
+                                })
+                              }
+                              placeholder={field.placeholder}
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            />
                           </div>
-                          <select
-                            value={selectedSection.backgroundStyle ?? "transparent"}
-                            onChange={(e) =>
-                              updateSection(selectedSection.id, {
-                                backgroundStyle: e.target.value as
-                                  | "transparent"
-                                  | "subtle"
-                                  | "panel",
-                              })
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                          >
-                            <option value="transparent">Transparent</option>
-                            <option value="subtle">Subtle</option>
-                            <option value="panel">Panel</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                            Width
-                          </div>
-                          <select
-                            value={selectedSection.contentWidth ?? "xl"}
-                            onChange={(e) =>
-                              updateSection(selectedSection.id, {
-                                contentWidth: e.target.value as
-                                  | "md"
-                                  | "lg"
-                                  | "xl"
-                                  | "full",
-                              })
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                          >
-                            <option value="md">Medium</option>
-                            <option value="lg">Large</option>
-                            <option value="xl">Extra Large</option>
-                            <option value="full">Full</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div>
-                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                            Vertical Padding
-                          </div>
-                          <select
-                            value={selectedSection.paddingY ?? "md"}
-                            onChange={(e) =>
-                              updateSection(selectedSection.id, {
-                                paddingY: e.target.value as "sm" | "md" | "lg",
-                              })
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                          >
-                            <option value="sm">Small</option>
-                            <option value="md">Medium</option>
-                            <option value="lg">Large</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                            Text Align
-                          </div>
-                          <select
-                            value={selectedSection.textAlign ?? "left"}
-                            onChange={(e) =>
-                              updateSection(selectedSection.id, {
-                                textAlign: e.target.value as "left" | "center",
-                              })
-                            }
-                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                          >
-                            <option value="left">Left</option>
-                            <option value="center">Center</option>
-                          </select>
-                        </div>
-                      </div>
-
-                      <div>
-                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                          Divider
-                        </div>
-                        <select
-                          value={selectedSection.divider ?? "none"}
-                          onChange={(e) =>
-                            updateSection(selectedSection.id, {
-                              divider: e.target.value as "none" | "top" | "bottom" | "both",
-                            })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                        >
-                          <option value="none">None</option>
-                          <option value="top">Top</option>
-                          <option value="bottom">Bottom</option>
-                          <option value="both">Top + Bottom</option>
-                        </select>
-                      </div>
+                        )
+                      })}
                     </div>
                   ) : (
                     <div className="mt-3 text-sm text-white/55">

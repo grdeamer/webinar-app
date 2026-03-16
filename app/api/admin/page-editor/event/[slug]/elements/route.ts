@@ -1,11 +1,31 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import type { SectionConfig, SectionType } from "@/lib/page-editor/sectionTypes"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function json(data: any, status = 200) {
   return NextResponse.json(data, { status })
+}
+
+function parseSectionBody(body: unknown): SectionConfig {
+  if (!body) return {}
+
+  if (typeof body === "object" && body !== null) {
+    return body as SectionConfig
+  }
+
+  if (typeof body === "string") {
+    try {
+      const parsed = JSON.parse(body)
+      if (parsed && typeof parsed === "object") return parsed as SectionConfig
+    } catch {}
+
+    return { body }
+  }
+
+  return {}
 }
 
 export async function GET(
@@ -49,19 +69,20 @@ export async function GET(
       ...el,
       props: el.props ?? {},
     })),
-    sections: (sections ?? []).map((s) => ({
-      id: String(s.section_key),
-      type: String(s.section_type ?? "content"),
-      visible: s.visible !== false,
-      title: s.title ?? null,
-      body: s.body ?? null,
-      adminLabel: s.admin_label ?? null,
-      backgroundStyle: s.background_style ?? null,
-      contentWidth: s.content_width ?? null,
-      paddingY: s.padding_y ?? null,
-      textAlign: s.text_align ?? null,
-      divider: s.divider ?? null,
-    })),
+    sections: (sections ?? []).map((s) => {
+      const config = parseSectionBody(s.body)
+
+      return {
+        id: String(s.section_key),
+        type: String(s.section_type ?? "content"),
+        config: {
+          visible: s.visible !== false,
+          adminLabel: s.admin_label ?? config.adminLabel ?? null,
+          ...config,
+          hideOnMobile: Boolean(s.hide_on_mobile ?? config.hideOnMobile),
+        },
+      }
+    }),
   })
 }
 
@@ -134,24 +155,29 @@ export async function POST(
   let insertedSections: any[] = []
 
   if (sections.length > 0) {
-    const sectionRows = sections.map((section: any, idx: number) => ({
-      event_id: event.id,
-      page_key: "event_page",
-      section_key: String(section.id ?? `section-${idx + 1}`),
-      section_type: String(section.type ?? "content"),
-      visible: section.visible !== false,
-      title: section.title == null ? null : String(section.title),
-      body: section.body == null ? null : String(section.body),
-      admin_label: section.adminLabel == null ? null : String(section.adminLabel),
-      background_style:
-        section.backgroundStyle == null ? null : String(section.backgroundStyle),
-      content_width: section.contentWidth == null ? null : String(section.contentWidth),
-      padding_y: section.paddingY == null ? null : String(section.paddingY),
-      text_align: section.textAlign == null ? null : String(section.textAlign),
-      divider: section.divider == null ? null : String(section.divider),
-      sort_order: idx,
-      updated_at: new Date().toISOString(),
-    }))
+    const sectionRows = sections.map((section: any, idx: number) => {
+      const config = section?.config && typeof section.config === "object" ? section.config : {}
+
+      return {
+        event_id: event.id,
+        page_key: "event_page",
+        section_key: String(section.id ?? `section-${idx + 1}`),
+        section_type: String((section.type ?? "content") as SectionType),
+        visible: config.visible !== false,
+        title: config.title == null ? null : String(config.title),
+        body: JSON.stringify(config),
+        admin_label: config.adminLabel == null ? null : String(config.adminLabel),
+        background_style:
+          config.backgroundStyle == null ? null : String(config.backgroundStyle),
+        content_width: config.contentWidth == null ? null : String(config.contentWidth),
+        padding_y: config.paddingY == null ? null : String(config.paddingY),
+        text_align: config.textAlign == null ? null : String(config.textAlign),
+        divider: config.divider == null ? null : String(config.divider),
+        sort_order: idx,
+        updated_at: new Date().toISOString(),
+        hide_on_mobile: Boolean(config.hideOnMobile),
+      }
+    })
 
     const { data, error } = await supabaseAdmin
       .from("page_editor_sections")
