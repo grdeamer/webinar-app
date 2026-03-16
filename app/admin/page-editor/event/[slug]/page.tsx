@@ -230,24 +230,16 @@ useEffect(() => {
   loadTemplates()
 }, [])
 useEffect(() => {
-  if (!isEditing) return
-  if (!hasHydrated) return
   if (loading) return
+  if (!isEditing) return
+  if (!hasUnsavedChanges) return
 
-  if (saveTimeoutRef.current) {
-    clearTimeout(saveTimeoutRef.current)
-  }
-
-  saveTimeoutRef.current = setTimeout(() => {
+  const timeout = window.setTimeout(() => {
     void saveLayout(true)
   }, 1200)
 
-  return () => {
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current)
-    }
-  }
-}, [elements, sections, isEditing, hasHydrated, loading])
+  return () => window.clearTimeout(timeout)
+}, [elements, sections, isEditing, loading, hasUnsavedChanges])
 
   function startDrag(
     e: React.PointerEvent<HTMLDivElement>,
@@ -774,7 +766,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
   const canvasWrapClass = isMobilePreview ? "mx-auto w-[390px] max-w-full" : "w-full"
   const registryItem = selectedSection ? getSectionRegistryItem(selectedSection.type) : null
 
-  return (
+return (
   <div className="min-h-screen bg-slate-950 text-white">
     <div className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
@@ -785,7 +777,6 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">
               Page Editor Preview
             </div>
-
             <h1 className="text-xl font-semibold capitalize">
               {eventInfo.title}
             </h1>
@@ -799,8 +790,8 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
               const tpl = templates.find((t) => t.id === e.target.value)
               if (!tpl) return
 
-              setSections(Array.isArray(tpl.sections_json) ? tpl.sections_json : [])
-setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
+              setSections(tpl.sections_json || [])
+              setElements(tpl.elements_json || [])
             }}
             className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
           >
@@ -827,6 +818,7 @@ setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
             {isEditing ? "Close Editor" : "Edit Page"}
           </button>
         </div>
+
       </div>
     </div>
 
@@ -1632,10 +1624,9 @@ setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
   Save
 </button>
 
-{saveMessage && (
-  <div className="mt-3 text-sm text-white/70">{saveMessage}</div>
-)}
-
+            {saveMessage && (
+              <div className="mt-3 text-sm text-white/70">{saveMessage}</div>
+            )}
           </div>
         </aside>
       </div>
