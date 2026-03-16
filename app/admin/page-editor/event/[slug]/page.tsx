@@ -116,6 +116,8 @@ export default function AdminEventPageEditorPreview() {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
+  const [hasHydrated, setHasHydrated] = useState(false)
+const [isAutoSaving, setIsAutoSaving] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
@@ -131,6 +133,7 @@ export default function AdminEventPageEditorPreview() {
   const [elements, setElements] = useState<EditorElement[]>([])
   const [sections, setSections] = useState<EventPageSection[]>(getDefaultSections(eventInfo))
   const [templates, setTemplates] = useState<any[]>([])
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   const dragRef = useRef<{
     id: string
@@ -157,12 +160,13 @@ export default function AdminEventPageEditorPreview() {
 
     const data: any = await res.json().catch((): null => null)
 
-    if (!res.ok) {
-      setElements(getFallbackElements())
-      setSections(getDefaultSections(eventInfo))
-      setLoading(false)
-      return
-    }
+   if (!res.ok) {
+  setElements(getFallbackElements())
+  setSections(getDefaultSections(eventInfo))
+  setHasUnsavedChanges(false)
+  setLoading(false)
+  return
+}
 
     const rows = Array.isArray(data?.elements) ? data.elements : []
     const loadedSections = Array.isArray(data?.sections) ? data.sections : []
@@ -202,7 +206,8 @@ export default function AdminEventPageEditorPreview() {
       setSections(getDefaultSections(eventInfo))
     }
 
-    setLoading(false)
+    setHasUnsavedChanges(false)
+setLoading(false)
   }
 
   void loadElements()
@@ -224,6 +229,25 @@ useEffect(() => {
 
   loadTemplates()
 }, [])
+useEffect(() => {
+  if (!isEditing) return
+  if (!hasHydrated) return
+  if (loading) return
+
+  if (saveTimeoutRef.current) {
+    clearTimeout(saveTimeoutRef.current)
+  }
+
+  saveTimeoutRef.current = setTimeout(() => {
+    void saveLayout(true)
+  }, 1200)
+
+  return () => {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current)
+    }
+  }
+}, [elements, sections, isEditing, hasHydrated, loading])
 
   function startDrag(
     e: React.PointerEvent<HTMLDivElement>,
@@ -306,8 +330,8 @@ isDraggingRef.current = true
   }, 50)
 }
 
-  async function saveLayout() {
-    setSaveMessage("Saving...")
+  async function saveLayout(isAutoSave = false) {
+    setSaveMessage(isAutoSave ? "Auto-saving..." : "Saving...")
 
     const payload = [...elements]
       .sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0))
@@ -338,46 +362,53 @@ isDraggingRef.current = true
       return
     }
 
-    setSaveMessage("Saved")
-  }
+    setSaveMessage(isAutoSave ? "Auto-saved" : "Saved")
+    setHasUnsavedChanges(false)
+    if (isAutoSave) {
+  window.setTimeout(() => {
+    setSaveMessage((current) => (current === "Auto-saved" ? null : current))
+  }, 1800)
+}
 
   function updateSectionConfig(id: string, patch: Partial<SectionConfig>) {
-    setSections((prev) =>
-      prev.map((section) =>
-        section.id === id
-          ? {
-              ...section,
-              config: {
-                ...section.config,
-                ...patch,
-              },
-            }
-          : section
-      )
+  setHasUnsavedChanges(true)
+  setSections((prev) =>
+    prev.map((section) =>
+      section.id === id
+        ? {
+            ...section,
+            config: {
+              ...section.config,
+              ...patch,
+            },
+          }
+        : section
     )
-  }
+  )
+}
 
-  function updateElement(id: string, patch: Partial<EditorElement>) {
-    setElements((prev) =>
-      prev.map((el) => (el.id === id ? { ...el, ...patch } : el))
-    )
-  }
+function updateElement(id: string, patch: Partial<EditorElement>) {
+  setElements((prev) =>
+    prev.map((el) => (el.id === id ? { ...el, ...patch } : el))
+  )
+}
 
   function updateElementProps(id: string, patch: Record<string, unknown>) {
-    setElements((prev) =>
-      prev.map((el) =>
-        el.id === id
-          ? {
-              ...el,
-              props: {
-                ...(el.props ?? {}),
-                ...patch,
-              },
-            }
-          : el
-      )
+  setHasUnsavedChanges(true)
+  setElements((prev) =>
+    prev.map((el) =>
+      el.id === id
+        ? {
+            ...el,
+            props: {
+              ...(el.props ?? {}),
+              ...patch,
+            },
+          }
+        : el
     )
-  }
+  )
+}
 
   function commitInlineElementEdit(id: string, value: string) {
     updateElement(id, { content: value })
@@ -625,7 +656,7 @@ isDraggingRef.current = true
 
   function deleteSelectedElement() {
     if (!selectedId) return
-
+    setHasUnsavedChanges(true)
     setElements((prev) => normalizeZIndexes(prev.filter((el) => el.id !== selectedId)))
     setSelectedId(null)
     setEditingElementId(null)
