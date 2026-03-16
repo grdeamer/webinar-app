@@ -116,8 +116,6 @@ export default function AdminEventPageEditorPreview() {
   const [isEditing, setIsEditing] = useState(false)
   const [loading, setLoading] = useState(true)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
-  const [hasHydrated, setHasHydrated] = useState(false)
-const [isAutoSaving, setIsAutoSaving] = useState(false)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
@@ -140,7 +138,9 @@ const [isAutoSaving, setIsAutoSaving] = useState(false)
     offsetX: number
     offsetY: number
   } | null>(null)
+
   const isDraggingRef = useRef(false)
+
   const resizeRef = useRef<{
     id: string
     startX: number
@@ -150,96 +150,95 @@ const [isAutoSaving, setIsAutoSaving] = useState(false)
   } | null>(null)
 
   useEffect(() => {
-  async function loadElements() {
-    setLoading(true)
-    setSaveMessage(null)
+    async function loadElements() {
+      setLoading(true)
+      setSaveMessage(null)
 
-    const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
-      cache: "no-store",
-    })
+      const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
+        cache: "no-store",
+      })
 
-    const data: any = await res.json().catch((): null => null)
+      const data: any = await res.json().catch((): null => null)
 
-   if (!res.ok) {
-  setElements(getFallbackElements())
-  setSections(getDefaultSections(eventInfo))
-  setHasUnsavedChanges(false)
-  setLoading(false)
-  return
-}
-
-    const rows = Array.isArray(data?.elements) ? data.elements : []
-    const loadedSections = Array.isArray(data?.sections) ? data.sections : []
-
-    if (rows.length === 0) {
-      setElements(getFallbackElements())
-    } else {
-      setElements(
-        rows.map((el: any) => ({
-          id: String(el.id),
-          element_type: String(el.element_type ?? "text"),
-          content: String(el.content ?? "Untitled Block"),
-          x: Number(el.x ?? 0),
-          y: Number(el.y ?? 0),
-          width: el.width == null ? 224 : Number(el.width),
-          height: el.height == null ? 56 : Number(el.height),
-          z_index: Number(el.z_index ?? 1),
-          props: el.props && typeof el.props === "object" ? el.props : {},
-        }))
-      )
-    }
-
-    if (loadedSections.length > 0) {
-      setSections(
-        loadedSections.map((section: any) => ({
-          id: String(section.id),
-          type: String(section.type ?? "content") as SectionType,
-          config:
-            section.config && typeof section.config === "object"
-              ? section.config
-              : getDefaultSectionConfig(
-                  String(section.type ?? "content") as SectionType
-                ),
-        }))
-      )
-    } else {
-      setSections(getDefaultSections(eventInfo))
-    }
-
-    setHasUnsavedChanges(false)
-setLoading(false)
-  }
-
-  void loadElements()
-}, [slug])
-
-useEffect(() => {
-  async function loadTemplates() {
-    try {
-      const res = await fetch("/api/admin/page-editor/templates")
-      const data = await res.json()
-
-      if (data.templates) {
-        setTemplates(data.templates)
+      if (!res.ok) {
+        setElements(getFallbackElements())
+        setSections(getDefaultSections(eventInfo))
+        setHasUnsavedChanges(false)
+        setLoading(false)
+        return
       }
-    } catch {
-      console.error("Failed to load templates")
+
+      const rows = Array.isArray(data?.elements) ? data.elements : []
+      const loadedSections = Array.isArray(data?.sections) ? data.sections : []
+
+      if (rows.length === 0) {
+        setElements(getFallbackElements())
+      } else {
+        setElements(
+          rows.map((el: any) => ({
+            id: String(el.id),
+            element_type: String(el.element_type ?? "text"),
+            content: String(el.content ?? "Untitled Block"),
+            x: Number(el.x ?? 0),
+            y: Number(el.y ?? 0),
+            width: el.width == null ? 224 : Number(el.width),
+            height: el.height == null ? 56 : Number(el.height),
+            z_index: Number(el.z_index ?? 1),
+            props: el.props && typeof el.props === "object" ? el.props : {},
+          }))
+        )
+      }
+
+      if (loadedSections.length > 0) {
+        setSections(
+          loadedSections.map((section: any) => ({
+            id: String(section.id),
+            type: String(section.type ?? "content") as SectionType,
+            config:
+              section.config && typeof section.config === "object"
+                ? section.config
+                : getDefaultSectionConfig(String(section.type ?? "content") as SectionType),
+          }))
+        )
+      } else {
+        setSections(getDefaultSections(eventInfo))
+      }
+
+      setHasUnsavedChanges(false)
+      setLoading(false)
     }
-  }
 
-  loadTemplates()
-}, [])
-useEffect(() => {
-  if (loading) return
-  if (!isEditing) return
-  if (!hasUnsavedChanges) return
+    void loadElements()
+  }, [slug])
 
-  const timeout = window.setTimeout(() => {
-    void saveLayout(true)
-  }, 1200)
+  useEffect(() => {
+    async function loadTemplates() {
+      try {
+        const res = await fetch("/api/admin/page-editor/templates")
+        const data = await res.json()
 
-  return () => window.clearTimeout(timeout)
-}, [elements, sections, isEditing, loading, hasUnsavedChanges])
+        if (data.templates) {
+          setTemplates(data.templates)
+        }
+      } catch {
+        console.error("Failed to load templates")
+      }
+    }
+
+    void loadTemplates()
+  }, [])
+
+  useEffect(() => {
+    if (loading) return
+    if (!isEditing) return
+    if (!hasUnsavedChanges) return
+
+    const timeout = window.setTimeout(() => {
+      void saveLayout(true)
+    }, 1200)
+
+    return () => window.clearTimeout(timeout)
+  }, [elements, sections, isEditing, loading, hasUnsavedChanges])
 
   function startDrag(
     e: React.PointerEvent<HTMLDivElement>,
@@ -253,13 +252,12 @@ useEffect(() => {
     if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
 
     dragRef.current = {
-  id,
-  offsetX: e.clientX - x,
-  offsetY: e.clientY - y,
-}
+      id,
+      offsetX: e.clientX - x,
+      offsetY: e.clientY - y,
+    }
 
-isDraggingRef.current = true
-
+    isDraggingRef.current = true
     setSelectedId(id)
     setSelectedSectionId(null)
   }
@@ -293,6 +291,7 @@ isDraggingRef.current = true
       const nextWidth = snapToGrid(Math.max(96, startWidth + (e.clientX - startX)))
       const nextHeight = snapToGrid(Math.max(32, startHeight + (e.clientY - startY)))
 
+      setHasUnsavedChanges(true)
       setElements((prev) =>
         prev.map((el) =>
           el.id === id ? { ...el, width: nextWidth, height: nextHeight } : el
@@ -308,19 +307,20 @@ isDraggingRef.current = true
     const nextX = snapToGrid(Math.max(0, e.clientX - offsetX))
     const nextY = snapToGrid(Math.max(0, e.clientY - offsetY))
 
+    setHasUnsavedChanges(true)
     setElements((prev) =>
       prev.map((el) => (el.id === id ? { ...el, x: nextX, y: nextY } : el))
     )
   }
 
- function stopInteractions() {
-  dragRef.current = null
-  resizeRef.current = null
+  function stopInteractions() {
+    dragRef.current = null
+    resizeRef.current = null
 
-  setTimeout(() => {
-    isDraggingRef.current = false
-  }, 50)
-}
+    setTimeout(() => {
+      isDraggingRef.current = false
+    }, 50)
+  }
 
   async function saveLayout(isAutoSave = false) {
     setSaveMessage(isAutoSave ? "Auto-saving..." : "Saving...")
@@ -356,51 +356,54 @@ isDraggingRef.current = true
 
     setSaveMessage(isAutoSave ? "Auto-saved" : "Saved")
     setHasUnsavedChanges(false)
+
     if (isAutoSave) {
-  window.setTimeout(() => {
-    setSaveMessage((current) => (current === "Auto-saved" ? null : current))
-  }, 1800)
-}
+      window.setTimeout(() => {
+        setSaveMessage((current) => (current === "Auto-saved" ? null : current))
+      }, 1800)
+    }
+  }
 
   function updateSectionConfig(id: string, patch: Partial<SectionConfig>) {
-  setHasUnsavedChanges(true)
-  setSections((prev) =>
-    prev.map((section) =>
-      section.id === id
-        ? {
-            ...section,
-            config: {
-              ...section.config,
-              ...patch,
-            },
-          }
-        : section
+    setHasUnsavedChanges(true)
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === id
+          ? {
+              ...section,
+              config: {
+                ...section.config,
+                ...patch,
+              },
+            }
+          : section
+      )
     )
-  )
-}
+  }
 
-function updateElement(id: string, patch: Partial<EditorElement>) {
-  setElements((prev) =>
-    prev.map((el) => (el.id === id ? { ...el, ...patch } : el))
-  )
-}
+  function updateElement(id: string, patch: Partial<EditorElement>) {
+    setHasUnsavedChanges(true)
+    setElements((prev) =>
+      prev.map((el) => (el.id === id ? { ...el, ...patch } : el))
+    )
+  }
 
   function updateElementProps(id: string, patch: Record<string, unknown>) {
-  setHasUnsavedChanges(true)
-  setElements((prev) =>
-    prev.map((el) =>
-      el.id === id
-        ? {
-            ...el,
-            props: {
-              ...(el.props ?? {}),
-              ...patch,
-            },
-          }
-        : el
+    setHasUnsavedChanges(true)
+    setElements((prev) =>
+      prev.map((el) =>
+        el.id === id
+          ? {
+              ...el,
+              props: {
+                ...(el.props ?? {}),
+                ...patch,
+              },
+            }
+          : el
+      )
     )
-  )
-}
+  }
 
   function commitInlineElementEdit(id: string, value: string) {
     updateElement(id, { content: value })
@@ -423,6 +426,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
   function bringSelectedElementForward() {
     if (!selectedId) return
 
+    setHasUnsavedChanges(true)
     setElements((prev) => {
       const normalized = normalizeZIndexes(prev)
       const index = normalized.findIndex((el) => el.id === selectedId)
@@ -442,6 +446,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
   function sendSelectedElementBackward() {
     if (!selectedId) return
 
+    setHasUnsavedChanges(true)
     setElements((prev) => {
       const normalized = normalizeZIndexes(prev)
       const index = normalized.findIndex((el) => el.id === selectedId)
@@ -461,6 +466,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
   function addSectionPreset(type: SectionType) {
     const nextId = type === "hero" ? "hero" : getNextContentId()
 
+    setHasUnsavedChanges(true)
     setSections((prev) => [
       ...prev,
       {
@@ -567,6 +573,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
         break
     }
 
+    setHasUnsavedChanges(true)
     setElements((prev) => normalizeZIndexes([...prev, nextElement]))
     setSelectedId(id)
     setSelectedSectionId(null)
@@ -579,6 +586,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
   function moveSelectedSection(direction: "up" | "down") {
     if (!selectedSectionId) return
 
+    setHasUnsavedChanges(true)
     setSections((prev) => {
       const heroSections = prev.filter((section) => section.type === "hero")
       const contentSections = prev.filter((section) => section.type !== "hero")
@@ -606,6 +614,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
     const remainingSections = sections.filter((section) => section.id !== selectedSectionId)
     const remainingContent = remainingSections.filter((section) => section.type !== "hero")
 
+    setHasUnsavedChanges(true)
     setSections(remainingSections)
     setSelectedSectionId(remainingContent[0]?.id ?? null)
     setSelectedId(null)
@@ -636,6 +645,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
       },
     }
 
+    setHasUnsavedChanges(true)
     setSections((prev) => {
       const next = [...prev]
       next.splice(selectedIndex + 1, 0, duplicatedSection)
@@ -648,6 +658,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
 
   function deleteSelectedElement() {
     if (!selectedId) return
+
     setHasUnsavedChanges(true)
     setElements((prev) => normalizeZIndexes(prev.filter((el) => el.id !== selectedId)))
     setSelectedId(null)
@@ -672,6 +683,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
       props: { ...(selected.props ?? {}) },
     }
 
+    setHasUnsavedChanges(true)
     setElements((prev) => normalizeZIndexes([...prev, duplicated]))
     setSelectedId(nextId)
     setSelectedSectionId(null)
@@ -707,6 +719,7 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
       return
     }
 
+    setHasUnsavedChanges(true)
     setSections((prev) => {
       const heroSections = prev.filter((section) => section.type === "hero")
       const contentOnly = prev.filter((section) => section.type !== "hero")
@@ -766,63 +779,58 @@ function updateElement(id: string, patch: Partial<EditorElement>) {
   const canvasWrapClass = isMobilePreview ? "mx-auto w-[390px] max-w-full" : "w-full"
   const registryItem = selectedSection ? getSectionRegistryItem(selectedSection.type) : null
 
-return (
-  <div className="min-h-screen bg-slate-950 text-white">
-    <div className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-
-        {/* LEFT SIDE */}
-        <div className="flex items-center gap-4">
-          <div>
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-              Page Editor Preview
+  return (
+    <div className="min-h-screen bg-slate-950 text-white">
+      <div className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+          <div className="flex items-center gap-4">
+            <div>
+              <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+                Page Editor Preview
+              </div>
+              <h1 className="text-xl font-semibold capitalize">{eventInfo.title}</h1>
             </div>
-            <h1 className="text-xl font-semibold capitalize">
-              {eventInfo.title}
-            </h1>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <select
+              onChange={(e) => {
+                const tpl = templates.find((t) => t.id === e.target.value)
+                if (!tpl) return
+
+                setSections(Array.isArray(tpl.sections_json) ? tpl.sections_json : [])
+                setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
+                setHasUnsavedChanges(true)
+              }}
+              className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+            >
+              <option value="">Apply Template</option>
+
+              {templates.map((tpl) => (
+                <option key={tpl.id} value={tpl.id}>
+                  {tpl.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={() => setIsMobilePreview((v) => !v)}
+              className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+            >
+              {isMobilePreview ? "Mobile" : "Desktop"}
+            </button>
+
+            <button
+              onClick={() => setIsEditing((v) => !v)}
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black"
+            >
+              {isEditing ? "Close Editor" : "Edit Page"}
+            </button>
           </div>
         </div>
-
-        {/* RIGHT SIDE */}
-        <div className="flex items-center gap-3">
-          <select
-            onChange={(e) => {
-              const tpl = templates.find((t) => t.id === e.target.value)
-              if (!tpl) return
-
-              setSections(tpl.sections_json || [])
-              setElements(tpl.elements_json || [])
-            }}
-            className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
-          >
-            <option value="">Apply Template</option>
-
-            {templates.map((tpl) => (
-              <option key={tpl.id} value={tpl.id}>
-                {tpl.name}
-              </option>
-            ))}
-          </select>
-
-          <button
-            onClick={() => setIsMobilePreview((v) => !v)}
-            className="rounded-xl border border-white/10 px-4 py-2 text-sm"
-          >
-            {isMobilePreview ? "Mobile" : "Desktop"}
-          </button>
-
-          <button
-            onClick={() => setIsEditing((v) => !v)}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black"
-          >
-            {isEditing ? "Close Editor" : "Edit Page"}
-          </button>
-        </div>
-
       </div>
-    </div>
 
-    <div className="relative flex min-h-[calc(100vh-81px)]">
+      <div className="relative flex min-h-[calc(100vh-81px)]">
         <div className="flex-1 overflow-auto">
           <div className="mx-auto max-w-6xl px-6 py-10">
             <div className="rounded-3xl border border-white/10 bg-white/5 p-10">
@@ -884,13 +892,12 @@ return (
                                 setSelectedSectionId(null)
                               }
                             }}
-                        onClick={(e) => {
-  if (isDraggingRef.current) return
-
-  e.stopPropagation()
-  setSelectedId(el.id)
-  setSelectedSectionId(null)
-}}
+                            onClick={(e) => {
+                              if (isDraggingRef.current) return
+                              e.stopPropagation()
+                              setSelectedId(el.id)
+                              setSelectedSectionId(null)
+                            }}
                             className={`absolute overflow-hidden rounded-xl shadow-lg ${
                               isEditing ? "cursor-grab active:cursor-grabbing" : "cursor-default"
                             } ${selectedId === el.id ? "ring-2 ring-white" : ""} ${
@@ -991,9 +998,7 @@ return (
                             {isEditing && !showInlineEditor && (
                               <div
                                 data-resize-handle="true"
-                                onPointerDown={(e) =>
-                                  startResize(e, el.id, el.width, el.height)
-                                }
+                                onPointerDown={(e) => startResize(e, el.id, el.width, el.height)}
                                 className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-black/40"
                               />
                             )}
@@ -1593,36 +1598,37 @@ return (
                 </>
               )}
             </div>
-<button
-  onClick={async () => {
-    const name = prompt("Template name?")
-    if (!name) return
 
-    await fetch("/api/admin/page-editor/templates", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        sections,
-        elements,
-      }),
-    })
+            <button
+              onClick={async () => {
+                const name = prompt("Template name?")
+                if (!name) return
 
-    alert("Template saved")
-  }}
-  className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold hover:bg-indigo-500"
->
-  Save Template
-</button>
+                await fetch("/api/admin/page-editor/templates", {
+                  method: "POST",
+                  headers: {
+                    "Content-Type": "application/json",
+                  },
+                  body: JSON.stringify({
+                    name,
+                    sections,
+                    elements,
+                  }),
+                })
 
-<button
-  onClick={saveLayout}
-  className="mt-8 w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold hover:bg-emerald-500"
->
-  Save
-</button>
+                alert("Template saved")
+              }}
+              className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold hover:bg-indigo-500"
+            >
+              Save Template
+            </button>
+
+            <button
+              onClick={() => void saveLayout(false)}
+              className="mt-8 w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold hover:bg-emerald-500"
+            >
+              Save
+            </button>
 
             {saveMessage && (
               <div className="mt-3 text-sm text-white/70">{saveMessage}</div>
