@@ -1,3 +1,10 @@
+import type { SectionConfig, SectionType } from "@/lib/page-editor/sectionTypes"
+
+type EventLike = {
+  title: string
+  description?: string | null
+}
+
 type EditorElement = {
   id: string
   element_type?: string
@@ -10,27 +17,13 @@ type EditorElement = {
   props?: Record<string, unknown>
 }
 
-type EventLike = {
-  title: string
-  description?: string | null
-}
-
 type EventPageSection = {
   id: string
-  type: "hero" | "content"
-  visible?: boolean
-  title?: string
-  body?: string | null
-  adminLabel?: string
-  backgroundStyle?: "transparent" | "subtle" | "panel"
-  contentWidth?: "md" | "lg" | "xl" | "full"
-  paddingY?: "sm" | "md" | "lg"
-  textAlign?: "left" | "center"
-  divider?: "none" | "top" | "bottom" | "both"
-  hideOnMobile?: boolean
+  type: SectionType
+  config: SectionConfig
 }
 
-function getWidthClass(width?: EventPageSection["contentWidth"]) {
+function getWidthClass(width?: EventPageSection["config"]["contentWidth"]) {
   switch (width) {
     case "md":
       return "max-w-3xl"
@@ -44,7 +37,7 @@ function getWidthClass(width?: EventPageSection["contentWidth"]) {
   }
 }
 
-function getPaddingYClass(paddingY?: EventPageSection["paddingY"]) {
+function getPaddingYClass(paddingY?: EventPageSection["config"]["paddingY"]) {
   switch (paddingY) {
     case "sm":
       return "py-6"
@@ -56,7 +49,7 @@ function getPaddingYClass(paddingY?: EventPageSection["paddingY"]) {
   }
 }
 
-function getTextAlignClass(textAlign?: EventPageSection["textAlign"]) {
+function getTextAlignClass(textAlign?: EventPageSection["config"]["textAlign"]) {
   switch (textAlign) {
     case "center":
       return "text-center"
@@ -67,7 +60,7 @@ function getTextAlignClass(textAlign?: EventPageSection["textAlign"]) {
 }
 
 function getSectionOuterBackgroundClass(
-  backgroundStyle?: EventPageSection["backgroundStyle"],
+  backgroundStyle?: EventPageSection["config"]["backgroundStyle"],
   sectionType?: EventPageSection["type"]
 ) {
   if (sectionType === "hero") {
@@ -92,7 +85,7 @@ function getSectionOuterBackgroundClass(
   }
 }
 
-function getContentCardClass(backgroundStyle?: EventPageSection["backgroundStyle"]) {
+function getContentCardClass(backgroundStyle?: EventPageSection["config"]["backgroundStyle"]) {
   switch (backgroundStyle) {
     case "transparent":
       return ""
@@ -104,12 +97,49 @@ function getContentCardClass(backgroundStyle?: EventPageSection["backgroundStyle
   }
 }
 
-function hasTopDivider(divider?: EventPageSection["divider"]) {
+function hasTopDivider(divider?: EventPageSection["config"]["divider"]) {
   return divider === "top" || divider === "both"
 }
 
-function hasBottomDivider(divider?: EventPageSection["divider"]) {
+function hasBottomDivider(divider?: EventPageSection["config"]["divider"]) {
   return divider === "bottom" || divider === "both"
+}
+
+function getFallbackSections(event: EventLike): EventPageSection[] {
+  return [
+    {
+      id: "hero",
+      type: "hero",
+      config: {
+        visible: true,
+        title: event.title,
+        body: event.description ?? null,
+        adminLabel: "Hero",
+        backgroundStyle: "subtle",
+        contentWidth: "xl",
+        paddingY: "lg",
+        textAlign: "left",
+        divider: "bottom",
+        hideOnMobile: false,
+      },
+    },
+    {
+      id: "content",
+      type: "content",
+      config: {
+        visible: true,
+        title: "Main Content",
+        body: "Built-in event sections will move here next.",
+        adminLabel: "Main Content",
+        backgroundStyle: "panel",
+        contentWidth: "xl",
+        paddingY: "md",
+        textAlign: "left",
+        divider: "none",
+        hideOnMobile: false,
+      },
+    },
+  ]
 }
 
 export default function EventPageRenderer({
@@ -131,53 +161,23 @@ export default function EventPageRenderer({
   onSelectSection?: (id: string | null) => void
   isMobilePreview?: boolean
 }) {
-  const resolvedSections: EventPageSection[] =
-    sections && sections.length > 0
-      ? sections
-      : [
-          {
-            id: "hero",
-            type: "hero",
-            visible: true,
-            title: event.title,
-            body: event.description ?? null,
-            adminLabel: "Hero",
-            backgroundStyle: "subtle",
-            contentWidth: "xl",
-            paddingY: "lg",
-            textAlign: "left",
-            divider: "bottom",
-            hideOnMobile: false,
-          },
-          {
-            id: "content",
-            type: "content",
-            visible: true,
-            title: "Main Content",
-            body: "Built-in event sections will move here next.",
-            adminLabel: "Main Content",
-            backgroundStyle: "panel",
-            contentWidth: "xl",
-            paddingY: "md",
-            textAlign: "left",
-            divider: "none",
-            hideOnMobile: false,
-          },
-        ]
+  const resolvedSections = sections && sections.length > 0 ? sections : getFallbackSections(event)
 
   return (
     <div className="relative min-h-[900px] overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white">
       {resolvedSections.map((section) => {
-        if (section.visible === false) return null
-        if (isMobilePreview && section.hideOnMobile) return null
+        const config = section.config ?? {}
 
-        const widthClass = getWidthClass(section.contentWidth)
-        const paddingYClass = getPaddingYClass(section.paddingY)
-        const textAlignClass = getTextAlignClass(section.textAlign)
+        if (config.visible === false) return null
+        if (isMobilePreview && config.hideOnMobile) return null
+
+        const widthClass = getWidthClass(config.contentWidth)
+        const paddingYClass = getPaddingYClass(config.paddingY)
+        const textAlignClass = getTextAlignClass(config.textAlign)
         const isSelected = selectedSectionId === section.id
         const isEditorClickable = isEditing || mode === "editor"
-        const showTopDivider = hasTopDivider(section.divider)
-        const showBottomDivider = hasBottomDivider(section.divider)
+        const showTopDivider = hasTopDivider(config.divider)
+        const showBottomDivider = hasBottomDivider(config.divider)
 
         if (section.type === "hero") {
           return (
@@ -186,12 +186,10 @@ export default function EventPageRenderer({
               data-section-id={section.id}
               onClick={(e) => {
                 e.stopPropagation()
-                if (isEditorClickable) {
-                  onSelectSection?.(section.id)
-                }
+                if (isEditorClickable) onSelectSection?.(section.id)
               }}
               className={`${getSectionOuterBackgroundClass(
-                section.backgroundStyle,
+                config.backgroundStyle,
                 section.type
               )} px-8 ${paddingYClass} ${
                 isEditorClickable ? "cursor-pointer" : ""
@@ -204,17 +202,15 @@ export default function EventPageRenderer({
                   Event Page
                 </div>
 
-                <h1 className="mt-3 text-4xl font-bold">
-                  {section.title || event.title}
-                </h1>
+                <h1 className="mt-3 text-4xl font-bold">{config.title || event.title}</h1>
 
-                {section.body ? (
+                {config.body ? (
                   <p
                     className={`mt-4 whitespace-pre-wrap text-white/70 ${
-                      section.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
+                      config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
                     }`}
                   >
-                    {section.body}
+                    {config.body}
                   </p>
                 ) : null}
               </div>
@@ -222,54 +218,46 @@ export default function EventPageRenderer({
           )
         }
 
-        if (section.type === "content") {
-          const cardClass = getContentCardClass(section.backgroundStyle)
+        const cardClass = getContentCardClass(config.backgroundStyle)
 
-          return (
-            <div
-              key={section.id}
-              data-section-id={section.id}
-              onClick={(e) => {
-                e.stopPropagation()
-                if (isEditorClickable) {
-                  onSelectSection?.(section.id)
-                }
-              }}
-              className={`px-8 ${paddingYClass} ${
-                isEditorClickable ? "cursor-pointer" : ""
-              } ${isSelected ? "ring-2 ring-inset ring-sky-400" : ""} ${getSectionOuterBackgroundClass(
-                section.backgroundStyle,
-                section.type
-              )} ${showTopDivider ? "border-t border-white/10" : ""} ${
-                showBottomDivider ? "border-b border-white/10" : ""
-              }`}
-            >
-              <div className={`mx-auto ${widthClass}`}>
-                <div className={cardClass || undefined}>
-                  <div className={textAlignClass}>
-                    {section.title ? (
-                      <h2 className="text-2xl font-semibold text-white">
-                        {section.title}
-                      </h2>
-                    ) : null}
+        return (
+          <div
+            key={section.id}
+            data-section-id={section.id}
+            onClick={(e) => {
+              e.stopPropagation()
+              if (isEditorClickable) onSelectSection?.(section.id)
+            }}
+            className={`px-8 ${paddingYClass} ${
+              isEditorClickable ? "cursor-pointer" : ""
+            } ${isSelected ? "ring-2 ring-inset ring-sky-400" : ""} ${getSectionOuterBackgroundClass(
+              config.backgroundStyle,
+              section.type
+            )} ${showTopDivider ? "border-t border-white/10" : ""} ${
+              showBottomDivider ? "border-b border-white/10" : ""
+            }`}
+          >
+            <div className={`mx-auto ${widthClass}`}>
+              <div className={cardClass || undefined}>
+                <div className={textAlignClass}>
+                  {config.title ? (
+                    <h2 className="text-2xl font-semibold text-white">{config.title}</h2>
+                  ) : null}
 
-                    <div
-                      className={
-                        section.title
-                          ? "mt-4 whitespace-pre-wrap text-white/70"
-                          : "whitespace-pre-wrap text-white/50"
-                      }
-                    >
-                      {section.body || "Built-in event sections will move here next."}
-                    </div>
+                  <div
+                    className={
+                      config.title
+                        ? "mt-4 whitespace-pre-wrap text-white/70"
+                        : "whitespace-pre-wrap text-white/50"
+                    }
+                  >
+                    {config.body || "Built-in event sections will move here next."}
                   </div>
                 </div>
               </div>
             </div>
-          )
-        }
-
-        return null
+          </div>
+        )
       })}
 
       {elements
@@ -306,9 +294,7 @@ export default function EventPageRenderer({
             ) : el.element_type === "pdf" ? (
               <div className="flex h-full w-full flex-col justify-between p-4">
                 <div>
-                  <div className="text-xs uppercase tracking-[0.18em] text-white/50">
-                    PDF
-                  </div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-white/50">PDF</div>
                   <div className="mt-2 text-base font-semibold">{el.content}</div>
                 </div>
                 <div className="mt-4 break-all text-xs text-white/70">
