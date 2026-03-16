@@ -27,6 +27,7 @@ type EventPageSection = {
   paddingY?: "sm" | "md" | "lg"
   textAlign?: "left" | "center"
   divider?: "none" | "top" | "bottom" | "both"
+  hideOnMobile?: boolean
 }
 
 function getWidthClass(width?: EventPageSection["contentWidth"]) {
@@ -119,6 +120,7 @@ export default function EventPageRenderer({
   isEditing = false,
   selectedSectionId = null,
   onSelectSection,
+  isMobilePreview = false,
 }: {
   event: EventLike
   elements: EditorElement[]
@@ -127,6 +129,7 @@ export default function EventPageRenderer({
   isEditing?: boolean
   selectedSectionId?: string | null
   onSelectSection?: (id: string | null) => void
+  isMobilePreview?: boolean
 }) {
   const resolvedSections: EventPageSection[] =
     sections && sections.length > 0
@@ -144,6 +147,7 @@ export default function EventPageRenderer({
             paddingY: "lg",
             textAlign: "left",
             divider: "bottom",
+            hideOnMobile: false,
           },
           {
             id: "content",
@@ -157,6 +161,7 @@ export default function EventPageRenderer({
             paddingY: "md",
             textAlign: "left",
             divider: "none",
+            hideOnMobile: false,
           },
         ]
 
@@ -164,6 +169,7 @@ export default function EventPageRenderer({
     <div className="relative min-h-[900px] overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white">
       {resolvedSections.map((section) => {
         if (section.visible === false) return null
+        if (isMobilePreview && section.hideOnMobile) return null
 
         const widthClass = getWidthClass(section.contentWidth)
         const paddingYClass = getPaddingYClass(section.paddingY)
@@ -266,67 +272,69 @@ export default function EventPageRenderer({
         return null
       })}
 
-      {elements.map((el) => (
-        <div
-          key={el.id}
-          className={`absolute overflow-hidden rounded-xl shadow-lg ${
-            el.element_type === "image"
-              ? "bg-white"
-              : el.element_type === "pdf"
-              ? "bg-red-950/90 text-white"
-              : el.element_type === "button"
-              ? "bg-transparent"
-              : el.element_type === "spacer"
-              ? "border border-dashed border-white/20 bg-white/5"
-              : "bg-amber-400 text-black"
-          } ${mode === "editor" ? "pointer-events-none" : ""}`}
-          style={{
-            left: el.x,
-            top: el.y,
-            zIndex: el.z_index ?? 1,
-            width: el.width ?? "auto",
-            height: el.height ?? "auto",
-          }}
-        >
-          {el.element_type === "image" ? (
-            <img
-              src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
-              alt={String(el.props?.alt ?? "Image block")}
-              className="h-full w-full object-cover"
-              draggable={false}
-            />
-          ) : el.element_type === "pdf" ? (
-            <div className="flex h-full w-full flex-col justify-between p-4">
-              <div>
-                <div className="text-xs uppercase tracking-[0.18em] text-white/50">
-                  PDF
+      {elements
+        .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
+        .map((el) => (
+          <div
+            key={el.id}
+            className={`absolute overflow-hidden rounded-xl shadow-lg ${
+              el.element_type === "image"
+                ? "bg-white"
+                : el.element_type === "pdf"
+                ? "bg-red-950/90 text-white"
+                : el.element_type === "button"
+                ? "bg-transparent"
+                : el.element_type === "spacer"
+                ? "border border-dashed border-white/20 bg-white/5"
+                : "bg-amber-400 text-black"
+            } ${mode === "editor" ? "pointer-events-none" : ""}`}
+            style={{
+              left: el.x,
+              top: el.y,
+              zIndex: el.z_index ?? 1,
+              width: el.width ?? "auto",
+              height: el.height ?? "auto",
+            }}
+          >
+            {el.element_type === "image" ? (
+              <img
+                src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
+                alt={String(el.props?.alt ?? "Image block")}
+                className="h-full w-full object-cover"
+                draggable={false}
+              />
+            ) : el.element_type === "pdf" ? (
+              <div className="flex h-full w-full flex-col justify-between p-4">
+                <div>
+                  <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+                    PDF
+                  </div>
+                  <div className="mt-2 text-base font-semibold">{el.content}</div>
                 </div>
-                <div className="mt-2 text-base font-semibold">{el.content}</div>
+                <div className="mt-4 break-all text-xs text-white/70">
+                  {String(el.props?.url ?? "")}
+                </div>
               </div>
-              <div className="mt-4 break-all text-xs text-white/70">
-                {String(el.props?.url ?? "")}
+            ) : el.element_type === "button" ? (
+              <div className="flex h-full w-full items-center justify-center">
+                <a
+                  href={String(el.props?.href ?? "#")}
+                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white no-underline"
+                >
+                  {el.content || "Button"}
+                </a>
               </div>
-            </div>
-          ) : el.element_type === "button" ? (
-            <div className="flex h-full w-full items-center justify-center">
-              <a
-                href={String(el.props?.href ?? "#")}
-                className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white no-underline"
-              >
-                {el.content || "Button"}
-              </a>
-            </div>
-          ) : el.element_type === "spacer" ? (
-            <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
-              Spacer
-            </div>
-          ) : (
-            <div className="px-4 py-2 text-sm font-medium whitespace-pre-wrap">
-              {el.content}
-            </div>
-          )}
-        </div>
-      ))}
+            ) : el.element_type === "spacer" ? (
+              <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
+                Spacer
+              </div>
+            ) : (
+              <div className="px-4 py-2 text-sm font-medium whitespace-pre-wrap">
+                {el.content}
+              </div>
+            )}
+          </div>
+        ))}
     </div>
   )
 }

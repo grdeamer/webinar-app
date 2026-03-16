@@ -28,6 +28,7 @@ type EventPageSection = {
   paddingY?: "sm" | "md" | "lg"
   textAlign?: "left" | "center"
   divider?: "none" | "top" | "bottom" | "both"
+  hideOnMobile?: boolean
 }
 
 type SectionPreset = "content" | "agenda" | "speakers" | "resources" | "cta"
@@ -57,6 +58,7 @@ function getDefaultSections(eventInfo: { title: string; description?: string | n
       paddingY: "lg",
       textAlign: "left",
       divider: "bottom",
+      hideOnMobile: false,
     },
     {
       id: "content",
@@ -70,6 +72,7 @@ function getDefaultSections(eventInfo: { title: string; description?: string | n
       paddingY: "md",
       textAlign: "left",
       divider: "none",
+      hideOnMobile: false,
     },
   ]
 }
@@ -84,7 +87,8 @@ function getFallbackElements(): EditorElement[] {
       y: 96,
       width: 224,
       height: 56,
-      props: {},
+      z_index: 1,
+      props: { hideOnMobile: false },
     },
   ]
 }
@@ -106,6 +110,13 @@ export default function AdminEventPageEditorPreview() {
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
   const [editingElementId, setEditingElementId] = useState<string | null>(null)
+  const [isMobilePreview, setIsMobilePreview] = useState(false)
+
+  const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
+  const [addElementOpen, setAddElementOpen] = useState(true)
+  const [sectionsListOpen, setSectionsListOpen] = useState(true)
+  const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
+
   const [elements, setElements] = useState<EditorElement[]>([])
   const [sections, setSections] = useState<EventPageSection[]>(getDefaultSections(eventInfo))
 
@@ -202,6 +213,7 @@ export default function AdminEventPageEditorPreview() {
               section.divider === "both"
                 ? section.divider
                 : undefined,
+            hideOnMobile: Boolean(section.hideOnMobile),
           }))
         )
       } else {
@@ -280,9 +292,7 @@ export default function AdminEventPageEditorPreview() {
     const nextY = snapToGrid(Math.max(0, e.clientY - offsetY))
 
     setElements((prev) =>
-      prev.map((el) =>
-        el.id === id ? { ...el, x: nextX, y: nextY } : el
-      )
+      prev.map((el) => (el.id === id ? { ...el, x: nextX, y: nextY } : el))
     )
   }
 
@@ -294,16 +304,18 @@ export default function AdminEventPageEditorPreview() {
   async function saveLayout() {
     setSaveMessage("Saving...")
 
-    const payload = elements.map((el, idx) => ({
-      element_type: el.element_type ?? "text",
-      content: el.content,
-      x: snapToGrid(el.x),
-      y: snapToGrid(el.y),
-      width: el.width == null ? null : snapToGrid(el.width),
-      height: el.height == null ? null : snapToGrid(el.height),
-      z_index: el.z_index ?? idx + 1,
-      props: el.props ?? {},
-    }))
+    const payload = [...elements]
+      .sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0))
+      .map((el, idx) => ({
+        element_type: el.element_type ?? "text",
+        content: el.content,
+        x: snapToGrid(el.x),
+        y: snapToGrid(el.y),
+        width: el.width == null ? null : snapToGrid(el.width),
+        height: el.height == null ? null : snapToGrid(el.height),
+        z_index: el.z_index ?? idx + 1,
+        props: el.props ?? {},
+      }))
 
     const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
       method: "POST",
@@ -326,9 +338,7 @@ export default function AdminEventPageEditorPreview() {
 
   function updateSection(id: string, patch: Partial<EventPageSection>) {
     setSections((prev) =>
-      prev.map((section) =>
-        section.id === id ? { ...section, ...patch } : section
-      )
+      prev.map((section) => (section.id === id ? { ...section, ...patch } : section))
     )
   }
 
@@ -364,6 +374,52 @@ export default function AdminEventPageEditorPreview() {
     return contentCount === 0 ? "content" : `content-${contentCount + 1}`
   }
 
+  function normalizeZIndexes(nextElements: EditorElement[]) {
+    const sorted = [...nextElements].sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0))
+    return sorted.map((el, idx) => ({
+      ...el,
+      z_index: idx + 1,
+    }))
+  }
+
+  function bringSelectedElementForward() {
+    if (!selectedId) return
+
+    setElements((prev) => {
+      const normalized = normalizeZIndexes(prev)
+      const index = normalized.findIndex((el) => el.id === selectedId)
+      if (index === -1 || index === normalized.length - 1) return prev
+
+      const next = [...normalized]
+      const currentZ = next[index].z_index ?? index + 1
+      const targetZ = next[index + 1].z_index ?? index + 2
+
+      next[index] = { ...next[index], z_index: targetZ }
+      next[index + 1] = { ...next[index + 1], z_index: currentZ }
+
+      return normalizeZIndexes(next)
+    })
+  }
+
+  function sendSelectedElementBackward() {
+    if (!selectedId) return
+
+    setElements((prev) => {
+      const normalized = normalizeZIndexes(prev)
+      const index = normalized.findIndex((el) => el.id === selectedId)
+      if (index <= 0) return prev
+
+      const next = [...normalized]
+      const currentZ = next[index].z_index ?? index + 1
+      const targetZ = next[index - 1].z_index ?? index
+
+      next[index] = { ...next[index], z_index: targetZ }
+      next[index - 1] = { ...next[index - 1], z_index: currentZ }
+
+      return normalizeZIndexes(next)
+    })
+  }
+
   function buildPresetSection(preset: SectionPreset, id: string): EventPageSection {
     switch (preset) {
       case "agenda":
@@ -380,6 +436,7 @@ export default function AdminEventPageEditorPreview() {
           paddingY: "md",
           textAlign: "left",
           divider: "top",
+          hideOnMobile: false,
         }
 
       case "speakers":
@@ -396,6 +453,7 @@ export default function AdminEventPageEditorPreview() {
           paddingY: "md",
           textAlign: "left",
           divider: "top",
+          hideOnMobile: false,
         }
 
       case "resources":
@@ -412,6 +470,7 @@ export default function AdminEventPageEditorPreview() {
           paddingY: "md",
           textAlign: "left",
           divider: "top",
+          hideOnMobile: false,
         }
 
       case "cta":
@@ -427,6 +486,7 @@ export default function AdminEventPageEditorPreview() {
           paddingY: "lg",
           textAlign: "center",
           divider: "both",
+          hideOnMobile: false,
         }
 
       case "content":
@@ -444,6 +504,7 @@ export default function AdminEventPageEditorPreview() {
           paddingY: "md",
           textAlign: "left",
           divider: "none",
+          hideOnMobile: false,
         }
       }
     }
@@ -460,6 +521,7 @@ export default function AdminEventPageEditorPreview() {
 
   function addElement(elementType: AddableElementType) {
     const id = createElementId()
+    const highestZ = elements.reduce((max, el) => Math.max(max, el.z_index ?? 0), 0)
 
     let nextElement: EditorElement
 
@@ -473,10 +535,11 @@ export default function AdminEventPageEditorPreview() {
           y: 120,
           width: 320,
           height: 184,
-          z_index: elements.length + 10,
+          z_index: highestZ + 1,
           props: {
             src: "https://placehold.co/800x450/png",
             alt: "Image block",
+            hideOnMobile: false,
           },
         }
         break
@@ -490,9 +553,10 @@ export default function AdminEventPageEditorPreview() {
           y: 120,
           width: 320,
           height: 184,
-          z_index: elements.length + 10,
+          z_index: highestZ + 1,
           props: {
             url: "https://example.com/sample.pdf",
+            hideOnMobile: false,
           },
         }
         break
@@ -506,9 +570,10 @@ export default function AdminEventPageEditorPreview() {
           y: 120,
           width: 200,
           height: 56,
-          z_index: elements.length + 10,
+          z_index: highestZ + 1,
           props: {
             href: "#",
+            hideOnMobile: false,
           },
         }
         break
@@ -522,8 +587,10 @@ export default function AdminEventPageEditorPreview() {
           y: 120,
           width: 320,
           height: 40,
-          z_index: elements.length + 10,
-          props: {},
+          z_index: highestZ + 1,
+          props: {
+            hideOnMobile: false,
+          },
         }
         break
 
@@ -537,15 +604,18 @@ export default function AdminEventPageEditorPreview() {
           y: 120,
           width: 264,
           height: 56,
-          z_index: elements.length + 10,
-          props: {},
+          z_index: highestZ + 1,
+          props: {
+            hideOnMobile: false,
+          },
         }
         break
     }
 
-    setElements((prev) => [...prev, nextElement])
+    setElements((prev) => normalizeZIndexes([...prev, nextElement]))
     setSelectedId(id)
     setSelectedSectionId(null)
+
     if (elementType === "text" || elementType === "button" || elementType === "pdf") {
       setEditingElementId(id)
     }
@@ -641,7 +711,7 @@ export default function AdminEventPageEditorPreview() {
   function deleteSelectedElement() {
     if (!selectedId) return
 
-    setElements((prev) => prev.filter((el) => el.id !== selectedId))
+    setElements((prev) => normalizeZIndexes(prev.filter((el) => el.id !== selectedId)))
     setSelectedId(null)
     setEditingElementId(null)
   }
@@ -653,16 +723,18 @@ export default function AdminEventPageEditorPreview() {
     if (!selected) return
 
     const nextId = createElementId()
+    const highestZ = elements.reduce((max, el) => Math.max(max, el.z_index ?? 0), 0)
+
     const duplicated: EditorElement = {
       ...selected,
       id: nextId,
       x: snapToGrid(selected.x + 24),
       y: snapToGrid(selected.y + 24),
-      z_index: (selected.z_index ?? 1) + 1,
+      z_index: highestZ + 1,
       props: { ...(selected.props ?? {}) },
     }
 
-    setElements((prev) => [...prev, duplicated])
+    setElements((prev) => normalizeZIndexes([...prev, duplicated]))
     setSelectedId(nextId)
     setSelectedSectionId(null)
   }
@@ -736,6 +808,9 @@ export default function AdminEventPageEditorPreview() {
       ? contentSections.findIndex((section) => section.id === selectedSection.id)
       : -1
 
+  const normalizedElements = normalizeZIndexes(elements)
+  const selectedElementIndex = normalizedElements.findIndex((el) => el.id === selectedId)
+
   const canMoveUp =
     selectedSection?.type === "content" && selectedContentIndex > 0
 
@@ -748,6 +823,33 @@ export default function AdminEventPageEditorPreview() {
   const canDuplicateSection = selectedSection?.type === "content"
   const canDeleteElement = Boolean(selectedElement)
   const canDuplicateElement = Boolean(selectedElement)
+  const canBringForward = selectedElementIndex > -1 && selectedElementIndex < normalizedElements.length - 1
+  const canSendBackward = selectedElementIndex > 0
+
+  const canvasWrapClass = isMobilePreview
+    ? "mx-auto w-[390px] max-w-full"
+    : "w-full"
+
+  function SectionPanelHeader({
+    title,
+    open,
+    onToggle,
+  }: {
+    title: string
+    open: boolean
+    onToggle: () => void
+  }) {
+    return (
+      <button
+        type="button"
+        onClick={onToggle}
+        className="flex w-full items-center justify-between text-left"
+      >
+        <span className="text-sm font-semibold">{title}</span>
+        <span className="text-xs text-white/45">{open ? "−" : "+"}</span>
+      </button>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
@@ -760,12 +862,25 @@ export default function AdminEventPageEditorPreview() {
             <h1 className="mt-1 text-2xl font-bold">Event Page</h1>
           </div>
 
-          <button
-            onClick={() => setIsEditing((v) => !v)}
-            className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950"
-          >
-            {isEditing ? "Close Editor" : "Edit Page"}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsMobilePreview((v) => !v)}
+              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                isMobilePreview
+                  ? "bg-sky-500 text-white"
+                  : "border border-white/10 bg-white/5 text-white"
+              }`}
+            >
+              {isMobilePreview ? "Mobile Preview On" : "Desktop Preview"}
+            </button>
+
+            <button
+              onClick={() => setIsEditing((v) => !v)}
+              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950"
+            >
+              {isEditing ? "Close Editor" : "Edit Page"}
+            </button>
+          </div>
         </div>
       </div>
 
@@ -778,167 +893,178 @@ export default function AdminEventPageEditorPreview() {
                   Loading editor elements...
                 </div>
               ) : (
-                <div
-                  className="mt-8 relative min-h-[900px] w-full overflow-hidden rounded-2xl border border-white/10 bg-black"
-                  onPointerMove={onCanvasMove}
-                  onPointerUp={stopInteractions}
-                  onPointerLeave={stopInteractions}
-                  onClick={() => {
-                    setSelectedId(null)
-                    setSelectedSectionId(null)
-                    setEditingElementId(null)
-                  }}
-                >
-                  <EventPageRenderer
-                    mode="editor"
-                    event={eventInfo}
-                    elements={[]}
-                    sections={sections}
-                    isEditing={isEditing}
-                    selectedSectionId={selectedSectionId}
-                    onSelectSection={(id: string | null) => {
-                      setSelectedSectionId(id)
+                <div className={canvasWrapClass}>
+                  <div
+                    className="mt-8 relative min-h-[900px] overflow-hidden rounded-2xl border border-white/10 bg-black"
+                    onPointerMove={onCanvasMove}
+                    onPointerUp={stopInteractions}
+                    onPointerLeave={stopInteractions}
+                    onClick={() => {
                       setSelectedId(null)
+                      setSelectedSectionId(null)
                       setEditingElementId(null)
                     }}
-                  />
+                  >
+                    <EventPageRenderer
+                      mode="editor"
+                      event={eventInfo}
+                      elements={[]}
+                      sections={sections}
+                      isEditing={isEditing}
+                      selectedSectionId={selectedSectionId}
+                      onSelectSection={(id: string | null) => {
+                        setSelectedSectionId(id)
+                        setSelectedId(null)
+                        setEditingElementId(null)
+                      }}
+                      isMobilePreview={isMobilePreview}
+                    />
 
-                  {elements.map((el) => {
-                    const isInlineEditing = editingElementId === el.id
-                    const showInlineEditor =
-                      isInlineEditing &&
-                      (el.element_type === "text" ||
-                        el.element_type === "button" ||
-                        el.element_type === "pdf")
-
-                    return (
-                      <div
-                        key={el.id}
-                        onPointerDown={(e) => startDrag(e, el.id, el.x, el.y)}
-                        onDoubleClick={(e) => {
-                          e.stopPropagation()
-                          if (
-                            el.element_type === "text" ||
+                    {normalizedElements
+                      .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
+                      .map((el) => {
+                        const isInlineEditing = editingElementId === el.id
+                        const showInlineEditor =
+                          isInlineEditing &&
+                          (el.element_type === "text" ||
                             el.element_type === "button" ||
-                            el.element_type === "pdf"
-                          ) {
-                            setEditingElementId(el.id)
-                            setSelectedId(el.id)
-                            setSelectedSectionId(null)
-                          }
-                        }}
-                        onClick={(e) => {
-                          e.stopPropagation()
-                          setSelectedId(el.id)
-                          setSelectedSectionId(null)
-                        }}
-                        className={`absolute overflow-hidden rounded-xl shadow-lg ${
-                          isEditing ? "cursor-move" : "cursor-default"
-                        } ${selectedId === el.id ? "ring-2 ring-white" : ""} ${
-                          el.element_type === "image"
-                            ? "bg-white"
-                            : el.element_type === "pdf"
-                            ? "bg-red-950/90 text-white"
-                            : el.element_type === "button"
-                            ? "bg-transparent"
-                            : el.element_type === "spacer"
-                            ? "border border-dashed border-white/20 bg-white/5"
-                            : "bg-amber-400 text-black"
-                        }`}
-                        style={{
-                          left: el.x,
-                          top: el.y,
-                          zIndex: el.z_index ?? 1,
-                          width: el.width ?? "auto",
-                          height: el.height ?? "auto",
-                        }}
-                      >
-                        {showInlineEditor ? (
-                          <div className="h-full w-full p-2">
-                            {el.element_type === "text" ? (
-                              <textarea
-                                data-inline-editor="true"
-                                autoFocus
-                                defaultValue={el.content}
-                                onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                                    commitInlineElementEdit(el.id, (e.target as HTMLTextAreaElement).value)
-                                  }
-                                  if (e.key === "Escape") {
-                                    setEditingElementId(null)
-                                  }
-                                }}
-                                className="h-full w-full resize-none rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
+                            el.element_type === "pdf")
+
+                        return (
+                          <div
+                            key={el.id}
+                            onPointerDown={(e) => startDrag(e, el.id, el.x, el.y)}
+                            onDoubleClick={(e) => {
+                              e.stopPropagation()
+                              if (
+                                el.element_type === "text" ||
+                                el.element_type === "button" ||
+                                el.element_type === "pdf"
+                              ) {
+                                setEditingElementId(el.id)
+                                setSelectedId(el.id)
+                                setSelectedSectionId(null)
+                              }
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              setSelectedId(el.id)
+                              setSelectedSectionId(null)
+                            }}
+                            className={`absolute overflow-hidden rounded-xl shadow-lg ${
+                              isEditing ? "cursor-move" : "cursor-default"
+                            } ${selectedId === el.id ? "ring-2 ring-white" : ""} ${
+                              el.element_type === "image"
+                                ? "bg-white"
+                                : el.element_type === "pdf"
+                                ? "bg-red-950/90 text-white"
+                                : el.element_type === "button"
+                                ? "bg-transparent"
+                                : el.element_type === "spacer"
+                                ? "border border-dashed border-white/20 bg-white/5"
+                                : "bg-amber-400 text-black"
+                            }`}
+                            style={{
+                              left: el.x,
+                              top: el.y,
+                              zIndex: el.z_index ?? 1,
+                              width: el.width ?? "auto",
+                              height: el.height ?? "auto",
+                            }}
+                          >
+                            {showInlineEditor ? (
+                              <div className="h-full w-full p-2">
+                                {el.element_type === "text" ? (
+                                  <textarea
+                                    data-inline-editor="true"
+                                    autoFocus
+                                    defaultValue={el.content}
+                                    onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+                                        commitInlineElementEdit(
+                                          el.id,
+                                          (e.target as HTMLTextAreaElement).value
+                                        )
+                                      }
+                                      if (e.key === "Escape") {
+                                        setEditingElementId(null)
+                                      }
+                                    }}
+                                    className="h-full w-full resize-none rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
+                                  />
+                                ) : (
+                                  <input
+                                    data-inline-editor="true"
+                                    autoFocus
+                                    defaultValue={el.content}
+                                    onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
+                                    onKeyDown={(e) => {
+                                      if (e.key === "Enter") {
+                                        commitInlineElementEdit(
+                                          el.id,
+                                          (e.target as HTMLInputElement).value
+                                        )
+                                      }
+                                      if (e.key === "Escape") {
+                                        setEditingElementId(null)
+                                      }
+                                    }}
+                                    className="h-full w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
+                                  />
+                                )}
+                              </div>
+                            ) : el.element_type === "image" ? (
+                              <img
+                                src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
+                                alt={String(el.props?.alt ?? "Image block")}
+                                className="h-full w-full object-cover"
+                                draggable={false}
                               />
+                            ) : el.element_type === "pdf" ? (
+                              <div className="flex h-full w-full flex-col justify-between p-4">
+                                <div>
+                                  <div className="text-xs uppercase tracking-[0.18em] text-white/50">
+                                    PDF
+                                  </div>
+                                  <div className="mt-2 text-base font-semibold">{el.content}</div>
+                                </div>
+                                <div className="mt-4 break-all text-xs text-white/70">
+                                  {String(el.props?.url ?? "")}
+                                </div>
+                              </div>
+                            ) : el.element_type === "button" ? (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <button
+                                  type="button"
+                                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white"
+                                >
+                                  {el.content || "Button"}
+                                </button>
+                              </div>
+                            ) : el.element_type === "spacer" ? (
+                              <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
+                                Spacer
+                              </div>
                             ) : (
-                              <input
-                                data-inline-editor="true"
-                                autoFocus
-                                defaultValue={el.content}
-                                onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    commitInlineElementEdit(el.id, (e.target as HTMLInputElement).value)
-                                  }
-                                  if (e.key === "Escape") {
-                                    setEditingElementId(null)
-                                  }
-                                }}
-                                className="h-full w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
+                              <div className="px-4 py-2 text-sm font-medium whitespace-pre-wrap">
+                                {el.content}
+                              </div>
+                            )}
+
+                            {isEditing && !showInlineEditor && (
+                              <div
+                                data-resize-handle="true"
+                                onPointerDown={(e) =>
+                                  startResize(e, el.id, el.width, el.height)
+                                }
+                                className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-black/40"
                               />
                             )}
                           </div>
-                        ) : el.element_type === "image" ? (
-                          <img
-                            src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
-                            alt={String(el.props?.alt ?? "Image block")}
-                            className="h-full w-full object-cover"
-                            draggable={false}
-                          />
-                        ) : el.element_type === "pdf" ? (
-                          <div className="flex h-full w-full flex-col justify-between p-4">
-                            <div>
-                              <div className="text-xs uppercase tracking-[0.18em] text-white/50">
-                                PDF
-                              </div>
-                              <div className="mt-2 text-base font-semibold">{el.content}</div>
-                            </div>
-                            <div className="mt-4 break-all text-xs text-white/70">
-                              {String(el.props?.url ?? "")}
-                            </div>
-                          </div>
-                        ) : el.element_type === "button" ? (
-                          <div className="flex h-full w-full items-center justify-center">
-                            <button
-                              type="button"
-                              className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white"
-                            >
-                              {el.content || "Button"}
-                            </button>
-                          </div>
-                        ) : el.element_type === "spacer" ? (
-                          <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
-                            Spacer
-                          </div>
-                        ) : (
-                          <div className="px-4 py-2 text-sm font-medium whitespace-pre-wrap">
-                            {el.content}
-                          </div>
-                        )}
-
-                        {isEditing && !showInlineEditor && (
-                          <div
-                            data-resize-handle="true"
-                            onPointerDown={(e) =>
-                              startResize(e, el.id, el.width, el.height)
-                            }
-                            className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-black/40"
-                          />
-                        )}
-                      </div>
-                    )
-                  })}
+                        )
+                      })}
+                  </div>
                 </div>
               )}
             </div>
@@ -961,593 +1087,700 @@ export default function AdminEventPageEditorPreview() {
               Live preview is active. Dragging and resizing snap to an {GRID_SIZE}px grid.
             </p>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="mb-3 text-sm font-semibold">Section Templates</div>
-
-              <div className="grid grid-cols-1 gap-3">
-                {[
-                  {
-                    key: "content" as SectionPreset,
-                    title: "Content",
-                    body: "Generic text/content section.",
-                  },
-                  {
-                    key: "agenda" as SectionPreset,
-                    title: "Agenda",
-                    body: "Agenda/timeline layout starter.",
-                  },
-                  {
-                    key: "speakers" as SectionPreset,
-                    title: "Speakers",
-                    body: "Speaker roster starter section.",
-                  },
-                  {
-                    key: "resources" as SectionPreset,
-                    title: "Resources",
-                    body: "Downloads, PDFs, and links.",
-                  },
-                  {
-                    key: "cta" as SectionPreset,
-                    title: "CTA",
-                    body: "Centered call-to-action section.",
-                  },
-                ].map((preset) => (
-                  <button
-                    key={preset.key}
-                    onClick={() => addSectionPreset(preset.key)}
-                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-left hover:bg-white/5"
-                  >
-                    <div className="text-sm font-semibold text-white">{preset.title}</div>
-                    <div className="mt-1 text-xs text-white/50">{preset.body}</div>
-                  </button>
-                ))}
-              </div>
+            <div className="mt-3 text-xs text-white/45">
+              Preview mode: {isMobilePreview ? "Mobile" : "Desktop"}
             </div>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="mb-3 text-sm font-semibold">Add Element</div>
+              <SectionPanelHeader
+                title="Section Templates"
+                open={sectionTemplatesOpen}
+                onToggle={() => setSectionTemplatesOpen((v) => !v)}
+              />
 
-              <div className="grid grid-cols-2 gap-3">
-                <button
-                  onClick={() => addElement("text")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Text
-                </button>
-
-                <button
-                  onClick={() => addElement("image")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Image
-                </button>
-
-                <button
-                  onClick={() => addElement("pdf")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  PDF
-                </button>
-
-                <button
-                  onClick={() => addElement("button")}
-                  className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Button
-                </button>
-
-                <button
-                  onClick={() => addElement("spacer")}
-                  className="col-span-2 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                >
-                  Spacer
-                </button>
-              </div>
-            </div>
-
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div className="mb-3 text-sm font-semibold">Sections</div>
-
-              <div className="space-y-2">
-                {sections.map((section) => {
-                  const isActive = selectedSectionId === section.id
-                  const isDragging = draggingSectionId === section.id
-                  const isDragOver = dragOverSectionId === section.id
-                  const label =
-                    section.adminLabel ||
-                    (section.type === "hero" ? "Hero Section" : "Content Section")
-
-                  return (
+              {sectionTemplatesOpen && (
+                <div className="mt-3 grid grid-cols-1 gap-3">
+                  {[
+                    {
+                      key: "content" as SectionPreset,
+                      title: "Content",
+                      body: "Generic text/content section.",
+                    },
+                    {
+                      key: "agenda" as SectionPreset,
+                      title: "Agenda",
+                      body: "Agenda/timeline layout starter.",
+                    },
+                    {
+                      key: "speakers" as SectionPreset,
+                      title: "Speakers",
+                      body: "Speaker roster starter section.",
+                    },
+                    {
+                      key: "resources" as SectionPreset,
+                      title: "Resources",
+                      body: "Downloads, PDFs, and links.",
+                    },
+                    {
+                      key: "cta" as SectionPreset,
+                      title: "CTA",
+                      body: "Centered call-to-action section.",
+                    },
+                  ].map((preset) => (
                     <button
-                      key={section.id}
-                      draggable={section.type === "content"}
-                      onDragStart={() => handleSectionDragStart(section.id)}
-                      onDragOver={(e) => handleSectionDragOver(e, section.id)}
-                      onDrop={() => handleSectionDrop(section.id)}
-                      onDragEnd={handleSectionDragEnd}
-                      onClick={() => {
-                        setSelectedSectionId(section.id)
-                        setSelectedId(null)
-                        setEditingElementId(null)
-                      }}
-                      className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
-                        isActive
-                          ? "border-sky-400 bg-sky-400/10 text-white"
-                          : "border-white/10 bg-black/20 text-white/80 hover:bg-white/5"
-                      } ${isDragging ? "opacity-50" : ""} ${
-                        isDragOver ? "ring-2 ring-emerald-400 ring-inset" : ""
-                      }`}
+                      key={preset.key}
+                      onClick={() => addSectionPreset(preset.key)}
+                      className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-left hover:bg-white/5"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="text-white/35">
-                          {section.type === "content" ? "⋮⋮" : ""}
-                        </div>
-
-                        <div>
-                          <div className="text-sm font-medium">{label}</div>
-                          <div className="mt-1 text-xs text-white/45">
-                            {section.type === "hero" ? "Hero section" : "Content section"}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div
-                        className={`text-[10px] uppercase tracking-[0.18em] ${
-                          section.visible === false ? "text-red-300/80" : "text-emerald-300/80"
-                        }`}
-                      >
-                        {section.visible === false ? "Hidden" : "Visible"}
-                      </div>
+                      <div className="text-sm font-semibold text-white">{preset.title}</div>
+                      <div className="mt-1 text-xs text-white/50">{preset.body}</div>
                     </button>
-                  )
-                })}
-              </div>
-
-              <div className="mt-3 text-xs text-white/35">
-                Drag content sections to reorder. Hero stays pinned to the top.
-              </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-              <div>
-                <div className="text-sm font-semibold">
-                  {selectedElement
+              <SectionPanelHeader
+                title="Add Element"
+                open={addElementOpen}
+                onToggle={() => setAddElementOpen((v) => !v)}
+              />
+
+              {addElementOpen && (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <button
+                    onClick={() => addElement("text")}
+                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+                  >
+                    Text
+                  </button>
+
+                  <button
+                    onClick={() => addElement("image")}
+                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+                  >
+                    Image
+                  </button>
+
+                  <button
+                    onClick={() => addElement("pdf")}
+                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+                  >
+                    PDF
+                  </button>
+
+                  <button
+                    onClick={() => addElement("button")}
+                    className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+                  >
+                    Button
+                  </button>
+
+                  <button
+                    onClick={() => addElement("spacer")}
+                    className="col-span-2 rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+                  >
+                    Spacer
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <SectionPanelHeader
+                title="Sections"
+                open={sectionsListOpen}
+                onToggle={() => setSectionsListOpen((v) => !v)}
+              />
+
+              {sectionsListOpen && (
+                <>
+                  <div className="mt-3 space-y-2">
+                    {sections.map((section) => {
+                      const isActive = selectedSectionId === section.id
+                      const isDragging = draggingSectionId === section.id
+                      const isDragOver = dragOverSectionId === section.id
+                      const label =
+                        section.adminLabel ||
+                        (section.type === "hero" ? "Hero Section" : "Content Section")
+
+                      return (
+                        <button
+                          key={section.id}
+                          draggable={section.type === "content"}
+                          onDragStart={() => handleSectionDragStart(section.id)}
+                          onDragOver={(e) => handleSectionDragOver(e, section.id)}
+                          onDrop={() => handleSectionDrop(section.id)}
+                          onDragEnd={handleSectionDragEnd}
+                          onClick={() => {
+                            setSelectedSectionId(section.id)
+                            setSelectedId(null)
+                            setEditingElementId(null)
+                          }}
+                          className={`flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
+                            isActive
+                              ? "border-sky-400 bg-sky-400/10 text-white"
+                              : "border-white/10 bg-black/20 text-white/80 hover:bg-white/5"
+                          } ${isDragging ? "opacity-50" : ""} ${
+                            isDragOver ? "ring-2 ring-emerald-400 ring-inset" : ""
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="text-white/35">
+                              {section.type === "content" ? "⋮⋮" : ""}
+                            </div>
+
+                            <div>
+                              <div className="text-sm font-medium">{label}</div>
+                              <div className="mt-1 text-xs text-white/45">
+                                {section.type === "hero" ? "Hero section" : "Content section"}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex flex-col items-end gap-1">
+                            <div
+                              className={`text-[10px] uppercase tracking-[0.18em] ${
+                                section.visible === false
+                                  ? "text-red-300/80"
+                                  : "text-emerald-300/80"
+                              }`}
+                            >
+                              {section.visible === false ? "Hidden" : "Visible"}
+                            </div>
+
+                            {section.hideOnMobile && (
+                              <div className="text-[10px] uppercase tracking-[0.18em] text-amber-300/80">
+                                No Mobile
+                              </div>
+                            )}
+                          </div>
+                        </button>
+                      )
+                    })}
+                  </div>
+
+                  <div className="mt-3 text-xs text-white/35">
+                    Drag content sections to reorder. Hero stays pinned to the top.
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+              <SectionPanelHeader
+                title={
+                  selectedElement
                     ? "Selected Element"
                     : selectedSection
                     ? selectedSection.adminLabel ||
                       (selectedSection.type === "hero" ? "Hero Section" : "Content Section")
-                    : "Editor"}
-                </div>
+                    : "Editor"
+                }
+                open={editorDetailsOpen}
+                onToggle={() => setEditorDetailsOpen((v) => !v)}
+              />
 
-                <div className="mt-1 text-xs text-white/45">
-                  {selectedElement
-                    ? `${selectedElement.element_type ?? "text"} element`
-                    : selectedSection
-                    ? selectedSection.type === "hero"
-                      ? "Hero section"
-                      : "Content section"
-                    : "Select a section or canvas element"}
-                </div>
-              </div>
-
-              {selectedElement ? (
-                <div className="mt-4 space-y-4">
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      onClick={duplicateSelectedElement}
-                      disabled={!canDuplicateElement}
-                      className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                        canDuplicateElement
-                          ? "bg-blue-600 text-white hover:bg-blue-500"
-                          : "cursor-not-allowed bg-white/10 text-white/35"
-                      }`}
-                    >
-                      Duplicate Element
-                    </button>
-
-                    <button
-                      onClick={deleteSelectedElement}
-                      disabled={!canDeleteElement}
-                      className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                        canDeleteElement
-                          ? "bg-red-600 text-white hover:bg-red-500"
-                          : "cursor-not-allowed bg-white/10 text-white/35"
-                      }`}
-                    >
-                      Delete Element
-                    </button>
+              {editorDetailsOpen && (
+                <>
+                  <div className="mt-2 text-xs text-white/45">
+                    {selectedElement
+                      ? `${selectedElement.element_type ?? "text"} element`
+                      : selectedSection
+                      ? selectedSection.type === "hero"
+                        ? "Hero section"
+                        : "Content section"
+                      : "Select a section or canvas element"}
                   </div>
 
-                  <div>
-                    <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                      Element Type
-                    </div>
-                    <input
-                      value={selectedElement.element_type ?? "text"}
-                      readOnly
-                      className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white/70"
-                    />
-                  </div>
-
-                  {selectedElement.element_type !== "spacer" && (
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Content
-                      </div>
-                      {selectedElement.element_type === "text" ||
-                      selectedElement.element_type === "pdf" ||
-                      selectedElement.element_type === "button" ? (
-                        <textarea
-                          value={selectedElement.content}
-                          onChange={(e) =>
-                            updateElement(selectedElement.id, { content: e.target.value })
-                          }
-                          className="min-h-[100px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                        />
-                      ) : (
-                        <input
-                          value={selectedElement.content}
-                          onChange={(e) =>
-                            updateElement(selectedElement.id, { content: e.target.value })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                        />
-                      )}
-                    </div>
-                  )}
-
-                  {selectedElement.element_type === "image" && (
-                    <>
-                      <div>
-                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                          Image URL
-                        </div>
-                        <input
-                          value={String(selectedElement.props?.src ?? "")}
-                          onChange={(e) =>
-                            updateElementProps(selectedElement.id, { src: e.target.value })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                        />
-                      </div>
-
-                      <div>
-                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                          Alt Text
-                        </div>
-                        <input
-                          value={String(selectedElement.props?.alt ?? "")}
-                          onChange={(e) =>
-                            updateElementProps(selectedElement.id, { alt: e.target.value })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                        />
-                      </div>
-                    </>
-                  )}
-
-                  {selectedElement.element_type === "pdf" && (
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        PDF URL
-                      </div>
-                      <input
-                        value={String(selectedElement.props?.url ?? "")}
-                        onChange={(e) =>
-                          updateElementProps(selectedElement.id, { url: e.target.value })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      />
-                    </div>
-                  )}
-
-                  {selectedElement.element_type === "button" && (
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Button Link
-                      </div>
-                      <input
-                        value={String(selectedElement.props?.href ?? "")}
-                        onChange={(e) =>
-                          updateElementProps(selectedElement.id, { href: e.target.value })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      />
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        X
-                      </div>
-                      <input
-                        type="number"
-                        value={selectedElement.x}
-                        onChange={(e) =>
-                          updateElement(selectedElement.id, {
-                            x: snapToGrid(Number(e.target.value || 0)),
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Y
-                      </div>
-                      <input
-                        type="number"
-                        value={selectedElement.y}
-                        onChange={(e) =>
-                          updateElement(selectedElement.id, {
-                            y: snapToGrid(Number(e.target.value || 0)),
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Width
-                      </div>
-                      <input
-                        type="number"
-                        value={selectedElement.width ?? 0}
-                        onChange={(e) =>
-                          updateElement(selectedElement.id, {
-                            width: snapToGrid(Number(e.target.value || 0)),
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Height
-                      </div>
-                      <input
-                        type="number"
-                        value={selectedElement.height ?? 0}
-                        onChange={(e) =>
-                          updateElement(selectedElement.id, {
-                            height: snapToGrid(Number(e.target.value || 0)),
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="text-xs text-white/40">
-                    Tip: double-click text, button, or PDF blocks on the canvas to edit inline.
-                  </div>
-                </div>
-              ) : selectedSection ? (
-                <div className="mt-4 space-y-4">
-                  {selectedSection.type === "content" && (
-                    <>
+                  {selectedElement ? (
+                    <div className="mt-4 space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <button
-                          onClick={() => moveSelectedSection("up")}
-                          disabled={!canMoveUp}
+                          onClick={duplicateSelectedElement}
+                          disabled={!canDuplicateElement}
                           className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                            canMoveUp
-                              ? "bg-white text-slate-950 hover:bg-white/90"
+                            canDuplicateElement
+                              ? "bg-blue-600 text-white hover:bg-blue-500"
                               : "cursor-not-allowed bg-white/10 text-white/35"
                           }`}
                         >
-                          Move Up
+                          Duplicate
                         </button>
 
                         <button
-                          onClick={() => moveSelectedSection("down")}
-                          disabled={!canMoveDown}
+                          onClick={deleteSelectedElement}
+                          disabled={!canDeleteElement}
                           className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                            canMoveDown
+                            canDeleteElement
+                              ? "bg-red-600 text-white hover:bg-red-500"
+                              : "cursor-not-allowed bg-white/10 text-white/35"
+                          }`}
+                        >
+                          Delete
+                        </button>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <button
+                          onClick={sendSelectedElementBackward}
+                          disabled={!canSendBackward}
+                          className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                            canSendBackward
                               ? "bg-white text-slate-950 hover:bg-white/90"
                               : "cursor-not-allowed bg-white/10 text-white/35"
                           }`}
                         >
-                          Move Down
+                          Send Back
+                        </button>
+
+                        <button
+                          onClick={bringSelectedElementForward}
+                          disabled={!canBringForward}
+                          className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                            canBringForward
+                              ? "bg-white text-slate-950 hover:bg-white/90"
+                              : "cursor-not-allowed bg-white/10 text-white/35"
+                          }`}
+                        >
+                          Bring Front
                         </button>
                       </div>
 
-                      <button
-                        onClick={duplicateSelectedSection}
-                        disabled={!canDuplicateSection}
-                        className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
-                          canDuplicateSection
-                            ? "bg-blue-600 text-white hover:bg-blue-500"
-                            : "cursor-not-allowed bg-white/10 text-white/35"
-                        }`}
-                      >
-                        Duplicate Section
-                      </button>
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          Layer
+                        </div>
+                        <input
+                          value={selectedElement.z_index ?? 1}
+                          readOnly
+                          className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white/70"
+                        />
+                      </div>
 
-                      <button
-                        onClick={deleteSelectedSection}
-                        disabled={!canDeleteSection}
-                        className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
-                          canDeleteSection
-                            ? "bg-red-600 text-white hover:bg-red-500"
-                            : "cursor-not-allowed bg-white/10 text-white/35"
-                        }`}
-                      >
-                        Delete Section
-                      </button>
-                    </>
+                      <div>
+                        <label className="flex items-center gap-2 text-sm text-white/80">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selectedElement.props?.hideOnMobile)}
+                            onChange={(e) =>
+                              updateElementProps(selectedElement.id, {
+                                hideOnMobile: e.target.checked,
+                              })
+                            }
+                          />
+                          Hide on Mobile
+                        </label>
+                      </div>
+
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          Element Type
+                        </div>
+                        <input
+                          value={selectedElement.element_type ?? "text"}
+                          readOnly
+                          className="w-full rounded-xl border border-white/10 bg-slate-900 px-3 py-3 text-sm text-white/70"
+                        />
+                      </div>
+
+                      {selectedElement.element_type !== "spacer" && (
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Content
+                          </div>
+                          {selectedElement.element_type === "text" ||
+                          selectedElement.element_type === "pdf" ||
+                          selectedElement.element_type === "button" ? (
+                            <textarea
+                              value={selectedElement.content}
+                              onChange={(e) =>
+                                updateElement(selectedElement.id, { content: e.target.value })
+                              }
+                              className="min-h-[100px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            />
+                          ) : (
+                            <input
+                              value={selectedElement.content}
+                              onChange={(e) =>
+                                updateElement(selectedElement.id, { content: e.target.value })
+                              }
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            />
+                          )}
+                        </div>
+                      )}
+
+                      {selectedElement.element_type === "image" && (
+                        <>
+                          <div>
+                            <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                              Image URL
+                            </div>
+                            <input
+                              value={String(selectedElement.props?.src ?? "")}
+                              onChange={(e) =>
+                                updateElementProps(selectedElement.id, { src: e.target.value })
+                              }
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                              Alt Text
+                            </div>
+                            <input
+                              value={String(selectedElement.props?.alt ?? "")}
+                              onChange={(e) =>
+                                updateElementProps(selectedElement.id, { alt: e.target.value })
+                              }
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            />
+                          </div>
+                        </>
+                      )}
+
+                      {selectedElement.element_type === "pdf" && (
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            PDF URL
+                          </div>
+                          <input
+                            value={String(selectedElement.props?.url ?? "")}
+                            onChange={(e) =>
+                              updateElementProps(selectedElement.id, { url: e.target.value })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          />
+                        </div>
+                      )}
+
+                      {selectedElement.element_type === "button" && (
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Button Link
+                          </div>
+                          <input
+                            value={String(selectedElement.props?.href ?? "")}
+                            onChange={(e) =>
+                              updateElementProps(selectedElement.id, { href: e.target.value })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          />
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            X
+                          </div>
+                          <input
+                            type="number"
+                            value={selectedElement.x}
+                            onChange={(e) =>
+                              updateElement(selectedElement.id, {
+                                x: snapToGrid(Number(e.target.value || 0)),
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Y
+                          </div>
+                          <input
+                            type="number"
+                            value={selectedElement.y}
+                            onChange={(e) =>
+                              updateElement(selectedElement.id, {
+                                y: snapToGrid(Number(e.target.value || 0)),
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Width
+                          </div>
+                          <input
+                            type="number"
+                            value={selectedElement.width ?? 0}
+                            onChange={(e) =>
+                              updateElement(selectedElement.id, {
+                                width: snapToGrid(Number(e.target.value || 0)),
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          />
+                        </div>
+
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Height
+                          </div>
+                          <input
+                            type="number"
+                            value={selectedElement.height ?? 0}
+                            onChange={(e) =>
+                              updateElement(selectedElement.id, {
+                                height: snapToGrid(Number(e.target.value || 0)),
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-white/40">
+                        Tip: double-click text, button, or PDF blocks on the canvas to edit inline.
+                      </div>
+                    </div>
+                  ) : selectedSection ? (
+                    <div className="mt-4 space-y-4">
+                      {selectedSection.type === "content" && (
+                        <>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => moveSelectedSection("up")}
+                              disabled={!canMoveUp}
+                              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                                canMoveUp
+                                  ? "bg-white text-slate-950 hover:bg-white/90"
+                                  : "cursor-not-allowed bg-white/10 text-white/35"
+                              }`}
+                            >
+                              Move Up
+                            </button>
+
+                            <button
+                              onClick={() => moveSelectedSection("down")}
+                              disabled={!canMoveDown}
+                              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                                canMoveDown
+                                  ? "bg-white text-slate-950 hover:bg-white/90"
+                                  : "cursor-not-allowed bg-white/10 text-white/35"
+                              }`}
+                            >
+                              Move Down
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={duplicateSelectedSection}
+                            disabled={!canDuplicateSection}
+                            className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
+                              canDuplicateSection
+                                ? "bg-blue-600 text-white hover:bg-blue-500"
+                                : "cursor-not-allowed bg-white/10 text-white/35"
+                            }`}
+                          >
+                            Duplicate Section
+                          </button>
+
+                          <button
+                            onClick={deleteSelectedSection}
+                            disabled={!canDeleteSection}
+                            className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
+                              canDeleteSection
+                                ? "bg-red-600 text-white hover:bg-red-500"
+                                : "cursor-not-allowed bg-white/10 text-white/35"
+                            }`}
+                          >
+                            Delete Section
+                          </button>
+                        </>
+                      )}
+
+                      <div>
+                        <label className="flex items-center gap-2 text-sm text-white/80">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(selectedSection.hideOnMobile)}
+                            onChange={(e) =>
+                              updateSection(selectedSection.id, {
+                                hideOnMobile: e.target.checked,
+                              })
+                            }
+                          />
+                          Hide on Mobile
+                        </label>
+                      </div>
+
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          Admin Label
+                        </div>
+                        <input
+                          value={selectedSection.adminLabel ?? ""}
+                          onChange={(e) =>
+                            updateSection(selectedSection.id, { adminLabel: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          placeholder="Internal section name"
+                        />
+                      </div>
+
+                      <label className="flex items-center gap-2 text-sm text-white/80">
+                        <input
+                          type="checkbox"
+                          checked={selectedSection.visible !== false}
+                          onChange={(e) =>
+                            updateSection(selectedSection.id, {
+                              visible: e.target.checked,
+                            })
+                          }
+                        />
+                        Visible
+                      </label>
+
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          {selectedSection.type === "hero" ? "Hero Title" : "Content Title"}
+                        </div>
+                        <input
+                          value={selectedSection.title ?? ""}
+                          onChange={(e) =>
+                            updateSection(selectedSection.id, { title: e.target.value })
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          {selectedSection.type === "hero" ? "Hero Body" : "Content Body"}
+                        </div>
+                        <textarea
+                          value={selectedSection.body ?? ""}
+                          onChange={(e) =>
+                            updateSection(selectedSection.id, { body: e.target.value })
+                          }
+                          className="min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Background
+                          </div>
+                          <select
+                            value={selectedSection.backgroundStyle ?? "transparent"}
+                            onChange={(e) =>
+                              updateSection(selectedSection.id, {
+                                backgroundStyle: e.target.value as
+                                  | "transparent"
+                                  | "subtle"
+                                  | "panel",
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          >
+                            <option value="transparent">Transparent</option>
+                            <option value="subtle">Subtle</option>
+                            <option value="panel">Panel</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Width
+                          </div>
+                          <select
+                            value={selectedSection.contentWidth ?? "xl"}
+                            onChange={(e) =>
+                              updateSection(selectedSection.id, {
+                                contentWidth: e.target.value as
+                                  | "md"
+                                  | "lg"
+                                  | "xl"
+                                  | "full",
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          >
+                            <option value="md">Medium</option>
+                            <option value="lg">Large</option>
+                            <option value="xl">Extra Large</option>
+                            <option value="full">Full</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Vertical Padding
+                          </div>
+                          <select
+                            value={selectedSection.paddingY ?? "md"}
+                            onChange={(e) =>
+                              updateSection(selectedSection.id, {
+                                paddingY: e.target.value as "sm" | "md" | "lg",
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          >
+                            <option value="sm">Small</option>
+                            <option value="md">Medium</option>
+                            <option value="lg">Large</option>
+                          </select>
+                        </div>
+
+                        <div>
+                          <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                            Text Align
+                          </div>
+                          <select
+                            value={selectedSection.textAlign ?? "left"}
+                            onChange={(e) =>
+                              updateSection(selectedSection.id, {
+                                textAlign: e.target.value as "left" | "center",
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          >
+                            <option value="left">Left</option>
+                            <option value="center">Center</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                          Divider
+                        </div>
+                        <select
+                          value={selectedSection.divider ?? "none"}
+                          onChange={(e) =>
+                            updateSection(selectedSection.id, {
+                              divider: e.target.value as "none" | "top" | "bottom" | "both",
+                            })
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                        >
+                          <option value="none">None</option>
+                          <option value="top">Top</option>
+                          <option value="bottom">Bottom</option>
+                          <option value="both">Top + Bottom</option>
+                        </select>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-3 text-sm text-white/55">
+                      Click a section in the list or an element on the canvas to edit it.
+                    </div>
                   )}
-
-                  <div>
-                    <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                      Admin Label
-                    </div>
-                    <input
-                      value={selectedSection.adminLabel ?? ""}
-                      onChange={(e) =>
-                        updateSection(selectedSection.id, { adminLabel: e.target.value })
-                      }
-                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      placeholder="Internal section name"
-                    />
-                  </div>
-
-                  <label className="flex items-center gap-2 text-sm text-white/80">
-                    <input
-                      type="checkbox"
-                      checked={selectedSection.visible !== false}
-                      onChange={(e) =>
-                        updateSection(selectedSection.id, {
-                          visible: e.target.checked,
-                        })
-                      }
-                    />
-                    Visible
-                  </label>
-
-                  <div>
-                    <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                      {selectedSection.type === "hero" ? "Hero Title" : "Content Title"}
-                    </div>
-                    <input
-                      value={selectedSection.title ?? ""}
-                      onChange={(e) =>
-                        updateSection(selectedSection.id, { title: e.target.value })
-                      }
-                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                      {selectedSection.type === "hero" ? "Hero Body" : "Content Body"}
-                    </div>
-                    <textarea
-                      value={selectedSection.body ?? ""}
-                      onChange={(e) =>
-                        updateSection(selectedSection.id, { body: e.target.value })
-                      }
-                      className="min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Background
-                      </div>
-                      <select
-                        value={selectedSection.backgroundStyle ?? "transparent"}
-                        onChange={(e) =>
-                          updateSection(selectedSection.id, {
-                            backgroundStyle: e.target.value as
-                              | "transparent"
-                              | "subtle"
-                              | "panel",
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      >
-                        <option value="transparent">Transparent</option>
-                        <option value="subtle">Subtle</option>
-                        <option value="panel">Panel</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Width
-                      </div>
-                      <select
-                        value={selectedSection.contentWidth ?? "xl"}
-                        onChange={(e) =>
-                          updateSection(selectedSection.id, {
-                            contentWidth: e.target.value as
-                              | "md"
-                              | "lg"
-                              | "xl"
-                              | "full",
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      >
-                        <option value="md">Medium</option>
-                        <option value="lg">Large</option>
-                        <option value="xl">Extra Large</option>
-                        <option value="full">Full</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Vertical Padding
-                      </div>
-                      <select
-                        value={selectedSection.paddingY ?? "md"}
-                        onChange={(e) =>
-                          updateSection(selectedSection.id, {
-                            paddingY: e.target.value as "sm" | "md" | "lg",
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      >
-                        <option value="sm">Small</option>
-                        <option value="md">Medium</option>
-                        <option value="lg">Large</option>
-                      </select>
-                    </div>
-
-                    <div>
-                      <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                        Text Align
-                      </div>
-                      <select
-                        value={selectedSection.textAlign ?? "left"}
-                        onChange={(e) =>
-                          updateSection(selectedSection.id, {
-                            textAlign: e.target.value as "left" | "center",
-                          })
-                        }
-                        className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                      >
-                        <option value="left">Left</option>
-                        <option value="center">Center</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div>
-                    <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
-                      Divider
-                    </div>
-                    <select
-                      value={selectedSection.divider ?? "none"}
-                      onChange={(e) =>
-                        updateSection(selectedSection.id, {
-                          divider: e.target.value as "none" | "top" | "bottom" | "both",
-                        })
-                      }
-                      className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
-                    >
-                      <option value="none">None</option>
-                      <option value="top">Top</option>
-                      <option value="bottom">Bottom</option>
-                      <option value="both">Top + Bottom</option>
-                    </select>
-                  </div>
-                </div>
-              ) : (
-                <div className="mt-3 text-sm text-white/55">
-                  Click a section in the list or an element on the canvas to edit it.
-                </div>
+                </>
               )}
             </div>
 

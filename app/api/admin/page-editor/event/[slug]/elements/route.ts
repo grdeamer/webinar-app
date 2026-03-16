@@ -45,7 +45,10 @@ export async function GET(
 
   return json({
     event_id: event.id,
-    elements: elements ?? [],
+    elements: (elements ?? []).map((el) => ({
+      ...el,
+      props: el.props ?? {},
+    })),
     sections: (sections ?? []).map((s) => ({
       id: String(s.section_key),
       type: String(s.section_type ?? "content"),
