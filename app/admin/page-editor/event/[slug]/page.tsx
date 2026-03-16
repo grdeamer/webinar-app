@@ -130,13 +130,14 @@ export default function AdminEventPageEditorPreview() {
 
   const [elements, setElements] = useState<EditorElement[]>([])
   const [sections, setSections] = useState<EventPageSection[]>(getDefaultSections(eventInfo))
+  const [templates, setTemplates] = useState<any[]>([])
 
   const dragRef = useRef<{
     id: string
     offsetX: number
     offsetY: number
   } | null>(null)
-
+  const isDraggingRef = useRef(false)
   const resizeRef = useRef<{
     id: string
     startX: number
@@ -146,64 +147,83 @@ export default function AdminEventPageEditorPreview() {
   } | null>(null)
 
   useEffect(() => {
-    async function loadElements() {
-      setLoading(true)
-      setSaveMessage(null)
+  async function loadElements() {
+    setLoading(true)
+    setSaveMessage(null)
 
-      const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
-        cache: "no-store",
-      })
+    const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
+      cache: "no-store",
+    })
 
-      const data: any = await res.json().catch((): null => null)
+    const data: any = await res.json().catch((): null => null)
 
-      if (!res.ok) {
-        setElements(getFallbackElements())
-        setSections(getDefaultSections(eventInfo))
-        setLoading(false)
-        return
-      }
-
-      const rows = Array.isArray(data?.elements) ? data.elements : []
-      const loadedSections = Array.isArray(data?.sections) ? data.sections : []
-
-      if (rows.length === 0) {
-        setElements(getFallbackElements())
-      } else {
-        setElements(
-          rows.map((el: any) => ({
-            id: String(el.id),
-            element_type: String(el.element_type ?? "text"),
-            content: String(el.content ?? "Untitled Block"),
-            x: Number(el.x ?? 0),
-            y: Number(el.y ?? 0),
-            width: el.width == null ? 224 : Number(el.width),
-            height: el.height == null ? 56 : Number(el.height),
-            z_index: Number(el.z_index ?? 1),
-            props: el.props && typeof el.props === "object" ? el.props : {},
-          }))
-        )
-      }
-
-      if (loadedSections.length > 0) {
-        setSections(
-          loadedSections.map((section: any) => ({
-            id: String(section.id),
-            type: String(section.type ?? "content") as SectionType,
-            config:
-              section.config && typeof section.config === "object"
-                ? section.config
-                : getDefaultSectionConfig(String(section.type ?? "content") as SectionType),
-          }))
-        )
-      } else {
-        setSections(getDefaultSections(eventInfo))
-      }
-
+    if (!res.ok) {
+      setElements(getFallbackElements())
+      setSections(getDefaultSections(eventInfo))
       setLoading(false)
+      return
     }
 
-    void loadElements()
-  }, [slug])
+    const rows = Array.isArray(data?.elements) ? data.elements : []
+    const loadedSections = Array.isArray(data?.sections) ? data.sections : []
+
+    if (rows.length === 0) {
+      setElements(getFallbackElements())
+    } else {
+      setElements(
+        rows.map((el: any) => ({
+          id: String(el.id),
+          element_type: String(el.element_type ?? "text"),
+          content: String(el.content ?? "Untitled Block"),
+          x: Number(el.x ?? 0),
+          y: Number(el.y ?? 0),
+          width: el.width == null ? 224 : Number(el.width),
+          height: el.height == null ? 56 : Number(el.height),
+          z_index: Number(el.z_index ?? 1),
+          props: el.props && typeof el.props === "object" ? el.props : {},
+        }))
+      )
+    }
+
+    if (loadedSections.length > 0) {
+      setSections(
+        loadedSections.map((section: any) => ({
+          id: String(section.id),
+          type: String(section.type ?? "content") as SectionType,
+          config:
+            section.config && typeof section.config === "object"
+              ? section.config
+              : getDefaultSectionConfig(
+                  String(section.type ?? "content") as SectionType
+                ),
+        }))
+      )
+    } else {
+      setSections(getDefaultSections(eventInfo))
+    }
+
+    setLoading(false)
+  }
+
+  void loadElements()
+}, [slug])
+
+useEffect(() => {
+  async function loadTemplates() {
+    try {
+      const res = await fetch("/api/admin/page-editor/templates")
+      const data = await res.json()
+
+      if (data.templates) {
+        setTemplates(data.templates)
+      }
+    } catch {
+      console.error("Failed to load templates")
+    }
+  }
+
+  loadTemplates()
+}, [])
 
   function startDrag(
     e: React.PointerEvent<HTMLDivElement>,
@@ -217,10 +237,12 @@ export default function AdminEventPageEditorPreview() {
     if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
 
     dragRef.current = {
-      id,
-      offsetX: e.clientX - x,
-      offsetY: e.clientY - y,
-    }
+  id,
+  offsetX: e.clientX - x,
+  offsetY: e.clientY - y,
+}
+
+isDraggingRef.current = true
 
     setSelectedId(id)
     setSelectedSectionId(null)
@@ -275,10 +297,14 @@ export default function AdminEventPageEditorPreview() {
     )
   }
 
-  function stopInteractions() {
-    dragRef.current = null
-    resizeRef.current = null
-  }
+ function stopInteractions() {
+  dragRef.current = null
+  resizeRef.current = null
+
+  setTimeout(() => {
+    isDraggingRef.current = false
+  }, 50)
+}
 
   async function saveLayout() {
     setSaveMessage("Saving...")
@@ -721,33 +747,57 @@ export default function AdminEventPageEditorPreview() {
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-          <div>
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-              Page Editor Preview
-            </div>
-            <h1 className="mt-1 text-2xl font-bold">Event Page</h1>
-          </div>
 
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setIsMobilePreview((v) => !v)}
-              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                isMobilePreview
-                  ? "bg-sky-500 text-white"
-                  : "border border-white/10 bg-white/5 text-white"
-              }`}
-            >
-              {isMobilePreview ? "Mobile Preview On" : "Desktop Preview"}
-            </button>
+  {/* LEFT SIDE */}
+  <div className="flex items-center gap-4">
 
-            <button
-              onClick={() => setIsEditing((v) => !v)}
-              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950"
-            >
-              {isEditing ? "Close Editor" : "Edit Page"}
-            </button>
-          </div>
-        </div>
+  <div>
+    <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+      Page Editor Preview
+    </div>
+    <h1 className="text-xl font-semibold capitalize">
+      {eventInfo.title}
+    </h1>
+  </div>
+
+</div>
+<div className="flex items-center gap-3">
+
+<select
+  onChange={(e) => {
+    const tpl = templates.find((t) => t.id === e.target.value)
+    if (!tpl) return
+
+    setSections(tpl.sections_json || [])
+    setElements(tpl.elements_json || [])
+  }}
+  className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+>
+  <option value="">Apply Template</option>
+
+  {templates.map((tpl) => (
+    <option key={tpl.id} value={tpl.id}>
+      {tpl.name}
+    </option>
+  ))}
+</select>
+
+<button
+  onClick={() => setIsMobilePreview((v) => !v)}
+  className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+>
+  {isMobilePreview ? "Mobile" : "Desktop"}
+</button>
+
+<button
+  onClick={() => setIsEditing((v) => !v)}
+  className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black"
+>
+  {isEditing ? "Close Editor" : "Edit Page"}
+</button>
+
+</div>
+
       </div>
 
       <div className="relative flex min-h-[calc(100vh-81px)]">
@@ -812,13 +862,15 @@ export default function AdminEventPageEditorPreview() {
                                 setSelectedSectionId(null)
                               }
                             }}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              setSelectedId(el.id)
-                              setSelectedSectionId(null)
-                            }}
+                        onClick={(e) => {
+  if (isDraggingRef.current) return
+
+  e.stopPropagation()
+  setSelectedId(el.id)
+  setSelectedSectionId(null)
+}}
                             className={`absolute overflow-hidden rounded-xl shadow-lg ${
-                              isEditing ? "cursor-move" : "cursor-default"
+                              isEditing ? "cursor-grab active:cursor-grabbing" : "cursor-default"
                             } ${selectedId === el.id ? "ring-2 ring-white" : ""} ${
                               el.element_type === "image"
                                 ? "bg-white"
@@ -1519,7 +1571,29 @@ export default function AdminEventPageEditorPreview() {
                 </>
               )}
             </div>
+<button
+  onClick={async () => {
+    const name = prompt("Template name?")
+    if (!name) return
 
+    await fetch("/api/admin/page-editor/templates", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        sections,
+        elements,
+      }),
+    })
+
+    alert("Template saved")
+  }}
+  className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold hover:bg-indigo-500"
+>
+  Save Template
+</button>
             <button
               onClick={saveLayout}
               className="mt-8 w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold hover:bg-emerald-500"
