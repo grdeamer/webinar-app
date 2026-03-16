@@ -189,8 +189,8 @@ export async function POST(
   }
 
   return json({
-    ok: true,
-    elements: insertedElements,
-    sections: insertedSections,
-  })
+  ok: true,
+  elements: insertedElements,
+  sections: insertedSections,
+})
 }
