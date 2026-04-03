@@ -91,7 +91,7 @@ export async function POST(
   ctx: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await ctx.params
-  const body = await req.json().catch(() => null)
+  const body = await req.json().catch((): null => null)
 
   const elements = Array.isArray(body?.elements) ? body.elements : []
   const sections = Array.isArray(body?.sections) ? body.sections : []

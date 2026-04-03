@@ -1,16 +1,11 @@
 import type { CSSProperties } from "react"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
-
+import { ensureEventLiveProgramState } from "@/lib/live/state"
+import { GENERAL_SESSION_EVENT_ID } from "@/lib/live/generalSessionEvent"
 import ActivityTracker from "@/components/ActivityTracker"
-import FeaturedQuestionOverlay from "@/components/FeaturedQuestionOverlay"
-import GeneralSessionKickGuard from "@/components/GeneralSessionKickGuard"
-import GeneralSessionQA from "@/components/GeneralSessionQA"
-import GeneralSessionQAModeration from "@/components/GeneralSessionQAModeration"
-import PresenterQAPanel from "@/components/PresenterQAPanel"
-import SpeakerConfidenceMonitor from "@/components/SpeakerConfidenceMonitor"
-import OnAirCorner from "./OnAirCorner"
-import StageViewSwitcher from "./StageViewSwitcher"
+
+import GeneralSessionExperience from "@/components/sessions/GeneralSessionExperience"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -110,18 +105,18 @@ export default async function GeneralSessionPage(props: {
     .maybeSingle<ThemeRow>()
 
   const theme: ThemeRow = themeDb || {
-  id: 1,
-  bg_color: "#020617",
-  text_color: "#ffffff",
-  font_family: null,
-  font_weight: "normal",
-  font_style: "normal",
-  panel_bg_color: null,
-  panel_text_color: null,
-  panel_font_family: null,
-  header_bg_color: null,
-  header_text_color: null,
-}
+    id: 1,
+    bg_color: "#020617",
+    text_color: "#ffffff",
+    font_family: null,
+    font_weight: "normal",
+    font_style: "normal",
+    panel_bg_color: null,
+    panel_text_color: null,
+    panel_font_family: null,
+    header_bg_color: null,
+    header_text_color: null,
+  }
 
   const themeStyle: CSSProperties = {
     backgroundColor: theme.bg_color || "#020617",
@@ -131,16 +126,16 @@ export default async function GeneralSessionPage(props: {
     fontStyle: (theme.font_style || "normal") as any,
   }
 
-const panelStyle: CSSProperties = {
-  backgroundColor: theme.panel_bg_color || "rgba(255,255,255,0.06)",
-  color: theme.panel_text_color || theme.text_color || "#ffffff",
-  fontFamily: theme.panel_font_family || theme.font_family || undefined,
-}
+  const panelStyle: CSSProperties = {
+    backgroundColor: theme.panel_bg_color || "rgba(255,255,255,0.06)",
+    color: theme.panel_text_color || theme.text_color || "#ffffff",
+    fontFamily: theme.panel_font_family || theme.font_family || undefined,
+  }
 
-const headerBandStyle: CSSProperties = {
-  backgroundColor: theme.header_bg_color || "#ffffff",
-  color: theme.header_text_color || "#111111",
-}
+  const headerBandStyle: CSSProperties = {
+    backgroundColor: theme.header_bg_color || "#ffffff",
+    color: theme.header_text_color || "#111111",
+  }
 
   const { data, error } = await supabaseAdmin
     .from("general_session_settings")
@@ -226,12 +221,17 @@ const headerBandStyle: CSSProperties = {
       updated_at: new Date().toISOString(),
     } as ControlRow)
 
+  const programState = await ensureEventLiveProgramState(GENERAL_SESSION_EVENT_ID)
+
+  const derivedControlState: ControlRow["state"] =
+    programState?.is_live ? "live" : control.state
+
   const { data: lowerDb } = await supabaseAdmin
     .from("general_session_lower_panel")
     .select("*")
     .eq("id", 1)
     .maybeSingle<LowerPanelRow>()
-
+    
   const lowerPanel: LowerPanelRow | null = lowerDb || null
 
   let signedMp4Url: string | null = null
@@ -310,200 +310,35 @@ const headerBandStyle: CSSProperties = {
         ? "justify-end"
         : "justify-start"
 
-  return (
-    <main className="min-h-screen p-4 md:p-6" style={themeStyle}>
-      <ActivityTracker roomKey={roomKey} />
+  const programLayoutLabel =
+    programState?.layout === "screen_speaker"
+      ? "Speaker + Screen"
+      : programState?.layout === "grid"
+        ? "Grid"
+        : "Solo"
 
-      <OnAirCorner roomKey={roomKey} initialState={control.state} />
-      <GeneralSessionKickGuard roomKey={roomKey} />
+  const programParticipantCount = programState?.stage_participant_ids?.length || 0
 
-      <div className="mx-auto w-full max-w-screen-2xl">
-        <div
-          className="overflow-hidden rounded-3xl border border-white/10 shadow-[0_24px_70px_rgba(0,0,0,0.30)] ring-1 ring-white/5 backdrop-blur-[2px]"
-          style={panelStyle}
-        >
-          <div
-            className="border-b border-black/10 px-5 py-4 md:px-8 md:py-5"
-            style={headerBandStyle}
-          >
-            <div className={`flex min-h-[64px] w-full items-center ${logoJustify}`}>
-              {clientLogoSignedUrl ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={clientLogoSignedUrl}
-                  alt="Client logo"
-                  className="max-h-16 w-auto max-w-full object-contain"
-                />
-              ) : (
-                <div className="text-sm text-slate-400">
-                  {isAdmin || isPresenter ? "No client logo selected" : ""}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="border-b border-white/10 bg-black/10 px-5 py-4 md:px-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">
-                  {settings.title || "General Session"}
-                </h1>
-                <p className="mt-1 text-sm text-white/60">
-                  Live stream + moderated Q&amp;A (single room).
-                </p>
-              </div>
-
-              {isAdmin || isPresenter ? (
-                <span className="rounded-full border border-emerald-400/25 bg-emerald-500/10 px-3 py-1 text-xs text-emerald-200">
-                  Host mode
-                </span>
-              ) : (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                  Attendee mode
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="p-5 md:p-8">
-            <div className="grid gap-4 xl:grid-cols-12">
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:col-span-9">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Watch</h2>
-                </div>
-
-                <div className="relative mt-3 overflow-hidden rounded-2xl border border-white/10 bg-black/20 shadow-[0_10px_30px_rgba(0,0,0,0.18)]">
-                  <StageViewSwitcher
-                    roomKey={roomKey}
-                    sourceType={settings.source_type}
-                    mp4Url={signedMp4Url}
-                    m3u8Url={settings.m3u8_url}
-                    rtmpUrl={settings.rtmp_url}
-                    posterUrl={settings.poster_url}
-                    mp4Path={settings.mp4_path}
-                    initialControl={control}
-                    initialProgram={{
-                      program_kind: programDb.program_kind,
-                      program_source_type: programDb.program_source_type,
-                      program_mp4_url: programSignedMp4Url,
-                      program_m3u8_url: programDb.program_m3u8_url,
-                      program_rtmp_url: programDb.program_rtmp_url,
-                      slide_url: programSignedSlideUrl,
-                      lower_third: {
-                        active: Boolean(programDb.lower_third_active),
-                        name: programDb.lower_third_name,
-                        title: programDb.lower_third_title,
-                      },
-                    }}
-                  />
-
-                  <div className="pointer-events-none absolute inset-0">
-                    <FeaturedQuestionOverlay roomKey={roomKey} />
-                  </div>
-                </div>
-              </section>
-
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:col-span-3">
-                <div className="flex items-center justify-between">
-                  <h2 className="text-lg font-semibold">Q&amp;A</h2>
-                  {isAdmin || isPresenter ? (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      Moderation enabled
-                    </span>
-                  ) : null}
-                </div>
-
-                <div className="mt-3">
-                  {isAdmin || isPresenter ? (
-                    <GeneralSessionQAModeration />
-                  ) : (
-                    <GeneralSessionQA />
-                  )}
-                </div>
-              </section>
-
-              {isPresenter && (
-                <section className="rounded-2xl border border-yellow-400/30 bg-yellow-400/10 p-4 xl:col-span-12">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <h2 className="text-lg font-semibold">Presenter Monitor</h2>
-                      <p className="mt-1 text-sm text-white/70">
-                        Private Q&amp;A confidence monitor for the presenter.
-                      </p>
-                    </div>
-                    <span className="rounded-full border border-yellow-300/30 bg-black/20 px-3 py-1 text-xs text-yellow-100">
-                      Presenter only
-                    </span>
-                  </div>
-
-                  <div className="mt-4">
-                    <SpeakerConfidenceMonitor
-                      roomKey={roomKey}
-                      sessionTitle={settings.title || "General Session"}
-                      controlState={control.state}
-                      lowerThirdActive={Boolean(programDb.lower_third_active)}
-                      lowerThirdName={programDb.lower_third_name}
-                      lowerThirdTitle={programDb.lower_third_title}
-                    />
-                  </div>
-
-                  <div className="mt-4">
-                    <PresenterQAPanel roomKey={roomKey} />
-                  </div>
-                </section>
-              )}
-
-              <section className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:col-span-12">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold">Materials</h2>
-                    <p className="mt-1 text-xs text-white/60">
-                      Optional PDF/PNG shown under the player.
-                    </p>
-                  </div>
-
-                  {lowerPanel?.path ? (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      {lowerPanel.kind === "pdf" ? "PDF" : "Image"}:{" "}
-                      {lowerPanel.name || "Untitled"}
-                    </span>
-                  ) : (
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      None uploaded
-                    </span>
-                  )}
-                </div>
-
-                <div
-                  className="mt-3 overflow-auto rounded-2xl border border-white/10 bg-black/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                  style={{ height: materialsHeight }}
-                >
-                  {lowerPanelSignedUrl ? (
-                    lowerPanel?.kind === "image" ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img
-                        src={lowerPanelSignedUrl}
-                        alt={lowerPanel.name || "Materials"}
-                        className="h-auto w-full"
-                      />
-                    ) : (
-                      <iframe
-                        src={lowerPanelSignedUrl}
-                        className="h-full w-full bg-white"
-                        title={lowerPanel?.name || "Materials"}
-                      />
-                    )
-                  ) : (
-                    <div className="p-6 text-sm text-white/60">
-                      Upload a PDF or image in the admin control room.
-                    </div>
-                  )}
-                </div>
-              </section>
-            </div>
-          </div>
-        </div>
-      </div>
-    </main>
-  )
+return (
+  <GeneralSessionExperience
+    roomKey={roomKey}
+    eventSlug="provasic-launch-devlin-mcgregor"
+    title={settings.title || "General Session"}
+    themeStyle={themeStyle}
+    panelStyle={panelStyle}
+    headerBandStyle={headerBandStyle}
+    logoJustify={logoJustify}
+    clientLogoSignedUrl={clientLogoSignedUrl}
+    programState={programState}
+    derivedControlState={derivedControlState}
+    programDb={programDb}
+    lowerPanel={lowerPanel}
+    lowerPanelSignedUrl={lowerPanelSignedUrl}
+    materialsHeight={materialsHeight}
+    programLayoutLabel={programLayoutLabel}
+    programParticipantCount={programParticipantCount}
+    isAdmin={isAdmin}
+    isPresenter={isPresenter}
+  />
+)
 }

@@ -161,16 +161,26 @@ export interface EventWebinarAssignmentRow {
   webinars: EventAssignedWebinar | null
 }
 
-export type EventLiveMode = "lobby" | "general_session" | "breakout" | "replay" | "off_air"
+export type EventLiveMode =
+  | "lobby"
+  | "general_session"
+  | "breakout"
+  | "replay"
+  | "off_air"
+  | "session"
 
 export interface EventLiveStateRecord {
   id: string
   event_id: string
   mode: EventLiveMode
   active_breakout_id: string | null
+  destination_type?: "lobby" | "home" | "session" | null
+  destination_session_id?: string | null
   headline: string | null
   message: string | null
   force_redirect: boolean
+  transition_type?: string | null
+  transition_duration_ms?: number | null
   updated_at: string
   updated_by: string | null
 }
@@ -181,4 +191,100 @@ export interface EventLiveDestination {
   label: string
   description: string
   breakoutId?: string | null
+  sessionId?: string | null
+  forceRedirect?: boolean
+}
+
+export type LiveProvider = "livekit" | "ivs" | "cloudflare"
+export type LiveAudienceMode = "embedded" | "broadcast" | "private"
+export type LiveStageLayout = "solo" | "grid" | "screen_speaker"
+export type LiveParticipantRole = "producer" | "host" | "speaker" | "guest"
+
+export interface EventLiveRoomRecord {
+  id: string
+  event_id: string
+  provider: LiveProvider
+  room_name: string
+  audience_mode: LiveAudienceMode
+  enabled: boolean
+  created_at: string
+  updated_at: string
+}
+
+export interface EventLiveParticipantRecord {
+  id: string
+  event_id: string
+  room_id: string | null
+  external_participant_id: string
+  display_name: string
+  email: string | null
+  role: LiveParticipantRole
+  is_backstage: boolean
+  is_on_stage: boolean
+  camera_enabled: boolean
+  mic_enabled: boolean
+  screen_share_enabled: boolean
+  connection_quality: string | null
+  joined_at: string | null
+  last_seen_at: string | null
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export interface EventLiveStageStateRecord {
+  event_id: string
+  room_id: string | null
+  is_live: boolean
+  auto_director_enabled: boolean
+  layout: LiveStageLayout
+  stage_participant_ids: string[]
+  primary_participant_id: string | null
+  pinned_participant_id: string | null
+  screen_share_participant_id: string | null
+  screen_share_track_id: string | null
+  scene_version: number
+  headline: string | null
+  message: string | null
+  updated_by: string | null
+  updated_at: string
+}
+
+export interface EventLiveSceneRecord {
+  id: string
+  event_id: string
+  name: string
+  layout: LiveStageLayout
+  scene_json: Record<string, unknown>
+  is_default: boolean
+  created_by: string | null
+  created_at: string
+}
+
+export interface LiveJoinTokenResponse {
+  provider: LiveProvider
+  roomName: string
+  participantName: string
+  participantIdentity: string
+  token: string
+}
+
+export interface ProducerStageActionInput {
+  action:
+    | "add_to_stage"
+    | "remove_from_stage"
+    | "pin_participant"
+    | "unpin_participant"
+    | "set_primary"
+    | "clear_primary"
+    | "set_screen_share"
+    | "clear_screen_share"
+    | "go_live"
+    | "go_off_air"
+  participantId?: string | null
+  trackId?: string | null
+}
+
+export interface ProducerLayoutInput {
+  layout: LiveStageLayout
 }

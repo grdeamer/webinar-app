@@ -61,7 +61,6 @@ export default async function AdminEventImportAttendeesPage(props: {
       <ImportAttendeesUI
         eventId={event.id}
         eventSlug={event.slug}
-        suggestedWebinars={(webinars || []).map((w: any) => ({ id: w.id, title: w.title }))}
       />
     </div>
   )

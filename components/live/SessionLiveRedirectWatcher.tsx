@@ -1,0 +1,183 @@
+"use client"
+
+import { useEffect, useRef, useState } from "react"
+import { useRouter, usePathname } from "next/navigation"
+import StageTransitionOverlay from "@/components/live/StageTransitionOverlay"
+
+type LiveStateResponse = {
+  state?: {
+    mode?: string | null
+    destination_type?: string | null
+    destination_session_id?: string | null
+    force_redirect?: boolean | null
+    headline?: string | null
+    message?: string | null
+    transition_type?: string | null
+    transition_duration_ms?: number | null
+  } | null
+}
+
+type TransitionVariant = "general_session" | "session" | "breakout" | "off_air"
+
+const TRANSITION_LOCK_KEY = "jupiter.transition.lock"
+
+function setTransitionLock(kind: string, ms: number) {
+  try {
+    window.sessionStorage.setItem(
+      TRANSITION_LOCK_KEY,
+      JSON.stringify({
+        kind,
+        until: Date.now() + ms,
+      })
+    )
+  } catch {}
+}
+
+function hasActiveTransitionLock(kind: string) {
+  try {
+    const raw = window.sessionStorage.getItem(TRANSITION_LOCK_KEY)
+    if (!raw) return false
+
+    const parsed = JSON.parse(raw) as { kind?: string; until?: number }
+
+    if (!parsed?.kind || !parsed?.until) return false
+
+    if (Date.now() > parsed.until) {
+      window.sessionStorage.removeItem(TRANSITION_LOCK_KEY)
+      return false
+    }
+
+    return parsed.kind === kind
+  } catch {
+    return false
+  }
+}
+
+export default function SessionLiveRedirectWatcher({
+  slug,
+  sessionId,
+}: {
+  slug: string
+  sessionId: string
+}) {
+  const router = useRouter()
+  const pathname = usePathname()
+
+  const [transitionActive, setTransitionActive] = useState(false)
+  const [transitionVariant, setTransitionVariant] =
+    useState<TransitionVariant>("off_air")
+  const [transitionHeadline, setTransitionHeadline] = useState<string | null>(null)
+  const [transitionMessage, setTransitionMessage] = useState<string | null>(null)
+  const [transitionType, setTransitionType] = useState<string>("fade")
+  const [transitionDuration, setTransitionDuration] = useState<number>(3000)
+
+  const redirectingRef = useRef(false)
+  const timeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    let stopped = false
+
+    async function checkState() {
+      try {
+        const res = await fetch(`/api/events/${slug}/live/state`, {
+          cache: "no-store",
+        })
+
+        const data = (await res.json().catch((): null => null)) as LiveStateResponse | null
+        if (!res.ok || stopped) return
+
+        const state = data?.state ?? null
+        if (!state || redirectingRef.current) return
+
+        const duration = state.transition_duration_ms ?? 3000
+        const overlayHold = duration + 600
+        const type = state.transition_type ?? "fade"
+
+        setTransitionDuration(duration)
+        setTransitionType(type)
+
+        if (state.mode === "off_air" && pathname !== `/events/${slug}`) {
+          if (hasActiveTransitionLock("off_air")) return
+
+          redirectingRef.current = true
+          setTransitionLock("off_air", overlayHold)
+
+          setTransitionVariant("off_air")
+          setTransitionHeadline(state.headline ?? "We’ll Be Right Back")
+          setTransitionMessage(state.message ?? "Returning to the event home page.")
+          setTransitionActive(true)
+
+          timeoutRef.current = window.setTimeout(() => {
+            router.push(`/events/${slug}`)
+          }, duration)
+
+          return
+        }
+
+        if (!state.force_redirect) return
+
+        if (
+          state.destination_type === "session" &&
+          state.destination_session_id &&
+          state.destination_session_id !== sessionId &&
+          pathname !== `/events/${slug}/sessions/${state.destination_session_id}`
+        ) {
+          redirectingRef.current = true
+          setTransitionVariant("session")
+          setTransitionHeadline(state.headline ?? "Entering Session")
+          setTransitionMessage(state.message ?? "Your next session is opening.")
+          setTransitionActive(true)
+
+          timeoutRef.current = window.setTimeout(() => {
+            router.push(`/events/${slug}/sessions/${state.destination_session_id}`)
+          }, duration)
+
+          return
+        }
+
+        if (
+          state.mode === "general_session" &&
+          !state.destination_session_id &&
+          pathname !== "/general-session"
+        ) {
+          redirectingRef.current = true
+          setTransitionVariant("general_session")
+          setTransitionHeadline(state.headline ?? "Now Entering General Session")
+          setTransitionMessage(state.message ?? "The keynote is beginning now.")
+          setTransitionActive(true)
+
+          timeoutRef.current = window.setTimeout(() => {
+            router.push("/general-session")
+          }, duration)
+
+          return
+        }
+      } catch {
+        // ignore
+      }
+    }
+
+    void checkState()
+
+    const id = window.setInterval(() => {
+      void checkState()
+    }, 3000)
+
+    return () => {
+      stopped = true
+      window.clearInterval(id)
+      if (timeoutRef.current) window.clearTimeout(timeoutRef.current)
+    }
+  }, [slug, sessionId, pathname, router])
+
+  return (
+    <StageTransitionOverlay
+      active={transitionActive}
+      variant={transitionVariant}
+      transitionType={transitionType}
+      headline={transitionHeadline}
+      message={transitionMessage}
+      holdMs={transitionDuration + 600}
+    />
+  )
+}

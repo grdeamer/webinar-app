@@ -1,7 +1,10 @@
 import type {
+  SectionBlock,
   SectionConfig,
   SectionRegistryItem,
   SectionType,
+  SystemComponentKey,
+  EventPageSection,
 } from "@/lib/page-editor/sectionTypes"
 
 const sharedFields = [
@@ -93,7 +96,30 @@ function makeConfig(config: SectionConfig): SectionConfig {
     paddingY: "md",
     textAlign: "left",
     divider: "none",
+    columns: 1,
     ...config,
+  }
+}
+
+function makeSystemBlock(
+  componentKey: SystemComponentKey,
+  options?: {
+    title?: string
+    body?: string | null
+    variant?: string
+    containerStyle?: "none" | "panel" | "subtle"
+  }
+): SectionBlock {
+  return {
+    id: `block-${componentKey}-${Math.random().toString(36).slice(2, 8)}`,
+    type: "system_component",
+    props: {
+      componentKey,
+      title: options?.title,
+      body: options?.body ?? null,
+      variant: options?.variant,
+      containerStyle: options?.containerStyle ?? "panel",
+    },
   }
 }
 
@@ -104,8 +130,8 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
     description: "Top hero section for the event page.",
     defaultConfig: makeConfig({
       adminLabel: "Hero",
-      title: "Event Title",
-      body: "Event description goes here.",
+      title: "Welcome",
+      body: "Join the live experience, explore the agenda, and access your event areas.",
       backgroundStyle: "subtle",
       contentWidth: "xl",
       paddingY: "lg",
@@ -118,9 +144,9 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
   content: {
     type: "content",
     label: "Content",
-    description: "Generic text/content section.",
+    description: "Flexible single-column content section.",
     defaultConfig: makeConfig({
-      adminLabel: "Content",
+      adminLabel: "Content Section",
       title: "Content Section",
       body: "Add content here.",
       backgroundStyle: "panel",
@@ -128,77 +154,43 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
       paddingY: "md",
       textAlign: "left",
       divider: "none",
+      columns: 1,
     }),
     fields: [...sharedFields],
   },
 
-  agenda: {
-    type: "agenda",
-    label: "Agenda",
-    description: "Agenda/timeline layout starter.",
+  grid: {
+    type: "grid",
+    label: "Grid",
+    description: "Multi-card or multi-block section.",
     defaultConfig: makeConfig({
-      adminLabel: "Agenda",
-      title: "Agenda",
-      body:
-        "9:00 AM — Welcome\n10:00 AM — General Session\n11:00 AM — Breakout Sessions\n12:00 PM — Closing Remarks",
+      adminLabel: "Grid Section",
+      title: "Grid Section",
+      body: "",
       backgroundStyle: "panel",
       contentWidth: "xl",
       paddingY: "md",
       textAlign: "left",
-      divider: "top",
+      divider: "none",
+      columns: 2,
     }),
     fields: [...sharedFields],
   },
 
-  speakers: {
-    type: "speakers",
-    label: "Speakers",
-    description: "Speaker roster starter section.",
+  system: {
+    type: "system",
+    label: "System",
+    description: "Section intended to hold injected system components.",
     defaultConfig: makeConfig({
-      adminLabel: "Speakers",
-      title: "Featured Speakers",
-      body:
-        "Speaker One — Title, Company\nSpeaker Two — Title, Company\nSpeaker Three — Title, Company",
-      backgroundStyle: "subtle",
+      adminLabel: "System Section",
+      title: "System Section",
+      body: "",
+      backgroundStyle: "panel",
       contentWidth: "xl",
       paddingY: "md",
       textAlign: "left",
-      divider: "top",
-    }),
-    fields: [...sharedFields],
-  },
-
-  resources: {
-    type: "resources",
-    label: "Resources",
-    description: "Downloads, PDFs, and links.",
-    defaultConfig: makeConfig({
-      adminLabel: "Resources",
-      title: "Resources",
-      body:
-        "Download slides\nView agenda PDF\nAccess support materials\nReview follow-up links",
-      backgroundStyle: "panel",
-      contentWidth: "lg",
-      paddingY: "md",
-      textAlign: "left",
-      divider: "top",
-    }),
-    fields: [...sharedFields],
-  },
-
-  cta: {
-    type: "cta",
-    label: "CTA",
-    description: "Centered call-to-action section.",
-    defaultConfig: makeConfig({
-      adminLabel: "CTA",
-      title: "Ready to Join?",
-      body: "Register now, access your materials, and join the session when it begins.",
-      backgroundStyle: "subtle",
-      contentWidth: "md",
-      paddingY: "lg",
-      textAlign: "center",
-      divider: "both",
+      divider: "none",
+      columns: 1,
     }),
     fields: [...sharedFields],
   },
@@ -208,27 +200,17 @@ export const SECTION_TEMPLATE_OPTIONS = [
   {
     key: "content" as SectionType,
     title: "Content",
-    body: "Generic text/content section.",
+    body: "Flexible single-column content section.",
   },
   {
-    key: "agenda" as SectionType,
-    title: "Agenda",
-    body: "Agenda/timeline layout starter.",
+    key: "grid" as SectionType,
+    title: "Grid",
+    body: "Multi-card or multi-block section.",
   },
   {
-    key: "speakers" as SectionType,
-    title: "Speakers",
-    body: "Speaker roster starter section.",
-  },
-  {
-    key: "resources" as SectionType,
-    title: "Resources",
-    body: "Downloads, PDFs, and links.",
-  },
-  {
-    key: "cta" as SectionType,
-    title: "CTA",
-    body: "Centered call-to-action section.",
+    key: "system" as SectionType,
+    title: "System",
+    body: "Section intended to hold injected system components.",
   },
 ]
 
@@ -238,4 +220,139 @@ export function getSectionRegistryItem(type: SectionType) {
 
 export function getDefaultSectionConfig(type: SectionType) {
   return { ...SECTION_REGISTRY[type].defaultConfig }
+}
+
+export function createDefaultEventHomeSections(event: {
+  title: string
+  description?: string | null
+}): EventPageSection[] {
+  return [
+    {
+      id: "hero",
+      type: "hero",
+      config: {
+        ...getDefaultSectionConfig("hero"),
+        adminLabel: "Hero",
+        title: event.title || "Welcome",
+        body:
+          event.description ||
+          "Join the live experience, explore the agenda, and access your event areas.",
+      },
+      blocks: [],
+    },
+
+    {
+      id: "access",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Access Gate",
+        title: "Attendee Access",
+        body: "Use the email assigned to your event registration to continue.",
+      },
+      blocks: [
+        makeSystemBlock("access_gate"),
+      ],
+    },
+
+    {
+      id: "live",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Broadcast Status",
+        title: "Broadcast status",
+        body: "This area reflects the current live routing and destination.",
+      },
+      blocks: [
+        makeSystemBlock("live_state"),
+      ],
+    },
+
+    {
+      id: "stage",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Main Stage",
+        title: "Main stage",
+        body: "Your live or upcoming main video experience appears here.",
+      },
+      blocks: [
+        makeSystemBlock("stage_player"),
+      ],
+    },
+
+    {
+      id: "countdown",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Countdown",
+        title: "What is next",
+        body: "",
+      },
+      blocks: [
+        makeSystemBlock("countdown"),
+      ],
+    },
+
+    // 🔥 NEW: AGENDA
+    {
+      id: "agenda",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Agenda",
+        title: "Event Agenda",
+        body: "Explore the full schedule of sessions.",
+      },
+      blocks: [
+        makeSystemBlock("agenda"),
+      ],
+    },
+
+    // 🔥 NEW: SESSIONS
+    {
+      id: "sessions",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Sessions",
+        title: "All Sessions",
+        body: "Browse available sessions and content.",
+      },
+      blocks: [
+        makeSystemBlock("sessions_list"),
+      ],
+    },
+
+    {
+      id: "speakers",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Speaker Spotlight",
+        title: "Speaker spotlight",
+        body: "",
+      },
+      blocks: [
+        makeSystemBlock("speaker_spotlight"),
+      ],
+    },
+
+    {
+      id: "breakouts",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Featured Breakouts",
+        title: "Featured breakouts",
+        body: "",
+      },
+      blocks: [
+        makeSystemBlock("featured_breakouts"),
+      ],
+    },
+  ]
 }
