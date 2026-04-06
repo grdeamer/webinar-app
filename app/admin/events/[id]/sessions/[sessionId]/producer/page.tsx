@@ -12,10 +12,10 @@ function isUuid(value: string) {
   )
 }
 
-export default async function AdminProducerPage(props: {
-  params: Promise<{ id: string }>
+export default async function AdminSessionProducerPage(props: {
+  params: Promise<{ id: string; sessionId: string }>
 }) {
-  const { id } = await props.params
+  const { id, sessionId } = await props.params
 
   let eventId = id
   let eventSlug = id
@@ -39,18 +39,23 @@ export default async function AdminProducerPage(props: {
       .maybeSingle()
 
     if (!event?.id) notFound()
+
     eventSlug = event.slug
   }
 
   const { data: session } = await supabaseAdmin
     .from("event_sessions")
-    .select("id,title,delivery_mode,live_room_name,is_general_session,session_kind")
+    .select("id,title,delivery_mode,live_room_name")
     .eq("event_id", eventId)
-    .or("is_general_session.eq.true,session_kind.eq.general")
+    .eq("id", sessionId)
     .maybeSingle()
 
   if (!session?.id) {
     notFound()
+  }
+
+  if (session.delivery_mode !== "livekit") {
+    throw new Error("This session is not configured for LiveKit")
   }
 
   const wsUrl = process.env.LIVEKIT_URL

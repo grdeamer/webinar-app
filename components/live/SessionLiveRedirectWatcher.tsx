@@ -14,12 +14,17 @@ type LiveStateResponse = {
     message?: string | null
     transition_type?: string | null
     transition_duration_ms?: number | null
+    transition_active?: boolean | null
+    transition_started_at?: string | null
   } | null
 }
 
 type TransitionVariant = "general_session" | "session" | "breakout" | "off_air"
 
 const TRANSITION_LOCK_KEY = "jupiter.transition.lock"
+
+const DEFAULT_REDIRECT_DELAY_MS = 3000
+const OVERLAY_HOLD_BUFFER_MS = 600
 
 function setTransitionLock(kind: string, ms: number) {
   try {
@@ -39,7 +44,6 @@ function hasActiveTransitionLock(kind: string) {
     if (!raw) return false
 
     const parsed = JSON.parse(raw) as { kind?: string; until?: number }
-
     if (!parsed?.kind || !parsed?.until) return false
 
     if (Date.now() > parsed.until) {
@@ -51,6 +55,26 @@ function hasActiveTransitionLock(kind: string) {
   } catch {
     return false
   }
+}
+
+function clampTransitionDuration(
+  value: number | null | undefined,
+  fallback = DEFAULT_REDIRECT_DELAY_MS
+) {
+  if (typeof value !== "number" || !Number.isFinite(value)) return fallback
+  return Math.max(800, Math.min(6000, Math.round(value)))
+}
+
+function isTransitionStillActive(
+  startedAt: string | null | undefined,
+  holdMs: number
+) {
+  if (!startedAt) return true
+
+  const startedMs = new Date(startedAt).getTime()
+  if (Number.isNaN(startedMs)) return true
+
+  return Date.now() <= startedMs + holdMs
 }
 
 export default function SessionLiveRedirectWatcher({
@@ -66,10 +90,10 @@ export default function SessionLiveRedirectWatcher({
   const [transitionActive, setTransitionActive] = useState(false)
   const [transitionVariant, setTransitionVariant] =
     useState<TransitionVariant>("off_air")
+  const [transitionType, setTransitionType] = useState<string>("fade")
   const [transitionHeadline, setTransitionHeadline] = useState<string | null>(null)
   const [transitionMessage, setTransitionMessage] = useState<string | null>(null)
-  const [transitionType, setTransitionType] = useState<string>("fade")
-  const [transitionDuration, setTransitionDuration] = useState<number>(3000)
+  const [transitionHoldMs, setTransitionHoldMs] = useState(DEFAULT_REDIRECT_DELAY_MS)
 
   const redirectingRef = useRef(false)
   const timeoutRef = useRef<number | null>(null)
@@ -89,27 +113,28 @@ export default function SessionLiveRedirectWatcher({
         const state = data?.state ?? null
         if (!state || redirectingRef.current) return
 
-        const duration = state.transition_duration_ms ?? 3000
-        const overlayHold = duration + 600
-        const type = state.transition_type ?? "fade"
+        const durationMs = clampTransitionDuration(state.transition_duration_ms)
+        const holdMs = durationMs + OVERLAY_HOLD_BUFFER_MS
 
-        setTransitionDuration(duration)
-        setTransitionType(type)
+        if (state.transition_active === false) return
+        if (!isTransitionStillActive(state.transition_started_at, holdMs)) return
 
         if (state.mode === "off_air" && pathname !== `/events/${slug}`) {
           if (hasActiveTransitionLock("off_air")) return
 
           redirectingRef.current = true
-          setTransitionLock("off_air", overlayHold)
+          setTransitionLock("off_air", holdMs)
 
           setTransitionVariant("off_air")
+          setTransitionType(state.transition_type ?? "dip_to_black")
           setTransitionHeadline(state.headline ?? "We’ll Be Right Back")
           setTransitionMessage(state.message ?? "Returning to the event home page.")
+          setTransitionHoldMs(holdMs)
           setTransitionActive(true)
 
           timeoutRef.current = window.setTimeout(() => {
             router.push(`/events/${slug}`)
-          }, duration)
+          }, durationMs)
 
           return
         }
@@ -123,14 +148,28 @@ export default function SessionLiveRedirectWatcher({
           pathname !== `/events/${slug}/sessions/${state.destination_session_id}`
         ) {
           redirectingRef.current = true
-          setTransitionVariant("session")
-          setTransitionHeadline(state.headline ?? "Entering Session")
-          setTransitionMessage(state.message ?? "Your next session is opening.")
+
+          setTransitionVariant(state.mode === "breakout" ? "breakout" : "session")
+          setTransitionType(
+            state.transition_type ??
+              (state.mode === "breakout" ? "wipe_right" : "wipe_left")
+          )
+          setTransitionHeadline(
+            state.headline ??
+              (state.mode === "breakout" ? "Entering Breakout" : "Entering Session")
+          )
+          setTransitionMessage(
+            state.message ??
+              (state.mode === "breakout"
+                ? "We’re moving you into a breakout room."
+                : "Your next session is opening.")
+          )
+          setTransitionHoldMs(holdMs)
           setTransitionActive(true)
 
           timeoutRef.current = window.setTimeout(() => {
             router.push(`/events/${slug}/sessions/${state.destination_session_id}`)
-          }, duration)
+          }, durationMs)
 
           return
         }
@@ -141,14 +180,17 @@ export default function SessionLiveRedirectWatcher({
           pathname !== "/general-session"
         ) {
           redirectingRef.current = true
+
           setTransitionVariant("general_session")
+          setTransitionType(state.transition_type ?? "zoom")
           setTransitionHeadline(state.headline ?? "Now Entering General Session")
           setTransitionMessage(state.message ?? "The keynote is beginning now.")
+          setTransitionHoldMs(holdMs)
           setTransitionActive(true)
 
           timeoutRef.current = window.setTimeout(() => {
             router.push("/general-session")
-          }, duration)
+          }, durationMs)
 
           return
         }
@@ -177,7 +219,7 @@ export default function SessionLiveRedirectWatcher({
       transitionType={transitionType}
       headline={transitionHeadline}
       message={transitionMessage}
-      holdMs={transitionDuration + 600}
+      holdMs={transitionHoldMs}
     />
   )
 }

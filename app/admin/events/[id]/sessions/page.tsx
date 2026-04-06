@@ -22,7 +22,6 @@ type SessionRow = {
   sort_order: number | null
   created_at: string | null
   updated_at: string | null
-
   session_kind: string | null
   visibility_mode: string | null
   delivery_mode: string | null
@@ -43,34 +42,59 @@ type EventRow = {
   title: string
 }
 
+function isUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value
+  )
+}
+
 export default async function AdminEventSessionsPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
 
-  const [{ data: event, error: eventError }, { data: sessions, error: sessionsError }] =
-    await Promise.all([
-      supabaseAdmin.from("events").select("id,slug,title").eq("id", id).single(),
-      supabaseAdmin
-        .from("event_sessions")
-        .select(
-          `
-          id,event_id,code,title,description,starts_at,ends_at,presenter,
-          join_link,room_key,manual_live,playback_type,playback_mp4_url,playback_m3u8_url,
-          sort_order,created_at,updated_at,
-          session_kind,visibility_mode,delivery_mode,external_platform,external_join_url,
-          live_provider,live_room_name,is_general_session,runtime_status,
-          chat_enabled,qa_enabled,lower_panel_enabled
-        `
-        )
-        .eq("event_id", id)
-        .order("sort_order", { ascending: true })
-        .order("starts_at", { ascending: true, nullsFirst: false }),
-    ])
+  let event: EventRow | null = null
+  let eventErrorMessage: string | null = null
 
-  if (eventError || !event) {
-    throw new Error(eventError?.message || "Event not found")
+  if (isUuid(id)) {
+    const { data, error } = await supabaseAdmin
+      .from("events")
+      .select("id,slug,title")
+      .eq("id", id)
+      .maybeSingle()
+
+    event = (data as EventRow | null) ?? null
+    eventErrorMessage = error?.message ?? null
+  } else {
+    const { data, error } = await supabaseAdmin
+      .from("events")
+      .select("id,slug,title")
+      .eq("slug", id)
+      .maybeSingle()
+
+    event = (data as EventRow | null) ?? null
+    eventErrorMessage = error?.message ?? null
   }
+
+  if (eventErrorMessage || !event) {
+    throw new Error(eventErrorMessage || "Event not found")
+  }
+
+  const { data: sessions, error: sessionsError } = await supabaseAdmin
+    .from("event_sessions")
+    .select(
+      `
+      id,event_id,code,title,description,starts_at,ends_at,presenter,
+      join_link,room_key,manual_live,playback_type,playback_mp4_url,playback_m3u8_url,
+      sort_order,created_at,updated_at,
+      session_kind,visibility_mode,delivery_mode,external_platform,external_join_url,
+      live_provider,live_room_name,is_general_session,runtime_status,
+      chat_enabled,qa_enabled,lower_panel_enabled
+    `
+    )
+    .eq("event_id", event.id)
+    .order("sort_order", { ascending: true })
+    .order("starts_at", { ascending: true, nullsFirst: false })
 
   if (sessionsError) {
     throw new Error(sessionsError.message)
@@ -78,7 +102,7 @@ export default async function AdminEventSessionsPage(props: {
 
   return (
     <SessionsEditor
-      event={event as EventRow}
+      event={event}
       initialSessions={(sessions || []) as SessionRow[]}
     />
   )

@@ -242,8 +242,19 @@ export default function EventPageRenderer({
     <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white">
       {resolvedSections.map((section, index) => {
         const config = section.config ?? {}
+
         if (config.visible === false) return null
         if (config.hideOnMobile) return null
+
+        const explicitSystemComponent = (config as { systemComponent?: SystemComponentKey })
+          .systemComponent
+
+        if (explicitSystemComponent) {
+          const node = systemComponents[explicitSystemComponent]
+          if (node) {
+            return <div key={`${section.id}-${index}`}>{node}</div>
+          }
+        }
 
         const widthClass = getWidthClass(config.contentWidth)
         const paddingYClass = getPaddingYClass(config.paddingY)

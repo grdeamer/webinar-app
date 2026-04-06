@@ -169,19 +169,23 @@ export type EventLiveMode =
   | "off_air"
   | "session"
 
-export interface EventLiveStateRecord {
+export type EventLiveStateRecord = {
   id: string
   event_id: string
   mode: EventLiveMode
   active_breakout_id: string | null
-  destination_type?: "lobby" | "home" | "session" | null
-  destination_session_id?: string | null
+  destination_type: string | null
+  destination_session_id: string | null
   headline: string | null
   message: string | null
   force_redirect: boolean
-  transition_type?: string | null
-  transition_duration_ms?: number | null
-  updated_at: string
+  transition_type: string | null
+  transition_duration_ms: number | null
+
+  transition_active?: boolean | null
+  transition_started_at?: string | null
+
+  updated_at: string | null
   updated_by: string | null
 }
 

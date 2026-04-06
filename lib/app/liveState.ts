@@ -20,7 +20,7 @@ export async function getEventLiveState(
   const { data, error } = await supabaseAdmin
     .from("event_live_state")
     .select(
-      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,updated_at,updated_by"
+      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,transition_active,transition_started_at,updated_at,updated_by"
     )
     .eq("event_id", eventId)
     .maybeSingle()
@@ -44,8 +44,21 @@ export async function upsertEventLiveState(input: {
   forceRedirect?: boolean
   transitionType?: string | null
   transitionDurationMs?: number | null
+  transitionActive?: boolean
+  transitionStartedAt?: string | null
   updatedBy?: string | null
 }): Promise<EventLiveStateRecord> {
+  const transitionDurationMs =
+    typeof input.transitionDurationMs === "number" &&
+    Number.isFinite(input.transitionDurationMs)
+      ? Math.max(800, Math.min(6000, Math.round(input.transitionDurationMs)))
+      : 3000
+
+  const transitionActive =
+    typeof input.transitionActive === "boolean"
+      ? input.transitionActive
+      : !!input.forceRedirect
+
   const row = {
     event_id: input.eventId,
     mode: input.mode,
@@ -62,11 +75,11 @@ export async function upsertEventLiveState(input: {
     transition_type: input.transitionType?.trim()
       ? input.transitionType.trim().slice(0, 50)
       : "fade",
-    transition_duration_ms:
-      typeof input.transitionDurationMs === "number" &&
-      Number.isFinite(input.transitionDurationMs)
-        ? Math.max(800, Math.min(6000, Math.round(input.transitionDurationMs)))
-        : 3000,
+    transition_duration_ms: transitionDurationMs,
+    transition_active: transitionActive,
+    transition_started_at:
+      input.transitionStartedAt ??
+      (transitionActive ? new Date().toISOString() : null),
     updated_by: input.updatedBy ?? null,
     updated_at: new Date().toISOString(),
   }
@@ -75,7 +88,7 @@ export async function upsertEventLiveState(input: {
     .from("event_live_state")
     .upsert(row, { onConflict: "event_id" })
     .select(
-      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,updated_at,updated_by"
+      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,transition_active,transition_started_at,updated_at,updated_by"
     )
     .single()
 

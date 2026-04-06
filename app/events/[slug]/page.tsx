@@ -20,6 +20,7 @@ import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerC
 import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDestination"
 import type { EventBreakoutPreview } from "@/lib/types"
 import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
+import JupiterHomeHero from "@/components/events/JupiterHomeHero"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -72,12 +73,17 @@ function FeaturedBreakouts({
   }>
 }) {
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">Featured breakouts</h2>
-          <p className="mt-1 text-sm text-white/55">
-            Quick paths into smaller rooms and side programming.
+          <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+            Featured Breakouts
+          </div>
+          <h2 className="mt-2 text-2xl font-semibold text-white">
+            Smaller rooms. Side conversations. Focused moments.
+          </h2>
+          <p className="mt-2 text-sm text-white/55">
+            Quick paths into breakout experiences and side programming.
           </p>
         </div>
 
@@ -89,16 +95,16 @@ function FeaturedBreakouts({
         </Link>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         {breakouts.length === 0 ? (
-          <div className="md:col-span-3 rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-white/60">
+          <div className="md:col-span-3 rounded-[24px] border border-dashed border-white/10 bg-black/20 p-6 text-sm text-white/60">
             Add breakout rooms in the admin panel to populate these homepage tiles.
           </div>
         ) : (
           breakouts.map((item, index) => (
             <article
               key={item.id}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(30,41,59,0.88),rgba(2,6,23,0.96))] p-4"
+              className="overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(30,41,59,0.88),rgba(2,6,23,0.96))] p-5 shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
             >
               <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">
                 Breakout {index + 1}
@@ -106,7 +112,7 @@ function FeaturedBreakouts({
 
               <h3 className="mt-3 text-lg font-semibold text-white">{item.title}</h3>
 
-              <p className="mt-2 min-h-[72px] text-sm leading-6 text-white/60">
+              <p className="mt-3 min-h-[72px] text-sm leading-6 text-white/60">
                 {item.description ||
                   "Add a short description so attendees know what makes this room special."}
               </p>
@@ -120,12 +126,12 @@ function FeaturedBreakouts({
                   href={item.join_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-4 inline-flex rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm hover:bg-white/15"
+                  className="mt-5 inline-flex rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm hover:bg-white/15"
                 >
                   Open breakout ↗
                 </a>
               ) : (
-                <div className="mt-4 inline-flex rounded-xl border border-white/10 bg-black/25 px-4 py-2 text-sm text-white/45">
+                <div className="mt-5 inline-flex rounded-xl border border-white/10 bg-black/25 px-4 py-2 text-sm text-white/45">
                   Join link coming soon
                 </div>
               )}
@@ -183,12 +189,17 @@ function SessionsList({
   }>
 }) {
   return (
-    <section className="space-y-4">
+    <section className="space-y-5">
       <div className="flex items-center justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-white">Sessions</h2>
-          <p className="mt-1 text-sm text-white/55">
-            Featured programming pulled from your event sessions.
+          <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+            Sessions
+          </div>
+          <h2 className="mt-2 text-2xl font-semibold text-white">
+            Featured programming
+          </h2>
+          <p className="mt-2 text-sm text-white/55">
+            A curated view of your event sessions.
           </p>
         </div>
 
@@ -200,16 +211,16 @@ function SessionsList({
         </Link>
       </div>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {sessions.length === 0 ? (
-          <div className="md:col-span-2 xl:col-span-3 rounded-2xl border border-dashed border-white/10 bg-black/20 p-5 text-sm text-white/60">
+          <div className="md:col-span-2 xl:col-span-3 rounded-[24px] border border-dashed border-white/10 bg-black/20 p-6 text-sm text-white/60">
             No sessions found yet. Add sessions in admin to populate this block.
           </div>
         ) : (
           sessions.map((session, index) => (
             <article
               key={session.id ?? `${session.title ?? "session"}-${index}`}
-              className="overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(30,41,59,0.88),rgba(2,6,23,0.96))]"
+              className="overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(30,41,59,0.88),rgba(2,6,23,0.96))] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
             >
               {session.thumbnail_url ? (
                 <img
@@ -223,7 +234,7 @@ function SessionsList({
                 </div>
               )}
 
-              <div className="p-4">
+              <div className="p-5">
                 {session.tag ? (
                   <div className="text-[11px] uppercase tracking-[0.18em] text-sky-200/70">
                     {session.tag}
@@ -256,6 +267,63 @@ function SessionsList({
             </article>
           ))
         )}
+      </div>
+    </section>
+  )
+}
+
+function MissionControlHero({
+  eventTitle,
+  eventDescription,
+  liveStateCard,
+  accessGate,
+}: {
+  eventTitle: string
+  eventDescription?: string | null
+  liveStateCard: React.ReactNode
+  accessGate: React.ReactNode
+}) {
+  return (
+    <section className="relative overflow-hidden rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] p-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)] md:p-10">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl" />
+        <div className="absolute right-0 top-16 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
+        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-violet-500/10 blur-3xl" />
+      </div>
+
+      <div className="relative grid gap-8 xl:grid-cols-[1.25fr_0.75fr]">
+        <div>
+          <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+            Jupiter Event
+          </div>
+
+          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
+            {eventTitle}
+          </h1>
+
+          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/65">
+            {eventDescription ||
+              "Welcome to your event experience. Sessions, speakers, and live moments — all in one place."}
+          </p>
+
+          <div className="mt-8">{accessGate}</div>
+        </div>
+
+        <div className="space-y-4">
+          {liveStateCard}
+
+          <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
+            <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+              Arrival
+            </div>
+            <div className="mt-3 text-lg font-semibold text-white">
+              This is your event in motion
+            </div>
+            <p className="mt-2 text-sm leading-6 text-white/55">
+              Move between the lobby, sessions, speakers, and live programming without losing the thread.
+            </p>
+          </div>
+        </div>
       </div>
     </section>
   )
@@ -336,7 +404,7 @@ export default async function EventHomePage(props: {
     (agenda || []).find((item: any) => item?.start_at) || (agenda || [])[0] || null
   const countdownTarget = nextAgenda?.start_at || event.start_at || null
 
-  const resolvedSections =
+  const builderDrivenSections =
     builderSections.length > 0
       ? builderSections
       : createDefaultEventHomeSections({
@@ -349,42 +417,115 @@ export default async function EventHomePage(props: {
     liveDestination.href === "/general-session" ||
     liveDestination.href === `/events/${slug}/breakouts`
 
+  const hero = (
+    <MissionControlHero
+      eventTitle={event.title}
+      eventDescription={event.description}
+      liveStateCard={<EventLiveDestinationCard destination={liveDestination} />}
+      accessGate={
+        viewer.type !== "guest" ? (
+          <div className="flex flex-wrap gap-3">
+            <Link
+              href={`/events/${slug}/lobby`}
+              className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
+            >
+              Enter your lobby
+            </Link>
+
+            <Link
+              href={`/events/${slug}/agenda`}
+              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium hover:bg-white/15"
+            >
+              View agenda
+            </Link>
+          </div>
+        ) : (
+          <div id="event-access" className="space-y-4">
+            <EventEmailGate slug={slug} />
+          </div>
+        )
+      }
+    />
+  )
+
   const systemComponents = {
-    live_state: <EventLiveDestinationCard destination={liveDestination} />,
-
-    stage_player: (
-      <>
-        <StageTransitionOverlay active={stageIsActive} />
-        <StagePlayer slug={slug} />
-      </>
-    ),
-
-    countdown: (
-      <EventCountdownCard
-        title={nextAgenda?.title || event.title}
-        targetIso={countdownTarget}
-        subtitle={nextAgenda ? "Countdown to next session" : "Countdown to event start"}
+    jupiter_home_hero: (
+      <JupiterHomeHero
+        title={event.title}
+        description={event.description}
+        liveLabel={
+          liveDestination.sessionId
+            ? liveDestination.headline || "Live Session"
+            : liveDestination.href === "/general-session"
+              ? liveDestination.headline || "Main Stage Live"
+              : liveDestination.headline || "We’ll Be Right Back"
+        }
+        isLive={Boolean(liveDestination.sessionId)}
       />
     ),
 
-    speaker_spotlight: <EventSpeakerSpotlight speaker={spotlightSpeaker} />,
+    live_state: <EventLiveDestinationCard destination={liveDestination} />,
 
-    speaker_cards: <EventSpeakerCards speakers={featuredSpeakers} />,
+    stage_player: (
+      <div className="space-y-4">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+          Live Broadcast
+        </div>
+        <StageTransitionOverlay active={stageIsActive} />
+        <StagePlayer slug={slug} />
+      </div>
+    ),
+
+    countdown: (
+      <div className="space-y-4">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+          Countdown
+        </div>
+        <EventCountdownCard
+          title={nextAgenda?.title || event.title}
+          targetIso={countdownTarget}
+          subtitle={nextAgenda ? "Countdown to next session" : "Countdown to event start"}
+        />
+      </div>
+    ),
+
+    speaker_spotlight: (
+      <div className="space-y-4">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+          Speaker Spotlight
+        </div>
+        <EventSpeakerSpotlight speaker={spotlightSpeaker} />
+      </div>
+    ),
+
+    speaker_cards: (
+      <div className="space-y-4">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+          Featured Speakers
+        </div>
+        <EventSpeakerCards speakers={featuredSpeakers} />
+      </div>
+    ),
 
     agenda: <AgendaSection agenda={agenda || []} slug={slug} />,
 
     schedule_rail: (
-      <EventScheduleRail
-        items={(agenda || []).map((item: any) => ({
-          id: item.id,
-          title: item.title ?? "Untitled",
-          start_at: item.start_at ?? "",
-          end_at: item.end_at ?? "",
-          track: item.track ?? undefined,
-          speaker: item.speaker ?? undefined,
-        }))}
-        eventSlug={slug}
-      />
+      <div className="space-y-4">
+        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+          Schedule Rail
+        </div>
+        <EventScheduleRail
+          items={(agenda || []).map((item: any) => ({
+            id: item.id,
+            title: item.title ?? "Untitled",
+            start_at: item.start_at ?? "",
+            end_at: item.end_at ?? "",
+            track: item.track ?? undefined,
+            speaker: item.speaker ?? undefined,
+          }))}
+          eventSlug={slug}
+        />
+      </div>
     ),
 
     sessions_list: <SessionsList slug={slug} sessions={sessions} />,
@@ -414,6 +555,43 @@ export default async function EventHomePage(props: {
 
     featured_breakouts: <FeaturedBreakouts slug={slug} breakouts={breakouts || []} />,
   }
+
+const heroSection: EventPageSection = {
+  id: "jupiter-home-hero",
+  type: "hero" as EventPageSection["type"],
+  config: {
+    visible: true,
+    adminLabel: "Jupiter Home Hero",
+    title: null,
+    body: null,
+    backgroundStyle: "transparent",
+    contentWidth: "full",
+    paddingY: "sm",
+    textAlign: "left",
+    divider: "none",
+    hideOnMobile: false,
+    systemComponent: "jupiter_home_hero",
+  } as any,
+  blocks: [],
+}
+
+const baseSections =
+  builderDrivenSections.length > 0
+    ? builderDrivenSections
+    : createDefaultEventHomeSections({
+        title: event.title,
+        description: event.description,
+      })
+
+// 🔥 remove old default hero
+const filteredSections = baseSections.filter(
+  (section) => section.type !== "hero"
+)
+
+const resolvedSections: EventPageSection[] = [
+  heroSection,
+  ...filteredSections,
+]
 
   return (
     <>
