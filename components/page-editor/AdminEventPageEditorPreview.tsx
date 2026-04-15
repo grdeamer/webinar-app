@@ -6,6 +6,7 @@ import EventPageRenderer from "@/components/page-editor/EventPageRenderer"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import {
   SECTION_TEMPLATE_OPTIONS,
+  createDefaultEventHomeSections,
   getDefaultSectionConfig,
   getSectionRegistryItem,
 } from "@/lib/page-editor/sectionRegistry"
@@ -134,51 +135,40 @@ function getDefaultSections(eventInfo: {
   title: string
   description?: string | null
 }): EventPageSection[] {
-  return [
-    {
-      id: "hero",
-      type: "hero",
-      config: {
-        ...getDefaultSectionConfig("hero"),
-        title: eventInfo.title,
-        body: eventInfo.description ?? null,
-      },
-      blocks: [],
-    },
-    {
-      id: "content",
-      type: "content",
-      config: {
-        ...getDefaultSectionConfig("content"),
-      },
-      blocks: [],
-    },
-  ]
+  return createDefaultEventHomeSections({
+    title: eventInfo.title,
+    description: eventInfo.description ?? null,
+  })
 }
 
 function normalizeSectionIds(inputSections: EventPageSection[]) {
   const used = new Set<string>()
   let heroSeen = false
-  let contentCount = 0
+  let fallbackCount = 0
 
   return inputSections.flatMap((section) => {
     if (section.type === "hero") {
       if (heroSeen) return []
       heroSeen = true
-
-      const heroId = "hero"
-      used.add(heroId)
-
-      return [{ ...section, id: heroId }]
+      used.add("hero")
+      return [{ ...section, id: "hero" }]
     }
 
-    contentCount += 1
+    const rawId =
+      typeof section.id === "string" && section.id.trim().length > 0
+        ? section.id.trim()
+        : section.config?.adminLabel
+        ? String(section.config.adminLabel)
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+        : ""
 
-    let nextId = contentCount === 1 ? "content" : `content-${contentCount}`
+    let nextId = rawId || `${section.type}-${fallbackCount + 1}`
 
-    while (used.has(nextId)) {
-      contentCount += 1
-      nextId = contentCount === 1 ? "content" : `content-${contentCount}`
+    while (!nextId || used.has(nextId)) {
+      fallbackCount += 1
+      nextId = `${section.type}-${fallbackCount}`
     }
 
     used.add(nextId)

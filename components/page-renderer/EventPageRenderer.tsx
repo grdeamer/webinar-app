@@ -3,6 +3,7 @@ import type {
   EventPageSection,
   SectionBlock,
   SystemComponentKey,
+  EventTheme,
 } from "@/lib/page-editor/sectionTypes"
 
 type EventLike = {
@@ -230,16 +231,35 @@ export default function EventPageRenderer({
   event,
   sections,
   systemComponents,
+  eventTheme,
 }: {
   event: EventLike
   sections?: EventPageSection[]
   systemComponents: SystemComponentsMap
+  eventTheme?: EventTheme
 }) {
   const resolvedSections =
     sections && sections.length > 0 ? sections : getFallbackSections(event)
 
+  const resolvedEventTheme: EventTheme = {
+    pageBackgroundColor: eventTheme?.pageBackgroundColor || "#020617",
+    panelBackgroundColor: eventTheme?.panelBackgroundColor || "#0f172a",
+    panelBorderColor: eventTheme?.panelBorderColor || "rgba(255,255,255,0.10)",
+    textColor: eventTheme?.textColor || "#ffffff",
+    gradientColorA: eventTheme?.gradientColorA || "#0f172a",
+    gradientColorB: eventTheme?.gradientColorB || "#1d4ed8",
+    gradientAngle: eventTheme?.gradientAngle || "135deg",
+  }
+
   return (
-    <div className="relative overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white">
+    <div
+      className="relative overflow-hidden rounded-3xl border text-white"
+      style={{
+        backgroundColor: resolvedEventTheme.pageBackgroundColor,
+        borderColor: resolvedEventTheme.panelBorderColor,
+        color: resolvedEventTheme.textColor,
+      }}
+    >
       {resolvedSections.map((section, index) => {
         const config = section.config ?? {}
 
@@ -255,6 +275,69 @@ export default function EventPageRenderer({
             return <div key={`${section.id}-${index}`}>{node}</div>
           }
         }
+
+        const themeMode =
+          typeof config.themeMode === "string" && config.themeMode.trim()
+            ? config.themeMode
+            : "inherit"
+
+        const fillType =
+          themeMode === "custom" &&
+          typeof config.sectionBackgroundFillType === "string" &&
+          config.sectionBackgroundFillType.trim()
+            ? config.sectionBackgroundFillType
+            : "solid"
+
+        const sectionBackgroundColor =
+          themeMode === "custom"
+            ? typeof config.sectionBackgroundColor === "string" && config.sectionBackgroundColor.trim()
+              ? config.sectionBackgroundColor
+              : undefined
+            : resolvedEventTheme.panelBackgroundColor
+
+        const sectionBorderColor =
+          themeMode === "custom"
+            ? typeof config.sectionBorderColor === "string" && config.sectionBorderColor.trim()
+              ? config.sectionBorderColor
+              : undefined
+            : resolvedEventTheme.panelBorderColor
+
+        const sectionTextColor =
+          themeMode === "custom"
+            ? typeof config.sectionTextColor === "string" && config.sectionTextColor.trim()
+              ? config.sectionTextColor
+              : undefined
+            : resolvedEventTheme.textColor
+
+        const sectionGradientColorA =
+          themeMode === "custom"
+            ? typeof config.sectionGradientColorA === "string" && config.sectionGradientColorA.trim()
+              ? config.sectionGradientColorA
+              : resolvedEventTheme.gradientColorA || "#0f172a"
+            : resolvedEventTheme.gradientColorA || "#0f172a"
+
+        const sectionGradientColorB =
+          themeMode === "custom"
+            ? typeof config.sectionGradientColorB === "string" && config.sectionGradientColorB.trim()
+              ? config.sectionGradientColorB
+              : resolvedEventTheme.gradientColorB || "#1d4ed8"
+            : resolvedEventTheme.gradientColorB || "#1d4ed8"
+
+        const sectionGradientAngle =
+          themeMode === "custom"
+            ? typeof config.sectionGradientAngle === "string" && config.sectionGradientAngle.trim()
+              ? config.sectionGradientAngle
+              : resolvedEventTheme.gradientAngle || "135deg"
+            : resolvedEventTheme.gradientAngle || "135deg"
+
+        const sectionBackgroundImage =
+          themeMode === "custom"
+            ? fillType === "linear-gradient"
+              ? `linear-gradient(${sectionGradientAngle}, ${sectionGradientColorA}, ${sectionGradientColorB})`
+              : fillType === "radial-gradient"
+                ? `radial-gradient(circle at center, ${sectionGradientColorA}, ${sectionGradientColorB})`
+                : undefined
+            : undefined
 
         const widthClass = getWidthClass(config.contentWidth)
         const paddingYClass = getPaddingYClass(config.paddingY)
@@ -273,6 +356,12 @@ export default function EventPageRenderer({
             )} ${showTopDivider ? "border-t border-white/10" : ""} ${
               showBottomDivider ? "border-b border-white/10" : ""
             }`}
+            style={{
+              backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
+              backgroundImage: sectionBackgroundImage,
+              borderColor: sectionBorderColor,
+              color: sectionTextColor,
+            }}
           >
             <div className={`mx-auto ${widthClass}`}>
               {section.type === "hero" && hasHeader ? (
@@ -282,14 +371,20 @@ export default function EventPageRenderer({
                   </div>
 
                   {config.title ? (
-                    <h1 className="mt-3 text-4xl font-bold">{config.title}</h1>
+                    <h1
+                      className="mt-3 text-4xl font-bold"
+                      style={{ color: sectionTextColor }}
+                    >
+                      {config.title}
+                    </h1>
                   ) : null}
 
                   {config.body ? (
                     <p
-                      className={`mt-4 whitespace-pre-wrap text-white/70 ${
+                      className={`mt-4 whitespace-pre-wrap ${
                         config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
                       }`}
+                      style={{ color: sectionTextColor }}
                     >
                       {config.body}
                     </p>
@@ -298,16 +393,22 @@ export default function EventPageRenderer({
               ) : hasHeader ? (
                 <div className={textAlignClass}>
                   {config.title ? (
-                    <h2 className="text-2xl font-semibold text-white">{config.title}</h2>
+                    <h2
+                      className="text-2xl font-semibold"
+                      style={{ color: sectionTextColor }}
+                    >
+                      {config.title}
+                    </h2>
                   ) : null}
 
                   {config.body ? (
                     <p
                       className={
                         config.title
-                          ? "mt-4 whitespace-pre-wrap text-white/70"
-                          : "whitespace-pre-wrap text-white/70"
+                          ? "mt-4 whitespace-pre-wrap"
+                          : "whitespace-pre-wrap"
                       }
+                      style={{ color: sectionTextColor }}
                     >
                       {config.body}
                     </p>

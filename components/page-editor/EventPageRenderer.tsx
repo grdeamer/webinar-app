@@ -636,7 +636,14 @@ export default function EventPageRenderer({
 
   return (
     <>
-      <div className="relative min-h-[900px] overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white">
+      <div
+  className="relative min-h-[900px] overflow-hidden rounded-3xl border text-white"
+  style={{
+    backgroundColor: resolvedEventTheme.pageBackgroundColor,
+    borderColor: resolvedEventTheme.panelBorderColor,
+    color: resolvedEventTheme.textColor,
+  }}
+>
 {resolvedSections.map((section, index) => {
   const config = section.config ?? {}
 

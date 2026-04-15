@@ -20,7 +20,7 @@ import { createDefaultEventHomeSections } from "@/lib/page-editor/sectionRegistr
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDestination"
 import type { EventBreakoutPreview } from "@/lib/types"
-import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
+import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
 import JupiterHomeHero from "@/components/events/JupiterHomeHero"
 
 export const dynamic = "force-dynamic"
@@ -41,6 +41,23 @@ async function getBuilderSections(eventId: string): Promise<EventPageSection[]> 
 
   const sections = data?.sections
   return Array.isArray(sections) ? (sections as EventPageSection[]) : []
+}
+
+async function getEventTheme(eventId: string): Promise<EventTheme | null> {
+  const { data, error } = await supabaseAdmin
+    .from("event_page_sections")
+    .select("theme")
+    .eq("event_id", eventId)
+    .eq("page_key", "event_home")
+    .maybeSingle()
+
+  if (error) {
+    console.error("Failed to load event home theme:", error.message)
+    return null
+  }
+
+  const theme = data?.theme
+  return theme && typeof theme === "object" ? (theme as EventTheme) : null
 }
 
 function formatAgendaRange(start?: string | null, end?: string | null) {
@@ -196,12 +213,8 @@ function SessionsList({
           <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
             Sessions
           </div>
-          <h2 className="mt-2 text-2xl font-semibold text-white">
-            Featured programming
-          </h2>
-          <p className="mt-2 text-sm text-white/55">
-            A curated view of your event sessions.
-          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-white">Featured programming</h2>
+          <p className="mt-2 text-sm text-white/55">A curated view of your event sessions.</p>
         </div>
 
         <Link
@@ -314,14 +327,11 @@ function MissionControlHero({
           {liveStateCard}
 
           <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-              Arrival
-            </div>
-            <div className="mt-3 text-lg font-semibold text-white">
-              This is your event in motion
-            </div>
+            <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">Arrival</div>
+            <div className="mt-3 text-lg font-semibold text-white">This is your event in motion</div>
             <p className="mt-2 text-sm leading-6 text-white/55">
-              Move between the lobby, sessions, speakers, and live programming without losing the thread.
+              Move between the lobby, sessions, speakers, and live programming without losing the
+              thread.
             </p>
           </div>
         </div>
@@ -339,36 +349,33 @@ export default async function EventHomePage(props: {
   const authedUser = await getEventUserOrNull({ slug })
   const viewer = await buildEventViewerContext(slug, event.id)
 
-  const [
-    { data: agenda },
-    { data: webinarRows },
-    { data: breakouts },
-    builderSections,
-  ] = await Promise.all([
-    supabaseAdmin
-      .from("event_agenda_items")
-      .select("id,title,start_at,end_at,track,speaker,description")
-      .eq("event_id", event.id)
-      .order("start_at", { ascending: true, nullsFirst: false })
-      .limit(6),
+  const [{ data: agenda }, { data: webinarRows }, { data: breakouts }, builderSections, eventTheme] =
+    await Promise.all([
+      supabaseAdmin
+        .from("event_agenda_items")
+        .select("id,title,start_at,end_at,track,speaker,description")
+        .eq("event_id", event.id)
+        .order("start_at", { ascending: true, nullsFirst: false })
+        .limit(6),
 
-    supabaseAdmin
-      .from("event_user_webinars")
-      .select(
-        "webinars:webinar_id(id,title,description,webinar_date,speaker,tag,thumbnail_url,speaker_cards)"
-      )
-      .eq("event_id", event.id)
-      .limit(6),
+      supabaseAdmin
+        .from("event_user_webinars")
+        .select(
+          "webinars:webinar_id(id,title,description,webinar_date,speaker,tag,thumbnail_url,speaker_cards)"
+        )
+        .eq("event_id", event.id)
+        .limit(6),
 
-    supabaseAdmin
-      .from("event_breakouts")
-      .select("id,title,description,join_link,start_at,end_at")
-      .eq("event_id", event.id)
-      .order("start_at", { ascending: true, nullsFirst: false })
-      .limit(3),
+      supabaseAdmin
+        .from("event_breakouts")
+        .select("id,title,description,join_link,start_at,end_at")
+        .eq("event_id", event.id)
+        .order("start_at", { ascending: true, nullsFirst: false })
+        .limit(3),
 
-    getBuilderSections(event.id),
-  ])
+      getBuilderSections(event.id),
+      getEventTheme(event.id),
+    ])
 
   const sessions = (webinarRows || []).map((row: any) => row.webinars).filter(Boolean)
 
@@ -481,9 +488,7 @@ export default async function EventHomePage(props: {
 
     countdown: (
       <div className="space-y-4">
-        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-          Countdown
-        </div>
+        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">Countdown</div>
         <EventCountdownCard
           title={nextAgenda?.title || event.title}
           targetIso={countdownTarget}
@@ -566,24 +571,18 @@ export default async function EventHomePage(props: {
         })
 
   const filteredSections = baseSections.filter((section) => section.type !== "hero")
-
   const resolvedSections: EventPageSection[] = [heroSection, ...filteredSections]
 
-console.log("EVENT HOME authedUser:", authedUser)
-
-const attendeeUserId =
-  typeof (authedUser as any)?.id === "string"
-    ? (authedUser as any).id
-    : typeof (authedUser as any)?.user_id === "string"
-      ? (authedUser as any).user_id
-      : typeof (authedUser as any)?.user?.id === "string"
-        ? (authedUser as any).user.id
-        : typeof (authedUser as any)?.attendee?.user_id === "string"
-          ? (authedUser as any).attendee.user_id
-          : null
-
-console.log("EVENT HOME attendeeUserId:", attendeeUserId)
-console.log("EVENT HOME event.id:", event.id)
+  const attendeeUserId =
+    typeof (authedUser as any)?.id === "string"
+      ? (authedUser as any).id
+      : typeof (authedUser as any)?.user_id === "string"
+        ? (authedUser as any).user_id
+        : typeof (authedUser as any)?.user?.id === "string"
+          ? (authedUser as any).user.id
+          : typeof (authedUser as any)?.attendee?.user_id === "string"
+            ? (authedUser as any).attendee.user_id
+            : null
 
   return (
     <>
@@ -601,6 +600,7 @@ console.log("EVENT HOME event.id:", event.id)
         }}
         sections={resolvedSections}
         systemComponents={systemComponents}
+        eventTheme={eventTheme ?? undefined}
       />
     </>
   )
