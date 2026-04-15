@@ -1713,18 +1713,24 @@ body: JSON.stringify({
                                 startDrag(e, el.id, el.x, el.y)
                               }
                             }}
-                            onDoubleClick={(e) => {
-                              e.stopPropagation()
-                              if (
-                                el.element_type === "text" ||
-                                el.element_type === "button" ||
-                                el.element_type === "pdf"
-                              ) {
-                                setEditingElementId(el.id)
-                                setSelectedId(el.id)
-                                setSelectedSectionId(null)
-                              }
-                            }}
+    onDoubleClick={(e) => {
+  e.stopPropagation()
+  if (!isEditing) return
+
+  setSelectedId(el.id)
+  setSelectedIds([el.id])
+  setSelectedSectionId(null)
+
+  if (
+    el.element_type === "text" ||
+    el.element_type === "button" ||
+    el.element_type === "pdf"
+  ) {
+    setEditingElementId(el.id)
+  } else {
+    setEditingElementId(null)
+  }
+}}
                             onClick={(e) => {
                               if (isDraggingRef.current) return
                               e.stopPropagation()

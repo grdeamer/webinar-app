@@ -723,13 +723,18 @@ export default function EventPageRenderer({
 
   if (section.type === "hero") {
     return (
-      <div
-        key={`${section.type}-${section.id}-${index}`}
-        data-section-id={section.id}
-        onClick={(e) => {
-          e.stopPropagation()
-          if (isEditorClickable) onSelectSection?.(section.id)
-        }}
+<div
+  key={`${section.type}-${section.id}-${index}`}
+  data-section-id={section.id}
+  onClick={(e) => {
+    e.stopPropagation()
+    if (isEditorClickable) onSelectSection?.(section.id)
+  }}
+  onDoubleClick={(e) => {
+    e.stopPropagation()
+    if (!isEditorClickable) return
+    onSelectSection?.(section.id)
+  }}
         className={`${getSectionOuterBackgroundClass(
           config.backgroundStyle,
           section.type
