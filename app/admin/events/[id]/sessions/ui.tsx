@@ -321,11 +321,9 @@ function toggleSessionOpen(id: string) {
     setSessionNotice(id, null)
 
     try {
-      const res = await fetch("/api/admin/event-sessions", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
-      })
+const res = await fetch(`/api/admin/sessions/${id}`, {
+  method: "DELETE",
+})
 
       const json = await parseApiResponse(res)
       if (!res.ok) throw new Error(json?.error || `Failed to delete session (${res.status})`)
