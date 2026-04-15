@@ -15,6 +15,15 @@ const sharedFields = [
     placeholder: "Internal section name",
   },
   {
+    key: "themeMode",
+    label: "Theme Mode",
+    type: "select",
+    options: [
+      { label: "Inherit Event Theme", value: "inherit" },
+      { label: "Custom Section Theme", value: "custom" },
+    ],
+  },
+  {
     key: "visible",
     label: "Visible",
     type: "checkbox",
@@ -137,6 +146,7 @@ function makeConfig(config: SectionConfig): SectionConfig {
   return {
     visible: true,
     hideOnMobile: false,
+    themeMode: "inherit",
     backgroundStyle: "panel",
     contentWidth: "xl",
     paddingY: "md",

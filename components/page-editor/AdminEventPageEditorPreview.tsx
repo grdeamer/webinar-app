@@ -14,6 +14,7 @@ import type {
   SectionType,
   SectionBlock,
   SystemComponentKey,
+  EventTheme,
 } from "@/lib/page-editor/sectionTypes"
 
 export type EditorElement = {
@@ -461,6 +462,16 @@ const isEmbedded =
     playbackUrl?: string | null
   } | null>(null)
 
+  const [eventTheme, setEventTheme] = useState<EventTheme>({
+    pageBackgroundColor: "#020617",
+    panelBackgroundColor: "#0f172a",
+    panelBorderColor: "rgba(255,255,255,0.10)",
+    textColor: "#ffffff",
+    gradientColorA: "#0f172a",
+    gradientColorB: "#1d4ed8",
+    gradientAngle: "135deg",
+  })
+
   const [selectionBox, setSelectionBox] = useState<{
     startX: number
     startY: number
@@ -515,6 +526,8 @@ const isEmbedded =
 
       const rows = Array.isArray(data?.elements) ? data.elements : []
       const loadedSections = Array.isArray(data?.sections) ? data.sections : []
+      const loadedTheme =
+  data?.eventTheme && typeof data.eventTheme === "object" ? data.eventTheme : null
 
       if (rows.length === 0) {
         setElements(getFallbackElements())
@@ -779,10 +792,11 @@ const isEmbedded =
     const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        elements: payload,
-        sections,
-      }),
+body: JSON.stringify({
+  elements: payload,
+  sections,
+  eventTheme,
+}),
     })
 
     const data: any = await res.json().catch((): null => null)
@@ -1325,7 +1339,7 @@ const isEmbedded =
 <div className="text-xs uppercase tracking-[0.22em] text-white/40">
   {isEmbedded ? "Experience Builder" : "Page Editor Preview"}
 </div>
-                <h1 className="text-xl font-semibold capitalize">
+<h1 className="text-xl font-semibold capitalize">
   {isEmbedded ? "Experience Builder" : eventInfo.title}
 </h1>
               </div>
@@ -1484,22 +1498,23 @@ const isEmbedded =
                       }
                     }}
                   >
-                    <EventPageRenderer
-                      mode="editor"
-                      event={eventInfo}
-                      elements={normalizedElements}
-                      sections={sections}
-                      isEditing={isEditing}
-                      selectedSectionId={selectedSectionId}
-                      onSelectSection={(id: string | null) => {
-                        setSelectedSectionId(id)
-                        setSelectedId(null)
-                        setEditingElementId(null)
-                      }}
-                      isMobilePreview={isMobilePreview}
-                      generalSession={generalSession}
-                      systemComponents={{
-                        live_state: (
+<EventPageRenderer
+  mode="editor"
+  event={eventInfo}
+  elements={normalizedElements}
+  sections={sections}
+  isEditing={isEditing}
+  selectedSectionId={selectedSectionId}
+  onSelectSection={(id: string | null) => {
+    setSelectedSectionId(id)
+    setSelectedId(null)
+    setEditingElementId(null)
+  }}
+  isMobilePreview={isMobilePreview}
+  generalSession={generalSession}
+  eventTheme={eventTheme}
+  systemComponents={{
+    live_state: (
                           <div className="flex items-center gap-2 text-sm">
                             <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
                             <span className="text-white/80">Live status preview</span>
@@ -2073,6 +2088,92 @@ const isEmbedded =
 
               {editorDetailsOpen && (
                 <div className="mt-4">
+                  {!selectedElement && !selectedSection && (
+  <div className="space-y-4">
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="text-xs uppercase tracking-[0.18em] text-white/40">
+        Event Theme
+      </div>
+
+      <div className="mt-4 space-y-4">
+        <div>
+          <div className="mb-2 text-xs text-white/50">Page Background</div>
+          <input
+            type="color"
+            value={eventTheme.pageBackgroundColor}
+            onChange={(e) =>
+              setEventTheme((prev) => ({
+                ...prev,
+                pageBackgroundColor: e.target.value,
+              }))
+            }
+            className="h-12 w-full rounded-xl border border-white/10 bg-slate-950 p-2"
+          />
+        </div>
+
+        <div>
+          <div className="mb-2 text-xs text-white/50">Panel Background</div>
+          <input
+            type="color"
+            value={eventTheme.panelBackgroundColor}
+            onChange={(e) =>
+              setEventTheme((prev) => ({
+                ...prev,
+                panelBackgroundColor: e.target.value,
+              }))
+            }
+            className="h-12 w-full rounded-xl border border-white/10 bg-slate-950 p-2"
+          />
+        </div>
+
+        <div>
+          <div className="mb-2 text-xs text-white/50">Text Color</div>
+          <input
+            type="color"
+            value={eventTheme.textColor}
+            onChange={(e) =>
+              setEventTheme((prev) => ({
+                ...prev,
+                textColor: e.target.value,
+              }))
+            }
+            className="h-12 w-full rounded-xl border border-white/10 bg-slate-950 p-2"
+          />
+        </div>
+
+        <div>
+          <div className="mb-2 text-xs text-white/50">Gradient A</div>
+          <input
+            type="color"
+            value={eventTheme.gradientColorA}
+            onChange={(e) =>
+              setEventTheme((prev) => ({
+                ...prev,
+                gradientColorA: e.target.value,
+              }))
+            }
+            className="h-12 w-full rounded-xl border border-white/10 bg-slate-950 p-2"
+          />
+        </div>
+
+        <div>
+          <div className="mb-2 text-xs text-white/50">Gradient B</div>
+          <input
+            type="color"
+            value={eventTheme.gradientColorB}
+            onChange={(e) =>
+              setEventTheme((prev) => ({
+                ...prev,
+                gradientColorB: e.target.value,
+              }))
+            }
+            className="h-12 w-full rounded-xl border border-white/10 bg-slate-950 p-2"
+          />
+        </div>
+      </div>
+    </div>
+  </div>
+)}
                   <div className="text-xs text-white/45">
                     {selectedElement
                       ? `${selectedElement.element_type ?? "text"} element`
@@ -2729,33 +2830,48 @@ const isEmbedded =
                         </>
                       )}
 
-                      {(selectedSection.config.sectionBackgroundColor ||
-                        selectedSection.config.sectionBorderColor ||
-                        selectedSection.config.sectionTextColor ||
-                        selectedSection.config.sectionGradientColorA ||
-                        selectedSection.config.sectionGradientColorB) && (
-                        <button
-                          type="button"
-                          onClick={() =>
-                            updateSectionConfig(selectedSection.id, {
-                              sectionBackgroundColor: "",
-                              sectionBorderColor: "",
-                              sectionTextColor: "",
-                              sectionGradientColorA: "",
-                              sectionGradientColorB: "",
-                              sectionGradientAngle: "",
-                            })
-                          }
-                          className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-                        >
-                          Reset Section Colors
-                        </button>
-                      )}
+{selectedSection.config.themeMode === "custom" &&
+  (selectedSection.config.sectionBackgroundColor ||
+    selectedSection.config.sectionBorderColor ||
+    selectedSection.config.sectionTextColor ||
+    selectedSection.config.sectionGradientColorA ||
+    selectedSection.config.sectionGradientColorB) && (
+    <button
+      type="button"
+      onClick={() =>
+        updateSectionConfig(selectedSection.id, {
+          sectionBackgroundColor: "",
+          sectionBorderColor: "",
+          sectionTextColor: "",
+          sectionGradientColorA: "",
+          sectionGradientColorB: "",
+          sectionGradientAngle: "",
+        })
+      }
+      className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+    >
+      Reset Section Colors
+    </button>
+  )}
 
                       {registryItem?.fields.map((field: any) => {
                         const value = (selectedSection.config as any)?.[field.key]
                         const fillType =
                           (selectedSection.config.sectionBackgroundFillType as string) || "solid"
+                            const themeMode = (selectedSection.config.themeMode as string) || "inherit"
+                                                    if (
+                          themeMode !== "custom" &&
+                          (
+                            field.key === "sectionBackgroundColor" ||
+                            field.key === "sectionBorderColor" ||
+                            field.key === "sectionTextColor" ||
+                            field.key === "sectionGradientColorA" ||
+                            field.key === "sectionGradientColorB" ||
+                            field.key === "sectionGradientAngle"
+                          )
+                        ) {
+                          return null
+                        }
 
                         if (field.key === "sectionBackgroundFillType") {
                           return (

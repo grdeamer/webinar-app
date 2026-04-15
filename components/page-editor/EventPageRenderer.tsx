@@ -6,6 +6,7 @@ import type {
   SectionType,
   SectionBlock,
   SystemComponentKey,
+  EventTheme,
 } from "@/lib/page-editor/sectionTypes"
 
 type EventLike = {
@@ -604,6 +605,7 @@ export default function EventPageRenderer({
   isMobilePreview = false,
   generalSession = null,
   systemComponents = {},
+  eventTheme,
 }: {
   event: EventLike
   elements: EditorElement[]
@@ -615,8 +617,18 @@ export default function EventPageRenderer({
   isMobilePreview?: boolean
   generalSession?: GeneralSessionData
   systemComponents?: SystemComponentsMap
+  eventTheme?: EventTheme
 }) {
   const resolvedSections = sections && sections.length > 0 ? sections : getFallbackSections(event)
+    const resolvedEventTheme: EventTheme = {
+    pageBackgroundColor: eventTheme?.pageBackgroundColor || "#020617",
+    panelBackgroundColor: eventTheme?.panelBackgroundColor || "#0f172a",
+    panelBorderColor: eventTheme?.panelBorderColor || "rgba(255,255,255,0.10)",
+    textColor: eventTheme?.textColor || "#ffffff",
+    gradientColorA: eventTheme?.gradientColorA || "#0f172a",
+    gradientColorB: eventTheme?.gradientColorB || "#1d4ed8",
+    gradientAngle: eventTheme?.gradientAngle || "135deg",
+  }
   const resolvedGeneralSessionUrl = getResolvedGeneralSessionUrl(generalSession)
 
   const [activeVideo, setActiveVideo] = useState<EditorElement | null>(null)
@@ -628,47 +640,67 @@ export default function EventPageRenderer({
 {resolvedSections.map((section, index) => {
   const config = section.config ?? {}
 
+  const themeMode =
+    typeof config.themeMode === "string" && config.themeMode.trim()
+      ? config.themeMode
+      : "inherit"
+
   const fillType =
+    themeMode === "custom" &&
     typeof config.sectionBackgroundFillType === "string" &&
     config.sectionBackgroundFillType.trim()
       ? config.sectionBackgroundFillType
       : "solid"
 
   const sectionBackgroundColor =
-    typeof config.sectionBackgroundColor === "string" && config.sectionBackgroundColor.trim()
-      ? config.sectionBackgroundColor
-      : undefined
+    themeMode === "custom"
+      ? typeof config.sectionBackgroundColor === "string" && config.sectionBackgroundColor.trim()
+        ? config.sectionBackgroundColor
+        : undefined
+      : resolvedEventTheme.panelBackgroundColor
 
   const sectionBorderColor =
-    typeof config.sectionBorderColor === "string" && config.sectionBorderColor.trim()
-      ? config.sectionBorderColor
-      : undefined
+    themeMode === "custom"
+      ? typeof config.sectionBorderColor === "string" && config.sectionBorderColor.trim()
+        ? config.sectionBorderColor
+        : undefined
+      : resolvedEventTheme.panelBorderColor
 
   const sectionTextColor =
-    typeof config.sectionTextColor === "string" && config.sectionTextColor.trim()
-      ? config.sectionTextColor
-      : undefined
+    themeMode === "custom"
+      ? typeof config.sectionTextColor === "string" && config.sectionTextColor.trim()
+        ? config.sectionTextColor
+        : undefined
+      : resolvedEventTheme.textColor
 
   const sectionGradientColorA =
-    typeof config.sectionGradientColorA === "string" && config.sectionGradientColorA.trim()
-      ? config.sectionGradientColorA
-      : "#0f172a"
+    themeMode === "custom"
+      ? typeof config.sectionGradientColorA === "string" && config.sectionGradientColorA.trim()
+        ? config.sectionGradientColorA
+        : resolvedEventTheme.gradientColorA || "#0f172a"
+      : resolvedEventTheme.gradientColorA || "#0f172a"
 
   const sectionGradientColorB =
-    typeof config.sectionGradientColorB === "string" && config.sectionGradientColorB.trim()
-      ? config.sectionGradientColorB
-      : "#1d4ed8"
+    themeMode === "custom"
+      ? typeof config.sectionGradientColorB === "string" && config.sectionGradientColorB.trim()
+        ? config.sectionGradientColorB
+        : resolvedEventTheme.gradientColorB || "#1d4ed8"
+      : resolvedEventTheme.gradientColorB || "#1d4ed8"
 
   const sectionGradientAngle =
-    typeof config.sectionGradientAngle === "string" && config.sectionGradientAngle.trim()
-      ? config.sectionGradientAngle
-      : "135deg"
+    themeMode === "custom"
+      ? typeof config.sectionGradientAngle === "string" && config.sectionGradientAngle.trim()
+        ? config.sectionGradientAngle
+        : resolvedEventTheme.gradientAngle || "135deg"
+      : resolvedEventTheme.gradientAngle || "135deg"
 
   const sectionBackgroundImage =
-    fillType === "linear-gradient"
-      ? `linear-gradient(${sectionGradientAngle}, ${sectionGradientColorA}, ${sectionGradientColorB})`
-      : fillType === "radial-gradient"
-      ? `radial-gradient(circle at center, ${sectionGradientColorA}, ${sectionGradientColorB})`
+    themeMode === "custom"
+      ? fillType === "linear-gradient"
+        ? `linear-gradient(${sectionGradientAngle}, ${sectionGradientColorA}, ${sectionGradientColorB})`
+        : fillType === "radial-gradient"
+        ? `radial-gradient(circle at center, ${sectionGradientColorA}, ${sectionGradientColorB})`
+        : undefined
       : undefined
 
   if (config.visible === false) return null

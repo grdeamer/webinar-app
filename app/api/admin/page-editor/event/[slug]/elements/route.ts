@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import type { SectionConfig, SectionType } from "@/lib/page-editor/sectionTypes"
+import type {
+  SectionConfig,
+  SectionType,
+  EventTheme,
+} from "@/lib/page-editor/sectionTypes"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -28,6 +32,25 @@ function parseSectionBody(body: unknown): SectionConfig {
   return {}
 }
 
+function parseEventTheme(theme: unknown): EventTheme | null {
+  if (!theme) return null
+
+  if (typeof theme === "object" && theme !== null) {
+    return theme as EventTheme
+  }
+
+  if (typeof theme === "string") {
+    try {
+      const parsed = JSON.parse(theme)
+      if (parsed && typeof parsed === "object") {
+        return parsed as EventTheme
+      }
+    } catch {}
+  }
+
+  return null
+}
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ slug: string }> }
@@ -36,7 +59,7 @@ export async function GET(
 
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
-    .select("id,slug")
+    .select("id,slug,event_theme")
     .eq("slug", slug)
     .maybeSingle()
 
@@ -65,6 +88,7 @@ export async function GET(
 
   return json({
     event_id: event.id,
+    eventTheme: parseEventTheme(event.event_theme),
     elements: (elements ?? []).map((el) => ({
       ...el,
       props: el.props ?? {},
@@ -91,10 +115,14 @@ export async function POST(
   ctx: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await ctx.params
-  const body = await req.json().catch((): null => null)
+  const body = await req.json()
 
   const elements = Array.isArray(body?.elements) ? body.elements : []
   const sections = Array.isArray(body?.sections) ? body.sections : []
+  const eventTheme =
+    body?.eventTheme && typeof body.eventTheme === "object"
+      ? (body.eventTheme as EventTheme)
+      : null
 
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
@@ -104,6 +132,18 @@ export async function POST(
 
   if (eventError || !event) {
     return json({ error: "Event not found" }, 404)
+  }
+
+  const { error: themeUpdateError } = await supabaseAdmin
+    .from("events")
+    .update({
+      event_theme: eventTheme,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", event.id)
+
+  if (themeUpdateError) {
+    return json({ error: themeUpdateError.message }, 400)
   }
 
   const { error: deleteElementsError } = await supabaseAdmin
@@ -156,7 +196,8 @@ export async function POST(
 
   if (sections.length > 0) {
     const sectionRows = sections.map((section: any, idx: number) => {
-      const config = section?.config && typeof section.config === "object" ? section.config : {}
+      const config =
+        section?.config && typeof section.config === "object" ? section.config : {}
 
       return {
         event_id: event.id,
@@ -189,8 +230,9 @@ export async function POST(
   }
 
   return json({
-  ok: true,
-  elements: insertedElements,
-  sections: insertedSections,
-})
+    ok: true,
+    eventTheme,
+    elements: insertedElements,
+    sections: insertedSections,
+  })
 }

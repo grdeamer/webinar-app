@@ -49,12 +49,21 @@ export type SectionBlock =
         containerStyle?: "none" | "panel" | "subtle"
       }
     }
-
+export type EventTheme = {
+  pageBackgroundColor?: string
+  panelBackgroundColor?: string
+  panelBorderColor?: string
+  textColor?: string
+  gradientColorA?: string
+  gradientColorB?: string
+  gradientAngle?: string
+}
 export type SectionConfig = {
   title?: string
   body?: string | null
   visible?: boolean
   adminLabel?: string
+  themeMode?: "inherit" | "custom"
   backgroundStyle?: "transparent" | "subtle" | "panel"
   contentWidth?: "md" | "lg" | "xl" | "full"
   paddingY?: "sm" | "md" | "lg"
