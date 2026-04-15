@@ -2673,6 +2673,7 @@ const isEmbedded =
                       )}
                     </div>
                   ) : selectedSection ? (
+                
                     <div className="mt-4 space-y-4">
                       {selectedSection.type !== "hero" && (
                         <>
@@ -2727,37 +2728,105 @@ const isEmbedded =
                           </button>
                         </>
                       )}
-{(selectedSection.config.sectionBackgroundColor ||
-  selectedSection.config.sectionBorderColor ||
-  selectedSection.config.sectionTextColor) && (
-  <button
-    type="button"
-    onClick={() =>
-      updateSectionConfig(selectedSection.id, {
-        sectionBackgroundColor: "",
-        sectionBorderColor: "",
-        sectionTextColor: "",
-      })
-    }
-    className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-  >
-    Reset Section Colors
-  </button>
-)}
+
+                      {(selectedSection.config.sectionBackgroundColor ||
+                        selectedSection.config.sectionBorderColor ||
+                        selectedSection.config.sectionTextColor ||
+                        selectedSection.config.sectionGradientColorA ||
+                        selectedSection.config.sectionGradientColorB) && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            updateSectionConfig(selectedSection.id, {
+                              sectionBackgroundColor: "",
+                              sectionBorderColor: "",
+                              sectionTextColor: "",
+                              sectionGradientColorA: "",
+                              sectionGradientColorB: "",
+                              sectionGradientAngle: "",
+                            })
+                          }
+                          className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+                        >
+                          Reset Section Colors
+                        </button>
+                      )}
+
                       {registryItem?.fields.map((field: any) => {
                         const value = (selectedSection.config as any)?.[field.key]
-                        if (
-                          field.key === "sectionBackgroundColor" ||
-                          field.key === "sectionBorderColor" ||
-                          field.key === "sectionTextColor"
-                        ) {
+                        const fillType =
+                          (selectedSection.config.sectionBackgroundFillType as string) || "solid"
+
+                        if (field.key === "sectionBackgroundFillType") {
+                          return (
+                            <div key={field.key}>
+                              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                {field.label}
+                              </div>
+                              <select
+                                value={String(value ?? "solid")}
+                                onChange={(e) =>
+                                  updateSectionConfig(selectedSection.id, {
+                                    [field.key]: e.target.value,
+                                  })
+                                }
+                                className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                              >
+                                {field.options?.map((opt: any) => (
+                                  <option key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </option>
+                                ))}
+                              </select>
+                            </div>
+                          )
+                        }
+
+                        if (field.key === "sectionBackgroundColor") {
+                          if (fillType !== "solid") return null
+
                           const colorValue =
                             typeof value === "string" && value.trim().startsWith("#")
                               ? value
-                              : field.key === "sectionBackgroundColor"
-                              ? "#0f172a"
-                              : field.key === "sectionBorderColor"
-                              ? "#ffffff"
+                              : "#0f172a"
+
+                          return (
+                            <div key={field.key}>
+                              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                {field.label}
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="color"
+                                  value={colorValue}
+                                  onChange={(e) =>
+                                    updateSectionConfig(selectedSection.id, {
+                                      [field.key]: e.target.value,
+                                    })
+                                  }
+                                  className="h-12 w-16 rounded-xl border border-white/10 bg-slate-950 p-2"
+                                />
+
+                                <input
+                                  value={String(value ?? "")}
+                                  onChange={(e) =>
+                                    updateSectionConfig(selectedSection.id, {
+                                      [field.key]: e.target.value,
+                                    })
+                                  }
+                                  placeholder={field.placeholder}
+                                  className="flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                />
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        if (field.key === "sectionBorderColor" || field.key === "sectionTextColor") {
+                          const colorValue =
+                            typeof value === "string" && value.trim().startsWith("#")
+                              ? value
                               : "#ffffff"
 
                           return (
@@ -2792,6 +2861,76 @@ const isEmbedded =
                             </div>
                           )
                         }
+
+                        if (
+                          field.key === "sectionGradientColorA" ||
+                          field.key === "sectionGradientColorB"
+                        ) {
+                          if (fillType === "solid") return null
+
+                          const fallbackColor =
+                            field.key === "sectionGradientColorA" ? "#0f172a" : "#1d4ed8"
+
+                          const colorValue =
+                            typeof value === "string" && value.trim().startsWith("#")
+                              ? value
+                              : fallbackColor
+
+                          return (
+                            <div key={field.key}>
+                              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                {field.label}
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="color"
+                                  value={colorValue}
+                                  onChange={(e) =>
+                                    updateSectionConfig(selectedSection.id, {
+                                      [field.key]: e.target.value,
+                                    })
+                                  }
+                                  className="h-12 w-16 rounded-xl border border-white/10 bg-slate-950 p-2"
+                                />
+
+                                <input
+                                  value={String(value ?? "")}
+                                  onChange={(e) =>
+                                    updateSectionConfig(selectedSection.id, {
+                                      [field.key]: e.target.value,
+                                    })
+                                  }
+                                  placeholder={field.placeholder}
+                                  className="flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                />
+                              </div>
+                            </div>
+                          )
+                        }
+
+                        if (field.key === "sectionGradientAngle") {
+                          if (fillType !== "linear-gradient") return null
+
+                          return (
+                            <div key={field.key}>
+                              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                {field.label}
+                              </div>
+                              <input
+                                value={String(value ?? "")}
+                                onChange={(e) =>
+                                  updateSectionConfig(selectedSection.id, {
+                                    [field.key]: e.target.value,
+                                  })
+                                }
+                                placeholder={field.placeholder}
+                                className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                              />
+                            </div>
+                          )
+                        }
+
                         if (field.type === "checkbox") {
                           return (
                             <label

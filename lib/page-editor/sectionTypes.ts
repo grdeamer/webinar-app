@@ -62,9 +62,14 @@ export type SectionConfig = {
   divider?: "none" | "top" | "bottom" | "both"
   hideOnMobile?: boolean
   columns?: 1 | 2
+
+  sectionBackgroundFillType?: "solid" | "linear-gradient" | "radial-gradient"
   sectionBackgroundColor?: string
   sectionBorderColor?: string
   sectionTextColor?: string
+  sectionGradientColorA?: string
+  sectionGradientColorB?: string
+  sectionGradientAngle?: string
 }
 
 export type EventPageSection = {

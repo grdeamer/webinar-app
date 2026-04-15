@@ -45,6 +45,16 @@ const sharedFields = [
     ],
   },
   {
+    key: "sectionBackgroundFillType",
+    label: "Section Fill Type",
+    type: "select",
+    options: [
+      { label: "Solid", value: "solid" },
+      { label: "Linear Gradient", value: "linear-gradient" },
+      { label: "Radial Gradient", value: "radial-gradient" },
+    ],
+  },
+  {
     key: "sectionBackgroundColor",
     label: "Section Background Color",
     type: "text",
@@ -61,6 +71,24 @@ const sharedFields = [
     label: "Section Text Color",
     type: "text",
     placeholder: "#ffffff",
+  },
+  {
+    key: "sectionGradientColorA",
+    label: "Gradient Color A",
+    type: "text",
+    placeholder: "#0f172a",
+  },
+  {
+    key: "sectionGradientColorB",
+    label: "Gradient Color B",
+    type: "text",
+    placeholder: "#1d4ed8",
+  },
+  {
+    key: "sectionGradientAngle",
+    label: "Gradient Angle",
+    type: "text",
+    placeholder: "135deg",
   },
   {
     key: "contentWidth",
@@ -115,6 +143,10 @@ function makeConfig(config: SectionConfig): SectionConfig {
     textAlign: "left",
     divider: "none",
     columns: 1,
+    sectionBackgroundFillType: "solid",
+    sectionGradientColorA: "#0f172a",
+    sectionGradientColorB: "#1d4ed8",
+    sectionGradientAngle: "135deg",
     ...config,
   }
 }
@@ -268,9 +300,7 @@ export function createDefaultEventHomeSections(event: {
         title: "Attendee Access",
         body: "Use the email assigned to your event registration to continue.",
       },
-      blocks: [
-        makeSystemBlock("access_gate"),
-      ],
+      blocks: [makeSystemBlock("access_gate")],
     },
 
     {
@@ -282,9 +312,7 @@ export function createDefaultEventHomeSections(event: {
         title: "Broadcast status",
         body: "This area reflects the current live routing and destination.",
       },
-      blocks: [
-        makeSystemBlock("live_state"),
-      ],
+      blocks: [makeSystemBlock("live_state")],
     },
 
     {
@@ -296,9 +324,7 @@ export function createDefaultEventHomeSections(event: {
         title: "Main stage",
         body: "Your live or upcoming main video experience appears here.",
       },
-      blocks: [
-        makeSystemBlock("stage_player"),
-      ],
+      blocks: [makeSystemBlock("stage_player")],
     },
 
     {
@@ -310,12 +336,9 @@ export function createDefaultEventHomeSections(event: {
         title: "What is next",
         body: "",
       },
-      blocks: [
-        makeSystemBlock("countdown"),
-      ],
+      blocks: [makeSystemBlock("countdown")],
     },
 
-    // 🔥 NEW: AGENDA
     {
       id: "agenda",
       type: "system",
@@ -325,12 +348,9 @@ export function createDefaultEventHomeSections(event: {
         title: "Event Agenda",
         body: "Explore the full schedule of sessions.",
       },
-      blocks: [
-        makeSystemBlock("agenda"),
-      ],
+      blocks: [makeSystemBlock("agenda")],
     },
 
-    // 🔥 NEW: SESSIONS
     {
       id: "sessions",
       type: "system",
@@ -340,9 +360,7 @@ export function createDefaultEventHomeSections(event: {
         title: "All Sessions",
         body: "Browse available sessions and content.",
       },
-      blocks: [
-        makeSystemBlock("sessions_list"),
-      ],
+      blocks: [makeSystemBlock("sessions_list")],
     },
 
     {
@@ -354,9 +372,7 @@ export function createDefaultEventHomeSections(event: {
         title: "Speaker spotlight",
         body: "",
       },
-      blocks: [
-        makeSystemBlock("speaker_spotlight"),
-      ],
+      blocks: [makeSystemBlock("speaker_spotlight")],
     },
 
     {
@@ -368,9 +384,7 @@ export function createDefaultEventHomeSections(event: {
         title: "Featured breakouts",
         body: "",
       },
-      blocks: [
-        makeSystemBlock("featured_breakouts"),
-      ],
+      blocks: [makeSystemBlock("featured_breakouts")],
     },
   ]
 }

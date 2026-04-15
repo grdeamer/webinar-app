@@ -628,6 +628,12 @@ export default function EventPageRenderer({
 {resolvedSections.map((section, index) => {
   const config = section.config ?? {}
 
+  const fillType =
+    typeof config.sectionBackgroundFillType === "string" &&
+    config.sectionBackgroundFillType.trim()
+      ? config.sectionBackgroundFillType
+      : "solid"
+
   const sectionBackgroundColor =
     typeof config.sectionBackgroundColor === "string" && config.sectionBackgroundColor.trim()
       ? config.sectionBackgroundColor
@@ -643,147 +649,171 @@ export default function EventPageRenderer({
       ? config.sectionTextColor
       : undefined
 
-          if (config.visible === false) return null
-          if (isMobilePreview && config.hideOnMobile) return null
+  const sectionGradientColorA =
+    typeof config.sectionGradientColorA === "string" && config.sectionGradientColorA.trim()
+      ? config.sectionGradientColorA
+      : "#0f172a"
 
-          const widthClass = getWidthClass(config.contentWidth)
-          const paddingYClass = getPaddingYClass(config.paddingY)
-          const textAlignClass = getTextAlignClass(config.textAlign)
-          const isSelected = selectedSectionId === section.id
-          const isEditorClickable = isEditing || mode === "editor"
-          const showTopDivider = hasTopDivider(config.divider)
-          const showBottomDivider = hasBottomDivider(config.divider)
+  const sectionGradientColorB =
+    typeof config.sectionGradientColorB === "string" && config.sectionGradientColorB.trim()
+      ? config.sectionGradientColorB
+      : "#1d4ed8"
 
-          if (section.type === "hero") {
-            return (
-              <div
-                key={`${section.type}-${section.id}-${index}`}
-                data-section-id={section.id}
-                onClick={(e) => {
-                  e.stopPropagation()
-                  if (isEditorClickable) onSelectSection?.(section.id)
-                }}
-                className={`${getSectionOuterBackgroundClass(
-                  config.backgroundStyle,
-                  section.type
-                )} px-8 ${paddingYClass} ${
-                  isEditorClickable ? "cursor-pointer" : ""
-                } ${isSelected ? "ring-2 ring-inset ring-sky-400" : ""} ${
-                  showTopDivider ? "border-t border-white/10" : ""
-                } ${showBottomDivider ? "border-b border-white/10" : ""}`}
-                style={{
-                  backgroundColor: sectionBackgroundColor,
-                  borderColor: sectionBorderColor,
-                  color: sectionTextColor,
-                }}
-              >
-                <div className={`mx-auto ${widthClass} ${textAlignClass}`}>
-                  <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-                    Event Page
-                  </div>
+  const sectionGradientAngle =
+    typeof config.sectionGradientAngle === "string" && config.sectionGradientAngle.trim()
+      ? config.sectionGradientAngle
+      : "135deg"
 
-                  <h1
-                    className="mt-3 text-4xl font-bold"
-                    style={{ color: sectionTextColor }}
-                  >
-                    {config.title || event.title}
-                  </h1>
+  const sectionBackgroundImage =
+    fillType === "linear-gradient"
+      ? `linear-gradient(${sectionGradientAngle}, ${sectionGradientColorA}, ${sectionGradientColorB})`
+      : fillType === "radial-gradient"
+      ? `radial-gradient(circle at center, ${sectionGradientColorA}, ${sectionGradientColorB})`
+      : undefined
 
-                  {config.body ? (
-                    <p
-                      className={`mt-4 whitespace-pre-wrap ${
-                        config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
-                      }`}
-                      style={{ color: sectionTextColor }}
-                    >
-                      {config.body}
-                    </p>
-                  ) : null}
+  if (config.visible === false) return null
+  if (isMobilePreview && config.hideOnMobile) return null
 
-                  {section.blocks?.length ? (
-                    <div className="mt-6 space-y-4">
-                      {section.blocks.map((block) =>
-                        renderSectionBlock(
-                          block,
-                          isEditing || mode === "editor",
-                          generalSession,
-                          systemComponents
-                        )
-                      )}
-                    </div>
-                  ) : null}
-                </div>
-              </div>
-            )
-          }
+  const widthClass = getWidthClass(config.contentWidth)
+  const paddingYClass = getPaddingYClass(config.paddingY)
+  const textAlignClass = getTextAlignClass(config.textAlign)
+  const isSelected = selectedSectionId === section.id
+  const isEditorClickable = isEditing || mode === "editor"
+  const showTopDivider = hasTopDivider(config.divider)
+  const showBottomDivider = hasBottomDivider(config.divider)
 
-          const cardClass = getContentCardClass(config.backgroundStyle)
+  if (section.type === "hero") {
+    return (
+      <div
+        key={`${section.type}-${section.id}-${index}`}
+        data-section-id={section.id}
+        onClick={(e) => {
+          e.stopPropagation()
+          if (isEditorClickable) onSelectSection?.(section.id)
+        }}
+        className={`${getSectionOuterBackgroundClass(
+          config.backgroundStyle,
+          section.type
+        )} px-8 ${paddingYClass} ${
+          isEditorClickable ? "cursor-pointer" : ""
+        } ${isSelected ? "ring-2 ring-inset ring-sky-400" : ""} ${
+          showTopDivider ? "border-t border-white/10" : ""
+        } ${showBottomDivider ? "border-b border-white/10" : ""}`}
+        style={{
+          backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
+          backgroundImage: sectionBackgroundImage,
+          borderColor: sectionBorderColor,
+          color: sectionTextColor,
+        }}
+      >
+        <div className={`mx-auto ${widthClass} ${textAlignClass}`}>
+          <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+            Event Page
+          </div>
 
-          return (
-            <div
-              key={`${section.type}-${section.id}-${index}`}
-              data-section-id={section.id}
-              onClick={(e) => {
-                e.stopPropagation()
-                if (isEditorClickable) onSelectSection?.(section.id)
-              }}
-              className={`px-8 ${paddingYClass} ${
-                isEditorClickable ? "cursor-pointer" : ""
-              } ${isSelected ? "ring-2 ring-inset ring-sky-400" : ""} ${getSectionOuterBackgroundClass(
-                config.backgroundStyle,
-                section.type
-              )} ${showTopDivider ? "border-t border-white/10" : ""} ${
-                showBottomDivider ? "border-b border-white/10" : ""
+          <h1
+            className="mt-3 text-4xl font-bold"
+            style={{ color: sectionTextColor }}
+          >
+            {config.title || event.title}
+          </h1>
+
+          {config.body ? (
+            <p
+              className={`mt-4 whitespace-pre-wrap ${
+                config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
               }`}
+              style={{ color: sectionTextColor }}
             >
-              <div className={`mx-auto ${widthClass}`}>
-<div
-  className={cardClass || undefined}
-  style={{
-    backgroundColor: sectionBackgroundColor,
-    borderColor: sectionBorderColor,
-    color: sectionTextColor,
-  }}
->
-                  <div className={textAlignClass}>
-                    {config.title ? (
-                      <h2
-                        className="text-2xl font-semibold"
-                        style={{ color: sectionTextColor }}
-                      >
-                        {config.title}
-                      </h2>
-                    ) : null}
+              {config.body}
+            </p>
+          ) : null}
 
-                    {config.body ? (
-                      <div
-                        className={config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"}
-                        style={{ color: sectionTextColor }}
-                      >
-                        {config.body}
-                      </div>
-                    ) : null}
-                  </div>
-
-                  {section.blocks?.length ? (
-                    <div className={config.title || config.body ? "mt-6 space-y-4" : "space-y-4"}>
-                      {section.blocks.map((block) =>
-                        renderSectionBlock(
-                          block,
-                          isEditing || mode === "editor",
-                          generalSession,
-                          systemComponents
-                        )
-                      )}
-                    </div>
-                  ) : !config.title && !config.body ? (
-                    <div className="text-white/30">Add blocks to this section from the editor.</div>
-                  ) : null}
-                </div>
-              </div>
+          {section.blocks?.length ? (
+            <div className="mt-6 space-y-4">
+              {section.blocks.map((block) =>
+                renderSectionBlock(
+                  block,
+                  isEditing || mode === "editor",
+                  generalSession,
+                  systemComponents
+                )
+              )}
             </div>
-          )
-        })}
+          ) : null}
+        </div>
+      </div>
+    )
+  }
+
+  const cardClass = getContentCardClass(config.backgroundStyle)
+
+  return (
+    <div
+      key={`${section.type}-${section.id}-${index}`}
+      data-section-id={section.id}
+      onClick={(e) => {
+        e.stopPropagation()
+        if (isEditorClickable) onSelectSection?.(section.id)
+      }}
+      className={`px-8 ${paddingYClass} ${
+        isEditorClickable ? "cursor-pointer" : ""
+      } ${isSelected ? "ring-2 ring-inset ring-sky-400" : ""} ${getSectionOuterBackgroundClass(
+        config.backgroundStyle,
+        section.type
+      )} ${showTopDivider ? "border-t border-white/10" : ""} ${
+        showBottomDivider ? "border-b border-white/10" : ""
+      }`}
+    >
+      <div className={`mx-auto ${widthClass}`}>
+        <div
+          className={cardClass || undefined}
+          style={{
+            backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
+            backgroundImage: sectionBackgroundImage,
+            borderColor: sectionBorderColor,
+            color: sectionTextColor,
+          }}
+        >
+          <div className={textAlignClass}>
+            {config.title ? (
+              <h2
+                className="text-2xl font-semibold"
+                style={{ color: sectionTextColor }}
+              >
+                {config.title}
+              </h2>
+            ) : null}
+
+            {config.body ? (
+              <div
+                className={config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"}
+                style={{ color: sectionTextColor }}
+              >
+                {config.body}
+              </div>
+            ) : null}
+          </div>
+
+          {section.blocks?.length ? (
+            <div className={config.title || config.body ? "mt-6 space-y-4" : "space-y-4"}>
+              {section.blocks.map((block) =>
+                renderSectionBlock(
+                  block,
+                  isEditing || mode === "editor",
+                  generalSession,
+                  systemComponents
+                )
+              )}
+            </div>
+          ) : !config.title && !config.body ? (
+            <div className="text-white/30">Add blocks to this section from the editor.</div>
+          ) : null}
+        </div>
+      </div>
+    </div>
+  )
+})}
 
         {elements
           .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
