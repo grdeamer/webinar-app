@@ -777,9 +777,23 @@ function toggleSessionOpen(id: string) {
 </div>
                   </div>
 
-                  <div className="shrink-0 text-sm text-white/60">
-                    {isSessionOpen(session.id) ? "Hide ▲" : "Edit ▼"}
-                  </div>
+<div className="flex shrink-0 items-center gap-3">
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      void deleteSession(session.id)
+    }}
+    disabled={deleting === session.id}
+    className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-200 transition hover:bg-red-500/20 disabled:opacity-60"
+  >
+    {deleting === session.id ? "Deleting..." : "Delete"}
+  </button>
+
+  <div className="text-sm text-white/60">
+    {isSessionOpen(session.id) ? "Hide ▲" : "Edit ▼"}
+  </div>
+</div>
                 </button>
 
 <div
