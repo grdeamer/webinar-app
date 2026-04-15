@@ -750,7 +750,14 @@ export default function EventPageRenderer({
           color: sectionTextColor,
         }}
       >
-        <div className={`mx-auto ${widthClass} ${textAlignClass}`}>
+        <div
+  className={`mx-auto ${widthClass} ${textAlignClass}`}
+  onDoubleClick={(e) => {
+    e.stopPropagation()
+    if (!isEditorClickable) return
+    onSelectSection?.(section.id)
+  }}
+>
           <div className="text-xs uppercase tracking-[0.22em] text-white/40">
             Event Page
           </div>
@@ -810,15 +817,20 @@ export default function EventPageRenderer({
       }`}
     >
       <div className={`mx-auto ${widthClass}`}>
-        <div
-          className={cardClass || undefined}
-          style={{
-            backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
-            backgroundImage: sectionBackgroundImage,
-            borderColor: sectionBorderColor,
-            color: sectionTextColor,
-          }}
-        >
+ <div
+  className={cardClass || undefined}
+  onDoubleClick={(e) => {
+    e.stopPropagation()
+    if (!isEditorClickable) return
+    onSelectSection?.(section.id)
+  }}
+  style={{
+    backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
+    backgroundImage: sectionBackgroundImage,
+    borderColor: sectionBorderColor,
+    color: sectionTextColor,
+  }}
+>
           <div className={textAlignClass}>
             {config.title ? (
               <h2
