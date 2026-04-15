@@ -52,7 +52,6 @@ export default function EventLayout({
         <Tab href={`${base}/attendees`}>Attendees</Tab>
         <Tab href={`${base}/studio`}>Studio</Tab>
         <Tab href={`${base}/producer`}>Broadcast</Tab>
-        <Tab href={`${base}/qa`}>Q&A</Tab>
         <Tab href={`${base}/page-editor`}>Page Builder</Tab>
         <Tab href={`${base}/sponsors`}>Sponsors</Tab>
         <Tab href={`${base}/speakers`}>Speakers</Tab>

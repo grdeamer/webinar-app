@@ -20,10 +20,22 @@ export default async function AdminProducerPage(props: {
           <div className="text-xs uppercase tracking-[0.18em] text-white/40">
             Broadcast Control
           </div>
-          <h1 className="mt-2 text-3xl font-semibold">Mission Control</h1>
-          <p className="mt-2 text-sm text-white/60">
-            Access your producer tools without typing direct URLs.
-          </p>
+
+          <div className="mt-2 flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h1 className="text-3xl font-semibold">Mission Control</h1>
+              <p className="mt-2 text-sm text-white/60">
+                Access your producer tools without typing direct URLs.
+              </p>
+            </div>
+
+            <Link
+              href={`/admin/events/${eventId}/qa`}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/80 transition hover:bg-white/10"
+            >
+              Questions
+            </Link>
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -45,7 +57,6 @@ export default async function AdminProducerPage(props: {
             description="Manage saved stage looks and reusable layouts."
           />
 
-          {/* ✅ NEW: Studio entry point */}
           <ControlCard
             href={`/admin/events/${eventId}/studio`}
             title="Studio"
@@ -82,9 +93,11 @@ function ControlCard({
       className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-white/20 hover:bg-white/[0.07]"
     >
       <div className="text-lg font-semibold text-white">{title}</div>
+
       <div className="mt-2 text-sm leading-6 text-white/60">
         {description}
       </div>
+
       <div className="mt-5 text-sm font-medium text-sky-200">
         {newTab ? "Open in new tab →" : "Open →"}
       </div>
