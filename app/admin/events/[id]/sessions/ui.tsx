@@ -776,6 +776,16 @@ const res = await fetch(`/api/admin/sessions/${id}`, {
                   </div>
 
 <div className="flex shrink-0 items-center gap-3">
+  <Link
+    href={`/admin/events/${event.id}/sessions/${session.id}/producer`}
+    target="_blank"
+    rel="noreferrer"
+    onClick={(e) => e.stopPropagation()}
+    className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-400/20"
+  >
+    Produce
+  </Link>
+
   <button
     type="button"
     onClick={(e) => {
