@@ -62,6 +62,9 @@ export type SectionConfig = {
   divider?: "none" | "top" | "bottom" | "both"
   hideOnMobile?: boolean
   columns?: 1 | 2
+  sectionBackgroundColor?: string
+  sectionBorderColor?: string
+  sectionTextColor?: string
 }
 
 export type EventPageSection = {

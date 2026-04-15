@@ -2727,10 +2727,71 @@ const isEmbedded =
                           </button>
                         </>
                       )}
-
+{(selectedSection.config.sectionBackgroundColor ||
+  selectedSection.config.sectionBorderColor ||
+  selectedSection.config.sectionTextColor) && (
+  <button
+    type="button"
+    onClick={() =>
+      updateSectionConfig(selectedSection.id, {
+        sectionBackgroundColor: "",
+        sectionBorderColor: "",
+        sectionTextColor: "",
+      })
+    }
+    className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+  >
+    Reset Section Colors
+  </button>
+)}
                       {registryItem?.fields.map((field: any) => {
                         const value = (selectedSection.config as any)?.[field.key]
+                        if (
+                          field.key === "sectionBackgroundColor" ||
+                          field.key === "sectionBorderColor" ||
+                          field.key === "sectionTextColor"
+                        ) {
+                          const colorValue =
+                            typeof value === "string" && value.trim().startsWith("#")
+                              ? value
+                              : field.key === "sectionBackgroundColor"
+                              ? "#0f172a"
+                              : field.key === "sectionBorderColor"
+                              ? "#ffffff"
+                              : "#ffffff"
 
+                          return (
+                            <div key={field.key}>
+                              <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                {field.label}
+                              </div>
+
+                              <div className="flex items-center gap-3">
+                                <input
+                                  type="color"
+                                  value={colorValue}
+                                  onChange={(e) =>
+                                    updateSectionConfig(selectedSection.id, {
+                                      [field.key]: e.target.value,
+                                    })
+                                  }
+                                  className="h-12 w-16 rounded-xl border border-white/10 bg-slate-950 p-2"
+                                />
+
+                                <input
+                                  value={String(value ?? "")}
+                                  onChange={(e) =>
+                                    updateSectionConfig(selectedSection.id, {
+                                      [field.key]: e.target.value,
+                                    })
+                                  }
+                                  placeholder={field.placeholder}
+                                  className="flex-1 rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                />
+                              </div>
+                            </div>
+                          )
+                        }
                         if (field.type === "checkbox") {
                           return (
                             <label
@@ -2932,12 +2993,24 @@ const isEmbedded =
               {sectionsListOpen && (
                 <>
                   <div className="mt-3 space-y-2">
-                    {sections.map((section, index) => {
-                      const isActive = selectedSectionId === section.id
-                      const isDragging = draggingSectionId === section.id
-                      const isDragOver = dragOverSectionId === section.id
-                      const isHero = section.type === "hero"
-                      const label = section.config.adminLabel || getSafeSectionLabel(section.type)
+{sections.map((section, index) => {
+  const isActive = selectedSectionId === section.id
+  const isDragging = draggingSectionId === section.id
+  const isDragOver = dragOverSectionId === section.id
+  const isHero = section.type === "hero"
+  const label = section.config.adminLabel || getSafeSectionLabel(section.type)
+
+  const hasBackgroundColor =
+    typeof section.config.sectionBackgroundColor === "string" &&
+    section.config.sectionBackgroundColor.trim().length > 0
+
+  const hasBorderColor =
+    typeof section.config.sectionBorderColor === "string" &&
+    section.config.sectionBorderColor.trim().length > 0
+
+  const hasTextColor =
+    typeof section.config.sectionTextColor === "string" &&
+    section.config.sectionTextColor.trim().length > 0
 
                       return (
                         <div
@@ -2981,22 +3054,53 @@ const isEmbedded =
                             <div className="pointer-events-none absolute inset-x-2 top-0 h-0.5 rounded-full bg-emerald-400" />
                           ) : null}
 
-                          <div className="flex min-w-0 items-center gap-3">
-                            <div
-                              className={`shrink-0 text-white/35 ${
-                                !isHero ? "group-hover:text-white/60" : ""
-                              }`}
-                            >
-                              {!isHero ? "⋮⋮" : "•"}
-                            </div>
+<div className="flex min-w-0 items-center gap-3">
+  <div
+    className={`shrink-0 text-white/35 ${
+      !isHero ? "group-hover:text-white/60" : ""
+    }`}
+  >
+    {!isHero ? "⋮⋮" : "•"}
+  </div>
 
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-medium">{label}</div>
-                              <div className="mt-1 text-xs text-white/45">
-                                {getSafeSectionLabel(section.type)}
-                              </div>
-                            </div>
-                          </div>
+  <div className="min-w-0 flex-1">
+    <div className="flex items-center gap-2">
+      <div className="truncate text-sm font-medium">{label}</div>
+
+      {(hasBackgroundColor || hasBorderColor || hasTextColor) && (
+        <div className="flex items-center gap-1.5">
+          {hasBackgroundColor ? (
+            <span
+              className="h-3 w-3 rounded-full border border-white/20"
+              style={{ backgroundColor: section.config.sectionBackgroundColor }}
+              title="Custom background color"
+            />
+          ) : null}
+
+          {hasBorderColor ? (
+            <span
+              className="h-3 w-3 rounded-full border border-white/20"
+              style={{ backgroundColor: section.config.sectionBorderColor }}
+              title="Custom border color"
+            />
+          ) : null}
+
+          {hasTextColor ? (
+            <span
+              className="h-3 w-3 rounded-full border border-white/20"
+              style={{ backgroundColor: section.config.sectionTextColor }}
+              title="Custom text color"
+            />
+          ) : null}
+        </div>
+      )}
+    </div>
+
+    <div className="mt-1 text-xs text-white/45">
+      {getSafeSectionLabel(section.type)}
+    </div>
+  </div>
+</div>
 
                           <div className="ml-3 flex shrink-0 flex-col items-end gap-1">
                             <div

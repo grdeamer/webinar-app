@@ -45,6 +45,24 @@ const sharedFields = [
     ],
   },
   {
+    key: "sectionBackgroundColor",
+    label: "Section Background Color",
+    type: "text",
+    placeholder: "#0f172a",
+  },
+  {
+    key: "sectionBorderColor",
+    label: "Section Border Color",
+    type: "text",
+    placeholder: "rgba(255,255,255,0.12)",
+  },
+  {
+    key: "sectionTextColor",
+    label: "Section Text Color",
+    type: "text",
+    placeholder: "#ffffff",
+  },
+  {
     key: "contentWidth",
     label: "Width",
     type: "select",

@@ -625,8 +625,23 @@ export default function EventPageRenderer({
   return (
     <>
       <div className="relative min-h-[900px] overflow-hidden rounded-3xl border border-white/10 bg-slate-950 text-white">
-        {resolvedSections.map((section, index) => {
-          const config = section.config ?? {}
+{resolvedSections.map((section, index) => {
+  const config = section.config ?? {}
+
+  const sectionBackgroundColor =
+    typeof config.sectionBackgroundColor === "string" && config.sectionBackgroundColor.trim()
+      ? config.sectionBackgroundColor
+      : undefined
+
+  const sectionBorderColor =
+    typeof config.sectionBorderColor === "string" && config.sectionBorderColor.trim()
+      ? config.sectionBorderColor
+      : undefined
+
+  const sectionTextColor =
+    typeof config.sectionTextColor === "string" && config.sectionTextColor.trim()
+      ? config.sectionTextColor
+      : undefined
 
           if (config.visible === false) return null
           if (isMobilePreview && config.hideOnMobile) return null
@@ -656,19 +671,30 @@ export default function EventPageRenderer({
                 } ${isSelected ? "ring-2 ring-inset ring-sky-400" : ""} ${
                   showTopDivider ? "border-t border-white/10" : ""
                 } ${showBottomDivider ? "border-b border-white/10" : ""}`}
+                style={{
+                  backgroundColor: sectionBackgroundColor,
+                  borderColor: sectionBorderColor,
+                  color: sectionTextColor,
+                }}
               >
                 <div className={`mx-auto ${widthClass} ${textAlignClass}`}>
                   <div className="text-xs uppercase tracking-[0.22em] text-white/40">
                     Event Page
                   </div>
 
-                  <h1 className="mt-3 text-4xl font-bold">{config.title || event.title}</h1>
+                  <h1
+                    className="mt-3 text-4xl font-bold"
+                    style={{ color: sectionTextColor }}
+                  >
+                    {config.title || event.title}
+                  </h1>
 
                   {config.body ? (
                     <p
-                      className={`mt-4 whitespace-pre-wrap text-white/70 ${
+                      className={`mt-4 whitespace-pre-wrap ${
                         config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
                       }`}
+                      style={{ color: sectionTextColor }}
                     >
                       {config.body}
                     </p>
@@ -711,19 +737,28 @@ export default function EventPageRenderer({
               }`}
             >
               <div className={`mx-auto ${widthClass}`}>
-                <div className={cardClass || undefined}>
+<div
+  className={cardClass || undefined}
+  style={{
+    backgroundColor: sectionBackgroundColor,
+    borderColor: sectionBorderColor,
+    color: sectionTextColor,
+  }}
+>
                   <div className={textAlignClass}>
                     {config.title ? (
-                      <h2 className="text-2xl font-semibold text-white">{config.title}</h2>
+                      <h2
+                        className="text-2xl font-semibold"
+                        style={{ color: sectionTextColor }}
+                      >
+                        {config.title}
+                      </h2>
                     ) : null}
 
                     {config.body ? (
                       <div
-                        className={
-                          config.title
-                            ? "mt-4 whitespace-pre-wrap text-white/70"
-                            : "whitespace-pre-wrap text-white/50"
-                        }
+                        className={config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"}
+                        style={{ color: sectionTextColor }}
                       >
                         {config.body}
                       </div>
