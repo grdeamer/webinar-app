@@ -11,6 +11,7 @@ import EventLiveRedirectWatcher from "@/components/live/EventLiveRedirectWatcher
 import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import EventEmailGate from "./EventEmailGate"
 import EventLiveDestinationCard from "@/components/events/EventLiveDestinationCard"
+import EventPresenceHeartbeat from "@/components/events/EventPresenceHeartbeat"
 import { getEventBySlug } from "@/lib/events"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import { supabaseAdmin } from "@/lib/supabase/admin"
@@ -382,7 +383,6 @@ export default async function EventHomePage(props: {
   }))
 
   void breakoutPreviews
-  void authedUser
 
   const liveDestination = await getEventLiveDestination(slug, event.id, viewer)
 
@@ -417,36 +417,39 @@ export default async function EventHomePage(props: {
     liveDestination.href === "/general-session" ||
     liveDestination.href === `/events/${slug}/breakouts`
 
+  const accessGate =
+    viewer.type !== "guest" ? (
+      <div className="flex flex-wrap gap-3">
+        <Link
+          href={`/events/${slug}/lobby`}
+          className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
+        >
+          Enter your lobby
+        </Link>
+
+        <Link
+          href={`/events/${slug}/agenda`}
+          className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium hover:bg-white/15"
+        >
+          View agenda
+        </Link>
+      </div>
+    ) : (
+      <div id="event-access" className="space-y-4">
+        <EventEmailGate slug={slug} />
+      </div>
+    )
+
   const hero = (
     <MissionControlHero
       eventTitle={event.title}
       eventDescription={event.description}
       liveStateCard={<EventLiveDestinationCard destination={liveDestination} />}
-      accessGate={
-        viewer.type !== "guest" ? (
-          <div className="flex flex-wrap gap-3">
-            <Link
-              href={`/events/${slug}/lobby`}
-              className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
-            >
-              Enter your lobby
-            </Link>
-
-            <Link
-              href={`/events/${slug}/agenda`}
-              className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium hover:bg-white/15"
-            >
-              View agenda
-            </Link>
-          </div>
-        ) : (
-          <div id="event-access" className="space-y-4">
-            <EventEmailGate slug={slug} />
-          </div>
-        )
-      }
+      accessGate={accessGate}
     />
   )
+
+  void hero
 
   const systemComponents = {
     jupiter_home_hero: (
@@ -530,73 +533,66 @@ export default async function EventHomePage(props: {
 
     sessions_list: <SessionsList slug={slug} sessions={sessions} />,
 
-    access_gate:
-      viewer.type !== "guest" ? (
-        <div className="flex flex-wrap gap-3">
-          <Link
-            href={`/events/${slug}/lobby`}
-            className="rounded-2xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100"
-          >
-            Enter your lobby
-          </Link>
-
-          <Link
-            href={`/events/${slug}/agenda`}
-            className="rounded-2xl border border-white/10 bg-white/10 px-5 py-3 text-sm font-medium hover:bg-white/15"
-          >
-            View agenda
-          </Link>
-        </div>
-      ) : (
-        <div id="event-access" className="space-y-4">
-          <EventEmailGate slug={slug} />
-        </div>
-      ),
+    access_gate: accessGate,
 
     featured_breakouts: <FeaturedBreakouts slug={slug} breakouts={breakouts || []} />,
   }
 
-const heroSection: EventPageSection = {
-  id: "jupiter-home-hero",
-  type: "hero" as EventPageSection["type"],
-  config: {
-    visible: true,
-    adminLabel: "Jupiter Home Hero",
-    title: null,
-    body: null,
-    backgroundStyle: "transparent",
-    contentWidth: "full",
-    paddingY: "sm",
-    textAlign: "left",
-    divider: "none",
-    hideOnMobile: false,
-    systemComponent: "jupiter_home_hero",
-  } as any,
-  blocks: [],
-}
+  const heroSection: EventPageSection = {
+    id: "jupiter-home-hero",
+    type: "hero" as EventPageSection["type"],
+    config: {
+      visible: true,
+      adminLabel: "Jupiter Home Hero",
+      title: null,
+      body: null,
+      backgroundStyle: "transparent",
+      contentWidth: "full",
+      paddingY: "sm",
+      textAlign: "left",
+      divider: "none",
+      hideOnMobile: false,
+      systemComponent: "jupiter_home_hero",
+    } as any,
+    blocks: [],
+  }
 
-const baseSections =
-  builderDrivenSections.length > 0
-    ? builderDrivenSections
-    : createDefaultEventHomeSections({
-        title: event.title,
-        description: event.description,
-      })
+  const baseSections =
+    builderDrivenSections.length > 0
+      ? builderDrivenSections
+      : createDefaultEventHomeSections({
+          title: event.title,
+          description: event.description,
+        })
 
-// 🔥 remove old default hero
-const filteredSections = baseSections.filter(
-  (section) => section.type !== "hero"
-)
+  const filteredSections = baseSections.filter((section) => section.type !== "hero")
 
-const resolvedSections: EventPageSection[] = [
-  heroSection,
-  ...filteredSections,
-]
+  const resolvedSections: EventPageSection[] = [heroSection, ...filteredSections]
+
+console.log("EVENT HOME authedUser:", authedUser)
+
+const attendeeUserId =
+  typeof (authedUser as any)?.id === "string"
+    ? (authedUser as any).id
+    : typeof (authedUser as any)?.user_id === "string"
+      ? (authedUser as any).user_id
+      : typeof (authedUser as any)?.user?.id === "string"
+        ? (authedUser as any).user.id
+        : typeof (authedUser as any)?.attendee?.user_id === "string"
+          ? (authedUser as any).attendee.user_id
+          : null
+
+console.log("EVENT HOME attendeeUserId:", attendeeUserId)
+console.log("EVENT HOME event.id:", event.id)
 
   return (
     <>
       <RemoteRefreshListener scopeType="event" scopeId={event.id} />
       <EventLiveRedirectWatcher slug={slug} />
+
+      {attendeeUserId ? (
+        <EventPresenceHeartbeat eventId={event.id} userId={attendeeUserId} />
+      ) : null}
 
       <EventPageRenderer
         event={{

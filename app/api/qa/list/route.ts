@@ -1,19 +1,18 @@
-// app/api/qa/list/route.ts
-
 import { NextResponse } from "next/server"
-import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
 }
 
-export async function GET(req: Request) {
+export async function GET(req: Request): Promise<Response> {
   try {
     const { searchParams } = new URL(req.url)
-    const room_key = String(searchParams.get("room_key") || "general").trim() || "general"
+    const room_key =
+      String(searchParams.get("room_key") || "general").trim() || "general"
     const admin = searchParams.get("admin") === "1"
 
     let query = supabaseAdmin
@@ -30,10 +29,20 @@ export async function GET(req: Request) {
 
     const { data, error } = await query
 
-    if (error) return json({ error: error.message }, 400)
+    if (error) {
+      return json({ error: error.message }, 400)
+    }
 
     return json({ items: data || [] })
-  } catch (e: any) {
-    return json({ error: e?.message || "Failed to load questions." }, 500)
+  } catch (error) {
+    return json(
+      {
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to load questions.",
+      },
+      500
+    )
   }
 }

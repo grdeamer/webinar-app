@@ -1,5 +1,6 @@
 "use client"
 
+import ProgramMomentOverlay from "@/components/live/ProgramMomentOverlay"
 import { useEffect, useMemo, useState } from "react"
 import {
   LiveKitRoom,
@@ -39,6 +40,12 @@ type StageStateResponse = {
 
     transition_type?: StageTransitionType
     transition_started_at?: string | null
+
+    qa_origin_cue_visible?: boolean
+    qa_origin_region?: string | null
+    qa_origin_moon_mode?: boolean
+    qa_origin_question_label?: string | null
+    qa_origin_treatment?: "default" | "qa_origin_blend" | null
   }
 }
 
@@ -51,7 +58,7 @@ function isTrackReference(
 function LiveBadge() {
   return (
     <div className="absolute left-4 top-4 z-10 inline-flex items-center gap-2 rounded-full border border-red-400/20 bg-red-500/15 px-3 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] text-red-100 shadow-[0_10px_30px_rgba(239,68,68,0.18)]">
-      <span className="h-2 w-2 rounded-full bg-red-500 animate-pulse" />
+      <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
       Live Session
     </div>
   )
@@ -109,6 +116,16 @@ function StageCanvas({
     null
   )
 
+  const [showAudienceCue, setShowAudienceCue] = useState(false)
+  const [audienceCueRegion, setAudienceCueRegion] = useState("Europe")
+  const [audienceCueMoonMode, setAudienceCueMoonMode] = useState(false)
+  const [audienceCueQuestionLabel, setAudienceCueQuestionLabel] = useState<string | null>(
+    null
+  )
+  const [audienceCueTreatment, setAudienceCueTreatment] = useState<
+    "default" | "qa_origin_blend"
+  >("default")
+
   useEffect(() => {
     let cancelled = false
     let hideTimeout: number | null = null
@@ -135,6 +152,25 @@ function StageCanvas({
         setLayout(nextLayout)
         setStageIds(nextStageIds)
         setPrimaryId(nextPrimaryId)
+
+        const visible = Boolean(data.state.qa_origin_cue_visible)
+
+if (visible) {
+  setShowAudienceCue(true)
+
+  // auto hide after 6s
+  window.setTimeout(() => {
+    setShowAudienceCue(false)
+  }, 6000)
+}
+        setAudienceCueRegion(data.state.qa_origin_region || "Europe")
+        setAudienceCueMoonMode(Boolean(data.state.qa_origin_moon_mode))
+        setAudienceCueQuestionLabel(data.state.qa_origin_question_label || null)
+        setAudienceCueTreatment(
+          data.state.qa_origin_treatment === "qa_origin_blend"
+            ? "qa_origin_blend"
+            : "default"
+        )
 
         const nextTransitionStartedAt = data.state.transition_started_at || null
         const nextTransitionType =
@@ -277,6 +313,14 @@ function StageCanvas({
               </div>
             </div>
           ) : null}
+
+          <ProgramMomentOverlay
+            visible={showAudienceCue}
+            region={audienceCueRegion}
+            moonMode={audienceCueMoonMode}
+            questionLabel={audienceCueQuestionLabel}
+            treatment={audienceCueTreatment}
+          />
         </div>
       </PlayerFrame>
     )
@@ -319,6 +363,14 @@ function StageCanvas({
               </div>
             ))}
           </div>
+
+          <ProgramMomentOverlay
+            visible={showAudienceCue}
+            region={audienceCueRegion}
+            moonMode={audienceCueMoonMode}
+            questionLabel={audienceCueQuestionLabel}
+            treatment={audienceCueTreatment}
+          />
         </div>
       </PlayerFrame>
     )
@@ -352,6 +404,14 @@ function StageCanvas({
             trackRef={primaryCameraTrack}
             className="h-full w-full object-cover"
           />
+
+          <ProgramMomentOverlay
+            visible={showAudienceCue}
+            region={audienceCueRegion}
+            moonMode={audienceCueMoonMode}
+            questionLabel={audienceCueQuestionLabel}
+            treatment={audienceCueTreatment}
+          />
         </div>
       </PlayerFrame>
     )
@@ -367,9 +427,18 @@ function StageCanvas({
             Waiting for stage selection
           </div>
           <div className="mt-3 text-sm leading-6 text-white/45">
-            The session will begin shortly. Stay here while the next live moment is prepared.
+            The session will begin shortly. Stay here while the next live moment is
+            prepared.
           </div>
         </div>
+
+        <ProgramMomentOverlay
+          visible={showAudienceCue}
+          region={audienceCueRegion}
+          moonMode={audienceCueMoonMode}
+          questionLabel={audienceCueQuestionLabel}
+          treatment={audienceCueTreatment}
+        />
       </div>
     </PlayerFrame>
   )

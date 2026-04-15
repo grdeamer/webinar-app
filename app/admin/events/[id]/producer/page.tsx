@@ -1,102 +1,93 @@
-import { notFound } from "next/navigation"
-import { AccessToken } from "livekit-server-sdk"
-import { supabaseAdmin } from "@/lib/supabase/admin"
-import ProducerRoomClient from "@/components/live/ProducerRoomClient"
+import Link from "next/link"
+import EventAdminNav from "@/components/admin/EventAdminNav"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-function isUuid(value: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-    value
-  )
-}
 
 export default async function AdminProducerPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
-
-  let eventId = id
-  let eventSlug = id
-
-  if (!isUuid(id)) {
-    const { data: event } = await supabaseAdmin
-      .from("events")
-      .select("id,slug")
-      .eq("slug", id)
-      .maybeSingle()
-
-    if (!event?.id) notFound()
-
-    eventId = event.id
-    eventSlug = event.slug
-  } else {
-    const { data: event } = await supabaseAdmin
-      .from("events")
-      .select("id,slug")
-      .eq("id", id)
-      .maybeSingle()
-
-    if (!event?.id) notFound()
-    eventSlug = event.slug
-  }
-
-  const { data: session } = await supabaseAdmin
-    .from("event_sessions")
-    .select("id,title,delivery_mode,live_room_name,is_general_session,session_kind")
-    .eq("event_id", eventId)
-    .or("is_general_session.eq.true,session_kind.eq.general")
-    .maybeSingle()
-
-  if (!session?.id) {
-    notFound()
-  }
-
-  const wsUrl = process.env.LIVEKIT_URL
-  const apiKey = process.env.LIVEKIT_API_KEY
-  const apiSecret = process.env.LIVEKIT_API_SECRET
-
-  if (!wsUrl || !apiKey || !apiSecret) {
-    throw new Error("Missing LiveKit environment variables")
-  }
-
-  const roomName =
-    session.live_room_name?.trim() || `event-${eventId}-session-${session.id}`
-
-  const token = new AccessToken(apiKey, apiSecret, {
-    identity: `producer-${crypto.randomUUID()}`,
-    name: "Producer",
-    ttl: "4h",
-  })
-
-  token.addGrant({
-    room: roomName,
-    roomJoin: true,
-    canPublish: true,
-    canPublishData: true,
-    canSubscribe: true,
-  })
+  const eventId = id
+  const base = `/admin/events/${eventId}/producer`
 
   return (
     <div className="min-h-screen bg-slate-950 px-6 py-8 text-white">
-      <div className="mx-auto max-w-7xl space-y-6">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <EventAdminNav eventId={eventId} />
+
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-white/40">
-            Producer Room
+            Broadcast Control
           </div>
-          <h1 className="mt-2 text-3xl font-semibold">{session.title}</h1>
+          <h1 className="mt-2 text-3xl font-semibold">Mission Control</h1>
           <p className="mt-2 text-sm text-white/60">
-            Choose who appears on stage for attendees.
+            Access your producer tools without typing direct URLs.
           </p>
         </div>
 
-        <ProducerRoomClient
-          token={await token.toJwt()}
-          serverUrl={wsUrl}
-          stageEndpoint={`/api/events/${eventSlug}/sessions/${session.id}/stage`}
-        />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <ControlCard
+            href={`${base}/room`}
+            title="Producer Room"
+            description="Open the live switching interface for stage control."
+          />
+
+          <ControlCard
+            href={`/admin/events/${eventId}/routing`}
+            title="Live Routing"
+            description="Control where attendees are sent during the event."
+          />
+
+          <ControlCard
+            href={`${base}/scenes`}
+            title="Scenes"
+            description="Manage saved stage looks and reusable layouts."
+          />
+
+          {/* ✅ NEW: Studio entry point */}
+          <ControlCard
+            href={`/admin/events/${eventId}/studio`}
+            title="Studio"
+            description="Open the unified workspace for experience design and live production."
+          />
+
+          <ControlCard
+            href={`${base}/overlays`}
+            title="Overlays"
+            description="Future home for graphics, lower thirds, and on-air elements."
+          />
+        </div>
       </div>
     </div>
+  )
+}
+
+function ControlCard({
+  href,
+  title,
+  description,
+  newTab = false,
+}: {
+  href: string
+  title: string
+  description: string
+  newTab?: boolean
+}) {
+  return (
+    <Link
+      href={href}
+      target={newTab ? "_blank" : undefined}
+      rel={newTab ? "noreferrer" : undefined}
+      className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 transition hover:border-white/20 hover:bg-white/[0.07]"
+    >
+      <div className="text-lg font-semibold text-white">{title}</div>
+      <div className="mt-2 text-sm leading-6 text-white/60">
+        {description}
+      </div>
+      <div className="mt-5 text-sm font-medium text-sky-200">
+        {newTab ? "Open in new tab →" : "Open →"}
+      </div>
+    </Link>
   )
 }

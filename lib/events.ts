@@ -9,7 +9,7 @@ export type EventRow = {
   end_at: string | null
 }
 
-export async function getEventBySlug(slug: string) {
+export async function getEventBySlug(slug: string): Promise<EventRow> {
   const { data, error } = await supabaseAdmin
     .from("events")
     .select("id,slug,title,description,start_at,end_at")
@@ -18,7 +18,9 @@ export async function getEventBySlug(slug: string) {
     .limit(1)
     .maybeSingle()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    throw new Error(error.message)
+  }
 
   if (!data) {
     throw new Error(`Event not found for slug: ${slug}`)
@@ -27,13 +29,33 @@ export async function getEventBySlug(slug: string) {
   return data as EventRow
 }
 
-export async function listEvents() {
+export async function getEventById(id: string): Promise<EventRow> {
+  const { data, error } = await supabaseAdmin
+    .from("events")
+    .select("id,slug,title,description,start_at,end_at")
+    .eq("id", id)
+    .maybeSingle()
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  if (!data) {
+    throw new Error(`Event not found for id: ${id}`)
+  }
+
+  return data as EventRow
+}
+
+export async function listEvents(): Promise<EventRow[]> {
   const { data, error } = await supabaseAdmin
     .from("events")
     .select("id,slug,title,description,start_at,end_at")
     .order("start_at", { ascending: false, nullsFirst: true })
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    throw new Error(error.message)
+  }
 
   return (data || []) as EventRow[]
 }

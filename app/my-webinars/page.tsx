@@ -65,7 +65,6 @@ export default async function MyWebinarsPage() {
   if (!JWT_SECRET) {
     return (
       <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-        <AttendeePresenceHeartbeat />
         <div className="mx-auto max-w-5xl px-6 py-14">
           <div className="rounded-2xl border border-white/10 bg-white/5 p-6">
             <h1 className="text-xl font-semibold">Server misconfigured</h1>
@@ -158,7 +157,6 @@ export default async function MyWebinarsPage() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white">
-      <AttendeePresenceHeartbeat />
 
       <div className="pointer-events-none fixed inset-0 opacity-40">
         <div className="absolute -top-24 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-indigo-500 blur-[140px]" />

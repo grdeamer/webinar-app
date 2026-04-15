@@ -6,6 +6,25 @@ import type {
   EventLiveStateRecord,
 } from "@/lib/types"
 
+/**
+ * EVENT ROUTING STATE
+ *
+ * This file is responsible for event-level attendee routing only.
+ *
+ * It answers questions like:
+ * - Should attendees stay on the event home?
+ * - Should they be redirected into a session?
+ * - Should they be redirected into a breakout?
+ * - Is the event currently off-air?
+ *
+ * This file does NOT control:
+ * - LiveKit media transport
+ * - producer/control-room stage composition
+ * - session-level program/preview state
+ */
+type EventRoutingStateRecord = EventLiveStateRecord
+type EventRoutingDestination = EventLiveDestination
+
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
@@ -14,7 +33,7 @@ function isUuid(value: string) {
 
 export async function getEventLiveState(
   eventId: string
-): Promise<EventLiveStateRecord | null> {
+): Promise<EventRoutingStateRecord | null> {
   if (!isUuid(eventId)) return null
 
   const { data, error } = await supabaseAdmin
@@ -30,7 +49,7 @@ export async function getEventLiveState(
     throw new Error(error.message)
   }
 
-  return (data as EventLiveStateRecord | null) ?? null
+  return (data as EventRoutingStateRecord | null) ?? null
 }
 
 export async function upsertEventLiveState(input: {
@@ -47,7 +66,7 @@ export async function upsertEventLiveState(input: {
   transitionActive?: boolean
   transitionStartedAt?: string | null
   updatedBy?: string | null
-}): Promise<EventLiveStateRecord> {
+}): Promise<EventRoutingStateRecord> {
   const transitionDurationMs =
     typeof input.transitionDurationMs === "number" &&
     Number.isFinite(input.transitionDurationMs)
@@ -94,14 +113,16 @@ export async function upsertEventLiveState(input: {
 
   if (error) throw new Error(error.message)
 
-  return data as EventLiveStateRecord
+  return data as EventRoutingStateRecord
 }
 
+// Resolves the attendee-facing destination for the event as a whole.
+// This is event routing, not session stage composition.
 export function getEventLiveDestination(args: {
   slug: string
-  liveState: EventLiveStateRecord | null
+  liveState: EventRoutingStateRecord | null
   breakouts?: EventBreakout[] | null
-}): EventLiveDestination {
+}): EventRoutingDestination {
   const { slug, liveState, breakouts = [] } = args
 
   if (liveState?.destination_type === "session" && liveState.destination_session_id) {
@@ -181,9 +202,41 @@ export function getEventLiveDestination(args: {
   }
 }
 
+export async function getEventRoutingState(
+  eventId: string
+): Promise<EventRoutingStateRecord | null> {
+  return getEventLiveState(eventId)
+}
+
+export async function upsertEventRoutingState(input: {
+  eventId: string
+  mode: EventLiveMode
+  activeBreakoutId?: string | null
+  destinationType?: string | null
+  destinationSessionId?: string | null
+  headline?: string | null
+  message?: string | null
+  forceRedirect?: boolean
+  transitionType?: string | null
+  transitionDurationMs?: number | null
+  transitionActive?: boolean
+  transitionStartedAt?: string | null
+  updatedBy?: string | null
+}): Promise<EventRoutingStateRecord> {
+  return upsertEventLiveState(input)
+}
+
+export function getEventRoutingDestination(args: {
+  slug: string
+  liveState: EventRoutingStateRecord | null
+  breakouts?: EventBreakout[] | null
+}): EventRoutingDestination {
+  return getEventLiveDestination(args)
+}
+
 export function getBreakoutRuntimeStatus(
   breakout: Pick<EventBreakout, "id" | "start_at" | "end_at" | "manual_live">,
-  liveState: EventLiveStateRecord | null
+  liveState: EventRoutingStateRecord | null
 ): "live" | "starting-soon" | "upcoming" | "ended" {
   if (liveState?.mode === "breakout" && liveState.active_breakout_id === breakout.id) {
     return "live"

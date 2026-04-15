@@ -6,14 +6,12 @@ import { usePathname } from "next/navigation"
 import {
   Activity,
   BarChart3,
-  Building2,
   Calendar,
   LayoutDashboard,
   MessageSquare,
   Mic,
   Monitor,
   Radio,
-  Upload,
   Users,
   Video,
   Wrench,
@@ -144,12 +142,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   Dashboard
                 </NavLink>
 
-                <NavLink href="/admin/activity" icon={<Activity size={18} />}>
-                  Operations
+                <NavLink href="/admin/events" icon={<Calendar size={18} />}>
+                  Events
                 </NavLink>
 
-                <NavLink href="/admin/live" icon={<Radio size={18} />}>
-                  Live Monitor
+                <NavLink href="/admin/activity" icon={<Activity size={18} />}>
+                  Live Activity
                 </NavLink>
 
                 <NavLink href="/admin/analytics" icon={<BarChart3 size={18} />}>
@@ -157,7 +155,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </NavLink>
               </Section>
 
-              <Section title="Broadcast Control">
+              <Section title="Broadcast">
                 <NavLink href="/admin/general-session" icon={<Video size={18} />}>
                   General Session
                 </NavLink>
@@ -170,28 +168,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   Presenter Mode
                 </NavLink>
               </Section>
-
-              <Section title="Event Content">
-  <NavLink href="/admin/events" icon={<Calendar size={18} />}>
-    Events
-  </NavLink>
-
-  <NavLink href="/admin/page-editor" icon={<LayoutDashboard size={18} />}>
-    Page Editor
-  </NavLink>
-
-  <NavLink href="/admin/import" icon={<Upload size={18} />}>
-    Import Registrants
-  </NavLink>
-
-  <NavLink href="/admin/sponsors" icon={<Building2 size={18} />}>
-    Sponsors
-  </NavLink>
-
-  <NavLink href="/admin/speakers" icon={<Users size={18} />}>
-    Speakers
-  </NavLink>
-</Section>
 
               <Section title="Platform">
                 <NavLink href="/admin/webinars" icon={<Monitor size={18} />}>
@@ -259,7 +235,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </header>
 
           <main className="flex-1 p-8 lg:p-10">
-            <div className="mx-auto max-w-[1400px]">{children}</div>
+            <div className="w-full">{children}</div>
           </main>
         </div>
       </div>

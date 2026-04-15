@@ -12,6 +12,7 @@ import type {
   TrackReference,
   TrackReferenceOrPlaceholder,
 } from "@livekit/components-core"
+import ProgramMomentOverlay from "@/components/live/ProgramMomentOverlay"
 
 type StageLayout = "solo" | "grid" | "screen_speaker"
 type StageTransitionType = "cut" | "fade" | "dip_to_black"
@@ -27,6 +28,13 @@ type StageStateResponse = {
     program_primary_participant_id?: string | null
     transition_type?: StageTransitionType
     transition_started_at?: string | null
+    qa_origin_cue_visible?: boolean
+    qa_origin_region?: string | null
+    qa_origin_moon_mode?: boolean
+    qa_origin_question_label?: string | null
+    qa_origin_treatment?: "default" | "qa_origin_blend" | null
+    qa_origin_lat?: number | null
+    qa_origin_lng?: number | null
   }
 }
 
@@ -35,6 +43,22 @@ type ParticipantRecord = {
   name: string
   cameraTrack?: TrackReference
   screenTrack?: TrackReference
+}
+
+type QAMessage = {
+  id: string
+  name: string | null
+  question: string
+  status: "pending" | "approved" | "rejected" | "answered"
+  is_featured: boolean
+  upvotes: number
+  created_at: string
+  origin_region?: string | null
+  origin_country?: string | null
+  origin_city?: string | null
+  origin_lat?: number | null
+  origin_lng?: number | null
+  origin_source?: string | null
 }
 
 type SceneRecord = {
@@ -110,7 +134,11 @@ function MetricPill({
   )
 }
 
-function StatusDot({ tone = "red" }: { tone?: "red" | "emerald" | "sky" | "amber" }) {
+function StatusDot({
+  tone = "red",
+}: {
+  tone?: "red" | "emerald" | "sky" | "amber"
+}) {
   const toneClass =
     tone === "emerald"
       ? "bg-emerald-400 shadow-[0_0_16px_rgba(74,222,128,0.9)]"
@@ -150,7 +178,11 @@ function LayoutChip({
           <div className="text-sm font-medium text-white">{title}</div>
           <div className="mt-1 text-xs leading-5 text-white/50">{description}</div>
         </div>
-        {active ? <StatusDot tone="sky" /> : <span className="mt-1 h-2.5 w-2.5 rounded-full border border-white/20" />}
+        {active ? (
+          <StatusDot tone="sky" />
+        ) : (
+          <span className="mt-1 h-2.5 w-2.5 rounded-full border border-white/20" />
+        )}
       </div>
     </button>
   )
@@ -266,6 +298,7 @@ function ProgramMonitor({
   accent,
   live,
   realTrackRefs,
+  transitionOverlay,
 }: {
   title: string
   subtitle: string
@@ -276,6 +309,7 @@ function ProgramMonitor({
   accent: "sky" | "red"
   live?: boolean
   realTrackRefs: TrackReference[]
+  transitionOverlay?: StageTransitionType | null
 }) {
   const selectedTracks = useMemo(
     () =>
@@ -315,21 +349,30 @@ function ProgramMonitor({
         )
       : null) || selectedScreenTracks[0] || null
 
-  const accentClass =
-    accent === "red"
-      ? "border-red-400/25 shadow-[0_0_0_1px_rgba(248,113,113,0.08)_inset]"
-      : "border-sky-400/25 shadow-[0_0_0_1px_rgba(56,189,248,0.08)_inset]"
-
   const badgeClass =
     accent === "red"
       ? "border-red-400/25 bg-red-500/10 text-red-100"
       : "border-sky-400/25 bg-sky-500/10 text-sky-100"
 
   return (
-    <GlassPanel className={cx("relative overflow-hidden p-4", accentClass)}>
+    <GlassPanel
+      className={cx(
+        "relative overflow-hidden p-4 transition-all duration-500",
+        accent === "red"
+          ? "scale-[1.035] ring-1 ring-red-400/50 border-red-400/30 bg-[linear-gradient(180deg,rgba(127,29,29,0.16),rgba(255,255,255,0.03))] shadow-[0_40px_140px_rgba(239,68,68,0.38)]"
+          : "scale-[0.985] opacity-90 border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))]"
+      )}
+    >
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute left-1/2 top-0 h-40 w-40 -translate-x-1/2 rounded-full bg-white/5 blur-3xl" />
         <div className="absolute bottom-0 right-0 h-40 w-40 rounded-full bg-indigo-500/10 blur-3xl" />
+
+        {accent === "red" ? (
+          <>
+            <div className="absolute left-[-8%] top-[18%] h-40 w-40 rounded-full bg-red-500/10 blur-3xl animate-[jupiterLivePulse_3.2s_ease-in-out_infinite]" />
+            <div className="absolute right-[-6%] bottom-[12%] h-44 w-44 rounded-full bg-red-400/10 blur-3xl animate-[jupiterLivePulse_4.2s_ease-in-out_infinite]" />
+          </>
+        ) : null}
       </div>
 
       <div className="relative flex items-start justify-between gap-3">
@@ -337,8 +380,11 @@ function ProgramMonitor({
           <div className="flex items-center gap-2">
             <SectionEyebrow>{title}</SectionEyebrow>
             {live ? (
-              <div className="inline-flex items-center gap-2 rounded-full border border-red-400/25 bg-red-500/10 px-2.5 py-1 text-[11px] uppercase tracking-[0.18em] text-red-100">
-                <StatusDot tone="red" />
+              <div className="inline-flex items-center gap-2 rounded-full border border-red-400/50 bg-red-500/25 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-red-100 shadow-[0_0_30px_rgba(248,113,113,0.9)]">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500" />
+                </span>
                 Live
               </div>
             ) : null}
@@ -346,12 +392,44 @@ function ProgramMonitor({
           <div className="mt-2 text-sm text-white/60">{subtitle}</div>
         </div>
 
-        <div className={cx("rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em]", badgeClass)}>
+        <div
+          className={cx(
+            "rounded-full border px-3 py-1 text-xs uppercase tracking-[0.18em]",
+            badgeClass
+          )}
+        >
           {layout.replace("_", " + ")}
         </div>
       </div>
 
-      <div className="relative mt-4 overflow-hidden rounded-[24px] border border-white/10 bg-black shadow-[0_20px_80px_rgba(0,0,0,0.45)]">
+      <div
+        className={cx(
+          "relative mt-4 overflow-hidden rounded-[24px] border bg-black shadow-[0_20px_80px_rgba(0,0,0,0.45)]",
+          accent === "red"
+            ? "border-red-400/30 shadow-[0_24px_90px_rgba(239,68,68,0.18)]"
+            : "border-white/10"
+        )}
+      >
+        {live && (
+          <div className="pointer-events-none absolute left-3 top-3 z-20">
+            <div className="flex items-center gap-2 rounded-full border border-red-400/40 bg-black/60 px-3 py-1 text-[11px] uppercase tracking-[0.18em] text-red-100 backdrop-blur-md shadow-[0_0_25px_rgba(248,113,113,0.6)]">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+              </span>
+              On Air
+            </div>
+          </div>
+        )}
+
+        {transitionOverlay === "fade" && (
+          <div className="pointer-events-none absolute inset-0 z-30 animate-[jupiterFade_650ms_cubic-bezier(0.22,1,0.36,1)] bg-black/80" />
+        )}
+
+        {transitionOverlay === "dip_to_black" && (
+          <div className="pointer-events-none absolute inset-0 z-30 animate-[jupiterDip_950ms_cubic-bezier(0.4,0,0.2,1)] bg-black" />
+        )}
+
         {layout === "screen_speaker" && selectedPrimaryScreen ? (
           <div className="relative">
             <VideoTrack
@@ -406,22 +484,32 @@ function ProgramMonitor({
           </div>
         )}
 
+        {accent === "red" ? (
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-red-400/80 to-transparent" />
+        ) : null}
+
         <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/10 to-transparent" />
       </div>
 
       <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">On stage</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">
+            On stage
+          </div>
           <div className="mt-2 text-xl font-semibold text-white">{stageIds.length}</div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">Primary</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">
+            Primary
+          </div>
           <div className="mt-2 truncate text-sm font-medium text-white">
             {primaryId || "Not locked"}
           </div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/25 p-3">
-          <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">Mode</div>
+          <div className="text-[11px] uppercase tracking-[0.18em] text-white/35">
+            Mode
+          </div>
           <div className="mt-2 text-sm font-medium capitalize text-white">
             {layout.replace("_", " ")}
           </div>
@@ -433,8 +521,10 @@ function ProgramMonitor({
 
 function ProducerRoomInner({
   stageEndpoint,
+  sessionId,
 }: {
   stageEndpoint: string
+  sessionId: string
 }) {
   const trackRefs = useTracks(
     [
@@ -444,10 +534,7 @@ function ProducerRoomInner({
     { onlySubscribed: true }
   )
 
-  const realTrackRefs = useMemo(
-    () => trackRefs.filter(isTrackReference),
-    [trackRefs]
-  )
+  const realTrackRefs = useMemo(() => trackRefs.filter(isTrackReference), [trackRefs])
 
   const { producers, stageCandidates } = useMemo(() => {
     const byIdentity = new Map<string, ParticipantRecord>()
@@ -476,18 +563,16 @@ function ProducerRoomInner({
 
     return {
       producers: allParticipants.filter((p) => p.identity.startsWith("producer-")),
-      stageCandidates: allParticipants.filter(
-        (p) => !p.identity.startsWith("producer-")
-      ),
+      stageCandidates: allParticipants.filter((p) => !p.identity.startsWith("producer-")),
     }
   }, [realTrackRefs])
 
   const activeScreenSharer = useMemo(() => {
-    return (
-      stageCandidates.find((participant) => Boolean(participant.screenTrack)) || null
-    )
+    return stageCandidates.find((participant) => Boolean(participant.screenTrack)) || null
   }, [stageCandidates])
 
+  const [qaItems, setQaItems] = useState<QAMessage[]>([])
+  const [qaLoading, setQaLoading] = useState(true)
   const [layout, setLayout] = useState<StageLayout>("solo")
   const [stageIds, setStageIds] = useState<string[]>([])
   const [primaryId, setPrimaryId] = useState<string | null>(null)
@@ -496,14 +581,29 @@ function ProducerRoomInner({
   const [programStageIds, setProgramStageIds] = useState<string[]>([])
   const [programPrimaryId, setProgramPrimaryId] = useState<string | null>(null)
 
-  const [takeTransition, setTakeTransition] =
-    useState<StageTransitionType>("fade")
+  const [showAudienceCue, setShowAudienceCue] = useState(false)
+  const [audienceCueRegion, setAudienceCueRegion] = useState("Europe")
+  const [audienceCueMoonMode, setAudienceCueMoonMode] = useState(false)
+  const [audienceCueQuestionLabel, setAudienceCueQuestionLabel] = useState(
+    "How are outcomes differing across regions?"
+  )
+  const [audienceCueLat, setAudienceCueLat] = useState<number | null>(null)
+  const [audienceCueLng, setAudienceCueLng] = useState<number | null>(null)
+  const [audienceCueTreatment, setAudienceCueTreatment] = useState<
+    "default" | "qa_origin_blend"
+  >("default")
+
+  const [takeTransition, setTakeTransition] = useState<StageTransitionType>("fade")
+  const [programTransitionOverlay, setProgramTransitionOverlay] =
+    useState<StageTransitionType | null>(null)
   const [saving, setSaving] = useState(false)
+  const [isTakingLive, setIsTakingLive] = useState(false)
 
   const [scenes, setScenes] = useState<SceneRecord[]>([])
   const [sceneName, setSceneName] = useState("")
 
   const scenesEndpoint = `${stageEndpoint}/scenes`
+  const qaRoomKey = `session:${sessionId}`
 
   useEffect(() => {
     let cancelled = false
@@ -511,9 +611,7 @@ function ProducerRoomInner({
     async function loadStageState() {
       try {
         const res = await fetch(stageEndpoint, { cache: "no-store" })
-        const data = (await res.json().catch((): null => null)) as
-          | StageStateResponse
-          | null
+        const data = (await res.json().catch((): null => null)) as StageStateResponse | null
 
         if (!res.ok || cancelled || !data?.state) return
 
@@ -524,6 +622,25 @@ function ProducerRoomInner({
         setProgramLayout(data.state.program_layout || "solo")
         setProgramStageIds(data.state.program_stage_participant_ids || [])
         setProgramPrimaryId(data.state.program_primary_participant_id || null)
+
+        setShowAudienceCue(Boolean(data.state.qa_origin_cue_visible))
+        setAudienceCueRegion(data.state.qa_origin_region || "Europe")
+        setAudienceCueMoonMode(Boolean(data.state.qa_origin_moon_mode))
+        setAudienceCueQuestionLabel(
+          data.state.qa_origin_question_label ||
+            "How are outcomes differing across regions?"
+        )
+        setAudienceCueLat(
+          typeof data.state.qa_origin_lat === "number" ? data.state.qa_origin_lat : null
+        )
+        setAudienceCueLng(
+          typeof data.state.qa_origin_lng === "number" ? data.state.qa_origin_lng : null
+        )
+        setAudienceCueTreatment(
+          data.state.qa_origin_treatment === "qa_origin_blend"
+            ? "qa_origin_blend"
+            : "default"
+        )
       } catch {
         // ignore
       }
@@ -543,18 +660,55 @@ function ProducerRoomInner({
       }
     }
 
+    async function loadQaItems() {
+      try {
+        const res = await fetch(
+          `/api/qa/list?room_key=${encodeURIComponent(qaRoomKey)}&admin=1`,
+          {
+            cache: "no-store",
+          }
+        )
+
+        const data = (await res.json().catch((): null => null)) as
+          | {
+              items?: QAMessage[]
+              messages?: QAMessage[]
+              questions?: QAMessage[]
+            }
+          | null
+
+        if (!res.ok) return
+
+        const nextItems = Array.isArray(data?.items)
+          ? data.items
+          : Array.isArray(data?.messages)
+            ? data.messages
+            : Array.isArray(data?.questions)
+              ? data.questions
+              : []
+
+        setQaItems(nextItems)
+      } catch {
+        // ignore
+      } finally {
+        setQaLoading(false)
+      }
+    }
+
     void loadStageState()
     void loadScenes()
+    void loadQaItems()
 
     const intervalId = window.setInterval(() => {
       void loadStageState()
+      void loadQaItems()
     }, 3000)
 
     return () => {
       cancelled = true
       window.clearInterval(intervalId)
     }
-  }, [stageEndpoint, scenesEndpoint])
+  }, [stageEndpoint, scenesEndpoint, qaRoomKey])
 
   async function refreshScenes() {
     const res = await fetch(scenesEndpoint, { cache: "no-store" })
@@ -644,7 +798,22 @@ function ProducerRoomInner({
   }, [stageCandidates, stageIds, layout])
 
   async function takeLive() {
+    if (isTakingLive) return
+
     try {
+      setIsTakingLive(true)
+
+      await new Promise((resolve) => window.setTimeout(resolve, 220))
+
+      if (takeTransition !== "cut") {
+        setProgramTransitionOverlay(takeTransition)
+        window.setTimeout(() => {
+          setProgramTransitionOverlay(null)
+        }, takeTransition === "dip_to_black" ? 950 : 650)
+      }
+
+      const shouldTriggerCue = showAudienceCue
+
       const res = await fetch(`${stageEndpoint}/take`, {
         method: "POST",
         headers: {
@@ -652,6 +821,7 @@ function ProducerRoomInner({
         },
         body: JSON.stringify({
           transition_type: takeTransition,
+          live_moment_type: shouldTriggerCue ? "audience_origin" : null,
         }),
       })
 
@@ -669,6 +839,8 @@ function ProducerRoomInner({
     } catch (error) {
       console.error("Failed to take live", error)
       alert(error instanceof Error ? error.message : "Failed to take program live")
+    } finally {
+      setIsTakingLive(false)
     }
   }
 
@@ -803,6 +975,7 @@ function ProducerRoomInner({
     return (
       scenes.find((scene) => {
         const sceneIds = [...scene.stage_participant_ids].sort().join("|")
+
         return (
           scene.layout === layout &&
           sceneIds === currentIds &&
@@ -828,6 +1001,127 @@ function ProducerRoomInner({
     [stageCandidates, programStageIds]
   )
 
+  const isQaOriginBlendActive =
+    showAudienceCue && audienceCueTreatment === "qa_origin_blend"
+
+  async function triggerAudienceCue(options?: {
+    region?: string
+    moonMode?: boolean
+    questionLabel?: string
+    treatment?: "default" | "qa_origin_blend"
+    lat?: number | null
+    lng?: number | null
+  }) {
+    const treatment = options?.treatment ?? "default"
+    const region = options?.region ?? "Europe"
+    const moonMode = options?.moonMode ?? false
+    const questionLabel =
+      options?.questionLabel ?? "How are outcomes differing across regions?"
+
+    setAudienceCueTreatment(treatment)
+    setAudienceCueRegion(region)
+    setAudienceCueMoonMode(moonMode)
+    setAudienceCueQuestionLabel(questionLabel)
+    setAudienceCueLat(options?.lat ?? null)
+    setAudienceCueLng(options?.lng ?? null)
+    setShowAudienceCue(true)
+
+    try {
+      const res = await fetch(stageEndpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          layout,
+          stage_participant_ids: stageIds,
+          primary_participant_id: primaryId,
+          qa_origin_cue_visible: true,
+          qa_origin_region: region,
+          qa_origin_moon_mode: moonMode,
+          qa_origin_question_label: questionLabel,
+          qa_origin_treatment: treatment,
+          qa_origin_lat: options?.lat ?? null,
+          qa_origin_lng: options?.lng ?? null,
+        }),
+      })
+
+      const data = (await res.json().catch((): null => null)) as
+        | { error?: string }
+        | null
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to save audience origin cue")
+      }
+    } catch (error) {
+      console.error("Failed to save audience origin cue", error)
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to save audience origin cue"
+      )
+    }
+  }
+
+  function triggerCueFromQuestion(item: QAMessage) {
+    void triggerAudienceCue({
+      region: item.origin_region || "North America",
+      moonMode: false,
+      questionLabel: item.question,
+      treatment: "qa_origin_blend",
+      lat: item.origin_lat ?? null,
+      lng: item.origin_lng ?? null,
+    })
+  }
+
+  async function clearAudienceCue() {
+    setShowAudienceCue(false)
+    setAudienceCueRegion("Europe")
+    setAudienceCueMoonMode(false)
+    setAudienceCueQuestionLabel("How are outcomes differing across regions?")
+    setAudienceCueLat(null)
+    setAudienceCueLng(null)
+    setAudienceCueTreatment("default")
+
+    try {
+      const res = await fetch(stageEndpoint, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          layout,
+          stage_participant_ids: stageIds,
+          primary_participant_id: primaryId,
+          qa_origin_cue_visible: false,
+          qa_origin_region: null,
+          qa_origin_moon_mode: false,
+          qa_origin_question_label: null,
+          qa_origin_treatment: null,
+          qa_origin_lat: null,
+          qa_origin_lng: null,
+        }),
+      })
+
+      const data = (await res.json().catch((): null => null)) as
+        | { error?: string }
+        | null
+
+      if (!res.ok) {
+        throw new Error(data?.error || "Failed to clear audience cue")
+      }
+    } catch (error) {
+      console.error("Failed to clear audience cue", error)
+
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to clear audience cue"
+      )
+    }
+  }
+
   return (
     <div className="relative overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),rgba(2,6,23,0.96)_42%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,1))] p-4 text-white shadow-[0_30px_120px_rgba(0,0,0,0.55)] md:p-6">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -837,7 +1131,49 @@ function ProducerRoomInner({
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.06),transparent_40%)]" />
       </div>
 
-      <RoomAudioRenderer />
+      <style jsx global>{`
+        @keyframes jupiterFade {
+          0% {
+            opacity: 0;
+          }
+          50% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+
+        @keyframes jupiterDip {
+          0% {
+            opacity: 0;
+          }
+          35% {
+            opacity: 1;
+          }
+          65% {
+            opacity: 1;
+          }
+          100% {
+            opacity: 0;
+          }
+        }
+
+        @keyframes jupiterLivePulse {
+          0% {
+            opacity: 0.2;
+            transform: scale(0.96);
+          }
+          50% {
+            opacity: 0.38;
+            transform: scale(1.06);
+          }
+          100% {
+            opacity: 0.2;
+            transform: scale(0.96);
+          }
+        }
+      `}</style>
 
       <div className="relative space-y-5">
         <GlassPanel className="overflow-hidden p-5 md:p-6">
@@ -853,9 +1189,21 @@ function ProducerRoomInner({
               </p>
 
               <div className="mt-5 flex flex-wrap gap-2">
-                <MetricPill label="Preview" value={`${stageIds.length} selected`} tone="sky" />
-                <MetricPill label="Program" value={`${programStageIds.length} live`} tone="red" />
-                <MetricPill label="Transition" value={takeTransition.replace("_", " ")} tone="amber" />
+                <MetricPill
+                  label="Preview"
+                  value={`${stageIds.length} selected`}
+                  tone="sky"
+                />
+                <MetricPill
+                  label="Program"
+                  value={`${programStageIds.length} live`}
+                  tone="red"
+                />
+                <MetricPill
+                  label="Transition"
+                  value={takeTransition.replace("_", " ")}
+                  tone="amber"
+                />
                 <MetricPill
                   label="Status"
                   value={saving ? "Saving" : "Ready"}
@@ -901,7 +1249,9 @@ function ProducerRoomInner({
                       <ParticipantBadge key={producer.identity} name={producer.name} />
                     ))
                   ) : (
-                    <div className="text-sm text-white/45">Producer feed not visible yet.</div>
+                    <div className="text-sm text-white/45">
+                      Producer feed not visible yet.
+                    </div>
                   )}
                 </div>
               </div>
@@ -979,29 +1329,75 @@ function ProducerRoomInner({
           </div>
 
           <div className="space-y-5">
-            <div className="grid gap-5 2xl:grid-cols-2">
-              <ProgramMonitor
-                title="Preview"
-                subtitle="Build the next beat here before it goes live."
-                layout={layout}
-                stageIds={stageIds}
-                primaryId={primaryId}
-                emptyLabel="Nothing in preview yet"
-                accent="sky"
-                realTrackRefs={realTrackRefs}
-              />
+            <div className="grid gap-5 items-start 2xl:grid-cols-2">
+              <div className="relative z-10">
+                <ProgramMonitor
+                  title="Preview"
+                  subtitle="Build the next beat here before it goes live."
+                  layout={layout}
+                  stageIds={stageIds}
+                  primaryId={primaryId}
+                  emptyLabel="Nothing in preview yet"
+                  accent="sky"
+                  realTrackRefs={realTrackRefs}
+                />
+              </div>
 
-              <ProgramMonitor
-                title="Program"
-                subtitle="This is what your audience sees right now."
-                layout={programLayout}
-                stageIds={programStageIds}
-                primaryId={programPrimaryId}
-                emptyLabel="Nothing live yet"
-                accent="red"
-                live
-                realTrackRefs={realTrackRefs}
-              />
+              <div
+                className={cx(
+                  "relative z-20 transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)]",
+                  isQaOriginBlendActive
+                    ? "translate-y-4 scale-[0.985]"
+                    : "translate-y-0 scale-100"
+                )}
+              >
+                <ProgramMonitor
+                  title="Program"
+                  subtitle="This is what your audience sees right now."
+                  layout={programLayout}
+                  stageIds={programStageIds}
+                  primaryId={programPrimaryId}
+                  emptyLabel="Nothing live yet"
+                  accent="red"
+                  live
+                  realTrackRefs={realTrackRefs}
+                  transitionOverlay={programTransitionOverlay}
+                />
+
+                <ProgramMomentOverlay
+                  visible={showAudienceCue}
+                  region={audienceCueRegion}
+                  moonMode={audienceCueMoonMode}
+                  questionLabel={audienceCueQuestionLabel}
+                  treatment={audienceCueTreatment}
+                  lat={audienceCueLat}
+                  lng={audienceCueLng}
+                />
+
+                {showAudienceCue ? (
+                  <div className="absolute bottom-4 left-4 z-40">
+                    <button
+                      type="button"
+                      onClick={() => void clearAudienceCue()}
+                      className="pointer-events-auto rounded-2xl border border-red-400/25 bg-black/70 px-4 py-2 text-xs font-medium uppercase tracking-[0.18em] text-red-100 backdrop-blur-md transition hover:bg-red-500/15"
+                    >
+                      Clear Cue
+                    </button>
+                  </div>
+                ) : null}
+
+                {showAudienceCue ? (
+                  <div className="absolute left-4 top-4 z-40">
+                    <div className="pointer-events-none inline-flex items-center gap-2 rounded-full border border-sky-400/20 bg-black/70 px-3 py-1.5 text-[11px] uppercase tracking-[0.18em] text-sky-100 backdrop-blur-md shadow-[0_0_20px_rgba(56,189,248,0.18)]">
+                      <span className="relative flex h-2.5 w-2.5">
+                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-70" />
+                        <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-sky-400" />
+                      </span>
+                      Audience Cue Active
+                    </div>
+                  </div>
+                ) : null}
+              </div>
             </div>
 
             <GlassPanel className="p-5">
@@ -1053,14 +1449,26 @@ function ProducerRoomInner({
                 <button
                   type="button"
                   onClick={() => void takeLive()}
-                  className="rounded-2xl bg-[linear-gradient(135deg,#fb7185,#ef4444)] px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white shadow-[0_20px_50px_rgba(239,68,68,0.35)] transition hover:brightness-110"
+                  disabled={isTakingLive}
+                  className={cx(
+                    "group relative overflow-hidden rounded-2xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-all duration-200 active:translate-y-0 active:scale-[0.99]",
+                    isTakingLive
+                      ? "bg-white/15 ring-2 ring-red-400/50 shadow-[0_0_40px_rgba(248,113,113,0.35)]"
+                      : "bg-[linear-gradient(135deg,#fb7185,#ef4444,#f97316)] shadow-[0_24px_60px_rgba(239,68,68,0.38)] hover:-translate-y-0.5 hover:shadow-[0_30px_80px_rgba(239,68,68,0.5)]"
+                  )}
                 >
-                  Take Live
+                  <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <span className="absolute inset-y-0 left-[-30%] w-1/3 rotate-12 bg-white/20 blur-xl transition-transform duration-500 group-hover:translate-x-[340%]" />
+                  </span>
+                  <span className="relative z-10 flex items-center justify-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-white/90 shadow-[0_0_18px_rgba(255,255,255,0.9)]" />
+                    {isTakingLive ? "Taking..." : "Take Live"}
+                  </span>
                 </button>
               </div>
             </GlassPanel>
 
-            <GlassPanel className="p-4">
+            <GlassPanel className="p-5 shadow-[0_30px_80px_rgba(239,68,68,0.08)]">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <SectionEyebrow>Saved Looks</SectionEyebrow>
@@ -1117,14 +1525,81 @@ function ProducerRoomInner({
               </div>
             </GlassPanel>
 
-            <GlassPanel className="p-4">
+            <GlassPanel className="relative p-4">
               <SectionEyebrow>Q&A Monitor</SectionEyebrow>
-              <div className="mt-4 rounded-[24px] border border-dashed border-white/10 bg-black/20 p-4">
-                <div className="text-sm font-medium text-white">Cinematic Q&A placeholder</div>
-                <div className="mt-2 text-sm leading-6 text-white/50">
-                  Reserve this rail for featured questions, regional callouts, and the
-                  globe-driven storytelling layer you want to add next.
-                </div>
+
+              <div className="mt-4 space-y-3">
+                {qaLoading ? (
+                  <div className="rounded-[24px] border border-white/10 bg-black/20 p-4 text-sm text-white/50">
+                    Loading questions…
+                  </div>
+                ) : qaItems.length === 0 ? (
+                  <div className="rounded-[24px] border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/50">
+                    No questions yet.
+                  </div>
+                ) : (
+                  qaItems.slice(0, 8).map((item) => {
+                    const originLabel =
+                      item.origin_city && item.origin_country
+                        ? `${item.origin_city}, ${item.origin_country}`
+                        : item.origin_country
+                          ? item.origin_country
+                          : item.origin_region || "Unknown origin"
+
+                    return (
+                      <div
+                        key={item.id}
+                        className="rounded-[24px] border border-white/10 bg-black/20 p-4"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="text-sm font-medium text-white">
+                              {item.name?.trim() || "Anonymous"}
+                            </div>
+                            <div className="mt-1 text-xs uppercase tracking-[0.18em] text-white/40">
+                              {originLabel}
+                            </div>
+                          </div>
+
+                          <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
+                            {item.status}
+                          </div>
+                        </div>
+
+                        <div className="mt-3 text-sm leading-6 text-white/80">
+                          {item.question}
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => triggerCueFromQuestion(item)}
+                            className="rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-500/15"
+                          >
+                            Trigger Origin Cue
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() =>
+                              triggerAudienceCue({
+                                region: item.origin_region || "North America",
+                                moonMode: false,
+                                questionLabel: item.question,
+                                treatment: "default",
+                                lat: item.origin_lat ?? null,
+                                lng: item.origin_lng ?? null,
+                              })
+                            }
+                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 transition hover:bg-white/10"
+                          >
+                            Trigger Standard Cue
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
               </div>
             </GlassPanel>
 
@@ -1173,7 +1648,8 @@ function ProducerRoomInner({
             <div>
               <SectionEyebrow>Participants / Inputs</SectionEyebrow>
               <div className="mt-2 text-sm text-white/60">
-                Add people to Preview, choose the primary speaker, then take the look live.
+                Add people to Preview, choose the primary speaker, then take the
+                look live.
               </div>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -1293,10 +1769,12 @@ export default function ProducerRoomClient({
   token,
   serverUrl,
   stageEndpoint,
+  sessionId,
 }: {
   token: string
   serverUrl: string
   stageEndpoint: string
+  sessionId: string
 }) {
   return (
     <LiveKitRoom
@@ -1307,7 +1785,8 @@ export default function ProducerRoomClient({
       video
       className="contents"
     >
-      <ProducerRoomInner stageEndpoint={stageEndpoint} />
+      <RoomAudioRenderer />
+      <ProducerRoomInner stageEndpoint={stageEndpoint} sessionId={sessionId} />
     </LiveKitRoom>
   )
 }

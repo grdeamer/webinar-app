@@ -750,13 +750,31 @@ function toggleSessionOpen(id: string) {
   ) : null}
 </div>
 
-                    <div className="mt-2 truncate text-base font-semibold text-white">
-                      {session.title || "Untitled Session"}
-                    </div>
+<div className="mt-2 truncate text-base font-semibold text-white">
+  {session.title || "Untitled Session"}
+</div>
 
-                    <div className="mt-1 text-sm text-white/50">
-                      {session.visibility_mode || "assigned"} {" • "} {session.runtime_status || "holding"}
-                    </div>
+<div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/40">
+  <span>ID: {session.id}</span>
+
+  <button
+    type="button"
+    onClick={(e) => {
+      e.stopPropagation()
+      void navigator.clipboard.writeText(session.id)
+      setSessionNotice(session.id, { type: "success", text: "Session ID copied" })
+      clearSessionNoticeLater(session.id)
+    }}
+    className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/60 transition hover:bg-white/10"
+    title="Copy session ID"
+  >
+    Copy ID
+  </button>
+</div>
+
+<div className="mt-1 text-sm text-white/50">
+  {session.visibility_mode || "assigned"} {" • "} {session.runtime_status || "holding"}
+</div>
                   </div>
 
                   <div className="shrink-0 text-sm text-white/60">

@@ -1,13 +1,15 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import EventEmailGate from "../../EventEmailGate"
+import AttendeePresenceHeartbeat from "@/components/AttendeePresenceHeartbeat"
+import AttendeeQASubmitBox from "@/components/qa/AttendeeQASubmitBox"
+import SessionLiveRedirectWatcher from "@/components/live/SessionLiveRedirectWatcher"
+import SessionStagePlayer from "@/components/live/SessionStagePlayer"
 import { getEventBySlug } from "@/lib/events"
 import type { AppSession } from "@/lib/domain/sessions"
 import { getSessionById } from "@/lib/repos/sessionsRepo"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { resolveSessionExperience } from "@/lib/services/sessions/resolveSessionExperience"
-import SessionLiveRedirectWatcher from "@/components/live/SessionLiveRedirectWatcher"
-import SessionStagePlayer from "@/components/live/SessionStagePlayer"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -74,7 +76,9 @@ function StatusBadge({ status }: { status?: string | null }) {
         : "border-white/10 bg-white/5 text-white/75"
 
   return (
-    <span className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] ${tone}`}>
+    <span
+      className={`inline-flex rounded-full border px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] ${tone}`}
+    >
       {label}
     </span>
   )
@@ -294,6 +298,32 @@ export default async function EventSessionPage(props: {
   const viewer = await buildEventViewerContext(slug, event.id)
   const experience = resolveSessionExperience(session, viewer)
 
+  console.log("SESSION VIEWER DEBUG:", JSON.stringify(viewer, null, 2))
+
+  const attendeeUserId =
+    typeof (viewer as any)?.id === "string"
+      ? (viewer as any).id
+      : typeof (viewer as any)?.userId === "string"
+        ? (viewer as any).userId
+        : typeof (viewer as any)?.user_id === "string"
+          ? (viewer as any).user_id
+          : typeof (viewer as any)?.user?.id === "string"
+            ? (viewer as any).user.id
+            : typeof (viewer as any)?.attendee?.user_id === "string"
+              ? (viewer as any).attendee.user_id
+              : null
+
+  const attendeeEmail =
+    typeof (viewer as any)?.email === "string"
+      ? (viewer as any).email
+      : typeof (viewer as any)?.user?.email === "string"
+        ? (viewer as any).user.email
+        : typeof (viewer as any)?.attendee?.email === "string"
+          ? (viewer as any).attendee.email
+          : null
+
+  console.log("SESSION ATTENDEE USER ID:", attendeeUserId)
+
   if (!experience.access.canView) {
     if (experience.access.reason === "login_required") {
       return (
@@ -346,6 +376,10 @@ export default async function EventSessionPage(props: {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <SessionLiveRedirectWatcher slug={slug} sessionId={session.id} />
+
+      {attendeeUserId ? (
+        <AttendeePresenceHeartbeat eventId={event.id} userId={attendeeUserId} />
+      ) : null}
 
       <div className="relative mx-auto max-w-7xl px-6 py-10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[40px]">
@@ -402,15 +436,36 @@ export default async function EventSessionPage(props: {
                 </div>
               </div>
 
-              {experience.delivery.kind === "livekit" ? (
-                <LiveKitSessionPanel slug={slug} session={session} />
-              ) : experience.delivery.kind === "video" ? (
-                <VideoSessionPanel session={session} />
-              ) : experience.delivery.kind === "rtmp" ? (
-                <RtmpSessionPanel />
-              ) : (
-                <ExternalSessionPanel session={session} />
-              )}
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+                  Presence debug mounted • event_id: {event.id} • user_id:{" "}
+                  {attendeeUserId ?? "null"}
+                </div>
+
+                {experience.delivery.kind === "livekit" && (
+                  <LiveKitSessionPanel slug={slug} session={session} />
+                )}
+
+                {experience.delivery.kind === "video" && (
+                  <VideoSessionPanel session={session} />
+                )}
+
+                {experience.delivery.kind === "rtmp" && <RtmpSessionPanel />}
+
+                {experience.delivery.kind !== "livekit" &&
+                  experience.delivery.kind !== "video" &&
+                  experience.delivery.kind !== "rtmp" && (
+                    <ExternalSessionPanel session={session} />
+                  )}
+
+                {session.qaEnabled ? (
+                  <AttendeeQASubmitBox
+                    roomKey={`session:${session.id}`}
+                    eventId={event.id}
+                    attendeeName={attendeeEmail ?? "Anonymous"}
+                  />
+                ) : null}
+              </div>
             </div>
 
             <aside className="space-y-4">

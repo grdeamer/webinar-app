@@ -1,7 +1,21 @@
-import { revalidatePath } from "next/cache"
+import Link from "next/link"
+import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { getEventLiveState, upsertEventLiveState } from "@/lib/app/liveState"
-import MissionControlClient from "./MissionControlClient"
+import EventAdminNav from "@/components/admin/EventAdminNav"
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
+type PageProps = {
+  params: Promise<{ id: string }>
+}
+
+type EventRow = {
+  id: string
+  slug: string
+  title: string
+  description: string | null
+}
 
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
@@ -9,360 +23,336 @@ function isUuid(value: string) {
   )
 }
 
-function clampDuration(value: FormDataEntryValue | null, fallback = 3000) {
-  const n = Number(value)
-  if (!Number.isFinite(n)) return fallback
-  return Math.max(800, Math.min(6000, Math.round(n)))
-}
-
-function readString(value: FormDataEntryValue | null, fallback = "") {
-  const text = String(value ?? "").trim()
-  return text || fallback
-}
-
-function readTransitionType(value: FormDataEntryValue | null) {
-  const raw = String(value ?? "fade").trim()
-  if (
-    raw === "wipe" ||
-    raw === "wipe_left" ||
-    raw === "wipe_right" ||
-    raw === "zoom" ||
-    raw === "zoom_in" ||
-    raw === "zoom_out" ||
-    raw === "dip_to_black"
-  ) {
-    return raw
-  }
-  return "fade"
-}
-
-export default async function AdminEventDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function AdminEventDashboardPage({ params }: PageProps) {
   const { id } = await params
 
-  let eventId = id
-  let eventSlug = id
+  let event: EventRow | null = null
 
-  if (!isUuid(id)) {
-    const { data: event, error } = await supabaseAdmin
+  if (isUuid(id)) {
+    const { data } = await supabaseAdmin
       .from("events")
-      .select("id,slug")
-      .eq("slug", id)
-      .maybeSingle()
-
-    if (error || !event?.id) {
-      throw new Error("Event not found")
-    }
-
-    eventId = event.id
-    eventSlug = event.slug
-  } else {
-    const { data: event } = await supabaseAdmin
-      .from("events")
-      .select("id,slug")
+      .select("id,slug,title,description")
       .eq("id", id)
       .maybeSingle()
 
-    if (event?.slug) {
-      eventSlug = event.slug
-    }
+    event = (data as EventRow | null) ?? null
+  } else {
+    const { data } = await supabaseAdmin
+      .from("events")
+      .select("id,slug,title,description")
+      .eq("slug", id)
+      .maybeSingle()
+
+    event = (data as EventRow | null) ?? null
   }
 
-  async function goGeneralSession(formData: FormData) {
-    "use server"
+  if (!event) notFound()
 
-    const rawTransition = formData.get("transitionType")
-    let transitionType = readTransitionType(rawTransition)
-
-    if (!rawTransition || rawTransition === "auto") {
-      transitionType = "zoom"
-    }
-
-    const transitionDurationMs = clampDuration(formData.get("transitionDuration"), 3000)
-    const customHeadline = readString(formData.get("headline"))
-    const customMessage = readString(formData.get("message"))
-
-    const { data: generalSession, error } = await supabaseAdmin
+  const [
+    sessionsResult,
+    attendeesResult,
+    breakoutsResult,
+    routingStateResult,
+    presenceResult,
+  ] = await Promise.all([
+    supabaseAdmin
       .from("event_sessions")
-      .select("id,title")
-      .eq("event_id", eventId)
-      .or("is_general_session.eq.true,session_kind.eq.general")
-      .maybeSingle()
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", event.id),
 
-    if (error) {
-      throw new Error(error.message)
-    }
+    supabaseAdmin
+      .from("event_attendees")
+      .select("user_id", { count: "exact", head: true })
+      .eq("event_id", event.id),
 
-    if (!generalSession?.id) {
-      throw new Error(
-        "No General Session session row found. Add a session in event_sessions marked is_general_session=true or session_kind=general."
-      )
-    }
+    supabaseAdmin
+      .from("event_breakouts")
+      .select("id", { count: "exact", head: true })
+      .eq("event_id", event.id),
 
-    await upsertEventLiveState({
-      eventId,
-      mode: "general_session",
-      destinationType: "session",
-      destinationSessionId: generalSession.id,
-      headline: customHeadline || generalSession.title || "Now Entering General Session",
-      message: customMessage || "The keynote is beginning now.",
-      forceRedirect: true,
-      transitionType,
-      transitionDurationMs,
-    })
+    supabaseAdmin
+      .from("event_live_state")
+      .select("mode,destination_type,destination_session_id,transition_type,transition_active,transition_duration_ms,headline,message")
+      .eq("event_id", event.id)
+      .maybeSingle(),
 
-    revalidatePath(`/admin/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}/sessions/${generalSession.id}`)
-  }
-
-  async function goToSession(formData: FormData) {
-    "use server"
-
-    const sessionId = String(formData.get("sessionId") || "")
-
-    if (!sessionId) {
-      throw new Error("Missing sessionId")
-    }
-
-    const rawTransition = formData.get("transitionType")
-    let transitionType = readTransitionType(rawTransition)
-
-    if (!rawTransition || rawTransition === "auto") {
-      transitionType = "wipe_left"
-    }
-
-    const transitionDurationMs = clampDuration(formData.get("transitionDuration"), 2200)
-    const customHeadline = readString(formData.get("headline"))
-    const customMessage = readString(formData.get("message"))
-
-    await upsertEventLiveState({
-      eventId,
-      mode: "session",
-      destinationType: "session",
-      destinationSessionId: sessionId,
-      headline: customHeadline || "Entering Session",
-      message: customMessage || "Your next session is opening.",
-      forceRedirect: true,
-      transitionType,
-      transitionDurationMs,
-    })
-
-    revalidatePath(`/admin/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}/sessions/${sessionId}`)
-  }
-
-  async function goToBreakout(formData: FormData) {
-    "use server"
-
-    const breakoutId = String(formData.get("breakoutId") || "")
-
-    if (!breakoutId) {
-      throw new Error("Missing breakoutId")
-    }
-
-    const rawTransition = formData.get("transitionType")
-    let transitionType = readTransitionType(rawTransition)
-
-    if (!rawTransition || rawTransition === "auto") {
-      transitionType = "wipe_right"
-    }
-
-    const transitionDurationMs = clampDuration(formData.get("transitionDuration"), 2200)
-    const customHeadline = readString(formData.get("headline"))
-    const customMessage = readString(formData.get("message"))
-
-    await upsertEventLiveState({
-      eventId,
-      mode: "breakout",
-      destinationType: "session",
-      destinationSessionId: breakoutId,
-      headline: customHeadline || "Entering Breakout",
-      message: customMessage || "We’re moving you into a breakout room.",
-      forceRedirect: true,
-      transitionType,
-      transitionDurationMs,
-    })
-
-    revalidatePath(`/admin/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}/sessions/${breakoutId}`)
-  }
-
-  async function goOffAir(formData: FormData) {
-    "use server"
-
-    const rawTransition = formData.get("transitionType")
-    let transitionType = readTransitionType(rawTransition)
-
-    if (!rawTransition || rawTransition === "auto") {
-      transitionType = "dip_to_black"
-    }
-
-    const transitionDurationMs = clampDuration(formData.get("transitionDuration"), 2600)
-    const customHeadline = readString(formData.get("headline"))
-    const customMessage = readString(formData.get("message"))
-
-    await upsertEventLiveState({
-      eventId,
-      mode: "off_air",
-      destinationType: null,
-      destinationSessionId: null,
-      headline: customHeadline || "We’ll Be Right Back",
-      message: customMessage || "Returning attendees to the event home page.",
-      forceRedirect: true,
-      transitionType,
-      transitionDurationMs,
-    })
-
-    revalidatePath(`/admin/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}`)
-  }
-
-  async function fireGeneralSessionCue(formData: FormData) {
-    "use server"
-    await goGeneralSession(formData)
-  }
-
-  async function fireSessionCue(formData: FormData) {
-    "use server"
-    await goToSession(formData)
-  }
-
-  async function fireBreakoutCue(formData: FormData) {
-    "use server"
-    await goToBreakout(formData)
-  }
-
-  async function fireOffAirCue(formData: FormData) {
-    "use server"
-    await goOffAir(formData)
-  }
-  async function clearTransitionState() {
-    "use server"
-
-    const current = await getEventLiveState(eventId)
-    if (!current) return
-
-    await upsertEventLiveState({
-      eventId,
-      mode: current.mode,
-      activeBreakoutId: current.active_breakout_id,
-      destinationType: current.destination_type,
-      destinationSessionId: current.destination_session_id,
-      headline: current.headline,
-      message: current.message,
-      forceRedirect: false,
-      transitionType: current.transition_type,
-      transitionDurationMs: current.transition_duration_ms,
-      transitionActive: false,
-      transitionStartedAt: null,
-      updatedBy: current.updated_by ?? null,
-    })
-
-    revalidatePath(`/admin/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}`)
-
-    if (current.destination_session_id) {
-      revalidatePath(`/events/${eventSlug}/sessions/${current.destination_session_id}`)
-    }
-  }
-  async function loadRunOfShow() {
-    "use server"
-
-    const { data, error } = await supabaseAdmin
-      .from("event_run_of_show")
-      .select("cues")
-      .eq("event_id", eventId)
-      .maybeSingle()
-
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    return Array.isArray(data?.cues) ? data.cues : []
-  }
-
-  async function saveRunOfShow(cues: unknown[]) {
-    "use server"
-
-    const { error } = await supabaseAdmin
-      .from("event_run_of_show")
-      .upsert(
-        {
-          event_id: eventId,
-          cues,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "event_id" }
-      )
-
-    if (error) {
-      throw new Error(error.message)
-    }
-
-    revalidatePath(`/admin/events/${eventSlug}`)
-  }
-
-  const { data: sessionRows, error: sessionError } = await supabaseAdmin
-    .from("event_sessions")
-    .select("id,title,is_general_session,session_kind")
-    .eq("event_id", eventId)
-    .order("title", { ascending: true })
-
-  if (sessionError) {
-    throw new Error(sessionError.message)
-  }
-
-  const sessions =
-    (sessionRows || [])
-      .filter((row: any) => !row?.is_general_session && row?.session_kind !== "general")
-      .map((row: any) => ({
-        id: String(row.id),
-        title: String(row.title || "Untitled Session"),
-      })) ?? []
-
-  const { data: breakoutRows, error: breakoutError } = await supabaseAdmin
-    .from("event_breakouts")
-    .select("id,title")
-    .eq("event_id", eventId)
-    .order("title", { ascending: true })
-
-  if (breakoutError) {
-    throw new Error(breakoutError.message)
-  }
-
-  const breakouts =
-    (breakoutRows || []).map((row: any) => ({
-      id: String(row.id),
-      title: String(row.title || "Untitled Breakout"),
-    })) ?? []
-
-  const [liveState, initialRunOfShow] = await Promise.all([
-    getEventLiveState(eventId),
-    loadRunOfShow(),
+    supabaseAdmin
+      .from("event_presence")
+      .select("user_id,last_seen")
+      .eq("event_id", event.id),
   ])
 
+  const sessionCount = sessionsResult.count ?? 0
+  const attendeeCount = attendeesResult.count ?? 0
+  const breakoutCount = breakoutsResult.count ?? 0
+
+  const routingMode = routingStateResult.data?.mode ?? "not_set"
+
+  let currentDestinationLabel = "Not Set"
+
+  if (routingStateResult.data?.mode === "general_session") {
+    currentDestinationLabel = "Main Stage"
+  } else if (routingStateResult.data?.mode === "off_air") {
+    currentDestinationLabel = "Off Air"
+  } else if (
+    routingStateResult.data?.destination_session_id &&
+    routingStateResult.data?.destination_type === "session"
+  ) {
+    const destinationId = routingStateResult.data.destination_session_id
+
+    const { data: sessionMatch } = await supabaseAdmin
+      .from("event_sessions")
+      .select("title")
+      .eq("id", destinationId)
+      .maybeSingle()
+
+    if (sessionMatch?.title) {
+      currentDestinationLabel = sessionMatch.title
+    } else {
+      const { data: breakoutMatch } = await supabaseAdmin
+        .from("event_breakouts")
+        .select("title")
+        .eq("id", destinationId)
+        .maybeSingle()
+
+      if (breakoutMatch?.title) {
+        currentDestinationLabel = breakoutMatch.title
+      } else {
+        currentDestinationLabel = "Unknown Destination"
+      }
+    }
+  }
+
+  const now = Date.now()
+  const activeWindowMs = 30_000
+  const liveNowCount = (presenceResult.data ?? []).filter((row) => {
+    if (!row.last_seen) return false
+    return now - new Date(row.last_seen).getTime() <= activeWindowMs
+  }).length
+
   return (
-    <MissionControlClient
-      liveState={liveState}
-      sessions={sessions}
-      breakouts={breakouts}
-      initialRunOfShow={Array.isArray(initialRunOfShow) ? initialRunOfShow : []}
-      saveRunOfShow={saveRunOfShow}
-      goGeneralSession={goGeneralSession}
-      goToSession={goToSession}
-      goToBreakout={goToBreakout}
-      goOffAir={goOffAir}
-      fireGeneralSessionCue={fireGeneralSessionCue}
-      fireSessionCue={fireSessionCue}
-      fireBreakoutCue={fireBreakoutCue}
-      fireOffAirCue={fireOffAirCue}
-      clearTransitionState={clearTransitionState}
-    />
+    <div className="min-h-screen bg-slate-950 px-6 py-8 text-white">
+      <div className="mx-auto max-w-7xl space-y-8">
+        <EventAdminNav eventId={event.id} eventSlug={event.slug} />
+
+        <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
+          <div className="text-xs uppercase tracking-[0.18em] text-white/40">
+            Event Dashboard
+          </div>
+          <h1 className="mt-2 text-3xl font-semibold">{event.title}</h1>
+          <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">
+            {event.description?.trim()
+              ? event.description
+              : "Manage routing, sessions, attendees, producer tools, and event pages from one place."}
+          </p>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <QuickLink href={`/admin/events/${event.id}/routing`} label="Open Routing" />
+            <QuickLink href={`/admin/events/${event.id}/producer/room`} label="Open Producer" />
+            <QuickLink href={`/admin/events/${event.id}/sessions`} label="Manage Sessions" />
+            <QuickLink href={`/admin/events/${event.id}/attendees`} label="View Attendees" />
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
+          <StatCard label="Sessions" value={sessionCount} />
+          <StatCard label="Attendees" value={attendeeCount} />
+          <StatCard label="Breakouts" value={breakoutCount} />
+          <StatCard label="In Event Now" value={liveNowCount} />
+          <StatCard label="Routing Mode" value={formatRoutingMode(routingMode)} />
+          <StatCard label="Current Destination" value={currentDestinationLabel} />
+        </section>
+        <section className="grid gap-4 xl:grid-cols-[1.4fr_0.6fr]">
+          <Panel
+            title="Live Status"
+            body="Current event routing and transition state."
+          >
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.14em] text-white/40">
+                  Routing Mode
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {formatRoutingMode(routingMode)}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.14em] text-white/40">
+                  Current Destination
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {currentDestinationLabel}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.14em] text-white/40">
+                  Transition
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {routingStateResult.data?.transition_type
+                    ? routingStateResult.data.transition_type.replace(/_/g, " ")
+                    : "None"}
+                </div>
+              </div>
+
+              <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.14em] text-white/40">
+                  Transition Status
+                </div>
+                <div className="mt-2 text-lg font-semibold text-white">
+                  {routingStateResult.data?.transition_active ? "Active" : "Idle"}
+                </div>
+              </div>
+            </div>
+
+            {(routingStateResult.data?.headline || routingStateResult.data?.message) && (
+              <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-4">
+                <div className="text-xs uppercase tracking-[0.14em] text-white/40">
+                  On-Screen Messaging
+                </div>
+                <div className="mt-2 text-base font-medium text-white">
+                  {routingStateResult.data?.headline || "—"}
+                </div>
+                <div className="mt-1 text-sm leading-6 text-white/60">
+                  {routingStateResult.data?.message || "—"}
+                </div>
+              </div>
+            )}
+          </Panel>
+
+          <Panel
+            title="Quick Control"
+            body="Jump directly into live audience routing."
+          >
+            <div className="space-y-3">
+              <QuickLink href={`/admin/events/${event.id}/routing`} label="Open Routing" />
+              <QuickLink href={`/admin/events/${event.id}/producer`} label="Open Producer" />
+            </div>
+          </Panel>
+        </section>
+        <section className="grid gap-4 xl:grid-cols-2">
+          <Panel
+            title="Broadcast Control"
+            body="Launch live routing controls, producer tools, and stage workflows."
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <DashboardCard
+                href={`/admin/events/${event.id}/routing`}
+                title="Routing"
+                description="Control where attendees are sent across the event."
+              />
+<DashboardCard
+  href={`/admin/events/${event.id}/producer/room`}
+  title="Producer"
+  description="Open the producer room for live switching and stage control."
+/>
+            </div>
+          </Panel>
+
+          <Panel
+            title="Event Setup"
+            body="Manage your sessions, attendee list, and event pages."
+          >
+            <div className="grid gap-3 sm:grid-cols-3">
+              <DashboardCard
+                href={`/admin/events/${event.id}/sessions`}
+                title="Sessions"
+                description="Edit sessions and main stage setup."
+              />
+              <DashboardCard
+                href={`/admin/events/${event.id}/attendees`}
+                title="Attendees"
+                description="View registrations and live presence."
+              />
+              <DashboardCard
+                href={`/admin/page-editor/event/${event.slug}`}
+                title="Pages"
+                description="Edit attendee-facing event pages."
+              />
+            </div>
+          </Panel>
+        </section>
+      </div>
+    </div>
+  )
+}
+
+function formatRoutingMode(value: string) {
+  if (value === "general_session") return "Main Stage"
+  if (value === "off_air") return "Off Air"
+  if (value === "not_set") return "Not Set"
+  return value.replace(/_/g, " ")
+}
+
+function StatCard({
+  label,
+  value,
+}: {
+  label: string
+  value: string | number
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-5">
+      <div className="text-xs uppercase tracking-[0.14em] text-white/40">{label}</div>
+      <div className="mt-3 text-3xl font-semibold text-white">{value}</div>
+    </div>
+  )
+}
+
+function Panel({
+  title,
+  body,
+  children,
+}: {
+  title: string
+  body: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6">
+      <h2 className="text-xl font-semibold text-white">{title}</h2>
+      <p className="mt-2 text-sm leading-6 text-white/60">{body}</p>
+      <div className="mt-5">{children}</div>
+    </div>
+  )
+}
+
+function DashboardCard({
+  href,
+  title,
+  description,
+}: {
+  href: string
+  title: string
+  description: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-2xl border border-white/10 bg-black/20 p-5 transition hover:border-white/20 hover:bg-white/[0.06]"
+    >
+      <div className="text-base font-semibold text-white">{title}</div>
+      <div className="mt-2 text-sm leading-6 text-white/60">{description}</div>
+      <div className="mt-4 text-sm font-medium text-sky-200">Open →</div>
+    </Link>
+  )
+}
+
+function QuickLink({
+  href,
+  label,
+}: {
+  href: string
+  label: string
+}) {
+  return (
+    <Link
+      href={href}
+      className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium text-white/85 transition hover:bg-white/10 hover:text-white"
+    >
+      {label}
+    </Link>
   )
 }

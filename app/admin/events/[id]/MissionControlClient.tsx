@@ -13,7 +13,7 @@ import {
 import { Slider } from "@/components/ui/slider"
 import StageTransitionOverlay from "@/components/live/StageTransitionOverlay"
 
-type LiveStateLike = {
+type EventRoutingStateLike = {
   mode?: string | null
   destination_type?: string | null
   destination_session_id?: string | null
@@ -42,6 +42,7 @@ type TransitionType =
   | "zoom_in"
   | "zoom_out"
   | "dip_to_black"
+  | "main_stage_arrival"
 
 type TransitionPreset = {
   transitionType: TransitionType
@@ -61,11 +62,11 @@ type RunOfShowItem = {
   message: string
 }
 
-const GENERAL_SESSION_PRESETS: Record<string, TransitionPreset> = {
+const MAIN_STAGE_PRESETS: Record<string, TransitionPreset> = {
   keynote_start: {
-    transitionType: "zoom_in",
+  transitionType: "main_stage_arrival",
     duration: 3200,
-    headline: "Now Entering General Session",
+    headline: "Now Entering Main Stage",
     message: "The keynote is beginning now.",
   },
   session_change: {
@@ -167,9 +168,11 @@ function normalizeRunOfShowItems(value: unknown): RunOfShowItem[] {
 }
 
 export default function MissionControlClient({
-  liveState,
+  routingState,
   sessions,
   breakouts,
+  sessionMap,
+  breakoutMap,
   initialRunOfShow,
   saveRunOfShow,
   goGeneralSession,
@@ -182,9 +185,11 @@ export default function MissionControlClient({
   fireOffAirCue,
   clearTransitionState,
 }: {
-  liveState: LiveStateLike | null
+  routingState: EventRoutingStateLike | null
   sessions: SessionOption[]
   breakouts: BreakoutOption[]
+  sessionMap: Record<string, string>
+  breakoutMap: Record<string, string>
   initialRunOfShow: unknown[]
   saveRunOfShow: (cues: RunOfShowItem[]) => Promise<void>
   goGeneralSession: (formData: FormData) => Promise<void>
@@ -197,16 +202,16 @@ export default function MissionControlClient({
   fireOffAirCue: (formData: FormData) => Promise<void>
   clearTransitionState: () => Promise<void>
 }) {
-  const [generalOpen, setGeneralOpen] = useState(false)
+  const [mainStageOpen, setMainStageOpen] = useState(false)
   const [sessionOpen, setSessionOpen] = useState(false)
   const [breakoutOpen, setBreakoutOpen] = useState(false)
   const [offAirOpen, setOffAirOpen] = useState(false)
 
-  const [generalTransitionType, setGeneralTransitionType] =
+  const [mainStageTransitionType, setMainStageTransitionType] =
     useState<TransitionType>("auto")
-  const [generalDuration, setGeneralDuration] = useState(3000)
-  const [generalHeadline, setGeneralHeadline] = useState("Now Entering General Session")
-  const [generalMessage, setGeneralMessage] = useState("The keynote is beginning now.")
+  const [mainStageDuration, setMainStageDuration] = useState(3000)
+  const [mainStageHeadline, setMainStageHeadline] = useState("Now Entering Main Stage")
+  const [mainStageMessage, setMainStageMessage] = useState("The keynote is beginning now.")
 
   const [sessionId, setSessionId] = useState<string>(sessions[0]?.id ?? "")
   const [sessionTransitionType, setSessionTransitionType] =
@@ -287,7 +292,7 @@ export default function MissionControlClient({
             ? "wipe_left"
             : args.variant === "breakout"
               ? "wipe_right"
-              : "zoom"
+              :  "main_stage_arrival"
         : args.transitionType
 
     setPreviewVariant(args.variant)
@@ -302,12 +307,12 @@ export default function MissionControlClient({
     }, 20)
   }
 
-  function applyGeneralPreset(key: keyof typeof GENERAL_SESSION_PRESETS) {
-    const preset = GENERAL_SESSION_PRESETS[key]
-    setGeneralTransitionType(preset.transitionType)
-    setGeneralDuration(preset.duration)
-    setGeneralHeadline(preset.headline)
-    setGeneralMessage(preset.message)
+  function applyMainStagePreset(key: keyof typeof MAIN_STAGE_PRESETS) {
+  const preset = MAIN_STAGE_PRESETS[key]
+    setMainStageTransitionType(preset.transitionType)
+    setMainStageDuration(preset.duration)
+    setMainStageHeadline(preset.headline)
+    setMainStageMessage(preset.message)
   }
 
   function applySessionPreset(key: keyof typeof SESSION_PRESETS) {
@@ -409,72 +414,99 @@ export default function MissionControlClient({
 
   return (
     <div className="space-y-6 p-6 text-white">
-      <h1 className="text-2xl font-bold">Mission Control</h1>
+      <div>
+        <h1 className="text-2xl font-bold">Mission Control</h1>
+        <p className="text-sm text-white/55">
+          Event routing, audience transitions, and run-of-show controls.
+        </p>
+      </div>
 
       <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <div className="text-sm text-white/50">Current Mode</div>
-        <div className="text-lg font-semibold">{liveState?.mode || "Not set"}</div>
+        <div className="text-sm text-white/50">Current Routing Mode</div>
+        <div className="text-lg font-semibold">{routingState?.mode || "Not set"}</div>
 
-        {liveState?.destination_type ? (
+        {routingState?.destination_type ? (
           <div className="mt-2 text-sm text-white/60">
-            Destination: {liveState.destination_type}
+            Routing Destination: {routingState.destination_type}
           </div>
         ) : null}
 
-        {liveState?.destination_session_id ? (
+{routingState?.destination_session_id ? (
+  <div className="mt-1 text-sm text-white/60">
+    Destination:{" "}
+    {routingState.destination_type === "session"
+      ? sessionMap[routingState.destination_session_id] ||
+        breakoutMap[routingState.destination_session_id] ||
+        routingState.destination_session_id
+      : breakoutMap[routingState.destination_session_id] ||
+        sessionMap[routingState.destination_session_id] ||
+        routingState.destination_session_id}
+  </div>
+) : null}
+
+        {routingState?.transition_type ? (
           <div className="mt-1 text-sm text-white/60">
-            Session ID: {liveState.destination_session_id}
+            Transition: {routingState.transition_type}
           </div>
         ) : null}
 
-        {liveState?.transition_type ? (
+        {typeof routingState?.transition_duration_ms === "number" ? (
           <div className="mt-1 text-sm text-white/60">
-            Transition: {liveState.transition_type}
-          </div>
-        ) : null}
-
-        {typeof liveState?.transition_duration_ms === "number" ? (
-          <div className="mt-1 text-sm text-white/60">
-            Duration: {liveState.transition_duration_ms}ms
+            Duration: {routingState.transition_duration_ms}ms
           </div>
         ) : null}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Dialog open={generalOpen} onOpenChange={setGeneralOpen}>
+        <Dialog open={mainStageOpen} onOpenChange={setMainStageOpen}>
           <DialogTrigger asChild>
             <Button className="w-full rounded-xl bg-green-600 px-4 py-3 font-medium text-white hover:bg-green-500">
-              Go General Session
+              Go Main Stage
             </Button>
           </DialogTrigger>
 
           <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>General Session Transition</DialogTitle>
+              <DialogTitle>Main Stage Transition</DialogTitle>
               <DialogDescription className="text-white/60">
-                Configure the audience transition before sending everyone to the keynote.
+                Configure the audience transition before sending everyone to the main stage.
               </DialogDescription>
             </DialogHeader>
 
             <form
               action={async (formData) => {
                 await goGeneralSession(formData)
-                setGeneralOpen(false)
-                scheduleTransitionClear(generalDuration)
+                setMainStageOpen(false)
+                scheduleTransitionClear(mainStageDuration)
               }}
               className="space-y-5"
             >
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Presets</label>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyGeneralPreset("keynote_start")}>
-                    Keynote Start
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyMainStagePreset("keynote_start")}
+                  >
+                    Start Main Stage
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyGeneralPreset("session_change")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyMainStagePreset("session_change")}
+                  >
                     Session Change
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyGeneralPreset("return_from_break")}>
-                    Return From Break
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyMainStagePreset("return_from_break")}
+                  >
+                    Return to Main Stage
                   </Button>
                 </div>
               </div>
@@ -483,11 +515,14 @@ export default function MissionControlClient({
                 <label className="text-sm text-white/70">Transition Type</label>
                 <select
                   name="transitionType"
-                  value={generalTransitionType}
-                  onChange={(e) => setGeneralTransitionType(e.target.value as TransitionType)}
+                  value={mainStageTransitionType}
+                  onChange={(e) =>
+                    setMainStageTransitionType(e.target.value as TransitionType)
+                  }
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
                 >
                   <option value="auto">Auto (Recommended)</option>
+                  <option value="main_stage_arrival">Main Stage Arrival</option>
                   <option value="fade">Fade</option>
                   <option value="wipe">Wipe</option>
                   <option value="wipe_left">Wipe Left</option>
@@ -502,26 +537,26 @@ export default function MissionControlClient({
               <div className="space-y-3">
                 <div className="flex items-center justify-between text-sm text-white/70">
                   <span>Duration</span>
-                  <span>{generalDuration}ms</span>
+                  <span>{mainStageDuration}ms</span>
                 </div>
 
                 <Slider
-                  value={[generalDuration]}
-                  onValueChange={(value) => setGeneralDuration(value[0] ?? 3000)}
+                  value={[mainStageDuration]}
+                  onValueChange={(value) => setMainStageDuration(value[0] ?? 3000)}
                   min={800}
                   max={6000}
                   step={100}
                 />
 
-                <input type="hidden" name="transitionDuration" value={generalDuration} />
+                <input type="hidden" name="transitionDuration" value={mainStageDuration} />
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Headline</label>
                 <input
                   name="headline"
-                  value={generalHeadline}
-                  onChange={(e) => setGeneralHeadline(e.target.value)}
+                  value={mainStageHeadline}
+                  onChange={(e) => setMainStageHeadline(e.target.value)}
                   placeholder="Headline"
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
                 />
@@ -531,8 +566,8 @@ export default function MissionControlClient({
                 <label className="text-sm text-white/70">Message</label>
                 <textarea
                   name="message"
-                  value={generalMessage}
-                  onChange={(e) => setGeneralMessage(e.target.value)}
+                  value={mainStageMessage}
+                  onChange={(e) => setMainStageMessage(e.target.value)}
                   placeholder="Message"
                   rows={4}
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
@@ -540,7 +575,12 @@ export default function MissionControlClient({
               </div>
 
               <div className="flex flex-wrap justify-end gap-3">
-                <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => setGeneralOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  onClick={() => setMainStageOpen(false)}
+                >
                   Cancel
                 </Button>
 
@@ -551,10 +591,10 @@ export default function MissionControlClient({
                   onClick={() =>
                     runPreview({
                       variant: "general_session",
-                      transitionType: generalTransitionType,
-                      headline: generalHeadline || "Now Entering General Session",
-                      message: generalMessage || "The keynote is beginning now.",
-                      duration: generalDuration,
+                      transitionType: mainStageTransitionType,
+                      headline: mainStageHeadline || "Now Entering Main Stage",
+                      message: mainStageMessage || "The keynote is beginning now.",
+                      duration: mainStageDuration,
                     })
                   }
                 >
@@ -567,13 +607,13 @@ export default function MissionControlClient({
                   className="border-white/10 bg-transparent text-white hover:bg-white/10"
                   onClick={() =>
                     addRunOfShowItem({
-                      label: generalHeadline || "General Session",
+                      label: mainStageHeadline || "Main Stage",
                       destinationKind: "general_session",
                       destinationId: null,
-                      transitionType: generalTransitionType,
-                      duration: generalDuration,
-                      headline: generalHeadline || "Now Entering General Session",
-                      message: generalMessage || "The keynote is beginning now.",
+                      transitionType: mainStageTransitionType,
+                      duration: mainStageDuration,
+                      headline: mainStageHeadline || "Now Entering Main Stage",
+                      message: mainStageMessage || "The keynote is beginning now.",
                     })
                   }
                 >
@@ -634,13 +674,28 @@ export default function MissionControlClient({
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Presets</label>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applySessionPreset("enter_session")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applySessionPreset("enter_session")}
+                  >
                     Enter Session
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applySessionPreset("move_to_next")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applySessionPreset("move_to_next")}
+                  >
                     Move to Next
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applySessionPreset("focused_start")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applySessionPreset("focused_start")}
+                  >
                     Focused Start
                   </Button>
                 </div>
@@ -707,7 +762,12 @@ export default function MissionControlClient({
               </div>
 
               <div className="flex flex-wrap justify-end gap-3">
-                <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => setSessionOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  onClick={() => setSessionOpen(false)}
+                >
                   Cancel
                 </Button>
 
@@ -808,13 +868,28 @@ export default function MissionControlClient({
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Presets</label>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyBreakoutPreset("open_breakout")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyBreakoutPreset("open_breakout")}
+                  >
                     Open Breakout
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyBreakoutPreset("split_rooms")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyBreakoutPreset("split_rooms")}
+                  >
                     Split Rooms
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyBreakoutPreset("breakout_focus")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyBreakoutPreset("breakout_focus")}
+                  >
                     Breakout Focus
                   </Button>
                 </div>
@@ -881,7 +956,12 @@ export default function MissionControlClient({
               </div>
 
               <div className="flex flex-wrap justify-end gap-3">
-                <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => setBreakoutOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  onClick={() => setBreakoutOpen(false)}
+                >
                   Cancel
                 </Button>
 
@@ -964,13 +1044,28 @@ export default function MissionControlClient({
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Presets</label>
                 <div className="flex flex-wrap gap-2">
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyOffAirPreset("intermission")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyOffAirPreset("intermission")}
+                  >
                     Intermission
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyOffAirPreset("end_of_day")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyOffAirPreset("end_of_day")}
+                  >
                     End of Day
                   </Button>
-                  <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => applyOffAirPreset("reset_room")}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                    onClick={() => applyOffAirPreset("reset_room")}
+                  >
                     Reset Room
                   </Button>
                 </div>
@@ -1037,7 +1132,12 @@ export default function MissionControlClient({
               </div>
 
               <div className="flex flex-wrap justify-end gap-3">
-                <Button type="button" variant="outline" className="border-white/10 bg-transparent text-white hover:bg-white/10" onClick={() => setOffAirOpen(false)}>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="border-white/10 bg-transparent text-white hover:bg-white/10"
+                  onClick={() => setOffAirOpen(false)}
+                >
                   Cancel
                 </Button>
 
@@ -1185,7 +1285,7 @@ export default function MissionControlClient({
       </div>
 
       <div className="rounded-xl border border-white/10 bg-black/40 p-4 text-xs">
-        <pre>{JSON.stringify(liveState, null, 2)}</pre>
+        <pre>{JSON.stringify(routingState, null, 2)}</pre>
       </div>
 
       <StageTransitionOverlay
@@ -1195,6 +1295,7 @@ export default function MissionControlClient({
         headline={previewHeadline}
         message={previewMessage}
         holdMs={previewHoldMs}
+        isPreview={true}
       />
     </div>
   )
