@@ -761,21 +761,30 @@ export default function EventPageRenderer({
           <div className="text-xs uppercase tracking-[0.22em] text-white/40">
             Event Page
           </div>
-
-          <h1
-            className="mt-3 text-4xl font-bold"
-            style={{ color: sectionTextColor }}
-          >
+<h1
+  className="mt-3 text-4xl font-bold"
+  onDoubleClick={(e) => {
+    e.stopPropagation()
+    if (!isEditorClickable) return
+    onSelectSection?.(section.id)
+  }}
+  style={{ color: sectionTextColor }}
+>
             {config.title || event.title}
           </h1>
 
           {config.body ? (
-            <p
-              className={`mt-4 whitespace-pre-wrap ${
-                config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
-              }`}
-              style={{ color: sectionTextColor }}
-            >
+<p
+  className={`mt-4 whitespace-pre-wrap ${
+    config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
+  }`}
+  onDoubleClick={(e) => {
+    e.stopPropagation()
+    if (!isEditorClickable) return
+    onSelectSection?.(section.id)
+  }}
+  style={{ color: sectionTextColor }}
+>
               {config.body}
             </p>
           ) : null}
@@ -833,19 +842,29 @@ export default function EventPageRenderer({
 >
           <div className={textAlignClass}>
             {config.title ? (
-              <h2
-                className="text-2xl font-semibold"
-                style={{ color: sectionTextColor }}
-              >
+<h2
+  className="text-2xl font-semibold"
+  onDoubleClick={(e) => {
+    e.stopPropagation()
+    if (!isEditorClickable) return
+    onSelectSection?.(section.id)
+  }}
+  style={{ color: sectionTextColor }}
+>
                 {config.title}
               </h2>
             ) : null}
 
             {config.body ? (
-              <div
-                className={config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"}
-                style={{ color: sectionTextColor }}
-              >
+<div
+  className={config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"}
+  onDoubleClick={(e) => {
+    e.stopPropagation()
+    if (!isEditorClickable) return
+    onSelectSection?.(section.id)
+  }}
+  style={{ color: sectionTextColor }}
+>
                 {config.body}
               </div>
             ) : null}
