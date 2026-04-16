@@ -60,6 +60,23 @@ async function getEventTheme(eventId: string): Promise<EventTheme | null> {
   return theme && typeof theme === "object" ? (theme as EventTheme) : null
 }
 
+async function getBuilderElements(eventId: string): Promise<any[]> {
+  const { data, error } = await supabaseAdmin
+    .from("event_page_sections")
+    .select("elements")
+    .eq("event_id", eventId)
+    .eq("page_key", "event_home")
+    .maybeSingle()
+
+  if (error) {
+    console.error("Failed to load event home builder elements:", error.message)
+    return []
+  }
+
+  const elements = data?.elements
+  return Array.isArray(elements) ? elements : []
+}
+
 function formatAgendaRange(start?: string | null, end?: string | null) {
   if (!start && !end) return "Schedule coming soon"
 
@@ -349,33 +366,40 @@ export default async function EventHomePage(props: {
   const authedUser = await getEventUserOrNull({ slug })
   const viewer = await buildEventViewerContext(slug, event.id)
 
-  const [{ data: agenda }, { data: webinarRows }, { data: breakouts }, builderSections, eventTheme] =
-    await Promise.all([
-      supabaseAdmin
-        .from("event_agenda_items")
-        .select("id,title,start_at,end_at,track,speaker,description")
-        .eq("event_id", event.id)
-        .order("start_at", { ascending: true, nullsFirst: false })
-        .limit(6),
+  const [
+    { data: agenda },
+    { data: webinarRows },
+    { data: breakouts },
+    builderSections,
+    builderElements,
+    eventTheme,
+  ] = await Promise.all([
+    supabaseAdmin
+      .from("event_agenda_items")
+      .select("id,title,start_at,end_at,track,speaker,description")
+      .eq("event_id", event.id)
+      .order("start_at", { ascending: true, nullsFirst: false })
+      .limit(6),
 
-      supabaseAdmin
-        .from("event_user_webinars")
-        .select(
-          "webinars:webinar_id(id,title,description,webinar_date,speaker,tag,thumbnail_url,speaker_cards)"
-        )
-        .eq("event_id", event.id)
-        .limit(6),
+    supabaseAdmin
+      .from("event_user_webinars")
+      .select(
+        "webinars:webinar_id(id,title,description,webinar_date,speaker,tag,thumbnail_url,speaker_cards)"
+      )
+      .eq("event_id", event.id)
+      .limit(6),
 
-      supabaseAdmin
-        .from("event_breakouts")
-        .select("id,title,description,join_link,start_at,end_at")
-        .eq("event_id", event.id)
-        .order("start_at", { ascending: true, nullsFirst: false })
-        .limit(3),
+    supabaseAdmin
+      .from("event_breakouts")
+      .select("id,title,description,join_link,start_at,end_at")
+      .eq("event_id", event.id)
+      .order("start_at", { ascending: true, nullsFirst: false })
+      .limit(3),
 
-      getBuilderSections(event.id),
-      getEventTheme(event.id),
-    ])
+    getBuilderSections(event.id),
+    getBuilderElements(event.id),
+    getEventTheme(event.id),
+  ])
 
   const sessions = (webinarRows || []).map((row: any) => row.webinars).filter(Boolean)
 
@@ -598,6 +622,7 @@ export default async function EventHomePage(props: {
           title: event.title,
           description: event.description,
         }}
+        elements={builderElements}
         sections={resolvedSections}
         systemComponents={systemComponents}
         eventTheme={eventTheme ?? undefined}

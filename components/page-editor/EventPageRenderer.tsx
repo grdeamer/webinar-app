@@ -596,7 +596,7 @@ function VideoPlayer({
 
 export default function EventPageRenderer({
   event,
-  elements,
+  elements = [],
   mode = "live",
   sections,
   isEditing = false,
@@ -608,7 +608,7 @@ export default function EventPageRenderer({
   eventTheme,
 }: {
   event: EventLike
-  elements: EditorElement[]
+  elements?: EditorElement[]
   mode?: "live" | "editor"
   sections?: EventPageSection[]
   isEditing?: boolean
