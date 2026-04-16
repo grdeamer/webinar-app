@@ -242,13 +242,25 @@ function getFallbackSections(event: EventLike): EventPageSection[] {
 export default function EventPageRenderer({
   event,
   elements = [],
+  mode = "live",
   sections,
+  isEditing = false,
+  selectedSectionId = null,
+  onSelectSection,
+  isMobilePreview = false,
+  generalSession = null,
   systemComponents,
   eventTheme,
 }: {
   event: EventLike
   elements?: EditorElement[]
+  mode?: "live" | "editor"
   sections?: EventPageSection[]
+  isEditing?: boolean
+  selectedSectionId?: string | null
+  onSelectSection?: (id: string | null) => void
+  isMobilePreview?: boolean
+  generalSession?: any
   systemComponents: SystemComponentsMap
   eventTheme?: EventTheme
 }) {

@@ -2,7 +2,7 @@
 
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import EventPageRenderer from "@/components/page-editor/EventPageRenderer"
+import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import {
   SECTION_TEMPLATE_OPTIONS,
