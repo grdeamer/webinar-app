@@ -49,6 +49,7 @@ export type SectionBlock =
         containerStyle?: "none" | "panel" | "subtle"
       }
     }
+
 export type EventTheme = {
   pageBackgroundColor?: string
   panelBackgroundColor?: string
@@ -58,6 +59,7 @@ export type EventTheme = {
   gradientColorB?: string
   gradientAngle?: string
 }
+
 export type SectionConfig = {
   title?: string
   body?: string | null

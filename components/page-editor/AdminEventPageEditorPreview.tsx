@@ -130,7 +130,12 @@ function getSafeSectionRegistryItem(type: string) {
 function getSafeSectionLabel(type: string) {
   return getSafeSectionRegistryItem(type).label
 }
-
+function getSystemComponentLabel(componentKey: SystemComponentKey) {
+  return (
+    SYSTEM_COMPONENTS.find((component) => component.key === componentKey)?.label ??
+    toTitleCase(componentKey)
+  )
+}
 function getDefaultSections(eventInfo: {
   title: string
   description?: string | null
@@ -430,6 +435,7 @@ const isEmbedded =
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
+  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
   const [editingElementId, setEditingElementId] = useState<string | null>(null)
@@ -915,6 +921,118 @@ body: JSON.stringify({
           : section
       )
     )
+
+    setSelectedSectionId(sectionId)
+    setSelectedBlockId(block.id)
+    setSelectedId(null)
+    setSelectedIds([])
+    setEditingElementId(null)
+  }
+
+  function selectBlock(sectionId: string, blockId: string) {
+    setSelectedSectionId(sectionId)
+    setSelectedBlockId(blockId)
+    setSelectedId(null)
+    setSelectedIds([])
+    setEditingElementId(null)
+  }
+
+  function updateSelectedBlock(nextBlock: SectionBlock) {
+    if (!selectedSectionId || !selectedBlockId) return
+
+    setHasUnsavedChanges(true)
+    setSections((prev) =>
+      prev.map((section) =>
+        section.id === selectedSectionId
+          ? {
+              ...section,
+              blocks: (section.blocks ?? []).map((block) =>
+                block.id === selectedBlockId ? nextBlock : block
+              ),
+            }
+          : section
+      )
+    )
+  }
+
+  function updateSelectedBlockProps(
+    nextProps: Partial<Extract<SectionBlock, { type: "rich_text" }>["props"]> |
+      Partial<Extract<SectionBlock, { type: "system_component" }>["props"]>
+  ) {
+    if (!selectedBlock) return
+
+    if (selectedBlock.type === "rich_text") {
+      updateSelectedBlock({
+        ...selectedBlock,
+        props: {
+          ...selectedBlock.props,
+          ...nextProps,
+        },
+      })
+      return
+    }
+
+    updateSelectedBlock({
+      ...selectedBlock,
+      props: {
+        ...selectedBlock.props,
+        ...nextProps,
+      },
+    })
+  }
+
+  function moveSelectedBlock(direction: "up" | "down") {
+    if (!selectedSectionId || !selectedBlockId) return
+
+    setHasUnsavedChanges(true)
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id !== selectedSectionId) return section
+
+        const blocks = [...(section.blocks ?? [])]
+        const index = blocks.findIndex((block) => block.id === selectedBlockId)
+        if (index === -1) return section
+
+        const targetIndex = direction === "up" ? index - 1 : index + 1
+        if (targetIndex < 0 || targetIndex >= blocks.length) return section
+
+        const [moved] = blocks.splice(index, 1)
+        blocks.splice(targetIndex, 0, moved)
+
+        return {
+          ...section,
+          blocks,
+        }
+      })
+    )
+  }
+
+  function deleteSelectedBlock() {
+    if (!selectedSectionId || !selectedBlockId) return
+
+    setHasUnsavedChanges(true)
+
+    let nextSelectedBlockId: string | null = null
+
+    setSections((prev) =>
+      prev.map((section) => {
+        if (section.id !== selectedSectionId) return section
+
+        const blocks = [...(section.blocks ?? [])]
+        const index = blocks.findIndex((block) => block.id === selectedBlockId)
+        if (index === -1) return section
+
+        blocks.splice(index, 1)
+        nextSelectedBlockId = blocks[Math.max(0, index - 1)]?.id ?? blocks[0]?.id ?? null
+
+        return {
+          ...section,
+          blocks,
+        }
+      })
+    )
+
+    setSelectedBlockId(nextSelectedBlockId)
   }
 
   function addSystemBlockToSelectedSection(componentKey: SystemComponentKey) {
@@ -957,6 +1075,7 @@ body: JSON.stringify({
     ])
 
     setSelectedSectionId(nextId)
+    setSelectedBlockId(null)
     setSelectedId(null)
   }
 
@@ -1099,6 +1218,7 @@ body: JSON.stringify({
     setElements((prev) => normalizeZIndexes([...prev, nextElement]))
     setSelectedId(id)
     setSelectedSectionId(null)
+    setSelectedBlockId(null)
 
     if (elementType === "text" || elementType === "button" || elementType === "pdf") {
       setEditingElementId(id)
@@ -1139,6 +1259,7 @@ body: JSON.stringify({
     setHasUnsavedChanges(true)
     setSections(normalizeSectionIds(remainingSections))
     setSelectedSectionId(remainingContent[0]?.id ?? null)
+    setSelectedBlockId(null)
     setSelectedId(null)
   }
 
@@ -1176,6 +1297,7 @@ body: JSON.stringify({
     })
 
     setSelectedSectionId(nextId)
+    setSelectedBlockId(null)
     setSelectedId(null)
   }
 
@@ -1214,6 +1336,7 @@ body: JSON.stringify({
     setElements((prev) => normalizeZIndexes([...prev, duplicated]))
     setSelectedId(nextId)
     setSelectedSectionId(null)
+    setSelectedBlockId(null)
   }
 
   function handleSectionDragStart(sectionId: string) {
@@ -1223,6 +1346,7 @@ body: JSON.stringify({
     setDraggingSectionId(sectionId)
     setDragOverSectionId(null)
     setSelectedSectionId(sectionId)
+    setSelectedBlockId(null)
     setSelectedId(null)
   }
 
@@ -1272,6 +1396,7 @@ body: JSON.stringify({
 
     setHasUnsavedChanges(true)
     setSelectedSectionId(droppedId)
+    setSelectedBlockId(null)
     setDraggingSectionId(null)
     setDragOverSectionId(null)
     setSelectedId(null)
@@ -1284,6 +1409,8 @@ body: JSON.stringify({
 
   const selectedSection = sections.find((section) => section.id === selectedSectionId) ?? null
   const selectedElement = elements.find((element) => element.id === selectedId) ?? null
+  const selectedBlock =
+    selectedSection?.blocks?.find((block) => block.id === selectedBlockId) ?? null
 
   const contentSections = sections.filter((section) => section.type !== "hero")
   const selectedContentIndex =
@@ -1413,6 +1540,7 @@ body: JSON.stringify({
                       setSelectedId(null)
                       setSelectedIds([])
                       setSelectedSectionId(null)
+                      setSelectedBlockId(null)
                       setEditingElementId(null)
 
                       setSelectionBox({
@@ -3129,6 +3257,46 @@ onSelectSection={(id: string | null) => {
                         )
                       })}
 
+                      <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
+                        <div className="text-xs uppercase tracking-[0.18em] text-white/40">
+                          Blocks In This Section
+                        </div>
+
+                        <div className="mt-3 space-y-2">
+                          {(selectedSection.blocks ?? []).length > 0 ? (
+                            (selectedSection.blocks ?? []).map((block, index) => {
+                              const isActive = selectedBlockId === block.id
+                              const label =
+                                block.type === "system_component"
+                                  ? getSystemComponentLabel(block.props.componentKey)
+                                  : block.props.title || `Rich Text ${index + 1}`
+
+                              return (
+                                <button
+                                  key={block.id}
+                                  type="button"
+                                  onClick={() => selectBlock(selectedSection.id, block.id)}
+                                  className={`w-full rounded-xl border px-3 py-3 text-left transition ${
+                                    isActive
+                                      ? "border-sky-400 bg-sky-400/10 text-white"
+                                      : "border-white/10 bg-slate-950 text-white/80 hover:bg-white/5"
+                                  }`}
+                                >
+                                  <div className="text-sm font-semibold">{label}</div>
+                                  <div className="mt-1 text-xs text-white/45">
+                                    {block.type === "system_component" ? "System component" : "Rich text"}
+                                  </div>
+                                </button>
+                              )
+                            })
+                          ) : (
+                            <div className="rounded-xl border border-dashed border-white/10 px-3 py-3 text-sm text-white/45">
+                              This section has no blocks yet.
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       {selectedSection.type !== "hero" && (
                         <div className="mt-6 rounded-2xl border border-sky-400/20 bg-sky-400/5 p-4">
                           <div className="text-xs uppercase tracking-[0.18em] text-sky-200/70">
@@ -3149,6 +3317,173 @@ onSelectSection={(id: string | null) => {
                           </div>
                         </div>
                       )}
+
+                      {selectedBlock ? (
+                        <div className="mt-6 space-y-4 rounded-2xl border border-emerald-400/20 bg-emerald-400/5 p-4">
+                          <div>
+                            <div className="text-xs uppercase tracking-[0.18em] text-emerald-200/70">
+                              Selected Block
+                            </div>
+                            <div className="mt-1 text-sm text-white/70">
+                              {selectedBlock.type === "system_component"
+                                ? getSystemComponentLabel(selectedBlock.props.componentKey)
+                                : "Rich text block"}
+                            </div>
+                          </div>
+
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              type="button"
+                              onClick={() => moveSelectedBlock("up")}
+                              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-white/90"
+                            >
+                              Move Up
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => moveSelectedBlock("down")}
+                              className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-white/90"
+                            >
+                              Move Down
+                            </button>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={deleteSelectedBlock}
+                            className="w-full rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-500"
+                          >
+                            Delete Block
+                          </button>
+
+                          {selectedBlock.type === "system_component" && (
+                            <>
+                              <div>
+                                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                  Component
+                                </div>
+                                <select
+                                  value={selectedBlock.props.componentKey}
+                                  onChange={(e) =>
+                                    updateSelectedBlockProps({
+                                      componentKey: e.target.value as SystemComponentKey,
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                >
+                                  {SYSTEM_COMPONENTS.map((comp) => (
+                                    <option key={comp.key} value={comp.key}>
+                                      {comp.label}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+
+                              <div>
+                                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                  Title
+                                </div>
+                                <input
+                                  value={String(selectedBlock.props.title ?? "")}
+                                  onChange={(e) =>
+                                    updateSelectedBlockProps({
+                                      title: e.target.value,
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                  Body
+                                </div>
+                                <textarea
+                                  value={String(selectedBlock.props.body ?? "")}
+                                  onChange={(e) =>
+                                    updateSelectedBlockProps({
+                                      body: e.target.value,
+                                    })
+                                  }
+                                  className="min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                  Container Style
+                                </div>
+                                <select
+                                  value={String(selectedBlock.props.containerStyle ?? "panel")}
+                                  onChange={(e) =>
+                                    updateSelectedBlockProps({
+                                      containerStyle: e.target.value as "none" | "subtle" | "panel",
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                >
+                                  <option value="none">None</option>
+                                  <option value="subtle">Subtle</option>
+                                  <option value="panel">Panel</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
+
+                          {selectedBlock.type === "rich_text" && (
+                            <>
+                              <div>
+                                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                  Title
+                                </div>
+                                <input
+                                  value={String(selectedBlock.props.title ?? "")}
+                                  onChange={(e) =>
+                                    updateSelectedBlockProps({
+                                      title: e.target.value,
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                  Body
+                                </div>
+                                <textarea
+                                  value={String(selectedBlock.props.body ?? "")}
+                                  onChange={(e) =>
+                                    updateSelectedBlockProps({
+                                      body: e.target.value,
+                                    })
+                                  }
+                                  className="min-h-[120px] w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                />
+                              </div>
+
+                              <div>
+                                <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
+                                  Alignment
+                                </div>
+                                <select
+                                  value={String(selectedBlock.props.align ?? "left")}
+                                  onChange={(e) =>
+                                    updateSelectedBlockProps({
+                                      align: e.target.value as "left" | "center",
+                                    })
+                                  }
+                                  className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                                >
+                                  <option value="left">Left</option>
+                                  <option value="center">Center</option>
+                                </select>
+                              </div>
+                            </>
+                          )}
+                        </div>
+                      ) : null}
                     </div>
                   ) : (
                     <div className="mt-3 text-sm text-white/55">
@@ -3280,6 +3615,7 @@ onSelectSection={(id: string | null) => {
                           onDragEnd={handleSectionDragEnd}
                           onClick={() => {
                             setSelectedSectionId(section.id)
+                            setSelectedBlockId(section.blocks?.[0]?.id ?? null)
                             setSelectedId(null)
                             setSelectedIds([])
                             setEditingElementId(null)

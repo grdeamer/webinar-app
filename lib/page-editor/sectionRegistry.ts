@@ -7,7 +7,7 @@ import type {
   EventPageSection,
 } from "@/lib/page-editor/sectionTypes"
 
-const sharedFields = [
+const baseFields = [
   {
     key: "adminLabel",
     label: "Admin Label",
@@ -32,16 +32,6 @@ const sharedFields = [
     key: "hideOnMobile",
     label: "Hide on Mobile",
     type: "checkbox",
-  },
-  {
-    key: "title",
-    label: "Title",
-    type: "text",
-  },
-  {
-    key: "body",
-    label: "Body",
-    type: "textarea",
   },
   {
     key: "backgroundStyle",
@@ -142,6 +132,22 @@ const sharedFields = [
   },
 ] as const
 
+const contentFields = [
+  ...baseFields,
+  {
+    key: "title",
+    label: "Title",
+    type: "text",
+  },
+  {
+    key: "body",
+    label: "Body",
+    type: "textarea",
+  },
+] as const
+
+const systemFields = [...baseFields] as const
+
 function makeConfig(config: SectionConfig): SectionConfig {
   return {
     visible: true,
@@ -198,7 +204,7 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
       textAlign: "left",
       divider: "bottom",
     }),
-    fields: [...sharedFields],
+    fields: [...contentFields],
   },
 
   content: {
@@ -216,7 +222,7 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
       divider: "none",
       columns: 1,
     }),
-    fields: [...sharedFields],
+    fields: [...contentFields],
   },
 
   grid: {
@@ -234,7 +240,7 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
       divider: "none",
       columns: 2,
     }),
-    fields: [...sharedFields],
+    fields: [...contentFields],
   },
 
   system: {
@@ -243,8 +249,6 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
     description: "Section intended to hold injected system components.",
     defaultConfig: makeConfig({
       adminLabel: "System Section",
-      title: "System Section",
-      body: "",
       backgroundStyle: "panel",
       contentWidth: "xl",
       paddingY: "md",
@@ -252,7 +256,7 @@ export const SECTION_REGISTRY: Record<SectionType, SectionRegistryItem> = {
       divider: "none",
       columns: 1,
     }),
-    fields: [...sharedFields],
+    fields: [...systemFields],
   },
 }
 
@@ -307,10 +311,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Access Gate",
-        title: "Attendee Access",
-        body: "Use the email assigned to your event registration to continue.",
       },
-      blocks: [makeSystemBlock("access_gate")],
+      blocks: [
+        makeSystemBlock("access_gate", {
+          title: "Attendee Access",
+          body: "Use the email assigned to your event registration to continue.",
+        }),
+      ],
     },
 
     {
@@ -319,10 +326,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Broadcast Status",
-        title: "Broadcast status",
-        body: "This area reflects the current live routing and destination.",
       },
-      blocks: [makeSystemBlock("live_state")],
+      blocks: [
+        makeSystemBlock("live_state", {
+          title: "Broadcast status",
+          body: "This area reflects the current live routing and destination.",
+        }),
+      ],
     },
 
     {
@@ -331,10 +341,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Main Stage",
-        title: "Main stage",
-        body: "Your live or upcoming main video experience appears here.",
       },
-      blocks: [makeSystemBlock("stage_player")],
+      blocks: [
+        makeSystemBlock("stage_player", {
+          title: "Main stage",
+          body: "Your live or upcoming main video experience appears here.",
+        }),
+      ],
     },
 
     {
@@ -343,10 +356,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Countdown",
-        title: "What is next",
-        body: "",
       },
-      blocks: [makeSystemBlock("countdown")],
+      blocks: [
+        makeSystemBlock("countdown", {
+          title: "What is next",
+          body: "",
+        }),
+      ],
     },
 
     {
@@ -355,10 +371,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Agenda",
-        title: "Event Agenda",
-        body: "Explore the full schedule of sessions.",
       },
-      blocks: [makeSystemBlock("agenda")],
+      blocks: [
+        makeSystemBlock("agenda", {
+          title: "Event Agenda",
+          body: "Explore the full schedule of sessions.",
+        }),
+      ],
     },
 
     {
@@ -367,10 +386,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Sessions",
-        title: "All Sessions",
-        body: "Browse available sessions and content.",
       },
-      blocks: [makeSystemBlock("sessions_list")],
+      blocks: [
+        makeSystemBlock("sessions_list", {
+          title: "All Sessions",
+          body: "Browse available sessions and content.",
+        }),
+      ],
     },
 
     {
@@ -379,10 +401,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Speaker Spotlight",
-        title: "Speaker spotlight",
-        body: "",
       },
-      blocks: [makeSystemBlock("speaker_spotlight")],
+      blocks: [
+        makeSystemBlock("speaker_spotlight", {
+          title: "Speaker spotlight",
+          body: "",
+        }),
+      ],
     },
 
     {
@@ -391,10 +416,13 @@ export function createDefaultEventHomeSections(event: {
       config: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Featured Breakouts",
-        title: "Featured breakouts",
-        body: "",
       },
-      blocks: [makeSystemBlock("featured_breakouts")],
+      blocks: [
+        makeSystemBlock("featured_breakouts", {
+          title: "Featured breakouts",
+          body: "",
+        }),
+      ],
     },
   ]
 }
