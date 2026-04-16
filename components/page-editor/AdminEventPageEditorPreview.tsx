@@ -1495,11 +1495,13 @@ body: JSON.stringify({
   sections={sections}
   isEditing={isEditing}
   selectedSectionId={selectedSectionId}
-  onSelectSection={(id: string | null) => {
-    setSelectedSectionId(id)
-    setSelectedId(null)
-    setEditingElementId(null)
-  }}
+onSelectSection={(id: string | null) => {
+  setSelectedSectionId(id)
+  setSelectedId(null)
+  setSelectedIds([])
+  setEditingElementId(null)
+  setEditorDetailsOpen(true)
+}}
   isMobilePreview={isMobilePreview}
   generalSession={generalSession}
   eventTheme={eventTheme}
