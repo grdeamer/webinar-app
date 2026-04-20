@@ -1470,7 +1470,7 @@ const previewProgramDifferent =
   <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
     <RoomAudioRenderer />
 
-    <div className="flex min-h-screen flex-col bg-[#050816] text-white">
+    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,#0b1736_0%,#050816_45%,#02040b_100%)] text-white">
       <input
         ref={pdfInputRef}
         type="file"
@@ -1522,8 +1522,8 @@ const previewProgramDifferent =
         </div>
       </div>
 
-      <div className="flex-1 py-6">
-        <div className="grid w-full gap-4 px-6 2xl:gap-5 xl:grid-cols-[minmax(0,2.35fr)_320px]">
+      <div className="flex-1 py-6 backdrop-blur-[2px]">
+        <div className="grid w-full gap-5 px-62xl:gap-5 xl:grid-cols-[minmax(0,2.35fr)_320px]">
           <div className="space-y-6">
             <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
               <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
