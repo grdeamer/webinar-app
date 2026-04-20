@@ -14,6 +14,7 @@ import type { TrackReference } from "@livekit/components-core"
 import AudienceOriginCue from "@/components/live/AudienceOriginCue"
 import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
+import BackstagePanel from "./BackstagePanel"
 
 type ProducerParticipant = {
   identity: string
@@ -2149,207 +2150,166 @@ const previewProgramDifferent =
             </div>
           </div>
 
-          <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(8,12,24,0.96),rgba(8,10,20,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <div className="mb-4 flex items-end justify-between gap-3">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
-                  Backstage
-                </div>
-                <div className="mt-1 text-xl font-semibold text-white">
-                  {participants.length} connected
-                </div>
-                <div className="mt-1 text-sm text-white/45">
-                  Select who goes to stage and manage active sources.
-                </div>
+<BackstagePanel participantCount={participants.length}>
+  {participants.length === 0 ? (
+    <div className="rounded-2xl border border-dashed border-white/15 p-6 text-sm text-white/40">
+      No participants connected yet.
+    </div>
+  ) : (
+    participants.map((p) => {
+      const isOnStage = stageIds.has(p.identity)
+      const isPrimary = stageState?.primary_participant_id === p.identity
+      const isPinned = stageState?.pinned_participant_id === p.identity
+      const isUsingScreen = stageState?.screen_share_participant_id === p.identity
+      const screenTrackSid = getScreenTrackSid(p)
+
+      return (
+        <div
+          key={p.identity}
+          onClick={() => {
+            if (!isOnStage) {
+              void addToStage(p.identity).catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+          }}
+          className={`group cursor-pointer rounded-[22px] border p-4 transition ${
+            isPrimary
+              ? "border-sky-300/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(125,211,252,0.08)]"
+              : isPinned
+                ? "border-amber-300/40 bg-amber-400/5"
+                : isOnStage
+                  ? "border-emerald-300/20 bg-emerald-400/[0.05]"
+                  : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+          }`}
+        >
+          <div className="space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="truncate text-base font-semibold text-white">{p.name}</div>
+                <div className="mt-1 truncate text-xs text-white/40">{p.identity}</div>
               </div>
 
-              <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                Live room
-              </span>
+              <div className="shrink-0">
+                <ParticipantStatusPill
+                  isOnStage={isOnStage}
+                  isPrimary={isPrimary}
+                  isPinned={isPinned}
+                />
+              </div>
             </div>
 
-            <div className="space-y-3">
-              {participants.length === 0 ? (
-                <div className="rounded-2xl border border-dashed border-white/15 p-6 text-sm text-white/40">
-                  No participants connected yet.
-                </div>
+            <div className="flex flex-wrap gap-2">
+              <SourceChip label="Camera" active={p.cameraEnabled} />
+              <SourceChip label="Mic" active={p.micEnabled} />
+              <SourceChip label="Screen" active={p.screenShareEnabled} tone="screen" />
+            </div>
+
+            <div className="flex flex-wrap gap-2 text-[11px] text-white/45">
+              {isUsingScreen ? (
+                <span className="rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 font-medium text-violet-200">
+                  Screen selected for program
+                </span>
+              ) : null}
+
+              {p.joinedAt ? (
+                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+                  Joined
+                </span>
+              ) : null}
+            </div>
+
+            <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+              {p.screenShareEnabled ? (
+                <button
+                  onClick={() => {
+                    if (!screenTrackSid) {
+                      setError("No screen-share track found for this participant")
+                      return
+                    }
+
+                    void setScreenShare(p.identity, screenTrackSid).catch((e: unknown) =>
+                      setError(e instanceof Error ? e.message : "Unexpected error")
+                    )
+                  }}
+                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                    isUsingScreen
+                      ? "bg-violet-300 text-slate-950"
+                      : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                  }`}
+                >
+                  {isUsingScreen ? "Screen Active" : "Use Screen"}
+                </button>
+              ) : null}
+
+              {isOnStage ? (
+                <>
+                  <button
+                    onClick={() => {
+                      const action = isPrimary
+                        ? clearPrimaryParticipant()
+                        : setPrimaryParticipant(p.identity)
+
+                      void action.catch((e: unknown) =>
+                        setError(e instanceof Error ? e.message : "Unexpected error")
+                      )
+                    }}
+                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                      isPrimary
+                        ? "bg-sky-300 text-slate-950"
+                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {isPrimary ? "Clear Primary" : "Make Primary"}
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const action = isPinned ? unpinParticipant() : pinParticipant(p.identity)
+
+                      void action.catch((e: unknown) =>
+                        setError(e instanceof Error ? e.message : "Unexpected error")
+                      )
+                    }}
+                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                      isPinned
+                        ? "bg-amber-300 text-slate-950"
+                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    }`}
+                  >
+                    {isPinned ? "Unpin" : "Pin"}
+                  </button>
+
+                  <button
+                    onClick={() =>
+                      void removeFromStage(p.identity).catch((e: unknown) =>
+                        setError(e instanceof Error ? e.message : "Unexpected error")
+                      )
+                    }
+                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
+                  >
+                    Remove
+                  </button>
+                </>
               ) : (
-                participants.map((p) => {
-                  const isOnStage = stageIds.has(p.identity)
-                  const isPrimary = stageState?.primary_participant_id === p.identity
-                  const isPinned = stageState?.pinned_participant_id === p.identity
-                  const isUsingScreen = stageState?.screen_share_participant_id === p.identity
-                  const screenTrackSid = getScreenTrackSid(p)
-
-                  return (
-                    <div
-                      key={p.identity}
-                      onClick={() => {
-                        if (!isOnStage) {
-                          void addToStage(p.identity).catch((e: unknown) =>
-                            setError(e instanceof Error ? e.message : "Unexpected error")
-                          )
-                        }
-                      }}
-                      className={`group cursor-pointer rounded-[22px] border p-4 transition ${
-                        isPrimary
-                          ? "border-sky-300/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(125,211,252,0.08)]"
-                          : isPinned
-                            ? "border-amber-300/40 bg-amber-400/5"
-                            : isOnStage
-                              ? "border-emerald-300/20 bg-emerald-400/[0.05]"
-                              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-                      }`}
-                    >
-                      <div className="space-y-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="truncate text-base font-semibold text-white">
-                              {p.name}
-                            </div>
-                            <div className="mt-1 truncate text-xs text-white/40">
-                              {p.identity}
-                            </div>
-                          </div>
-
-                          <div className="shrink-0">
-                            <ParticipantStatusPill
-                              isOnStage={isOnStage}
-                              isPrimary={isPrimary}
-                              isPinned={isPinned}
-                            />
-                          </div>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2">
-                          <SourceChip label="Camera" active={p.cameraEnabled} />
-                          <SourceChip label="Mic" active={p.micEnabled} />
-                          <SourceChip
-                            label="Screen"
-                            active={p.screenShareEnabled}
-                            tone="screen"
-                          />
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 text-[11px] text-white/45">
-                          {isUsingScreen ? (
-                            <span className="rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 font-medium text-violet-200">
-                              Screen selected for program
-                            </span>
-                          ) : null}
-
-                          {p.joinedAt ? (
-                            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                              Joined
-                            </span>
-                          ) : null}
-                        </div>
-
-                        <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                          {p.screenShareEnabled ? (
-                            <button
-                              onClick={() => {
-                                if (!screenTrackSid) {
-                                  setError("No screen-share track found for this participant")
-                                  return
-                                }
-
-                                void setScreenShare(p.identity, screenTrackSid).catch(
-                                  (e: unknown) =>
-                                    setError(
-                                      e instanceof Error ? e.message : "Unexpected error"
-                                    )
-                                )
-                              }}
-                              className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                isUsingScreen
-                                  ? "bg-violet-300 text-slate-950"
-                                  : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                              }`}
-                            >
-                              {isUsingScreen ? "Screen Active" : "Use Screen"}
-                            </button>
-                          ) : null}
-
-                          {isOnStage ? (
-                            <>
-                              <button
-                                onClick={() => {
-                                  const action = isPrimary
-                                    ? clearPrimaryParticipant()
-                                    : setPrimaryParticipant(p.identity)
-
-                                  void action.catch((e: unknown) =>
-                                    setError(
-                                      e instanceof Error ? e.message : "Unexpected error"
-                                    )
-                                  )
-                                }}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                  isPrimary
-                                    ? "bg-sky-300 text-slate-950"
-                                    : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                                }`}
-                              >
-                                {isPrimary ? "Clear Primary" : "Make Primary"}
-                              </button>
-
-                              <button
-                                onClick={() => {
-                                  const action = isPinned
-                                    ? unpinParticipant()
-                                    : pinParticipant(p.identity)
-
-                                  void action.catch((e: unknown) =>
-                                    setError(
-                                      e instanceof Error ? e.message : "Unexpected error"
-                                    )
-                                  )
-                                }}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                  isPinned
-                                    ? "bg-amber-300 text-slate-950"
-                                    : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                                }`}
-                              >
-                                {isPinned ? "Unpin" : "Pin"}
-                              </button>
-
-                              <button
-                                onClick={() =>
-                                  void removeFromStage(p.identity).catch((e: unknown) =>
-                                    setError(
-                                      e instanceof Error ? e.message : "Unexpected error"
-                                    )
-                                  )
-                                }
-                                className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
-                              >
-                                Remove
-                              </button>
-                            </>
-                          ) : (
-                            <button
-                              onClick={() =>
-                                void addToStage(p.identity).catch((e: unknown) =>
-                                  setError(
-                                    e instanceof Error ? e.message : "Unexpected error"
-                                  )
-                                )
-                              }
-                              className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-white/90"
-                            >
-                              Add to Stage
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )
-                })
+                <button
+                  onClick={() =>
+                    void addToStage(p.identity).catch((e: unknown) =>
+                      setError(e instanceof Error ? e.message : "Unexpected error")
+                    )
+                  }
+                  className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-white/90"
+                >
+                  Add to Stage
+                </button>
               )}
             </div>
           </div>
+        </div>
+      )
+    })
+  )}
+</BackstagePanel>
         </div>
       </div>
     </div>
