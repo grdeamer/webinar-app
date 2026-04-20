@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState, type ChangeEvent } from "react"
+import { useMemo, useState, type ChangeEvent, type MouseEvent } from "react"
 
 export type PreviewBlock = {
   id: string
@@ -189,7 +189,10 @@ export default function useProducerBlocks() {
   function deleteSelectedBlock() {
     if (!selectedBlockId) return
 
-    setPreviewBlocks((prev) => prev.filter((block) => block.id !== selectedBlockId))
+    setPreviewBlocks((prev) =>
+      prev.filter((block) => block.id !== selectedBlockId)
+    )
+
     setSelectedBlockId(null)
   }
 
@@ -210,6 +213,7 @@ export default function useProducerBlocks() {
       }
 
       setSelectedBlockId(copy.id)
+
       return [...prev, copy]
     })
   }
@@ -221,7 +225,9 @@ export default function useProducerBlocks() {
       const maxZ = Math.max(...prev.map((b) => b.zIndex), 0)
 
       return prev.map((block) =>
-        block.id === selectedBlockId ? { ...block, zIndex: maxZ + 1 } : block
+        block.id === selectedBlockId
+          ? { ...block, zIndex: maxZ + 1 }
+          : block
       )
     })
   }
@@ -340,6 +346,76 @@ export default function useProducerBlocks() {
     )
   }
 
+  function startDraggingBlock(e: MouseEvent<HTMLDivElement>, blockId: string) {
+    const rect = e.currentTarget.parentElement?.getBoundingClientRect() || null
+    if (!rect) return
+
+    const block = previewBlocks.find((b) => b.id === blockId)
+    if (!block) return
+
+    setPreviewCanvasRect(rect)
+    setDraggingBlockId(blockId)
+    setDragOffset({
+      x: e.clientX - rect.left - block.x,
+      y: e.clientY - rect.top - block.y,
+    })
+  }
+
+  function startResizingBlock(e: MouseEvent<HTMLDivElement>, blockId: string) {
+    e.stopPropagation()
+
+    const rect = e.currentTarget.parentElement?.getBoundingClientRect() || null
+    if (!rect) return
+
+    setPreviewCanvasRect(rect)
+    setResizingBlockId(blockId)
+    setSelectedBlockId(blockId)
+  }
+
+  function onPreviewCanvasMouseMove(e: MouseEvent<HTMLDivElement>) {
+    if (!previewCanvasRect) return
+
+    if (resizingBlockId) {
+      setPreviewBlocks((prev) =>
+        prev.map((block) => {
+          if (block.id !== resizingBlockId) return block
+
+          const nextWidth = e.clientX - previewCanvasRect.left - block.x
+          const nextHeight = e.clientY - previewCanvasRect.top - block.y
+
+          return {
+            ...block,
+            width: Math.max(80, nextWidth),
+            height: Math.max(60, nextHeight),
+          }
+        })
+      )
+      return
+    }
+
+    if (!draggingBlockId) return
+
+    const nextX = e.clientX - previewCanvasRect.left - dragOffset.x
+    const nextY = e.clientY - previewCanvasRect.top - dragOffset.y
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === draggingBlockId
+          ? {
+              ...block,
+              x: Math.max(0, nextX),
+              y: Math.max(0, nextY),
+            }
+          : block
+      )
+    )
+  }
+
+  function stopDraggingBlock() {
+    setDraggingBlockId(null)
+    setResizingBlockId(null)
+  }
+
   return {
     previewBlocks,
     setPreviewBlocks,
@@ -384,5 +460,10 @@ export default function useProducerBlocks() {
     updateSelectedBlockPosition,
     updateSelectedBlockLabel,
     updateSelectedBlockSrc,
+
+    startDraggingBlock,
+    startResizingBlock,
+    onPreviewCanvasMouseMove,
+    stopDraggingBlock,
   }
 }
