@@ -2,7 +2,7 @@
 
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
-import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
+import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import {
   SECTION_TEMPLATE_OPTIONS,
@@ -52,6 +52,18 @@ const FONT_FAMILY_OPTIONS = [
   { label: "Courier New", value: "'Courier New', monospace" },
   { label: "Monospace", value: "monospace" },
 ]
+
+const PAGE_OPTIONS = [
+  { label: "Home", value: "event_home" },
+  { label: "Lobby", value: "lobby" },
+  { label: "Agenda", value: "agenda" },
+  { label: "Sessions", value: "sessions" },
+  { label: "Breakouts", value: "breakouts" },
+  { label: "Sponsors", value: "sponsors" },
+  { label: "Engage", value: "chat" },
+  { label: "Networking", value: "networking" },
+  { label: "On-Demand", value: "on_demand" },
+] as const
 
 function snapToGrid(value: number) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE
@@ -136,14 +148,72 @@ function getSystemComponentLabel(componentKey: SystemComponentKey) {
     toTitleCase(componentKey)
   )
 }
-function getDefaultSections(eventInfo: {
-  title: string
-  description?: string | null
-}): EventPageSection[] {
-  return createDefaultEventHomeSections({
-    title: eventInfo.title,
-    description: eventInfo.description ?? null,
-  })
+function getDefaultSections(
+  pageKey: string,
+  eventInfo: {
+    title: string
+    description?: string | null
+  }
+): EventPageSection[] {
+  switch (pageKey) {
+    case "sessions":
+      return [
+        {
+          id: "hero",
+          type: "hero",
+          config: {
+            ...getSafeDefaultSectionConfig("hero"),
+            adminLabel: "Sessions Hero",
+            title: `${eventInfo.title} — Sessions`,
+            body: "View the sessions available for this event.",
+          },
+          blocks: [],
+        },
+        {
+          id: "sessions-list",
+          type: "content",
+          config: {
+            ...getSafeDefaultSectionConfig("content"),
+            adminLabel: "Sessions List",
+            title: "My Sessions",
+            body: "Session cards and access actions appear here.",
+          },
+          blocks: [createSystemBlock("sessions_list")],
+        },
+      ]
+
+    case "agenda":
+      return [
+        {
+          id: "hero",
+          type: "hero",
+          config: {
+            ...getSafeDefaultSectionConfig("hero"),
+            adminLabel: "Agenda Hero",
+            title: `${eventInfo.title} — Agenda`,
+            body: "Browse the event schedule.",
+          },
+          blocks: [],
+        },
+        {
+          id: "agenda",
+          type: "content",
+          config: {
+            ...getSafeDefaultSectionConfig("content"),
+            adminLabel: "Agenda",
+            title: "Schedule",
+            body: "Agenda items appear here.",
+          },
+          blocks: [createSystemBlock("agenda")],
+        },
+      ]
+
+    default:
+      return createDefaultEventHomeSections({
+        title: eventInfo.title,
+        description: eventInfo.description ?? null,
+      })
+  }
 }
 
 function normalizeSectionIds(inputSections: EventPageSection[]) {
@@ -440,14 +510,16 @@ const isEmbedded =
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
   const [editingElementId, setEditingElementId] = useState<string | null>(null)
   const [isMobilePreview, setIsMobilePreview] = useState(false)
-
+  const [selectedPageKey, setSelectedPageKey] = useState<string>("event_home")
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
   const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
 
   const [elements, setElements] = useState<EditorElement[]>([])
-  const [sections, setSections] = useState<EventPageSection[]>(getDefaultSections(eventInfo))
+  const [sections, setSections] = useState<EventPageSection[]>(
+  getDefaultSections(selectedPageKey, eventInfo)
+)
   const [templates, setTemplates] = useState<any[]>([])
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [generalSession, setGeneralSession] = useState<{
@@ -506,15 +578,18 @@ const isEmbedded =
       setLoading(true)
       setSaveMessage(null)
 
-      const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
-        cache: "no-store",
-      })
+const res = await fetch(
+  `/api/admin/page-editor/event/${slug}/elements?pageKey=${selectedPageKey}`,
+  {
+    cache: "no-store",
+  }
+)
 
       const data: any = await res.json().catch((): null => null)
 
       if (!res.ok) {
         setElements(getFallbackElements())
-        setSections(getDefaultSections(eventInfo))
+        setSections(normalizeSections(getDefaultSections(selectedPageKey, eventInfo)))
         setHasUnsavedChanges(false)
         setLoading(false)
         return
@@ -546,7 +621,7 @@ const isEmbedded =
       if (loadedSections.length > 0) {
         setSections(normalizeSections(loadedSections))
       } else {
-        setSections(normalizeSections(getDefaultSections(eventInfo)))
+        setSections(normalizeSections(getDefaultSections(selectedPageKey, eventInfo)))
       }
 
       setHasUnsavedChanges(false)
@@ -554,7 +629,7 @@ const isEmbedded =
     }
 
     void loadElements()
-  }, [slug])
+}, [slug, selectedPageKey])
 
   useEffect(() => {
     async function loadTemplates() {
@@ -611,7 +686,7 @@ const isEmbedded =
     if (slug) {
       void loadGeneralSession()
     }
-  }, [slug])
+}, [slug, selectedPageKey])
 
   useEffect(() => {
     function onKeyDown(e: KeyboardEvent) {
@@ -785,15 +860,18 @@ const isEmbedded =
         props: el.props ?? {},
       }))
 
-    const res = await fetch(`/api/admin/page-editor/event/${slug}/elements`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-body: JSON.stringify({
-  elements: payload,
-  sections,
-  eventTheme,
-}),
-    })
+const res = await fetch(
+  `/api/admin/page-editor/event/${slug}/elements?pageKey=${selectedPageKey}`,
+  {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      elements: payload,
+      sections,
+      eventTheme,
+    }),
+  }
+)
 
     const data: any = await res.json().catch((): null => null)
 
@@ -1462,42 +1540,62 @@ body: JSON.stringify({
               </div>
             </div>
 
-            <div className="flex items-center gap-3">
-              <select
-                onChange={(e) => {
-                  const tpl = templates.find((t) => t.id === e.target.value)
-                  if (!tpl) return
+<div className="flex items-center gap-3">
+  <select
+    value={selectedPageKey}
+  onChange={(e) => {
+  setSelectedPageKey(e.target.value)
+  setSelectedId(null)
+  setSelectedIds([])
+  setSelectedSectionId(null)
+  setSelectedBlockId(null)
+  setEditingElementId(null)
+}}
+    className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+  >
+    {PAGE_OPTIONS.map((page) => (
+      <option key={page.value} value={page.value}>
+        {page.label}
+      </option>
+    ))}
+  </select>
 
-                  setSections(
-                    normalizeSections(Array.isArray(tpl.sections_json) ? tpl.sections_json : [])
-                  )
-                  setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
-                  setHasUnsavedChanges(true)
-                }}
-                className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
-              >
-                <option value="">Apply Template</option>
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    {tpl.name}
-                  </option>
-                ))}
-              </select>
+  <select
+    onChange={(e) => {
+      const tpl = templates.find((t) => t.id === e.target.value)
+      if (!tpl) return
 
-              <button
-                onClick={() => setIsMobilePreview((v) => !v)}
-                className="rounded-xl border border-white/10 px-4 py-2 text-sm"
-              >
-                {isMobilePreview ? "Mobile" : "Desktop"}
-              </button>
+      setSections(
+        normalizeSections(Array.isArray(tpl.sections_json) ? tpl.sections_json : [])
+      )
+      setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
+      setHasUnsavedChanges(true)
+    }}
+    className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+  >
+    <option value="">Apply Template</option>
 
-              <button
-                onClick={() => setIsEditing((v) => !v)}
-                className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black"
-              >
-                {isEditing ? "Close Editor" : "Edit Page"}
-              </button>
-            </div>
+    {templates.map((tpl) => (
+      <option key={tpl.id} value={tpl.id}>
+        {tpl.name}
+      </option>
+    ))}
+  </select>
+
+  <button
+    onClick={() => setIsMobilePreview((v) => !v)}
+    className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+  >
+    {isMobilePreview ? "Mobile" : "Desktop"}
+  </button>
+
+  <button
+    onClick={() => setIsEditing((v) => !v)}
+    className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black"
+  >
+    {isEditing ? "Close Editor" : "Edit Page"}
+  </button>
+</div>
           </div>
         </div>
       )}
@@ -1527,7 +1625,12 @@ body: JSON.stringify({
 }`}
                     onPointerDown={(e) => {
                       if (!isEditing) return
-                      if ((e.target as HTMLElement).closest("[data-editor-element]")) return
+                      if (
+  (e.target as HTMLElement).closest("[data-editor-element]") ||
+  (e.target as HTMLElement).closest("[data-editor-section]")
+) {
+  return
+}
 
                       const rect = canvasRef.current?.getBoundingClientRect()
                       if (!rect) return
@@ -1616,22 +1719,22 @@ body: JSON.stringify({
                       }
                     }}
                   >
-<EventPageRenderer
-  mode="editor"
+<EditorEventPageRenderer
   event={eventInfo}
   elements={normalizedElements}
   sections={sections}
   isEditing={isEditing}
   selectedSectionId={selectedSectionId}
-onSelectSection={(id: string | null) => {
-  setSelectedSectionId(id)
-  setSelectedId(null)
-  setSelectedIds([])
-  setEditingElementId(null)
-  setEditorDetailsOpen(true)
-}}
-  isMobilePreview={isMobilePreview}
-  generalSession={generalSession}
+  onSelectSection={(id: string | null) => {
+    const nextSection = sections.find((section) => section.id === id) ?? null
+
+    setSelectedSectionId(id)
+    setSelectedBlockId(nextSection?.blocks?.[0]?.id ?? null)
+    setSelectedId(null)
+    setSelectedIds([])
+    setEditingElementId(null)
+    setEditorDetailsOpen(true)
+  }}
   eventTheme={eventTheme}
   systemComponents={{
     live_state: (
@@ -3600,123 +3703,143 @@ onSelectSection={(id: string | null) => {
     typeof section.config.sectionTextColor === "string" &&
     section.config.sectionTextColor.trim().length > 0
 
-                      return (
-                        <div
-                          key={`${section.type}-${section.id}-${index}`}
-                          draggable={!isHero}
-                          onDragStart={(e) => {
-                            if (isHero) return
-                            e.dataTransfer.effectAllowed = "move"
-                            e.dataTransfer.setData("text/plain", section.id)
-                            handleSectionDragStart(section.id)
-                          }}
-                          onDragOver={(e) => handleSectionDragOver(e, section.id)}
-                          onDrop={(e) => handleSectionDrop(e, section.id)}
-                          onDragEnd={handleSectionDragEnd}
-                          onClick={() => {
-                            setSelectedSectionId(section.id)
-                            setSelectedBlockId(section.blocks?.[0]?.id ?? null)
-                            setSelectedId(null)
-                            setSelectedIds([])
-                            setEditingElementId(null)
-                          }}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault()
-                              setSelectedSectionId(section.id)
-                              setSelectedId(null)
-                              setSelectedIds([])
-                              setEditingElementId(null)
-                            }
-                          }}
-                          className={`group relative flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
-                            isActive
-                              ? "border-sky-400 bg-sky-400/10 text-white"
-                              : "border-white/10 bg-black/20 text-white/80 hover:bg-white/5"
-                          } ${isDragging ? "scale-[0.98] opacity-50" : ""} ${
-                            isDragOver ? "ring-2 ring-emerald-400 ring-inset" : ""
-                          } ${!isHero ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
-                        >
-                          {isDragOver && !isDragging ? (
-                            <div className="pointer-events-none absolute inset-x-2 top-0 h-0.5 rounded-full bg-emerald-400" />
-                          ) : null}
+  return (
+    <div
+      key={`${section.type}-${section.id}-${index}`}
+      draggable={!isHero}
+      onDragStart={(e) => {
+        if (isHero) return
+        e.dataTransfer.effectAllowed = "move"
+        e.dataTransfer.setData("text/plain", section.id)
+        handleSectionDragStart(section.id)
+      }}
+      onDragOver={(e) => handleSectionDragOver(e, section.id)}
+      onDrop={(e) => handleSectionDrop(e, section.id)}
+      onDragEnd={handleSectionDragEnd}
+      onClick={() => {
+        setSelectedSectionId(section.id)
+        setSelectedBlockId(section.blocks?.[0]?.id ?? null)
+        setSelectedId(null)
+        setSelectedIds([])
+        setEditingElementId(null)
+      }}
+      onDoubleClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        setSelectedSectionId(section.id)
+        setSelectedBlockId(section.blocks?.[0]?.id ?? null)
+        setSelectedId(null)
+        setSelectedIds([])
+        setEditingElementId(null)
+      }}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          setSelectedSectionId(section.id)
+          setSelectedBlockId(section.blocks?.[0]?.id ?? null)
+          setSelectedId(null)
+          setSelectedIds([])
+          setEditingElementId(null)
+        }
+      }}
+      className={`group relative flex w-full items-center justify-between rounded-xl border px-3 py-3 text-left transition ${
+        isActive
+          ? "border-sky-400 bg-sky-400/10 text-white"
+          : "border-white/10 bg-black/20 text-white/80 hover:bg-white/5"
+      } ${isDragging ? "scale-[0.98] opacity-50" : ""} ${
+        isDragOver ? "ring-2 ring-emerald-400 ring-inset" : ""
+      } ${!isHero ? "cursor-grab active:cursor-grabbing" : "cursor-pointer"}`}
+    >
+      {isDragOver && !isDragging ? (
+        <div className="pointer-events-none absolute inset-x-2 top-0 h-0.5 rounded-full bg-emerald-400" />
+      ) : null}
 
-<div className="flex min-w-0 items-center gap-3">
-  <div
-    className={`shrink-0 text-white/35 ${
-      !isHero ? "group-hover:text-white/60" : ""
-    }`}
-  >
-    {!isHero ? "⋮⋮" : "•"}
-  </div>
-
-  <div className="min-w-0 flex-1">
-    <div className="flex items-center gap-2">
-      <div className="truncate text-sm font-medium">{label}</div>
-
-      {(hasBackgroundColor || hasBorderColor || hasTextColor) && (
-        <div className="flex items-center gap-1.5">
-          {hasBackgroundColor ? (
-            <span
-              className="h-3 w-3 rounded-full border border-white/20"
-              style={{ backgroundColor: section.config.sectionBackgroundColor }}
-              title="Custom background color"
-            />
-          ) : null}
-
-          {hasBorderColor ? (
-            <span
-              className="h-3 w-3 rounded-full border border-white/20"
-              style={{ backgroundColor: section.config.sectionBorderColor }}
-              title="Custom border color"
-            />
-          ) : null}
-
-          {hasTextColor ? (
-            <span
-              className="h-3 w-3 rounded-full border border-white/20"
-              style={{ backgroundColor: section.config.sectionTextColor }}
-              title="Custom text color"
-            />
-          ) : null}
+      <div className="flex min-w-0 items-center gap-3">
+        <div
+          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border text-sm font-semibold transition ${
+            !isHero
+              ? isActive
+                ? "border-sky-300/40 bg-sky-300/10 text-sky-100"
+                : "border-white/10 bg-white/5 text-white/50 group-hover:border-white/20 group-hover:text-white/80"
+              : "border-white/10 bg-white/5 text-white/35"
+          }`}
+          title={isHero ? "Pinned hero section" : "Drag to reorder"}
+        >
+          {!isHero ? "⋮⋮" : "•"}
         </div>
-      )}
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2">
+            <div className="truncate text-sm font-medium">{label}</div>
+
+            {(hasBackgroundColor || hasBorderColor || hasTextColor) && (
+              <div className="flex items-center gap-1.5">
+                {hasBackgroundColor ? (
+                  <span
+                    className="h-3 w-3 rounded-full border border-white/20"
+                    style={{ backgroundColor: section.config.sectionBackgroundColor }}
+                    title="Custom background color"
+                  />
+                ) : null}
+
+                {hasBorderColor ? (
+                  <span
+                    className="h-3 w-3 rounded-full border border-white/20"
+                    style={{ backgroundColor: section.config.sectionBorderColor }}
+                    title="Custom border color"
+                  />
+                ) : null}
+
+                {hasTextColor ? (
+                  <span
+                    className="h-3 w-3 rounded-full border border-white/20"
+                    style={{ backgroundColor: section.config.sectionTextColor }}
+                    title="Custom text color"
+                  />
+                ) : null}
+              </div>
+            )}
+          </div>
+
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/45">
+            <span>{getSafeSectionLabel(section.type)}</span>
+            {!isHero ? (
+              <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.14em] text-white/55">
+                Drag to reorder
+              </span>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      <div className="ml-3 flex shrink-0 flex-col items-end gap-1">
+        <div
+          className={`text-[10px] uppercase tracking-[0.18em] ${
+            section.config.visible === false
+              ? "text-red-300/80"
+              : "text-emerald-300/80"
+          }`}
+        >
+          {section.config.visible === false ? "Hidden" : "Visible"}
+        </div>
+
+        {section.config.hideOnMobile ? (
+          <div className="text-[10px] uppercase tracking-[0.18em] text-amber-300/80">
+            No Mobile
+          </div>
+        ) : null}
+
+        {isHero ? (
+          <div className="text-[10px] uppercase tracking-[0.18em] text-sky-300/70">
+            Pinned
+          </div>
+        ) : null}
+      </div>
     </div>
-
-    <div className="mt-1 text-xs text-white/45">
-      {getSafeSectionLabel(section.type)}
-    </div>
-  </div>
-</div>
-
-                          <div className="ml-3 flex shrink-0 flex-col items-end gap-1">
-                            <div
-                              className={`text-[10px] uppercase tracking-[0.18em] ${
-                                section.config.visible === false
-                                  ? "text-red-300/80"
-                                  : "text-emerald-300/80"
-                              }`}
-                            >
-                              {section.config.visible === false ? "Hidden" : "Visible"}
-                            </div>
-
-                            {section.config.hideOnMobile ? (
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-amber-300/80">
-                                No Mobile
-                              </div>
-                            ) : null}
-
-                            {isHero ? (
-                              <div className="text-[10px] uppercase tracking-[0.18em] text-sky-300/70">
-                                Pinned
-                              </div>
-                            ) : null}
-                          </div>
-                        </div>
-                      )
-                    })}
+  )
+})}
                   </div>
 
                   <div className="mt-3 text-xs text-white/35">

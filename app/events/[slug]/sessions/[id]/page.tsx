@@ -6,7 +6,12 @@ import AttendeeQASubmitBox from "@/components/qa/AttendeeQASubmitBox"
 import SessionLiveRedirectWatcher from "@/components/live/SessionLiveRedirectWatcher"
 import SessionStagePlayer from "@/components/live/SessionStagePlayer"
 import { getEventBySlug } from "@/lib/events"
-import type { AppSession } from "@/lib/domain/sessions"
+import {
+  getSessionCapability,
+  getSessionPrimaryExperience,
+  isGeneralSession,
+  type AppSession,
+} from "@/lib/domain/sessions"
 import { getSessionById } from "@/lib/repos/sessionsRepo"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { resolveSessionExperience } from "@/lib/services/sessions/resolveSessionExperience"
@@ -297,8 +302,8 @@ export default async function EventSessionPage(props: {
 
   const viewer = await buildEventViewerContext(slug, event.id)
   const experience = resolveSessionExperience(session, viewer)
-
-  console.log("SESSION VIEWER DEBUG:", JSON.stringify(viewer, null, 2))
+  const capability = getSessionCapability(session)
+  const primaryExperience = getSessionPrimaryExperience(session)
 
   const attendeeUserId =
     typeof (viewer as any)?.id === "string"
@@ -321,8 +326,6 @@ export default async function EventSessionPage(props: {
         : typeof (viewer as any)?.attendee?.email === "string"
           ? (viewer as any).attendee.email
           : null
-
-  console.log("SESSION ATTENDEE USER ID:", attendeeUserId)
 
   if (!experience.access.canView) {
     if (experience.access.reason === "login_required") {
@@ -391,10 +394,10 @@ export default async function EventSessionPage(props: {
         <div className="relative">
           <div className="mb-6 flex items-center justify-between gap-4">
             <Link
-              href={`/events/${slug}`}
+              href={`/events/${slug}/sessions`}
               className="text-sm text-sky-200 hover:text-sky-100"
             >
-              ← Back to event
+              ← Back to sessions
             </Link>
 
             <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
@@ -408,11 +411,15 @@ export default async function EventSessionPage(props: {
                 <div className="flex flex-wrap items-center gap-3">
                   <StatusBadge status={experience.runtime.status} />
 
-                  {session.isGeneralSession ? (
+                  {isGeneralSession(session) ? (
                     <span className="inline-flex rounded-full border border-sky-400/20 bg-sky-400/10 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-sky-200">
                       Main Stage
                     </span>
                   ) : null}
+
+                  <span className="inline-flex rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-medium uppercase tracking-[0.18em] text-white/70">
+                    {primaryExperience}
+                  </span>
                 </div>
 
                 <h1 className="mt-5 text-4xl font-semibold tracking-tight">
@@ -437,28 +444,40 @@ export default async function EventSessionPage(props: {
               </div>
 
               <div className="space-y-4">
-                <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
-                  Presence debug mounted • event_id: {event.id} • user_id:{" "}
-                  {attendeeUserId ?? "null"}
-                </div>
-
-                {experience.delivery.kind === "livekit" && (
+                {primaryExperience === "live" && (
                   <LiveKitSessionPanel slug={slug} session={session} />
                 )}
 
-                {experience.delivery.kind === "video" && (
+                {primaryExperience === "playback" && (
                   <VideoSessionPanel session={session} />
                 )}
 
-                {experience.delivery.kind === "rtmp" && <RtmpSessionPanel />}
+                {session.deliveryMode === "rtmp" && primaryExperience === "details" && (
+                  <RtmpSessionPanel />
+                )}
 
-                {experience.delivery.kind !== "livekit" &&
-                  experience.delivery.kind !== "video" &&
-                  experience.delivery.kind !== "rtmp" && (
-                    <ExternalSessionPanel session={session} />
+                {primaryExperience === "external" && (
+                  <ExternalSessionPanel session={session} />
+                )}
+
+                {primaryExperience === "details" &&
+                  session.deliveryMode !== "rtmp" &&
+                  !capability.external && (
+                    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.96))] p-6 shadow-[0_30px_100px_rgba(0,0,0,0.35)]">
+                      <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+                        Session Details
+                      </div>
+                      <h2 className="mt-3 text-2xl font-semibold text-white">
+                        Session content coming soon
+                      </h2>
+                      <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">
+                        This session exists in the schedule, but no primary live, playback,
+                        or external experience is configured yet.
+                      </p>
+                    </div>
                   )}
 
-                {session.qaEnabled ? (
+                {capability.qa ? (
                   <AttendeeQASubmitBox
                     roomKey={`session:${session.id}`}
                     eventId={event.id}
@@ -486,13 +505,23 @@ export default async function EventSessionPage(props: {
                   </div>
 
                   <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/40">Primary</span>
+                    <span className="capitalize">{primaryExperience}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
                     <span className="text-white/40">Chat</span>
-                    <span>{session.chatEnabled ? "Enabled" : "Disabled"}</span>
+                    <span>{capability.chat ? "Enabled" : "Disabled"}</span>
                   </div>
 
                   <div className="flex items-center justify-between gap-3">
                     <span className="text-white/40">Q&A</span>
-                    <span>{session.qaEnabled ? "Enabled" : "Disabled"}</span>
+                    <span>{capability.qa ? "Enabled" : "Disabled"}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-white/40">Lower panel</span>
+                    <span>{capability.lowerPanel ? "Enabled" : "Disabled"}</span>
                   </div>
 
                   {session.liveRoomName ? (

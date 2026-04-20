@@ -19,62 +19,105 @@ import { parseSpeakerCards } from "@/lib/eventExperience"
 import { createDefaultEventHomeSections } from "@/lib/page-editor/sectionRegistry"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDestination"
-import type { EventBreakoutPreview } from "@/lib/types"
 import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
 import JupiterHomeHero from "@/components/events/JupiterHomeHero"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-async function getBuilderSections(eventId: string): Promise<EventPageSection[]> {
-  const { data, error } = await supabaseAdmin
-    .from("event_page_sections")
-    .select("sections")
-    .eq("event_id", eventId)
-    .eq("page_key", "event_home")
-    .maybeSingle()
-
-  if (error) {
-    console.error("Failed to load event home builder sections:", error.message)
-    return []
-  }
-
-  const sections = data?.sections
-  return Array.isArray(sections) ? (sections as EventPageSection[]) : []
+type AgendaItem = {
+  id: string
+  title?: string | null
+  start_at?: string | null
+  end_at?: string | null
+  track?: string | null
+  speaker?: string | null
+  description?: string | null
 }
 
-async function getEventTheme(eventId: string): Promise<EventTheme | null> {
-  const { data, error } = await supabaseAdmin
-    .from("event_page_sections")
-    .select("theme")
-    .eq("event_id", eventId)
-    .eq("page_key", "event_home")
-    .maybeSingle()
-
-  if (error) {
-    console.error("Failed to load event home theme:", error.message)
-    return null
-  }
-
-  const theme = data?.theme
-  return theme && typeof theme === "object" ? (theme as EventTheme) : null
+type SessionCard = {
+  id: string
+  title?: string | null
+  description?: string | null
+  webinar_date?: string | null
+  speaker?: string | null
+  tag?: string | null
+  thumbnail_url?: string | null
+  speaker_cards?: unknown
 }
 
-async function getBuilderElements(eventId: string): Promise<any[]> {
-  const { data, error } = await supabaseAdmin
-    .from("event_page_sections")
-    .select("elements")
-    .eq("event_id", eventId)
-    .eq("page_key", "event_home")
-    .maybeSingle()
+type BreakoutCard = {
+  id: string
+  title: string
+  description?: string | null
+  join_link?: string | null
+  start_at?: string | null
+  end_at?: string | null
+}
 
-  if (error) {
-    console.error("Failed to load event home builder elements:", error.message)
-    return []
-  }
+function normalizeSections(input: unknown): EventPageSection[] {
+  if (!Array.isArray(input)) return []
 
-  const elements = data?.elements
-  return Array.isArray(elements) ? elements : []
+  return input.map((section: any, idx: number) => ({
+    id:
+      typeof section?.id === "string" && section.id.trim().length > 0
+        ? section.id
+        : `section-${idx + 1}`,
+    type: section?.type ?? "content",
+    config:
+      section?.config && typeof section.config === "object" ? section.config : {},
+    blocks: Array.isArray(section?.blocks) ? section.blocks : [],
+  })) as EventPageSection[]
+}
+
+function normalizeTheme(input: unknown): EventTheme | null {
+  if (!input || typeof input !== "object") return null
+  return input as EventTheme
+}
+
+function normalizeSessionRows(input: unknown): SessionCard[] {
+  if (!Array.isArray(input)) return []
+
+  return input
+    .map((row: any) => row?.webinars)
+    .filter(Boolean)
+    .map((session: any) => ({
+      id: String(session.id),
+      title: session.title ?? null,
+      description: session.description ?? null,
+      webinar_date: session.webinar_date ?? null,
+      speaker: session.speaker ?? null,
+      tag: session.tag ?? null,
+      thumbnail_url: session.thumbnail_url ?? null,
+      speaker_cards: session.speaker_cards ?? null,
+    }))
+}
+
+function normalizeAgendaRows(input: unknown): AgendaItem[] {
+  if (!Array.isArray(input)) return []
+
+  return input.map((item: any) => ({
+    id: String(item.id),
+    title: item.title ?? null,
+    start_at: item.start_at ?? null,
+    end_at: item.end_at ?? null,
+    track: item.track ?? null,
+    speaker: item.speaker ?? null,
+    description: item.description ?? null,
+  }))
+}
+
+function normalizeBreakoutRows(input: unknown): BreakoutCard[] {
+  if (!Array.isArray(input)) return []
+
+  return input.map((item: any) => ({
+    id: String(item.id),
+    title: String(item.title ?? "Untitled Breakout"),
+    description: item.description ?? null,
+    join_link: item.join_link ?? null,
+    start_at: item.start_at ?? null,
+    end_at: item.end_at ?? null,
+  }))
 }
 
 function formatAgendaRange(start?: string | null, end?: string | null) {
@@ -98,14 +141,7 @@ function FeaturedBreakouts({
   breakouts,
 }: {
   slug: string
-  breakouts: Array<{
-    id: string
-    title: string
-    description?: string | null
-    join_link?: string | null
-    start_at?: string | null
-    end_at?: string | null
-  }>
+  breakouts: BreakoutCard[]
 }) {
   return (
     <section className="space-y-5">
@@ -182,20 +218,12 @@ function AgendaSection({
   agenda,
   slug,
 }: {
-  agenda: Array<{
-    id: string
-    title?: string | null
-    start_at?: string | null
-    end_at?: string | null
-    track?: string | null
-    speaker?: string | null
-    description?: string | null
-  }>
+  agenda: AgendaItem[]
   slug: string
 }) {
   return (
     <EventScheduleRail
-      items={(agenda || []).map((item) => ({
+      items={agenda.map((item) => ({
         id: item.id,
         title: item.title ?? "Untitled",
         start_at: item.start_at ?? "",
@@ -213,15 +241,7 @@ function SessionsList({
   sessions,
 }: {
   slug: string
-  sessions: Array<{
-    id?: string
-    title?: string | null
-    description?: string | null
-    webinar_date?: string | null
-    speaker?: string | null
-    tag?: string | null
-    thumbnail_url?: string | null
-  }>
+  sessions: SessionCard[]
 }) {
   return (
     <section className="space-y-5">
@@ -250,7 +270,7 @@ function SessionsList({
         ) : (
           sessions.map((session, index) => (
             <article
-              key={session.id ?? `${session.title ?? "session"}-${index}`}
+              key={session.id}
               className="overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(30,41,59,0.88),rgba(2,6,23,0.96))] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
             >
               {session.thumbnail_url ? (
@@ -303,60 +323,6 @@ function SessionsList({
   )
 }
 
-function MissionControlHero({
-  eventTitle,
-  eventDescription,
-  liveStateCard,
-  accessGate,
-}: {
-  eventTitle: string
-  eventDescription?: string | null
-  liveStateCard: React.ReactNode
-  accessGate: React.ReactNode
-}) {
-  return (
-    <section className="relative overflow-hidden rounded-[36px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.92),rgba(2,6,23,0.96))] p-8 shadow-[0_30px_120px_rgba(0,0,0,0.45)] md:p-10">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-0 h-80 w-80 rounded-full bg-sky-500/10 blur-3xl" />
-        <div className="absolute right-0 top-16 h-96 w-96 rounded-full bg-indigo-500/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-violet-500/10 blur-3xl" />
-      </div>
-
-      <div className="relative grid gap-8 xl:grid-cols-[1.25fr_0.75fr]">
-        <div>
-          <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-            Jupiter Event
-          </div>
-
-          <h1 className="mt-4 text-4xl font-semibold tracking-tight text-white md:text-5xl">
-            {eventTitle}
-          </h1>
-
-          <p className="mt-4 max-w-2xl text-sm leading-7 text-white/65">
-            {eventDescription ||
-              "Welcome to your event experience. Sessions, speakers, and live moments — all in one place."}
-          </p>
-
-          <div className="mt-8">{accessGate}</div>
-        </div>
-
-        <div className="space-y-4">
-          {liveStateCard}
-
-          <div className="rounded-[24px] border border-white/10 bg-white/5 p-5">
-            <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">Arrival</div>
-            <div className="mt-3 text-lg font-semibold text-white">This is your event in motion</div>
-            <p className="mt-2 text-sm leading-6 text-white/55">
-              Move between the lobby, sessions, speakers, and live programming without losing the
-              thread.
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 export default async function EventHomePage(props: {
   params: Promise<{ slug: string }>
 }) {
@@ -367,12 +333,11 @@ export default async function EventHomePage(props: {
   const viewer = await buildEventViewerContext(slug, event.id)
 
   const [
-    { data: agenda },
+    { data: agendaRows },
     { data: webinarRows },
-    { data: breakouts },
-    builderSections,
-    builderElements,
-    eventTheme,
+    { data: breakoutRows },
+    { data: pageRow },
+    { data: themeRow },
   ] = await Promise.all([
     supabaseAdmin
       .from("event_agenda_items")
@@ -396,57 +361,41 @@ export default async function EventHomePage(props: {
       .order("start_at", { ascending: true, nullsFirst: false })
       .limit(3),
 
-    getBuilderSections(event.id),
-    getBuilderElements(event.id),
-    getEventTheme(event.id),
+    supabaseAdmin
+      .from("event_page_sections")
+      .select("sections")
+      .eq("event_id", event.id)
+      .eq("page_key", "event_home")
+      .maybeSingle(),
+
+    supabaseAdmin
+      .from("events")
+      .select("event_theme")
+      .eq("id", event.id)
+      .maybeSingle(),
   ])
 
-  const sessions = (webinarRows || []).map((row: any) => row.webinars).filter(Boolean)
-
-  const breakoutPreviews: EventBreakoutPreview[] = ((breakouts || []) as any[]).map((item) => ({
-    ...item,
-    event_id: event.id,
-    speaker_name: null,
-    speaker_avatar_url: null,
-    manual_live: false,
-    auto_open: false,
-    created_at: item.start_at ?? new Date().toISOString(),
-  }))
-
-  void breakoutPreviews
+  const agenda = normalizeAgendaRows(agendaRows)
+  const sessions = normalizeSessionRows(webinarRows)
+  const breakouts = normalizeBreakoutRows(breakoutRows)
+  const savedSections = normalizeSections(pageRow?.sections)
+  const eventTheme = normalizeTheme(themeRow?.event_theme)
 
   const liveDestination = await getEventLiveDestination(slug, event.id, viewer)
 
-  if (
-    liveDestination.forceRedirect &&
-    (Boolean(liveDestination.sessionId) || liveDestination.href === "/general-session")
-  ) {
+  if (liveDestination.forceRedirect && liveDestination.href) {
     redirect(liveDestination.href)
   }
 
   const featuredSpeakers = parseSpeakerCards(
-    ...(agenda || []).map((item: any) => item.speaker),
-    ...sessions.map((session: any) => session.speaker_cards),
-    ...sessions.map((session: any) => session.speaker)
+    ...agenda.map((item) => item.speaker),
+    ...sessions.map((session) => session.speaker_cards),
+    ...sessions.map((session) => session.speaker)
   ).slice(0, 6)
 
   const spotlightSpeaker = featuredSpeakers[0] || null
-  const nextAgenda =
-    (agenda || []).find((item: any) => item?.start_at) || (agenda || [])[0] || null
+  const nextAgenda = agenda.find((item) => item.start_at) || agenda[0] || null
   const countdownTarget = nextAgenda?.start_at || event.start_at || null
-
-  const builderDrivenSections =
-    builderSections.length > 0
-      ? builderSections
-      : createDefaultEventHomeSections({
-          title: event.title,
-          description: event.description,
-        })
-
-  const stageIsActive =
-    Boolean(liveDestination.sessionId) ||
-    liveDestination.href === "/general-session" ||
-    liveDestination.href === `/events/${slug}/breakouts`
 
   const accessGate =
     viewer.type !== "guest" ? (
@@ -471,30 +420,15 @@ export default async function EventHomePage(props: {
       </div>
     )
 
-  const hero = (
-    <MissionControlHero
-      eventTitle={event.title}
-      eventDescription={event.description}
-      liveStateCard={<EventLiveDestinationCard destination={liveDestination} />}
-      accessGate={accessGate}
-    />
-  )
-
-  void hero
+  const stageIsActive = Boolean(liveDestination.href)
 
   const systemComponents = {
     jupiter_home_hero: (
       <JupiterHomeHero
         title={event.title}
         description={event.description}
-        liveLabel={
-          liveDestination.sessionId
-            ? liveDestination.headline || "Live Session"
-            : liveDestination.href === "/general-session"
-              ? liveDestination.headline || "Main Stage Live"
-              : liveDestination.headline || "We’ll Be Right Back"
-        }
-        isLive={Boolean(liveDestination.sessionId)}
+        liveLabel={liveDestination.headline || "We’ll Be Right Back"}
+        isLive={Boolean(liveDestination.href)}
       />
     ),
 
@@ -512,7 +446,9 @@ export default async function EventHomePage(props: {
 
     countdown: (
       <div className="space-y-4">
-        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">Countdown</div>
+        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+          Countdown
+        </div>
         <EventCountdownCard
           title={nextAgenda?.title || event.title}
           targetIso={countdownTarget}
@@ -539,7 +475,7 @@ export default async function EventHomePage(props: {
       </div>
     ),
 
-    agenda: <AgendaSection agenda={agenda || []} slug={slug} />,
+    agenda: <AgendaSection agenda={agenda} slug={slug} />,
 
     schedule_rail: (
       <div className="space-y-4">
@@ -547,7 +483,7 @@ export default async function EventHomePage(props: {
           Schedule Rail
         </div>
         <EventScheduleRail
-          items={(agenda || []).map((item: any) => ({
+          items={agenda.map((item) => ({
             id: item.id,
             title: item.title ?? "Untitled",
             start_at: item.start_at ?? "",
@@ -564,49 +500,28 @@ export default async function EventHomePage(props: {
 
     access_gate: accessGate,
 
-    featured_breakouts: <FeaturedBreakouts slug={slug} breakouts={breakouts || []} />,
+    featured_breakouts: <FeaturedBreakouts slug={slug} breakouts={breakouts} />,
   }
 
-  const heroSection: EventPageSection = {
-    id: "jupiter-home-hero",
-    type: "hero" as EventPageSection["type"],
-    config: {
-      visible: true,
-      adminLabel: "Jupiter Home Hero",
-      title: null,
-      body: null,
-      backgroundStyle: "transparent",
-      contentWidth: "full",
-      paddingY: "sm",
-      textAlign: "left",
-      divider: "none",
-      hideOnMobile: false,
-      systemComponent: "jupiter_home_hero",
-    } as any,
-    blocks: [],
-  }
+  const fallbackSections =
+    createDefaultEventHomeSections({
+      title: event.title,
+      description: event.description,
+    }) as EventPageSection[]
 
-  const baseSections =
-    builderDrivenSections.length > 0
-      ? builderDrivenSections
-      : createDefaultEventHomeSections({
-          title: event.title,
-          description: event.description,
-        })
-
-  const filteredSections = baseSections.filter((section) => section.type !== "hero")
-  const resolvedSections: EventPageSection[] = [heroSection, ...filteredSections]
+  const resolvedSections =
+    savedSections.length > 0 ? savedSections : fallbackSections
 
   const attendeeUserId =
     typeof (authedUser as any)?.id === "string"
       ? (authedUser as any).id
       : typeof (authedUser as any)?.user_id === "string"
-        ? (authedUser as any).user_id
-        : typeof (authedUser as any)?.user?.id === "string"
-          ? (authedUser as any).user.id
-          : typeof (authedUser as any)?.attendee?.user_id === "string"
-            ? (authedUser as any).attendee.user_id
-            : null
+      ? (authedUser as any).user_id
+      : typeof (authedUser as any)?.user?.id === "string"
+      ? (authedUser as any).user.id
+      : typeof (authedUser as any)?.attendee?.user_id === "string"
+      ? (authedUser as any).attendee.user_id
+      : null
 
   return (
     <>
@@ -622,7 +537,7 @@ export default async function EventHomePage(props: {
           title: event.title,
           description: event.description,
         }}
-        elements={builderElements}
+        elements={[]}
         sections={resolvedSections}
         systemComponents={systemComponents}
         eventTheme={eventTheme ?? undefined}

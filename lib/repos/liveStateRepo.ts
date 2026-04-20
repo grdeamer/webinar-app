@@ -8,6 +8,8 @@ export type EventLiveStateRow = {
   headline: string | null
   message: string | null
   force_redirect: boolean | null
+  destination_type: string | null
+  destination_session_id: string | null
   updated_at?: string | null
   updated_by?: string | null
 }

@@ -12,6 +12,8 @@ import type { JSX } from "react"
 import { isTrackReference } from "@livekit/components-core"
 import type { TrackReference } from "@livekit/components-core"
 import AudienceOriginCue from "@/components/live/AudienceOriginCue"
+import useProducerRoomApi from "./useProducerRoomApi"
+import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
 
 type ProducerParticipant = {
   identity: string
@@ -49,20 +51,6 @@ type StageState = {
   updated_at: string
 }
 
-type PreviewBlock = {
-  id: string
-  type: "pdf" | "video" | "image" | "text"
-  x: number
-  y: number
-  width: number
-  height: number
-  zIndex: number
-  opacity?: number
-  label?: string | null
-  src?: string | null
-  content?: string | null
-  hidden?: boolean
-}
 
 type SceneSnapshot = {
   id: string
@@ -390,14 +378,7 @@ export default function ProducerRoomClient({
   const [takeBusy, setTakeBusy] = useState(false)
 
   const [programState, setProgramState] = useState<StageState | null>(null)
-  const [previewBlocks, setPreviewBlocks] = useState<PreviewBlock[]>([])
-  const [programBlocks, setProgramBlocks] = useState<PreviewBlock[]>([])
 
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
-  const [draggingBlockId, setDraggingBlockId] = useState<string | null>(null)
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
-  const [previewCanvasRect, setPreviewCanvasRect] = useState<DOMRect | null>(null)
-  const [resizingBlockId, setResizingBlockId] = useState<string | null>(null)
 
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
@@ -421,7 +402,31 @@ export default function ProducerRoomClient({
     const producerScopeLabel = useMemo(() => {
     return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session"
   }, [sessionId])
-
+  const api = useProducerRoomApi(eventId, sessionId)
+    const {
+    previewBlocks,
+    setPreviewBlocks,
+    programBlocks,
+    setProgramBlocks,
+    selectedBlockId,
+    setSelectedBlockId,
+    draggingBlockId,
+    setDraggingBlockId,
+    resizingBlockId,
+    setResizingBlockId,
+    dragOffset,
+    setDragOffset,
+    previewCanvasRect,
+    setPreviewCanvasRect,
+    selectedBlock,
+    addTestTextBlock,
+    addTestVideoBlock,
+    addTestPdfBlock,
+    addTestImageBlock,
+    deleteSelectedBlock,
+    duplicateSelectedBlock,
+    bringSelectedBlockToFront,
+  } = useProducerBlocks()
 const stopLocalPreviewStream = useCallback(() => {
   if (!localPreviewStreamRef.current) return
 
@@ -459,91 +464,28 @@ const stopLocalPreviewStream = useCallback(() => {
   }, [selectedVideoDeviceId, selectedAudioDeviceId, stopLocalPreviewStream])
 
   async function loadToken() {
-    const res = await fetch(`/api/admin/events/${eventId}/live/token`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        role: "producer",
-        display_name: "Producer",
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok || !data?.token) {
-      throw new Error(data?.error || "Failed to create producer token")
-    }
-
+    const data = await api.loadToken()
     setToken(data.token)
     setServerUrl(process.env.NEXT_PUBLIC_LIVEKIT_URL || "")
   }
 
   async function loadParticipants() {
-    const res = await fetch(
-      `/api/admin/events/${eventId}/live/participants?session_id=${encodeURIComponent(sessionId)}`,
-      {
-        cache: "no-store",
-      }
-    )
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to load participants")
-    }
-
+    const data = await api.loadParticipants()
     setParticipants(Array.isArray(data?.participants) ? data.participants : [])
   }
 
   async function loadProgramState() {
-    const res = await fetch(
-      `/api/admin/events/${eventId}/live/program-state?session_id=${encodeURIComponent(sessionId)}`,
-      {
-        cache: "no-store",
-      }
-    )
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to load program state")
-    }
-
+    const data = await api.loadProgramState()
     setProgramState(data?.state ?? null)
   }
 
   async function loadStageState() {
-    const res = await fetch(
-      `/api/admin/events/${eventId}/live/stage-state?session_id=${encodeURIComponent(sessionId)}`,
-      {
-        cache: "no-store",
-      }
-    )
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to load stage state")
-    }
-
+    const data = await api.loadStageState()
     setStageState(data?.state ?? null)
   }
 
   async function loadScenes() {
-    const res = await fetch(
-      `/api/admin/events/${eventId}/live/scenes?session_id=${encodeURIComponent(sessionId)}`,
-      {
-        cache: "no-store",
-      }
-    )
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to load scenes")
-    }
-
+    const data = await api.loadScenes()
     setScenes(Array.isArray(data?.scenes) ? data.scenes : [])
   }
 
@@ -589,125 +531,37 @@ const loadMediaDevices = useCallback(async () => {
 
   const refreshAll = useCallback(async () => {
     await Promise.all([loadParticipants(), loadStageState(), loadProgramState(), loadScenes()])
-  }, [eventId, sessionId])
+  }, [])
 
   async function addToStage(identity: string) {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "add_to_stage",
-        participantId: identity,
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to add participant to stage")
-    }
-
+    const data = await api.addToStage(identity)
     setStageState(data.state)
   }
 
   async function removeFromStage(identity: string) {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "remove_from_stage",
-        participantId: identity,
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to remove participant from stage")
-    }
-
+    const data = await api.removeFromStage(identity)
     setStageState(data.state)
   }
 
   async function pinParticipant(identity: string) {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "pin_participant",
-        participantId: identity,
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to pin participant")
-    }
-
+    const data = await api.pinParticipant(identity)
     setStageState(data.state)
   }
 
   async function unpinParticipant() {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "unpin_participant",
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to unpin participant")
-    }
-
+    const data = await api.unpinParticipant()
     setStageState(data.state)
   }
 
-  async function setPrimaryParticipant(identity: string) {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "set_primary",
-        participantId: identity,
-        session_id: sessionId,
-      }),
-    })
+async function setPrimaryParticipant(identity: string) {
+  const data = await api.setPrimaryParticipant(identity)
+  setStageState(data.state)
+}
 
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to set primary participant")
-    }
-
-    setStageState(data.state)
-  }
-
-  async function clearPrimaryParticipant() {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "clear_primary",
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to clear primary participant")
-    }
-
-    setStageState(data.state)
-  }
+async function clearPrimaryParticipant() {
+  const data = await api.clearPrimaryParticipant()
+  setStageState(data.state)
+}
 
   async function saveScene() {
     if (!sceneName.trim()) {
@@ -718,22 +572,7 @@ const loadMediaDevices = useCallback(async () => {
     try {
       setSceneBusy(true)
 
-      const res = await fetch(`/api/admin/events/${eventId}/live/scenes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-          name: sceneName,
-          session_id: sessionId,
-        }),
-      })
-
-      const data = await res.json().catch(function (): null {
-  return null
-})
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to save scene")
-      }
+      const data = await api.saveScene(sceneName)
 
       const savedSceneId = String(data?.scene?.id ?? crypto.randomUUID())
 
@@ -761,21 +600,7 @@ const loadMediaDevices = useCallback(async () => {
     try {
       setSceneBusy(true)
 
-      const res = await fetch(`/api/admin/events/${eventId}/live/scenes/${sceneId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          session_id: sessionId,
-        }),
-      })
-
-      const data = await res.json().catch(function (): null {
-  return null
-})
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to apply scene")
-      }
+      const data = await api.applyScene(sceneId)
 
       setStageState(data.state)
 
@@ -793,140 +618,42 @@ const loadMediaDevices = useCallback(async () => {
     }
   }
 
-  async function setAutoDirector(enabled: boolean) {
-    const res = await fetch(`/api/admin/events/${eventId}/live/auto-director`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-        enabled,
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to update Auto Director")
-    }
-
-    setStageState(data.state)
-    setAutoDirectorEnabled(Boolean(data?.state?.auto_director_enabled))
-  }
+async function setAutoDirector(enabled: boolean) {
+  const data = await api.setAutoDirector(enabled)
+  setStageState(data.state)
+  setAutoDirectorEnabled(Boolean(data?.state?.auto_director_enabled))
+}
 
   async function goLive() {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "go_live",
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to go live")
-    }
-
+    const data = await api.goLive()
     setStageState(data.state)
   }
 
   async function goOffAir() {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "go_off_air",
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to go off air")
-    }
-
+    const data = await api.goOffAir()
     setStageState(data.state)
   }
 
-  async function setLayout(layout: "solo" | "grid" | "screen_speaker") {
-    const res = await fetch(`/api/admin/events/${eventId}/live/layout`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-        layout,
-        session_id: sessionId,
-      }),
-    })
+async function setLayout(layout: "solo" | "grid" | "screen_speaker") {
+  const data = await api.setLayout(layout)
+  setStageState(data.state)
+}
 
-    const data = await res.json().catch((): null => null)
+async function setScreenShare(participantId: string, trackId: string) {
+  const data = await api.setScreenShare(participantId, trackId)
+  setStageState(data.state)
+}
 
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to set layout")
-    }
-
-    setStageState(data.state)
-  }
-
-  async function setScreenShare(participantId: string, trackId: string) {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "set_screen_share",
-        participantId,
-        trackId,
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to set screen share")
-    }
-
-    setStageState(data.state)
-  }
-
-  async function clearScreenShare() {
-    const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        action: "clear_screen_share",
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to clear screen share")
-    }
-
-    setStageState(data.state)
-  }
+async function clearScreenShare() {
+  const data = await api.clearScreenShare()
+  setStageState(data.state)
+}
 
   async function takeProgram() {
     const previousProgramState = programState ? { ...programState } : null
     const previousProgramBlocks = programBlocks.map((block) => ({ ...block }))
 
-    const res = await fetch(`/api/admin/events/${eventId}/live/take`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        session_id: sessionId,
-      }),
-    })
-
-    const data = await res.json().catch((): null => null)
-
-    if (!res.ok) {
-      throw new Error(data?.error || "Failed to take preview to program")
-    }
+    const data = await api.takeProgram()
 
     setTransitionFromState(previousProgramState)
     setTransitionFromBlocks(previousProgramBlocks)
@@ -950,82 +677,6 @@ const loadMediaDevices = useCallback(async () => {
     }, 450)
 
     return data?.state ?? null
-  }
-
-  function addTestTextBlock() {
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: "text",
-        x: 24,
-        y: 24,
-        width: 220,
-        height: 80,
-        zIndex: prev.length + 1,
-        opacity: 0.7,
-        content: "Preview text block",
-        label: "Text",
-        hidden: false,
-      },
-    ])
-  }
-
-  function addTestVideoBlock() {
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: "video",
-        x: 80,
-        y: 120,
-        width: 320,
-        height: 180,
-        zIndex: prev.length + 1,
-        opacity: 0.85,
-        label: "Video",
-        src: "https://www.w3schools.com/html/mov_bbb.mp4",
-        hidden: false,
-      },
-    ])
-  }
-
-  function addTestPdfBlock() {
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: "pdf",
-        x: 140,
-        y: 80,
-        width: 360,
-        height: 220,
-        zIndex: prev.length + 1,
-        opacity: 1,
-        label: "PDF",
-        src: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
-        hidden: false,
-      },
-    ])
-  }
-
-  function addTestImageBlock() {
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: "image",
-        x: 100,
-        y: 100,
-        width: 200,
-        height: 100,
-        zIndex: prev.length + 1,
-        opacity: 1,
-        label: "Logo",
-        src: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
-        hidden: false,
-      },
-    ])
   }
 
   function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -1174,51 +825,6 @@ const loadMediaDevices = useCallback(async () => {
   function stopDraggingBlock() {
     setDraggingBlockId(null)
     setResizingBlockId(null)
-  }
-
-  function deleteSelectedBlock() {
-    if (!selectedBlockId) return
-
-    setPreviewBlocks((prev) => prev.filter((block) => block.id !== selectedBlockId))
-    setSelectedBlockId(null)
-  }
-
-  function duplicateSelectedBlock() {
-    if (!selectedBlockId) return
-
-    setPreviewBlocks((prev) => {
-      const source = prev.find((block) => block.id === selectedBlockId)
-      if (!source) return prev
-
-      const copy: PreviewBlock = {
-        ...source,
-        id: crypto.randomUUID(),
-        x: 40,
-        y: 40 + prev.length * 30,
-        zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
-        label: source.label ? `${source.label} Copy` : "Copy",
-      }
-
-      setSelectedBlockId(copy.id)
-      return [...prev, copy]
-    })
-  }
-
-  function bringSelectedBlockToFront() {
-    if (!selectedBlockId) return
-
-    setPreviewBlocks((prev) => {
-      const maxZ = Math.max(...prev.map((block) => block.zIndex), 0)
-
-      return prev.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              zIndex: maxZ + 1,
-            }
-          : block
-      )
-    })
   }
 
   function updateSelectedTextBlockContent(value: string) {
@@ -1795,8 +1401,6 @@ const selectedScreenStillExists = onStageParticipants.some((p) => {
   )
 })
 
-const selectedBlock =
-  previewBlocks.find((block) => block.id === selectedBlockId) || null
 
 const previewProgramDifferent =
   JSON.stringify({

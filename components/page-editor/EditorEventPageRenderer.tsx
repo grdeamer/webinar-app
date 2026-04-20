@@ -1,3 +1,5 @@
+"use client"
+
 import type { ReactNode } from "react"
 import type {
   EventPageSection,
@@ -239,38 +241,25 @@ function getFallbackSections(event: EventLike): EventPageSection[] {
   ]
 }
 
-export default function EventPageRenderer({
+export default function EditorEventPageRenderer({
   event,
   elements = [],
-  mode = "live",
   sections,
   isEditing = false,
   selectedSectionId = null,
   onSelectSection,
-  isMobilePreview = false,
-  generalSession = null,
   systemComponents,
   eventTheme,
 }: {
   event: EventLike
   elements?: EditorElement[]
-  mode?: "live" | "editor"
   sections?: EventPageSection[]
   isEditing?: boolean
   selectedSectionId?: string | null
   onSelectSection?: (id: string | null) => void
-  isMobilePreview?: boolean
-  generalSession?: any
   systemComponents: SystemComponentsMap
   eventTheme?: EventTheme
 }) {
-  void mode
-  void isEditing
-  void selectedSectionId
-  void onSelectSection
-  void isMobilePreview
-  void generalSession
-
   const resolvedSections =
     sections && sections.length > 0 ? sections : getFallbackSections(event)
 
@@ -305,7 +294,28 @@ export default function EventPageRenderer({
         if (explicitSystemComponent) {
           const node = systemComponents[explicitSystemComponent]
           if (node) {
-            return <div key={`${section.id}-${index}`}>{node}</div>
+            return (
+              <div
+                key={`${section.id}-${index}`}
+                data-editor-section="true"
+                onPointerDown={(e) => {
+                  if (!isEditing) return
+                  e.stopPropagation()
+                  onSelectSection?.(section.id)
+                }}
+                onDoubleClick={(e) => {
+                  if (!isEditing) return
+                  e.preventDefault()
+                  e.stopPropagation()
+                  onSelectSection?.(section.id)
+                }}
+                className={`${isEditing ? "cursor-pointer" : ""} ${
+                  selectedSectionId === section.id ? "ring-2 ring-sky-400 ring-inset" : ""
+                }`}
+              >
+                {node}
+              </div>
+            )
           }
         }
 
@@ -381,17 +391,31 @@ export default function EventPageRenderer({
         const textAlignClass = getTextAlignClass(config.textAlign)
         const showTopDivider = hasTopDivider(config.divider)
         const showBottomDivider = hasBottomDivider(config.divider)
-
         const hasHeader = Boolean(config.title || config.body)
+        const isSelected = isEditing && selectedSectionId === section.id
 
         return (
           <section
             key={`${section.id}-${index}`}
+            data-editor-section="true"
+            onPointerDown={(e) => {
+              if (!isEditing) return
+              e.stopPropagation()
+              onSelectSection?.(section.id)
+            }}
+            onDoubleClick={(e) => {
+              if (!isEditing) return
+              e.preventDefault()
+              e.stopPropagation()
+              onSelectSection?.(section.id)
+            }}
             className={`px-8 ${paddingYClass} ${getOuterBg(
               config.backgroundStyle,
               section.type
             )} ${showTopDivider ? "border-t border-white/10" : ""} ${
               showBottomDivider ? "border-b border-white/10" : ""
+            } ${isEditing ? "cursor-pointer" : ""} ${
+              isSelected ? "ring-2 ring-sky-400 ring-inset" : ""
             }`}
             style={{
               backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
@@ -441,9 +465,7 @@ export default function EventPageRenderer({
                   {config.body ? (
                     <p
                       className={
-                        config.title
-                          ? "mt-4 whitespace-pre-wrap"
-                          : "whitespace-pre-wrap"
+                        config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"
                       }
                       style={{ color: sectionTextColor }}
                     >

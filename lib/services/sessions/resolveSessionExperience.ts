@@ -1,6 +1,15 @@
 import type { ViewerContext } from "@/lib/domain/access"
 import type { AppSession } from "@/lib/domain/sessions"
-import { canViewerAccessSession } from "@/lib/domain/access"
+import {
+  canViewerAccessSession,
+} from "@/lib/domain/access"
+import {
+  getSessionCapability,
+  getSessionPrimaryExperience,
+  usesExternalJoin,
+  usesLiveKit,
+  hasPlayback,
+} from "@/lib/domain/sessions"
 
 export type ResolvedSessionExperience = {
   session: AppSession
@@ -8,6 +17,8 @@ export type ResolvedSessionExperience = {
   runtime: {
     status: AppSession["runtimeStatus"]
   }
+  capability: ReturnType<typeof getSessionCapability>
+  primaryExperience: ReturnType<typeof getSessionPrimaryExperience>
   delivery:
     | {
         kind: "external"
@@ -27,6 +38,10 @@ export type ResolvedSessionExperience = {
         kind: "rtmp"
         src: string | null
       }
+    | {
+        kind: "details"
+        src: null
+      }
 }
 
 export function resolveSessionExperience(
@@ -34,12 +49,16 @@ export function resolveSessionExperience(
   viewer: ViewerContext
 ): ResolvedSessionExperience {
   const access = canViewerAccessSession(session, viewer)
+  const capability = getSessionCapability(session)
+  const primaryExperience = getSessionPrimaryExperience(session)
 
-  if (session.deliveryMode === "external") {
+  if (usesExternalJoin(session)) {
     return {
       session,
       access,
       runtime: { status: session.runtimeStatus },
+      capability,
+      primaryExperience,
       delivery: {
         kind: "external",
         href: session.externalJoinUrl || session.joinLink || null,
@@ -48,11 +67,13 @@ export function resolveSessionExperience(
     }
   }
 
-  if (session.deliveryMode === "livekit") {
+  if (usesLiveKit(session)) {
     return {
       session,
       access,
       runtime: { status: session.runtimeStatus },
+      capability,
+      primaryExperience,
       delivery: {
         kind: "livekit",
         roomName: session.liveRoomName,
@@ -60,11 +81,13 @@ export function resolveSessionExperience(
     }
   }
 
-  if (session.deliveryMode === "video") {
+  if (hasPlayback(session) || session.deliveryMode === "video") {
     return {
       session,
       access,
       runtime: { status: session.runtimeStatus },
+      capability,
+      primaryExperience,
       delivery: {
         kind: "video",
         playbackType: session.playbackType,
@@ -73,12 +96,28 @@ export function resolveSessionExperience(
     }
   }
 
+  if (session.deliveryMode === "rtmp") {
+    return {
+      session,
+      access,
+      runtime: { status: session.runtimeStatus },
+      capability,
+      primaryExperience,
+      delivery: {
+        kind: "rtmp",
+        src: null,
+      },
+    }
+  }
+
   return {
     session,
     access,
     runtime: { status: session.runtimeStatus },
+    capability,
+    primaryExperience,
     delivery: {
-      kind: "rtmp",
+      kind: "details",
       src: null,
     },
   }

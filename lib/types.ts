@@ -164,10 +164,14 @@ export interface EventWebinarAssignmentRow {
 export type EventLiveMode =
   | "lobby"
   | "general_session"
+  | "session"
   | "breakout"
   | "replay"
   | "off_air"
-  | "session"
+  | "idle"
+  | "announcement"
+  | "session_redirect"
+  | "multi_session"
 
 export type EventLiveStateRecord = {
   id: string
@@ -181,16 +185,20 @@ export type EventLiveStateRecord = {
   force_redirect: boolean
   transition_type: string | null
   transition_duration_ms: number | null
-
   transition_active?: boolean | null
   transition_started_at?: string | null
-
   updated_at: string | null
   updated_by: string | null
 }
 
 export interface EventLiveDestination {
-  mode: EventLiveMode
+  mode:
+    | "lobby"
+    | "general_session"
+    | "session"
+    | "breakout"
+    | "replay"
+    | "off_air"
   href: string
   label: string
   description: string

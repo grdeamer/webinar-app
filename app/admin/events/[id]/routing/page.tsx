@@ -4,6 +4,20 @@ import { getEventRoutingState, upsertEventRoutingState } from "@/lib/app/liveSta
 import MissionControlClient from "../MissionControlClient"
 import EventAdminNav from "@/components/admin/EventAdminNav"
 
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
+type SessionOption = {
+  id: string
+  title: string
+  kind: "general" | "session"
+}
+
+type BreakoutOption = {
+  id: string
+  title: string
+}
+
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
@@ -23,6 +37,7 @@ function readString(value: FormDataEntryValue | null, fallback = "") {
 
 function readTransitionType(value: FormDataEntryValue | null) {
   const raw = String(value ?? "fade").trim()
+
   if (
     raw === "wipe" ||
     raw === "wipe_left" ||
@@ -35,6 +50,7 @@ function readTransitionType(value: FormDataEntryValue | null) {
   ) {
     return raw
   }
+
   return "fade"
 }
 
@@ -76,40 +92,67 @@ export default async function AdminEventDetailPage({
   async function goGeneralSession(formData: FormData) {
     "use server"
 
+    const requestedSessionId = String(formData.get("sessionId") || "").trim()
     const rawTransition = formData.get("transitionType")
     let transitionType = readTransitionType(rawTransition)
 
-  if (!rawTransition || rawTransition === "auto") {
-  transitionType = "main_stage_arrival"
-}
+    if (!rawTransition || rawTransition === "auto") {
+      transitionType = "main_stage_arrival"
+    }
 
     const transitionDurationMs = clampDuration(formData.get("transitionDuration"), 3000)
     const customHeadline = readString(formData.get("headline"))
     const customMessage = readString(formData.get("message"))
 
-    const { data: generalSession, error } = await supabaseAdmin
-      .from("event_sessions")
-      .select("id,title")
-      .eq("event_id", eventId)
-      .or("is_general_session.eq.true,session_kind.eq.general")
-      .maybeSingle()
+    let generalSessionId = requestedSessionId
+    let generalSessionTitle = "Now Entering Main Stage"
 
-    if (error) {
-      throw new Error(error.message)
-    }
+    if (generalSessionId) {
+      const { data: selectedSession, error: selectedSessionError } = await supabaseAdmin
+        .from("event_sessions")
+        .select("id,title")
+        .eq("event_id", eventId)
+        .eq("id", generalSessionId)
+        .maybeSingle()
 
-    if (!generalSession?.id) {
-      throw new Error(
-        "No Main Stage session row found. Add a session in event_sessions marked is_general_session=true or session_kind=general."
-      )
+      if (selectedSessionError) {
+        throw new Error(selectedSessionError.message)
+      }
+
+      if (!selectedSession?.id) {
+        throw new Error("Selected main stage session not found")
+      }
+
+      generalSessionId = selectedSession.id
+      generalSessionTitle = selectedSession.title || generalSessionTitle
+    } else {
+      const { data: generalSession, error } = await supabaseAdmin
+        .from("event_sessions")
+        .select("id,title")
+        .eq("event_id", eventId)
+        .or("is_general_session.eq.true,session_kind.eq.general")
+        .maybeSingle()
+
+      if (error) {
+        throw new Error(error.message)
+      }
+
+      if (!generalSession?.id) {
+        throw new Error(
+          "No Main Stage session row found. Add a session in event_sessions marked is_general_session=true or session_kind=general."
+        )
+      }
+
+      generalSessionId = generalSession.id
+      generalSessionTitle = generalSession.title || generalSessionTitle
     }
 
     await upsertEventRoutingState({
       eventId,
-      mode: "general_session",
-      destinationType: "session",
-      destinationSessionId: generalSession.id,
-      headline: customHeadline || generalSession.title || "Now Entering Main Stage",
+      mode: "session_redirect",
+      destinationType: "general_session",
+      destinationSessionId: generalSessionId,
+      headline: customHeadline || generalSessionTitle,
       message: customMessage || "The keynote is beginning now.",
       forceRedirect: true,
       transitionType,
@@ -117,14 +160,16 @@ export default async function AdminEventDetailPage({
     })
 
     revalidatePath(`/admin/events/${eventSlug}`)
+    revalidatePath(`/admin/events/${eventSlug}/routing`)
     revalidatePath(`/events/${eventSlug}`)
-    revalidatePath(`/events/${eventSlug}/sessions/${generalSession.id}`)
+    revalidatePath(`/events/${eventSlug}/sessions`)
+    revalidatePath(`/events/${eventSlug}/sessions/${generalSessionId}`)
   }
 
   async function goToSession(formData: FormData) {
     "use server"
 
-    const sessionId = String(formData.get("sessionId") || "")
+    const sessionId = String(formData.get("sessionId") || "").trim()
     if (!sessionId) {
       throw new Error("Missing sessionId")
     }
@@ -140,7 +185,7 @@ export default async function AdminEventDetailPage({
 
     await upsertEventRoutingState({
       eventId,
-      mode: "session",
+      mode: "session_redirect",
       destinationType: "session",
       destinationSessionId: sessionId,
       headline: readString(formData.get("headline"), "Entering Session"),
@@ -151,14 +196,16 @@ export default async function AdminEventDetailPage({
     })
 
     revalidatePath(`/admin/events/${eventSlug}`)
+    revalidatePath(`/admin/events/${eventSlug}/routing`)
     revalidatePath(`/events/${eventSlug}`)
+    revalidatePath(`/events/${eventSlug}/sessions`)
     revalidatePath(`/events/${eventSlug}/sessions/${sessionId}`)
   }
 
   async function goToBreakout(formData: FormData) {
     "use server"
 
-    const breakoutId = String(formData.get("breakoutId") || "")
+    const breakoutId = String(formData.get("breakoutId") || "").trim()
     if (!breakoutId) {
       throw new Error("Missing breakoutId")
     }
@@ -174,7 +221,7 @@ export default async function AdminEventDetailPage({
 
     await upsertEventRoutingState({
       eventId,
-      mode: "breakout",
+      mode: "session_redirect",
       destinationType: "session",
       destinationSessionId: breakoutId,
       headline: readString(formData.get("headline"), "Entering Breakout"),
@@ -188,7 +235,9 @@ export default async function AdminEventDetailPage({
     })
 
     revalidatePath(`/admin/events/${eventSlug}`)
+    revalidatePath(`/admin/events/${eventSlug}/routing`)
     revalidatePath(`/events/${eventSlug}`)
+    revalidatePath(`/events/${eventSlug}/breakouts`)
     revalidatePath(`/events/${eventSlug}/sessions/${breakoutId}`)
   }
 
@@ -206,7 +255,7 @@ export default async function AdminEventDetailPage({
 
     await upsertEventRoutingState({
       eventId,
-      mode: "off_air",
+      mode: "announcement",
       destinationType: null,
       destinationSessionId: null,
       headline: readString(formData.get("headline"), "We’ll Be Right Back"),
@@ -220,6 +269,7 @@ export default async function AdminEventDetailPage({
     })
 
     revalidatePath(`/admin/events/${eventSlug}`)
+    revalidatePath(`/admin/events/${eventSlug}/routing`)
     revalidatePath(`/events/${eventSlug}`)
   }
 
@@ -266,6 +316,7 @@ export default async function AdminEventDetailPage({
     })
 
     revalidatePath(`/admin/events/${eventSlug}`)
+    revalidatePath(`/admin/events/${eventSlug}/routing`)
     revalidatePath(`/events/${eventSlug}`)
 
     if (current.destination_session_id) {
@@ -308,6 +359,7 @@ export default async function AdminEventDetailPage({
     }
 
     revalidatePath(`/admin/events/${eventSlug}`)
+    revalidatePath(`/admin/events/${eventSlug}/routing`)
   }
 
   const { data: sessionRows, error: sessionError } = await supabaseAdmin
@@ -320,13 +372,22 @@ export default async function AdminEventDetailPage({
     throw new Error(sessionError.message)
   }
 
-  const sessions =
-    (sessionRows || [])
-      .filter((row: any) => !row?.is_general_session && row?.session_kind !== "general")
-      .map((row: any) => ({
-        id: String(row.id),
-        title: String(row.title || "Untitled Session"),
-      })) ?? []
+  const sessionOptions: SessionOption[] = ((sessionRows || []) as any[]).map((row) => ({
+    id: String(row.id),
+    title: String(row.title || "Untitled Session"),
+    kind:
+      row?.is_general_session || row?.session_kind === "general"
+        ? "general"
+        : "session",
+  }))
+
+  const generalSessions = sessionOptions
+    .filter((session) => session.kind === "general")
+    .map(({ id, title }) => ({ id, title }))
+
+  const sessions = sessionOptions
+    .filter((session) => session.kind === "session")
+    .map(({ id, title }) => ({ id, title }))
 
   const { data: breakoutRows, error: breakoutError } = await supabaseAdmin
     .from("event_breakouts")
@@ -338,39 +399,40 @@ export default async function AdminEventDetailPage({
     throw new Error(breakoutError.message)
   }
 
-  const breakouts =
-    (breakoutRows || []).map((row: any) => ({
-      id: String(row.id),
-      title: String(row.title || "Untitled Breakout"),
-    })) ?? []
+  const breakouts: BreakoutOption[] = ((breakoutRows || []) as any[]).map((row) => ({
+    id: String(row.id),
+    title: String(row.title || "Untitled Breakout"),
+  }))
 
   const [liveState, initialRunOfShow] = await Promise.all([
     getEventRoutingState(eventId),
     loadRunOfShow(),
   ])
 
-return (
-  <div className="space-y-6 p-6">
-    <EventAdminNav eventId={eventId} />
+  return (
+    <div className="space-y-6 p-6">
+      <EventAdminNav eventId={eventId} />
 
-<MissionControlClient
-  routingState={liveState}
-  sessions={sessions}
-  breakouts={breakouts}
-  sessionMap={Object.fromEntries(sessions.map(s => [s.id, s.title]))}
-  breakoutMap={Object.fromEntries(breakouts.map(b => [b.id, b.title]))}
-  initialRunOfShow={Array.isArray(initialRunOfShow) ? initialRunOfShow : []}
-  saveRunOfShow={saveRunOfShow}
-  goGeneralSession={goGeneralSession}
-  goToSession={goToSession}
-  goToBreakout={goToBreakout}
-  goOffAir={goOffAir}
-  fireGeneralSessionCue={fireGeneralSessionCue}
-  fireSessionCue={fireSessionCue}
-  fireBreakoutCue={fireBreakoutCue}
-  fireOffAirCue={fireOffAirCue}
-  clearTransitionState={clearTransitionState}
-/>
-  </div>
-)
+      <MissionControlClient
+        routingState={liveState}
+        sessions={sessions}
+        breakouts={breakouts}
+        generalSessions={generalSessions}
+        sessionMap={Object.fromEntries(sessions.map((s) => [s.id, s.title]))}
+        breakoutMap={Object.fromEntries(breakouts.map((b) => [b.id, b.title]))}
+        generalSessionMap={Object.fromEntries(generalSessions.map((s) => [s.id, s.title]))}
+        initialRunOfShow={Array.isArray(initialRunOfShow) ? initialRunOfShow : []}
+        saveRunOfShow={saveRunOfShow}
+        goGeneralSession={goGeneralSession}
+        goToSession={goToSession}
+        goToBreakout={goToBreakout}
+        goOffAir={goOffAir}
+        fireGeneralSessionCue={fireGeneralSessionCue}
+        fireSessionCue={fireSessionCue}
+        fireBreakoutCue={fireBreakoutCue}
+        fireOffAirCue={fireOffAirCue}
+        clearTransitionState={clearTransitionState}
+      />
+    </div>
+  )
 }

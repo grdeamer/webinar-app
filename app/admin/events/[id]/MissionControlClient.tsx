@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -51,10 +51,16 @@ type TransitionPreset = {
   message: string
 }
 
+type RunOfShowDestinationKind =
+  | "general_session"
+  | "session"
+  | "breakout"
+  | "off_air"
+
 type RunOfShowItem = {
   id: string
   label: string
-  destinationKind: "general_session" | "session" | "breakout" | "off_air"
+  destinationKind: RunOfShowDestinationKind
   destinationId: string | null
   transitionType: TransitionType
   duration: number
@@ -64,7 +70,7 @@ type RunOfShowItem = {
 
 const MAIN_STAGE_PRESETS: Record<string, TransitionPreset> = {
   keynote_start: {
-  transitionType: "main_stage_arrival",
+    transitionType: "main_stage_arrival",
     duration: 3200,
     headline: "Now Entering Main Stage",
     message: "The keynote is beginning now.",
@@ -167,12 +173,39 @@ function normalizeRunOfShowItems(value: unknown): RunOfShowItem[] {
   return value.filter(isRunOfShowItem)
 }
 
+function destinationLabel(
+  item: RunOfShowItem,
+  maps: {
+    generalSessionMap: Record<string, string>
+    sessionMap: Record<string, string>
+    breakoutMap: Record<string, string>
+  }
+) {
+  if (item.destinationKind === "general_session") {
+    return item.destinationId
+      ? maps.generalSessionMap[item.destinationId] || item.label
+      : item.label
+  }
+
+  if (item.destinationKind === "session") {
+    return item.destinationId ? maps.sessionMap[item.destinationId] || item.label : item.label
+  }
+
+  if (item.destinationKind === "breakout") {
+    return item.destinationId ? maps.breakoutMap[item.destinationId] || item.label : item.label
+  }
+
+  return item.label
+}
+
 export default function MissionControlClient({
   routingState,
   sessions,
   breakouts,
+  generalSessions,
   sessionMap,
   breakoutMap,
+  generalSessionMap,
   initialRunOfShow,
   saveRunOfShow,
   goGeneralSession,
@@ -188,8 +221,10 @@ export default function MissionControlClient({
   routingState: EventRoutingStateLike | null
   sessions: SessionOption[]
   breakouts: BreakoutOption[]
+  generalSessions: SessionOption[]
   sessionMap: Record<string, string>
   breakoutMap: Record<string, string>
+  generalSessionMap: Record<string, string>
   initialRunOfShow: unknown[]
   saveRunOfShow: (cues: RunOfShowItem[]) => Promise<void>
   goGeneralSession: (formData: FormData) => Promise<void>
@@ -207,20 +242,24 @@ export default function MissionControlClient({
   const [breakoutOpen, setBreakoutOpen] = useState(false)
   const [offAirOpen, setOffAirOpen] = useState(false)
 
+  const defaultGeneralSessionId = generalSessions[0]?.id ?? ""
+  const defaultSessionId = sessions[0]?.id ?? ""
+  const defaultBreakoutId = breakouts[0]?.id ?? ""
+
+  const [mainStageSessionId, setMainStageSessionId] = useState(defaultGeneralSessionId)
   const [mainStageTransitionType, setMainStageTransitionType] =
     useState<TransitionType>("auto")
   const [mainStageDuration, setMainStageDuration] = useState(3000)
   const [mainStageHeadline, setMainStageHeadline] = useState("Now Entering Main Stage")
   const [mainStageMessage, setMainStageMessage] = useState("The keynote is beginning now.")
 
-  const [sessionId, setSessionId] = useState<string>(sessions[0]?.id ?? "")
-  const [sessionTransitionType, setSessionTransitionType] =
-    useState<TransitionType>("auto")
+  const [sessionId, setSessionId] = useState(defaultSessionId)
+  const [sessionTransitionType, setSessionTransitionType] = useState<TransitionType>("auto")
   const [sessionDuration, setSessionDuration] = useState(2200)
   const [sessionHeadline, setSessionHeadline] = useState("Entering Session")
   const [sessionMessage, setSessionMessage] = useState("Your next session is opening.")
 
-  const [breakoutId, setBreakoutId] = useState<string>(breakouts[0]?.id ?? "")
+  const [breakoutId, setBreakoutId] = useState(defaultBreakoutId)
   const [breakoutTransitionType, setBreakoutTransitionType] =
     useState<TransitionType>("auto")
   const [breakoutDuration, setBreakoutDuration] = useState(2200)
@@ -229,8 +268,7 @@ export default function MissionControlClient({
     "We’re moving you into a breakout room."
   )
 
-  const [offAirTransitionType, setOffAirTransitionType] =
-    useState<TransitionType>("auto")
+  const [offAirTransitionType, setOffAirTransitionType] = useState<TransitionType>("auto")
   const [offAirDuration, setOffAirDuration] = useState(2600)
   const [offAirHeadline, setOffAirHeadline] = useState("We’ll Be Right Back")
   const [offAirMessage, setOffAirMessage] = useState(
@@ -238,8 +276,7 @@ export default function MissionControlClient({
   )
 
   const [previewActive, setPreviewActive] = useState(false)
-  const [previewVariant, setPreviewVariant] =
-    useState<TransitionVariant>("general_session")
+  const [previewVariant, setPreviewVariant] = useState<TransitionVariant>("general_session")
   const [previewType, setPreviewType] = useState<TransitionType>("fade")
   const [previewHeadline, setPreviewHeadline] = useState<string | null>(null)
   const [previewMessage, setPreviewMessage] = useState<string | null>(null)
@@ -248,6 +285,24 @@ export default function MissionControlClient({
   const [runOfShowItems, setRunOfShowItems] = useState<RunOfShowItem[]>(
     normalizeRunOfShowItems(initialRunOfShow)
   )
+
+  useEffect(() => {
+    if (!mainStageSessionId && generalSessions[0]?.id) {
+      setMainStageSessionId(generalSessions[0].id)
+    }
+  }, [generalSessions, mainStageSessionId])
+
+  useEffect(() => {
+    if (!sessionId && sessions[0]?.id) {
+      setSessionId(sessions[0].id)
+    }
+  }, [sessions, sessionId])
+
+  useEffect(() => {
+    if (!breakoutId && breakouts[0]?.id) {
+      setBreakoutId(breakouts[0].id)
+    }
+  }, [breakouts, breakoutId])
 
   useEffect(() => {
     let cancelled = false
@@ -268,6 +323,22 @@ export default function MissionControlClient({
       cancelled = true
     }
   }, [runOfShowItems, saveRunOfShow])
+
+  const currentDestinationLabel = useMemo(() => {
+    const destinationId = routingState?.destination_session_id
+    if (!destinationId) return null
+
+    if (routingState?.destination_type === "general_session") {
+      return generalSessionMap[destinationId] || destinationId
+    }
+
+    return (
+      sessionMap[destinationId] ||
+      breakoutMap[destinationId] ||
+      generalSessionMap[destinationId] ||
+      destinationId
+    )
+  }, [routingState, sessionMap, breakoutMap, generalSessionMap])
 
   function scheduleTransitionClear(durationMs: number) {
     const delay = Math.max(1200, durationMs + 800)
@@ -292,7 +363,7 @@ export default function MissionControlClient({
             ? "wipe_left"
             : args.variant === "breakout"
               ? "wipe_right"
-              :  "main_stage_arrival"
+              : "main_stage_arrival"
         : args.transitionType
 
     setPreviewVariant(args.variant)
@@ -308,7 +379,7 @@ export default function MissionControlClient({
   }
 
   function applyMainStagePreset(key: keyof typeof MAIN_STAGE_PRESETS) {
-  const preset = MAIN_STAGE_PRESETS[key]
+    const preset = MAIN_STAGE_PRESETS[key]
     setMainStageTransitionType(preset.transitionType)
     setMainStageDuration(preset.duration)
     setMainStageHeadline(preset.headline)
@@ -355,6 +426,10 @@ export default function MissionControlClient({
   async function fireRunOfShowItem(item: RunOfShowItem) {
     const formData = new FormData()
 
+    if (item.destinationKind === "general_session" && item.destinationId) {
+      formData.set("sessionId", item.destinationId)
+    }
+
     if (item.destinationKind === "session" && item.destinationId) {
       formData.set("sessionId", item.destinationId)
     }
@@ -374,7 +449,7 @@ export default function MissionControlClient({
       await fireSessionCue(formData)
     } else if (item.destinationKind === "breakout") {
       await fireBreakoutCue(formData)
-    } else if (item.destinationKind === "off_air") {
+    } else {
       await fireOffAirCue(formData)
     }
 
@@ -427,22 +502,13 @@ export default function MissionControlClient({
 
         {routingState?.destination_type ? (
           <div className="mt-2 text-sm text-white/60">
-            Routing Destination: {routingState.destination_type}
+            Routing Destination Type: {routingState.destination_type}
           </div>
         ) : null}
 
-{routingState?.destination_session_id ? (
-  <div className="mt-1 text-sm text-white/60">
-    Destination:{" "}
-    {routingState.destination_type === "session"
-      ? sessionMap[routingState.destination_session_id] ||
-        breakoutMap[routingState.destination_session_id] ||
-        routingState.destination_session_id
-      : breakoutMap[routingState.destination_session_id] ||
-        sessionMap[routingState.destination_session_id] ||
-        routingState.destination_session_id}
-  </div>
-) : null}
+        {currentDestinationLabel ? (
+          <div className="mt-1 text-sm text-white/60">Destination: {currentDestinationLabel}</div>
+        ) : null}
 
         {routingState?.transition_type ? (
           <div className="mt-1 text-sm text-white/60">
@@ -475,12 +541,34 @@ export default function MissionControlClient({
 
             <form
               action={async (formData) => {
+                if (mainStageSessionId) {
+                  formData.set("sessionId", mainStageSessionId)
+                }
                 await goGeneralSession(formData)
                 setMainStageOpen(false)
                 scheduleTransitionClear(mainStageDuration)
               }}
               className="space-y-5"
             >
+              <div className="space-y-2">
+                <label className="text-sm text-white/70">Main Stage Session</label>
+                <select
+                  value={mainStageSessionId}
+                  onChange={(e) => setMainStageSessionId(e.target.value)}
+                  className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
+                >
+                  {generalSessions.length === 0 ? (
+                    <option value="">No main stage session found</option>
+                  ) : (
+                    generalSessions.map((session) => (
+                      <option key={session.id} value={session.id}>
+                        {session.title}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Presets</label>
                 <div className="flex flex-wrap gap-2">
@@ -516,9 +604,7 @@ export default function MissionControlClient({
                 <select
                   name="transitionType"
                   value={mainStageTransitionType}
-                  onChange={(e) =>
-                    setMainStageTransitionType(e.target.value as TransitionType)
-                  }
+                  onChange={(e) => setMainStageTransitionType(e.target.value as TransitionType)}
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
                 >
                   <option value="auto">Auto (Recommended)</option>
@@ -607,20 +693,28 @@ export default function MissionControlClient({
                   className="border-white/10 bg-transparent text-white hover:bg-white/10"
                   onClick={() =>
                     addRunOfShowItem({
-                      label: mainStageHeadline || "Main Stage",
+                      label:
+                        generalSessions.find((item) => item.id === mainStageSessionId)?.title ||
+                        mainStageHeadline ||
+                        "Main Stage",
                       destinationKind: "general_session",
-                      destinationId: null,
+                      destinationId: mainStageSessionId || null,
                       transitionType: mainStageTransitionType,
                       duration: mainStageDuration,
                       headline: mainStageHeadline || "Now Entering Main Stage",
                       message: mainStageMessage || "The keynote is beginning now.",
                     })
                   }
+                  disabled={!mainStageSessionId || generalSessions.length === 0}
                 >
                   Add to Run of Show
                 </Button>
 
-                <Button type="submit" className="bg-green-600 text-white hover:bg-green-500">
+                <Button
+                  type="submit"
+                  className="bg-green-600 text-white hover:bg-green-500"
+                  disabled={!mainStageSessionId || generalSessions.length === 0}
+                >
                   Apply Transition
                 </Button>
               </div>
@@ -806,6 +900,7 @@ export default function MissionControlClient({
                       message: sessionMessage || "Your next session is opening.",
                     })
                   }
+                  disabled={!sessionId || sessions.length === 0}
                 >
                   Add to Run of Show
                 </Button>
@@ -1002,6 +1097,7 @@ export default function MissionControlClient({
                         breakoutMessage || "We’re moving you into a breakout room.",
                     })
                   }
+                  disabled={!breakoutId || breakouts.length === 0}
                 >
                   Add to Run of Show
                 </Button>
@@ -1219,7 +1315,11 @@ export default function MissionControlClient({
                   </div>
 
                   <div className="mt-1 text-base font-medium text-white">
-                    {item.label}
+                    {destinationLabel(item, {
+                      generalSessionMap,
+                      sessionMap,
+                      breakoutMap,
+                    })}
                   </div>
 
                   <div className="mt-2 flex flex-wrap gap-2 text-xs text-white/55">

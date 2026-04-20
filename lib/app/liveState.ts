@@ -31,6 +31,20 @@ function isUuid(value: string) {
   )
 }
 
+function normalizeDestinationType(value: string | null | undefined) {
+  if (value === "session") return "session"
+  if (value === "general_session") return "general_session"
+  return null
+}
+
+function resolveTransitionDuration(value: number | null | undefined) {
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    return 3000
+  }
+
+  return Math.max(800, Math.min(6000, Math.round(value)))
+}
+
 export async function getEventLiveState(
   eventId: string
 ): Promise<EventRoutingStateRecord | null> {
@@ -67,11 +81,7 @@ export async function upsertEventLiveState(input: {
   transitionStartedAt?: string | null
   updatedBy?: string | null
 }): Promise<EventRoutingStateRecord> {
-  const transitionDurationMs =
-    typeof input.transitionDurationMs === "number" &&
-    Number.isFinite(input.transitionDurationMs)
-      ? Math.max(800, Math.min(6000, Math.round(input.transitionDurationMs)))
-      : 3000
+  const transitionDurationMs = resolveTransitionDuration(input.transitionDurationMs)
 
   const transitionActive =
     typeof input.transitionActive === "boolean"
@@ -111,7 +121,9 @@ export async function upsertEventLiveState(input: {
     )
     .single()
 
-  if (error) throw new Error(error.message)
+  if (error) {
+    throw new Error(error.message)
+  }
 
   return data as EventRoutingStateRecord
 }
@@ -125,27 +137,6 @@ export function getEventLiveDestination(args: {
 }): EventRoutingDestination {
   const { slug, liveState, breakouts = [] } = args
 
-  if (liveState?.destination_type === "session" && liveState.destination_session_id) {
-    return {
-      mode: "session",
-      href: `/events/${slug}/sessions/${liveState.destination_session_id}`,
-      label: liveState.headline || "Session is live",
-      description: liveState.message || "A session is active right now.",
-      sessionId: liveState.destination_session_id,
-      forceRedirect: !!liveState.force_redirect,
-    }
-  }
-
-  if (liveState?.mode === "general_session") {
-    return {
-      mode: "general_session",
-      href: "/general-session",
-      label: liveState.headline || "General session is live",
-      description: liveState.message || "Send attendees to the main stage player.",
-      forceRedirect: !!liveState.force_redirect,
-    }
-  }
-
   if (!liveState) {
     return {
       mode: "lobby",
@@ -155,8 +146,47 @@ export function getEventLiveDestination(args: {
     }
   }
 
+  const destinationType = normalizeDestinationType(liveState.destination_type)
+  const destinationSessionId = liveState.destination_session_id ?? null
+
+  if (destinationType === "general_session" && destinationSessionId) {
+    return {
+      mode: "general_session",
+      href: `/events/${slug}/sessions/${destinationSessionId}`,
+      label: liveState.headline || "Main stage is live",
+      description: liveState.message || "Attendees are being directed to the main stage session.",
+      sessionId: destinationSessionId,
+      forceRedirect: !!liveState.force_redirect,
+    }
+  }
+
+  if (destinationType === "session" && destinationSessionId) {
+    return {
+      mode: "session",
+      href: `/events/${slug}/sessions/${destinationSessionId}`,
+      label: liveState.headline || "Session is live",
+      description: liveState.message || "A session is active right now.",
+      sessionId: destinationSessionId,
+      forceRedirect: !!liveState.force_redirect,
+    }
+  }
+
+  if (liveState.mode === "general_session") {
+    return {
+      mode: "general_session",
+      href: destinationSessionId
+        ? `/events/${slug}/sessions/${destinationSessionId}`
+        : `/events/${slug}/sessions`,
+      label: liveState.headline || "Main stage is live",
+      description: liveState.message || "Attendees are being directed to the main stage session.",
+      sessionId: destinationSessionId,
+      forceRedirect: !!liveState.force_redirect,
+    }
+  }
+
   if (liveState.mode === "breakout") {
-    const active = breakouts.find((item) => item.id === liveState.active_breakout_id) || null
+    const active =
+      breakouts.find((item) => item.id === liveState.active_breakout_id) || null
 
     return {
       mode: "breakout",
@@ -181,7 +211,7 @@ export function getEventLiveDestination(args: {
     }
   }
 
-  if (liveState.mode === "off_air") {
+  if (liveState.mode === "off_air" || liveState.mode === "announcement") {
     return {
       mode: "off_air",
       href: `/events/${slug}`,
@@ -249,9 +279,11 @@ export function getBreakoutRuntimeStatus(
   const endMs = breakout.end_at ? new Date(breakout.end_at).getTime() : null
 
   if (startMs && endMs && now >= startMs && now <= endMs) return "live"
+
   if (startMs && now < startMs && startMs - now <= 15 * 60 * 1000) {
     return "starting-soon"
   }
+
   if (endMs && now > endMs) return "ended"
 
   return "upcoming"
