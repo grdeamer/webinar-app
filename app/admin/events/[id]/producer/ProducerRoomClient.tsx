@@ -1,134 +1,168 @@
-  "use client"
+"use client"
 
-  import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react"
-  import {
-    LiveKitRoom,
-    RoomAudioRenderer,
+import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react"
+import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react"
+import type { JSX } from "react"
 
-  } from "@livekit/components-react"
+import AudienceOriginCue from "@/components/live/AudienceOriginCue"
+import useProducerRoomApi from "./useProducerRoomApi"
+import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
+import StageVideoPreview from "./StageVideoPreview"
+import ParticipantCard from "./ParticipantCard"
 
-  import type { JSX } from "react"
-
-  import AudienceOriginCue from "@/components/live/AudienceOriginCue"
-  import useProducerRoomApi from "./useProducerRoomApi"
-  import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
-  import StageVideoPreview from "./StageVideoPreview"
-
-  type ProducerParticipant = {
-    identity: string
+type ProducerParticipant = {
+  identity: string
+  name: string
+  joinedAt: string | null
+  state: string | number | null
+  isPublisher: boolean
+  metadata?: Record<string, unknown>
+  cameraEnabled: boolean
+  micEnabled: boolean
+  screenShareEnabled: boolean
+  tracks: Array<{
+    sid: string
     name: string
-    joinedAt: string | null
-    state: string | number | null
-    isPublisher: boolean
-    metadata?: Record<string, unknown>
-    cameraEnabled: boolean
-    micEnabled: boolean
-    screenShareEnabled: boolean
-    tracks: Array<{
-      sid: string
-      name: string
-      source: string | number
-      muted?: boolean
-    }>
-  }
+    source: string | number
+    muted?: boolean
+  }>
+}
 
-  type StageState = {
-    event_id: string
-    room_id: string | null
-    is_live: boolean
-    auto_director_enabled: boolean
-    layout: "solo" | "grid" | "screen_speaker"
-    stage_participant_ids: string[]
-    primary_participant_id: string | null
-    pinned_participant_id: string | null
-    screen_share_participant_id: string | null
-    screen_share_track_id: string | null
-    scene_version: number
-    headline: string | null
-    message: string | null
-    updated_by: string | null
-    updated_at: string
-  }
+type StageState = {
+  event_id: string
+  room_id: string | null
+  is_live: boolean
+  auto_director_enabled: boolean
+  layout: "solo" | "grid" | "screen_speaker"
+  stage_participant_ids: string[]
+  primary_participant_id: string | null
+  pinned_participant_id: string | null
+  screen_share_participant_id: string | null
+  screen_share_track_id: string | null
+  scene_version: number
+  headline: string | null
+  message: string | null
+  updated_by: string | null
+  updated_at: string
+}
 
+type SceneSnapshot = {
+  id: string
+  name: string
+  stageState: StageState | null
+  previewBlocks: PreviewBlock[]
+}
 
-  type SceneSnapshot = {
-    id: string
-    name: string
-    stageState: StageState | null
-    previewBlocks: PreviewBlock[]
-  }
+function LiveBadge({ live }: { live: boolean }): JSX.Element {
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+        live
+          ? "border-red-400/25 bg-red-500/15 text-red-200 shadow-[0_0_24px_rgba(239,68,68,0.18)]"
+          : "border-white/10 bg-white/5 text-white/55"
+      }`}
+    >
+      <span
+        className={`h-2.5 w-2.5 rounded-full ${
+          live ? "animate-pulse bg-red-400" : "bg-white/30"
+        }`}
+      />
+      {live ? "Live" : "Off Air"}
+    </div>
+  )
+}
 
+function MonitorHeader({
+  title,
+  subtitle,
+  badge,
+  tone = "neutral",
+}: {
+  title: string
+  subtitle: string
+  badge?: ReactNode
+  tone?: "neutral" | "preview" | "program"
+}): JSX.Element {
+  const toneClass =
+    tone === "program"
+      ? "text-red-200/80"
+      : tone === "preview"
+        ? "text-sky-200/80"
+        : "text-white/40"
 
-  export default function ProducerRoomClient({
-    eventId,
-    sessionId,
-  }: {
-    eventId: string
-    sessionId: string
-  }) {
-    console.log("NEW PRODUCER CLIENT LOADED")
-    const [token, setToken] = useState<string | null>(null)
-    const [serverUrl, setServerUrl] = useState<string | null>(null)
-    const [participants, setParticipants] = useState<ProducerParticipant[]>([])
-    const [stageState, setStageState] = useState<StageState | null>(null)
-    const [loadingText, setLoadingText] = useState("Connecting producer...")
-    const [error, setError] = useState<string | null>(null)
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div>
+        <div className={`text-xs uppercase tracking-[0.2em] ${toneClass}`}>{title}</div>
+        <div className="text-sm text-white/55">{subtitle}</div>
+      </div>
+      {badge ? <div className="shrink-0">{badge}</div> : null}
+    </div>
+  )
+}
 
-    const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
-    const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
-    const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState("")
-    const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState("")
-    const [deviceAccessReady, setDeviceAccessReady] = useState(false)
+export default function ProducerRoomClient({
+  eventId,
+  sessionId,
+}: {
+  eventId: string
+  sessionId: string
+}) {
+  const [token, setToken] = useState<string | null>(null)
+  const [serverUrl, setServerUrl] = useState<string | null>(null)
+  const [participants, setParticipants] = useState<ProducerParticipant[]>([])
+  const [stageState, setStageState] = useState<StageState | null>(null)
+  const [loadingText, setLoadingText] = useState("Connecting producer...")
+  const [error, setError] = useState<string | null>(null)
 
-    const [scenes, setScenes] = useState<any[]>([])
-    const [sceneName, setSceneName] = useState("")
-    const [sceneBusy, setSceneBusy] = useState(false)
-    const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
+  const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState("")
+  const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState("")
+  const [deviceAccessReady, setDeviceAccessReady] = useState(false)
 
-    const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
-    const [takeBusy, setTakeBusy] = useState(false)
+  const [scenes, setScenes] = useState<any[]>([])
+  const [sceneName, setSceneName] = useState("")
+  const [sceneBusy, setSceneBusy] = useState(false)
+  const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
 
-    const [programState, setProgramState] = useState<StageState | null>(null)
+  const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
+  const [takeBusy, setTakeBusy] = useState(false)
+  const [programState, setProgramState] = useState<StageState | null>(null)
 
+  const pdfInputRef = useRef<HTMLInputElement | null>(null)
+  const videoInputRef = useRef<HTMLInputElement | null>(null)
+  const imageInputRef = useRef<HTMLInputElement | null>(null)
 
-    const pdfInputRef = useRef<HTMLInputElement | null>(null)
-    const videoInputRef = useRef<HTMLInputElement | null>(null)
-    const imageInputRef = useRef<HTMLInputElement | null>(null)
+  const producerPreviewVideoRef = useRef<HTMLVideoElement | null>(null)
+  const localPreviewStreamRef = useRef<MediaStream | null>(null)
 
-    const producerPreviewVideoRef = useRef<HTMLVideoElement | null>(null)
-    const localPreviewStreamRef = useRef<MediaStream | null>(null)
-    const [localPreviewReady, setLocalPreviewReady] = useState(false)
+  const [isTransitioning, setIsTransitioning] = useState(false)
+  const [transitionFromState, setTransitionFromState] = useState<StageState | null>(null)
+  const [transitionFromBlocks, setTransitionFromBlocks] = useState<PreviewBlock[]>([])
+  const [transitionFadingOut, setTransitionFadingOut] = useState(false)
 
-    const [isTransitioning, setIsTransitioning] = useState(false)
-    const [transitionFromState, setTransitionFromState] = useState<StageState | null>(null)
-    const [transitionFromBlocks, setTransitionFromBlocks] = useState<PreviewBlock[]>([])
-    const [transitionFadingOut, setTransitionFadingOut] = useState(false)
-      const [showAudienceCue, setShowAudienceCue] = useState(false)
-    const [audienceCueRegion, setAudienceCueRegion] = useState("Europe")
-    const [audienceCueMoonMode, setAudienceCueMoonMode] = useState(false)
-    const [audienceCueQuestionLabel, setAudienceCueQuestionLabel] = useState(
-      "How are outcomes differing across regions?"
-    )
-    const audienceCueTimeoutRef = useRef<number | null>(null)
-      const producerScopeLabel = useMemo(() => {
-      return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session"
-    }, [sessionId])
-    const api = useProducerRoomApi(eventId, sessionId)
-      const {
+  const [showAudienceCue, setShowAudienceCue] = useState(false)
+  const [audienceCueRegion, setAudienceCueRegion] = useState("Europe")
+  const [audienceCueMoonMode, setAudienceCueMoonMode] = useState(false)
+  const [audienceCueQuestionLabel, setAudienceCueQuestionLabel] = useState(
+    "How are outcomes differing across regions?"
+  )
+  const audienceCueTimeoutRef = useRef<number | null>(null)
+
+  const producerScopeLabel = useMemo(() => {
+    return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session"
+  }, [sessionId])
+
+  const api = useProducerRoomApi(eventId, sessionId)
+
+  const {
     previewBlocks,
     setPreviewBlocks,
     programBlocks,
     setProgramBlocks,
     selectedBlockId,
     setSelectedBlockId,
-    draggingBlockId,
-    setDraggingBlockId,
-    resizingBlockId,
-    setResizingBlockId,
-    dragOffset,
-    setDragOffset,
-    previewCanvasRect,
-    setPreviewCanvasRect,
     selectedBlock,
     addTestTextBlock,
     addTestVideoBlock,
@@ -142,16 +176,17 @@
     updateSelectedBlockOpacity,
     toggleSelectedBlockHidden,
     updateSelectedBlockPosition,
-      updateSelectedBlockLabel,
-  updateSelectedBlockSrc,
-  handlePdfUpload,
-  handleVideoUpload,
-  handleImageUpload,
-  startDraggingBlock,
-  startResizingBlock,
-  onPreviewCanvasMouseMove,
-  stopDraggingBlock,
-} = useProducerBlocks()
+    updateSelectedBlockLabel,
+    updateSelectedBlockSrc,
+    handlePdfUpload,
+    handleVideoUpload,
+    handleImageUpload,
+    startDraggingBlock,
+    startResizingBlock,
+    onPreviewCanvasMouseMove,
+    stopDraggingBlock,
+  } = useProducerBlocks()
+
   const stopLocalPreviewStream = useCallback(() => {
     if (!localPreviewStreamRef.current) return
 
@@ -161,58 +196,38 @@
     if (producerPreviewVideoRef.current) {
       producerPreviewVideoRef.current.srcObject = null
     }
-
-    setLocalPreviewReady(false)
   }, [])
 
-    const startLocalPreviewStream = useCallback(async () => {
-      try {
-        stopLocalPreviewStream()
+  function getScreenTrackSid(participant: ProducerParticipant) {
+    const track = participant.tracks.find((t) => t.source === 3 || t.source === "SCREEN_SHARE")
+    return track?.sid ?? null
+  }
 
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: selectedVideoDeviceId ? { deviceId: { exact: selectedVideoDeviceId } } : true,
-          audio: selectedAudioDeviceId ? { deviceId: { exact: selectedAudioDeviceId } } : true,
-        })
+  async function loadToken() {
+    const data = await api.loadToken()
+    setToken(data.token)
+    setServerUrl(process.env.NEXT_PUBLIC_LIVEKIT_URL || "")
+  }
 
-        localPreviewStreamRef.current = stream
+  async function loadParticipants() {
+    const data = await api.loadParticipants()
+    setParticipants(Array.isArray(data?.participants) ? data.participants : [])
+  }
 
-        if (producerPreviewVideoRef.current) {
-          producerPreviewVideoRef.current.srcObject = stream
-          await producerPreviewVideoRef.current.play().catch(() => {})
-        }
+  async function loadProgramState() {
+    const data = await api.loadProgramState()
+    setProgramState(data?.state ?? null)
+  }
 
-        setLocalPreviewReady(true)
-      } catch (err) {
-        console.error("Failed to start local preview stream", err)
-        setLocalPreviewReady(false)
-      }
-    }, [selectedVideoDeviceId, selectedAudioDeviceId, stopLocalPreviewStream])
+  async function loadStageState() {
+    const data = await api.loadStageState()
+    setStageState(data?.state ?? null)
+  }
 
-    async function loadToken() {
-      const data = await api.loadToken()
-      setToken(data.token)
-      setServerUrl(process.env.NEXT_PUBLIC_LIVEKIT_URL || "")
-    }
-
-    async function loadParticipants() {
-      const data = await api.loadParticipants()
-      setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-    }
-
-    async function loadProgramState() {
-      const data = await api.loadProgramState()
-      setProgramState(data?.state ?? null)
-    }
-
-    async function loadStageState() {
-      const data = await api.loadStageState()
-      setStageState(data?.state ?? null)
-    }
-
-    async function loadScenes() {
-      const data = await api.loadScenes()
-      setScenes(Array.isArray(data?.scenes) ? data.scenes : [])
-    }
+  async function loadScenes() {
+    const data = await api.loadScenes()
+    setScenes(Array.isArray(data?.scenes) ? data.scenes : [])
+  }
 
   const loadMediaDevices = useCallback(async () => {
     try {
@@ -232,15 +247,11 @@
       setAudioDevices(audios)
 
       setSelectedVideoDeviceId((prev) =>
-        prev && videos.some((device) => device.deviceId === prev)
-          ? prev
-          : videos[0]?.deviceId || ""
+        prev && videos.some((device) => device.deviceId === prev) ? prev : videos[0]?.deviceId || ""
       )
 
       setSelectedAudioDeviceId((prev) =>
-        prev && audios.some((device) => device.deviceId === prev)
-          ? prev
-          : audios[0]?.deviceId || ""
+        prev && audios.some((device) => device.deviceId === prev) ? prev : audios[0]?.deviceId || ""
       )
 
       setDeviceAccessReady(videos.length > 0 || audios.length > 0)
@@ -254,29 +265,29 @@
     }
   }, [])
 
-    const refreshAll = useCallback(async () => {
-      await Promise.all([loadParticipants(), loadStageState(), loadProgramState(), loadScenes()])
-    }, [])
+  const refreshAll = useCallback(async () => {
+    await Promise.all([loadParticipants(), loadStageState(), loadProgramState(), loadScenes()])
+  }, [])
 
-    async function addToStage(identity: string) {
-      const data = await api.addToStage(identity)
-      setStageState(data.state)
-    }
+  async function addToStage(identity: string) {
+    const data = await api.addToStage(identity)
+    setStageState(data.state)
+  }
 
-    async function removeFromStage(identity: string) {
-      const data = await api.removeFromStage(identity)
-      setStageState(data.state)
-    }
+  async function removeFromStage(identity: string) {
+    const data = await api.removeFromStage(identity)
+    setStageState(data.state)
+  }
 
-    async function pinParticipant(identity: string) {
-      const data = await api.pinParticipant(identity)
-      setStageState(data.state)
-    }
+  async function pinParticipant(identity: string) {
+    const data = await api.pinParticipant(identity)
+    setStageState(data.state)
+  }
 
-    async function unpinParticipant() {
-      const data = await api.unpinParticipant()
-      setStageState(data.state)
-    }
+  async function unpinParticipant() {
+    const data = await api.unpinParticipant()
+    setStageState(data.state)
+  }
 
   async function setPrimaryParticipant(identity: string) {
     const data = await api.setPrimaryParticipant(identity)
@@ -288,60 +299,58 @@
     setStageState(data.state)
   }
 
-    async function saveScene() {
-      if (!sceneName.trim()) {
-        setError("Scene name required")
-        return
-      }
+  async function saveScene() {
+    if (!sceneName.trim()) {
+      setError("Scene name required")
+      return
+    }
 
-      try {
-        setSceneBusy(true)
+    try {
+      setSceneBusy(true)
 
-        const data = await api.saveScene(sceneName)
+      const data = await api.saveScene(sceneName)
+      const savedSceneId = String(data?.scene?.id ?? crypto.randomUUID())
 
-        const savedSceneId = String(data?.scene?.id ?? crypto.randomUUID())
-
-        setLocalSceneSnapshots((prev) => {
-          const next = prev.filter((s) => s.id !== savedSceneId)
-          next.push({
-            id: savedSceneId,
-            name: sceneName,
-            stageState: stageState ? { ...stageState } : null,
-            previewBlocks: previewBlocks.map((b) => ({ ...b })),
-          })
-          return next
+      setLocalSceneSnapshots((prev) => {
+        const next = prev.filter((s) => s.id !== savedSceneId)
+        next.push({
+          id: savedSceneId,
+          name: sceneName,
+          stageState: stageState ? { ...stageState } : null,
+          previewBlocks: previewBlocks.map((b) => ({ ...b })),
         })
+        return next
+      })
 
-        setSceneName("")
-        await loadScenes()
-      } catch (e: any) {
-        setError(e.message)
-      } finally {
-        setSceneBusy(false)
-      }
+      setSceneName("")
+      await loadScenes()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSceneBusy(false)
     }
+  }
 
-    async function applyScene(sceneId: string) {
-      try {
-        setSceneBusy(true)
+  async function applyScene(sceneId: string) {
+    try {
+      setSceneBusy(true)
 
-        const data = await api.applyScene(sceneId)
+      const data = await api.applyScene(sceneId)
+      setStageState(data.state)
 
-        setStageState(data.state)
-
-        const localSnapshot = localSceneSnapshots.find((s) => s.id === sceneId)
-        if (localSnapshot) {
-          setPreviewBlocks(localSnapshot.previewBlocks.map((b) => ({ ...b })))
-          setSelectedBlockId(null)
-        }
-
-        await refreshAll()
-      } catch (e: any) {
-        setError(e.message)
-      } finally {
-        setSceneBusy(false)
+      const localSnapshot = localSceneSnapshots.find((s) => s.id === sceneId)
+      if (localSnapshot) {
+        setPreviewBlocks(localSnapshot.previewBlocks.map((b) => ({ ...b })))
+        setSelectedBlockId(null)
       }
+
+      await refreshAll()
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSceneBusy(false)
     }
+  }
 
   async function setAutoDirector(enabled: boolean) {
     const data = await api.setAutoDirector(enabled)
@@ -349,15 +358,15 @@
     setAutoDirectorEnabled(Boolean(data?.state?.auto_director_enabled))
   }
 
-    async function goLive() {
-      const data = await api.goLive()
-      setStageState(data.state)
-    }
+  async function goLive() {
+    const data = await api.goLive()
+    setStageState(data.state)
+  }
 
-    async function goOffAir() {
-      const data = await api.goOffAir()
-      setStageState(data.state)
-    }
+  async function goOffAir() {
+    const data = await api.goOffAir()
+    setStageState(data.state)
+  }
 
   async function setLayout(layout: "solo" | "grid" | "screen_speaker") {
     const data = await api.setLayout(layout)
@@ -374,411 +383,210 @@
     setStageState(data.state)
   }
 
-    async function takeProgram() {
-      const previousProgramState = programState ? { ...programState } : null
-      const previousProgramBlocks = programBlocks.map((block) => ({ ...block }))
+  async function takeProgram() {
+    const previousProgramState = programState ? { ...programState } : null
+    const previousProgramBlocks = programBlocks.map((block) => ({ ...block }))
 
-      const data = await api.takeProgram()
+    const data = await api.takeProgram()
 
-      setTransitionFromState(previousProgramState)
-      setTransitionFromBlocks(previousProgramBlocks)
-      setTransitionFadingOut(false)
-      setIsTransitioning(true)
+    setTransitionFromState(previousProgramState)
+    setTransitionFromBlocks(previousProgramBlocks)
+    setTransitionFadingOut(false)
+    setIsTransitioning(true)
 
-      setProgramState(data?.state ?? null)
-      setProgramBlocks(previewBlocks.map((block) => ({ ...block })))
+    setProgramState(data?.state ?? null)
+    setProgramBlocks(previewBlocks.map((block) => ({ ...block })))
 
+    window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => {
-          setTransitionFadingOut(true)
-        })
+        setTransitionFadingOut(true)
       })
+    })
 
-      window.setTimeout(() => {
-        setIsTransitioning(false)
-        setTransitionFromState(null)
-        setTransitionFromBlocks([])
-        setTransitionFadingOut(false)
-      }, 450)
+    window.setTimeout(() => {
+      setIsTransitioning(false)
+      setTransitionFromState(null)
+      setTransitionFromBlocks([])
+      setTransitionFadingOut(false)
+    }, 450)
 
-      return data?.state ?? null
+    return data?.state ?? null
+  }
+
+  function triggerAudienceCue(options?: {
+    region?: string
+    moonMode?: boolean
+    questionLabel?: string
+    durationMs?: number
+  }) {
+    if (audienceCueTimeoutRef.current) {
+      window.clearTimeout(audienceCueTimeoutRef.current)
     }
 
+    setAudienceCueRegion(options?.region ?? "Europe")
+    setAudienceCueMoonMode(options?.moonMode ?? false)
+    setAudienceCueQuestionLabel(
+      options?.questionLabel ?? "How are outcomes differing across regions?"
+    )
+    setShowAudienceCue(true)
 
+    audienceCueTimeoutRef.current = window.setTimeout(() => {
+      setShowAudienceCue(false)
+      audienceCueTimeoutRef.current = null
+    }, options?.durationMs ?? 5000)
+  }
 
-
-
-
-
-    function triggerAudienceCue(options?: {
-      region?: string
-      moonMode?: boolean
-      questionLabel?: string
-      durationMs?: number
-    }) {
-      if (audienceCueTimeoutRef.current) {
-        window.clearTimeout(audienceCueTimeoutRef.current)
-      }
-
-      setAudienceCueRegion(options?.region ?? "Europe")
-      setAudienceCueMoonMode(options?.moonMode ?? false)
-      setAudienceCueQuestionLabel(
-        options?.questionLabel ?? "How are outcomes differing across regions?"
-      )
-      setShowAudienceCue(true)
-
-      audienceCueTimeoutRef.current = window.setTimeout(() => {
-        setShowAudienceCue(false)
-        audienceCueTimeoutRef.current = null
-      }, options?.durationMs ?? 5000)
-    }
-    function renderBlockContent(block: PreviewBlock) {
-      if (block.type === "text") {
-        return <div className="p-2 text-sm">{block.content}</div>
-      }
-
-      if (block.type === "video" && block.src) {
-        return <video src={block.src} controls className="h-full w-full object-cover" />
-      }
-
-      if (block.type === "image" && block.src) {
-        return (
-          <img
-            src={block.src}
-            className="h-full w-full object-contain"
-            alt={block.label || "Image"}
-          />
-        )
-      }
-
-      if (block.type === "pdf" && block.src) {
-        return <iframe src={block.src} className="h-full w-full bg-white" title={block.label || "PDF"} />
-      }
-
-      return null
+  function renderBlockContent(block: PreviewBlock) {
+    if (block.type === "text") {
+      return <div className="p-2 text-sm">{block.content}</div>
     }
 
-      function LiveBadge({ live }: { live: boolean }): JSX.Element {
+    if (block.type === "video" && block.src) {
+      return <video src={block.src} controls className="h-full w-full object-cover" />
+    }
+
+    if (block.type === "image" && block.src) {
       return (
+        <img
+          src={block.src}
+          className="h-full w-full object-contain"
+          alt={block.label || "Image"}
+        />
+      )
+    }
+
+    if (block.type === "pdf" && block.src) {
+      return (
+        <iframe
+          src={block.src}
+          className="h-full w-full bg-white"
+          title={block.label || "PDF"}
+        />
+      )
+    }
+
+    return null
+  }
+
+  function renderPlacedBlocks(
+    blocks: PreviewBlock[],
+    opts?: {
+      selectable?: boolean
+      showChrome?: boolean
+      selectedBlockId?: string | null
+    }
+  ) {
+    return blocks
+      .filter((block) => !block.hidden)
+      .map((block) => (
         <div
-          className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
-            live
-              ? "border-red-400/25 bg-red-500/15 text-red-200 shadow-[0_0_24px_rgba(239,68,68,0.18)]"
-              : "border-white/10 bg-white/5 text-white/55"
-          }`}
-        >
-          <span
-            className={`h-2.5 w-2.5 rounded-full ${
-              live ? "animate-pulse bg-red-400" : "bg-white/30"
-            }`}
-          />
-          {live ? "Live" : "Off Air"}
-        </div>
-      )
-    }
-
-    function renderPlacedBlocks(
-      blocks: PreviewBlock[],
-      opts?: {
-        selectable?: boolean
-        showChrome?: boolean
-        selectedBlockId?: string | null
-      }
-    ) {
-      return blocks
-        .filter((block) => !block.hidden)
-        .map((block) => (
-          <div
-            key={block.id}
-            onClick={
-              opts?.selectable
-                ? (e) => {
-                    e.stopPropagation()
-                    setSelectedBlockId(block.id)
-                  }
-                : undefined
-            }
-            className={`absolute overflow-hidden rounded-lg ${
-              opts?.selectable
-                ? selectedBlockId === block.id
-                  ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
-                  : "border border-white/20 bg-white/10"
-                : "border border-white/10 bg-white/10"
-            }`}
-            style={{
-              left: block.x,
-              top: block.y,
-              width: block.width,
-              height: block.height,
-              zIndex: block.zIndex,
-              opacity: block.opacity ?? 1,
-            }}
-          >
-            {opts?.showChrome ? (
-              <div
-                onMouseDown={
-                  opts?.selectable
-                    ? (e) => {
-                        e.stopPropagation()
-                        setSelectedBlockId(block.id)
-                        startDraggingBlock(e, block.id)
-                      }
-                    : undefined
+          key={block.id}
+          onClick={
+            opts?.selectable
+              ? (e) => {
+                  e.stopPropagation()
+                  setSelectedBlockId(block.id)
                 }
-                className={`flex items-center justify-between rounded-t-lg border-b border-white/10 bg-black/40 px-2 py-1 text-[11px] font-semibold text-white/70 ${
-                  opts?.selectable ? "cursor-move" : "pointer-events-none"
-                }`}
-              >
-                <span>{block.label || block.type}</span>
-                <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
-              </div>
-            ) : null}
-
+              : undefined
+          }
+          className={`absolute overflow-hidden rounded-lg ${
+            opts?.selectable
+              ? selectedBlockId === block.id
+                ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
+                : "border border-white/20 bg-white/10"
+              : "border border-white/10 bg-white/10"
+          }`}
+          style={{
+            left: block.x,
+            top: block.y,
+            width: block.width,
+            height: block.height,
+            zIndex: block.zIndex,
+            opacity: block.opacity ?? 1,
+          }}
+        >
+          {opts?.showChrome ? (
             <div
-              className={
-                opts?.showChrome
-                  ? "h-[calc(100%-28px)] overflow-hidden rounded-b-lg"
-                  : "h-full w-full overflow-hidden"
+              onMouseDown={
+                opts?.selectable
+                  ? (e) => {
+                      e.stopPropagation()
+                      setSelectedBlockId(block.id)
+                      startDraggingBlock(e, block.id)
+                    }
+                  : undefined
               }
-            >
-              {renderBlockContent(block)}
-            </div>
-
-            {opts?.selectable && opts?.showChrome ? (
-              <div
-                onMouseDown={(e) => startResizingBlock(e, block.id)}
-                className="absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-white/70"
-                title="Resize block"
-              />
-            ) : null}
-          </div>
-        ))
-    }
-
-      function MonitorHeader({
-      title,
-      subtitle,
-      badge,
-      tone = "neutral",
-    }: {
-      title: string
-      subtitle: string
-      badge?: ReactNode
-      tone?: "neutral" | "preview" | "program"
-      }): JSX.Element {
-      const toneClass =
-        tone === "program"
-          ? "text-red-200/80"
-          : tone === "preview"
-            ? "text-sky-200/80"
-            : "text-white/40"
-
-      return (
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className={`text-xs uppercase tracking-[0.2em] ${toneClass}`}>{title}</div>
-            <div className="text-sm text-white/55">{subtitle}</div>
-          </div>
-          {badge ? <div className="shrink-0">{badge}</div> : null}
-        </div>
-      )
-    }
-
-      function DeviceSelectorPanel(): JSX.Element {
-      return (
-        <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-          <div className="mb-3 flex items-center justify-between gap-3">
-            <div>
-              <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                Producer Devices
-              </div>
-              <div className="text-sm text-white/55">
-                Choose the camera and microphone for this workstation.
-              </div>
-            </div>
-
-            <span
-              className={`rounded-full border px-3 py-1 text-xs ${
-                deviceAccessReady
-                  ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200"
-                  : "border-amber-300/30 bg-amber-400/10 text-amber-200"
+              className={`flex items-center justify-between rounded-t-lg border-b border-white/10 bg-black/40 px-2 py-1 text-[11px] font-semibold text-white/70 ${
+                opts?.selectable ? "cursor-move" : "pointer-events-none"
               }`}
             >
-              {deviceAccessReady ? "Ready" : "Permission needed"}
-            </span>
-          </div>
-
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                Camera
-              </label>
-              <select
-                value={selectedVideoDeviceId}
-                onChange={(e) => setSelectedVideoDeviceId(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-              >
-                {videoDevices.length === 0 ? (
-                  <option value="">No cameras found</option>
-                ) : (
-                  videoDevices.map((device, index) => (
-                    <option key={device.deviceId || `video-${index}`} value={device.deviceId}>
-                      {device.label || `Camera ${index + 1}`}
-                    </option>
-                  ))
-                )}
-              </select>
+              <span>{block.label || block.type}</span>
+              <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
             </div>
+          ) : null}
 
-            <div className="space-y-2">
-              <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                Microphone
-              </label>
-              <select
-                value={selectedAudioDeviceId}
-                onChange={(e) => setSelectedAudioDeviceId(e.target.value)}
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-              >
-                {audioDevices.length === 0 ? (
-                  <option value="">No microphones found</option>
-                ) : (
-                  audioDevices.map((device, index) => (
-                    <option key={device.deviceId || `audio-${index}`} value={device.deviceId}>
-                      {device.label || `Microphone ${index + 1}`}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
+          <div
+            className={
+              opts?.showChrome
+                ? "h-[calc(100%-28px)] overflow-hidden rounded-b-lg"
+                : "h-full w-full overflow-hidden"
+            }
+          >
+            {renderBlockContent(block)}
           </div>
 
-          <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/45">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-              Cameras: {videoDevices.length}
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-              Mics: {audioDevices.length}
-            </span>
-          </div>
+          {opts?.selectable && opts?.showChrome ? (
+            <div
+              onMouseDown={(e) => startResizingBlock(e, block.id)}
+              className="absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-white/70"
+              title="Resize block"
+            />
+          ) : null}
         </div>
-      )
+      ))
+  }
+
+  useEffect(() => {
+    let mounted = true
+
+    async function boot() {
+      try {
+        setError(null)
+        setLoadingText("Creating producer token...")
+        await loadToken()
+        if (!mounted) return
+
+        await loadMediaDevices()
+        if (!mounted) return
+
+        setLoadingText("Loading room state...")
+        await refreshAll()
+      } catch (err: any) {
+        if (!mounted) return
+        setError(err?.message || "Failed to load producer room")
+      }
     }
 
+    void boot()
 
-
-    function getScreenTrackSid(participant: ProducerParticipant) {
-      const track = participant.tracks.find((t) => t.source === 3 || t.source === "SCREEN_SHARE")
-      return track?.sid ?? null
+    return () => {
+      mounted = false
     }
+  }, [eventId, sessionId, loadMediaDevices, refreshAll])
 
-    function ParticipantStatusPill({
-      isOnStage,
-      isPrimary,
-      isPinned,
-    }: {
-      isOnStage: boolean
-      isPrimary: boolean
-      isPinned: boolean
-    }): JSX.Element {
-      if (isPrimary) {
-        return (
-          <span className="rounded-full border border-sky-300/30 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold text-sky-200">
-            Primary
-          </span>
-        )
-      }
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      void refreshAll().catch(() => {})
+    }, 3000)
 
-      if (isPinned) {
-        return (
-          <span className="rounded-full border border-amber-300/30 bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200">
-            Pinned
-          </span>
-        )
-      }
+    return () => window.clearInterval(id)
+  }, [refreshAll])
 
-      if (isOnStage) {
-        return (
-          <span className="rounded-full border border-emerald-300/30 bg-emerald-400/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
-            On Stage
-          </span>
-        )
-      }
-
-      return (
-        <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/60">
-          Backstage
-        </span>
-      )
+  useEffect(() => {
+    if (typeof stageState?.auto_director_enabled === "boolean") {
+      setAutoDirectorEnabled(stageState.auto_director_enabled)
     }
-
-    function SourceChip({
-      label,
-      active,
-      tone = "neutral",
-    }: {
-      label: string
-      active: boolean
-      tone?: "neutral" | "screen"
-    }): JSX.Element {
-      const activeClass =
-        tone === "screen"
-          ? "border-violet-300/30 bg-violet-400/15 text-violet-200"
-          : "border-emerald-300/30 bg-emerald-400/15 text-emerald-200"
-
-      const inactiveClass = "border-white/10 bg-white/5 text-white/45"
-
-      return (
-        <span
-          className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-            active ? activeClass : inactiveClass
-          }`}
-        >
-          {label} {active ? "On" : "Off"}
-        </span>
-      )
-    }
-
-    useEffect(() => {
-      let mounted = true
-
-      async function boot() {
-        try {
-          setError(null)
-          setLoadingText("Creating producer token...")
-          await loadToken()
-          if (!mounted) return
-
-          await loadMediaDevices()
-          if (!mounted) return
-
-          setLoadingText("Loading room state...")
-          await refreshAll()
-        } catch (err: any) {
-          if (!mounted) return
-          setError(err?.message || "Failed to load producer room")
-        }
-      }
-
-      void boot()
-
-      return () => {
-        mounted = false
-      }
-    }, [eventId, sessionId, loadMediaDevices, refreshAll])
-
-    useEffect(() => {
-      const id = window.setInterval(() => {
-        void refreshAll().catch(() => {})
-      }, 3000)
-
-      return () => window.clearInterval(id)
-    }, [refreshAll])
-
-    useEffect(() => {
-      if (typeof stageState?.auto_director_enabled === "boolean") {
-        setAutoDirectorEnabled(stageState.auto_director_enabled)
-      }
-    }, [stageState?.auto_director_enabled])
+  }, [stageState?.auto_director_enabled])
 
   useEffect(() => {
     if (!deviceAccessReady) return
@@ -823,11 +631,8 @@
           producerPreviewVideoRef.current.playsInline = true
           await producerPreviewVideoRef.current.play().catch(() => {})
         }
-
-        setLocalPreviewReady(true)
       } catch (err) {
         console.error("Preview start failed", err)
-        setLocalPreviewReady(false)
       }
     }
 
@@ -847,17 +652,12 @@
   ])
 
   const stageIds = useMemo(() => new Set(stageState?.stage_participant_ids || []), [stageState])
-
   const onStageParticipants = participants.filter((p) => stageIds.has(p.identity))
-
 
   const firstOnStageScreenShare = onStageParticipants.find((p) => {
     if (!p.screenShareEnabled) return false
 
-    const screenTrack = p.tracks.find(
-      (t) => t.source === 3 || t.source === "SCREEN_SHARE"
-    )
-
+    const screenTrack = p.tracks.find((t) => t.source === 3 || t.source === "SCREEN_SHARE")
     return Boolean(screenTrack?.sid)
   })
 
@@ -870,7 +670,6 @@
         t.sid === stageState?.screen_share_track_id
     )
   })
-
 
   const previewProgramDifferent =
     JSON.stringify({
@@ -894,49 +693,49 @@
       blocks: programBlocks,
     })
 
-    useEffect(() => {
-      if (!autoDirectorEnabled) return
-      if (!stageState) return
-      if (stageState.layout !== "screen_speaker") return
-      if (stageState.screen_share_track_id) return
-      if (!firstOnStageScreenShare) return
+  useEffect(() => {
+    if (!autoDirectorEnabled) return
+    if (!stageState) return
+    if (stageState.layout !== "screen_speaker") return
+    if (stageState.screen_share_track_id) return
+    if (!firstOnStageScreenShare) return
 
-      const screenTrack = firstOnStageScreenShare.tracks.find(
-        (t) => t.source === 3 || t.source === "SCREEN_SHARE"
-      )
+    const screenTrack = firstOnStageScreenShare.tracks.find(
+      (t) => t.source === 3 || t.source === "SCREEN_SHARE"
+    )
 
-      if (!screenTrack?.sid) return
+    if (!screenTrack?.sid) return
 
-      void setScreenShare(firstOnStageScreenShare.identity, screenTrack.sid).catch(
-    (_err: unknown): void => {}
-  )
-    }, [autoDirectorEnabled, stageState, firstOnStageScreenShare])
+    void setScreenShare(firstOnStageScreenShare.identity, screenTrack.sid).catch(
+      (_err: unknown): void => {}
+    )
+  }, [autoDirectorEnabled, stageState, firstOnStageScreenShare])
 
-    useEffect(() => {
-      if (!stageState?.screen_share_track_id) return
-      if (selectedScreenStillExists) return
+  useEffect(() => {
+    if (!stageState?.screen_share_track_id) return
+    if (selectedScreenStillExists) return
 
-      void clearScreenShare().catch((_err: unknown): void => {})
-    }, [stageState?.screen_share_track_id, selectedScreenStillExists])
+    void clearScreenShare().catch((_err: unknown): void => {})
+  }, [stageState?.screen_share_track_id, selectedScreenStillExists])
 
-    useEffect(() => {
-      return () => {
-        if (audienceCueTimeoutRef.current) {
-          window.clearTimeout(audienceCueTimeoutRef.current)
-        }
-        stopLocalPreviewStream()
+  useEffect(() => {
+    return () => {
+      if (audienceCueTimeoutRef.current) {
+        window.clearTimeout(audienceCueTimeoutRef.current)
       }
-    }, [stopLocalPreviewStream])
-
-    if (error) {
-      return <div className="p-8 text-red-400">{error}</div>
+      stopLocalPreviewStream()
     }
+  }, [stopLocalPreviewStream])
 
-    if (!token || !serverUrl) {
-      return <div className="p-8 text-white">{loadingText}</div>
-    }
+  if (error) {
+    return <div className="p-8 text-red-400">{error}</div>
+  }
 
-        return (
+  if (!token || !serverUrl) {
+    return <div className="p-8 text-white">{loadingText}</div>
+  }
+
+  return (
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
 
@@ -1048,15 +847,14 @@
                   </button>
                 </div>
               </div>
+
               <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,18,42,0.92),rgba(5,8,22,0.98))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                 <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
                       Switcher
                     </div>
-                    <div className="mt-1 text-lg font-semibold text-white">
-                      Preview → Program
-                    </div>
+                    <div className="mt-1 text-lg font-semibold text-white">Preview → Program</div>
                   </div>
 
                   <div className="flex flex-wrap gap-2">
@@ -1136,7 +934,7 @@
                     />
 
                     <div
-    className="relative h-[520px] overflow-hidden rounded-[20px] border border-white/10 bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[560px] 2xl:h-[620px]"
+                      className="relative h-[520px] overflow-hidden rounded-[20px] border border-white/10 bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[560px] 2xl:h-[620px]"
                       onMouseMove={onPreviewCanvasMouseMove}
                       onMouseUp={stopDraggingBlock}
                       onMouseLeave={stopDraggingBlock}
@@ -1178,29 +976,29 @@
                       <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
                       <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
 
-  <div className="relative z-10 h-full">
-    <StageVideoPreview
-      stageState={programState}
-      participantIds={programState?.stage_participant_ids || []}
-    />
+                      <div className="relative z-10 h-full">
+                        <StageVideoPreview
+                          stageState={programState}
+                          participantIds={programState?.stage_participant_ids || []}
+                        />
 
-    {renderPlacedBlocks(programBlocks, {
-      selectable: false,
-      showChrome: false,
-    })}
+                        {renderPlacedBlocks(programBlocks, {
+                          selectable: false,
+                          showChrome: false,
+                        })}
 
-    <div className="absolute inset-0 z-30 pointer-events-none p-4">
-      <AudienceOriginCue
-        visible={showAudienceCue}
-        region={audienceCueRegion}
-        moonMode={audienceCueMoonMode}
-        entering
-        questionLabel={audienceCueQuestionLabel}
-        compact
-        broadcast
-      />
-    </div>
-  </div>
+                        <div className="absolute inset-0 z-30 pointer-events-none p-4">
+                          <AudienceOriginCue
+                            visible={showAudienceCue}
+                            region={audienceCueRegion}
+                            moonMode={audienceCueMoonMode}
+                            entering
+                            questionLabel={audienceCueQuestionLabel}
+                            compact
+                            broadcast
+                          />
+                        </div>
+                      </div>
 
                       {isTransitioning && transitionFromState ? (
                         <div
@@ -1652,169 +1450,51 @@
                     const screenTrackSid = getScreenTrackSid(p)
 
                     return (
-                      <div
+                      <ParticipantCard
                         key={p.identity}
-                        onClick={() => {
-                          if (!isOnStage) {
-                            void addToStage(p.identity).catch((e: unknown) =>
-                              setError(e instanceof Error ? e.message : "Unexpected error")
-                            )
-                          }
-                        }}
-                        className={`group cursor-pointer rounded-[22px] border p-4 transition ${
-                          isPrimary
-                            ? "border-sky-300/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(125,211,252,0.08)]"
-                            : isPinned
-                              ? "border-amber-300/40 bg-amber-400/5"
-                              : isOnStage
-                                ? "border-emerald-300/20 bg-emerald-400/[0.05]"
-                                : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-                        }`}
-                      >
-                        <div className="space-y-4">
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-base font-semibold text-white">
-                                {p.name}
-                              </div>
-                              <div className="mt-1 truncate text-xs text-white/40">
-                                {p.identity}
-                              </div>
-                            </div>
-
-                            <div className="shrink-0">
-                              <ParticipantStatusPill
-                                isOnStage={isOnStage}
-                                isPrimary={isPrimary}
-                                isPinned={isPinned}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="flex flex-wrap gap-2">
-                            <SourceChip label="Camera" active={p.cameraEnabled} />
-                            <SourceChip label="Mic" active={p.micEnabled} />
-                            <SourceChip
-                              label="Screen"
-                              active={p.screenShareEnabled}
-                              tone="screen"
-                            />
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 text-[11px] text-white/45">
-                            {isUsingScreen ? (
-                              <span className="rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 font-medium text-violet-200">
-                                Screen selected for program
-                              </span>
-                            ) : null}
-
-                            {p.joinedAt ? (
-                              <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                                Joined
-                              </span>
-                            ) : null}
-                          </div>
-
-                          <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-                            {p.screenShareEnabled ? (
-                              <button
-                                onClick={() => {
-                                  if (!screenTrackSid) {
-                                    setError("No screen-share track found for this participant")
-                                    return
-                                  }
-
-                                  void setScreenShare(p.identity, screenTrackSid).catch(
-                                    (e: unknown) =>
-                                      setError(
-                                        e instanceof Error ? e.message : "Unexpected error"
-                                      )
-                                  )
-                                }}
-                                className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                  isUsingScreen
-                                    ? "bg-violet-300 text-slate-950"
-                                    : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                                }`}
-                              >
-                                {isUsingScreen ? "Screen Active" : "Use Screen"}
-                              </button>
-                            ) : null}
-
-                            {isOnStage ? (
-                              <>
-                                <button
-                                  onClick={() => {
-                                    const action = isPrimary
-                                      ? clearPrimaryParticipant()
-                                      : setPrimaryParticipant(p.identity)
-
-                                    void action.catch((e: unknown) =>
-                                      setError(
-                                        e instanceof Error ? e.message : "Unexpected error"
-                                      )
-                                    )
-                                  }}
-                                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                    isPrimary
-                                      ? "bg-sky-300 text-slate-950"
-                                      : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                                  }`}
-                                >
-                                  {isPrimary ? "Clear Primary" : "Make Primary"}
-                                </button>
-
-                                <button
-                                  onClick={() => {
-                                    const action = isPinned
-                                      ? unpinParticipant()
-                                      : pinParticipant(p.identity)
-
-                                    void action.catch((e: unknown) =>
-                                      setError(
-                                        e instanceof Error ? e.message : "Unexpected error"
-                                      )
-                                    )
-                                  }}
-                                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                                    isPinned
-                                      ? "bg-amber-300 text-slate-950"
-                                      : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                                  }`}
-                                >
-                                  {isPinned ? "Unpin" : "Pin"}
-                                </button>
-
-                                <button
-                                  onClick={() =>
-                                    void removeFromStage(p.identity).catch((e: unknown) =>
-                                      setError(
-                                        e instanceof Error ? e.message : "Unexpected error"
-                                      )
-                                    )
-                                  }
-                                  className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
-                                >
-                                  Remove
-                                </button>
-                              </>
-                            ) : (
-                              <button
-                                onClick={() =>
-                                  void addToStage(p.identity).catch((e: unknown) =>
-                                    setError(
-                                      e instanceof Error ? e.message : "Unexpected error"
-                                    )
-                                  )
-                                }
-                                className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-white/90"
-                              >
-                                Add to Stage
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                        participant={p}
+                        isOnStage={isOnStage}
+                        isPrimary={isPrimary}
+                        isPinned={isPinned}
+                        isUsingScreen={isUsingScreen}
+                        screenTrackSid={screenTrackSid}
+                        onAddToStage={(identity) =>
+                          void addToStage(identity).catch((e: unknown) =>
+                            setError(e instanceof Error ? e.message : "Unexpected error")
+                          )
+                        }
+                        onSetScreenShare={(participantId, trackId) =>
+                          void setScreenShare(participantId, trackId).catch((e: unknown) =>
+                            setError(e instanceof Error ? e.message : "Unexpected error")
+                          )
+                        }
+                        onClearPrimary={() =>
+                          void clearPrimaryParticipant().catch((e: unknown) =>
+                            setError(e instanceof Error ? e.message : "Unexpected error")
+                          )
+                        }
+                        onSetPrimary={(identity) =>
+                          void setPrimaryParticipant(identity).catch((e: unknown) =>
+                            setError(e instanceof Error ? e.message : "Unexpected error")
+                          )
+                        }
+                        onUnpin={() =>
+                          void unpinParticipant().catch((e: unknown) =>
+                            setError(e instanceof Error ? e.message : "Unexpected error")
+                          )
+                        }
+                        onPin={(identity) =>
+                          void pinParticipant(identity).catch((e: unknown) =>
+                            setError(e instanceof Error ? e.message : "Unexpected error")
+                          )
+                        }
+                        onRemoveFromStage={(identity) =>
+                          void removeFromStage(identity).catch((e: unknown) =>
+                            setError(e instanceof Error ? e.message : "Unexpected error")
+                          )
+                        }
+                        onError={setError}
+                      />
                     )
                   })
                 )}
@@ -1825,4 +1505,4 @@
       </div>
     </LiveKitRoom>
   )
-  }
+}
