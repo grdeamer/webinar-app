@@ -15,6 +15,7 @@ import AudienceOriginCue from "@/components/live/AudienceOriginCue"
 import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
 import BackstagePanel from "./BackstagePanel"
+import ParticipantCard from "./ParticipantCard"
 
 type ProducerParticipant = {
   identity: string
@@ -2164,148 +2165,51 @@ const previewProgramDifferent =
       const screenTrackSid = getScreenTrackSid(p)
 
       return (
-        <div
+        <ParticipantCard
           key={p.identity}
-          onClick={() => {
-            if (!isOnStage) {
-              void addToStage(p.identity).catch((e: unknown) =>
-                setError(e instanceof Error ? e.message : "Unexpected error")
-              )
-            }
-          }}
-          className={`group cursor-pointer rounded-[22px] border p-4 transition ${
-            isPrimary
-              ? "border-sky-300/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(125,211,252,0.08)]"
-              : isPinned
-                ? "border-amber-300/40 bg-amber-400/5"
-                : isOnStage
-                  ? "border-emerald-300/20 bg-emerald-400/[0.05]"
-                  : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
-          }`}
-        >
-          <div className="space-y-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <div className="truncate text-base font-semibold text-white">{p.name}</div>
-                <div className="mt-1 truncate text-xs text-white/40">{p.identity}</div>
-              </div>
-
-              <div className="shrink-0">
-                <ParticipantStatusPill
-                  isOnStage={isOnStage}
-                  isPrimary={isPrimary}
-                  isPinned={isPinned}
-                />
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-2">
-              <SourceChip label="Camera" active={p.cameraEnabled} />
-              <SourceChip label="Mic" active={p.micEnabled} />
-              <SourceChip label="Screen" active={p.screenShareEnabled} tone="screen" />
-            </div>
-
-            <div className="flex flex-wrap gap-2 text-[11px] text-white/45">
-              {isUsingScreen ? (
-                <span className="rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 font-medium text-violet-200">
-                  Screen selected for program
-                </span>
-              ) : null}
-
-              {p.joinedAt ? (
-                <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
-                  Joined
-                </span>
-              ) : null}
-            </div>
-
-            <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
-              {p.screenShareEnabled ? (
-                <button
-                  onClick={() => {
-                    if (!screenTrackSid) {
-                      setError("No screen-share track found for this participant")
-                      return
-                    }
-
-                    void setScreenShare(p.identity, screenTrackSid).catch((e: unknown) =>
-                      setError(e instanceof Error ? e.message : "Unexpected error")
-                    )
-                  }}
-                  className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                    isUsingScreen
-                      ? "bg-violet-300 text-slate-950"
-                      : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                  }`}
-                >
-                  {isUsingScreen ? "Screen Active" : "Use Screen"}
-                </button>
-              ) : null}
-
-              {isOnStage ? (
-                <>
-                  <button
-                    onClick={() => {
-                      const action = isPrimary
-                        ? clearPrimaryParticipant()
-                        : setPrimaryParticipant(p.identity)
-
-                      void action.catch((e: unknown) =>
-                        setError(e instanceof Error ? e.message : "Unexpected error")
-                      )
-                    }}
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                      isPrimary
-                        ? "bg-sky-300 text-slate-950"
-                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {isPrimary ? "Clear Primary" : "Make Primary"}
-                  </button>
-
-                  <button
-                    onClick={() => {
-                      const action = isPinned ? unpinParticipant() : pinParticipant(p.identity)
-
-                      void action.catch((e: unknown) =>
-                        setError(e instanceof Error ? e.message : "Unexpected error")
-                      )
-                    }}
-                    className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
-                      isPinned
-                        ? "bg-amber-300 text-slate-950"
-                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    {isPinned ? "Unpin" : "Pin"}
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      void removeFromStage(p.identity).catch((e: unknown) =>
-                        setError(e instanceof Error ? e.message : "Unexpected error")
-                      )
-                    }
-                    className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
-                  >
-                    Remove
-                  </button>
-                </>
-              ) : (
-                <button
-                  onClick={() =>
-                    void addToStage(p.identity).catch((e: unknown) =>
-                      setError(e instanceof Error ? e.message : "Unexpected error")
-                    )
-                  }
-                  className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-white/90"
-                >
-                  Add to Stage
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
+          participant={p}
+          isOnStage={isOnStage}
+          isPrimary={isPrimary}
+          isPinned={isPinned}
+          isUsingScreen={isUsingScreen}
+          screenTrackSid={screenTrackSid}
+          onAddToStage={(identity) =>
+            void addToStage(identity).catch((e: unknown) =>
+              setError(e instanceof Error ? e.message : "Unexpected error")
+            )
+          }
+          onSetScreenShare={(participantId, trackId) =>
+            void setScreenShare(participantId, trackId).catch((e: unknown) =>
+              setError(e instanceof Error ? e.message : "Unexpected error")
+            )
+          }
+          onClearPrimary={() =>
+            void clearPrimaryParticipant().catch((e: unknown) =>
+              setError(e instanceof Error ? e.message : "Unexpected error")
+            )
+          }
+          onSetPrimary={(identity) =>
+            void setPrimaryParticipant(identity).catch((e: unknown) =>
+              setError(e instanceof Error ? e.message : "Unexpected error")
+            )
+          }
+          onUnpin={() =>
+            void unpinParticipant().catch((e: unknown) =>
+              setError(e instanceof Error ? e.message : "Unexpected error")
+            )
+          }
+          onPin={(identity) =>
+            void pinParticipant(identity).catch((e: unknown) =>
+              setError(e instanceof Error ? e.message : "Unexpected error")
+            )
+          }
+          onRemoveFromStage={(identity) =>
+            void removeFromStage(identity).catch((e: unknown) =>
+              setError(e instanceof Error ? e.message : "Unexpected error")
+            )
+          }
+          onError={setError}
+        />
       )
     })
   )}

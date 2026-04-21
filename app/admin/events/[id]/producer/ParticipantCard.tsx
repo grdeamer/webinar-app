@@ -1,3 +1,5 @@
+"use client"
+
 import type { JSX } from "react"
 
 type ProducerParticipant = {
@@ -85,23 +87,6 @@ function SourceChip({
   )
 }
 
-type ParticipantCardProps = {
-  participant: ProducerParticipant
-  isOnStage: boolean
-  isPrimary: boolean
-  isPinned: boolean
-  isUsingScreen: boolean
-  screenTrackSid: string | null
-  onAddToStage: (identity: string) => void
-  onSetScreenShare: (participantId: string, trackId: string) => void
-  onClearPrimary: () => void
-  onSetPrimary: (identity: string) => void
-  onUnpin: () => void
-  onPin: (identity: string) => void
-  onRemoveFromStage: (identity: string) => void
-  onError: (message: string) => void
-}
-
 export default function ParticipantCard({
   participant,
   isOnStage,
@@ -117,11 +102,28 @@ export default function ParticipantCard({
   onPin,
   onRemoveFromStage,
   onError,
-}: ParticipantCardProps): JSX.Element {
+}: {
+  participant: ProducerParticipant
+  isOnStage: boolean
+  isPrimary: boolean
+  isPinned: boolean
+  isUsingScreen: boolean
+  screenTrackSid: string | null
+  onAddToStage: (identity: string) => void
+  onSetScreenShare: (participantId: string, trackId: string) => void
+  onClearPrimary: () => void
+  onSetPrimary: (identity: string) => void
+  onUnpin: () => void
+  onPin: (identity: string) => void
+  onRemoveFromStage: (identity: string) => void
+  onError: (message: string) => void
+}): JSX.Element {
   return (
     <div
       onClick={() => {
-        if (!isOnStage) onAddToStage(participant.identity)
+        if (!isOnStage) {
+          onAddToStage(participant.identity)
+        }
       }}
       className={`group cursor-pointer rounded-[22px] border p-4 transition ${
         isPrimary
@@ -152,11 +154,7 @@ export default function ParticipantCard({
         <div className="flex flex-wrap gap-2">
           <SourceChip label="Camera" active={participant.cameraEnabled} />
           <SourceChip label="Mic" active={participant.micEnabled} />
-          <SourceChip
-            label="Screen"
-            active={participant.screenShareEnabled}
-            tone="screen"
-          />
+          <SourceChip label="Screen" active={participant.screenShareEnabled} tone="screen" />
         </div>
 
         <div className="flex flex-wrap gap-2 text-[11px] text-white/45">
@@ -200,9 +198,10 @@ export default function ParticipantCard({
                 onClick={() => {
                   if (isPrimary) {
                     onClearPrimary()
-                  } else {
-                    onSetPrimary(participant.identity)
+                    return
                   }
+
+                  onSetPrimary(participant.identity)
                 }}
                 className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
                   isPrimary
@@ -217,9 +216,10 @@ export default function ParticipantCard({
                 onClick={() => {
                   if (isPinned) {
                     onUnpin()
-                  } else {
-                    onPin(participant.identity)
+                    return
                   }
+
+                  onPin(participant.identity)
                 }}
                 className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
                   isPinned
