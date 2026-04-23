@@ -22,6 +22,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "csv-parse": "^6.1.0",
+    "figma-api": "^2.2.0-beta",
     "framer-motion": "^12.34.3",
     "hls.js": "^1.6.15",
     "jsonwebtoken": "^9.0.3",

@@ -64,9 +64,5 @@ export default async function ProducerSessionPage({
     )
   }
 
-  return (
-    <div className="min-h-screen bg-black text-white">
-      <ProducerRoomClient eventId={eventId} sessionId={sessionId} />
-    </div>
-  )
+  return <ProducerRoomClient eventId={eventId} sessionId={sessionId} />
 }

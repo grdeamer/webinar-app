@@ -1,14 +1,18 @@
+// Apply-patch test: oboe editing is connected
 "use client"
 
 import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react"
 import type { JSX } from "react"
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react"
 import AudienceOriginCue from "@/components/live/AudienceOriginCue"
+import StageVideoPreview from "./StageVideoPreview"
+
 import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
-import BackstagePanel from "./BackstagePanel"
-import ParticipantCard from "./ParticipantCard"
-import StageVideoPreview from "./StageVideoPreview"
+import RightInspectorRail from "./RightInspectorRail"
+
+
+
 
 type ProducerParticipant = {
   identity: string
@@ -26,6 +30,240 @@ type ProducerParticipant = {
     source: string | number
     muted?: boolean
   }>
+
+}
+
+function ControlStackPanel({
+  takeBusy,
+  previewProgramDifferent,
+  onTake,
+  onGoLive,
+  onGoOffAir,
+  layout,
+  onSetLayout,
+  autoDirectorEnabled,
+  onToggleAutoDirector,
+}: {
+  takeBusy: boolean
+  previewProgramDifferent: boolean
+  onTake: () => void
+  onGoLive: () => void
+  onGoOffAir: () => void
+  layout: StageState["layout"] | null | undefined
+  onSetLayout: (layout: StageState["layout"]) => void
+  autoDirectorEnabled: boolean
+  onToggleAutoDirector: () => void
+}): JSX.Element {
+  return (
+    <>
+      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-3.5">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+          Control Stack
+        </div>
+
+        <div className="space-y-3">
+          <button
+            onClick={onTake}
+            disabled={takeBusy}
+            className={`w-full rounded-xl px-4 py-3 text-sm font-bold text-slate-950 transition disabled:opacity-60 ${
+              previewProgramDifferent
+                ? "bg-amber-400 hover:bg-amber-300"
+                : "bg-sky-400 hover:bg-sky-300"
+            }`}
+          >
+            {takeBusy ? "Taking..." : "TAKE"}
+          </button>
+
+          <button
+            onClick={onGoLive}
+            className="w-full rounded-xl bg-red-500 px-4 py-3 text-sm font-semibold text-white transition hover:bg-red-400"
+          >
+            Go Live
+          </button>
+
+          <button
+            onClick={onGoOffAir}
+            className="w-full rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10"
+          >
+            Off Air
+          </button>
+        </div>
+      </div>
+
+      <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+        <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+          Layout Modes
+        </div>
+
+        <div className="space-y-2">
+          <button
+            onClick={() => onSetLayout("solo")}
+            className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              layout === "solo"
+                ? "bg-white text-black"
+                : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+            }`}
+          >
+            Solo
+          </button>
+
+          <button
+            onClick={() => onSetLayout("grid")}
+            className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              layout === "grid"
+                ? "bg-white text-black"
+                : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+            }`}
+          >
+            Grid
+          </button>
+
+          <button
+            onClick={() => onSetLayout("screen_speaker")}
+            className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              layout === "screen_speaker"
+                ? "bg-white text-black"
+                : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+            }`}
+          >
+            Speaker + Screen
+          </button>
+
+          <button
+            onClick={onToggleAutoDirector}
+            className={`w-full rounded-xl px-4 py-2.5 text-sm font-semibold transition ${
+              autoDirectorEnabled
+                ? "bg-emerald-400 text-slate-950"
+                : "border border-white/15 bg-white/5 text-white"
+            }`}
+          >
+            {autoDirectorEnabled ? "Auto Director On" : "Auto Director Off"}
+          </button>
+        </div>
+      </div>
+    </>
+  )
+}
+
+function renderBlockContent(block: PreviewBlock): JSX.Element | null {
+  if (block.type === "text") {
+    return <div className="p-2 text-sm">{block.content}</div>
+  }
+
+  if (block.type === "video" && block.src) {
+    return <video src={block.src} controls className="h-full w-full object-cover" />
+  }
+
+  if (block.type === "image" && block.src) {
+    return (
+      <img
+        src={block.src}
+        className="h-full w-full object-contain"
+        alt={block.label || "Image"}
+      />
+    )
+  }
+
+  if (block.type === "pdf" && block.src) {
+    return (
+      <iframe
+        src={block.src}
+        className="h-full w-full bg-white"
+        title={block.label || "PDF"}
+      />
+    )
+  }
+
+  return null
+}
+
+function renderPlacedBlocks({
+  blocks,
+  opts,
+  selectedBlockId,
+  setSelectedBlockId,
+  startDraggingBlock,
+  startResizingBlock,
+}: {
+  blocks: PreviewBlock[]
+  opts?: {
+    selectable?: boolean
+    showChrome?: boolean
+    selectedBlockId?: string | null
+  }
+  selectedBlockId: string | null
+  setSelectedBlockId: (value: string | null) => void
+  startDraggingBlock: (e: React.MouseEvent<HTMLDivElement>, blockId: string) => void
+  startResizingBlock: (e: React.MouseEvent<HTMLDivElement>, blockId: string) => void
+}): JSX.Element[] {
+  return blocks
+    .filter((block) => !block.hidden)
+    .map((block) => (
+      <div
+        key={block.id}
+        onClick={
+          opts?.selectable
+            ? (e) => {
+                e.stopPropagation()
+                setSelectedBlockId(block.id)
+              }
+            : undefined
+        }
+        className={`absolute overflow-hidden rounded-lg ${
+          opts?.selectable
+            ? selectedBlockId === block.id
+              ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
+              : "border border-white/20 bg-white/10"
+            : "border border-white/10 bg-white/10"
+        }`}
+        style={{
+          left: block.x,
+          top: block.y,
+          width: block.width,
+          height: block.height,
+          zIndex: block.zIndex,
+          opacity: block.opacity ?? 1,
+        }}
+      >
+        {opts?.showChrome ? (
+          <div
+            onMouseDown={
+              opts?.selectable
+                ? (e) => {
+                    e.stopPropagation()
+                    setSelectedBlockId(block.id)
+                    startDraggingBlock(e, block.id)
+                  }
+                : undefined
+            }
+            className={`flex items-center justify-between rounded-t-lg border-b border-white/10 bg-black/40 px-2 py-1 text-[11px] font-semibold text-white/70 ${
+              opts?.selectable ? "cursor-move" : "pointer-events-none"
+            }`}
+          >
+            <span>{block.label || block.type}</span>
+            <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
+          </div>
+        ) : null}
+
+        <div
+          className={
+            opts?.showChrome
+              ? "h-[calc(100%-28px)] overflow-hidden rounded-b-lg"
+              : "h-full w-full overflow-hidden"
+          }
+        >
+          {renderBlockContent(block)}
+        </div>
+
+        {opts?.selectable && opts?.showChrome ? (
+          <div
+            onMouseDown={(e) => startResizingBlock(e, block.id)}
+            className="absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-white/70"
+            title="Resize block"
+          />
+        ) : null}
+      </div>
+    ))
 }
 type StageState = {
   event_id: string
@@ -51,6 +289,709 @@ type SceneSnapshot = {
   previewBlocks: PreviewBlock[]
 }
 
+function LiveBadge({ live }: { live: boolean }): JSX.Element {
+  return (
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
+        live
+          ? "border-red-400/25 bg-red-500/15 text-red-200 shadow-[0_0_24px_rgba(239,68,68,0.18)]"
+          : "border-white/10 bg-white/5 text-white/55"
+      }`}
+    >
+      <span
+        className={`h-2.5 w-2.5 rounded-full ${
+          live ? "animate-pulse bg-red-400" : "bg-white/30"
+        }`}
+      />
+      {live ? "Live" : "Off Air"}
+    </div>
+  )
+}
+
+function MonitorHeader({
+  title,
+  subtitle,
+  badge,
+  tone = "neutral",
+}: {
+  title: string
+  subtitle: string
+  badge?: ReactNode
+  tone?: "neutral" | "preview" | "program"
+}): JSX.Element {
+  const toneClass =
+    tone === "program"
+      ? "text-red-200/80"
+      : tone === "preview"
+        ? "text-sky-200/80"
+        : "text-white/40"
+
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div>
+        <div className={`text-xs uppercase tracking-[0.2em] ${toneClass}`}>{title}</div>
+        <div className="text-sm text-white/55">{subtitle}</div>
+      </div>
+      {badge ? <div className="shrink-0">{badge}</div> : null}
+    </div>
+  )
+}
+
+function DeviceSelectorPanel({
+  deviceAccessReady,
+  videoDevices,
+  audioDevices,
+  selectedVideoDeviceId,
+  selectedAudioDeviceId,
+  onSelectVideoDevice,
+  onSelectAudioDevice,
+}: {
+  deviceAccessReady: boolean
+  videoDevices: MediaDeviceInfo[]
+  audioDevices: MediaDeviceInfo[]
+  selectedVideoDeviceId: string
+  selectedAudioDeviceId: string
+  onSelectVideoDevice: (value: string) => void
+  onSelectAudioDevice: (value: string) => void
+}): JSX.Element {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+            Producer Devices
+          </div>
+          <div className="text-sm text-white/55">
+            Choose the camera and microphone for this workstation.
+          </div>
+        </div>
+
+        <span
+          className={`rounded-full border px-3 py-1 text-xs ${
+            deviceAccessReady
+              ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200"
+              : "border-amber-300/30 bg-amber-400/10 text-amber-200"
+          }`}
+        >
+          {deviceAccessReady ? "Ready" : "Permission needed"}
+        </span>
+      </div>
+
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
+            Camera
+          </label>
+          <select
+            value={selectedVideoDeviceId}
+            onChange={(e) => onSelectVideoDevice(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
+          >
+            {videoDevices.length === 0 ? (
+              <option value="">No cameras found</option>
+            ) : (
+              videoDevices.map((device, index) => (
+                <option key={device.deviceId || `video-${index}`} value={device.deviceId}>
+                  {device.label || `Camera ${index + 1}`}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
+            Microphone
+          </label>
+          <select
+            value={selectedAudioDeviceId}
+            onChange={(e) => onSelectAudioDevice(e.target.value)}
+            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
+          >
+            {audioDevices.length === 0 ? (
+              <option value="">No microphones found</option>
+            ) : (
+              audioDevices.map((device, index) => (
+                <option key={device.deviceId || `audio-${index}`} value={device.deviceId}>
+                  {device.label || `Microphone ${index + 1}`}
+                </option>
+              ))
+            )}
+          </select>
+        </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/45">
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+          Cameras: {videoDevices.length}
+        </span>
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+          Mics: {audioDevices.length}
+        </span>
+      </div>
+    </div>
+  )
+}
+
+function AudienceOriginTestPanel({
+  onTriggerCue,
+  onHideCue,
+}: {
+  onTriggerCue: (options: {
+    region?: string
+    moonMode?: boolean
+    questionLabel?: string
+    durationMs?: number
+  }) => void
+  onHideCue: () => void
+}): JSX.Element {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+        Audience Origin Test
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <button
+          onClick={() =>
+            onTriggerCue({
+              region: "Europe",
+              moonMode: false,
+              questionLabel: "How are outcomes differing across regions?",
+            })
+          }
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Trigger Europe Cue
+        </button>
+
+        <button
+          onClick={() =>
+            onTriggerCue({
+              region: "North America",
+              moonMode: false,
+              questionLabel: "What trends are you seeing in North America?",
+            })
+          }
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Trigger North America Cue
+        </button>
+
+        <button
+          onClick={() =>
+            onTriggerCue({
+              region: "Mare Tranquillitatis",
+              moonMode: true,
+              questionLabel: "Moon base check-in: how is the signal holding?",
+            })
+          }
+          className="rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/15"
+        >
+          Trigger Moon Cue
+        </button>
+
+        <button
+          onClick={onHideCue}
+          className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/15"
+        >
+          Hide Cue
+        </button>
+      </div>
+    </div>
+  )
+}
+function MediaBlocksPanel({
+  previewBlocksCount,
+  onAddText,
+  onAddVideo,
+  onAddPdf,
+  onAddImage,
+  onUploadPdf,
+  onUploadVideo,
+  onUploadImage,
+  onDuplicate,
+  onBringToFront,
+  onDelete,
+  hasSelectedBlock,
+}: {
+  previewBlocksCount: number
+  onAddText: () => void
+  onAddVideo: () => void
+  onAddPdf: () => void
+  onAddImage: () => void
+  onUploadPdf: () => void
+  onUploadVideo: () => void
+  onUploadImage: () => void
+  onDuplicate: () => void
+  onBringToFront: () => void
+  onDelete: () => void
+  hasSelectedBlock: boolean
+}): JSX.Element {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+        Add Blocks / Upload Media
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          onClick={onAddText}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Add Text
+        </button>
+
+        <button
+          onClick={onAddVideo}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Add Video
+        </button>
+
+        <button
+          onClick={onAddPdf}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Add PDF
+        </button>
+
+        <button
+          onClick={onAddImage}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
+        >
+          Add Image
+        </button>
+
+        <button
+          onClick={onUploadPdf}
+          className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+        >
+          Upload PDF
+        </button>
+
+        <button
+          onClick={onUploadVideo}
+          className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+        >
+          Upload Video
+        </button>
+
+        <button
+          onClick={onUploadImage}
+          className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+        >
+          Upload Image
+        </button>
+
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
+          Preview blocks: {previewBlocksCount}
+        </span>
+
+        <button
+          onClick={onDuplicate}
+          disabled={!hasSelectedBlock}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/10"
+        >
+          Duplicate
+        </button>
+
+        <button
+          onClick={onBringToFront}
+          disabled={!hasSelectedBlock}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/10"
+        >
+          Bring To Front
+        </button>
+
+        <button
+          onClick={onDelete}
+          disabled={!hasSelectedBlock}
+          className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-red-500/15"
+        >
+          Delete
+        </button>
+      </div>
+    </div>
+  )
+}
+function ScenesStatusPanel({
+  sceneName,
+  onSceneNameChange,
+  onSaveScene,
+  sceneBusy,
+  stageState,
+  scenes,
+  onApplyScene,
+  onClearScreenShare,
+  onUnpin,
+  onClearPrimary,
+}: {
+  sceneName: string
+  onSceneNameChange: (value: string) => void
+  onSaveScene: () => void
+  sceneBusy: boolean
+  stageState: StageState | null
+  scenes: Array<{ id: string; name: string }>
+  onApplyScene: (sceneId: string) => void
+  onClearScreenShare: () => void
+  onUnpin: () => void
+  onClearPrimary: () => void
+}): JSX.Element {
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+        Scenes / Status
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <input
+          value={sceneName}
+          onChange={(e) => onSceneNameChange(e.target.value)}
+          placeholder="Scene name"
+          className="min-w-[220px] rounded-xl bg-white/10 px-3 py-2 text-sm outline-none ring-0 placeholder:text-white/30"
+        />
+
+        <button
+          onClick={onSaveScene}
+          disabled={sceneBusy}
+          className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
+        >
+          Save Scene
+        </button>
+
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
+          Screen: {stageState?.screen_share_participant_id || "none"}
+        </span>
+
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
+          Pinned: {stageState?.pinned_participant_id || "none"}
+        </span>
+
+        <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
+          Primary: {stageState?.primary_participant_id || "none"}
+        </span>
+
+        {stageState?.screen_share_participant_id ? (
+          <button
+            onClick={onClearScreenShare}
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+          >
+            Clear screen
+          </button>
+        ) : null}
+
+        {stageState?.pinned_participant_id ? (
+          <button
+            onClick={onUnpin}
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+          >
+            Clear pin
+          </button>
+        ) : null}
+
+        {stageState?.primary_participant_id ? (
+          <button
+            onClick={onClearPrimary}
+            className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
+          >
+            Clear primary
+          </button>
+        ) : null}
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        {scenes.map((scene) => (
+          <button
+            key={scene.id}
+            onClick={() => onApplyScene(scene.id)}
+            className="rounded-lg border border-white/15 px-3 py-1.5 text-xs transition hover:bg-white/5"
+          >
+            {scene.name}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+
+
+function CenterSwitcherColumn({
+  triggerAudienceCue,
+  onHideAudienceCue,
+  previewProgramDifferent,
+  onPreviewCanvasMouseMove,
+  stopDraggingBlock,
+  onClearSelectedBlock,
+  stageState,
+  onStageParticipants,
+  previewBlocks,
+  selectedBlockId,
+  setSelectedBlockId,
+  startDraggingBlock,
+  startResizingBlock,
+  programState,
+  programBlocks,
+  showAudienceCue,
+  audienceCueRegion,
+  audienceCueMoonMode,
+  audienceCueQuestionLabel,
+  isTransitioning,
+  transitionFromState,
+  transitionFromBlocks,
+  transitionFadingOut,
+  sceneName,
+  onSceneNameChange,
+  onSaveScene,
+  sceneBusy,
+  scenes,
+  onApplyScene,
+  onClearScreenShare,
+  onUnpin,
+  onClearPrimary,
+  setError,
+  addTestTextBlock,
+  addTestVideoBlock,
+  addTestPdfBlock,
+  addTestImageBlock,
+  onUploadPdf,
+  onUploadVideo,
+  onUploadImage,
+  duplicateSelectedBlock,
+  bringSelectedBlockToFront,
+  deleteSelectedBlock,
+}: {
+  triggerAudienceCue: (options?: {
+    region?: string
+    moonMode?: boolean
+    questionLabel?: string
+    durationMs?: number
+  }) => void
+  onHideAudienceCue: () => void
+  previewProgramDifferent: boolean
+  onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
+  stopDraggingBlock: () => void
+  onClearSelectedBlock: () => void
+  stageState: StageState | null
+  onStageParticipants: ProducerParticipant[]
+  previewBlocks: PreviewBlock[]
+  selectedBlockId: string | null
+  setSelectedBlockId: (value: string | null) => void
+  startDraggingBlock: (e: React.MouseEvent<HTMLDivElement>, blockId: string) => void
+  startResizingBlock: (e: React.MouseEvent<HTMLDivElement>, blockId: string) => void
+  programState: StageState | null
+  programBlocks: PreviewBlock[]
+  showAudienceCue: boolean
+  audienceCueRegion: string
+  audienceCueMoonMode: boolean
+  audienceCueQuestionLabel: string
+  isTransitioning: boolean
+  transitionFromState: StageState | null
+  transitionFromBlocks: PreviewBlock[]
+  transitionFadingOut: boolean
+  sceneName: string
+  onSceneNameChange: (value: string) => void
+  onSaveScene: () => void
+  sceneBusy: boolean
+  scenes: Array<{ id: string; name: string }>
+  onApplyScene: (sceneId: string) => void
+  onClearScreenShare: () => void
+  onUnpin: () => void
+  onClearPrimary: () => void
+  setError: (value: string | null) => void
+  addTestTextBlock: () => void
+  addTestVideoBlock: () => void
+  addTestPdfBlock: () => void
+  addTestImageBlock: () => void
+  onUploadPdf: () => void
+  onUploadVideo: () => void
+  onUploadImage: () => void
+  duplicateSelectedBlock: () => void
+  bringSelectedBlockToFront: () => void
+  deleteSelectedBlock: () => void
+}): JSX.Element {
+  return (
+    <div className="space-y-5 xl:col-start-2">
+      <AudienceOriginTestPanel
+        onTriggerCue={triggerAudienceCue}
+        onHideCue={onHideAudienceCue}
+      />
+
+      <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,18,42,0.92),rgba(5,8,22,0.98))] p-4 xl:p-4 2xl:p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="mb-4">
+          <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
+            Switcher
+          </div>
+          <div className="mt-1 text-lg font-semibold text-white">
+            Preview → Program
+          </div>
+        </div>
+
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:gap-4">
+          <div className="rounded-[24px] border border-sky-400/10 bg-[#07111f] p-2.5 xl:p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <MonitorHeader
+              title="Preview"
+              subtitle="What you are preparing"
+              tone="preview"
+              badge={
+                <span className="rounded-full border border-sky-300/20 bg-sky-400/10 px-3 py-1 text-[11px] font-semibold text-sky-200">
+                  {previewProgramDifferent ? "Changed" : "Ready"}
+                </span>
+              }
+            />
+
+            <div
+              className="relative h-[520px] overflow-hidden rounded-[18px] border border-white/10 bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[600px] 2xl:h-[680px]"
+              onMouseMove={onPreviewCanvasMouseMove}
+              onMouseUp={stopDraggingBlock}
+              onMouseLeave={stopDraggingBlock}
+              onClick={onClearSelectedBlock}
+            >
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+
+              <StageVideoPreview
+                stageState={stageState}
+                participantIds={onStageParticipants.map((p) => p.identity)}
+              />
+
+              {renderPlacedBlocks({
+                blocks: previewBlocks,
+                opts: {
+                  selectable: true,
+                  showChrome: true,
+                  selectedBlockId,
+                },
+                selectedBlockId,
+                setSelectedBlockId,
+                startDraggingBlock,
+                startResizingBlock,
+              })}
+
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[11px] font-medium text-white/65 backdrop-blur">
+                PREVIEW
+              </div>
+            </div>
+          </div>
+
+          <div className="rounded-[24px] border border-red-400/15 bg-[#170b0d] p-2.5 xl:p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <MonitorHeader
+              title="Program"
+              subtitle="What the audience is seeing"
+              tone="program"
+              badge={
+                <span className="rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-200">
+                  {programState?.is_live ? "LIVE" : "HOLDING"}
+                </span>
+              }
+            />
+
+            <div className="relative h-[520px] overflow-hidden rounded-[18px] border border-red-400/10 bg-black shadow-[0_0_0_1px_rgba(239,68,68,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[600px] 2xl:h-[680px]">
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+
+              <div className="relative z-10 h-full">
+                <StageVideoPreview
+                  stageState={programState}
+                  participantIds={programState?.stage_participant_ids || []}
+                />
+
+                {renderPlacedBlocks({
+                  blocks: programBlocks,
+                  opts: {
+                    selectable: false,
+                    showChrome: false,
+                  },
+                  selectedBlockId,
+                  setSelectedBlockId,
+                  startDraggingBlock,
+                  startResizingBlock,
+                })}
+
+                <div className="absolute inset-0 z-30 pointer-events-none p-4">
+                  <AudienceOriginCue
+                    visible={showAudienceCue}
+                    region={audienceCueRegion}
+                    moonMode={audienceCueMoonMode}
+                    entering
+                    questionLabel={audienceCueQuestionLabel}
+                    compact
+                    broadcast
+                  />
+                </div>
+              </div>
+
+              {isTransitioning && transitionFromState ? (
+                <div
+                  className={`pointer-events-none absolute inset-0 z-20 transition-opacity duration-500 ${
+                    transitionFadingOut ? "opacity-0" : "opacity-100"
+                  }`}
+                >
+                  <StageVideoPreview
+                    stageState={transitionFromState}
+                    participantIds={transitionFromState.stage_participant_ids || []}
+                  />
+
+                  {renderPlacedBlocks({
+                    blocks: transitionFromBlocks,
+                    opts: {
+                      selectable: false,
+                      showChrome: false,
+                    },
+                    selectedBlockId,
+                    setSelectedBlockId,
+                    startDraggingBlock,
+                    startResizingBlock,
+                  })}
+                </div>
+              ) : null}
+
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-400/20 bg-black/55 px-3 py-1 text-[11px] font-semibold text-red-200 backdrop-blur">
+                <span
+                  className={`h-2 w-2 rounded-full ${
+                    programState?.is_live ? "animate-pulse bg-red-400" : "bg-white/30"
+                  }`}
+                />
+                PROGRAM
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-5">
+        <MediaBlocksPanel
+          previewBlocksCount={previewBlocks.length}
+          onAddText={addTestTextBlock}
+          onAddVideo={addTestVideoBlock}
+          onAddPdf={addTestPdfBlock}
+          onAddImage={addTestImageBlock}
+          onUploadPdf={onUploadPdf}
+          onUploadVideo={onUploadVideo}
+          onUploadImage={onUploadImage}
+          onDuplicate={duplicateSelectedBlock}
+          onBringToFront={bringSelectedBlockToFront}
+          onDelete={deleteSelectedBlock}
+          hasSelectedBlock={Boolean(selectedBlockId)}
+        />
+
+        <ScenesStatusPanel
+          sceneName={sceneName}
+          onSceneNameChange={onSceneNameChange}
+          onSaveScene={onSaveScene}
+          sceneBusy={sceneBusy}
+          stageState={stageState}
+          scenes={scenes}
+          onApplyScene={onApplyScene}
+          onClearScreenShare={onClearScreenShare}
+          onUnpin={onUnpin}
+          onClearPrimary={onClearPrimary}
+        />
+      </div>
+    </div>
+  )
+}
 export default function ProducerRoomClient({
   eventId,
   sessionId,
@@ -58,7 +999,6 @@ export default function ProducerRoomClient({
   eventId: string
   sessionId: string
 }) {
-  console.log("NEW PRODUCER CLIENT LOADED")
   const [token, setToken] = useState<string | null>(null)
   const [serverUrl, setServerUrl] = useState<string | null>(null)
   const [participants, setParticipants] = useState<ProducerParticipant[]>([])
@@ -87,9 +1027,7 @@ export default function ProducerRoomClient({
   const videoInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
 
-  const producerPreviewVideoRef = useRef<HTMLVideoElement | null>(null)
   const localPreviewStreamRef = useRef<MediaStream | null>(null)
-  const [localPreviewReady, setLocalPreviewReady] = useState(false)
 
   const [isTransitioning, setIsTransitioning] = useState(false)
   const [transitionFromState, setTransitionFromState] = useState<StageState | null>(null)
@@ -135,36 +1073,8 @@ const stopLocalPreviewStream = useCallback(() => {
 
   localPreviewStreamRef.current.getTracks().forEach((track) => track.stop())
   localPreviewStreamRef.current = null
-
-  if (producerPreviewVideoRef.current) {
-    producerPreviewVideoRef.current.srcObject = null
-  }
-
-  setLocalPreviewReady(false)
 }, [])
 
-  const startLocalPreviewStream = useCallback(async () => {
-    try {
-      stopLocalPreviewStream()
-
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: selectedVideoDeviceId ? { deviceId: { exact: selectedVideoDeviceId } } : true,
-        audio: selectedAudioDeviceId ? { deviceId: { exact: selectedAudioDeviceId } } : true,
-      })
-
-      localPreviewStreamRef.current = stream
-
-      if (producerPreviewVideoRef.current) {
-        producerPreviewVideoRef.current.srcObject = stream
-        await producerPreviewVideoRef.current.play().catch(() => {})
-      }
-
-      setLocalPreviewReady(true)
-    } catch (err) {
-      console.error("Failed to start local preview stream", err)
-      setLocalPreviewReady(false)
-    }
-  }, [selectedVideoDeviceId, selectedAudioDeviceId, stopLocalPreviewStream])
 
   async function loadToken() {
     const data = await api.loadToken()
@@ -665,237 +1575,8 @@ async function clearScreenShare() {
       audienceCueTimeoutRef.current = null
     }, options?.durationMs ?? 5000)
   }
-  function renderBlockContent(block: PreviewBlock) {
-    if (block.type === "text") {
-      return <div className="p-2 text-sm">{block.content}</div>
-    }
 
-    if (block.type === "video" && block.src) {
-      return <video src={block.src} controls className="h-full w-full object-cover" />
-    }
 
-    if (block.type === "image" && block.src) {
-      return (
-        <img
-          src={block.src}
-          className="h-full w-full object-contain"
-          alt={block.label || "Image"}
-        />
-      )
-    }
-
-    if (block.type === "pdf" && block.src) {
-      return <iframe src={block.src} className="h-full w-full bg-white" title={block.label || "PDF"} />
-    }
-
-    return null
-  }
-
-    function LiveBadge({ live }: { live: boolean }): JSX.Element {
-    return (
-      <div
-        className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
-          live
-            ? "border-red-400/25 bg-red-500/15 text-red-200 shadow-[0_0_24px_rgba(239,68,68,0.18)]"
-            : "border-white/10 bg-white/5 text-white/55"
-        }`}
-      >
-        <span
-          className={`h-2.5 w-2.5 rounded-full ${
-            live ? "animate-pulse bg-red-400" : "bg-white/30"
-          }`}
-        />
-        {live ? "Live" : "Off Air"}
-      </div>
-    )
-  }
-
-  function renderPlacedBlocks(
-    blocks: PreviewBlock[],
-    opts?: {
-      selectable?: boolean
-      showChrome?: boolean
-      selectedBlockId?: string | null
-    }
-  ) {
-    return blocks
-      .filter((block) => !block.hidden)
-      .map((block) => (
-        <div
-          key={block.id}
-          onClick={
-            opts?.selectable
-              ? (e) => {
-                  e.stopPropagation()
-                  setSelectedBlockId(block.id)
-                }
-              : undefined
-          }
-          className={`absolute overflow-hidden rounded-lg ${
-            opts?.selectable
-              ? selectedBlockId === block.id
-                ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
-                : "border border-white/20 bg-white/10"
-              : "border border-white/10 bg-white/10"
-          }`}
-          style={{
-            left: block.x,
-            top: block.y,
-            width: block.width,
-            height: block.height,
-            zIndex: block.zIndex,
-            opacity: block.opacity ?? 1,
-          }}
-        >
-          {opts?.showChrome ? (
-            <div
-              onMouseDown={
-                opts?.selectable
-                  ? (e) => {
-                      e.stopPropagation()
-                      setSelectedBlockId(block.id)
-                      startDraggingBlock(e, block.id)
-                    }
-                  : undefined
-              }
-              className={`flex items-center justify-between rounded-t-lg border-b border-white/10 bg-black/40 px-2 py-1 text-[11px] font-semibold text-white/70 ${
-                opts?.selectable ? "cursor-move" : "pointer-events-none"
-              }`}
-            >
-              <span>{block.label || block.type}</span>
-              <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
-            </div>
-          ) : null}
-
-          <div
-            className={
-              opts?.showChrome
-                ? "h-[calc(100%-28px)] overflow-hidden rounded-b-lg"
-                : "h-full w-full overflow-hidden"
-            }
-          >
-            {renderBlockContent(block)}
-          </div>
-
-          {opts?.selectable && opts?.showChrome ? (
-            <div
-              onMouseDown={(e) => startResizingBlock(e, block.id)}
-              className="absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-white/70"
-              title="Resize block"
-            />
-          ) : null}
-        </div>
-      ))
-  }
-
-    function MonitorHeader({
-    title,
-    subtitle,
-    badge,
-    tone = "neutral",
-  }: {
-    title: string
-    subtitle: string
-    badge?: ReactNode
-    tone?: "neutral" | "preview" | "program"
-    }): JSX.Element {
-    const toneClass =
-      tone === "program"
-        ? "text-red-200/80"
-        : tone === "preview"
-          ? "text-sky-200/80"
-          : "text-white/40"
-
-    return (
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className={`text-xs uppercase tracking-[0.2em] ${toneClass}`}>{title}</div>
-          <div className="text-sm text-white/55">{subtitle}</div>
-        </div>
-        {badge ? <div className="shrink-0">{badge}</div> : null}
-      </div>
-    )
-  }
-
-    function DeviceSelectorPanel(): JSX.Element {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-              Producer Devices
-            </div>
-            <div className="text-sm text-white/55">
-              Choose the camera and microphone for this workstation.
-            </div>
-          </div>
-
-          <span
-            className={`rounded-full border px-3 py-1 text-xs ${
-              deviceAccessReady
-                ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-200"
-                : "border-amber-300/30 bg-amber-400/10 text-amber-200"
-            }`}
-          >
-            {deviceAccessReady ? "Ready" : "Permission needed"}
-          </span>
-        </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-              Camera
-            </label>
-            <select
-              value={selectedVideoDeviceId}
-              onChange={(e) => setSelectedVideoDeviceId(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-            >
-              {videoDevices.length === 0 ? (
-                <option value="">No cameras found</option>
-              ) : (
-                videoDevices.map((device, index) => (
-                  <option key={device.deviceId || `video-${index}`} value={device.deviceId}>
-                    {device.label || `Camera ${index + 1}`}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-
-          <div className="space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-              Microphone
-            </label>
-            <select
-              value={selectedAudioDeviceId}
-              onChange={(e) => setSelectedAudioDeviceId(e.target.value)}
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-            >
-              {audioDevices.length === 0 ? (
-                <option value="">No microphones found</option>
-              ) : (
-                audioDevices.map((device, index) => (
-                  <option key={device.deviceId || `audio-${index}`} value={device.deviceId}>
-                    {device.label || `Microphone ${index + 1}`}
-                  </option>
-                ))
-              )}
-            </select>
-          </div>
-        </div>
-
-        <div className="mt-3 flex flex-wrap gap-2 text-xs text-white/45">
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            Cameras: {videoDevices.length}
-          </span>
-          <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1">
-            Mics: {audioDevices.length}
-          </span>
-        </div>
-      </div>
-    )
-  }
 
 
 
@@ -904,72 +1585,7 @@ async function clearScreenShare() {
     return track?.sid ?? null
   }
 
-  function ParticipantStatusPill({
-    isOnStage,
-    isPrimary,
-    isPinned,
-  }: {
-    isOnStage: boolean
-    isPrimary: boolean
-    isPinned: boolean
-  }): JSX.Element {
-    if (isPrimary) {
-      return (
-        <span className="rounded-full border border-sky-300/30 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold text-sky-200">
-          Primary
-        </span>
-      )
-    }
 
-    if (isPinned) {
-      return (
-        <span className="rounded-full border border-amber-300/30 bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200">
-          Pinned
-        </span>
-      )
-    }
-
-    if (isOnStage) {
-      return (
-        <span className="rounded-full border border-emerald-300/30 bg-emerald-400/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
-          On Stage
-        </span>
-      )
-    }
-
-    return (
-      <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/60">
-        Backstage
-      </span>
-    )
-  }
-
-  function SourceChip({
-    label,
-    active,
-    tone = "neutral",
-  }: {
-    label: string
-    active: boolean
-    tone?: "neutral" | "screen"
-  }): JSX.Element {
-    const activeClass =
-      tone === "screen"
-        ? "border-violet-300/30 bg-violet-400/15 text-violet-200"
-        : "border-emerald-300/30 bg-emerald-400/15 text-emerald-200"
-
-    const inactiveClass = "border-white/10 bg-white/5 text-white/45"
-
-    return (
-      <span
-        className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
-          active ? activeClass : inactiveClass
-        }`}
-      >
-        {label} {active ? "On" : "Off"}
-      </span>
-    )
-  }
 
   useEffect(() => {
     let mounted = true
@@ -1049,18 +1665,8 @@ useEffect(() => {
       }
 
       localPreviewStreamRef.current = stream
-
-      if (producerPreviewVideoRef.current) {
-        producerPreviewVideoRef.current.srcObject = stream
-        producerPreviewVideoRef.current.muted = true
-        producerPreviewVideoRef.current.playsInline = true
-        await producerPreviewVideoRef.current.play().catch(() => {})
-      }
-
-      setLocalPreviewReady(true)
     } catch (err) {
       console.error("Preview start failed", err)
-      setLocalPreviewReady(false)
     }
   }
 
@@ -1081,51 +1687,66 @@ useEffect(() => {
 
 const stageIds = useMemo(() => new Set(stageState?.stage_participant_ids || []), [stageState])
 
-const onStageParticipants = participants.filter((p) => stageIds.has(p.identity))
+const onStageParticipants = useMemo(() => participants.filter((p) => stageIds.has(p.identity)), [participants, stageIds])
 
 
-const firstOnStageScreenShare = onStageParticipants.find((p) => {
-  if (!p.screenShareEnabled) return false
+const firstOnStageScreenShare = useMemo(
+  () =>
+    onStageParticipants.find((p) => {
+      if (!p.screenShareEnabled) return false
 
-  const screenTrack = p.tracks.find(
-    (t) => t.source === 3 || t.source === "SCREEN_SHARE"
-  )
+      const screenTrack = p.tracks.find(
+        (t) => t.source === 3 || t.source === "SCREEN_SHARE"
+      )
 
-  return Boolean(screenTrack?.sid)
-})
+      return Boolean(screenTrack?.sid)
+    }),
+  [onStageParticipants]
+)
 
-const selectedScreenStillExists = onStageParticipants.some((p) => {
-  if (p.identity !== stageState?.screen_share_participant_id) return false
+const selectedScreenStillExists = useMemo(
+  () =>
+    onStageParticipants.some((p) => {
+      if (p.identity !== stageState?.screen_share_participant_id) return false
 
-  return p.tracks.some(
-    (t) =>
-      (t.source === 3 || t.source === "SCREEN_SHARE") &&
-      t.sid === stageState?.screen_share_track_id
-  )
-})
+      return p.tracks.some(
+        (t) =>
+          (t.source === 3 || t.source === "SCREEN_SHARE") &&
+          t.sid === stageState?.screen_share_track_id
+      )
+    }),
+  [
+    onStageParticipants,
+    stageState?.screen_share_participant_id,
+    stageState?.screen_share_track_id,
+  ]
+)
 
 
-const previewProgramDifferent =
-  JSON.stringify({
-    layout: stageState?.layout ?? null,
-    stage_participant_ids: stageState?.stage_participant_ids ?? [],
-    primary_participant_id: stageState?.primary_participant_id ?? null,
-    pinned_participant_id: stageState?.pinned_participant_id ?? null,
-    screen_share_participant_id: stageState?.screen_share_participant_id ?? null,
-    screen_share_track_id: stageState?.screen_share_track_id ?? null,
-    is_live: stageState?.is_live ?? false,
-    blocks: previewBlocks,
-  }) !==
-  JSON.stringify({
-    layout: programState?.layout ?? null,
-    stage_participant_ids: programState?.stage_participant_ids ?? [],
-    primary_participant_id: programState?.primary_participant_id ?? null,
-    pinned_participant_id: programState?.pinned_participant_id ?? null,
-    screen_share_participant_id: programState?.screen_share_participant_id ?? null,
-    screen_share_track_id: programState?.screen_share_track_id ?? null,
-    is_live: programState?.is_live ?? false,
-    blocks: programBlocks,
-  })
+const previewProgramDifferent = useMemo(
+  () =>
+    JSON.stringify({
+      layout: stageState?.layout ?? null,
+      stage_participant_ids: stageState?.stage_participant_ids ?? [],
+      primary_participant_id: stageState?.primary_participant_id ?? null,
+      pinned_participant_id: stageState?.pinned_participant_id ?? null,
+      screen_share_participant_id: stageState?.screen_share_participant_id ?? null,
+      screen_share_track_id: stageState?.screen_share_track_id ?? null,
+      is_live: stageState?.is_live ?? false,
+      blocks: previewBlocks,
+    }) !==
+    JSON.stringify({
+      layout: programState?.layout ?? null,
+      stage_participant_ids: programState?.stage_participant_ids ?? [],
+      primary_participant_id: programState?.primary_participant_id ?? null,
+      pinned_participant_id: programState?.pinned_participant_id ?? null,
+      screen_share_participant_id: programState?.screen_share_participant_id ?? null,
+      screen_share_track_id: programState?.screen_share_track_id ?? null,
+      is_live: programState?.is_live ?? false,
+      blocks: programBlocks,
+    }),
+  [stageState, programState, previewBlocks, programBlocks]
+)
 
   useEffect(() => {
     if (!autoDirectorEnabled) return
@@ -1196,725 +1817,251 @@ const previewProgramDifferent =
         onChange={handleImageUpload}
       />
 
-      <div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(8,15,36,0.94),rgba(5,8,22,0.9))] px-6 py-4">
-        <div className="mx-auto flex max-w-[1700px] flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="text-[10px] uppercase tracking-[0.32em] text-white/35">
-              Producer Room · {producerScopeLabel}
-            </div>
-            <h1 className="mt-1 text-3xl font-semibold leading-none text-white">
-              {stageState?.headline || "Live Production"}
-            </h1>
-            <p className="mt-2 text-sm text-white/45">
-              Session control for Preview, Program, backstage, and overlays.
-            </p>
-          </div>
+<div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(8,15,36,0.97),rgba(5,8,22,0.94))] px-4 py-4 md:px-6 xl:px-8 2xl:px-10 shadow-[0_10px_40px_rgba(0,0,0,0.28)]">
+  <div className="flex w-full flex-col gap-4">
+    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/35">
+          <span>Mission Control</span>
+          <span className="text-white/20">•</span>
+          <span>{producerScopeLabel}</span>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
-              Layout: {stageState?.layout || "solo"}
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
-              On stage: {onStageParticipants.length}
-            </span>
-            <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
-              Blocks: {previewBlocks.length}
-            </span>
+        <div className="mt-2 flex flex-wrap items-end gap-3">
+          <h1 className="text-3xl font-semibold leading-none text-white">
+            {stageState?.headline || "Live Production"}
+          </h1>
+
+          <span className="rounded-full border border-sky-400/15 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-200">
+            {stageState?.layout === "screen_speaker"
+              ? "Speaker + Screen"
+              : stageState?.layout === "grid"
+                ? "Grid"
+                : "Solo"}
+          </span>
+        </div>
+
+        <p className="mt-2 text-sm text-white/45">
+          Premium session control for Preview, Program, backstage, and overlays.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[540px]">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Status</div>
+          <div className="mt-2">
             <LiveBadge live={Boolean(stageState?.is_live)} />
           </div>
         </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">On Stage</div>
+          <div className="mt-2 text-2xl font-semibold text-white">{onStageParticipants.length}</div>
+          <div className="text-xs text-white/40">active talent</div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Overlays</div>
+          <div className="mt-2 text-2xl font-semibold text-white">{previewBlocks.length}</div>
+          <div className="text-xs text-white/40">preview blocks</div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
+          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Auto Director</div>
+          <div
+            className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
+              autoDirectorEnabled
+                ? "bg-emerald-400/15 text-emerald-200"
+                : "bg-white/10 text-white/55"
+            }`}
+          >
+            {autoDirectorEnabled ? "Enabled" : "Manual"}
+          </div>
+        </div>
       </div>
+    </div>
 
-      <div className="flex-1 py-6 backdrop-blur-[2px]">
-        <div className="grid w-full gap-5 px-62xl:gap-5 xl:grid-cols-[minmax(0,2.35fr)_320px]">
-          <div className="space-y-6">
-            <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-              <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                Audience Origin Test
-              </div>
+    <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
+      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
+        Preview: {previewProgramDifferent ? "Changed" : "In Sync"}
+      </span>
 
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() =>
-                    triggerAudienceCue({
-                      region: "Europe",
-                      moonMode: false,
-                      questionLabel: "How are outcomes differing across regions?",
-                    })
-                  }
-                  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                >
-                  Trigger Europe Cue
-                </button>
+      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
+        Program: {programState?.is_live ? "Live Output Ready" : "Holding"}
+      </span>
 
-                <button
-                  onClick={() =>
-                    triggerAudienceCue({
-                      region: "North America",
-                      moonMode: false,
-                      questionLabel: "What trends are you seeing in North America?",
-                    })
-                  }
-                  className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                >
-                  Trigger North America Cue
-                </button>
+      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
+        Scene Count: {scenes.length}
+      </span>
 
-                <button
-                  onClick={() =>
-                    triggerAudienceCue({
-                      region: "Mare Tranquillitatis",
-                      moonMode: true,
-                      questionLabel: "Moon base check-in: how is the signal holding?",
-                    })
-                  }
-                  className="rounded-xl border border-violet-400/20 bg-violet-500/10 px-4 py-2 text-sm font-semibold text-violet-100 transition hover:bg-violet-500/15"
-                >
-                  Trigger Moon Cue
-                </button>
-
-                <button
-                  onClick={() => setShowAudienceCue(false)}
-                  className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-100 transition hover:bg-red-500/15"
-                >
-                  Hide Cue
-                </button>
-              </div>
-            </div>
-            <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(10,18,42,0.92),rgba(5,8,22,0.98))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
-                    Switcher
-                  </div>
-                  <div className="mt-1 text-lg font-semibold text-white">
-                    Preview → Program
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() =>
-                      void setLayout("solo").catch((e: unknown) =>
-                        setError(e instanceof Error ? e.message : "Unexpected error")
-                      )
-                    }
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                      stageState?.layout === "solo"
-                        ? "bg-white text-black"
-                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    Solo
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      void setLayout("grid").catch((e: unknown) =>
-                        setError(e instanceof Error ? e.message : "Unexpected error")
-                      )
-                    }
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                      stageState?.layout === "grid"
-                        ? "bg-white text-black"
-                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    Grid
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      void setLayout("screen_speaker").catch((e: unknown) =>
-                        setError(e instanceof Error ? e.message : "Unexpected error")
-                      )
-                    }
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                      stageState?.layout === "screen_speaker"
-                        ? "bg-white text-black"
-                        : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
-                    }`}
-                  >
-                    Speaker + Screen
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      void setAutoDirector(!autoDirectorEnabled).catch((e: unknown) =>
-                        setError(e instanceof Error ? e.message : "Unexpected error")
-                      )
-                    }
-                    className={`rounded-xl px-4 py-2 text-sm font-semibold transition ${
-                      autoDirectorEnabled
-                        ? "bg-emerald-400 text-slate-950"
-                        : "border border-white/15 bg-white/5 text-white"
-                    }`}
-                  >
-                    {autoDirectorEnabled ? "Auto Director On" : "Auto Director Off"}
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-                <div className="rounded-[24px] border border-sky-400/10 bg-[#07111f] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                  <MonitorHeader
-                    title="Preview"
-                    subtitle="What you are preparing"
-                    tone="preview"
-                    badge={
-                      <span className="rounded-full border border-sky-300/20 bg-sky-400/10 px-3 py-1 text-[11px] font-semibold text-sky-200">
-                        {previewProgramDifferent ? "Changed" : "Ready"}
-                      </span>
-                    }
-                  />
-
-                  <div
-  className="relative h-[520px] overflow-hidden rounded-[20px] border border-white/10 bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[560px] 2xl:h-[620px]"
-                    onMouseMove={onPreviewCanvasMouseMove}
-                    onMouseUp={stopDraggingBlock}
-                    onMouseLeave={stopDraggingBlock}
-                    onClick={() => setSelectedBlockId(null)}
-                  >
-                    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
-
-                    <StageVideoPreview
-                      stageState={stageState}
-                      participantIds={onStageParticipants.map((p) => p.identity)}
-                    />
-
-                    {renderPlacedBlocks(previewBlocks, {
-                      selectable: true,
-                      showChrome: true,
-                      selectedBlockId,
-                    })}
-
-                    <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[11px] font-medium text-white/65 backdrop-blur">
-                      PREVIEW
-                    </div>
-                  </div>
-                </div>
-
-                <div className="rounded-[24px] border border-red-400/15 bg-[#170b0d] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                  <MonitorHeader
-                    title="Program"
-                    subtitle="What the audience is seeing"
-                    tone="program"
-                    badge={
-                      <span className="rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-200">
-                        {programState?.is_live ? "LIVE" : "HOLDING"}
-                      </span>
-                    }
-                  />
-
-                  <div className="relative h-[520px] overflow-hidden rounded-[20px] border border-red-400/10 bg-black shadow-[0_0_0_1px_rgba(239,68,68,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[560px] 2xl:h-[620px]">
-                    <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
-
-<div className="relative z-10 h-full">
-  <StageVideoPreview
-    stageState={programState}
-    participantIds={programState?.stage_participant_ids || []}
-  />
-
-  {renderPlacedBlocks(programBlocks, {
-    selectable: false,
-    showChrome: false,
-  })}
-
-  <div className="absolute inset-0 z-30 pointer-events-none p-4">
-    <AudienceOriginCue
-      visible={showAudienceCue}
-      region={audienceCueRegion}
-      moonMode={audienceCueMoonMode}
-      entering
-      questionLabel={audienceCueQuestionLabel}
-      compact
-      broadcast
-    />
+      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
+        Devices: {deviceAccessReady ? "Connected" : "Pending"}
+      </span>
+    </div>
   </div>
 </div>
 
-                    {isTransitioning && transitionFromState ? (
-                      <div
-                        className={`pointer-events-none absolute inset-0 z-20 transition-opacity duration-500 ${
-                          transitionFadingOut ? "opacity-0" : "opacity-100"
-                        }`}
-                      >
-                        <StageVideoPreview
-                          stageState={transitionFromState}
-                          participantIds={transitionFromState.stage_participant_ids || []}
-                        />
+            <div className="flex-1 py-4 xl:py-5 backdrop-blur-[2px]">
+                                        <div className="grid w-full gap-5 xl:gap-4 2xl:gap-5 px-4 md:px-6 xl:px-8 2xl:px-10 xl:grid-cols-[230px_minmax(0,1fr)_290px] 2xl:grid-cols-[240px_minmax(0,1fr)_310px]">
+    <div className="space-y-5 xl:col-start-1">
+      <ControlStackPanel
+        takeBusy={takeBusy}
+        previewProgramDifferent={previewProgramDifferent}
+        onTake={() => {
+          void (async () => {
+            try {
+              setTakeBusy(true)
+              setError(null)
+              await takeProgram()
+            } catch (e: any) {
+              setError(e.message)
+            } finally {
+              setTakeBusy(false)
+            }
+          })()
+        }}
+        onGoLive={() =>
+          void goLive().catch((e: unknown) =>
+            setError(e instanceof Error ? e.message : "Unexpected error")
+          )
+        }
+        onGoOffAir={() =>
+          void goOffAir().catch((e: unknown) =>
+            setError(e instanceof Error ? e.message : "Unexpected error")
+          )
+        }
+        layout={stageState?.layout}
+        onSetLayout={(layout) =>
+          void setLayout(layout).catch((e: unknown) =>
+            setError(e instanceof Error ? e.message : "Unexpected error")
+          )
+        }
+        autoDirectorEnabled={autoDirectorEnabled}
+        onToggleAutoDirector={() =>
+          void setAutoDirector(!autoDirectorEnabled).catch((e: unknown) =>
+            setError(e instanceof Error ? e.message : "Unexpected error")
+          )
+        }
+      />
 
-                        {renderPlacedBlocks(transitionFromBlocks, {
-                          selectable: false,
-                          showChrome: false,
-                        })}
-                      </div>
-                    ) : null}
-
-                    <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-400/20 bg-black/55 px-3 py-1 text-[11px] font-semibold text-red-200 backdrop-blur">
-                      <span
-                        className={`h-2 w-2 rounded-full ${
-                          programState?.is_live ? "animate-pulse bg-red-400" : "bg-white/30"
-                        }`}
-                      />
-                      PROGRAM
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-white/10 pt-5">
-                <button
-                  onClick={async () => {
-                    try {
-                      setTakeBusy(true)
-                      setError(null)
-                      await takeProgram()
-                    } catch (e: any) {
-                      setError(e.message)
-                    } finally {
-                      setTakeBusy(false)
-                    }
-                  }}
-                  disabled={takeBusy}
-                  className={`rounded-xl px-5 py-2.5 text-base font-bold text-slate-950 transition disabled:opacity-60 ${
-                    previewProgramDifferent
-                      ? "bg-amber-400 hover:bg-amber-300"
-                      : "bg-sky-400 hover:bg-sky-300"
-                  }`}
-                >
-                  {takeBusy ? "Taking..." : "TAKE"}
-                </button>
-
-                <button
-                  onClick={() =>
-                    void goLive().catch((e: unknown) =>
-                      setError(e instanceof Error ? e.message : "Unexpected error")
-                    )
-                  }
-                  className="rounded-xl bg-red-500 px-5 py-2.5 text-base font-semibold text-white transition hover:bg-red-400"
-                >
-                  Go Live
-                </button>
-
-                <button
-                  onClick={() =>
-                    void goOffAir().catch((e: unknown) =>
-                      setError(e instanceof Error ? e.message : "Unexpected error")
-                    )
-                  }
-                  className="rounded-xl border border-white/15 bg-white/5 px-5 py-2.5 text-base font-semibold text-white transition hover:bg-white/10"
-                >
-                  Off Air
-                </button>
-              </div>
-            </div>
-
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_380px]">
-              <div className="space-y-5">
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                    Add Blocks / Upload Media
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <button
-                      onClick={addTestTextBlock}
-                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                    >
-                      Add Text
-                    </button>
-
-                    <button
-                      onClick={addTestVideoBlock}
-                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                    >
-                      Add Video
-                    </button>
-
-                    <button
-                      onClick={addTestPdfBlock}
-                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                    >
-                      Add PDF
-                    </button>
-
-                    <button
-                      onClick={addTestImageBlock}
-                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/10"
-                    >
-                      Add Image
-                    </button>
-
-                    <button
-                      onClick={() => pdfInputRef.current?.click()}
-                      className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
-                    >
-                      Upload PDF
-                    </button>
-
-                    <button
-                      onClick={() => videoInputRef.current?.click()}
-                      className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
-                    >
-                      Upload Video
-                    </button>
-
-                    <button
-                      onClick={() => imageInputRef.current?.click()}
-                      className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
-                    >
-                      Upload Image
-                    </button>
-
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      Preview blocks: {previewBlocks.length}
-                    </span>
-
-                    <button
-                      onClick={duplicateSelectedBlock}
-                      disabled={!selectedBlockId}
-                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/10"
-                    >
-                      Duplicate
-                    </button>
-
-                    <button
-                      onClick={bringSelectedBlockToFront}
-                      disabled={!selectedBlockId}
-                      className="rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-white/10"
-                    >
-                      Bring To Front
-                    </button>
-
-                    <button
-                      onClick={deleteSelectedBlock}
-                      disabled={!selectedBlockId}
-                      className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-2 text-sm font-semibold text-red-200 transition disabled:cursor-not-allowed disabled:opacity-40 hover:bg-red-500/15"
-                    >
-                      Delete
-                    </button>
-                  </div>
-                </div>
-
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                    Scenes / Status
-                  </div>
-
-                  <div className="flex flex-wrap items-center gap-3">
-                    <input
-                      value={sceneName}
-                      onChange={(e) => setSceneName(e.target.value)}
-                      placeholder="Scene name"
-                      className="min-w-[220px] rounded-xl bg-white/10 px-3 py-2 text-sm outline-none ring-0 placeholder:text-white/30"
-                    />
-
-                    <button
-                      onClick={saveScene}
-                      disabled={sceneBusy}
-                      className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
-                    >
-                      Save Scene
-                    </button>
-
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      Screen: {stageState?.screen_share_participant_id || "none"}
-                    </span>
-
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      Pinned: {stageState?.pinned_participant_id || "none"}
-                    </span>
-
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      Primary: {stageState?.primary_participant_id || "none"}
-                    </span>
-
-                    {stageState?.screen_share_participant_id ? (
-                      <button
-                        onClick={() =>
-                          void clearScreenShare().catch((e: unknown) =>
-                            setError(e instanceof Error ? e.message : "Unexpected error")
-                          )
-                        }
-                        className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-                      >
-                        Clear screen
-                      </button>
-                    ) : null}
-
-                    {stageState?.pinned_participant_id ? (
-                      <button
-                        onClick={() =>
-                          void unpinParticipant().catch((e: unknown) =>
-                            setError(e instanceof Error ? e.message : "Unexpected error")
-                          )
-                        }
-                        className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-                      >
-                        Clear pin
-                      </button>
-                    ) : null}
-
-                    {stageState?.primary_participant_id ? (
-                      <button
-                        onClick={() =>
-                          void clearPrimaryParticipant().catch((e: unknown) =>
-                            setError(e instanceof Error ? e.message : "Unexpected error")
-                          )
-                        }
-                        className="rounded-lg border border-white/15 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-white/10"
-                      >
-                        Clear primary
-                      </button>
-                    ) : null}
-                  </div>
-
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {scenes.map((scene) => (
-                      <button
-                        key={scene.id}
-                        onClick={() => void applyScene(scene.id)}
-                        className="rounded-lg border border-white/15 px-3 py-1.5 text-xs transition hover:bg-white/5"
-                      >
-                        {scene.name}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              </div>
-
-              {selectedBlock ? (
-                <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-4">
-                  <div className="mb-3 flex items-center justify-between">
-                    <div>
-                      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                        Selected Block
-                      </div>
-                      <div className="text-sm text-white/70">
-                        {selectedBlock.label || selectedBlock.type}
-                      </div>
-                    </div>
-
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
-                      {selectedBlock.type}
-                    </span>
-                  </div>
-
-                  <div className="mb-4 flex items-center gap-3">
-                    <button
-                      onClick={toggleSelectedBlockHidden}
-                      className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                        selectedBlock.hidden
-                          ? "border border-amber-300/30 bg-amber-400/10 text-amber-200"
-                          : "border border-emerald-300/30 bg-emerald-400/10 text-emerald-200"
-                      }`}
-                    >
-                      {selectedBlock.hidden ? "Show Block" : "Hide Block"}
-                    </button>
-
-                    <span className="text-sm text-white/50">
-                      {selectedBlock.hidden ? "Currently hidden" : "Currently visible"}
-                    </span>
-                  </div>
-
-                  <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                        Opacity
-                      </label>
-                      <input
-                        type="number"
-                        min={0.1}
-                        max={1}
-                        step={0.05}
-                        value={selectedBlock.opacity ?? 1}
-                        onChange={(e) => updateSelectedBlockOpacity(e.target.value)}
-                        className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                      />
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          Label
-                        </label>
-                        <input
-                          value={selectedBlock.label || ""}
-                          onChange={(e) => updateSelectedBlockLabel(e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                          placeholder="Block label"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          Type
-                        </label>
-                        <div className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/70">
-                          {selectedBlock.type}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid gap-3 md:grid-cols-4">
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          X
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={selectedBlock.x}
-                          onChange={(e) => updateSelectedBlockPosition("x", e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          Y
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={selectedBlock.y}
-                          onChange={(e) => updateSelectedBlockPosition("y", e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          Width
-                        </label>
-                        <input
-                          type="number"
-                          min={80}
-                          value={selectedBlock.width}
-                          onChange={(e) => updateSelectedBlockSize("width", e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          Height
-                        </label>
-                        <input
-                          type="number"
-                          min={60}
-                          value={selectedBlock.height}
-                          onChange={(e) => updateSelectedBlockSize("height", e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                        />
-                      </div>
-                    </div>
-
-                    {selectedBlock.type === "video" ||
-                    selectedBlock.type === "pdf" ||
-                    selectedBlock.type === "image" ? (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          Source URL
-                        </label>
-                        <input
-                          value={selectedBlock.src || ""}
-                          onChange={(e) => updateSelectedBlockSrc(e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                          placeholder="https://..."
-                        />
-                      </div>
-                    ) : null}
-
-                    {selectedBlock.type === "text" ? (
-                      <div className="space-y-2">
-                        <label className="block text-xs font-semibold uppercase tracking-[0.18em] text-white/40">
-                          Text Content
-                        </label>
-                        <input
-                          value={selectedBlock.content || ""}
-                          onChange={(e) => updateSelectedTextBlockContent(e.target.value)}
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white outline-none"
-                          placeholder="Enter text..."
-                        />
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-[24px] border border-dashed border-white/10 bg-white/[0.02] p-6 text-sm text-white/35">
-                  Select a preview block to edit its properties.
-                </div>
-              )}
-            </div>
-          </div>
-
-<BackstagePanel participantCount={participants.length}>
-  {participants.length === 0 ? (
-    <div className="rounded-2xl border border-dashed border-white/15 p-6 text-sm text-white/40">
-      No participants connected yet.
+      <DeviceSelectorPanel
+        deviceAccessReady={deviceAccessReady}
+        videoDevices={videoDevices}
+        audioDevices={audioDevices}
+        selectedVideoDeviceId={selectedVideoDeviceId}
+        selectedAudioDeviceId={selectedAudioDeviceId}
+        onSelectVideoDevice={setSelectedVideoDeviceId}
+        onSelectAudioDevice={setSelectedAudioDeviceId}
+      />
     </div>
-  ) : (
-    participants.map((p) => {
-      const isOnStage = stageIds.has(p.identity)
-      const isPrimary = stageState?.primary_participant_id === p.identity
-      const isPinned = stageState?.pinned_participant_id === p.identity
-      const isUsingScreen = stageState?.screen_share_participant_id === p.identity
-      const screenTrackSid = getScreenTrackSid(p)
 
-      return (
-        <ParticipantCard
-          key={p.identity}
-          participant={p}
-          isOnStage={isOnStage}
-          isPrimary={isPrimary}
-          isPinned={isPinned}
-          isUsingScreen={isUsingScreen}
-          screenTrackSid={screenTrackSid}
-          onAddToStage={(identity) =>
-            void addToStage(identity).catch((e: unknown) =>
-              setError(e instanceof Error ? e.message : "Unexpected error")
-            )
-          }
-          onSetScreenShare={(participantId, trackId) =>
-            void setScreenShare(participantId, trackId).catch((e: unknown) =>
-              setError(e instanceof Error ? e.message : "Unexpected error")
-            )
-          }
-          onClearPrimary={() =>
-            void clearPrimaryParticipant().catch((e: unknown) =>
-              setError(e instanceof Error ? e.message : "Unexpected error")
-            )
-          }
-          onSetPrimary={(identity) =>
-            void setPrimaryParticipant(identity).catch((e: unknown) =>
-              setError(e instanceof Error ? e.message : "Unexpected error")
-            )
-          }
-          onUnpin={() =>
-            void unpinParticipant().catch((e: unknown) =>
-              setError(e instanceof Error ? e.message : "Unexpected error")
-            )
-          }
-          onPin={(identity) =>
-            void pinParticipant(identity).catch((e: unknown) =>
-              setError(e instanceof Error ? e.message : "Unexpected error")
-            )
-          }
-          onRemoveFromStage={(identity) =>
-            void removeFromStage(identity).catch((e: unknown) =>
-              setError(e instanceof Error ? e.message : "Unexpected error")
-            )
-          }
-          onError={setError}
-        />
-      )
-    })
-  )}
-</BackstagePanel>
+    <CenterSwitcherColumn
+      triggerAudienceCue={triggerAudienceCue}
+      onHideAudienceCue={() => setShowAudienceCue(false)}
+      previewProgramDifferent={previewProgramDifferent}
+      onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
+      stopDraggingBlock={stopDraggingBlock}
+      onClearSelectedBlock={() => setSelectedBlockId(null)}
+      stageState={stageState}
+      onStageParticipants={onStageParticipants}
+      previewBlocks={previewBlocks}
+      selectedBlockId={selectedBlockId}
+      setSelectedBlockId={setSelectedBlockId}
+      startDraggingBlock={startDraggingBlock}
+      startResizingBlock={startResizingBlock}
+      programState={programState}
+      programBlocks={programBlocks}
+      showAudienceCue={showAudienceCue}
+      audienceCueRegion={audienceCueRegion}
+      audienceCueMoonMode={audienceCueMoonMode}
+      audienceCueQuestionLabel={audienceCueQuestionLabel}
+      isTransitioning={isTransitioning}
+      transitionFromState={transitionFromState}
+      transitionFromBlocks={transitionFromBlocks}
+      transitionFadingOut={transitionFadingOut}
+      sceneName={sceneName}
+      onSceneNameChange={setSceneName}
+      onSaveScene={saveScene}
+      sceneBusy={sceneBusy}
+      scenes={scenes}
+      onApplyScene={(sceneId) => void applyScene(sceneId)}
+      onClearScreenShare={() =>
+        void clearScreenShare().catch((e: unknown) =>
+          setError(e instanceof Error ? e.message : "Unexpected error")
+        )
+      }
+      onUnpin={() =>
+        void unpinParticipant().catch((e: unknown) =>
+          setError(e instanceof Error ? e.message : "Unexpected error")
+        )
+      }
+      onClearPrimary={() =>
+        void clearPrimaryParticipant().catch((e: unknown) =>
+          setError(e instanceof Error ? e.message : "Unexpected error")
+        )
+      }
+      setError={setError}
+      addTestTextBlock={addTestTextBlock}
+      addTestVideoBlock={addTestVideoBlock}
+      addTestPdfBlock={addTestPdfBlock}
+      addTestImageBlock={addTestImageBlock}
+      onUploadPdf={() => pdfInputRef.current?.click()}
+      onUploadVideo={() => videoInputRef.current?.click()}
+      onUploadImage={() => imageInputRef.current?.click()}
+      duplicateSelectedBlock={duplicateSelectedBlock}
+      bringSelectedBlockToFront={bringSelectedBlockToFront}
+      deleteSelectedBlock={deleteSelectedBlock}
+    />
+    <RightInspectorRail
+            selectedBlock={selectedBlock}
+            onToggleHidden={toggleSelectedBlockHidden}
+            onUpdateOpacity={updateSelectedBlockOpacity}
+            onUpdateLabel={updateSelectedBlockLabel}
+            onUpdatePosition={updateSelectedBlockPosition}
+            onUpdateSize={updateSelectedBlockSize}
+            onUpdateSrc={updateSelectedBlockSrc}
+            onUpdateTextContent={updateSelectedTextBlockContent}
+            participants={participants}
+            stageIds={stageIds}
+            stageState={stageState}
+            getScreenTrackSid={getScreenTrackSid}
+            onAddToStage={(identity) =>
+              void addToStage(identity).catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+            onSetScreenShare={(participantId, trackId) =>
+              void setScreenShare(participantId, trackId).catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+            onClearPrimary={() =>
+              void clearPrimaryParticipant().catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+            onSetPrimary={(identity) =>
+              void setPrimaryParticipant(identity).catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+            onUnpin={() =>
+              void unpinParticipant().catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+            onPin={(identity) =>
+              void pinParticipant(identity).catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+            onRemoveFromStage={(identity) =>
+              void removeFromStage(identity).catch((e: unknown) =>
+                setError(e instanceof Error ? e.message : "Unexpected error")
+              )
+            }
+            onError={setError}
+          />
         </div>
       </div>
     </div>

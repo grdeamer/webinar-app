@@ -6,7 +6,7 @@ import { Track } from "livekit-client"
 import { isTrackReference } from "@livekit/components-core"
 import type { TrackReference } from "@livekit/components-core"
 
-type StageState = {
+export type StageState = {
   event_id: string
   room_id: string | null
   is_live: boolean
@@ -31,12 +31,8 @@ export default function StageVideoPreview({
   stageState: StageState | null
   participantIds: string[]
 }) {
-  const cameraTracks = useTracks([
-    { source: Track.Source.Camera, withPlaceholder: false },
-  ])
-  const screenTracks = useTracks([
-    { source: Track.Source.ScreenShare, withPlaceholder: false },
-  ])
+  const cameraTracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }])
+  const screenTracks = useTracks([{ source: Track.Source.ScreenShare, withPlaceholder: false }])
 
   const stageIdSet = useMemo(() => new Set(participantIds), [participantIds])
 
