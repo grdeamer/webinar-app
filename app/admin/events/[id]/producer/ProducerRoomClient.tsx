@@ -1027,6 +1027,13 @@ onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
     programFlashActive ? "ring-4 ring-white/70 brightness-125" : ""
   }`}
 >
+  {programFlashActive ? (
+  <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center">
+    <div className="rounded-full border border-white/30 bg-white px-6 py-3 text-[11px] font-black uppercase tracking-[0.28em] text-black shadow-[0_0_70px_rgba(255,255,255,0.55)]">
+      LIVE CUT
+    </div>
+  </div>
+) : null}
     <div className="pointer-events-none absolute inset-0 z-20">
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-300/70 to-transparent" />
   <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
