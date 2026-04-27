@@ -3,10 +3,14 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback, type ReactNode } from "react"
 import type { JSX } from "react"
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react"
+import {
+  LiveKitRoom,
+  RoomAudioRenderer,
+  useRoomContext,
+} from "@livekit/components-react"
 import AudienceOriginCue from "@/components/live/AudienceOriginCue"
 import StageVideoPreview from "./StageVideoPreview"
-
+import { Track } from "livekit-client"
 import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
 import RightInspectorRail from "./RightInspectorRail"
@@ -288,7 +292,57 @@ type SceneSnapshot = {
   stageState: StageState | null
   previewBlocks: PreviewBlock[]
 }
+function ProducerMicControls(): JSX.Element {
+  const room = useRoomContext()
+  const [micEnabled, setMicEnabled] = useState(
+    room.localParticipant.isMicrophoneEnabled
+  )
+  const [busy, setBusy] = useState(false)
 
+  async function setMic(value: boolean) {
+    try {
+      setBusy(true)
+      await room.localParticipant.setMicrophoneEnabled(value)
+      setMicEnabled(room.localParticipant.isMicrophoneEnabled)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className="rounded-[24px] border border-white/10 bg-white/[0.03] p-3.5">
+      <div className="mb-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40">
+        Producer Mic
+      </div>
+
+      <div className="grid gap-2">
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void setMic(!micEnabled)}
+          className={`rounded-xl px-4 py-3 text-sm font-bold transition disabled:opacity-50 ${
+            micEnabled
+              ? "bg-emerald-400 text-slate-950 hover:bg-emerald-300"
+              : "bg-red-500 text-white hover:bg-red-400"
+          }`}
+        >
+          {micEnabled ? "Mic On" : "Mic Muted"}
+        </button>
+
+        <button
+          type="button"
+          disabled={busy || !micEnabled}
+          onMouseDown={() => void setMic(false)}
+          onMouseUp={() => void setMic(true)}
+          onMouseLeave={() => void setMic(true)}
+          className="rounded-xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Hold to Cough
+        </button>
+      </div>
+    </div>
+  )
+}
 function LiveBadge({ live }: { live: boolean }): JSX.Element {
   return (
     <div
@@ -2074,7 +2128,7 @@ const active =
           )
         }
       />
-
+<ProducerMicControls />
       <DeviceSelectorPanel
         deviceAccessReady={deviceAccessReady}
         videoDevices={videoDevices}
