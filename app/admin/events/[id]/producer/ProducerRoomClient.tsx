@@ -2107,7 +2107,15 @@ const previewProgramDifferent = useMemo(
   {localMicLevel > 0.08 ? "Mic Active" : "Standing By"}
 </div>
         </div>
+<div className="mt-3 flex flex-wrap gap-2">
+  <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
+    Space = Take
+  </div>
 
+  <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
+    M = Mic
+  </div>
+</div>
         <div className="space-y-3">
           {["Host", "Guest", "Program"].map((label, rowIndex) => (
             <div key={label} className="grid grid-cols-[64px_1fr] items-center gap-3">
