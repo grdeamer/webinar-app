@@ -991,7 +991,7 @@ onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
   disabled={takeBusy}
   className={`group relative overflow-hidden rounded-[28px] border px-5 py-5 text-white transition disabled:cursor-not-allowed disabled:opacity-70 ${
     previewProgramDifferent
-      ? "border-red-300/35 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.35),transparent_34%),linear-gradient(180deg,#991b1b,#ef4444)] shadow-[0_24px_80px_rgba(239,68,68,0.5)] hover:-translate-y-0.5"
+  ? "animate-pulse border-red-300/35 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.35),transparent_34%),linear-gradient(180deg,#991b1b,#ef4444)] shadow-[0_24px_80px_rgba(239,68,68,0.5)] hover:-translate-y-0.5"
       : "border-white/15 bg-white/[0.055] shadow-[0_18px_50px_rgba(0,0,0,0.35)]"
   }`}
 >
