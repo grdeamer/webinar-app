@@ -1062,6 +1062,7 @@ export default function ProducerRoomClient({
   const [takeBusy, setTakeBusy] = useState(false)
 
   const [programState, setProgramState] = useState<StageState | null>(null)
+  const [localMicLevel, setLocalMicLevel] = useState(0)
 
 
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
@@ -1725,7 +1726,67 @@ useEffect(() => {
   audioDevices,
   stopLocalPreviewStream,
 ])
+useEffect(() => {
+  if (!deviceAccessReady) return
 
+  let cancelled = false
+  let animationFrameId = 0
+  let audioContext: AudioContext | null = null
+
+  async function startMeter() {
+    await new Promise((resolve) => window.setTimeout(resolve, 250))
+
+    const stream = localPreviewStreamRef.current
+    const audioTrack = stream?.getAudioTracks()[0]
+
+    if (!stream || !audioTrack || cancelled) {
+      setLocalMicLevel(0)
+      return
+    }
+
+    audioContext = new AudioContext()
+    const source = audioContext.createMediaStreamSource(stream)
+    const analyser = audioContext.createAnalyser()
+    analyser.fftSize = 256
+
+    source.connect(analyser)
+
+    const data = new Uint8Array(analyser.frequencyBinCount)
+
+    function tick() {
+      if (cancelled) return
+
+      analyser.getByteTimeDomainData(data)
+
+      let sum = 0
+      for (const value of data) {
+        const normalized = (value - 128) / 128
+        sum += normalized * normalized
+      }
+
+      const rms = Math.sqrt(sum / data.length)
+const boosted = Math.min(1, rms * 9)
+
+setLocalMicLevel((previous) => {
+  const attack = boosted > previous ? 0.35 : 0.12
+  return previous + (boosted - previous) * attack
+})
+
+animationFrameId = window.requestAnimationFrame(tick)
+    }
+
+    tick()
+  }
+
+  void startMeter()
+
+  return () => {
+    cancelled = true
+    window.cancelAnimationFrame(animationFrameId)
+    void audioContext?.close().catch(() => {})
+    setLocalMicLevel(0)
+  }
+}, [deviceAccessReady, selectedAudioDeviceId])
 const stageIds = useMemo(() => new Set(stageState?.stage_participant_ids || []), [stageState])
 
 const onStageParticipants = useMemo(() => participants.filter((p) => stageIds.has(p.identity)), [participants, stageIds])
@@ -1927,9 +1988,9 @@ const previewProgramDifferent = useMemo(
           <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-100/60">
             Audio Meters
           </div>
-          <div className="rounded-full border border-emerald-300/20 bg-black/25 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-emerald-100/80">
-            Live
-          </div>
+<div className="rounded-full border border-emerald-300/20 bg-black/25 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-emerald-100/80">
+  {localMicLevel > 0.08 ? "Mic Active" : "Standing By"}
+</div>
         </div>
 
         <div className="space-y-3">
@@ -1938,8 +1999,14 @@ const previewProgramDifferent = useMemo(
               <div className="text-xs text-white/55">{label}</div>
               <div className="flex h-3 items-center gap-1 rounded-full bg-black/35 px-1">
                 {Array.from({ length: 18 }).map((_, index) => {
-                  const active =
-                    index < (rowIndex === 0 ? 13 : rowIndex === 1 ? 9 : 15)
+const hostLevel = Math.max(1, Math.round(localMicLevel * 18))
+const active =
+  index <
+  (rowIndex === 0
+    ? Math.max(2, Math.round(localMicLevel * 18))
+    : rowIndex === 1
+      ? 9
+      : Math.max(3, Math.round(localMicLevel * 18)))
 
                   return (
                     <div

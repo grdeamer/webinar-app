@@ -138,7 +138,18 @@ export default function ParticipantCard({
       <div className="space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="truncate text-base font-semibold text-white">{participant.name}</div>
+            <div className="flex min-w-0 items-center gap-2">
+  <span
+    className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+      participant.micEnabled
+        ? "animate-pulse bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]"
+        : "bg-white/20"
+    }`}
+  />
+  <div className="truncate text-base font-semibold text-white">
+    {participant.name}
+  </div>
+</div>
             <div className="mt-1 truncate text-xs text-white/40">{participant.identity}</div>
           </div>
 
