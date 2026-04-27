@@ -245,54 +245,82 @@ function MiniSceneCard({
   return (
     <div
       className={cx(
-        "min-w-[240px] rounded-[24px] border p-4",
+        "group min-w-[290px] overflow-hidden rounded-[28px] border transition duration-300 hover:-translate-y-1",
         isActive
-          ? "border-sky-400/35 bg-sky-500/10"
-          : "border-white/10 bg-white/[0.04]"
+          ? "border-sky-300/35 bg-[linear-gradient(180deg,rgba(56,189,248,0.14),rgba(255,255,255,0.04))] shadow-[0_24px_70px_rgba(56,189,248,0.18)]"
+          : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))] hover:border-white/20"
       )}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="text-sm font-medium text-white">{scene.name}</div>
-          <div className="mt-1 text-xs text-white/45">
-            {scene.layout} • {scene.stage_participant_ids.length} on stage
+      <div className="relative p-4">
+        <div className="absolute right-4 top-4">
+          {isActive ? (
+            <span className="rounded-full border border-sky-300/30 bg-sky-500/15 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-sky-100">
+              Loaded
+            </span>
+          ) : (
+            <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/45">
+              Preset
+            </span>
+          )}
+        </div>
+
+        <div className="pr-20">
+          <div className="text-base font-semibold text-white">{scene.name}</div>
+          <div className="mt-1 text-xs uppercase tracking-[0.18em] text-white/35">
+            {scene.layout.replace("_", " ")}
           </div>
         </div>
-        {isActive ? <StatusDot tone="sky" /> : null}
-      </div>
 
-      <div className="mt-4 grid grid-cols-3 gap-2">
-        {Array.from({ length: 3 }).map((_, index) => {
-          const filled = index < Math.min(scene.stage_participant_ids.length, 3)
-          return (
-            <div
-              key={`${scene.id}-slot-${index}`}
+        <div className="mt-4 grid grid-cols-3 gap-2">
+          {Array.from({ length: 3 }).map((_, index) => {
+            const filled = index < Math.min(scene.stage_participant_ids.length, 3)
+
+            return (
+              <div
+                key={`${scene.id}-slot-${index}`}
+                className={cx(
+                  "aspect-video rounded-2xl border overflow-hidden",
+                  filled
+                    ? "border-white/15 bg-[radial-gradient(circle_at_top,rgba(96,165,250,0.18),rgba(15,23,42,0.95))]"
+                    : "border-white/10 bg-black/30"
+                )}
+              >
+                {filled ? (
+                  <div className="h-full w-full bg-[linear-gradient(135deg,rgba(255,255,255,0.06),transparent)]" />
+                ) : null}
+              </div>
+            )
+          })}
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-sm text-white/55">
+            {scene.stage_participant_ids.length} on stage
+          </div>
+
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={onDelete}
+              className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/75 transition hover:bg-white/10"
+            >
+              Delete
+            </button>
+
+            <button
+              type="button"
+              onClick={onLoad}
               className={cx(
-                "aspect-video rounded-xl border",
-                filled
-                  ? "border-white/15 bg-[radial-gradient(circle_at_top,rgba(96,165,250,0.18),rgba(15,23,42,0.8))]"
-                  : "border-white/10 bg-black/30"
+                "rounded-2xl px-4 py-2 text-sm font-semibold transition",
+                isActive
+                  ? "bg-sky-400 text-slate-950"
+                  : "bg-white text-slate-950 hover:bg-sky-100"
               )}
-            />
-          )
-        })}
-      </div>
-
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={onLoad}
-          className="rounded-xl bg-sky-500 px-3 py-2 text-sm font-medium text-slate-950 transition hover:bg-sky-400"
-        >
-          Load
-        </button>
-        <button
-          type="button"
-          onClick={onDelete}
-          className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/80 transition hover:bg-white/10"
-        >
-          Delete
-        </button>
+            >
+              Load
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -1734,90 +1762,115 @@ function ProducerRoomInner({
                 const onStage = stageIds.includes(participant.identity)
                 const isPrimary = primaryId === participant.identity
 
-                return (
-                  <div
-                    key={participant.identity}
-                    className={cx(
-                      "overflow-hidden rounded-[26px] border shadow-[0_16px_50px_rgba(0,0,0,0.28)]",
-                      onStage
-                        ? "border-emerald-400/25 bg-[linear-gradient(180deg,rgba(16,185,129,0.12),rgba(255,255,255,0.04))]"
-                        : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.025))]"
-                    )}
-                  >
-                    <div className="border-b border-white/10 px-4 py-3">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-medium text-white">
-                            {participant.name}
-                          </div>
-                          <div className="truncate text-xs text-white/40">
-                            {participant.identity}
-                          </div>
-                        </div>
-                        <div className="flex flex-wrap justify-end gap-2 text-[11px]">
-                          {participant.cameraTrack ? (
-                            <span className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-white/70">
-                              Cam
-                            </span>
-                          ) : null}
-                          {participant.screenTrack ? (
-                            <span className="rounded-full border border-sky-400/20 bg-sky-500/10 px-2 py-1 text-sky-100">
-                              Screen Live
-                            </span>
-                          ) : null}
-                          {isPrimary ? (
-                            <span className="rounded-full border border-amber-400/20 bg-amber-500/10 px-2 py-1 text-amber-100">
-                              Primary
-                            </span>
-                          ) : null}
-                        </div>
-                      </div>
-                    </div>
+return (
+  <div
+    key={participant.identity}
+    className={cx(
+      "group overflow-hidden rounded-[30px] border shadow-[0_24px_70px_rgba(0,0,0,0.34)] transition duration-300 hover:-translate-y-1",
+      onStage
+        ? "border-emerald-300/35 bg-[linear-gradient(180deg,rgba(16,185,129,0.16),rgba(255,255,255,0.045))] shadow-[0_24px_80px_rgba(16,185,129,0.16)]"
+        : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] hover:border-sky-300/25"
+    )}
+  >
+    <div className="relative bg-black">
+      <div className="absolute left-3 top-3 z-20 flex gap-2">
+        {onStage ? (
+          <span className="rounded-full border border-emerald-300/35 bg-emerald-500/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-emerald-100 backdrop-blur">
+            Preview
+          </span>
+        ) : (
+          <span className="rounded-full border border-white/10 bg-black/55 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/55 backdrop-blur">
+            Backstage
+          </span>
+        )}
 
-                    <div className="bg-black">
-                      {participant.screenTrack ? (
-                        <VideoTrack
-                          trackRef={participant.screenTrack}
-                          className="aspect-video w-full object-contain"
-                        />
-                      ) : participant.cameraTrack ? (
-                        <VideoTrack
-                          trackRef={participant.cameraTrack}
-                          className="aspect-video w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex aspect-video items-center justify-center bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.14),rgba(2,6,23,0.95))] text-xs text-white/40">
-                          No preview available
-                        </div>
-                      )}
-                    </div>
+        {isPrimary ? (
+          <span className="rounded-full border border-amber-300/35 bg-amber-500/20 px-2.5 py-1 text-[10px] font-medium uppercase tracking-[0.18em] text-amber-100 backdrop-blur">
+            Primary
+          </span>
+        ) : null}
+      </div>
 
-                    <div className="space-y-3 px-4 py-4">
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleParticipant(participant.identity)}
-                          className={cx(
-                            "rounded-2xl px-3 py-2.5 text-sm font-medium transition",
-                            onStage
-                              ? "bg-red-500/90 text-white hover:bg-red-500"
-                              : "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-                          )}
-                        >
-                          {onStage ? "Remove from Preview" : "Add to Preview"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => makePrimary(participant.identity)}
-                          disabled={!onStage}
-                          className="rounded-2xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm text-white/85 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
-                        >
-                          {isPrimary ? "Primary Locked" : "Make Primary"}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                )
+      <div className="absolute right-3 top-3 z-20 flex gap-2">
+        {participant.cameraTrack ? (
+          <span className="rounded-full border border-white/10 bg-black/55 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-white/70 backdrop-blur">
+            Cam
+          </span>
+        ) : null}
+
+        {participant.screenTrack ? (
+          <span className="rounded-full border border-sky-300/30 bg-sky-500/20 px-2 py-1 text-[10px] uppercase tracking-[0.14em] text-sky-100 backdrop-blur">
+            Screen
+          </span>
+        ) : null}
+      </div>
+
+      {participant.screenTrack ? (
+        <VideoTrack
+          trackRef={participant.screenTrack}
+          className="aspect-video w-full object-contain"
+        />
+      ) : participant.cameraTrack ? (
+        <VideoTrack
+          trackRef={participant.cameraTrack}
+          className="aspect-video w-full object-cover"
+        />
+      ) : (
+        <div className="flex aspect-video items-center justify-center bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.16),rgba(2,6,23,0.96))] text-xs text-white/40">
+          No preview available
+        </div>
+      )}
+
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/85 to-transparent" />
+    </div>
+
+    <div className="p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="truncate text-base font-semibold text-white">
+            {participant.name}
+          </div>
+          <div className="mt-1 truncate text-xs text-white/35">
+            {participant.identity}
+          </div>
+        </div>
+
+        <div
+          className={cx(
+            "mt-1 h-2.5 w-2.5 rounded-full",
+            onStage
+              ? "bg-emerald-400 shadow-[0_0_18px_rgba(74,222,128,0.9)]"
+              : "bg-white/25"
+          )}
+        />
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => toggleParticipant(participant.identity)}
+          className={cx(
+            "rounded-2xl px-3 py-2.5 text-sm font-semibold transition",
+            onStage
+              ? "border border-red-300/25 bg-red-500/15 text-red-100 hover:bg-red-500/25"
+              : "bg-emerald-400 text-slate-950 shadow-[0_12px_30px_rgba(52,211,153,0.22)] hover:bg-emerald-300"
+          )}
+        >
+          {onStage ? "Remove" : "Add to Preview"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() => makePrimary(participant.identity)}
+          disabled={!onStage}
+          className="rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2.5 text-sm font-medium text-white/85 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35"
+        >
+          {isPrimary ? "Locked" : "Make Primary"}
+        </button>
+      </div>
+    </div>
+  </div>
+)
               })
             )}
           </div>
