@@ -1562,75 +1562,77 @@ const clockValue = [
             </div>
 
             <GlassPanel className="p-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-                <div>
-                  <SectionEyebrow>Transitions</SectionEyebrow>
-                  <div className="mt-2 text-sm text-white/60">
-                    Choose how Preview replaces Program.
-                  </div>
-                </div>
+  <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <div>
+      <SectionEyebrow>Transitions</SectionEyebrow>
+      <div className="mt-2 text-sm text-white/60">
+        Choose how Preview replaces Program.
+      </div>
+    </div>
 
-                <div className="flex flex-wrap gap-2">
-                  <TransitionButton
-                    active={takeTransition === "cut"}
-                    onClick={() => setTakeTransition("cut")}
-                  >
-                    Cut
-                  </TransitionButton>
-                  <TransitionButton
-                    active={takeTransition === "fade"}
-                    onClick={() => setTakeTransition("fade")}
-                  >
-                    Fade
-                  </TransitionButton>
-                  <TransitionButton
-                    active={takeTransition === "dip_to_black"}
-                    onClick={() => setTakeTransition("dip_to_black")}
-                  >
-                    Dip to Black
-                  </TransitionButton>
-                </div>
-              </div>
+    <div className="flex flex-wrap gap-2">
+      <TransitionButton
+        active={takeTransition === "cut"}
+        onClick={() => setTakeTransition("cut")}
+      >
+        Cut
+      </TransitionButton>
 
-              <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1.2fr]">
-                <button
-                  type="button"
-                  onClick={clearPreview}
-                  className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-sm font-medium text-yellow-100 transition hover:bg-yellow-500/15"
-                >
-                  Clear Preview
-                </button>
-<button
-  type="button"
-  onClick={() => void takeLive()}
-  disabled={isTakingLive}
-  className={cx(
-    "group relative overflow-hidden rounded-[22px] border px-5 py-4 text-sm font-black uppercase tracking-[0.24em] text-white transition-all duration-300 active:translate-y-[1px] disabled:cursor-not-allowed",
-    isTakingLive
-      ? "border-red-300/50 bg-red-500/30 shadow-[0_0_60px_rgba(248,113,113,0.55)]"
-      : "border-red-300/30 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.32),transparent_34%),linear-gradient(135deg,#7f1d1d,#ef4444_45%,#fb923c)] shadow-[0_22px_70px_rgba(239,68,68,0.42)] hover:-translate-y-0.5 hover:shadow-[0_32px_95px_rgba(239,68,68,0.62)]"
-  )}
->
-  <span className="pointer-events-none absolute inset-0 opacity-60">
-    <span className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
-    <span className="absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-red-200/40 to-transparent" />
-  </span>
+      <TransitionButton
+        active={takeTransition === "fade"}
+        onClick={() => setTakeTransition("fade")}
+      >
+        Fade
+      </TransitionButton>
 
-  <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-    <span className="absolute inset-y-0 left-[-35%] w-1/3 rotate-12 bg-white/25 blur-xl transition-transform duration-700 group-hover:translate-x-[380%]" />
-  </span>
+      <TransitionButton
+        active={takeTransition === "dip_to_black"}
+        onClick={() => setTakeTransition("dip_to_black")}
+      >
+        Dip to Black
+      </TransitionButton>
+    </div>
+  </div>
 
-  <span className="relative z-10 flex items-center justify-center gap-3">
-    <span className="relative flex h-4 w-4">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-45" />
-      <span className="relative inline-flex h-4 w-4 rounded-full bg-white shadow-[0_0_24px_rgba(255,255,255,0.95)]" />
-    </span>
+  <div className="mt-5 grid gap-3 lg:grid-cols-[1fr_1fr_1.2fr]">
+    <button
+      type="button"
+      onClick={clearPreview}
+      className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 px-4 py-3 text-sm font-medium text-yellow-100 transition hover:bg-yellow-500/15"
+    >
+      Clear Preview
+    </button>
 
-    {isTakingLive ? "TAKING LIVE" : "TAKE LIVE"}
-  </span>
-</button>
-              </div>
-            </GlassPanel>
+    <button
+      type="button"
+      onClick={clearAndTakeLive}
+      className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100 transition hover:bg-red-500/15"
+    >
+      Clear + Take Live
+    </button>
+
+    <button
+      type="button"
+      onClick={() => void takeLive()}
+      disabled={isTakingLive}
+      className={cx(
+        "group relative overflow-hidden rounded-[22px] border px-5 py-4 text-sm font-black uppercase tracking-[0.24em] text-white transition-all duration-300 active:translate-y-[1px] disabled:cursor-not-allowed",
+        isTakingLive
+          ? "border-red-300/50 bg-red-500/30 shadow-[0_0_60px_rgba(248,113,113,0.55)]"
+          : "border-red-300/30 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.32),transparent_34%),linear-gradient(135deg,#7f1d1d,#ef4444_45%,#fb923c)] shadow-[0_22px_70px_rgba(239,68,68,0.42)] hover:-translate-y-0.5 hover:shadow-[0_32px_95px_rgba(239,68,68,0.62)]"
+      )}
+    >
+      <span className="relative z-10 flex items-center justify-center gap-3">
+        <span className="relative flex h-4 w-4">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-45" />
+          <span className="relative inline-flex h-4 w-4 rounded-full bg-white shadow-[0_0_24px_rgba(255,255,255,0.95)]" />
+        </span>
+
+        {isTakingLive ? "TAKING LIVE" : "TAKE LIVE"}
+      </span>
+    </button>
+  </div>
+</GlassPanel>
 
             <GlassPanel className="p-5 shadow-[0_30px_80px_rgba(239,68,68,0.08)]">
               <div className="flex items-center justify-between gap-3">
