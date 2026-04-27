@@ -1498,32 +1498,35 @@ function ProducerRoomInner({
                 >
                   Clear Preview
                 </button>
-                <button
-                  type="button"
-                  onClick={clearAndTakeLive}
-                  className="rounded-2xl border border-red-400/25 bg-red-500/10 px-4 py-3 text-sm font-medium text-red-100 transition hover:bg-red-500/15"
-                >
-                  Clear + Take Live
-                </button>
-                <button
-                  type="button"
-                  onClick={() => void takeLive()}
-                  disabled={isTakingLive}
-                  className={cx(
-                    "group relative overflow-hidden rounded-2xl px-4 py-3 text-sm font-semibold uppercase tracking-[0.18em] text-white transition-all duration-200 active:translate-y-0 active:scale-[0.99]",
-                    isTakingLive
-                      ? "bg-white/15 ring-2 ring-red-400/50 shadow-[0_0_40px_rgba(248,113,113,0.35)]"
-                      : "bg-[linear-gradient(135deg,#fb7185,#ef4444,#f97316)] shadow-[0_24px_60px_rgba(239,68,68,0.38)] hover:-translate-y-0.5 hover:shadow-[0_30px_80px_rgba(239,68,68,0.5)]"
-                  )}
-                >
-                  <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-                    <span className="absolute inset-y-0 left-[-30%] w-1/3 rotate-12 bg-white/20 blur-xl transition-transform duration-500 group-hover:translate-x-[340%]" />
-                  </span>
-                  <span className="relative z-10 flex items-center justify-center gap-2">
-                    <span className="h-2 w-2 rounded-full bg-white/90 shadow-[0_0_18px_rgba(255,255,255,0.9)]" />
-                    {isTakingLive ? "Taking..." : "Take Live"}
-                  </span>
-                </button>
+<button
+  type="button"
+  onClick={() => void takeLive()}
+  disabled={isTakingLive}
+  className={cx(
+    "group relative overflow-hidden rounded-[22px] border px-5 py-4 text-sm font-black uppercase tracking-[0.24em] text-white transition-all duration-300 active:translate-y-[1px] disabled:cursor-not-allowed",
+    isTakingLive
+      ? "border-red-300/50 bg-red-500/30 shadow-[0_0_60px_rgba(248,113,113,0.55)]"
+      : "border-red-300/30 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.32),transparent_34%),linear-gradient(135deg,#7f1d1d,#ef4444_45%,#fb923c)] shadow-[0_22px_70px_rgba(239,68,68,0.42)] hover:-translate-y-0.5 hover:shadow-[0_32px_95px_rgba(239,68,68,0.62)]"
+  )}
+>
+  <span className="pointer-events-none absolute inset-0 opacity-60">
+    <span className="absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/80 to-transparent" />
+    <span className="absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-red-200/40 to-transparent" />
+  </span>
+
+  <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+    <span className="absolute inset-y-0 left-[-35%] w-1/3 rotate-12 bg-white/25 blur-xl transition-transform duration-700 group-hover:translate-x-[380%]" />
+  </span>
+
+  <span className="relative z-10 flex items-center justify-center gap-3">
+    <span className="relative flex h-4 w-4">
+      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-45" />
+      <span className="relative inline-flex h-4 w-4 rounded-full bg-white shadow-[0_0_24px_rgba(255,255,255,0.95)]" />
+    </span>
+
+    {isTakingLive ? "TAKING LIVE" : "TAKE LIVE"}
+  </span>
+</button>
               </div>
             </GlassPanel>
 
