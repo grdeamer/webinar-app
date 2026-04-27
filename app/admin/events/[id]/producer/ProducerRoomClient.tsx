@@ -298,7 +298,20 @@ function ProducerMicControls(): JSX.Element {
     room.localParticipant.isMicrophoneEnabled
   )
   const [busy, setBusy] = useState(false)
+useEffect(() => {
+  function onKeyDown(event: KeyboardEvent) {
+    const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
+    if (tag === "input" || tag === "textarea" || tag === "select") return
 
+    if (event.code === "KeyM") {
+      event.preventDefault()
+      void setMic(!room.localParticipant.isMicrophoneEnabled)
+    }
+  }
+
+  window.addEventListener("keydown", onKeyDown)
+  return () => window.removeEventListener("keydown", onKeyDown)
+}, [room])
   async function setMic(value: boolean) {
     try {
       setBusy(true)
@@ -1878,7 +1891,33 @@ const selectedScreenStillExists = useMemo(
   ]
 )
 
+useEffect(() => {
+  function onKeyDown(event: KeyboardEvent) {
+    const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
+    if (tag === "input" || tag === "textarea" || tag === "select") return
 
+    if (event.code !== "Space") return
+
+    event.preventDefault()
+
+    if (takeBusy) return
+
+    void (async () => {
+      try {
+        setTakeBusy(true)
+        setError(null)
+        await takeProgram()
+      } catch (e: unknown) {
+        setError(e instanceof Error ? e.message : "Unexpected error")
+      } finally {
+        setTakeBusy(false)
+      }
+    })()
+  }
+
+  window.addEventListener("keydown", onKeyDown)
+  return () => window.removeEventListener("keydown", onKeyDown)
+}, [takeBusy, takeProgram])
 const previewProgramDifferent = useMemo(
   () =>
     JSON.stringify({
