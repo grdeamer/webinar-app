@@ -790,6 +790,7 @@ function CenterSwitcherColumn({
 previewProgramDifferent,
 onTake,
 takeBusy,
+programFlashActive,
 onPreviewCanvasMouseMove,
   stopDraggingBlock,
   onClearSelectedBlock,
@@ -841,6 +842,7 @@ onPreviewCanvasMouseMove,
 previewProgramDifferent: boolean
 onTake: () => void
 takeBusy: boolean
+programFlashActive: boolean
 onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
   stopDraggingBlock: () => void
   onClearSelectedBlock: () => void
@@ -1009,7 +1011,11 @@ onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
       }
     />
 
-    <div className="relative mt-3 aspect-video overflow-hidden rounded-[24px] border border-red-400/20 bg-black shadow-[0_0_0_1px_rgba(239,68,68,0.1),0_0_80px_rgba(239,68,68,0.14)]">
+    <div
+  className={`relative mt-3 aspect-video overflow-hidden rounded-[24px] border border-red-400/20 bg-black shadow-[0_0_0_1px_rgba(239,68,68,0.1),0_0_80px_rgba(239,68,68,0.14)] transition-all duration-300 ${
+    programFlashActive ? "ring-4 ring-white/70 brightness-125" : ""
+  }`}
+>
     <div className="pointer-events-none absolute inset-0 z-20">
   <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-300/70 to-transparent" />
   <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-red-500/50 to-transparent" />
@@ -1127,7 +1133,7 @@ export default function ProducerRoomClient({
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [takeBusy, setTakeBusy] = useState(false)
-
+  const [programFlashActive, setProgramFlashActive] = useState(false)
   const [programState, setProgramState] = useState<StageState | null>(null)
   const [localMicLevel, setLocalMicLevel] = useState(0)
 
@@ -2197,6 +2203,7 @@ onTake={() => {
   })()
 }}
 takeBusy={takeBusy}
+programFlashActive={programFlashActive}
 onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
       stopDraggingBlock={stopDraggingBlock}
       onClearSelectedBlock={() => setSelectedBlockId(null)}
