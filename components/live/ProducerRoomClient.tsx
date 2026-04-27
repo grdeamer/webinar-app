@@ -681,15 +681,28 @@ function ProducerRoomInner({
   const [programTransitionOverlay, setProgramTransitionOverlay] =
     useState<StageTransitionType | null>(null)
   const [saving, setSaving] = useState(false)
-  const [isTakingLive, setIsTakingLive] = useState(false)
+const [isTakingLive, setIsTakingLive] = useState(false)
 
-  const [scenes, setScenes] = useState<SceneRecord[]>([])
+const [clockMode, setClockMode] = useState<"elapsed" | "countdown">("elapsed")
+const [clockStartedAt] = useState(() => Date.now())
+const [countdownMinutes, setCountdownMinutes] = useState(30)
+const [now, setNow] = useState(() => Date.now())
+
+const [scenes, setScenes] = useState<SceneRecord[]>([])
   const [sceneName, setSceneName] = useState("")
 
-  const scenesEndpoint = `${stageEndpoint}/scenes`
-  const qaRoomKey = `session:${sessionId}`
+const scenesEndpoint = `${stageEndpoint}/scenes`
+const qaRoomKey = `session:${sessionId}`
 
-  useEffect(() => {
+useEffect(() => {
+  const timer = window.setInterval(() => {
+    setNow(Date.now())
+  }, 1000)
+
+  return () => window.clearInterval(timer)
+}, [])
+
+useEffect(() => {
     let cancelled = false
 
     async function loadStageState() {
@@ -1205,7 +1218,18 @@ function ProducerRoomInner({
       )
     }
   }
+const elapsedSeconds = Math.max(0, Math.floor((now - clockStartedAt) / 1000))
+const countdownSeconds = Math.max(0, countdownMinutes * 60 - elapsedSeconds)
+const displaySeconds = clockMode === "elapsed" ? elapsedSeconds : countdownSeconds
+const clockLabel = clockMode === "elapsed" ? "Show Clock" : "Countdown"
 
+const clockValue = [
+  Math.floor(displaySeconds / 3600),
+  Math.floor((displaySeconds % 3600) / 60),
+  displaySeconds % 60,
+]
+  .map((unit) => String(unit).padStart(2, "0"))
+  .join(":")
   return (
     <div className="relative overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(99,102,241,0.18),rgba(2,6,23,0.96)_42%),linear-gradient(180deg,rgba(15,23,42,0.98),rgba(2,6,23,1))] p-4 text-white shadow-[0_30px_120px_rgba(0,0,0,0.55)] md:p-6">
       <div className="pointer-events-none absolute inset-0 overflow-hidden">
@@ -1307,6 +1331,56 @@ function ProducerRoomInner({
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3 xl:w-[430px] xl:grid-cols-1">
+  <div className="rounded-[24px] border border-white/10 bg-black/25 p-4">
+    <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+      {clockLabel}
+    </div>
+
+    <div className="mt-2 font-mono text-3xl font-semibold tracking-[-0.04em] text-white">
+      {clockValue}
+    </div>
+
+    <div className="mt-4 grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        onClick={() => setClockMode("elapsed")}
+        className={cx(
+          "rounded-xl border px-3 py-2 text-xs font-medium transition",
+          clockMode === "elapsed"
+            ? "border-sky-300/30 bg-sky-500/15 text-sky-100"
+            : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+        )}
+      >
+        Clock
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setClockMode("countdown")}
+        className={cx(
+          "rounded-xl border px-3 py-2 text-xs font-medium transition",
+          clockMode === "countdown"
+            ? "border-amber-300/30 bg-amber-500/15 text-amber-100"
+            : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+        )}
+      >
+        Countdown
+      </button>
+    </div>
+
+    {clockMode === "countdown" ? (
+      <div className="mt-3">
+        <input
+          type="number"
+          min={1}
+          value={countdownMinutes}
+          onChange={(e) => setCountdownMinutes(Number(e.target.value))}
+          className="w-full rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-sm text-white outline-none focus:border-amber-300/30"
+        />
+        <div className="mt-1 text-[11px] text-white/35">Minutes</div>
+      </div>
+    ) : null}
+  </div>
               <div className="rounded-[24px] border border-red-400/20 bg-red-500/10 p-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
