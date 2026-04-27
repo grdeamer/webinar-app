@@ -1029,7 +1029,8 @@ onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
         stageState={programState}
         participantIds={programState?.stage_participant_ids || []}
       />
-
+<div className="pointer-events-none absolute inset-[8%] z-20 border border-white/10" />
+<div className="pointer-events-none absolute inset-[14%] z-20 border border-white/10" />
       {renderPlacedBlocks({
         blocks: programBlocks,
         opts: {
@@ -1392,7 +1393,11 @@ async function clearScreenShare() {
 
     setProgramState(data?.state ?? null)
     setProgramBlocks(previewBlocks.map((block) => ({ ...block })))
+setProgramFlashActive(true)
 
+window.setTimeout(() => {
+  setProgramFlashActive(false)
+}, 220)
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {
         setTransitionFadingOut(true)
