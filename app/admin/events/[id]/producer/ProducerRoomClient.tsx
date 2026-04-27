@@ -1777,7 +1777,7 @@ const previewProgramDifferent = useMemo(
   <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
     <RoomAudioRenderer />
 
-    <div className="flex min-h-screen flex-col bg-[radial-gradient(circle_at_top,#0b1736_0%,#050816_45%,#02040b_100%)] text-white">
+    <div className="flex min-h-screen flex-col bg-[#020617] text-white">
       <input
         ref={pdfInputRef}
         type="file"
@@ -1800,10 +1800,10 @@ const previewProgramDifferent = useMemo(
         onChange={handleImageUpload}
       />
 
-<div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(3,7,18,0.98),rgba(2,6,23,0.94))] px-4 py-4 shadow-[0_18px_70px_rgba(0,0,0,0.38)] md:px-6 xl:px-8 2xl:px-10">
-  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+<div className="border-b border-white/10 bg-black/35 px-4 py-3 shadow-[0_18px_70px_rgba(0,0,0,0.38)] backdrop-blur-xl md:px-6 xl:px-8 2xl:px-10">
+  <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
     <div className="flex min-w-0 items-center gap-4">
-      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-sky-300/20 bg-sky-400/10 shadow-[0_0_40px_rgba(56,189,248,0.22)]">
+      <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[18px] border border-sky-300/20 bg-sky-400/10 shadow-[0_0_40px_rgba(56,189,248,0.22)]">
         <div className="h-6 w-6 rounded-full border border-sky-200/70 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.95),rgba(56,189,248,0.45)_35%,rgba(79,70,229,0.3)_70%)] shadow-[0_0_26px_rgba(125,211,252,0.65)]" />
         <div className="absolute h-8 w-11 -rotate-12 rounded-full border border-sky-200/35" />
       </div>
@@ -1818,7 +1818,7 @@ const previewProgramDifferent = useMemo(
         </div>
 
         <div className="mt-2 flex flex-wrap items-end gap-3">
-          <h1 className="truncate text-3xl font-semibold leading-none tracking-[-0.04em] text-white">
+          <h1 className="truncate text-2xl font-semibold leading-none tracking-[-0.04em] text-white">
             {stageState?.headline || "Live Production"}
           </h1>
 
