@@ -921,13 +921,22 @@ onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
       }
     />
 
-    <div
-      className="relative mt-3 aspect-video overflow-hidden rounded-[22px] border border-white/10 bg-black"
-      onMouseMove={onPreviewCanvasMouseMove}
-      onMouseUp={stopDraggingBlock}
-      onMouseLeave={stopDraggingBlock}
-      onClick={onClearSelectedBlock}
-    >
+<div
+  className={`relative mt-3 aspect-video overflow-hidden rounded-[22px] bg-black ${
+    previewProgramDifferent
+      ? "border border-amber-300/35 shadow-[0_0_45px_rgba(251,191,36,0.12)]"
+      : "border border-white/10"
+  }`}
+  onMouseMove={onPreviewCanvasMouseMove}
+  onMouseUp={stopDraggingBlock}
+  onMouseLeave={stopDraggingBlock}
+  onClick={onClearSelectedBlock}
+>
+    {previewProgramDifferent ? (
+  <div className="absolute inset-x-0 top-0 z-30 bg-amber-400 px-3 py-1 text-center text-[10px] font-black uppercase tracking-[0.24em] text-black">
+    Untaken Changes
+  </div>
+) : null}
       <StageVideoPreview
         stageState={stageState}
         participantIds={onStageParticipants.map((p) => p.identity)}
