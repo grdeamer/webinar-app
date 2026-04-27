@@ -10,7 +10,7 @@ import {
 } from "@livekit/components-react"
 import AudienceOriginCue from "@/components/live/AudienceOriginCue"
 import StageVideoPreview from "./StageVideoPreview"
-import { Track } from "livekit-client"
+
 import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
 import RightInspectorRail from "./RightInspectorRail"
@@ -2092,7 +2092,7 @@ const previewProgramDifferent = useMemo(
               <div className="text-xs text-white/55">{label}</div>
               <div className="flex h-3 items-center gap-1 rounded-full bg-black/35 px-1">
                 {Array.from({ length: 18 }).map((_, index) => {
-const hostLevel = Math.max(1, Math.round(localMicLevel * 18))
+
 const active =
   index <
   (rowIndex === 0
