@@ -13,6 +13,16 @@ import type {
   TrackReferenceOrPlaceholder,
 } from "@livekit/components-core"
 import ProgramMomentOverlay from "@/components/live/ProgramMomentOverlay"
+import {
+  Activity,
+  Clapperboard,
+  Layers3,
+  MessageSquareText,
+  MonitorPlay,
+  Radio,
+  Settings,
+  UsersRound,
+} from "lucide-react"
 
 type StageLayout = "solo" | "grid" | "screen_speaker"
 type StageTransitionType = "cut" | "fade" | "dip_to_black"
@@ -287,7 +297,49 @@ function MiniSceneCard({
     </div>
   )
 }
+function CommandRail() {
+  const items = [
+    { label: "Show", icon: MonitorPlay, active: true },
+    { label: "Scenes", icon: Clapperboard },
+    { label: "Layers", icon: Layers3 },
+    { label: "Talent", icon: UsersRound },
+    { label: "Q&A", icon: MessageSquareText },
+    { label: "Signal", icon: Activity },
+    { label: "Settings", icon: Settings },
+  ]
 
+  return (
+    <aside className="hidden xl:flex xl:flex-col xl:items-center xl:gap-3 rounded-[28px] border border-white/10 bg-black/30 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl">
+      <div className="mb-2 flex h-11 w-11 items-center justify-center rounded-2xl border border-sky-300/20 bg-sky-400/10 shadow-[0_0_35px_rgba(56,189,248,0.18)]">
+        <Radio size={21} className="text-sky-100" strokeWidth={1.8} />
+      </div>
+
+      {items.map((item) => {
+        const Icon = item.icon
+
+        return (
+          <button
+            key={item.label}
+            type="button"
+            title={item.label}
+            className={cx(
+              "group relative flex h-12 w-12 items-center justify-center rounded-2xl border transition",
+              item.active
+                ? "border-sky-300/30 bg-sky-400/15 text-sky-100 shadow-[0_0_30px_rgba(56,189,248,0.22)]"
+                : "border-white/10 bg-white/[0.035] text-white/45 hover:border-white/20 hover:bg-white/[0.07] hover:text-white/85"
+            )}
+          >
+            <Icon size={20} strokeWidth={1.7} />
+
+            {item.active ? (
+              <span className="absolute -right-1 h-6 w-[3px] rounded-full bg-sky-300 shadow-[0_0_14px_rgba(125,211,252,0.9)]" />
+            ) : null}
+          </button>
+        )
+      })}
+    </aside>
+  )
+}
 function ProgramMonitor({
   title,
   subtitle,
@@ -1175,7 +1227,10 @@ function ProducerRoomInner({
         }
       `}</style>
 
-      <div className="relative space-y-5">
+      <div className="relative grid gap-5 xl:grid-cols-[76px_minmax(0,1fr)]">
+  <CommandRail />
+
+  <div className="space-y-5">
         <GlassPanel className="overflow-hidden p-5 md:p-6">
           <div className="flex flex-col gap-6 xl:flex-row xl:items-start xl:justify-between">
             <div className="max-w-3xl">
@@ -1762,6 +1817,7 @@ function ProducerRoomInner({
         </GlassPanel>
       </div>
     </div>
+  </div>
   )
 }
 
