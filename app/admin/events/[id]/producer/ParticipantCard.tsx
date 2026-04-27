@@ -1,6 +1,8 @@
 "use client"
 
+import { useMemo } from "react"
 import type { JSX } from "react"
+import { useParticipants } from "@livekit/components-react"
 
 type ProducerParticipant = {
   identity: string
@@ -86,7 +88,36 @@ function SourceChip({
     </span>
   )
 }
+function ParticipantSpeakingMeter({
+  identity,
+  micEnabled,
+}: {
+  identity: string
+  micEnabled: boolean
+}): JSX.Element {
+  const livekitParticipants = useParticipants()
 
+  const participant = useMemo(
+    () => livekitParticipants.find((p) => p.identity === identity),
+    [livekitParticipants, identity]
+  )
+
+  const level = micEnabled ? participant?.audioLevel ?? 0 : 0
+  const activeBars = Math.max(0, Math.round(level * 10))
+
+  return (
+    <div className="flex h-2 w-16 items-center gap-0.5">
+      {Array.from({ length: 10 }).map((_, index) => (
+        <span
+          key={`${identity}-meter-${index}`}
+          className={`h-1.5 flex-1 rounded-full ${
+            index < activeBars ? "bg-emerald-400" : "bg-white/10"
+          }`}
+        />
+      ))}
+    </div>
+  )
+}
 export default function ParticipantCard({
   participant,
   isOnStage,
@@ -150,7 +181,15 @@ export default function ParticipantCard({
     {participant.name}
   </div>
 </div>
-            <div className="mt-1 truncate text-xs text-white/40">{participant.identity}</div>
+            <div className="mt-1 flex items-center gap-2">
+  <div className="min-w-0 flex-1 truncate text-xs text-white/40">
+    {participant.identity}
+  </div>
+  <ParticipantSpeakingMeter
+    identity={participant.identity}
+    micEnabled={participant.micEnabled}
+  />
+</div>
           </div>
 
           <div className="shrink-0">
