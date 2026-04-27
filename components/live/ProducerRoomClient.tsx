@@ -450,13 +450,13 @@ function ProgramMonitor({
             badgeClass
           )}
         >
-          {layout.replace("_", " + ")}
+          MODE · {layout.replace("_", " + ")}
         </div>
       </div>
 
-      <div
-        className={cx(
-          "relative mt-4 overflow-hidden rounded-[24px] border bg-black shadow-[0_20px_80px_rgba(0,0,0,0.45)]",
+<div
+  className={cx(
+    "relative mt-4 overflow-hidden rounded-[28px] border bg-black shadow-[0_30px_120px_rgba(0,0,0,0.58)] ring-1 ring-white/5",
           accent === "red"
             ? "border-red-400/30 shadow-[0_24px_90px_rgba(239,68,68,0.18)]"
             : "border-white/10"
@@ -469,7 +469,7 @@ function ProgramMonitor({
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
               </span>
-              On Air
+              PROGRAM LIVE
             </div>
           </div>
         )}
@@ -540,7 +540,11 @@ function ProgramMonitor({
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-red-400/80 to-transparent" />
         ) : null}
 
-        <div className="absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-white/10 to-transparent" />
+       <>
+  <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/12 to-transparent" />
+  <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white/[0.03] to-transparent" />
+  <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white/[0.03] to-transparent" />
+</>
       </div>
 
       <div className="relative mt-4 grid gap-3 sm:grid-cols-3">
