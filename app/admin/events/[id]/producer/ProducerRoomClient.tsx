@@ -828,139 +828,122 @@ function CenterSwitcherColumn({
           </div>
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] 2xl:gap-4">
-          <div className="rounded-[24px] border border-sky-400/10 bg-[#07111f] p-2.5 xl:p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <MonitorHeader
-              title="Preview"
-              subtitle="What you are preparing"
-              tone="preview"
-              badge={
-                <span className="rounded-full border border-sky-300/20 bg-sky-400/10 px-3 py-1 text-[11px] font-semibold text-sky-200">
-                  {previewProgramDifferent ? "Changed" : "Ready"}
-                </span>
-              }
-            />
+        <div className="grid gap-4 xl:grid-cols-[1.08fr_88px_1.18fr] 2xl:grid-cols-[1fr_96px_1.22fr]">
+  {/* PREVIEW */}
+  <div className="rounded-[28px] border border-sky-300/15 bg-[#07111f] p-3 shadow-[0_24px_80px_rgba(14,165,233,0.08)]">
+    <MonitorHeader
+      title="Preview"
+      subtitle="Next shot"
+      tone="preview"
+      badge={
+        <span className="rounded-full border border-sky-300/20 bg-sky-400/10 px-3 py-1 text-[11px] font-semibold text-sky-200">
+          {previewProgramDifferent ? "Changed" : "Ready"}
+        </span>
+      }
+    />
 
-            <div
-              className="relative h-[520px] overflow-hidden rounded-[18px] border border-white/10 bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[600px] 2xl:h-[680px]"
-              onMouseMove={onPreviewCanvasMouseMove}
-              onMouseUp={stopDraggingBlock}
-              onMouseLeave={stopDraggingBlock}
-              onClick={onClearSelectedBlock}
-            >
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+    <div
+      className="relative mt-3 h-[560px] overflow-hidden rounded-[22px] border border-white/10 bg-black xl:h-[650px] 2xl:h-[760px]"
+      onMouseMove={onPreviewCanvasMouseMove}
+      onMouseUp={stopDraggingBlock}
+      onMouseLeave={stopDraggingBlock}
+      onClick={onClearSelectedBlock}
+    >
+      <StageVideoPreview
+        stageState={stageState}
+        participantIds={onStageParticipants.map((p) => p.identity)}
+      />
 
-              <StageVideoPreview
-                stageState={stageState}
-                participantIds={onStageParticipants.map((p) => p.identity)}
-              />
+      {renderPlacedBlocks({
+        blocks: previewBlocks,
+        opts: {
+          selectable: true,
+          showChrome: true,
+          selectedBlockId,
+        },
+        selectedBlockId,
+        setSelectedBlockId,
+        startDraggingBlock,
+        startResizingBlock,
+      })}
 
-              {renderPlacedBlocks({
-                blocks: previewBlocks,
-                opts: {
-                  selectable: true,
-                  showChrome: true,
-                  selectedBlockId,
-                },
-                selectedBlockId,
-                setSelectedBlockId,
-                startDraggingBlock,
-                startResizingBlock,
-              })}
+      <div className="pointer-events-none absolute bottom-4 left-4 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[11px] font-semibold text-white/70">
+        PREVIEW
+      </div>
+    </div>
+  </div>
 
-              <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border border-white/10 bg-black/50 px-3 py-1 text-[11px] font-medium text-white/65 backdrop-blur">
-                PREVIEW
-              </div>
-            </div>
-          </div>
+  {/* TAKE BRIDGE */}
+  <div className="hidden xl:flex flex-col items-center justify-center gap-4">
+    <div className="h-full w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
 
-          <div className="rounded-[24px] border border-red-400/15 bg-[#170b0d] p-2.5 xl:p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-            <MonitorHeader
-              title="Program"
-              subtitle="What the audience is seeing"
-              tone="program"
-              badge={
-                <span className="rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-200">
-                  {programState?.is_live ? "LIVE" : "HOLDING"}
-                </span>
-              }
-            />
+    <div className="rounded-[26px] border border-red-300/25 bg-[linear-gradient(180deg,#7f1d1d,#ef4444)] px-5 py-4 shadow-[0_20px_60px_rgba(239,68,68,0.35)]">
+      <div className="text-center text-[11px] font-black uppercase tracking-[0.24em] text-white">
+        TAKE
+      </div>
+    </div>
 
-            <div className="relative h-[520px] overflow-hidden rounded-[18px] border border-red-400/10 bg-black shadow-[0_0_0_1px_rgba(239,68,68,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[600px] 2xl:h-[680px]">
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+    <div className="h-full w-px bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+  </div>
 
-              <div className="relative z-10 h-full">
-                <StageVideoPreview
-                  stageState={programState}
-                  participantIds={programState?.stage_participant_ids || []}
-                />
+  {/* PROGRAM */}
+  <div className="rounded-[30px] border border-red-400/18 bg-[#170b0d] p-3 shadow-[0_30px_100px_rgba(239,68,68,0.14)]">
+    <MonitorHeader
+      title="Program"
+      subtitle="Live output"
+      tone="program"
+      badge={
+        <span className="rounded-full border border-red-400/20 bg-red-500/10 px-3 py-1 text-[11px] font-semibold text-red-200">
+          {programState?.is_live ? "LIVE" : "STANDBY"}
+        </span>
+      }
+    />
 
-                {renderPlacedBlocks({
-                  blocks: programBlocks,
-                  opts: {
-                    selectable: false,
-                    showChrome: false,
-                  },
-                  selectedBlockId,
-                  setSelectedBlockId,
-                  startDraggingBlock,
-                  startResizingBlock,
-                })}
+    <div className="relative mt-3 h-[590px] overflow-hidden rounded-[24px] border border-red-400/15 bg-black xl:h-[690px] 2xl:h-[800px] shadow-[0_0_0_1px_rgba(239,68,68,0.08)]">
+      <StageVideoPreview
+        stageState={programState}
+        participantIds={programState?.stage_participant_ids || []}
+      />
 
-                <div className="absolute inset-0 z-30 pointer-events-none p-4">
-                  <AudienceOriginCue
-                    visible={showAudienceCue}
-                    region={audienceCueRegion}
-                    moonMode={audienceCueMoonMode}
-                    entering
-                    questionLabel={audienceCueQuestionLabel}
-                    compact
-                    broadcast
-                  />
-                </div>
-              </div>
+      {renderPlacedBlocks({
+        blocks: programBlocks,
+        opts: {
+          selectable: false,
+          showChrome: false,
+        },
+        selectedBlockId,
+        setSelectedBlockId,
+        startDraggingBlock,
+        startResizingBlock,
+      })}
 
-              {isTransitioning && transitionFromState ? (
-                <div
-                  className={`pointer-events-none absolute inset-0 z-20 transition-opacity duration-500 ${
-                    transitionFadingOut ? "opacity-0" : "opacity-100"
-                  }`}
-                >
-                  <StageVideoPreview
-                    stageState={transitionFromState}
-                    participantIds={transitionFromState.stage_participant_ids || []}
-                  />
-
-                  {renderPlacedBlocks({
-                    blocks: transitionFromBlocks,
-                    opts: {
-                      selectable: false,
-                      showChrome: false,
-                    },
-                    selectedBlockId,
-                    setSelectedBlockId,
-                    startDraggingBlock,
-                    startResizingBlock,
-                  })}
-                </div>
-              ) : null}
-
-              <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-400/20 bg-black/55 px-3 py-1 text-[11px] font-semibold text-red-200 backdrop-blur">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    programState?.is_live ? "animate-pulse bg-red-400" : "bg-white/30"
-                  }`}
-                />
-                PROGRAM
-              </div>
-            </div>
-          </div>
-        </div>
+      <div className="absolute inset-0 z-30 pointer-events-none p-4">
+        <AudienceOriginCue
+          visible={showAudienceCue}
+          region={audienceCueRegion}
+          moonMode={audienceCueMoonMode}
+          entering
+          questionLabel={audienceCueQuestionLabel}
+          compact
+          broadcast
+        />
       </div>
 
-      <div className="space-y-5">
+      <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 rounded-full border border-red-400/25 bg-black/60 px-3 py-1 text-[11px] font-black uppercase tracking-[0.18em] text-red-200">
+        <span
+          className={`h-2.5 w-2.5 rounded-full ${
+            programState?.is_live ? "animate-pulse bg-red-400" : "bg-white/30"
+          }`}
+        />
+        LIVE
+      </div>
+
+      <div className="pointer-events-none absolute bottom-4 left-4 rounded-full border border-red-400/20 bg-black/60 px-3 py-1 text-[11px] font-semibold text-red-200">
+        PROGRAM
+      </div>
+    </div>
+  </div>
+</div>
         <MediaBlocksPanel
           previewBlocksCount={previewBlocks.length}
           onAddText={addTestTextBlock}
@@ -1918,9 +1901,9 @@ const previewProgramDifferent = useMemo(
   </div>
 </div>
 
-            <div className="flex-1 py-4 xl:py-5 backdrop-blur-[2px]">
-                                        <div className="grid w-full gap-5 xl:gap-4 2xl:gap-5 px-4 md:px-6 xl:px-8 2xl:px-10 xl:grid-cols-[230px_minmax(0,1fr)_290px] 2xl:grid-cols-[240px_minmax(0,1fr)_310px]">
-    <div className="space-y-5 xl:col-start-1">
+            <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.08),transparent_35%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(2,6,23,1))] px-4 py-5 md:px-6 xl:px-8 2xl:px-10">
+  <div className="grid w-full gap-5 xl:grid-cols-[270px_minmax(0,1fr)_350px] 2xl:grid-cols-[290px_minmax(0,1fr)_380px]">
+    <div className="space-y-4 rounded-[34px] border border-white/10 bg-black/25 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-xl xl:col-start-1">
       <ControlStackPanel
         takeBusy={takeBusy}
         previewProgramDifferent={previewProgramDifferent}
@@ -1971,7 +1954,7 @@ const previewProgramDifferent = useMemo(
         onSelectAudioDevice={setSelectedAudioDeviceId}
       />
     </div>
-
+<div className="min-w-0 rounded-[38px] border border-white/10 bg-black/20 p-3 shadow-[0_30px_120px_rgba(0,0,0,0.42)] backdrop-blur-xl"></div>
     <CenterSwitcherColumn
       triggerAudienceCue={triggerAudienceCue}
       onHideAudienceCue={() => setShowAudienceCue(false)}
@@ -2029,6 +2012,8 @@ const previewProgramDifferent = useMemo(
       bringSelectedBlockToFront={bringSelectedBlockToFront}
       deleteSelectedBlock={deleteSelectedBlock}
     />
+</div>
+<div className="min-w-0 rounded-[34px] border border-white/10 bg-black/25 p-3 shadow-[0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-xl">
     <RightInspectorRail
             selectedBlock={selectedBlock}
             onToggleHidden={toggleSelectedBlockHidden}
@@ -2077,7 +2062,7 @@ const previewProgramDifferent = useMemo(
                 setError(e instanceof Error ? e.message : "Unexpected error")
               )
             }
-            onError={setError}
+                       onError={setError}
           />
         </div>
       </div>
