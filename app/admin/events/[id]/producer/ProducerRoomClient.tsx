@@ -932,6 +932,8 @@ onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
         stageState={stageState}
         participantIds={onStageParticipants.map((p) => p.identity)}
       />
+      <div className="pointer-events-none absolute inset-[8%] border border-white/10" />
+<div className="pointer-events-none absolute inset-[14%] border border-white/10" />
 {onStageParticipants.length === 0 ? (
   <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
     <div className="relative overflow-hidden rounded-[28px] border border-sky-300/15 bg-black/50 px-8 py-6 text-center shadow-[0_0_80px_rgba(56,189,248,0.14)] backdrop-blur-md">
