@@ -1817,22 +1817,29 @@ const previewProgramDifferent = useMemo(
         onChange={handleImageUpload}
       />
 
-<div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(8,15,36,0.97),rgba(5,8,22,0.94))] px-4 py-4 md:px-6 xl:px-8 2xl:px-10 shadow-[0_10px_40px_rgba(0,0,0,0.28)]">
-  <div className="flex w-full flex-col gap-4">
-    <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+<div className="border-b border-white/10 bg-[linear-gradient(180deg,rgba(3,7,18,0.98),rgba(2,6,23,0.94))] px-4 py-4 shadow-[0_18px_70px_rgba(0,0,0,0.38)] md:px-6 xl:px-8 2xl:px-10">
+  <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+    <div className="flex min-w-0 items-center gap-4">
+      <div className="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-[18px] border border-sky-300/20 bg-sky-400/10 shadow-[0_0_40px_rgba(56,189,248,0.22)]">
+        <div className="h-6 w-6 rounded-full border border-sky-200/70 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.95),rgba(56,189,248,0.45)_35%,rgba(79,70,229,0.3)_70%)] shadow-[0_0_26px_rgba(125,211,252,0.65)]" />
+        <div className="absolute h-8 w-11 -rotate-12 rounded-full border border-sky-200/35" />
+      </div>
+
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/35">
+          <span>Jupiter</span>
+          <span className="text-white/20">•</span>
           <span>Mission Control</span>
           <span className="text-white/20">•</span>
           <span>{producerScopeLabel}</span>
         </div>
 
         <div className="mt-2 flex flex-wrap items-end gap-3">
-          <h1 className="text-3xl font-semibold leading-none text-white">
+          <h1 className="truncate text-3xl font-semibold leading-none tracking-[-0.04em] text-white">
             {stageState?.headline || "Live Production"}
           </h1>
 
-          <span className="rounded-full border border-sky-400/15 bg-sky-400/10 px-3 py-1 text-xs font-semibold text-sky-200">
+          <span className="rounded-full border border-sky-300/20 bg-sky-500/10 px-3 py-1 text-xs font-semibold text-sky-100">
             {stageState?.layout === "screen_speaker"
               ? "Speaker + Screen"
               : stageState?.layout === "grid"
@@ -1840,63 +1847,73 @@ const previewProgramDifferent = useMemo(
                 : "Solo"}
           </span>
         </div>
-
-        <p className="mt-2 text-sm text-white/45">
-          Premium session control for Preview, Program, backstage, and overlays.
-        </p>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 xl:min-w-[540px]">
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Status</div>
-          <div className="mt-2">
-            <LiveBadge live={Boolean(stageState?.is_live)} />
-          </div>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">On Stage</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{onStageParticipants.length}</div>
-          <div className="text-xs text-white/40">active talent</div>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Overlays</div>
-          <div className="mt-2 text-2xl font-semibold text-white">{previewBlocks.length}</div>
-          <div className="text-xs text-white/40">preview blocks</div>
-        </div>
-
-        <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-4 py-3">
-          <div className="text-[10px] uppercase tracking-[0.22em] text-white/35">Auto Director</div>
-          <div
-            className={`mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold ${
-              autoDirectorEnabled
-                ? "bg-emerald-400/15 text-emerald-200"
-                : "bg-white/10 text-white/55"
-            }`}
-          >
-            {autoDirectorEnabled ? "Enabled" : "Manual"}
-          </div>
-        </div>
       </div>
     </div>
 
-    <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-3">
-      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
-        Preview: {previewProgramDifferent ? "Changed" : "In Sync"}
-      </span>
+    <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[720px] xl:grid-cols-[1fr_1fr_1.25fr]">
+      <div className="rounded-[24px] border border-red-400/20 bg-red-500/10 p-4 shadow-[0_0_40px_rgba(239,68,68,0.08)]">
+        <div className="text-[10px] uppercase tracking-[0.24em] text-red-100/70">
+          Program
+        </div>
+        <div className="mt-2 flex items-center gap-2">
+          <span className={`h-2.5 w-2.5 rounded-full ${programState?.is_live ? "animate-pulse bg-red-400 shadow-[0_0_18px_rgba(248,113,113,0.9)]" : "bg-white/25"}`} />
+          <span className="text-lg font-semibold text-white">
+            {programState?.is_live ? "On Air" : "Holding"}
+          </span>
+        </div>
+      </div>
 
-      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
-        Program: {programState?.is_live ? "Live Output Ready" : "Holding"}
-      </span>
+      <div className="rounded-[24px] border border-white/10 bg-white/[0.045] p-4">
+        <div className="text-[10px] uppercase tracking-[0.24em] text-white/35">
+          Show State
+        </div>
+        <div className="mt-2 text-lg font-semibold text-white">
+          {previewProgramDifferent ? "Preview Changed" : "In Sync"}
+        </div>
+        <div className="mt-1 text-xs text-white/40">
+          {onStageParticipants.length} talent · {previewBlocks.length} overlays
+        </div>
+      </div>
 
-      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
-        Scene Count: {scenes.length}
-      </span>
+      <div className="rounded-[24px] border border-emerald-300/15 bg-emerald-500/[0.06] p-4">
+        <div className="mb-3 flex items-center justify-between">
+          <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-100/60">
+            Audio Meters
+          </div>
+          <div className="rounded-full border border-emerald-300/20 bg-black/25 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-emerald-100/80">
+            Live
+          </div>
+        </div>
 
-      <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs text-white/60">
-        Devices: {deviceAccessReady ? "Connected" : "Pending"}
-      </span>
+        <div className="space-y-3">
+          {["Host", "Guest", "Program"].map((label, rowIndex) => (
+            <div key={label} className="grid grid-cols-[64px_1fr] items-center gap-3">
+              <div className="text-xs text-white/55">{label}</div>
+              <div className="flex h-3 items-center gap-1 rounded-full bg-black/35 px-1">
+                {Array.from({ length: 18 }).map((_, index) => {
+                  const active =
+                    index < (rowIndex === 0 ? 13 : rowIndex === 1 ? 9 : 15)
+
+                  return (
+                    <div
+                      key={`${label}-${index}`}
+                      className={`h-1.5 flex-1 rounded-full ${
+                        active
+                          ? index > 14
+                            ? "bg-red-400"
+                            : index > 11
+                              ? "bg-amber-300"
+                              : "bg-emerald-400"
+                          : "bg-white/10"
+                      }`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   </div>
 </div>
