@@ -339,7 +339,7 @@ useEffect(() => {
               : "bg-red-500 text-white hover:bg-red-400"
           }`}
         >
-          {micEnabled ? "Mic On" : "Mic Muted"}
+          {micEnabled ? "Mic On · M" : "Mic Muted · M"}
         </button>
 
         <button
@@ -989,7 +989,7 @@ onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void
     {takeBusy ? "Taking" : "Take"}
   </span>
   <span className="relative z-10 mt-2 block text-center text-[9px] font-semibold uppercase tracking-[0.18em] text-white/65">
-    Spacebar
+    SPACE
   </span>
 </button>
 
