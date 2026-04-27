@@ -1615,83 +1615,97 @@ function ProducerRoomInner({
               </div>
             </GlassPanel>
 
-            <GlassPanel className="relative p-4">
-              <SectionEyebrow>Q&A Monitor</SectionEyebrow>
+            <GlassPanel className="relative overflow-hidden p-4">
+  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_35%)]" />
 
-              <div className="mt-4 space-y-3">
-                {qaLoading ? (
-                  <div className="rounded-[24px] border border-white/10 bg-black/20 p-4 text-sm text-white/50">
-                    Loading questions…
-                  </div>
-                ) : qaItems.length === 0 ? (
-                  <div className="rounded-[24px] border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/50">
-                    No questions yet.
-                  </div>
-                ) : (
-                  qaItems.slice(0, 8).map((item) => {
-                    const originLabel =
-                      item.origin_city && item.origin_country
-                        ? `${item.origin_city}, ${item.origin_country}`
-                        : item.origin_country
-                          ? item.origin_country
-                          : item.origin_region || "Unknown origin"
+  <div className="relative flex items-center justify-between gap-3">
+    <div>
+      <SectionEyebrow>Q&A Console</SectionEyebrow>
+      <div className="mt-2 text-sm text-white/60">
+        Select questions, trigger audience-origin moments, and shape the live conversation.
+      </div>
+    </div>
 
-                    return (
-                      <div
-                        key={item.id}
-                        className="rounded-[24px] border border-white/10 bg-black/20 p-4"
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <div className="text-sm font-medium text-white">
-                              {item.name?.trim() || "Anonymous"}
-                            </div>
-                            <div className="mt-1 text-xs uppercase tracking-[0.18em] text-white/40">
-                              {originLabel}
-                            </div>
-                          </div>
+    <div className="rounded-full border border-sky-300/20 bg-sky-500/10 px-3 py-1 text-xs font-medium text-sky-100">
+      {qaItems.length} total
+    </div>
+  </div>
 
-                          <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
-                            {item.status}
-                          </div>
-                        </div>
+  <div className="relative mt-4 space-y-3">
+    {qaLoading ? (
+      <div className="rounded-[24px] border border-white/10 bg-black/20 p-4 text-sm text-white/50">
+        Loading questions…
+      </div>
+    ) : qaItems.length === 0 ? (
+      <div className="rounded-[24px] border border-dashed border-white/10 bg-black/20 p-5 text-sm text-white/50">
+        No questions yet.
+      </div>
+    ) : (
+      qaItems.slice(0, 8).map((item) => {
+        const originLabel =
+          item.origin_city && item.origin_country
+            ? `${item.origin_city}, ${item.origin_country}`
+            : item.origin_country
+              ? item.origin_country
+              : item.origin_region || "Unknown origin"
 
-                        <div className="mt-3 text-sm leading-6 text-white/80">
-                          {item.question}
-                        </div>
+        return (
+          <div
+            key={item.id}
+            className="group rounded-[26px] border border-white/10 bg-black/25 p-4 transition hover:border-sky-300/25 hover:bg-white/[0.045]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-semibold text-white">
+                  {item.name?.trim() || "Anonymous"}
+                </div>
 
-                        <div className="mt-4 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => triggerCueFromQuestion(item)}
-                            className="rounded-xl border border-sky-400/20 bg-sky-500/10 px-3 py-2 text-xs text-sky-100 transition hover:bg-sky-500/15"
-                          >
-                            Trigger Origin Cue
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={() =>
-                              triggerAudienceCue({
-                                region: item.origin_region || "North America",
-                                moonMode: false,
-                                questionLabel: item.question,
-                                treatment: "default",
-                                lat: item.origin_lat ?? null,
-                                lng: item.origin_lng ?? null,
-                              })
-                            }
-                            className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/80 transition hover:bg-white/10"
-                          >
-                            Trigger Standard Cue
-                          </button>
-                        </div>
-                      </div>
-                    )
-                  })
-                )}
+                <div className="mt-1 text-[10px] uppercase tracking-[0.2em] text-white/35">
+                  {originLabel}
+                </div>
               </div>
-            </GlassPanel>
+
+              <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
+                {item.status}
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3 text-sm leading-6 text-white/82">
+              “{item.question}”
+            </div>
+
+            <div className="mt-4 grid gap-2">
+              <button
+                type="button"
+                onClick={() => triggerCueFromQuestion(item)}
+                className="rounded-2xl border border-sky-300/25 bg-sky-500/12 px-3 py-2.5 text-xs font-semibold uppercase tracking-[0.16em] text-sky-100 transition hover:bg-sky-500/20"
+              >
+                Cue Audience Origin
+              </button>
+
+              <button
+                type="button"
+                onClick={() =>
+                  triggerAudienceCue({
+                    region: item.origin_region || "North America",
+                    moonMode: false,
+                    questionLabel: item.question,
+                    treatment: "default",
+                    lat: item.origin_lat ?? null,
+                    lng: item.origin_lng ?? null,
+                  })
+                }
+                className="rounded-2xl border border-white/10 bg-white/[0.055] px-3 py-2.5 text-xs font-medium uppercase tracking-[0.16em] text-white/75 transition hover:bg-white/10"
+              >
+                Standard Cue
+              </button>
+            </div>
+          </div>
+        )
+      })
+    )}
+  </div>
+</GlassPanel>
 
             <GlassPanel className="p-4">
               <SectionEyebrow>Live Chat</SectionEyebrow>
