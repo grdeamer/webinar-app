@@ -33,7 +33,7 @@ function ParticipantStatusPill({
 }): JSX.Element {
   if (isPrimary) {
     return (
-      <span className="rounded-full border border-sky-300/30 bg-sky-400/15 px-2.5 py-1 text-[11px] font-semibold text-sky-200">
+      <span className="rounded-full border border-sky-300/30 bg-sky-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100 shadow-[0_0_18px_rgba(56,189,248,0.16)]">
         Primary
       </span>
     )
@@ -41,7 +41,7 @@ function ParticipantStatusPill({
 
   if (isPinned) {
     return (
-      <span className="rounded-full border border-amber-300/30 bg-amber-400/15 px-2.5 py-1 text-[11px] font-semibold text-amber-200">
+      <span className="rounded-full border border-amber-300/30 bg-amber-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100 shadow-[0_0_18px_rgba(251,191,36,0.16)]">
         Pinned
       </span>
     )
@@ -49,14 +49,14 @@ function ParticipantStatusPill({
 
   if (isOnStage) {
     return (
-      <span className="rounded-full border border-emerald-300/30 bg-emerald-400/15 px-2.5 py-1 text-[11px] font-semibold text-emerald-200">
+      <span className="rounded-full border border-emerald-300/30 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.16)]">
         On Stage
       </span>
     )
   }
 
   return (
-    <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[11px] font-semibold text-white/60">
+    <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/50">
       Backstage
     </span>
   )
@@ -76,11 +76,11 @@ function SourceChip({
       ? "border-violet-300/30 bg-violet-400/15 text-violet-200"
       : "border-emerald-300/30 bg-emerald-400/15 text-emerald-200"
 
-  const inactiveClass = "border-white/10 bg-white/5 text-white/45"
+  const inactiveClass = "border-white/10 bg-black/30 text-white/42"
 
   return (
     <span
-      className={`rounded-full border px-2.5 py-1 text-[11px] font-medium ${
+      className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] ${
         active ? activeClass : inactiveClass
       }`}
     >
@@ -106,12 +106,14 @@ function ParticipantSpeakingMeter({
   const activeBars = Math.max(0, Math.round(level * 10))
 
   return (
-    <div className="flex h-2 w-16 items-center gap-0.5">
+    <div className="flex h-2.5 w-16 items-center gap-0.5 rounded-full border border-white/8 bg-black/35 px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
       {Array.from({ length: 10 }).map((_, index) => (
         <span
           key={`${identity}-meter-${index}`}
           className={`h-1.5 flex-1 rounded-full ${
-            index < activeBars ? "bg-emerald-400" : "bg-white/10"
+            index < activeBars
+              ? "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]"
+              : "bg-white/10"
           }`}
         />
       ))}
@@ -156,14 +158,14 @@ export default function ParticipantCard({
           onAddToStage(participant.identity)
         }
       }}
-      className={`group cursor-pointer rounded-[22px] border p-4 transition ${
+      className={`group cursor-pointer rounded-[26px] border p-4 shadow-[0_18px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:-translate-y-0.5 active:translate-y-0 ${
         isPrimary
-          ? "border-sky-300/50 bg-sky-400/10 shadow-[0_0_0_1px_rgba(125,211,252,0.08)]"
+          ? "border-sky-300/45 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_36%),rgba(56,189,248,0.08)] shadow-[0_0_0_1px_rgba(125,211,252,0.08),0_22px_70px_rgba(56,189,248,0.08)]"
           : isPinned
-            ? "border-amber-300/40 bg-amber-400/5"
+            ? "border-amber-300/36 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.14),transparent_36%),rgba(251,191,36,0.045)]"
             : isOnStage
-              ? "border-emerald-300/20 bg-emerald-400/[0.05]"
-              : "border-white/10 bg-white/[0.03] hover:bg-white/[0.06]"
+              ? "border-emerald-300/24 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.12),transparent_36%),rgba(52,211,153,0.045)]"
+              : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.018))] hover:border-white/16 hover:bg-white/[0.045]"
       }`}
     >
       <div className="space-y-4">
@@ -182,7 +184,7 @@ export default function ParticipantCard({
   </div>
 </div>
             <div className="mt-1 flex items-center gap-2">
-  <div className="min-w-0 flex-1 truncate text-xs text-white/40">
+  <div className="min-w-0 flex-1 truncate text-[11px] font-medium text-white/38">
     {participant.identity}
   </div>
   <ParticipantSpeakingMeter
@@ -209,13 +211,13 @@ export default function ParticipantCard({
 
         <div className="flex flex-wrap gap-2 text-[11px] text-white/45">
           {isUsingScreen ? (
-            <span className="rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 font-medium text-violet-200">
-              Screen selected for program
+            <span className="rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100 shadow-[0_0_16px_rgba(168,85,247,0.14)]">
+              Screen selected
             </span>
           ) : null}
 
           {participant.joinedAt ? (
-            <span className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1">
+            <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
               Joined
             </span>
           ) : null}
@@ -232,10 +234,10 @@ export default function ParticipantCard({
 
                 onSetScreenShare(participant.identity, screenTrackSid)
               }}
-              className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+              className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                 isUsingScreen
-                  ? "bg-violet-300 text-slate-950"
-                  : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                  ? "border-violet-200/50 bg-violet-300 text-black shadow-[0_0_20px_rgba(168,85,247,0.20)]"
+                  : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075]"
               }`}
             >
               {isUsingScreen ? "Screen Active" : "Use Screen"}
@@ -253,10 +255,10 @@ export default function ParticipantCard({
 
                   onSetPrimary(participant.identity)
                 }}
-                className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                   isPrimary
-                    ? "bg-sky-300 text-slate-950"
-                    : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    ? "border-sky-200/50 bg-sky-300 text-black shadow-[0_0_20px_rgba(56,189,248,0.20)]"
+                    : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075]"
                 }`}
               >
                 {isPrimary ? "Clear Primary" : "Make Primary"}
@@ -271,10 +273,10 @@ export default function ParticipantCard({
 
                   onPin(participant.identity)
                 }}
-                className={`rounded-xl px-3 py-2 text-xs font-semibold transition ${
+                className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                   isPinned
-                    ? "bg-amber-300 text-slate-950"
-                    : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
+                    ? "border-amber-200/50 bg-amber-300 text-black shadow-[0_0_20px_rgba(251,191,36,0.20)]"
+                    : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075]"
                 }`}
               >
                 {isPinned ? "Unpin" : "Pin"}
@@ -282,7 +284,7 @@ export default function ParticipantCard({
 
               <button
                 onClick={() => onRemoveFromStage(participant.identity)}
-                className="rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-xs font-semibold text-white transition hover:bg-white/10"
+                className="rounded-2xl border border-red-300/20 bg-red-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-red-100/80 transition hover:-translate-y-0.5 hover:bg-red-500/16 active:translate-y-0"
               >
                 Remove
               </button>
@@ -290,7 +292,7 @@ export default function ParticipantCard({
           ) : (
             <button
               onClick={() => onAddToStage(participant.identity)}
-              className="rounded-xl bg-white px-3 py-2 text-xs font-semibold text-slate-950 transition hover:bg-white/90"
+              className="rounded-2xl border border-white/70 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-black shadow-[0_0_22px_rgba(255,255,255,0.16)] transition hover:-translate-y-0.5 hover:bg-white/90 active:translate-y-0"
             >
               Add to Stage
             </button>

@@ -84,7 +84,7 @@ export default function RightInspectorRail({
   onError: (value: string | null) => void
 }): JSX.Element {
   return (
-    <div className="space-y-4 xl:col-start-3">
+    <div className="space-y-4 rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),linear-gradient(180deg,rgba(8,13,30,0.72),rgba(2,4,10,0.88))] p-3 shadow-[0_30px_110px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition duration-300 hover:border-white/15 xl:col-start-3">
       <SelectedBlockInspector
         selectedBlock={selectedBlock}
         onToggleHidden={onToggleHidden}
@@ -98,8 +98,14 @@ export default function RightInspectorRail({
 
       <BackstagePanel participantCount={participants.length}>
         {participants.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-white/15 p-6 text-sm text-white/40">
-            No participants connected yet.
+          <div className="rounded-[26px] border border-dashed border-white/14 bg-black/24 p-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+            <div className="mx-auto mb-3 h-2 w-2 rounded-full bg-white/25 shadow-[0_0_14px_rgba(255,255,255,0.18)]" />
+            <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
+              Backstage Empty
+            </div>
+            <div className="mt-2 text-sm text-white/42">
+              No participants connected yet.
+            </div>
           </div>
         ) : (
           participants.map((p) => {
