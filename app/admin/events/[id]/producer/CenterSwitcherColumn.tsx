@@ -138,6 +138,13 @@ export default function CenterSwitcherColumn({
               onMouseLeave={stopDraggingBlock}
               onClick={onClearSelectedBlock}
             >
+                            {isTransitioning ? (
+                <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-white/[0.03]">
+                  <div className="rounded-full border border-white/30 bg-white px-6 py-3 text-[11px] font-black uppercase tracking-[0.28em] text-black shadow-[0_0_70px_rgba(255,255,255,0.5)]">
+                    Live Cut
+                  </div>
+                </div>
+              ) : null}
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
 
@@ -177,10 +184,20 @@ export default function CenterSwitcherColumn({
               }
             />
 
-            <div className="relative h-[520px] overflow-hidden rounded-[18px] border border-red-400/10 bg-black shadow-[0_0_0_1px_rgba(239,68,68,0.06),inset_0_1px_0_rgba(255,255,255,0.04)] xl:h-[600px] 2xl:h-[680px]">
+            <div
+className={`relative h-[520px] overflow-hidden rounded-[18px] bg-black transition-all duration-300 xl:h-[600px] 2xl:h-[680px] ${
+  previewProgramDifferent
+    ? "border border-amber-300/35 shadow-[0_0_40px_rgba(251,191,36,0.12),inset_0_1px_0_rgba(255,255,255,0.04)]"
+    : "border border-white/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
+}`}
+>
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
-
+{previewProgramDifferent ? (
+  <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-amber-400 px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-[0.24em] text-black shadow-[0_0_32px_rgba(251,191,36,0.28)]">
+    Untaken Changes
+  </div>
+) : null}
               <div className="relative z-10 h-full">
                 <StageVideoPreview
                   stageState={programState}
@@ -237,14 +254,26 @@ export default function CenterSwitcherColumn({
                 </div>
               ) : null}
 
-              <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-400/20 bg-black/55 px-3 py-1 text-[11px] font-semibold text-red-200 backdrop-blur">
-                <span
-                  className={`h-2 w-2 rounded-full ${
-                    programState?.is_live ? "animate-pulse bg-red-400" : "bg-white/30"
-                  }`}
-                />
-                PROGRAM
-              </div>
+<div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-400/20 bg-black/60 px-3 py-1.5 text-[11px] font-bold tracking-[0.16em] text-red-200 backdrop-blur-md shadow-[0_0_30px_rgba(239,68,68,0.12)]">
+  <span className="relative flex h-2.5 w-2.5 items-center justify-center">
+    <span
+      className={`absolute inset-0 rounded-full ${
+        programState?.is_live
+          ? "animate-ping bg-red-400/50"
+          : "bg-transparent"
+      }`}
+    />
+    <span
+      className={`relative h-2.5 w-2.5 rounded-full ${
+        programState?.is_live
+          ? "bg-red-400 shadow-[0_0_18px_rgba(248,113,113,0.9)]"
+          : "bg-white/30"
+      }`}
+    />
+  </span>
+
+  {programState?.is_live ? "LIVE" : "PROGRAM"}
+</div>
             </div>
           </div>
         </div>
