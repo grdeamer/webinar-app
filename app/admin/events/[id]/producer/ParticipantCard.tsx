@@ -33,7 +33,8 @@ function ParticipantStatusPill({
 }): JSX.Element {
   if (isPrimary) {
     return (
-      <span className="rounded-full border border-sky-300/30 bg-sky-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100 shadow-[0_0_18px_rgba(56,189,248,0.16)]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/30 bg-sky-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100 shadow-[0_0_18px_rgba(56,189,248,0.16)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-sky-300 shadow-[0_0_8px_rgba(125,211,252,0.8)]" />
         Primary
       </span>
     )
@@ -41,7 +42,8 @@ function ParticipantStatusPill({
 
   if (isPinned) {
     return (
-      <span className="rounded-full border border-amber-300/30 bg-amber-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100 shadow-[0_0_18px_rgba(251,191,36,0.16)]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/30 bg-amber-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100 shadow-[0_0_18px_rgba(251,191,36,0.16)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.8)]" />
         Pinned
       </span>
     )
@@ -49,14 +51,16 @@ function ParticipantStatusPill({
 
   if (isOnStage) {
     return (
-      <span className="rounded-full border border-emerald-300/30 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.16)]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/30 bg-emerald-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.16)]">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.8)]" />
         On Stage
       </span>
     )
   }
 
   return (
-    <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/50">
+    <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/50">
+      <span className="h-1.5 w-1.5 rounded-full bg-white/25" />
       Backstage
     </span>
   )
@@ -158,7 +162,7 @@ export default function ParticipantCard({
           onAddToStage(participant.identity)
         }
       }}
-      className={`group cursor-pointer rounded-[26px] border p-4 shadow-[0_18px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:-translate-y-0.5 active:translate-y-0 ${
+      className={`group cursor-pointer rounded-[26px] border p-3.5 shadow-[0_18px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:-translate-y-0.5 active:translate-y-0 ${
         isPrimary
           ? "border-sky-300/45 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_36%),rgba(56,189,248,0.08)] shadow-[0_0_0_1px_rgba(125,211,252,0.08),0_22px_70px_rgba(56,189,248,0.08)]"
           : isPinned
@@ -168,7 +172,7 @@ export default function ParticipantCard({
               : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.018))] hover:border-white/16 hover:bg-white/[0.045]"
       }`}
     >
-      <div className="space-y-4">
+      <div className="space-y-3">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <div className="flex min-w-0 items-center gap-2">
@@ -176,7 +180,7 @@ export default function ParticipantCard({
     className={`h-2.5 w-2.5 shrink-0 rounded-full ${
       participant.micEnabled
         ? "animate-pulse bg-emerald-400 shadow-[0_0_14px_rgba(52,211,153,0.8)]"
-        : "bg-white/20"
+        : "bg-white/12 border border-white/10"
     }`}
   />
   <div className="truncate text-base font-semibold text-white">
@@ -218,12 +222,12 @@ export default function ParticipantCard({
 
           {participant.joinedAt ? (
             <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
-              Joined
+              Connected
             </span>
           ) : null}
         </div>
 
-        <div className="flex flex-wrap gap-2" onClick={(e) => e.stopPropagation()}>
+        <div className="flex flex-wrap items-center gap-1.5 rounded-[20px] border border-white/8 bg-black/18 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]" onClick={(e) => e.stopPropagation()}>
           {participant.screenShareEnabled ? (
             <button
               onClick={() => {
@@ -234,10 +238,10 @@ export default function ParticipantCard({
 
                 onSetScreenShare(participant.identity, screenTrackSid)
               }}
-              className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
+              className={`rounded-xl border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                 isUsingScreen
                   ? "border-violet-200/50 bg-violet-300 text-black shadow-[0_0_20px_rgba(168,85,247,0.20)]"
-                  : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075]"
+                  : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
               }`}
             >
               {isUsingScreen ? "Screen Active" : "Use Screen"}
@@ -255,10 +259,10 @@ export default function ParticipantCard({
 
                   onSetPrimary(participant.identity)
                 }}
-                className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
+                className={`rounded-xl border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                   isPrimary
                     ? "border-sky-200/50 bg-sky-300 text-black shadow-[0_0_20px_rgba(56,189,248,0.20)]"
-                    : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075]"
+                    : "border-sky-300/18 bg-sky-400/8 text-sky-100/70 hover:border-sky-300/32 hover:bg-sky-400/12"
                 }`}
               >
                 {isPrimary ? "Clear Primary" : "Make Primary"}
@@ -273,10 +277,10 @@ export default function ParticipantCard({
 
                   onPin(participant.identity)
                 }}
-                className={`rounded-2xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
+                className={`rounded-xl border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                   isPinned
                     ? "border-amber-200/50 bg-amber-300 text-black shadow-[0_0_20px_rgba(251,191,36,0.20)]"
-                    : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075]"
+                    : "border-amber-300/18 bg-amber-400/8 text-amber-100/70 hover:border-amber-300/32 hover:bg-amber-400/12"
                 }`}
               >
                 {isPinned ? "Unpin" : "Pin"}
@@ -284,7 +288,7 @@ export default function ParticipantCard({
 
               <button
                 onClick={() => onRemoveFromStage(participant.identity)}
-                className="rounded-2xl border border-red-300/20 bg-red-500/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-red-100/80 transition hover:-translate-y-0.5 hover:bg-red-500/16 active:translate-y-0"
+                className="rounded-xl border border-red-300/18 bg-red-500/8 px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-red-100/70 transition hover:-translate-y-0.5 hover:border-red-300/30 hover:bg-red-500/14 active:translate-y-0"
               >
                 Remove
               </button>
@@ -292,7 +296,7 @@ export default function ParticipantCard({
           ) : (
             <button
               onClick={() => onAddToStage(participant.identity)}
-              className="rounded-2xl border border-white/70 bg-white px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] text-black shadow-[0_0_22px_rgba(255,255,255,0.16)] transition hover:-translate-y-0.5 hover:bg-white/90 active:translate-y-0"
+              className="rounded-xl border border-emerald-200/70 bg-emerald-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-black shadow-[0_0_22px_rgba(52,211,153,0.18)] transition hover:-translate-y-0.5 hover:bg-emerald-100 active:translate-y-0"
             >
               Add to Stage
             </button>
