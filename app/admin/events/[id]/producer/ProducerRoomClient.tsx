@@ -17,7 +17,6 @@ import RightInspectorRail from "./RightInspectorRail"
 
 
 
-
 type ProducerParticipant = {
   identity: string
   name: string
@@ -35,6 +34,65 @@ type ProducerParticipant = {
     muted?: boolean
   }>
 
+}
+
+function AudioMetersPanel({ localMicLevel }: { localMicLevel: number }): JSX.Element {
+  return (
+    <div className="rounded-[24px] border border-emerald-300/18 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.13),transparent_38%),rgba(16,185,129,0.06)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="mb-3 flex items-center justify-between">
+        <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-100/60">
+          Audio Meters
+        </div>
+        <div className="rounded-full border border-emerald-300/20 bg-black/25 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-emerald-100/80">
+          {localMicLevel > 0.08 ? "Mic Active" : "Standing By"}
+        </div>
+      </div>
+
+      <div className="space-y-3">
+        {["Host", "Guest", "Program"].map((label, rowIndex) => (
+          <div key={label} className="grid grid-cols-[64px_1fr] items-center gap-3">
+            <div className="text-xs text-white/55">{label}</div>
+            <div className="flex h-3 items-center gap-1 rounded-full bg-black/35 px-1">
+              {Array.from({ length: 18 }).map((_, index) => {
+                const active =
+                  index <
+                  (rowIndex === 0
+                    ? Math.max(2, Math.round(localMicLevel * 18))
+                    : rowIndex === 1
+                      ? 9
+                      : Math.max(3, Math.round(localMicLevel * 18)))
+
+                return (
+                  <div
+                    key={`${label}-${index}`}
+                    className={`h-1.5 flex-1 rounded-full ${
+                      active
+                        ? index > 14
+                          ? "bg-red-400"
+                          : index > 11
+                            ? "bg-amber-300"
+                            : "bg-emerald-400"
+                        : "bg-white/10"
+                    }`}
+                  />
+                )
+              })}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 flex flex-wrap gap-2">
+        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
+          Space = Take
+        </div>
+
+        <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
+          M = Mic
+        </div>
+      </div>
+    </div>
+  )
 }
 
 function ControlStackPanel({
@@ -1920,6 +1978,20 @@ const selectedScreenStillExists = useMemo(
   ]
 )
 
+const runTake = useCallback(async () => {
+  if (takeBusy) return
+
+  try {
+    setTakeBusy(true)
+    setError(null)
+    await takeProgram()
+  } catch (e: unknown) {
+    setError(e instanceof Error ? e.message : "Unexpected error")
+  } finally {
+    setTakeBusy(false)
+  }
+}, [takeBusy, takeProgram])
+
 useEffect(() => {
   function onKeyDown(event: KeyboardEvent) {
     const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
@@ -1928,25 +2000,12 @@ useEffect(() => {
     if (event.code !== "Space") return
 
     event.preventDefault()
-
-    if (takeBusy) return
-
-    void (async () => {
-      try {
-        setTakeBusy(true)
-        setError(null)
-        await takeProgram()
-      } catch (e: unknown) {
-        setError(e instanceof Error ? e.message : "Unexpected error")
-      } finally {
-        setTakeBusy(false)
-      }
-    })()
+    void runTake()
   }
 
   window.addEventListener("keydown", onKeyDown)
   return () => window.removeEventListener("keydown", onKeyDown)
-}, [takeBusy, takeProgram])
+}, [runTake])
 const previewProgramDifferent = useMemo(
   () =>
     JSON.stringify({
@@ -2082,7 +2141,7 @@ const previewProgramDifferent = useMemo(
       </div>
     </div>
 
-    <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[820px] xl:grid-cols-[1fr_1fr_1.35fr]">
+    <div className="grid gap-3 sm:grid-cols-2 xl:min-w-[520px] xl:grid-cols-2">
       <div className="relative overflow-hidden rounded-[26px] border border-red-400/25 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.22),transparent_42%),linear-gradient(180deg,rgba(127,29,29,0.58),rgba(239,68,68,0.13))] p-4 shadow-[0_0_60px_rgba(239,68,68,0.18)]">
         <div className="text-[10px] uppercase tracking-[0.24em] text-red-100/70">
           Program
@@ -2105,59 +2164,6 @@ const previewProgramDifferent = useMemo(
           {onStageParticipants.length} talent · {previewBlocks.length} overlays
         </div>
       </div>
-      <div className="rounded-[26px] border border-emerald-300/18 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.13),transparent_38%),rgba(16,185,129,0.06)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
-        <div className="mb-3 flex items-center justify-between">
-          <div className="text-[10px] uppercase tracking-[0.24em] text-emerald-100/60">
-            Audio Meters
-          </div>
-<div className="rounded-full border border-emerald-300/20 bg-black/25 px-2 py-0.5 text-[10px] uppercase tracking-[0.16em] text-emerald-100/80">
-  {localMicLevel > 0.08 ? "Mic Active" : "Standing By"}
-</div>
-        </div>
-<div className="mt-3 flex flex-wrap gap-2">
-  <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
-    Space = Take
-  </div>
-
-  <div className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[10px] uppercase tracking-[0.18em] text-white/60">
-    M = Mic
-  </div>
-</div>
-        <div className="space-y-3">
-          {["Host", "Guest", "Program"].map((label, rowIndex) => (
-            <div key={label} className="grid grid-cols-[64px_1fr] items-center gap-3">
-              <div className="text-xs text-white/55">{label}</div>
-              <div className="flex h-3 items-center gap-1 rounded-full bg-black/35 px-1">
-                {Array.from({ length: 18 }).map((_, index) => {
-
-const active =
-  index <
-  (rowIndex === 0
-    ? Math.max(2, Math.round(localMicLevel * 18))
-    : rowIndex === 1
-      ? 9
-      : Math.max(3, Math.round(localMicLevel * 18)))
-
-                  return (
-                    <div
-                      key={`${label}-${index}`}
-                      className={`h-1.5 flex-1 rounded-full ${
-                        active
-                          ? index > 14
-                            ? "bg-red-400"
-                            : index > 11
-                              ? "bg-amber-300"
-                              : "bg-emerald-400"
-                          : "bg-white/10"
-                      }`}
-                    />
-                  )
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
     </div>
   </div>
 </div>
@@ -2168,19 +2174,7 @@ const active =
       <ControlStackPanel
         takeBusy={takeBusy}
         previewProgramDifferent={previewProgramDifferent}
-        onTake={() => {
-          void (async () => {
-            try {
-              setTakeBusy(true)
-              setError(null)
-              await takeProgram()
-            } catch (e: any) {
-              setError(e.message)
-            } finally {
-              setTakeBusy(false)
-            }
-          })()
-        }}
+        onTake={() => void runTake()}
         onGoLive={() =>
           void goLive().catch((e: unknown) =>
             setError(e instanceof Error ? e.message : "Unexpected error")
@@ -2205,6 +2199,7 @@ const active =
         }
       />
 <ProducerMicControls />
+<AudioMetersPanel localMicLevel={localMicLevel} />
       <DeviceSelectorPanel
         deviceAccessReady={deviceAccessReady}
         videoDevices={videoDevices}
@@ -2218,24 +2213,12 @@ const active =
 <div className="min-w-0">
     <CenterSwitcherColumn
       triggerAudienceCue={triggerAudienceCue}
-onHideAudienceCue={() => setShowAudienceCue(false)}
-previewProgramDifferent={previewProgramDifferent}
-onTake={() => {
-  void (async () => {
-    try {
-      setTakeBusy(true)
-      setError(null)
-      await takeProgram()
-    } catch (e: any) {
-      setError(e.message)
-    } finally {
-      setTakeBusy(false)
-    }
-  })()
-}}
-takeBusy={takeBusy}
-programFlashActive={programFlashActive}
-onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
+      onHideAudienceCue={() => setShowAudienceCue(false)}
+      previewProgramDifferent={previewProgramDifferent}
+      onTake={() => void runTake()}
+      takeBusy={takeBusy}
+      programFlashActive={programFlashActive}
+      onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
       stopDraggingBlock={stopDraggingBlock}
       onClearSelectedBlock={() => setSelectedBlockId(null)}
       stageState={stageState}
