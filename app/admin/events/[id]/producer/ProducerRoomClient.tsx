@@ -11,6 +11,7 @@ import CenterSwitcherColumn from "./CenterSwitcherColumn"
 import ProducerLeftRail from "./ProducerLeftRail"
 import ProducerRightRail from "./ProducerRightRail"
 import BroadcastCommandDeck from "./BroadcastCommandDeck"
+import BottomAssetDock from "./BottomAssetDock"
 
 export type ProducerParticipant = {
   identity: string
@@ -1460,17 +1461,17 @@ export default function ProducerRoomClient({
             scopeLabel={producerScopeLabel}
           />
           <BroadcastCommandDeck
-          isLive={Boolean(programState?.is_live)}
-          audienceCount={participants.length}
-          onStageCount={onStageParticipants.length}
-          previewProgramDifferent={previewProgramDifferent}
-          takeBusy={takeBusy}
-          onTake={(mode: "cut" | "auto"): void => {
-          void runTake(mode)
-          }}
-/>
+            isLive={Boolean(programState?.is_live)}
+            audienceCount={participants.length}
+            onStageCount={onStageParticipants.length}
+            previewProgramDifferent={previewProgramDifferent}
+            takeBusy={takeBusy}
+            onTake={(mode: "cut" | "auto"): void => {
+              void runTake(mode)
+            }}
+          />
           <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
-  <div className="grid w-full items-start gap-4 lg:grid-cols-[250px_minmax(0,1fr)_320px] xl:grid-cols-[265px_minmax(0,1fr)_345px] 2xl:grid-cols-[285px_minmax(0,1fr)_375px] [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-0.5 [&_button:active]:translate-y-0">
+            <div className="grid w-full items-start gap-4 lg:grid-cols-[250px_minmax(0,1fr)_320px] xl:grid-cols-[265px_minmax(0,1fr)_345px] 2xl:grid-cols-[285px_minmax(0,1fr)_375px] [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-0.5 [&_button:active]:translate-y-0">
               <ProducerLeftRail
                 takeBusy={takeBusy}
                 previewProgramDifferent={previewProgramDifferent}
@@ -1622,6 +1623,8 @@ export default function ProducerRoomClient({
                 onError={setError}
               />
             </div>
+
+            <BottomAssetDock scenes={scenes} previewBlocks={previewBlocks} />
           </div>
         </div>
       </div>
