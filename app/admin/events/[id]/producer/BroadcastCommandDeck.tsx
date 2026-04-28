@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import type { JSX } from "react"
 import {
   Activity,
@@ -12,6 +12,20 @@ import {
   Gauge,
   Sparkles,
 } from "lucide-react"
+
+type TakeMode = "cut" | "auto"
+
+function isTypingTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false
+
+  const tagName = target.tagName.toLowerCase()
+  return (
+    tagName === "input" ||
+    tagName === "textarea" ||
+    tagName === "select" ||
+    target.isContentEditable
+  )
+}
 
 function StatCard({
   label,
@@ -108,9 +122,9 @@ export default function BroadcastCommandDeck({
   onStageCount: number
   previewProgramDifferent: boolean
   takeBusy: boolean
-  onTake: (mode: "cut" | "auto") => void
+  onTake: (mode: TakeMode) => void
 }): JSX.Element {
-  const [takeFlash, setTakeFlash] = useState<"cut" | "auto" | null>(null)
+  const [takeFlash, setTakeFlash] = useState<TakeMode | null>(null)
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const startedAtRef = useRef(Date.now())
@@ -128,21 +142,50 @@ export default function BroadcastCommandDeck({
     runtimeSeconds % 60
   ).padStart(2, "0")}`
 
-  function triggerTake(mode: "cut" | "auto") {
-    if (takeBusy || !previewProgramDifferent) return
+  const triggerTake = useCallback(
+    (mode: TakeMode) => {
+      if (takeBusy || !previewProgramDifferent) return
 
-    if (flashTimeoutRef.current) {
-      clearTimeout(flashTimeoutRef.current)
+      if (flashTimeoutRef.current) {
+        clearTimeout(flashTimeoutRef.current)
+      }
+
+      setTakeFlash(mode)
+      onTake(mode)
+
+      flashTimeoutRef.current = setTimeout(() => {
+        setTakeFlash(null)
+        flashTimeoutRef.current = null
+      }, 520)
+    },
+    [previewProgramDifferent, takeBusy, onTake]
+  )
+
+  useEffect(() => {
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return
+      if (isTypingTarget(event.target)) return
+
+      const key = event.key.toLowerCase()
+
+      if (key === "t" || key === "c") {
+        event.preventDefault()
+        triggerTake("cut")
+        return
+      }
+
+      if (key === "a") {
+        event.preventDefault()
+        triggerTake("auto")
+      }
     }
 
-    setTakeFlash(mode)
-    onTake(mode)
+    window.addEventListener("keydown", handleKeyDown)
 
-    flashTimeoutRef.current = setTimeout(() => {
-      setTakeFlash(null)
-      flashTimeoutRef.current = null
-    }, 520)
-  }
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [triggerTake])
 
   return (
     <div className="relative mb-4 space-y-3 px-3 md:px-4 xl:px-5 2xl:px-6">
@@ -270,6 +313,7 @@ export default function BroadcastCommandDeck({
                 onClick={() => triggerTake("cut")}
                 disabled={takeBusy || !previewProgramDifferent}
                 className="relative group overflow-hidden rounded-2xl border border-amber-100/70 bg-[linear-gradient(180deg,rgba(253,230,138,1),rgba(251,191,36,1))] px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-black shadow-[0_0_34px_rgba(251,191,36,0.34),inset_0_1px_0_rgba(255,255,255,0.55)] transition hover:-translate-y-0.5 hover:shadow-[0_0_42px_rgba(251,191,36,0.42),inset_0_1px_0_rgba(255,255,255,0.65)] active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+                title="Take preview to program (T)"
               >
                 <span className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.32),transparent)] opacity-0 transition group-hover:opacity-100" />
                 <span className="relative z-10">{takeBusy ? "Taking" : "Take"}</span>
@@ -280,6 +324,7 @@ export default function BroadcastCommandDeck({
                 onClick={() => triggerTake("cut")}
                 disabled={takeBusy || !previewProgramDifferent}
                 className="rounded-2xl border border-red-300/28 bg-[linear-gradient(180deg,rgba(239,68,68,0.16),rgba(127,29,29,0.18))] px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-red-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-red-300/40 hover:bg-red-500/18 hover:shadow-[0_0_20px_rgba(248,113,113,0.16)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
+                title="Cut preview to program (C)"
               >
                 Cut
               </button>
@@ -289,6 +334,7 @@ export default function BroadcastCommandDeck({
                 onClick={() => triggerTake("auto")}
                 disabled={takeBusy || !previewProgramDifferent}
                 className="rounded-2xl border border-emerald-300/28 bg-[linear-gradient(180deg,rgba(16,185,129,0.15),rgba(6,78,59,0.18))] px-3 py-3 text-sm font-black uppercase tracking-[0.14em] text-emerald-100 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] transition hover:-translate-y-0.5 hover:border-emerald-300/40 hover:bg-emerald-500/18 hover:shadow-[0_0_20px_rgba(52,211,153,0.16)] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
+                title="Auto take preview to program (A)"
               >
                 Auto
               </button>
@@ -296,11 +342,11 @@ export default function BroadcastCommandDeck({
 
             {previewProgramDifferent ? (
               <div className="mt-3 text-xs font-medium text-amber-100/80">
-                Pending preview changes ready to take.
+                Pending preview changes ready to take. Press T/C to cut or A for auto.
               </div>
             ) : (
               <div className="mt-3 text-xs text-white/42">
-                Preview matches Program.
+                Preview matches Program. Shortcuts arm when preview changes.
               </div>
             )}
           </div>
