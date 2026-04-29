@@ -8,6 +8,8 @@ import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
 import useProducerBlockEditor from "./useProducerBlockEditor"
 import useProducerUploads from "./useProducerUploads"
+import useProducerTransitions from "./useProducerTransitions"
+import useProducerDevices from "./useProducerDevices"
 import ProducerRoomHeader from "./ProducerRoomHeader"
 import CenterSwitcherColumn from "./CenterSwitcherColumn"
 import ProducerLeftRail from "./ProducerLeftRail"
@@ -63,11 +65,6 @@ export default function ProducerRoomClient({
   const [loadingText, setLoadingText] = useState("Connecting producer...")
   const [error, setError] = useState<string | null>(null)
 
-  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([])
-  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([])
-  const [selectedVideoDeviceId, setSelectedVideoDeviceId] = useState("")
-  const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState("")
-  const [deviceAccessReady, setDeviceAccessReady] = useState(false)
 
   const [scenes, setScenes] = useState<any[]>([])
   const [sceneName, setSceneName] = useState("")
@@ -75,22 +72,15 @@ export default function ProducerRoomClient({
   const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
-  const [takeBusy, setTakeBusy] = useState(false)
-  const [lastTakeMode, setLastTakeMode] = useState<"cut" | "auto">("cut")
   const [programFlashActive, setProgramFlashActive] = useState(false)
   const [programState, setProgramState] = useState<StageState | null>(null)
-  const [localMicLevel, setLocalMicLevel] = useState(0)
   const [monitorHeight, setMonitorHeight] = useState(520)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
 
-  const localPreviewStreamRef = useRef<MediaStream | null>(null)
 
-  const [isTransitioning, setIsTransitioning] = useState(false)
-  const [transitionFromState, setTransitionFromState] = useState<StageState | null>(null)
-  const [transitionFromBlocks, setTransitionFromBlocks] = useState<PreviewBlock[]>([])
-  const [transitionFadingOut, setTransitionFadingOut] = useState(false)
+  
   const [showAudienceCue, setShowAudienceCue] = useState(false)
   const [audienceCueRegion, setAudienceCueRegion] = useState("Europe")
   const [audienceCueMoonMode, setAudienceCueMoonMode] = useState(false)
@@ -144,12 +134,24 @@ export default function ProducerRoomClient({
     setPreviewBlocks,
   })
 
-  const stopLocalPreviewStream = useCallback(() => {
-    if (!localPreviewStreamRef.current) return
+  const {
+    takeBusy,
+    lastTakeMode,
+    isTransitioning,
+    transitionFromState,
+    transitionFromBlocks,
+    transitionFadingOut,
+    runTake,
+  } = useProducerTransitions({
+    api,
+    programState,
+    programBlocks,
+    previewBlocks,
+    setProgramState,
+    setProgramBlocks,
+    setError,
+  })
 
-    localPreviewStreamRef.current.getTracks().forEach((track) => track.stop())
-    localPreviewStreamRef.current = null
-  }, [])
 
   async function loadToken() {
     const data = await api.loadToken()
@@ -177,45 +179,18 @@ export default function ProducerRoomClient({
     setScenes(Array.isArray(data?.scenes) ? data.scenes : [])
   }
 
-  const loadMediaDevices = useCallback(async () => {
-    try {
-      const tempStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      })
-
-      const devices = await navigator.mediaDevices.enumerateDevices()
-
-      tempStream.getTracks().forEach((track) => track.stop())
-
-      const videos = devices.filter((device) => device.kind === "videoinput")
-      const audios = devices.filter((device) => device.kind === "audioinput")
-
-      setVideoDevices(videos)
-      setAudioDevices(audios)
-
-      setSelectedVideoDeviceId((prev) =>
-        prev && videos.some((device) => device.deviceId === prev)
-          ? prev
-          : videos[0]?.deviceId || ""
-      )
-
-      setSelectedAudioDeviceId((prev) =>
-        prev && audios.some((device) => device.deviceId === prev)
-          ? prev
-          : audios[0]?.deviceId || ""
-      )
-
-      setDeviceAccessReady(videos.length > 0 || audios.length > 0)
-    } catch (err) {
-      console.error("Failed to load media devices", err)
-      setDeviceAccessReady(false)
-      setVideoDevices([])
-      setAudioDevices([])
-      setSelectedVideoDeviceId("")
-      setSelectedAudioDeviceId("")
-    }
-  }, [])
+  const {
+    videoDevices,
+    audioDevices,
+    selectedVideoDeviceId,
+    selectedAudioDeviceId,
+    deviceAccessReady,
+    localMicLevel,
+    loadMediaDevices,
+    stopLocalPreviewStream,
+    setSelectedVideoDeviceId,
+    setSelectedAudioDeviceId,
+  } = useProducerDevices()
 
   const refreshAll = useCallback(async () => {
     await Promise.all([loadParticipants(), loadStageState(), loadProgramState(), loadScenes()])
@@ -336,41 +311,6 @@ export default function ProducerRoomClient({
     const data = await api.clearScreenShare()
     setStageState(data.state)
   }
-
-  async function takeProgram() {
-    const previousProgramState = programState ? { ...programState } : null
-    const previousProgramBlocks = programBlocks.map((block) => ({ ...block }))
-
-    const data = await api.takeProgram()
-
-    setTransitionFromState(previousProgramState)
-    setTransitionFromBlocks(previousProgramBlocks)
-    setTransitionFadingOut(false)
-    setIsTransitioning(true)
-
-    setProgramState(data?.state ?? null)
-    setProgramBlocks(previewBlocks.map((block) => ({ ...block })))
-    setProgramFlashActive(true)
-
-    window.setTimeout(() => {
-      setProgramFlashActive(false)
-    }, 220)
-    window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
-        setTransitionFadingOut(true)
-      })
-    })
-
-    window.setTimeout(() => {
-      setIsTransitioning(false)
-      setTransitionFromState(null)
-      setTransitionFromBlocks([])
-      setTransitionFadingOut(false)
-    }, 620)
-
-    return data?.state ?? null
-  }
-
 
   function startDraggingBlock(e: React.MouseEvent<HTMLDivElement>, blockId: string) {
     const rect = e.currentTarget.parentElement?.getBoundingClientRect() || null
@@ -513,123 +453,6 @@ export default function ProducerRoomClient({
     }
   }, [stageState?.auto_director_enabled])
 
-  useEffect(() => {
-    if (!deviceAccessReady) return
-
-    let cancelled = false
-
-    async function start() {
-      try {
-        stopLocalPreviewStream()
-
-        const videoExists =
-          !selectedVideoDeviceId ||
-          videoDevices.some((device) => device.deviceId === selectedVideoDeviceId)
-
-        const audioExists =
-          !selectedAudioDeviceId ||
-          audioDevices.some((device) => device.deviceId === selectedAudioDeviceId)
-
-        const stream = await navigator.mediaDevices.getUserMedia({
-          video: videoExists
-            ? selectedVideoDeviceId
-              ? { deviceId: { exact: selectedVideoDeviceId } }
-              : true
-            : true,
-          audio: audioExists
-            ? selectedAudioDeviceId
-              ? { deviceId: { exact: selectedAudioDeviceId } }
-              : true
-            : true,
-        })
-
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
-          return
-        }
-
-        localPreviewStreamRef.current = stream
-      } catch (err) {
-        console.error("Preview start failed", err)
-      }
-    }
-
-    void start()
-
-    return () => {
-      cancelled = true
-      stopLocalPreviewStream()
-    }
-  }, [
-    deviceAccessReady,
-    selectedVideoDeviceId,
-    selectedAudioDeviceId,
-    videoDevices,
-    audioDevices,
-    stopLocalPreviewStream,
-  ])
-
-  useEffect(() => {
-    if (!deviceAccessReady) return
-
-    let cancelled = false
-    let animationFrameId = 0
-    let audioContext: AudioContext | null = null
-
-    async function startMeter() {
-      await new Promise((resolve) => window.setTimeout(resolve, 250))
-
-      const stream = localPreviewStreamRef.current
-      const audioTrack = stream?.getAudioTracks()[0]
-
-      if (!stream || !audioTrack || cancelled) {
-        setLocalMicLevel(0)
-        return
-      }
-
-      audioContext = new AudioContext()
-      const source = audioContext.createMediaStreamSource(stream)
-      const analyser = audioContext.createAnalyser()
-      analyser.fftSize = 256
-
-      source.connect(analyser)
-
-      const data = new Uint8Array(analyser.frequencyBinCount)
-
-      function tick() {
-        if (cancelled) return
-
-        analyser.getByteTimeDomainData(data)
-
-        let sum = 0
-        for (const value of data) {
-          const normalized = (value - 128) / 128
-          sum += normalized * normalized
-        }
-
-        const rms = Math.sqrt(sum / data.length)
-        const boosted = Math.min(1, rms * 9)
-
-        setLocalMicLevel((previous) => {
-          const attack = boosted > previous ? 0.35 : 0.12
-          return previous + (boosted - previous) * attack
-        })
-
-        animationFrameId = window.requestAnimationFrame(tick)
-      }
-
-      tick()
-    }
-
-    void startMeter()
-
-    return () => {
-      cancelled = true
-      window.cancelAnimationFrame(animationFrameId)
-      void audioContext?.close().catch(() => {})
-      setLocalMicLevel(0)
-    }
-  }, [deviceAccessReady, selectedAudioDeviceId])
 
   const stageIds = useMemo(() => new Set(stageState?.stage_participant_ids || []), [stageState])
 
@@ -670,20 +493,7 @@ export default function ProducerRoomClient({
     ]
   )
 
-  const runTake = useCallback(async (mode: "cut" | "auto" = "cut") => {
-    if (takeBusy) return
-
-    try {
-      setTakeBusy(true)
-      setLastTakeMode(mode)
-      setError(null)
-      await takeProgram()
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Unexpected error")
-    } finally {
-      setTakeBusy(false)
-    }
-  }, [takeBusy, takeProgram])
+  
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
