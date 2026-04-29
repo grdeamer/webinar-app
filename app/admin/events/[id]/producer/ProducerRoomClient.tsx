@@ -6,6 +6,7 @@ import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react"
 
 import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
+import useProducerBlockEditor from "./useProducerBlockEditor"
 import ProducerRoomHeader from "./ProducerRoomHeader"
 import CenterSwitcherColumn from "./CenterSwitcherColumn"
 import ProducerLeftRail from "./ProducerLeftRail"
@@ -124,6 +125,15 @@ export default function ProducerRoomClient({
     duplicateSelectedBlock,
     bringSelectedBlockToFront,
   } = useProducerBlocks()
+
+  const {
+    updateTextContent: updateSelectedTextBlockContent,
+    updateLabel: updateSelectedBlockLabel,
+    toggleHidden: toggleSelectedBlockHidden,
+  } = useProducerBlockEditor({
+    selectedBlockId,
+    setPreviewBlocks,
+  })
 
   const stopLocalPreviewStream = useCallback(() => {
     if (!localPreviewStreamRef.current) return
@@ -500,20 +510,6 @@ export default function ProducerRoomClient({
     setResizingBlockId(null)
   }
 
-  function updateSelectedTextBlockContent(value: string) {
-    if (!selectedBlockId) return
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === selectedBlockId && block.type === "text"
-          ? {
-              ...block,
-              content: value,
-            }
-          : block
-      )
-    )
-  }
 
   function updateSelectedBlockSize(field: "width" | "height", value: string) {
     if (!selectedBlockId) return
@@ -551,20 +547,6 @@ export default function ProducerRoomClient({
     )
   }
 
-  function toggleSelectedBlockHidden() {
-    if (!selectedBlockId) return
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              hidden: !block.hidden,
-            }
-          : block
-      )
-    )
-  }
 
   function updateSelectedBlockPosition(field: "x" | "y", value: string) {
     if (!selectedBlockId) return
@@ -584,20 +566,6 @@ export default function ProducerRoomClient({
     )
   }
 
-  function updateSelectedBlockLabel(value: string) {
-    if (!selectedBlockId) return
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              label: value,
-            }
-          : block
-      )
-    )
-  }
 
   function updateSelectedBlockSrc(value: string) {
     if (!selectedBlockId) return
