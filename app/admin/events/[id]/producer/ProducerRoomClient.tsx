@@ -7,6 +7,7 @@ import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react"
 import useProducerRoomApi from "./useProducerRoomApi"
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
 import useProducerBlockEditor from "./useProducerBlockEditor"
+import useProducerUploads from "./useProducerUploads"
 import ProducerRoomHeader from "./ProducerRoomHeader"
 import CenterSwitcherColumn from "./CenterSwitcherColumn"
 import ProducerLeftRail from "./ProducerLeftRail"
@@ -136,6 +137,10 @@ export default function ProducerRoomClient({
     toggleHidden: toggleSelectedBlockHidden,
   } = useProducerBlockEditor({
     selectedBlockId,
+    setPreviewBlocks,
+  })
+
+  const { handlePdfUpload, handleVideoUpload, handleImageUpload } = useProducerUploads({
     setPreviewBlocks,
   })
 
@@ -366,83 +371,6 @@ export default function ProducerRoomClient({
     return data?.state ?? null
   }
 
-  function handlePdfUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const src = URL.createObjectURL(file)
-
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: "pdf",
-        x: 120,
-        y: 90,
-        width: 420,
-        height: 260,
-        zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
-        opacity: 1,
-        label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded PDF",
-        src,
-        hidden: false,
-      },
-    ])
-
-    e.target.value = ""
-  }
-
-  function handleVideoUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const src = URL.createObjectURL(file)
-
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: "video",
-        x: 100,
-        y: 100,
-        width: 420,
-        height: 236,
-        zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
-        opacity: 1,
-        label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Video",
-        src,
-        hidden: false,
-      },
-    ])
-
-    e.target.value = ""
-  }
-
-  function handleImageUpload(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-
-    const src = URL.createObjectURL(file)
-
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        type: "image",
-        x: 100,
-        y: 100,
-        width: 260,
-        height: 140,
-        zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
-        opacity: 1,
-        label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Image",
-        src,
-        hidden: false,
-      },
-    ])
-
-    e.target.value = ""
-  }
 
   function startDraggingBlock(e: React.MouseEvent<HTMLDivElement>, blockId: string) {
     const rect = e.currentTarget.parentElement?.getBoundingClientRect() || null
