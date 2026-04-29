@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react"
-import type { TakeControlProps, TakeMode } from "./commandDeckTypes"
+import type {
+  CinematicTransitionType,
+  TakeControlProps,
+  TakeMode,
+} from "./commandDeckTypes"
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -36,13 +40,13 @@ export function useTakeControls({
   onTake,
 }: TakeControlProps): {
   takeFlash: TakeMode | null
-  triggerTake: (mode: TakeMode) => void
+  triggerTake: (mode: TakeMode, transitionType?: CinematicTransitionType) => void
 } {
   const [takeFlash, setTakeFlash] = useState<TakeMode | null>(null)
   const flashTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const triggerTake = useCallback(
-    (mode: TakeMode) => {
+    (mode: TakeMode, transitionType?: CinematicTransitionType) => {
       if (takeBusy || !previewProgramDifferent) return
 
       if (flashTimeoutRef.current) {
@@ -50,7 +54,7 @@ export function useTakeControls({
       }
 
       setTakeFlash(mode)
-      onTake(mode)
+      onTake(mode, transitionType)
 
       flashTimeoutRef.current = setTimeout(() => {
         setTakeFlash(null)

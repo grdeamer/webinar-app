@@ -12,6 +12,7 @@ import {
   AUDIO_MIXER_ROWS,
   QUICK_ACTIONS,
   TRANSITION_OPTIONS,
+  type CinematicTransitionType,
   type TakeControlProps,
   type TakeMode,
 } from "./commandDeckTypes"
@@ -24,6 +25,17 @@ import {
   PrimaryTakeButton,
   TelemetryAccent,
 } from "./CommandDeckChrome"
+
+type TransitionModeControlProps = {
+  selectedTransitionType: CinematicTransitionType
+  onTransitionTypeChange: (value: CinematicTransitionType) => void
+}
+
+type LowerCommandGridProps = TakeControlProps & TransitionModeControlProps
+
+type ControlStagePanelProps = TakeControlProps & {
+  selectedTransitionType: CinematicTransitionType
+}
 
 function StatCard({
   label,
@@ -242,7 +254,8 @@ export function ControlStagePanel({
   previewProgramDifferent,
   takeBusy,
   onTake,
-}: TakeControlProps): JSX.Element {
+  selectedTransitionType,
+}: ControlStagePanelProps): JSX.Element {
   return (
     <PanelCard>
       <div className="mb-3 flex items-center justify-between gap-3">
@@ -270,13 +283,13 @@ export function ControlStagePanel({
 
       <div className="grid grid-cols-3 gap-2">
         <PrimaryTakeButton
-          onClick={() => onTake("cut")}
+          onClick={() => onTake("cut", selectedTransitionType)}
           disabled={takeBusy || !previewProgramDifferent}
           isTaking={takeBusy}
         />
 
         <CommandButton
-          onClick={() => onTake("cut")}
+          onClick={() => onTake("cut", selectedTransitionType)}
           disabled={takeBusy || !previewProgramDifferent}
           className="border-red-300/28 bg-[linear-gradient(180deg,rgba(239,68,68,0.16),rgba(127,29,29,0.18))] text-red-100 hover:border-red-300/40 hover:bg-red-500/18 hover:shadow-[0_0_20px_rgba(248,113,113,0.16)]"
           title="Cut preview to program (C)"
@@ -285,7 +298,7 @@ export function ControlStagePanel({
         </CommandButton>
 
         <CommandButton
-          onClick={() => onTake("auto")}
+          onClick={() => onTake("auto", selectedTransitionType)}
           disabled={takeBusy || !previewProgramDifferent}
           className="border-emerald-300/28 bg-[linear-gradient(180deg,rgba(16,185,129,0.15),rgba(6,78,59,0.18))] text-emerald-100 hover:border-emerald-300/40 hover:bg-emerald-500/18 hover:shadow-[0_0_20px_rgba(52,211,153,0.16)]"
           title="Auto take preview to program (A)"
@@ -374,7 +387,10 @@ export function CommandDeckStyles(): JSX.Element {
     `}</style>
   )
 }
-export function TransitionPanel(): JSX.Element {
+export function TransitionPanel({
+  selectedTransitionType,
+  onTransitionTypeChange,
+}: TransitionModeControlProps): JSX.Element {
   return (
     <PanelCard className="border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.11),transparent_38%),rgba(0,0,0,0.24)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_0_34px_rgba(168,85,247,0.055)]">
       <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
@@ -383,14 +399,27 @@ export function TransitionPanel(): JSX.Element {
       </div>
 
       <div className="grid grid-cols-3 gap-2">
-        {TRANSITION_OPTIONS.map((item) => (
-          <CommandButton
-            key={item.value}
-            className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.022))] text-[10px] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_10px_22px_rgba(0,0,0,0.18)] hover:border-violet-200/22 hover:bg-violet-400/10 hover:text-violet-100 active:scale-[0.98]"
-          >
-            {item.label}
-          </CommandButton>
-        ))}
+        {TRANSITION_OPTIONS.map((item) => {
+          const isSelected = selectedTransitionType === item.value
+
+          return (
+            <CommandButton
+              key={item.value}
+              onClick={() => onTransitionTypeChange(item.value)}
+              className={
+                isSelected
+                  ? "border-violet-300/42 bg-violet-400/18 text-[10px] text-violet-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_22px_rgba(168,85,247,0.18)] active:scale-[0.98]"
+                  : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.022))] text-[10px] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_10px_22px_rgba(0,0,0,0.18)] hover:border-violet-200/22 hover:bg-violet-400/10 hover:text-violet-100 active:scale-[0.98]"
+              }
+            >
+              {item.label}
+            </CommandButton>
+          )
+        })}
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
+        Armed transition: <span className="text-violet-100/80">{selectedTransitionType}</span>
       </div>
     </PanelCard>
   )
@@ -453,7 +482,9 @@ export function LowerCommandGrid({
   previewProgramDifferent,
   takeBusy,
   onTake,
-}: TakeControlProps): JSX.Element {
+  selectedTransitionType,
+  onTransitionTypeChange,
+}: LowerCommandGridProps): JSX.Element {
   return (
     <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),linear-gradient(180deg,rgba(8,14,32,0.94),rgba(2,6,18,0.98))] p-4 shadow-[0_28px_100px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.055)]">
       <TelemetryAccent />
@@ -462,8 +493,12 @@ export function LowerCommandGrid({
           previewProgramDifferent={previewProgramDifferent}
           takeBusy={takeBusy}
           onTake={onTake}
+          selectedTransitionType={selectedTransitionType}
         />
-        <TransitionPanel />
+        <TransitionPanel
+          selectedTransitionType={selectedTransitionType}
+          onTransitionTypeChange={onTransitionTypeChange}
+        />
         <AudioMixerPanel />
         <QuickActionsPanel />
       </div>

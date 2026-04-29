@@ -1,5 +1,8 @@
-import type { JSX } from "react"
-import type { BroadcastCommandDeckProps } from "./commandDeckTypes"
+import { useState, type JSX } from "react"
+import type {
+  BroadcastCommandDeckProps,
+  CinematicTransitionType,
+} from "./commandDeckTypes"
 import { useRuntimeLabel, useTakeControls } from "./useCommandDeckControls"
 import {
   CommandDeckStyles,
@@ -18,6 +21,10 @@ export default function BroadcastCommandDeck({
   onTake,
 }: BroadcastCommandDeckProps): JSX.Element {
   const runtimeLabel = useRuntimeLabel()
+
+  const [selectedTransitionType, setSelectedTransitionType] =
+    useState<CinematicTransitionType>("fade")
+
   const { takeFlash, triggerTake } = useTakeControls({
     previewProgramDifferent,
     takeBusy,
@@ -27,6 +34,7 @@ export default function BroadcastCommandDeck({
   return (
     <div className="relative mb-4 space-y-3 px-3 md:px-4 xl:px-5 2xl:px-6">
       {takeFlash ? <TakeFlashOverlay mode={takeFlash} /> : null}
+
       <CommandSurfaceHeader isLive={isLive} />
 
       <TelemetryStrip
@@ -40,6 +48,8 @@ export default function BroadcastCommandDeck({
         previewProgramDifferent={previewProgramDifferent}
         takeBusy={takeBusy}
         onTake={triggerTake}
+        selectedTransitionType={selectedTransitionType}
+        onTransitionTypeChange={setSelectedTransitionType}
       />
 
       <CommandDeckStyles />

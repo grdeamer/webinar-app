@@ -71,7 +71,7 @@ export default function useProducerTransitions({
   }, [api, programState, programBlocks, previewBlocks, setProgramBlocks, setProgramState])
 
   const runTake = useCallback(
-    async (mode: TakeMode = "cut") => {
+    async (mode: TakeMode = "cut", transitionType?: "fade" | "warp" | "curtain") => {
       if (takeBusy) return
 
       try {
@@ -80,7 +80,7 @@ export default function useProducerTransitions({
         setError(null)
         await api.setEventTransition?.({
           active: true,
-          type: "fade",
+          type: transitionType ?? "fade",
           headline: "Stand by",
           message: "Preparing next live destination",
           durationMs: 1600,

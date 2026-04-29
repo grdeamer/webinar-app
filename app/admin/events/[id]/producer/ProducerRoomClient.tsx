@@ -21,6 +21,7 @@ import {
   type StageState,
   type SceneSnapshot,
 } from "./producerRoomTypes"
+import type { CinematicTransitionType } from "./commandDeckTypes"
 import { renderBlockContent, renderPlacedBlocks } from "./producerRoomRenderers"
 import {
   AudienceOriginTestPanel,
@@ -627,8 +628,11 @@ export default function ProducerRoomClient({
             onStageCount={onStageParticipants.length}
             previewProgramDifferent={previewProgramDifferent}
             takeBusy={takeBusy}
-            onTake={(mode: "cut" | "auto"): void => {
-              void runTake(mode)
+            onTake={(
+              mode: "cut" | "auto",
+              transitionType?: CinematicTransitionType
+            ): void => {
+              void runTake(mode, transitionType)
             }}
           />
           <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
