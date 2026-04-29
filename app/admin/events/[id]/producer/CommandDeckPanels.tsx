@@ -385,10 +385,10 @@ export function TransitionPanel(): JSX.Element {
       <div className="grid grid-cols-3 gap-2">
         {TRANSITION_OPTIONS.map((item) => (
           <CommandButton
-            key={item}
+            key={item.value}
             className="border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.022))] text-[10px] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_10px_22px_rgba(0,0,0,0.18)] hover:border-violet-200/22 hover:bg-violet-400/10 hover:text-violet-100 active:scale-[0.98]"
           >
-            {item}
+            {item.label}
           </CommandButton>
         ))}
       </div>
