@@ -1,3 +1,5 @@
+import type { PreviewBlock } from "./useProducerBlocks"
+
 export type ProducerParticipant = {
   identity: string
   name: string
@@ -32,4 +34,11 @@ export type StageState = {
   message: string | null
   updated_by: string | null
   updated_at: string
+}
+
+export type SceneSnapshot = {
+  id: string
+  name: string
+  stageState: StageState | null
+  previewBlocks: PreviewBlock[]
 }
