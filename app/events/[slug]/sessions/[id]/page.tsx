@@ -5,6 +5,7 @@ import AttendeePresenceHeartbeat from "@/components/AttendeePresenceHeartbeat"
 import AttendeeQASubmitBox from "@/components/qa/AttendeeQASubmitBox"
 import SessionLiveRedirectWatcher from "@/components/live/SessionLiveRedirectWatcher"
 import SessionStagePlayer from "@/components/live/SessionStagePlayer"
+import TransitionAwareEventShell from "@/components/events/TransitionAwareEventShell"
 import { getEventBySlug } from "@/lib/events"
 import {
   getSessionCapability,
@@ -15,6 +16,8 @@ import {
 import { getSessionById } from "@/lib/repos/sessionsRepo"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { resolveSessionExperience } from "@/lib/services/sessions/resolveSessionExperience"
+import { getEventLiveState } from "@/lib/app/liveState"
+import type { CinematicTransitionType } from "@/components/events/CinematicTransitionOverlay"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -304,6 +307,8 @@ export default async function EventSessionPage(props: {
   const experience = resolveSessionExperience(session, viewer)
   const capability = getSessionCapability(session)
   const primaryExperience = getSessionPrimaryExperience(session)
+  const liveState = await getEventLiveState(event.id)
+  const transitionType = (liveState?.transition_type ?? "fade") as CinematicTransitionType
 
   const attendeeUserId =
     typeof (viewer as any)?.id === "string"
@@ -377,7 +382,13 @@ export default async function EventSessionPage(props: {
   const sessionKindLabel = formatKindLabel(session.kind)
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <TransitionAwareEventShell
+      transitionActive={Boolean(liveState?.transition_active)}
+      transitionType={transitionType}
+      headline={liveState?.headline}
+      message={liveState?.message}
+    >
+      <div className="min-h-screen bg-slate-950 text-white">
       <SessionLiveRedirectWatcher slug={slug} sessionId={session.id} />
 
       {attendeeUserId ? (
@@ -555,6 +566,7 @@ export default async function EventSessionPage(props: {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </TransitionAwareEventShell>
   )
 }

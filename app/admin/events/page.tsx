@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-
+import Image from "next/image"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
@@ -15,10 +15,20 @@ export default async function AdminEventsPage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">Events</h1>
-          <p className="mt-1 text-white/60">Create and manage full event experiences.</p>
-        </div>
+<div>
+  <div className="mb-3">
+    <Image
+      src="/jupiter-logo.svg"
+      alt="Jupiter Events"
+      width={220}
+      height={60}
+      priority
+    />
+  </div>
+
+  <h1 className="text-3xl font-bold">Events</h1>
+  <p className="mt-1 text-white/60">Create and manage full event experiences.</p>
+</div>
         <Link
           href="/admin/events/new"
           className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-500"

@@ -21,6 +21,7 @@ import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerC
 import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDestination"
 import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
 import JupiterHomeHero from "@/components/events/JupiterHomeHero"
+import TransitionAwareEventShell from "@/components/events/TransitionAwareEventShell"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -523,8 +524,20 @@ export default async function EventHomePage(props: {
       ? (authedUser as any).attendee.user_id
       : null
 
+  const transitionState = liveDestination as typeof liveDestination & {
+    transition_active?: boolean | null
+    transition_type?: "fade" | "warp" | "curtain" | "none" | null
+    headline?: string | null
+    message?: string | null
+  }
+
   return (
-    <>
+    <TransitionAwareEventShell
+      transitionActive={Boolean(transitionState.transition_active)}
+      transitionType={transitionState.transition_type ?? "fade"}
+      headline={transitionState.headline}
+      message={transitionState.message}
+    >
       <RemoteRefreshListener scopeType="event" scopeId={event.id} />
       <EventLiveRedirectWatcher slug={slug} />
 
@@ -542,6 +555,6 @@ export default async function EventHomePage(props: {
         systemComponents={systemComponents}
         eventTheme={eventTheme ?? undefined}
       />
-    </>
+    </TransitionAwareEventShell>
   )
 }

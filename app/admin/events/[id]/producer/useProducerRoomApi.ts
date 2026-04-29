@@ -1,7 +1,15 @@
 "use client"
 
 type StageLayout = "solo" | "grid" | "screen_speaker"
+type CinematicTransitionType = "fade" | "warp" | "curtain" | "none"
 
+type EventTransitionPayload = {
+  active: boolean
+  type?: CinematicTransitionType
+  headline?: string
+  message?: string
+  durationMs?: number
+}
 async function readJson(res: Response) {
   const data = await res.json().catch(() => null)
 
@@ -243,7 +251,40 @@ export default function useProducerRoomApi(
 
     return readJson(res)
   }
+  async function setEventTransition({
+    active,
+    type = "fade",
+    headline = "Moving you to the next experience",
+    message = "Stand by while Jupiter prepares your next destination.",
+    durationMs = 1600,
+  }: EventTransitionPayload) {
+    const res = await fetch(`/api/admin/events/${eventId}/live-state`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        transition_active: active,
+        transition_type: type,
+        transition_duration_ms: durationMs,
+        headline,
+        message,
+        session_id: sessionId,
+      }),
+    })
 
+    return readJson(res)
+  }
+
+  async function clearEventTransition() {
+    return setEventTransition({
+      active: false,
+      type: "none",
+      headline: "",
+      message: "",
+      durationMs: 0,
+    })
+  }
   return {
     loadToken,
     loadParticipants,
@@ -265,5 +306,7 @@ export default function useProducerRoomApi(
     takeProgram,
     saveScene,
     applyScene,
+    setEventTransition,
+    clearEventTransition,
   }
 }

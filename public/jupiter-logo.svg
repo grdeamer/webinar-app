@@ -1,0 +1,39 @@
+<svg width="520" height="140" viewBox="0 0 520 140" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="jupiterCore" cx="35%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#FFB347"/>
+      <stop offset="100%" stop-color="#FF8A00"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Gravity Mark -->
+  <g transform="translate(10,10)" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 60C20 20 55 0 95 18C130 34 138 70 108 96C86 118 48 118 22 92" stroke="white" stroke-width="2.5" opacity="0.95"/>
+    <path d="M30 62C30 30 58 14 90 28C112 38 118 66 98 86C82 102 56 102 36 84" stroke="white" stroke-width="2" opacity="0.75"/>
+    <path d="M42 64C42 42 63 30 86 40C102 48 104 66 90 78C78 88 60 88 46 74" stroke="white" stroke-width="1.8" opacity="0.55"/>
+
+    <circle cx="72" cy="56" r="16" fill="url(#jupiterCore)"/>
+    <circle cx="34" cy="70" r="4" fill="white"/>
+    <circle cx="56" cy="64" r="3.5" fill="white"/>
+    <circle cx="95" cy="34" r="3.5" fill="white"/>
+    <circle cx="112" cy="74" r="3.5" fill="#FF8A00"/>
+  </g>
+
+  <!-- Wordmark -->
+  <g font-family="Inter, Arial, Helvetica, sans-serif" fill="white">
+    <text x="150" y="72" font-size="58" font-weight="300" letter-spacing="10">JUPIT</text>
+    <rect x="392" y="32" width="28" height="6" rx="3" fill="#FF8A00"/>
+    <rect x="392" y="48" width="28" height="6" rx="3" fill="#FF8A00"/>
+    <rect x="392" y="64" width="28" height="6" rx="3" fill="#FF8A00"/>
+    <text x="435" y="72" font-size="58" font-weight="300" letter-spacing="8">R</text>
+  </g>
+
+  <!-- EVENTS -->
+  <g font-family="Inter, Arial, Helvetica, sans-serif" fill="white" opacity="0.95">
+    <line x1="150" y1="100" x2="225" y2="100" stroke="white" stroke-width="1"/>
+    <circle cx="240" cy="100" r="2.5" fill="#FF8A00"/>
+    <text x="255" y="106" font-size="18" letter-spacing="6">EVENTS</text>
+    <circle cx="410" cy="100" r="2.5" fill="#FF8A00"/>
+    <line x1="425" y1="100" x2="500" y2="100" stroke="white" stroke-width="1"/>
+  </g>
+</svg>

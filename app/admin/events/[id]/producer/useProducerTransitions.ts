@@ -6,6 +6,14 @@ type TakeMode = "cut" | "auto"
 
 type ProducerTransitionApi = {
   takeProgram: () => Promise<{ state?: StageState | null } | null | undefined>
+  setEventTransition?: (payload: {
+    active: boolean
+    type?: "fade" | "warp" | "curtain" | "none"
+    headline?: string
+    message?: string
+    durationMs?: number
+  }) => Promise<unknown>
+  clearEventTransition?: () => Promise<unknown>
 }
 
 export default function useProducerTransitions({
@@ -70,14 +78,24 @@ export default function useProducerTransitions({
         setTakeBusy(true)
         setLastTakeMode(mode)
         setError(null)
+        await api.setEventTransition?.({
+          active: true,
+          type: "fade",
+          headline: "Stand by",
+          message: "Preparing next live destination",
+          durationMs: 1600,
+        })
         await takeProgram()
+        window.setTimeout(() => {
+          void api.clearEventTransition?.()
+        }, 1400)
       } catch (error: unknown) {
         setError(error instanceof Error ? error.message : "Unexpected error")
       } finally {
         setTakeBusy(false)
       }
     },
-    [takeBusy, setError, takeProgram]
+    [api, takeBusy, setError, takeProgram]
   )
 
   return {
