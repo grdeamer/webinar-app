@@ -79,6 +79,19 @@ type ImportJobResponse = {
 
 type ImportStatus = "idle" | "running" | "success" | "error";
 
+type EmailSendResponse = {
+  ok: boolean;
+  dryRun?: boolean;
+  test?: boolean;
+  sent?: number;
+  failed?: number;
+  registrants?: number;
+  presenters?: number;
+  assignments?: number;
+  results?: Array<{ email: string; ok: boolean; error?: string }>;
+  error?: string;
+};
+
 const ACTIVE_IMPORT_JOB_KEY = "activeRegistrantImportJobId";
 
 export default function ImportRegistrantsClient({
@@ -96,6 +109,13 @@ export default function ImportRegistrantsClient({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [commitLoading, setCommitLoading] = useState(false);
   const [templateLoading, setTemplateLoading] = useState(false);
+  const [emailDryRunLoading, setEmailDryRunLoading] = useState(false);
+  const [emailSendLoading, setEmailSendLoading] = useState(false);
+  const [emailTestLoading, setEmailTestLoading] = useState(false);
+  const [presenterTestLoading, setPresenterTestLoading] = useState(false);
+  const [presenterSendLoading, setPresenterSendLoading] = useState(false);
+  const [testEmail, setTestEmail] = useState("");
+  const [emailResult, setEmailResult] = useState<EmailSendResponse | null>(null);
 
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<PreviewResponse | null>(null);
@@ -399,6 +419,149 @@ export default function ImportRegistrantsClient({
     }
   }
 
+  async function sendConfirmationEmails({ dryRun }: { dryRun: boolean }) {
+    if (!selectedEventId) {
+      setError("Choose an event before sending confirmation emails.");
+      return;
+    }
+
+    const confirmed = dryRun
+      ? true
+      : window.confirm(
+          "Send confirmation emails to all imported registrants for this event?"
+        );
+
+    if (!confirmed) return;
+
+    try {
+      if (dryRun) setEmailDryRunLoading(true);
+      else setEmailSendLoading(true);
+
+      setError(null);
+      setEmailResult(null);
+
+      const res = await fetch(
+        `/api/admin/events/${selectedEventId}/emails/send-confirmations${dryRun ? "?dryRun=1" : ""}`,
+        { method: "POST" }
+      );
+
+      const json = (await res
+        .json()
+        .catch((): Record<string, unknown> => ({}))) as EmailSendResponse;
+
+      setEmailResult(json);
+      setRawResponse(json);
+
+      if (!res.ok || json?.error) {
+        throw new Error(json?.error || "Failed to send confirmation emails");
+      }
+    } catch (e: any) {
+      setError(e?.message || "Failed to send confirmation emails");
+    } finally {
+      setEmailDryRunLoading(false);
+      setEmailSendLoading(false);
+    }
+  }
+
+  async function sendTestConfirmationEmail() {
+    if (!selectedEventId) {
+      setError("Choose an event before sending a test email.");
+      return;
+    }
+
+    if (!testEmail.trim()) {
+      setError("Enter a test email address first.");
+      return;
+    }
+
+    try {
+      setEmailTestLoading(true);
+      setError(null);
+      setEmailResult(null);
+
+      const res = await fetch(
+        `/api/admin/events/${selectedEventId}/emails/send-confirmations`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ testTo: testEmail.trim() }),
+        },
+      );
+
+      const json = (await res
+        .json()
+        .catch((): Record<string, unknown> => ({}))) as EmailSendResponse;
+
+      setEmailResult(json);
+      setRawResponse(json);
+
+      if (!res.ok || json?.error) {
+        throw new Error(json?.error || "Failed to send test confirmation email");
+      }
+    } catch (e: any) {
+      setError(e?.message || "Failed to send test confirmation email");
+    } finally {
+      setEmailTestLoading(false);
+    }
+  }
+
+  async function sendPresenterLinks({ test }: { test: boolean }) {
+    if (!selectedEventId) {
+      setError("Choose an event before sending presenter links.");
+      return;
+    }
+
+    if (test && !testEmail.trim()) {
+      setError("Enter a test email address first.");
+      return;
+    }
+
+    const confirmed = test
+      ? true
+      : window.confirm(
+          "Send presenter links to all registrants tagged Presenter for this event?"
+        );
+
+    if (!confirmed) return;
+
+    try {
+      if (test) setPresenterTestLoading(true);
+      else setPresenterSendLoading(true);
+
+      setError(null);
+      setEmailResult(null);
+
+      const res = await fetch(
+        `/api/admin/events/${selectedEventId}/emails/send-presenter-links`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(test ? { testTo: testEmail.trim() } : {}),
+        },
+      );
+
+      const json = (await res
+        .json()
+        .catch((): Record<string, unknown> => ({}))) as EmailSendResponse;
+
+      setEmailResult(json);
+      setRawResponse(json);
+
+      if (!res.ok || json?.error) {
+        throw new Error(json?.error || "Failed to send presenter links");
+      }
+    } catch (e: any) {
+      setError(e?.message || "Failed to send presenter links");
+    } finally {
+      setPresenterTestLoading(false);
+      setPresenterSendLoading(false);
+    }
+  }
+
   const validPreviewRows = preview?.rows?.filter((r) => r.valid) || [];
   const invalidPreviewRows = preview?.rows?.filter((r) => !r.valid) || [];
   const hasRunningImport = importStatus === "running" && !!jobId;
@@ -480,6 +643,78 @@ export default function ImportRegistrantsClient({
               </div>
 
               <div className="flex flex-wrap gap-3">
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="test@email.com"
+                  disabled={
+                    presenterTestLoading ||
+                    presenterSendLoading ||
+                    emailTestLoading ||
+                    emailDryRunLoading ||
+                    emailSendLoading ||
+                    commitLoading ||
+                    previewLoading
+                  }
+                  className="min-w-[220px] rounded-2xl border border-white/10 bg-slate-950 px-4 py-3 text-sm text-white outline-none placeholder:text-white/35 disabled:cursor-not-allowed disabled:opacity-50"
+                />
+
+                <button
+                  type="button"
+                  onClick={() => void sendTestConfirmationEmail()}
+                  disabled={
+                    presenterTestLoading ||
+                    presenterSendLoading ||
+                    emailTestLoading ||
+                    emailDryRunLoading ||
+                    emailSendLoading ||
+                    commitLoading ||
+                    previewLoading ||
+                    !selectedEventId ||
+                    !testEmail.trim()
+                  }
+                  className="rounded-2xl border border-violet-400/20 bg-violet-500/10 px-5 py-3 text-sm font-semibold text-violet-100 hover:bg-violet-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {emailTestLoading ? "Sending test..." : "Send test email"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void sendPresenterLinks({ test: true })}
+                  disabled={
+                    presenterTestLoading ||
+                    presenterSendLoading ||
+                    emailTestLoading ||
+                    emailDryRunLoading ||
+                    emailSendLoading ||
+                    commitLoading ||
+                    previewLoading ||
+                    !selectedEventId ||
+                    !testEmail.trim()
+                  }
+                  className="rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 px-5 py-3 text-sm font-semibold text-fuchsia-100 hover:bg-fuchsia-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {presenterTestLoading ? "Sending presenter test..." : "Send test presenter link"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void sendPresenterLinks({ test: false })}
+                  disabled={
+                    presenterSendLoading ||
+                    presenterTestLoading ||
+                    emailTestLoading ||
+                    emailDryRunLoading ||
+                    emailSendLoading ||
+                    commitLoading ||
+                    previewLoading ||
+                    !selectedEventId
+                  }
+                  className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-5 py-3 text-sm font-semibold text-rose-100 hover:bg-rose-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {presenterSendLoading ? "Sending presenter links..." : "Send presenter links"}
+                </button>
                 <button
                   type="button"
                   onClick={downloadTemplate}
@@ -509,6 +744,40 @@ export default function ImportRegistrantsClient({
                   className="rounded-2xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   {commitLoading ? "Starting..." : "Run import"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void sendConfirmationEmails({ dryRun: true })}
+                  disabled={
+                    presenterTestLoading ||
+                    presenterSendLoading ||
+                    emailDryRunLoading ||
+                    emailSendLoading ||
+                    commitLoading ||
+                    previewLoading ||
+                    !selectedEventId
+                  }
+                  className="rounded-2xl border border-sky-400/20 bg-sky-500/10 px-5 py-3 text-sm font-semibold text-sky-100 hover:bg-sky-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {emailDryRunLoading ? "Checking emails..." : "Check email recipients"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => void sendConfirmationEmails({ dryRun: false })}
+                  disabled={
+                    emailSendLoading ||
+                    emailDryRunLoading ||
+                    presenterTestLoading ||
+                    presenterSendLoading ||
+                    commitLoading ||
+                    previewLoading ||
+                    !selectedEventId
+                  }
+                  className="rounded-2xl border border-amber-400/20 bg-amber-500/10 px-5 py-3 text-sm font-semibold text-amber-100 hover:bg-amber-500/15 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {emailSendLoading ? "Sending emails..." : "Send confirmation emails"}
                 </button>
               </div>
             </div>
@@ -657,6 +926,58 @@ export default function ImportRegistrantsClient({
           </div>
         ) : null}
       </section>
+
+      {emailResult ? (
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
+          <div className="grid gap-4 lg:grid-cols-[1fr_auto] lg:items-start">
+            <div>
+              <h2 className="text-xl font-semibold">Confirmation email status</h2>
+              <p className="mt-2 text-sm text-white/60">
+                {emailResult.dryRun
+                  ? "Dry run completed. No emails were sent."
+                  : emailResult.test
+                    ? "Test email sent. Check the inbox before sending to everyone."
+                    : "Email send completed."}
+              </p>
+            </div>
+
+            <div className="grid w-full gap-3 sm:grid-cols-3 lg:max-w-xl">
+              <Stat label="Recipients" value={emailResult.registrants ?? emailResult.presenters ?? emailResult.sent ?? 0} />
+              <Stat label="Assignments" value={emailResult.assignments ?? 0} />
+              <Stat label="Failed" value={emailResult.failed ?? 0} />
+            </div>
+          </div>
+
+          {emailResult.results?.length ? (
+            <div className="mt-5 overflow-x-auto rounded-2xl border border-white/10 bg-black/20">
+              <table className="min-w-full text-left text-sm">
+                <thead className="text-white/50">
+                  <tr>
+                    <th className="px-3 py-2">Email</th>
+                    <th className="px-3 py-2">Status</th>
+                    <th className="px-3 py-2">Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emailResult.results.slice(0, 100).map((result) => (
+                    <tr key={result.email} className="border-t border-white/10">
+                      <td className="px-3 py-3">{result.email}</td>
+                      <td className="px-3 py-3">
+                        {result.ok ? (
+                          <span className="text-emerald-300">Sent</span>
+                        ) : (
+                          <span className="text-red-300">Failed</span>
+                        )}
+                      </td>
+                      <td className="px-3 py-3 text-white/55">{result.error || "—"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+        </section>
+      ) : null}
 
       <section className="rounded-3xl border border-white/10 bg-white/5 p-6">
         <h2 className="text-xl font-semibold">CSV format</h2>

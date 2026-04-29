@@ -8,6 +8,7 @@ import {
   BarChart3,
   Calendar,
   Clapperboard,
+  FileUp,
   LayoutDashboard,
   MessageSquare,
   Mic,
@@ -170,6 +171,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </NavLink>
                 <NavLink href="/admin/analytics" icon={<BarChart3 size={17} />}>
                   Analytics
+                </NavLink>
+              </Section>
+
+              <Section title="Operations">
+                <NavLink href="/admin/import" icon={<FileUp size={17} />}>
+                  Import Registrants
                 </NavLink>
               </Section>
 

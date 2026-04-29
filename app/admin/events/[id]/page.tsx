@@ -1,7 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import EventAdminNav from "@/components/admin/EventAdminNav"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -133,7 +132,6 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
   return (
     <div className="min-h-screen bg-slate-950 px-6 py-8 text-white">
       <div className="mx-auto max-w-7xl space-y-8">
-        <EventAdminNav eventId={event.id} eventSlug={event.slug} />
 
         <section className="rounded-3xl border border-white/10 bg-white/[0.04] p-8">
           <div className="text-xs uppercase tracking-[0.18em] text-white/40">
@@ -243,11 +241,11 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
                 title="Routing"
                 description="Control where attendees are sent across the event."
               />
-<DashboardCard
-  href={`/admin/events/${event.id}/producer/room`}
-  title="Producer"
-  description="Open the producer room for live switching and stage control."
-/>
+              <DashboardCard
+                href={`/admin/events/${event.id}/producer/room`}
+                title="Producer"
+                description="Open the producer room for live switching and stage control."
+              />
             </div>
           </Panel>
 
