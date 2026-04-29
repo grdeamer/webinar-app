@@ -129,6 +129,10 @@ export default function ProducerRoomClient({
   const {
     updateTextContent: updateSelectedTextBlockContent,
     updateLabel: updateSelectedBlockLabel,
+    updateSrc: updateSelectedBlockSrc,
+    updateSize: updateSelectedBlockSize,
+    updateOpacity: updateSelectedBlockOpacity,
+    updatePosition: updateSelectedBlockPosition,
     toggleHidden: toggleSelectedBlockHidden,
   } = useProducerBlockEditor({
     selectedBlockId,
@@ -510,77 +514,6 @@ export default function ProducerRoomClient({
     setResizingBlockId(null)
   }
 
-
-  function updateSelectedBlockSize(field: "width" | "height", value: string) {
-    if (!selectedBlockId) return
-
-    const numericValue = Number(value)
-    if (!Number.isFinite(numericValue)) return
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              [field]: Math.max(field === "width" ? 80 : 60, numericValue),
-            }
-          : block
-      )
-    )
-  }
-
-  function updateSelectedBlockOpacity(value: string) {
-    if (!selectedBlockId) return
-
-    const numericValue = Number(value)
-    if (!Number.isFinite(numericValue)) return
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              opacity: Math.max(0.1, Math.min(1, numericValue)),
-            }
-          : block
-      )
-    )
-  }
-
-
-  function updateSelectedBlockPosition(field: "x" | "y", value: string) {
-    if (!selectedBlockId) return
-
-    const numericValue = Number(value)
-    if (!Number.isFinite(numericValue)) return
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              [field]: Math.max(0, numericValue),
-            }
-          : block
-      )
-    )
-  }
-
-
-  function updateSelectedBlockSrc(value: string) {
-    if (!selectedBlockId) return
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === selectedBlockId
-          ? {
-              ...block,
-              src: value,
-            }
-          : block
-      )
-    )
-  }
 
   function triggerAudienceCue(options?: {
     region?: string
