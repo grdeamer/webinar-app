@@ -3,43 +3,23 @@ import type { JSX, ReactNode } from "react"
 import {
   type LucideIcon,
   Activity,
-  Wifi,
-  Users,
   Radio,
   SlidersHorizontal,
   Mic2,
-  Repeat,
-  Zap,
   Gauge,
   Sparkles,
 } from "lucide-react"
 
+import {
+  AUDIO_MIXER_ROWS,
+  QUICK_ACTIONS,
+  TRANSITION_OPTIONS,
+  type BroadcastCommandDeckProps,
+  type TakeControlProps,
+  type TakeMode,
+} from "./commandDeckTypes"
 
-type TakeMode = "cut" | "auto"
 
-const TRANSITION_OPTIONS = ["Cut", "Fade", "Dip"] as const
-const AUDIO_MIXER_ROWS = ["Host", "Guest", "Program"] as const
-const QUICK_ACTIONS = [
-  { label: "Signal", icon: Wifi },
-  { label: "Guests", icon: Users },
-  { label: "Replay", icon: Repeat },
-  { label: "Boost", icon: Zap },
-] as const
-
-type BroadcastCommandDeckProps = {
-  isLive: boolean
-  audienceCount: number
-  onStageCount: number
-  previewProgramDifferent: boolean
-  takeBusy: boolean
-  onTake: (mode: TakeMode) => void
-}
-
-type TakeControlProps = {
-  previewProgramDifferent: boolean
-  takeBusy: boolean
-  onTake: (mode: TakeMode) => void
-}
 
 function isTypingTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
