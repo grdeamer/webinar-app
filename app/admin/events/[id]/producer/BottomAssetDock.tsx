@@ -1,5 +1,13 @@
-import type { JSX } from "react"
+import type { JSX, ReactNode } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
+import {
+  FALLBACK_GRAPHICS_ITEMS,
+  FALLBACK_MEDIA_ITEMS,
+  TRANSITION_DURATIONS,
+  TRANSITION_PRESETS,
+  type DockAsset,
+  type SceneSummary,
+} from "./assetDockTypes"
 
 function ShortcutPill({ keyLabel, action }: { keyLabel: string; action: string }): JSX.Element {
   return (
@@ -48,16 +56,6 @@ function TallyIndicators(): JSX.Element {
   )
 }
 
-type SceneSummary = {
-  id: string
-  name: string
-}
-
-type DockAsset = {
-  id: string
-  label?: string
-}
-
 function DockSection({
   title,
   count,
@@ -65,7 +63,7 @@ function DockSection({
 }: {
   title: string
   count: number
-  children: React.ReactNode
+  children: ReactNode
 }): JSX.Element {
   return (
     <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_18px_44px_rgba(0,0,0,0.18)]">
@@ -217,24 +215,8 @@ export default function BottomAssetDock({
   const media = previewBlocks.filter(
     (block) => block.type === "video" || block.type === "image" || block.type === "pdf"
   )
-
-  const graphicsItems: DockAsset[] = graphics.length
-    ? graphics
-    : [
-        { id: "placeholder-lower", label: "Lower Third" },
-        { id: "placeholder-name", label: "Name Tag" },
-      ]
-
-  const mediaItems: DockAsset[] = media.length
-    ? media
-    : [
-        { id: "placeholder-intro", label: "Intro Video" },
-        { id: "placeholder-bumper", label: "Bumper" },
-        { id: "placeholder-countdown", label: "Countdown" },
-      ]
-
-  const transitions = ["Cut", "Fade", "Dip", "Stinger"]
-  const durations = ["250ms", "500ms", "1s"]
+  const graphicsItems: DockAsset[] = graphics.length ? graphics : FALLBACK_GRAPHICS_ITEMS
+  const mediaItems: DockAsset[] = media.length ? media : FALLBACK_MEDIA_ITEMS
 
   return (
     <div className="mt-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(8,13,30,0.8),rgba(2,4,10,0.94))] px-3 py-2.5 shadow-[0_28px_100px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl">
@@ -294,11 +276,10 @@ export default function BottomAssetDock({
         </DockSection>
 
         <SlidesPreviewPanel />
-
-        <DockSection title="Transitions" count={transitions.length}>
+        <DockSection title="Transitions" count={TRANSITION_PRESETS.length}>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
-              {transitions.map((transition) => (
+              {TRANSITION_PRESETS.map((transition) => (
                 <button
                   key={transition}
                   type="button"
@@ -324,7 +305,7 @@ export default function BottomAssetDock({
               </div>
 
               <div className="grid grid-cols-3 gap-1.5">
-                {durations.map((duration) => (
+                {TRANSITION_DURATIONS.map((duration) => (
                   <button
                     key={duration}
                     type="button"
@@ -344,4 +325,4 @@ export default function BottomAssetDock({
       </div>
     </div>
   )
-}
+}``
