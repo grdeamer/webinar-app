@@ -1,3 +1,4 @@
+import { useState } from "react"
 import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import {
@@ -19,11 +20,14 @@ function SceneTile({
   scene,
   index,
   isActive,
+  onDeleteScene,
 }: {
   scene: SceneSummary
   index: number
   isActive: boolean
+  onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
+  const [confirmDelete, setConfirmDelete] = useState(false)
   return (
     <button
       type="button"
@@ -35,6 +39,65 @@ function SceneTile({
     >
       {isActive ? (
         <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.95)]" />
+      ) : null}
+
+      {onDeleteScene ? (
+        <>
+          <span
+            role="button"
+            tabIndex={0}
+            aria-label={`Delete ${scene.name}`}
+            onClick={(event) => {
+              event.stopPropagation()
+              setConfirmDelete(true)
+            }}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter" && event.key !== " ") return
+              event.preventDefault()
+              event.stopPropagation()
+              setConfirmDelete(true)
+            }}
+            className="absolute right-1.5 top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-red-300/40 bg-red-500/80 text-[11px] font-black leading-none text-white shadow-[0_0_16px_rgba(248,113,113,0.28)] transition hover:bg-red-400"
+          >
+            ×
+          </span>
+
+          {confirmDelete ? (
+            <div
+              className="absolute inset-1 z-30 flex flex-col justify-center rounded-[14px] border border-red-300/30 bg-slate-950/92 p-2 text-center shadow-[0_20px_50px_rgba(0,0,0,0.45)] backdrop-blur"
+              onClick={(event) => event.stopPropagation()}
+            >
+              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-red-100/85">
+                Delete scene?
+              </div>
+
+              <div className="mt-2 grid grid-cols-2 gap-1.5">
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setConfirmDelete(false)
+                  }}
+                  className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/65 transition hover:bg-white/[0.1]"
+                >
+                  Cancel
+                </button>
+
+                <button
+                  type="button"
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    onDeleteScene(scene.id)
+                    setConfirmDelete(false)
+                  }}
+                  className="rounded-lg border border-red-300/35 bg-red-500/25 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-red-100 transition hover:bg-red-500/40"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
       ) : null}
       <div className="absolute left-1.5 top-1.5 rounded-md border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         {index + 1}
@@ -94,6 +157,139 @@ function MediaTile({
   )
 }
 
+// --- View/List Toggle and List Row Components ---
+type DockViewMode = "icons" | "list"
+
+function ViewToggle({
+  value,
+  onChange,
+}: {
+  value: DockViewMode
+  onChange: (value: DockViewMode) => void
+}): JSX.Element {
+  return (
+    <div className="mb-2 flex items-center gap-1 rounded-full border border-white/10 bg-black/25 p-1">
+      {(["icons", "list"] as DockViewMode[]).map((mode) => (
+        <button
+          key={mode}
+          type="button"
+          onClick={() => onChange(mode)}
+          className={`rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition ${
+            value === mode
+              ? "bg-white/16 text-white"
+              : "text-white/38 hover:bg-white/[0.06] hover:text-white/65"
+          }`}
+        >
+          {mode}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function SceneListRow({
+  scene,
+  index,
+  isActive,
+  onDeleteScene,
+}: {
+  scene: SceneSummary
+  index: number
+  isActive: boolean
+  onDeleteScene?: (sceneId: string) => void
+}): JSX.Element {
+  const [confirmDelete, setConfirmDelete] = useState(false)
+
+  return (
+    <div
+      className={`relative flex items-center gap-2 rounded-2xl border px-2 py-2 ${
+        isActive
+          ? "border-violet-300/55 bg-violet-400/12"
+          : "border-white/10 bg-white/[0.035]"
+      }`}
+    >
+      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/35 text-[10px] font-black text-white/60">
+        {index + 1}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[11px] font-semibold text-white/82">{scene.name}</div>
+        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/35">
+          Scene {index + 1}
+        </div>
+      </div>
+
+      {onDeleteScene ? (
+        <>
+          <button
+            type="button"
+            onClick={() => setConfirmDelete(true)}
+            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-300/30 bg-red-500/18 text-[12px] font-black text-red-100 transition hover:bg-red-500/35"
+          >
+            ×
+          </button>
+
+          {confirmDelete ? (
+            <div className="absolute inset-1 z-30 flex items-center justify-between gap-2 rounded-xl border border-red-300/30 bg-slate-950/95 px-2 backdrop-blur">
+              <span className="text-[9px] font-black uppercase tracking-[0.14em] text-red-100/85">
+                Delete?
+              </span>
+              <div className="flex gap-1">
+                <button
+                  type="button"
+                  onClick={() => setConfirmDelete(false)}
+                  className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/65"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onDeleteScene(scene.id)
+                    setConfirmDelete(false)
+                  }}
+                  className="rounded-lg border border-red-300/35 bg-red-500/25 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-red-100"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ) : null}
+        </>
+      ) : null}
+    </div>
+  )
+}
+
+function AssetListRow({
+  label,
+  tone,
+  meta,
+}: {
+  label: string
+  tone: "sky" | "emerald"
+  meta: string
+}): JSX.Element {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-300/18 bg-sky-400/8 text-sky-100/80"
+      : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/80"
+
+  return (
+    <button
+      type="button"
+      className={`flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:-translate-y-0.5 ${toneClass}`}
+    >
+      <div className="h-7 w-9 shrink-0 rounded-lg border border-white/10 bg-black/35" />
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[11px] font-semibold text-white/82">{label}</div>
+        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/35">
+          {meta}
+        </div>
+      </div>
+    </button>
+  )
+}
+
 function SlidesPreviewPanel(): JSX.Element {
   return (
     <DockSection title="Slides" count={12}>
@@ -141,9 +337,11 @@ function SlidesPreviewPanel(): JSX.Element {
 export default function BottomAssetDock({
   scenes,
   previewBlocks,
+  onDeleteScene,
 }: {
   scenes: SceneSummary[]
   previewBlocks: PreviewBlock[]
+  onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const graphics = previewBlocks.filter((block) => block.type === "text")
   const media = previewBlocks.filter(
@@ -151,6 +349,10 @@ export default function BottomAssetDock({
   )
   const graphicsItems: DockAsset[] = graphics.length ? graphics : FALLBACK_GRAPHICS_ITEMS
   const mediaItems: DockAsset[] = media.length ? media : FALLBACK_MEDIA_ITEMS
+
+  const [scenesView, setScenesView] = useState<DockViewMode>("icons")
+  const [graphicsView, setGraphicsView] = useState<DockViewMode>("icons")
+  const [mediaView, setMediaView] = useState<DockViewMode>("icons")
 
   return (
     <div className="mt-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(8,13,30,0.8),rgba(2,4,10,0.94))] px-3 py-2.5 shadow-[0_28px_100px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl">
@@ -176,37 +378,89 @@ export default function BottomAssetDock({
 
       <div className="grid gap-2 xl:grid-cols-[1.05fr_0.9fr_0.9fr_1fr_0.8fr]">
         <DockSection title="Scenes" count={scenes.length}>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {scenes.slice(0, 6).map((scene, index) => (
-              <SceneTile key={scene.id} scene={scene} index={index} isActive={index === 0} />
-            ))}
+          <ViewToggle value={scenesView} onChange={setScenesView} />
 
-            <button
-              type="button"
-              className="min-w-[96px] rounded-[16px] border border-dashed border-white/14 bg-black/20 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
-            >
-              <div className="flex aspect-video items-center justify-center rounded-xl border border-white/10 bg-black/25 text-xl text-white/35">
-                +
-              </div>
-              <div className="mt-1.5">Add Scene</div>
-            </button>
-          </div>
+          {scenesView === "icons" ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {scenes.slice(0, 6).map((scene, index) => (
+                <SceneTile
+                  key={scene.id}
+                  scene={scene}
+                  index={index}
+                  isActive={index === 0}
+                  onDeleteScene={onDeleteScene}
+                />
+              ))}
+
+              <button
+                type="button"
+                className="min-w-[96px] rounded-[16px] border border-dashed border-white/14 bg-black/20 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
+              >
+                <div className="flex aspect-video items-center justify-center rounded-xl border border-white/10 bg-black/25 text-xl text-white/35">
+                  +
+                </div>
+                <div className="mt-1.5">Add Scene</div>
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {scenes.slice(0, 6).map((scene, index) => (
+                <SceneListRow
+                  key={scene.id}
+                  scene={scene}
+                  index={index}
+                  isActive={index === 0}
+                  onDeleteScene={onDeleteScene}
+                />
+              ))}
+            </div>
+          )}
         </DockSection>
 
         <DockSection title="Graphics" count={graphics.length}>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {graphicsItems.slice(0, 5).map((item) => (
-              <GraphicTile key={item.id} item={item} />
-            ))}
-          </div>
+          <ViewToggle value={graphicsView} onChange={setGraphicsView} />
+
+          {graphicsView === "icons" ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {graphicsItems.slice(0, 5).map((item) => (
+                <GraphicTile key={item.id} item={item} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {graphicsItems.slice(0, 5).map((item) => (
+                <AssetListRow
+                  key={item.id}
+                  label={item.label || "Graphic"}
+                  meta="Graphic"
+                  tone="sky"
+                />
+              ))}
+            </div>
+          )}
         </DockSection>
 
         <DockSection title="Media" count={media.length}>
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {mediaItems.slice(0, 5).map((item, index) => (
-              <MediaTile key={item.id} item={item} index={index} />
-            ))}
-          </div>
+          <ViewToggle value={mediaView} onChange={setMediaView} />
+
+          {mediaView === "icons" ? (
+            <div className="flex gap-2 overflow-x-auto pb-1">
+              {mediaItems.slice(0, 5).map((item, index) => (
+                <MediaTile key={item.id} item={item} index={index} />
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-1.5">
+              {mediaItems.slice(0, 5).map((item) => (
+                <AssetListRow
+                  key={item.id}
+                  label={item.label || "Media"}
+                  meta="Media"
+                  tone="emerald"
+                />
+              ))}
+            </div>
+          )}
         </DockSection>
 
         <SlidesPreviewPanel />
@@ -259,4 +513,4 @@ export default function BottomAssetDock({
       </div>
     </div>
   )
-}``
+}

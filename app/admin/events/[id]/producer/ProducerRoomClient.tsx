@@ -71,6 +71,8 @@ export default function ProducerRoomClient({
   const [sceneName, setSceneName] = useState("")
   const [sceneBusy, setSceneBusy] = useState(false)
   const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
+  const [deletedSceneIds, setDeletedSceneIds] = useState<Set<string>>(() => new Set())
+  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null)
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<
@@ -180,7 +182,11 @@ export default function ProducerRoomClient({
 
   async function loadScenes() {
     const data = await api.loadScenes()
-    setScenes(Array.isArray(data?.scenes) ? data.scenes : [])
+    const nextScenes: Array<{ id: string | number }> = Array.isArray(data?.scenes)
+      ? data.scenes
+      : []
+
+    setScenes(nextScenes.filter((scene) => !deletedSceneIds.has(String(scene.id))))
   }
 
   const {
@@ -198,7 +204,7 @@ export default function ProducerRoomClient({
 
   const refreshAll = useCallback(async () => {
     await Promise.all([loadParticipants(), loadStageState(), loadProgramState(), loadScenes()])
-  }, [])
+  }, [deletedSceneIds])
 
   async function addToStage(identity: string) {
     const data = await api.addToStage(identity)
@@ -231,7 +237,7 @@ export default function ProducerRoomClient({
   }
 
   async function saveScene() {
-    if (!sceneName.trim()) {
+    if (!sceneName.trim() && !selectedSceneId) {
       setError("Scene name required")
       return
     }
@@ -239,22 +245,27 @@ export default function ProducerRoomClient({
     try {
       setSceneBusy(true)
 
-      const data = await api.saveScene(sceneName)
+      const targetId = selectedSceneId
 
-      const savedSceneId = String(data?.scene?.id ?? crypto.randomUUID())
+      const data = await api.saveScene(sceneName || "Updated Scene")
+
+      const savedSceneId = String(targetId ?? data?.scene?.id ?? crypto.randomUUID())
 
       setLocalSceneSnapshots((prev) => {
-        const next = prev.filter((s) => s.id !== savedSceneId)
+        const next = prev.filter((s) => String(s.id) !== savedSceneId)
         next.push({
           id: savedSceneId,
-          name: sceneName,
+          name: sceneName || prev.find(s => String(s.id) === savedSceneId)?.name || "Scene",
           stageState: stageState ? { ...stageState } : null,
           previewBlocks: previewBlocks.map((b) => ({ ...b })),
+          screenLayoutPreset,
         })
         return next
       })
 
       setSceneName("")
+      setSelectedSceneId(null)
+
       await loadScenes()
     } catch (e: any) {
       setError(e.message)
@@ -265,19 +276,45 @@ export default function ProducerRoomClient({
 
   async function applyScene(sceneId: string) {
     try {
+      setSelectedSceneId(String(sceneId))
       setSceneBusy(true)
 
       const data = await api.applyScene(sceneId)
 
       setStageState(data.state)
 
-      const localSnapshot = localSceneSnapshots.find((s) => s.id === sceneId)
+      await refreshAll()
+
+      const localSnapshot = localSceneSnapshots.find((s) => String(s.id) === String(sceneId))
       if (localSnapshot) {
+        const preset = localSnapshot.screenLayoutPreset ?? "classic"
+
         setPreviewBlocks(localSnapshot.previewBlocks.map((b) => ({ ...b })))
+        setScreenLayoutPreset(preset)
+        window.setTimeout(() => setScreenLayoutPreset(preset), 150)
         setSelectedBlockId(null)
       }
+    } catch (e: any) {
+      setError(e.message)
+    } finally {
+      setSceneBusy(false)
+    }
+  }
 
-      await refreshAll()
+  async function deleteScene(sceneId: string) {
+    try {
+      setSceneBusy(true)
+      setError(null)
+      setDeletedSceneIds((prev) => {
+  const next = new Set(prev)
+  next.add(String(sceneId))
+  return next
+})
+
+      // For now, remove scene from the live producer UI/local snapshots.
+      // Server-side scene deletion can be wired once the scenes API exposes DELETE.
+      setLocalSceneSnapshots((prev) => prev.filter((scene) => String(scene.id) !== String(sceneId)))
+      setScenes((prev) => prev.filter((scene) => String(scene.id) !== String(sceneId)))
     } catch (e: any) {
       setError(e.message)
     } finally {
@@ -734,6 +771,7 @@ export default function ProducerRoomClient({
                   onSaveScene={saveScene}
                   sceneBusy={sceneBusy}
                   scenes={scenes}
+                  selectedSceneId={selectedSceneId}
                   onApplyScene={(sceneId) => void applyScene(sceneId)}
                   onClearScreenShare={() =>
                     void clearScreenShare().catch((e: unknown) =>
@@ -814,7 +852,11 @@ export default function ProducerRoomClient({
               />
             </div>
 
-            <BottomAssetDock scenes={scenes} previewBlocks={previewBlocks} />
+            <BottomAssetDock
+              scenes={scenes}
+              previewBlocks={previewBlocks}
+              onDeleteScene={(sceneId) => void deleteScene(sceneId)}
+            />
           </div>
         </div>
       </div>

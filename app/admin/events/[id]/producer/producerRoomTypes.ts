@@ -41,4 +41,5 @@ export type SceneSnapshot = {
   name: string
   stageState: StageState | null
   previewBlocks: PreviewBlock[]
+  screenLayoutPreset?: "classic" | "brand" | "speaker_focus" | "fullscreen"
 }
