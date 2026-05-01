@@ -73,6 +73,9 @@ export default function ProducerRoomClient({
   const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
+  const [screenLayoutPreset, setScreenLayoutPreset] = useState<
+  "classic" | "brand" | "speaker_focus" | "fullscreen"
+>("classic")
   const [programFlashActive, setProgramFlashActive] = useState(false)
   const [programState, setProgramState] = useState<StageState | null>(null)
   const [monitorHeight, setMonitorHeight] = useState(520)
@@ -555,6 +558,25 @@ export default function ProducerRoomClient({
   }, [autoDirectorEnabled, stageState, firstOnStageScreenShare])
 
   useEffect(() => {
+    if (!stageState) return
+
+    async function applyPreset() {
+      try {
+        // All presets require screen + speaker layout
+        await setLayout("screen_speaker")
+
+        // Future: we will refine positioning via blocks
+        // For now, this ensures layout actually changes
+      } catch (e) {
+        console.error("Failed applying screen preset", e)
+      }
+    }
+
+    // Only react when preset changes
+    void applyPreset()
+  }, [screenLayoutPreset])
+
+  useEffect(() => {
     if (!stageState?.screen_share_track_id) return
     if (selectedScreenStillExists) return
 
@@ -658,6 +680,8 @@ export default function ProducerRoomClient({
                   )
                 }
                 autoDirectorEnabled={autoDirectorEnabled}
+                screenLayoutPreset={screenLayoutPreset}
+                onSetScreenLayoutPreset={setScreenLayoutPreset}
                 onToggleAutoDirector={() =>
                   void setAutoDirector(!autoDirectorEnabled).catch((e: unknown) =>
                     setError(e instanceof Error ? e.message : "Unexpected error")
@@ -696,6 +720,7 @@ export default function ProducerRoomClient({
                   startResizingBlock={startResizingBlock}
                   programState={programState}
                   programBlocks={programBlocks}
+                  screenLayoutPreset={screenLayoutPreset}
                   showAudienceCue={showAudienceCue}
                   audienceCueRegion={audienceCueRegion}
                   audienceCueMoonMode={audienceCueMoonMode}

@@ -5,6 +5,8 @@ import type { JSX } from "react"
 import { useRoomContext } from "@livekit/components-react"
 import type { StageState } from "./producerRoomTypes"
 
+type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
+
 function MonitorSizePanel({
   monitorHeight,
   onMonitorHeightChange,
@@ -120,6 +122,8 @@ function ControlStackPanel({
   onSetLayout,
   autoDirectorEnabled,
   onToggleAutoDirector,
+  screenLayoutPreset,
+  onSetScreenLayoutPreset,
 }: {
   takeBusy: boolean
   previewProgramDifferent: boolean
@@ -130,6 +134,8 @@ function ControlStackPanel({
   onSetLayout: (layout: StageState["layout"]) => void
   autoDirectorEnabled: boolean
   onToggleAutoDirector: () => void
+  screenLayoutPreset: ScreenLayoutPreset
+  onSetScreenLayoutPreset: (preset: ScreenLayoutPreset) => void
 }): JSX.Element {
   return (
     <>
@@ -248,6 +254,34 @@ function ControlStackPanel({
           >
             {autoDirectorEnabled ? "Auto Director On" : "Auto Director Off"}
           </button>
+
+          <div className="mt-4 rounded-[22px] border border-violet-300/18 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.14),transparent_36%),rgba(0,0,0,0.24)] p-3">
+            <div className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/65">
+              Screen Presets
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { id: "classic", label: "Classic" },
+                { id: "brand", label: "Brand" },
+                { id: "speaker_focus", label: "Speaker" },
+                { id: "fullscreen", label: "Full" },
+              ].map((preset) => (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => onSetScreenLayoutPreset(preset.id as ScreenLayoutPreset)}
+                  className={`rounded-xl border px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.13em] transition hover:-translate-y-0.5 active:translate-y-0 ${
+                    screenLayoutPreset === preset.id
+                      ? "border-violet-200/60 bg-violet-200 text-black shadow-[0_0_22px_rgba(168,85,247,0.22)]"
+                      : "border-white/10 bg-white/[0.045] text-white/62 hover:border-white/20 hover:bg-white/[0.075]"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
     </>
@@ -436,6 +470,8 @@ export default function ProducerLeftRail({
   onSetLayout,
   autoDirectorEnabled,
   onToggleAutoDirector,
+  screenLayoutPreset,
+  onSetScreenLayoutPreset,
   localMicLevel,
   monitorHeight,
   onMonitorHeightChange,
@@ -456,6 +492,8 @@ export default function ProducerLeftRail({
   onSetLayout: (layout: StageState["layout"]) => void
   autoDirectorEnabled: boolean
   onToggleAutoDirector: () => void
+  screenLayoutPreset: ScreenLayoutPreset
+  onSetScreenLayoutPreset: (preset: ScreenLayoutPreset) => void
   localMicLevel: number
   monitorHeight: number
   onMonitorHeightChange: (value: number) => void
@@ -479,6 +517,8 @@ export default function ProducerLeftRail({
         onSetLayout={onSetLayout}
         autoDirectorEnabled={autoDirectorEnabled}
         onToggleAutoDirector={onToggleAutoDirector}
+        screenLayoutPreset={screenLayoutPreset}
+        onSetScreenLayoutPreset={onSetScreenLayoutPreset}
       />
       <MonitorSizePanel
         monitorHeight={monitorHeight}

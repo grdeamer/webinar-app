@@ -11,6 +11,8 @@ import type { ProducerParticipant, StageState } from "./producerRoomTypes"
 import { renderPlacedBlocks } from "./producerRoomBlockHelpers"
 import ProducerTopDeck from "./ProducerTopDeck"
 
+type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
+
 export default function CenterSwitcherColumn({
   triggerAudienceCue,
   onHideAudienceCue,
@@ -30,6 +32,7 @@ export default function CenterSwitcherColumn({
   startResizingBlock,
   programState,
   programBlocks,
+  screenLayoutPreset,
   showAudienceCue,
   audienceCueRegion,
   audienceCueMoonMode,
@@ -81,6 +84,7 @@ export default function CenterSwitcherColumn({
   startResizingBlock: (e: React.MouseEvent<HTMLDivElement>, blockId: string) => void
   programState: StageState | null
   programBlocks: PreviewBlock[]
+  screenLayoutPreset: ScreenLayoutPreset
   showAudienceCue: boolean
   audienceCueRegion: string
   audienceCueMoonMode: boolean
@@ -261,6 +265,7 @@ export default function CenterSwitcherColumn({
               <StageVideoPreview
                 stageState={stageState}
                 participantIds={onStageParticipants.map((p) => p.identity)}
+                screenLayoutPreset={screenLayoutPreset}
               />
 
               {renderPlacedBlocks({
@@ -422,6 +427,7 @@ export default function CenterSwitcherColumn({
                 <StageVideoPreview
                   stageState={programState}
                   participantIds={programState?.stage_participant_ids || []}
+                  screenLayoutPreset={screenLayoutPreset}
                 />
 
                 {renderPlacedBlocks({
@@ -458,6 +464,7 @@ export default function CenterSwitcherColumn({
                   <StageVideoPreview
                     stageState={transitionFromState}
                     participantIds={transitionFromState.stage_participant_ids || []}
+                    screenLayoutPreset={screenLayoutPreset}
                   />
 
                   {renderPlacedBlocks({

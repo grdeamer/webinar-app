@@ -79,6 +79,19 @@ type SceneRecord = {
   primary_participant_id: string | null
 }
 
+type ScreenSharePreviewBlock = {
+  id: string
+  x: number
+  y: number
+  width: number
+  height: number
+  opacity: number
+  hidden: boolean
+  zIndex: number
+  src: TrackReference
+  label: string
+}
+
 function isTrackReference(
   value: TrackReferenceOrPlaceholder | null | undefined
 ): value is TrackReference {
@@ -379,6 +392,9 @@ function ProgramMonitor({
   live,
   realTrackRefs,
   transitionOverlay,
+  screenShareBlock,
+  screenLayoutPreset = "classic",
+  onScreenShareBlockMove,
 }: {
   title: string
   subtitle: string
@@ -390,6 +406,9 @@ function ProgramMonitor({
   live?: boolean
   realTrackRefs: TrackReference[]
   transitionOverlay?: StageTransitionType | null
+  screenShareBlock?: ScreenSharePreviewBlock | null
+  screenLayoutPreset?: "classic" | "brand" | "speaker_focus" | "fullscreen"
+  onScreenShareBlockMove?: (next: { x?: number; y?: number; width?: number; height?: number }) => void
 }) {
   const selectedTracks = useMemo(
     () =>
@@ -511,14 +530,52 @@ function ProgramMonitor({
         )}
 
         {layout === "screen_speaker" && selectedPrimaryScreen ? (
-          <div className="relative">
-            <VideoTrack
-              trackRef={selectedPrimaryScreen}
-              className="aspect-video w-full object-contain"
-            />
+          <div
+            className={cx(
+              "relative flex aspect-video items-center justify-center overflow-hidden bg-black",
+              screenLayoutPreset === "brand"
+                ? "bg-[radial-gradient(circle_at_50%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_70%,rgba(168,85,247,0.20),transparent_32%),linear-gradient(135deg,#020617,#0f172a_48%,#111827)]"
+                : "bg-black"
+            )}
+          >
+            {screenLayoutPreset === "brand" ? (
+              <>
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.06),transparent_38%,rgba(255,255,255,0.035))]" />
+                <div className="pointer-events-none absolute left-6 top-5 rounded-full border border-sky-300/25 bg-black/35 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-sky-100/80 backdrop-blur">
+                  Jupiter Stage
+                </div>
+              </>
+            ) : null}
 
-            {selectedPrimaryCamera ? (
-              <div className="absolute bottom-4 right-4 w-56 max-w-[34%] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl">
+            <div
+              className={cx(
+                "relative overflow-hidden bg-black shadow-2xl",
+                screenLayoutPreset === "brand"
+                  ? "w-[86%] rounded-[28px] border border-white/15 shadow-[0_30px_100px_rgba(56,189,248,0.22)]"
+                  : screenLayoutPreset === "speaker_focus"
+                    ? "absolute right-5 top-7 w-[54%] rounded-[24px] border border-white/10 opacity-80"
+                    : screenLayoutPreset === "fullscreen"
+                      ? "h-full w-full"
+                      : "h-full w-full"
+              )}
+            >
+              <VideoTrack
+                trackRef={selectedPrimaryScreen}
+                className="h-full w-full object-contain"
+              />
+            </div>
+
+            {screenLayoutPreset !== "fullscreen" && selectedPrimaryCamera ? (
+              <div
+                className={cx(
+                  "absolute overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl",
+                  screenLayoutPreset === "speaker_focus"
+                    ? "bottom-5 left-5 w-[46%] max-w-[460px]"
+                    : screenLayoutPreset === "brand"
+                      ? "bottom-5 right-5 w-52 max-w-[28%] border-sky-200/20 shadow-[0_20px_70px_rgba(56,189,248,0.18)]"
+                      : "bottom-4 right-4 w-56 max-w-[34%]"
+                )}
+              >
                 <VideoTrack
                   trackRef={selectedPrimaryCamera}
                   className="aspect-video w-full object-cover"
@@ -564,14 +621,96 @@ function ProgramMonitor({
           </div>
         )}
 
+        {screenShareBlock && !screenShareBlock.hidden ? (
+          <div
+            className="absolute cursor-move overflow-hidden rounded-2xl border-4 border-fuchsia-300 bg-black shadow-[0_0_0_3px_rgba(255,255,255,0.85),0_24px_90px_rgba(217,70,239,0.75)] ring-4 ring-fuchsia-400/50"
+            style={{
+              left: screenShareBlock.x,
+              top: screenShareBlock.y,
+              width: screenShareBlock.width,
+              height: screenShareBlock.height,
+              opacity: screenShareBlock.opacity,
+              zIndex: screenShareBlock.zIndex,
+            }}
+            onPointerDown={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+
+              const startX = e.clientX
+              const startY = e.clientY
+              const startLeft = screenShareBlock.x
+              const startTop = screenShareBlock.y
+
+              function onMove(ev: PointerEvent) {
+                onScreenShareBlockMove?.({
+                  x: startLeft + ev.clientX - startX,
+                  y: startTop + ev.clientY - startY,
+                })
+              }
+
+              function onUp() {
+                window.removeEventListener("pointermove", onMove)
+                window.removeEventListener("pointerup", onUp)
+              }
+
+              window.addEventListener("pointermove", onMove)
+              window.addEventListener("pointerup", onUp)
+            }}
+          >
+            <VideoTrack
+              trackRef={screenShareBlock.src}
+              className="pointer-events-none h-full w-full object-contain"
+            />
+            <button
+              type="button"
+              className="pointer-events-none absolute left-2 top-2 z-30 select-none rounded-full border border-sky-300/30 bg-black/75 px-3 py-1 text-[10px] uppercase tracking-[0.14em] text-sky-100 backdrop-blur"
+            >
+              Drag · {screenShareBlock.label}
+            </button>
+
+            <button
+              type="button"
+              aria-label="Resize screen share"
+              className="absolute bottom-2 right-2 z-30 h-6 w-6 cursor-nwse-resize rounded-md border border-sky-200/70 bg-sky-300/90 shadow-[0_0_18px_rgba(125,211,252,0.55)] hover:bg-sky-100"
+              onPointerDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+
+                const startX = e.clientX
+                const startWidth = screenShareBlock.width
+                const startHeight = screenShareBlock.height
+                const aspectRatio = startWidth / Math.max(1, startHeight)
+
+                function onMove(ev: PointerEvent) {
+                  const nextWidth = Math.max(180, startWidth + ev.clientX - startX)
+                  const nextHeight = Math.max(100, Math.round(nextWidth / aspectRatio))
+
+                  onScreenShareBlockMove?.({
+                    width: nextWidth,
+                    height: nextHeight,
+                  })
+                }
+
+                function onUp() {
+                  window.removeEventListener("pointermove", onMove)
+                  window.removeEventListener("pointerup", onUp)
+                }
+
+                window.addEventListener("pointermove", onMove)
+                window.addEventListener("pointerup", onUp)
+              }}
+            />
+          </div>
+        ) : null}
+
         {accent === "red" ? (
           <div className="pointer-events-none absolute inset-x-0 top-0 h-[2px] bg-gradient-to-r from-transparent via-red-400/80 to-transparent" />
         ) : null}
 
        <>
-  <div className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/12 to-transparent" />
-  <div className="absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white/[0.03] to-transparent" />
-  <div className="absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white/[0.03] to-transparent" />
+  <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/12 to-transparent" />
+  <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-white/[0.03] to-transparent" />
+  <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-white/[0.03] to-transparent" />
 </>
       </div>
 
@@ -654,6 +793,45 @@ function ProducerRoomInner({
   const activeScreenSharer = useMemo(() => {
     return stageCandidates.find((participant) => Boolean(participant.screenTrack)) || null
   }, [stageCandidates])
+const [screenShareBlock, setScreenShareBlock] = useState<ScreenSharePreviewBlock | null>(null)
+const [screenLayoutPreset, setScreenLayoutPreset] = useState<
+  "classic" | "brand" | "speaker_focus" | "fullscreen"
+>("classic")
+useEffect(() => {
+  if (!activeScreenSharer?.screenTrack) {
+    setScreenShareBlock(null)
+    return
+  }
+
+  const nextId = `screen-${activeScreenSharer.identity}`
+  const nextTrackSid = activeScreenSharer.screenTrack.publication.trackSid
+
+  setScreenShareBlock((prev) => {
+    const previousTrackSid = prev?.src.publication.trackSid
+
+    if (prev && prev.id === nextId && previousTrackSid === nextTrackSid) {
+      return {
+        ...prev,
+        src: activeScreenSharer.screenTrack,
+        label: `${activeScreenSharer.name} screen`,
+      }
+    }
+
+    return {
+      id: nextId,
+      x: 24,
+      y: 112,
+      width: 360,
+      height: 205,
+      opacity: 0.98,
+      hidden: false,
+      zIndex: 999,
+      src: activeScreenSharer.screenTrack,
+      label: `${activeScreenSharer.name} screen`,
+    }
+  })
+}, [activeScreenSharer])
+
 
   const [qaItems, setQaItems] = useState<QAMessage[]>([])
   const [qaLoading, setQaLoading] = useState(true)
@@ -888,20 +1066,9 @@ useEffect(() => {
     })
   }, [activeScreenSharer, stageIds, layout, primaryId])
 
-  useEffect(() => {
-    const stagedScreenSharer = stageCandidates.find(
-      (participant) =>
-        stageIds.includes(participant.identity) && Boolean(participant.screenTrack)
-    )
-
-    if (stagedScreenSharer) return
-    if (layout !== "screen_speaker") return
-
-    void saveStageState({
-      layout: "solo",
-      primaryId: stageIds[0] || null,
-    })
-  }, [stageCandidates, stageIds, layout])
+  // Do not automatically leave screen_speaker when a screen track briefly disappears.
+  // LiveKit can momentarily remove/re-add screen tracks during publication refreshes,
+  // and auto-reverting here makes the producer's screen selection appear to vanish.
 
   async function takeLive() {
     if (isTakingLive) return
@@ -1432,6 +1599,37 @@ const clockValue = [
         <div className="grid gap-5 xl:grid-cols-[280px_minmax(0,1fr)_320px]">
           <div className="space-y-5">
             <GlassPanel className="p-4">
+              <div className="mt-5 rounded-[22px] border border-white/10 bg-black/20 p-3">
+                <SectionEyebrow>Screen Layout Presets</SectionEyebrow>
+
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                  {[
+                    { id: "classic", label: "Classic" },
+                    { id: "brand", label: "Brand Stage" },
+                    { id: "speaker_focus", label: "Speaker Focus" },
+                    { id: "fullscreen", label: "Fullscreen" },
+                  ].map((preset) => (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() =>
+                        setScreenLayoutPreset(
+                          preset.id as "classic" | "brand" | "speaker_focus" | "fullscreen"
+                        )
+                      }
+                      className={cx(
+                        "rounded-xl border px-3 py-2 text-xs transition",
+                        screenLayoutPreset === preset.id
+                          ? "border-sky-300/30 bg-sky-500/15 text-sky-100"
+                          : "border-white/10 bg-white/5 text-white/60 hover:bg-white/10"
+                      )}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <SectionEyebrow>Stage Layouts</SectionEyebrow>
               <div className="mt-4 space-y-3">
                 <LayoutChip
@@ -1510,6 +1708,21 @@ const clockValue = [
                   emptyLabel="Nothing in preview yet"
                   accent="sky"
                   realTrackRefs={realTrackRefs}
+                  screenShareBlock={screenShareBlock}
+                  screenLayoutPreset={screenLayoutPreset}
+                  onScreenShareBlockMove={(next) => {
+                    setScreenShareBlock((prev) =>
+                      prev
+                        ? {
+                            ...prev,
+                            x: next.x ?? prev.x,
+                            y: next.y ?? prev.y,
+                            width: next.width ?? prev.width,
+                            height: next.height ?? prev.height,
+                          }
+                        : prev
+                    )
+                  }}
                 />
               </div>
 
@@ -1532,6 +1745,7 @@ const clockValue = [
                   live
                   realTrackRefs={realTrackRefs}
                   transitionOverlay={programTransitionOverlay}
+                  screenLayoutPreset={screenLayoutPreset}
                 />
 
                 <ProgramMomentOverlay
