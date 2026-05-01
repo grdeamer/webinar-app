@@ -8,6 +8,11 @@ import {
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+function normalizeStageIds(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.map(String).filter(Boolean)
+}
+
 export async function POST(
   _req: Request,
   context: { params: Promise<{ id: string }> }
@@ -43,7 +48,7 @@ export async function POST(
 
     const program = await updateEventLiveProgramState(id, {
       layout: preview.layout,
-      stage_participant_ids: preview.stage_participant_ids ?? [],
+      stage_participant_ids: normalizeStageIds(preview.stage_participant_ids),
       primary_participant_id: preview.primary_participant_id ?? null,
       pinned_participant_id: preview.pinned_participant_id ?? null,
       screen_share_participant_id: preview.screen_share_participant_id ?? null,

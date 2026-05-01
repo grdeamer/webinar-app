@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { AccessToken } from "livekit-server-sdk"
 import { getEventBySlug } from "@/lib/events"
 import { getSessionById } from "@/lib/repos/sessionsRepo"
+import { buildEventRoomName } from "@/lib/live/config"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -38,8 +39,7 @@ export async function POST(
     return json({ error: "This session is not configured for LiveKit" }, 400)
   }
 
-  const roomName =
-    session.liveRoomName?.trim() || `event-${event.id}-session-${session.id}`
+  const roomName = buildEventRoomName(String(event.id))
 
   const identity = `presenter-${crypto.randomUUID()}`
   const displayName = "Presenter Test"

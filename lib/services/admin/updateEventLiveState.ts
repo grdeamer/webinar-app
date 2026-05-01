@@ -23,7 +23,7 @@ export async function updateEventLiveState(
   const row = {
     event_id: input.eventId,
     mode,
-    breakout_id: mode === "breakout" ? breakoutId : null,
+    active_breakout_id: mode === "breakout" ? breakoutId : null,
     force_redirect: forceRedirect,
     updated_at: new Date().toISOString(),
   }
@@ -31,7 +31,7 @@ export async function updateEventLiveState(
   const { data, error } = await supabaseAdmin
     .from("event_live_state")
     .upsert(row, { onConflict: "event_id" })
-    .select("id,event_id,mode,breakout_id,force_redirect,updated_at")
+    .select("id,event_id,mode,active_breakout_id,force_redirect,updated_at")
     .maybeSingle()
 
   if (error) {

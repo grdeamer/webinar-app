@@ -1,5 +1,3 @@
-
-
 import type { JSX } from "react"
 import RightInspectorRail from "./RightInspectorRail"
 import type { PreviewBlock } from "./useProducerBlocks"
@@ -68,7 +66,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2 text-center">
+        <div className="mt-5 grid grid-cols-4 gap-2 text-center">
           <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-3">
             <div className="text-lg font-semibold text-white">{stageIds.size}</div>
             <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/35">
@@ -91,6 +89,15 @@ export default function ProducerRightRail({
             </div>
             <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/35">
               Mic
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-violet-300/15 bg-violet-500/[0.06] px-2 py-3">
+            <div className="text-lg font-semibold text-violet-100">
+              {participants.filter((p) => p.screenShareEnabled).length}
+            </div>
+            <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-violet-100/45">
+              Screen
             </div>
           </div>
         </div>

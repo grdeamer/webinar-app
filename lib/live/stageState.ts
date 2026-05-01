@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { buildEventRoomName, getLiveProvider } from "@/lib/live/config"
+import { getEventLiveState, upsertEventLiveState } from "@/lib/app/liveState"
 import type {
   EventLiveRoomRecord,
   EventLiveStageStateRecord,
@@ -279,6 +280,37 @@ export async function applyProducerStageAction(args: {
     .single()
 
   if (error) throw new Error(error.message)
+
+  // ---- Sync audience LIVE state (event_live_state.is_live) ----
+  try {
+    const liveState = await getEventLiveState(args.eventId)
+
+    const base = {
+      eventId: args.eventId,
+      mode: liveState?.mode ?? "general_session",
+      activeBreakoutId: liveState?.active_breakout_id ?? null,
+      destinationType: liveState?.destination_type ?? "general_session",
+      destinationSessionId: liveState?.destination_session_id ?? null,
+      headline: liveState?.headline ?? null,
+      message: liveState?.message ?? null,
+      forceRedirect: liveState?.force_redirect ?? false,
+      transitionType: liveState?.transition_type ?? "fade",
+      transitionDurationMs: liveState?.transition_duration_ms ?? 3000,
+      transitionActive: liveState?.transition_active ?? false,
+      transitionStartedAt: liveState?.transition_started_at ?? null,
+      updatedBy: args.updatedBy ?? null,
+    }
+
+    if (args.input.action === "add_to_stage" || args.input.action === "go_live") {
+      await upsertEventLiveState({ ...base, isLive: true })
+    }
+
+    if (args.input.action === "remove_from_stage" || args.input.action === "go_off_air") {
+      await upsertEventLiveState({ ...base, isLive: false })
+    }
+  } catch (e) {
+    console.error("Failed syncing event_live_state.is_live", e)
+  }
 
   if (participantId) {
     await supabaseAdmin

@@ -868,13 +868,22 @@ useEffect(() => {
 
   useEffect(() => {
     if (!activeScreenSharer) return
-    if (!stageIds.includes(activeScreenSharer.identity)) return
-    if (layout === "screen_speaker" && primaryId === activeScreenSharer.identity) {
+
+    const nextStageIds = stageIds.includes(activeScreenSharer.identity)
+      ? stageIds
+      : [...stageIds, activeScreenSharer.identity]
+
+    if (
+      layout === "screen_speaker" &&
+      primaryId === activeScreenSharer.identity &&
+      nextStageIds.length === stageIds.length
+    ) {
       return
     }
 
     void saveStageState({
       layout: "screen_speaker",
+      stageIds: nextStageIds,
       primaryId: activeScreenSharer.identity,
     })
   }, [activeScreenSharer, stageIds, layout, primaryId])

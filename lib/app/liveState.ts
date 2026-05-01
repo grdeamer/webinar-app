@@ -53,7 +53,7 @@ export async function getEventLiveState(
   const { data, error } = await supabaseAdmin
     .from("event_live_state")
     .select(
-      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,transition_active,transition_started_at,updated_at,updated_by"
+      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,transition_active,transition_started_at,is_live,updated_at,updated_by"
     )
     .eq("event_id", eventId)
     .maybeSingle()
@@ -80,6 +80,7 @@ export async function upsertEventLiveState(input: {
   transitionActive?: boolean
   transitionStartedAt?: string | null
   updatedBy?: string | null
+  isLive?: boolean
 }): Promise<EventRoutingStateRecord> {
   const transitionDurationMs = resolveTransitionDuration(input.transitionDurationMs)
 
@@ -101,6 +102,7 @@ export async function upsertEventLiveState(input: {
       ? input.message.trim().slice(0, 1000)
       : null,
     force_redirect: !!input.forceRedirect,
+    is_live: typeof input.isLive === "boolean" ? input.isLive : undefined,
     transition_type: input.transitionType?.trim()
       ? input.transitionType.trim().slice(0, 50)
       : "fade",
@@ -117,7 +119,7 @@ export async function upsertEventLiveState(input: {
     .from("event_live_state")
     .upsert(row, { onConflict: "event_id" })
     .select(
-      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,transition_active,transition_started_at,updated_at,updated_by"
+      "id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,transition_active,transition_started_at,is_live,updated_at,updated_by"
     )
     .single()
 
@@ -252,6 +254,7 @@ export async function upsertEventRoutingState(input: {
   transitionActive?: boolean
   transitionStartedAt?: string | null
   updatedBy?: string | null
+  isLive?: boolean
 }): Promise<EventRoutingStateRecord> {
   return upsertEventLiveState(input)
 }

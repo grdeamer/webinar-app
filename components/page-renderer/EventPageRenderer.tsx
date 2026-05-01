@@ -132,8 +132,25 @@ function renderBlock(
   }
 
   if (block.type === "system_component") {
-    const node = systemComponents[block.props.componentKey]
-    if (!node) return null
+    const componentKey = block.props.componentKey
+    const node = systemComponents[componentKey]
+
+    if (!node) {
+      const cardClass = getCardClass(block.props.containerStyle ?? "panel")
+
+      return (
+        <div key={block.id} className={cardClass || undefined}>
+          <div className="text-lg font-semibold text-white">
+            {componentKey === "stage_player" ? "Main stage" : "System component"}
+          </div>
+          <p className="mt-2 text-sm text-red-200/80">
+            {componentKey === "stage_player"
+              ? "StagePlayer is not wired into this page renderer yet."
+              : `Missing system component: ${componentKey}`}
+          </p>
+        </div>
+      )
+    }
 
     const cardClass = getCardClass(block.props.containerStyle ?? "panel")
 

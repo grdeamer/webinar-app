@@ -183,16 +183,22 @@ function AudienceStageTracks({
     )
   }
 
-  function renderSolo() {
-    const cam = pickPrimaryCamera()
-    if (!cam) return empty("Waiting for speaker…")
+function renderSolo() {
+  const cam = pickPrimaryCamera()
+  if (!cam) return empty("Waiting for speaker…")
 
-    return (
-      <div className="overflow-hidden rounded-2xl bg-black">
-        <VideoTrack trackRef={cam} className="aspect-video h-full w-full object-cover" />
-      </div>
-    )
-  }
+  return (
+    <div className="relative w-full aspect-video overflow-hidden rounded-2xl bg-black">
+      <VideoTrack
+        trackRef={cam}
+        className="h-full w-full object-cover"
+      />
+
+      {/* subtle cinematic vignette */}
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.65))]" />
+    </div>
+  )
+}
 
   function renderGrid() {
     if (!onStageCameraTracks.length) {
@@ -252,7 +258,7 @@ function AudienceStageTracks({
    MAIN PLAYER
 ========================= */
 
-export default function StagePlayer({ slug }: { slug: string }) {
+export default function StagePlayer({ slug, sessionId }: { slug: string; sessionId?: string }) {
   const [token, setToken] = useState<string | null>(null)
   const [serverUrl, setServerUrl] = useState<string | null>(null)
   const [stageState, setStageState] = useState<PublicStageState | null>(null)
@@ -268,7 +274,11 @@ export default function StagePlayer({ slug }: { slug: string }) {
   }
 
   async function loadToken() {
-    const res = await fetch(`/api/events/${slug}/live/audience-token`, { method: "POST" })
+    const res = await fetch(`/api/events/${slug}/live/audience-token`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sessionId }),
+    })
     const data = await res.json().catch((): null => null)
 
     if (!res.ok || !data?.token) {
@@ -319,7 +329,14 @@ export default function StagePlayer({ slug }: { slug: string }) {
     return (
       <div className="p-10 text-center text-white">
         <div className="text-sm text-white/40">Live Stage</div>
-        <div className="mt-2 text-2xl font-semibold">Starting soon</div>
+        <div className="mt-2 text-2xl font-semibold">
+          {stageState.headline || "Starting soon"}
+        </div>
+        {stageState.message ? (
+          <div className="mt-3 text-sm text-white/60 max-w-xl mx-auto">
+            {stageState.message}
+          </div>
+        ) : null}
       </div>
     )
   }
@@ -329,7 +346,7 @@ export default function StagePlayer({ slug }: { slug: string }) {
   }
 
   return (
-    <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
+    <LiveKitRoom token={token} serverUrl={serverUrl} connect video={false} audio={false}>
       <RoomAudioRenderer />
 
       <AudienceStageTracks

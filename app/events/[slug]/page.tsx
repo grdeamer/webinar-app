@@ -441,7 +441,7 @@ export default async function EventHomePage(props: {
           Live Broadcast
         </div>
         <StageTransitionOverlay active={stageIsActive} />
-        <StagePlayer slug={slug} />
+        <StagePlayer slug={slug} sessionId={liveDestination.sessionId ?? undefined} />
       </div>
     ),
 
