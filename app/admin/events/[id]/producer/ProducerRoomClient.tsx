@@ -374,6 +374,12 @@ export default function ProducerRoomClient({
     }
   }
 
+  function startNewScene() {
+    setSelectedSceneId(null)
+    setSceneName("")
+    setError(null)
+  }
+
   async function setAutoDirector(enabled: boolean) {
     const data = await api.setAutoDirector(enabled)
     setStageState(data.state)
@@ -909,6 +915,7 @@ export default function ProducerRoomClient({
               scenes={scenes}
               selectedSceneId={selectedSceneId}
               previewBlocks={previewBlocks}
+              onAddScene={startNewScene}
               onDeleteScene={(sceneId) => void deleteScene(sceneId)}
             />
           </div>

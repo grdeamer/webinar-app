@@ -390,11 +390,13 @@ export default function BottomAssetDock({
   scenes,
   selectedSceneId,
   previewBlocks,
+  onAddScene,
   onDeleteScene,
 }: {
   scenes: SceneSummary[]
   selectedSceneId: string | null
   previewBlocks: PreviewBlock[]
+  onAddScene?: () => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const graphics = previewBlocks.filter((block) => block.type === "text")
@@ -448,6 +450,7 @@ export default function BottomAssetDock({
 
               <button
                 type="button"
+                onClick={onAddScene}
                 className="min-w-[96px] rounded-[16px] border border-dashed border-white/14 bg-black/20 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
               >
                 <div className="flex aspect-video items-center justify-center rounded-xl border border-white/10 bg-black/25 text-xl text-white/35">
@@ -467,6 +470,13 @@ export default function BottomAssetDock({
                   onDeleteScene={onDeleteScene}
                 />
               ))}
+              <button
+                type="button"
+                onClick={onAddScene}
+                className="flex w-full items-center justify-center rounded-2xl border border-dashed border-white/14 bg-black/20 px-2 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
+              >
+                + Add Scene
+              </button>
             </div>
           )}
         </DockSection>
