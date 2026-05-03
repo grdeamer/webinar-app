@@ -430,44 +430,70 @@ function AssetListRow({
   )
 }
 
-function SlidesPreviewPanel(): JSX.Element {
+function SlidesPreviewPanel({ onUploadPdf }: { onUploadPdf?: () => void }): JSX.Element {
+  const slideCount = 8
+  const [currentSlide, setCurrentSlide] = useState(1)
+
+  const goPrevious = (): void => {
+    setCurrentSlide((value) => Math.max(1, value - 1))
+  }
+
+  const goNext = (): void => {
+    setCurrentSlide((value) => Math.min(slideCount, value + 1))
+  }
+
   return (
-    <DockSection title="Slides" count={12}>
+    <DockSection title="Slides" count={slideCount}>
       <div className="rounded-[18px] border border-amber-200/12 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(251,191,36,0.08)]">
         <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.88))]">
           <div className="absolute left-2 top-2 h-1.5 w-10 rounded-full bg-amber-200/70" />
           <div className="absolute left-2 top-5 h-1 w-16 rounded-full bg-white/35" />
           <div className="absolute left-2 top-8 h-1 w-12 rounded-full bg-white/20" />
           <div className="absolute bottom-2 right-2 h-9 w-12 rounded-lg border border-amber-200/20 bg-amber-300/10" />
+          <div className="absolute right-2 top-2 rounded-full border border-amber-200/20 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-amber-100/80">
+            {currentSlide}/{slideCount}
+          </div>
           <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-amber-100/75">
-            Slide 04
+            PDF Deck
           </div>
         </div>
 
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <div className="truncate text-[11px] font-semibold text-white/82">
-              Keynote Deck
+              Session Deck v1
             </div>
             <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/35">
-              PPT / PDF Preview
+              Slide {currentSlide} of {slideCount} · Local preview
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              className="rounded-lg border border-white/10 bg-white/[0.045] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/55 transition hover:border-amber-200/25 hover:bg-amber-300/10 hover:text-amber-100"
-            >
-              Prev
-            </button>
-            <button
-              type="button"
-              className="rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15"
-            >
-              Next
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={onUploadPdf}
+            className="rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15"
+          >
+            Upload PDF
+          </button>
+        </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={goPrevious}
+            disabled={currentSlide === 1}
+            className="rounded-lg border border-white/10 bg-white/[0.045] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/55 transition hover:border-amber-200/25 hover:bg-amber-300/10 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            Prev
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            disabled={currentSlide === slideCount}
+            className="rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            Next
+          </button>
         </div>
       </div>
     </DockSection>
@@ -502,6 +528,7 @@ export default function BottomAssetDock({
   hotkeySceneId,
   previewBlocks,
   onAddScene,
+  onUploadPdf,
   onApplyScene,
   onDoubleClickScene,
   onDeleteScene,
@@ -512,6 +539,7 @@ export default function BottomAssetDock({
   hotkeySceneId: string | null
   previewBlocks: PreviewBlock[]
   onAddScene?: () => void
+  onUploadPdf?: () => void
   onApplyScene?: (sceneId: string) => void
   onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
@@ -653,7 +681,7 @@ export default function BottomAssetDock({
           )}
         </DockSection>
 
-        <SlidesPreviewPanel />
+        <SlidesPreviewPanel onUploadPdf={onUploadPdf} />
         <DockSection title="Transitions" count={TRANSITION_PRESETS.length}>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">

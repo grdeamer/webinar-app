@@ -989,6 +989,7 @@ export default function ProducerRoomClient({
               hotkeySceneId={hotkeySceneId}
               previewBlocks={previewBlocks}
               onAddScene={startNewScene}
+              onUploadPdf={() => pdfInputRef.current?.click()}
               onApplyScene={(sceneId) => void applyScene(sceneId)}
               onDoubleClickScene={(sceneId) => void applySceneAndTake(sceneId)}
               onDeleteScene={(sceneId) => void deleteScene(sceneId)}
