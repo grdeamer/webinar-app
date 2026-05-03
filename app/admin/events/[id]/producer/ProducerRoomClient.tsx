@@ -50,6 +50,46 @@ function LiveBadge({ live }: { live: boolean }): JSX.Element {
   )
 }
 
+// Helper types and functions for scene normalization and label
+type RawSceneSummary = {
+  id: string | number
+  name?: string | null
+  title?: string | null
+  screenLayoutPreset?: ScreenLayoutPreset | null
+}
+
+function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
+  return {
+    id: String(scene.id),
+    name: scene.name ?? scene.title ?? "Scene",
+    screenLayoutPreset: scene.screenLayoutPreset ?? null,
+  }
+}
+
+function getSelectedSceneLabel({
+  selectedSceneId,
+  localSceneSnapshots,
+  scenes,
+}: {
+  selectedSceneId: string | null
+  localSceneSnapshots: SceneSnapshot[]
+  scenes: SceneSummary[]
+}): string | null {
+  if (!selectedSceneId) return null
+
+  const localScene = localSceneSnapshots.find(
+    (scene) => String(scene.id) === String(selectedSceneId)
+  )
+
+  if (localScene?.name?.trim()) return localScene.name
+
+  const serverScene = scenes.find((scene) => scene.id === selectedSceneId)
+
+  if (serverScene?.name?.trim()) return serverScene.name
+
+  return "Selected scene"
+}
+
 
 
 
@@ -75,10 +115,15 @@ export default function ProducerRoomClient({
   const [deletedSceneIds, setDeletedSceneIds] = useState<Set<string>>(() => new Set())
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null)
 
-  const selectedSceneLabel = useMemo(() => {
-    if (!selectedSceneId) return null
-    return "Selected scene"
-  }, [localSceneSnapshots, scenes, selectedSceneId])
+  const selectedSceneLabel = useMemo(
+    () =>
+      getSelectedSceneLabel({
+        selectedSceneId,
+        localSceneSnapshots,
+        scenes,
+      }),
+    [localSceneSnapshots, scenes, selectedSceneId]
+  )
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<ScreenLayoutPreset>("classic")
@@ -187,11 +232,7 @@ export default function ProducerRoomClient({
   async function loadScenes() {
     const data = await api.loadScenes()
     const nextScenes: SceneSummary[] = Array.isArray(data?.scenes)
-      ? data.scenes.map((scene: { id: string | number; name?: string | null; title?: string | null; screenLayoutPreset?: ScreenLayoutPreset | null }) => ({
-          id: String(scene.id),
-          name: scene.name ?? scene.title ?? "Scene",
-          screenLayoutPreset: scene.screenLayoutPreset ?? null,
-        }))
+      ? data.scenes.map((scene: RawSceneSummary) => normalizeSceneSummary(scene))
       : []
 
     setScenes(nextScenes.filter((scene) => !deletedSceneIds.has(scene.id)))

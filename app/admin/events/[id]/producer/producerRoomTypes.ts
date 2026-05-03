@@ -1,4 +1,5 @@
 import type { PreviewBlock } from "./useProducerBlocks"
+import type { ScreenLayoutPreset } from "./assetDockTypes"
 
 export type ProducerParticipant = {
   identity: string
@@ -41,5 +42,5 @@ export type SceneSnapshot = {
   name: string
   stageState: StageState | null
   previewBlocks: PreviewBlock[]
-  screenLayoutPreset?: "classic" | "brand" | "speaker_focus" | "fullscreen"
+  screenLayoutPreset?: ScreenLayoutPreset
 }
