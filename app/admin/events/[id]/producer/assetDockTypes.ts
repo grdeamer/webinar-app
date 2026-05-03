@@ -1,10 +1,13 @@
 
+import type { PreviewBlock } from "./useProducerBlocks"
+
 export type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
 
 export type SceneSummary = {
   id: string
   name: string
   screenLayoutPreset?: ScreenLayoutPreset | null
+  previewBlocks?: PreviewBlock[] | null
 }
 
 export type DockAsset = {

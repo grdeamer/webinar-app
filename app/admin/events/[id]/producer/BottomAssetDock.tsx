@@ -16,51 +16,75 @@ import {
   TallyIndicators,
 } from "./AssetDockChrome"
 
-function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
-  const preset = scene.screenLayoutPreset ?? null
+function SceneBlockPreview({ block }: { block: PreviewBlock }): JSX.Element {
+  const left = `${Math.max(0, Math.min(100, block.x ?? 0))}%`
+  const top = `${Math.max(0, Math.min(100, block.y ?? 0))}%`
+  const width = `${Math.max(6, Math.min(100, block.width ?? 20))}%`
+  const height = `${Math.max(6, Math.min(100, block.height ?? 12))}%`
 
-  if (preset === "fullscreen") {
-    return (
-      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
-        <div className="absolute inset-1 rounded-lg border border-sky-200/20 bg-sky-400/16" />
-        <div className="absolute bottom-1 left-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-sky-100/70">
-          Full
-        </div>
-      </div>
-    )
-  }
-
-  if (preset === "speaker_focus") {
-    return (
-      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
-        <div className="absolute inset-y-1 left-1 w-[62%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
-        <div className="absolute right-1 top-1 h-[44%] w-[30%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
-        <div className="absolute bottom-1 right-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-violet-100/70">
-          Speaker
-        </div>
-      </div>
-    )
-  }
-
-  if (preset === "brand") {
-    return (
-      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
-        <div className="absolute left-1 top-1 h-[58%] w-[58%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
-        <div className="absolute bottom-1 right-1 h-[34%] w-[34%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
-        <div className="absolute bottom-1 left-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-violet-100/70">
-          Brand
-        </div>
-      </div>
-    )
-  }
+  const tone =
+    block.type === "text"
+      ? "border-sky-200/35 bg-sky-300/18"
+      : block.type === "video"
+        ? "border-emerald-200/35 bg-emerald-300/18"
+        : block.type === "image"
+          ? "border-violet-200/35 bg-violet-300/18"
+          : "border-amber-200/35 bg-amber-300/18"
 
   return (
-    <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.2),transparent_30%),radial-gradient(circle_at_70%_65%,rgba(168,85,247,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.015))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
-      <div className="absolute left-1 top-1 h-[46%] w-[46%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
-      <div className="absolute right-1 top-1 h-[46%] w-[46%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
-      <div className="absolute bottom-1 left-1 h-[32%] w-[46%] rounded-lg border border-white/10 bg-white/[0.055]" />
+    <div
+      className={`absolute rounded-[3px] border ${tone} shadow-[0_0_8px_rgba(255,255,255,0.08)]`}
+      style={{ left, top, width, height }}
+    />
+  )
+}
+
+function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
+  const preset = scene.screenLayoutPreset ?? null
+  const blocks = scene.previewBlocks?.slice(0, 5) ?? []
+
+  const label =
+    preset === "fullscreen"
+      ? "Full"
+      : preset === "speaker_focus"
+        ? "Speaker"
+        : preset === "brand"
+          ? "Brand"
+          : "Classic"
+
+  const baseClass =
+    preset === "brand"
+      ? "relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
+      : "relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
+
+  return (
+    <div className={baseClass}>
+      {preset === "fullscreen" ? (
+        <div className="absolute inset-1 rounded-lg border border-sky-200/20 bg-sky-400/16" />
+      ) : preset === "speaker_focus" ? (
+        <>
+          <div className="absolute inset-y-1 left-1 w-[62%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
+          <div className="absolute right-1 top-1 h-[44%] w-[30%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
+        </>
+      ) : preset === "brand" ? (
+        <>
+          <div className="absolute left-1 top-1 h-[58%] w-[58%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
+          <div className="absolute bottom-1 right-1 h-[34%] w-[34%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
+        </>
+      ) : (
+        <>
+          <div className="absolute left-1 top-1 h-[46%] w-[46%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
+          <div className="absolute right-1 top-1 h-[46%] w-[46%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
+          <div className="absolute bottom-1 left-1 h-[32%] w-[46%] rounded-lg border border-white/10 bg-white/[0.055]" />
+        </>
+      )}
+
+      {blocks.map((block) => (
+        <SceneBlockPreview key={block.id} block={block} />
+      ))}
+
       <div className="absolute bottom-1 right-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/60">
-        Classic
+        {label}
       </div>
     </div>
   )
@@ -450,6 +474,27 @@ function SlidesPreviewPanel(): JSX.Element {
   )
 }
 
+function DockSceneLegend(): JSX.Element {
+  return (
+    <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/24 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/38 lg:flex">
+      <span className="inline-flex items-center gap-1">
+        <span className="h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.7)]" />
+        Preview
+      </span>
+      <span className="text-white/18">/</span>
+      <span className="inline-flex items-center gap-1 text-red-100/62">
+        <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]" />
+        Program
+      </span>
+      <span className="text-white/18">/</span>
+      <span className="inline-flex items-center gap-1 text-amber-100/62">
+        <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.7)]" />
+        Hotkey
+      </span>
+    </div>
+  )
+}
+
 export default function BottomAssetDock({
   scenes,
   selectedSceneId,
@@ -495,6 +540,7 @@ export default function BottomAssetDock({
         </div>
 
         <div className="flex items-center gap-2">
+          <DockSceneLegend />
           <KeyboardShortcutsPanel />
           <TallyIndicators />
 

@@ -56,6 +56,7 @@ type RawSceneSummary = {
   name?: string | null
   title?: string | null
   screenLayoutPreset?: ScreenLayoutPreset | null
+  previewBlocks?: PreviewBlock[] | null
 }
 
 function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
@@ -63,6 +64,7 @@ function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
     id: String(scene.id),
     name: scene.name ?? scene.title ?? "Scene",
     screenLayoutPreset: scene.screenLayoutPreset ?? null,
+    previewBlocks: scene.previewBlocks ?? null,
   }
 }
 
@@ -310,6 +312,20 @@ export default function ProducerRoomClient({
           previewBlocks: previewBlocks.map((b) => ({ ...b })),
           screenLayoutPreset,
         })
+        return next
+      })
+
+      setScenes((prev) => {
+        const existing = prev.find((scene) => String(scene.id) === savedSceneId)
+        const next = prev.filter((scene) => String(scene.id) !== savedSceneId)
+
+        next.push({
+          id: savedSceneId,
+          name: sceneName || existing?.name || "Scene",
+          screenLayoutPreset,
+          previewBlocks: previewBlocks.map((block) => ({ ...block })),
+        })
+
         return next
       })
 
