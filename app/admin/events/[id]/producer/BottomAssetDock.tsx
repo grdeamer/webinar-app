@@ -159,9 +159,16 @@ function SceneTile({
       <div className="absolute left-1.5 top-1.5 rounded-md border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         {index + 1}
       </div>
+
+      <div className="absolute bottom-[46px] right-1.5 z-10 rounded-md border border-violet-200/20 bg-black/55 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-violet-100/75 shadow-[0_0_12px_rgba(168,85,247,0.12)]">
+        ⇧{index + 1}
+      </div>
       <SceneMiniVisualizer scene={scene} />
-      <div className="mt-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
-        Scene {index + 1}
+      <div className="mt-1.5 flex items-center justify-between gap-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
+        <span>Scene {index + 1}</span>
+        <span className="rounded border border-white/10 bg-white/[0.045] px-1 py-0.5 text-[7px] tracking-[0.08em] text-white/45">
+          {index + 1}
+        </span>
       </div>
       <div
         className={`mt-0.5 truncate text-[11px] font-semibold group-hover:text-violet-100${
@@ -280,6 +287,14 @@ function SceneListRow({
         <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/35">
           Scene {index + 1}
           {scene.screenLayoutPreset ? ` · ${scene.screenLayoutPreset}` : ""}
+        </div>
+        <div className="mt-1 flex items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/35">
+          <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">
+            {index + 1} Preview
+          </span>
+          <span className="rounded border border-violet-200/20 bg-violet-400/10 px-1.5 py-0.5 text-violet-100/65">
+            ⇧{index + 1} Take
+          </span>
         </div>
       </div>
 
