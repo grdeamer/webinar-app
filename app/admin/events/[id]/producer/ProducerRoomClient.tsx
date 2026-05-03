@@ -316,8 +316,8 @@ export default function ProducerRoomClient({
       setSelectedSceneId(null)
 
       await loadScenes()
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to save scene")
     } finally {
       setSceneBusy(false)
     }
@@ -343,8 +343,8 @@ export default function ProducerRoomClient({
         window.setTimeout(() => setScreenLayoutPreset(preset), 150)
         setSelectedBlockId(null)
       }
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to apply scene")
     } finally {
       setSceneBusy(false)
     }
@@ -354,18 +354,21 @@ export default function ProducerRoomClient({
     try {
       setSceneBusy(true)
       setError(null)
+
       setDeletedSceneIds((prev) => {
-  const next = new Set(prev)
-  next.add(String(sceneId))
-  return next
-})
+        const next = new Set(prev)
+        next.add(String(sceneId))
+        return next
+      })
 
       // For now, remove scene from the live producer UI/local snapshots.
       // Server-side scene deletion can be wired once the scenes API exposes DELETE.
-      setLocalSceneSnapshots((prev) => prev.filter((scene) => String(scene.id) !== String(sceneId)))
+      setLocalSceneSnapshots((prev) =>
+        prev.filter((scene) => String(scene.id) !== String(sceneId))
+      )
       setScenes((prev) => prev.filter((scene) => String(scene.id) !== String(sceneId)))
-    } catch (e: any) {
-      setError(e.message)
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Failed to delete scene")
     } finally {
       setSceneBusy(false)
     }
