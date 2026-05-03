@@ -380,6 +380,13 @@ export default function ProducerRoomClient({
     setError(null)
   }
 
+  async function applySceneAndTake(sceneId: string) {
+    await applyScene(sceneId)
+    window.setTimeout(() => {
+      void runTake("cut")
+    }, 175)
+  }
+
   async function setAutoDirector(enabled: boolean) {
     const data = await api.setAutoDirector(enabled)
     setStageState(data.state)
@@ -608,6 +615,36 @@ export default function ProducerRoomClient({
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [runTake])
+
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
+      if (tag === "input" || tag === "textarea" || tag === "select") return
+
+      // Number keys 1–9 = apply scenes
+      if (event.key >= "1" && event.key <= "9") {
+        const index = Number(event.key) - 1
+        const scene = scenes[index]
+        if (scene) {
+          event.preventDefault()
+          void applyScene(scene.id)
+        }
+      }
+
+      // Shift + number = apply + TAKE
+      if (event.shiftKey && event.key >= "1" && event.key <= "9") {
+        const index = Number(event.key) - 1
+        const scene = scenes[index]
+        if (scene) {
+          event.preventDefault()
+          void applySceneAndTake(scene.id)
+        }
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [scenes, applyScene, applySceneAndTake])
 
   const previewProgramDifferent = useMemo(
     () =>
@@ -917,6 +954,7 @@ export default function ProducerRoomClient({
               previewBlocks={previewBlocks}
               onAddScene={startNewScene}
               onApplyScene={(sceneId) => void applyScene(sceneId)}
+              onDoubleClickScene={(sceneId) => void applySceneAndTake(sceneId)}
               onDeleteScene={(sceneId) => void deleteScene(sceneId)}
             />
           </div>

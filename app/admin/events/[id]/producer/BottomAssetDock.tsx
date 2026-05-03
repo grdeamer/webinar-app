@@ -72,12 +72,14 @@ function SceneTile({
   index,
   isActive,
   onApplyScene,
+  onDoubleClickScene,
   onDeleteScene,
 }: {
   scene: SceneSummary
   index: number
   isActive: boolean
   onApplyScene?: (sceneId: string) => void
+  onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -85,6 +87,7 @@ function SceneTile({
     <button
       type="button"
       onClick={() => onApplyScene?.(scene.id)}
+      onDoubleClick={() => onDoubleClickScene?.(scene.id)}
       className={`group relative min-w-[96px] rounded-[16px] border p-1.5 text-left transition duration-200 ${
         isActive
           ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_24px_rgba(168,85,247,0.22)]"
@@ -246,12 +249,14 @@ function SceneListRow({
   index,
   isActive,
   onApplyScene,
+  onDoubleClickScene,
   onDeleteScene,
 }: {
   scene: SceneSummary
   index: number
   isActive: boolean
   onApplyScene?: (sceneId: string) => void
+  onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
@@ -260,6 +265,7 @@ function SceneListRow({
     <button
       type="button"
       onClick={() => onApplyScene?.(scene.id)}
+      onDoubleClick={() => onDoubleClickScene?.(scene.id)}
       className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/10 ${
         isActive
           ? "border-violet-300/55 bg-violet-400/12"
@@ -409,6 +415,7 @@ export default function BottomAssetDock({
   previewBlocks,
   onAddScene,
   onApplyScene,
+  onDoubleClickScene,
   onDeleteScene,
 }: {
   scenes: SceneSummary[]
@@ -416,6 +423,7 @@ export default function BottomAssetDock({
   previewBlocks: PreviewBlock[]
   onAddScene?: () => void
   onApplyScene?: (sceneId: string) => void
+  onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const graphics = previewBlocks.filter((block) => block.type === "text")
@@ -464,6 +472,7 @@ export default function BottomAssetDock({
                   index={index}
                   isActive={selectedSceneId === scene.id}
                   onApplyScene={onApplyScene}
+                  onDoubleClickScene={onDoubleClickScene}
                   onDeleteScene={onDeleteScene}
                 />
               ))}
@@ -488,6 +497,7 @@ export default function BottomAssetDock({
                   index={index}
                   isActive={selectedSceneId === scene.id}
                   onApplyScene={onApplyScene}
+                  onDoubleClickScene={onDoubleClickScene}
                   onDeleteScene={onDeleteScene}
                 />
               ))}
