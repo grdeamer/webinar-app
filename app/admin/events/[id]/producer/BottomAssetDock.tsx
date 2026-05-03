@@ -71,17 +71,20 @@ function SceneTile({
   scene,
   index,
   isActive,
+  onApplyScene,
   onDeleteScene,
 }: {
   scene: SceneSummary
   index: number
   isActive: boolean
+  onApplyScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
   return (
     <button
       type="button"
+      onClick={() => onApplyScene?.(scene.id)}
       className={`group relative min-w-[96px] rounded-[16px] border p-1.5 text-left transition duration-200 ${
         isActive
           ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_24px_rgba(168,85,247,0.22)]"
@@ -242,18 +245,22 @@ function SceneListRow({
   scene,
   index,
   isActive,
+  onApplyScene,
   onDeleteScene,
 }: {
   scene: SceneSummary
   index: number
   isActive: boolean
+  onApplyScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   return (
-    <div
-      className={`relative flex items-center gap-2 rounded-2xl border px-2 py-2 ${
+    <button
+      type="button"
+      onClick={() => onApplyScene?.(scene.id)}
+      className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/10 ${
         isActive
           ? "border-violet-300/55 bg-violet-400/12"
           : "border-white/10 bg-white/[0.035]"
@@ -274,28 +281,38 @@ function SceneListRow({
         <>
           <button
             type="button"
-            onClick={() => setConfirmDelete(true)}
+            onClick={(event) => {
+              event.stopPropagation()
+              setConfirmDelete(true)
+            }}
             className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-300/30 bg-red-500/18 text-[12px] font-black text-red-100 transition hover:bg-red-500/35"
           >
             ×
           </button>
 
           {confirmDelete ? (
-            <div className="absolute inset-1 z-30 flex items-center justify-between gap-2 rounded-xl border border-red-300/30 bg-slate-950/95 px-2 backdrop-blur">
+            <div
+              className="absolute inset-1 z-30 flex items-center justify-between gap-2 rounded-xl border border-red-300/30 bg-slate-950/95 px-2 backdrop-blur"
+              onClick={(event) => event.stopPropagation()}
+            >
               <span className="text-[9px] font-black uppercase tracking-[0.14em] text-red-100/85">
                 Delete?
               </span>
               <div className="flex gap-1">
                 <button
                   type="button"
-                  onClick={() => setConfirmDelete(false)}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    setConfirmDelete(false)
+                  }}
                   className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/65"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
+                  onClick={(event) => {
+                    event.stopPropagation()
                     onDeleteScene(scene.id)
                     setConfirmDelete(false)
                   }}
@@ -308,7 +325,7 @@ function SceneListRow({
           ) : null}
         </>
       ) : null}
-    </div>
+    </button>
   )
 }
 
@@ -391,12 +408,14 @@ export default function BottomAssetDock({
   selectedSceneId,
   previewBlocks,
   onAddScene,
+  onApplyScene,
   onDeleteScene,
 }: {
   scenes: SceneSummary[]
   selectedSceneId: string | null
   previewBlocks: PreviewBlock[]
   onAddScene?: () => void
+  onApplyScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const graphics = previewBlocks.filter((block) => block.type === "text")
@@ -444,6 +463,7 @@ export default function BottomAssetDock({
                   scene={scene}
                   index={index}
                   isActive={selectedSceneId === scene.id}
+                  onApplyScene={onApplyScene}
                   onDeleteScene={onDeleteScene}
                 />
               ))}
@@ -467,6 +487,7 @@ export default function BottomAssetDock({
                   scene={scene}
                   index={index}
                   isActive={selectedSceneId === scene.id}
+                  onApplyScene={onApplyScene}
                   onDeleteScene={onDeleteScene}
                 />
               ))}

@@ -916,6 +916,7 @@ export default function ProducerRoomClient({
               selectedSceneId={selectedSceneId}
               previewBlocks={previewBlocks}
               onAddScene={startNewScene}
+              onApplyScene={(sceneId) => void applyScene(sceneId)}
               onDeleteScene={(sceneId) => void deleteScene(sceneId)}
             />
           </div>
