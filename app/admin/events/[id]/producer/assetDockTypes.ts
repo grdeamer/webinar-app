@@ -1,5 +1,5 @@
 
-export type ScreenLayoutPreset = "classic" | "brand" | "speaker" | "full"
+export type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
 
 export type SceneSummary = {
   id: string

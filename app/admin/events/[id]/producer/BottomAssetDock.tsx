@@ -19,7 +19,7 @@ import {
 function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
   const preset = scene.screenLayoutPreset ?? null
 
-  if (preset === "full") {
+  if (preset === "fullscreen") {
     return (
       <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
         <div className="absolute inset-1 rounded-lg border border-sky-200/20 bg-sky-400/16" />
@@ -30,7 +30,7 @@ function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
     )
   }
 
-  if (preset === "speaker") {
+  if (preset === "speaker_focus") {
     return (
       <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
         <div className="absolute inset-y-1 left-1 w-[62%] rounded-lg border border-sky-200/18 bg-sky-400/12" />

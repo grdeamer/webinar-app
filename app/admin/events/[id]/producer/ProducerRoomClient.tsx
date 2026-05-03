@@ -22,6 +22,7 @@ import {
   type SceneSnapshot,
 } from "./producerRoomTypes"
 import type { CinematicTransitionType } from "./commandDeckTypes"
+import type { SceneSummary, ScreenLayoutPreset } from "./assetDockTypes"
 import { renderBlockContent, renderPlacedBlocks } from "./producerRoomRenderers"
 import {
   AudienceOriginTestPanel,
@@ -67,7 +68,7 @@ export default function ProducerRoomClient({
   const [error, setError] = useState<string | null>(null)
 
 
-  const [scenes, setScenes] = useState<any[]>([])
+  const [scenes, setScenes] = useState<SceneSummary[]>([])
   const [sceneName, setSceneName] = useState("")
   const [sceneBusy, setSceneBusy] = useState(false)
   const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
@@ -76,32 +77,11 @@ export default function ProducerRoomClient({
 
   const selectedSceneLabel = useMemo(() => {
     if (!selectedSceneId) return null
-
-    const localScene = localSceneSnapshots.find(
-      (scene) => String(scene.id) === String(selectedSceneId)
-    )
-
-    if (localScene?.name) return localScene.name
-
-    const serverScene = scenes.find(
-      (scene) => String(scene.id) === String(selectedSceneId)
-    )
-
-    if (typeof serverScene?.name === "string" && serverScene.name.trim()) {
-      return serverScene.name
-    }
-
-    if (typeof serverScene?.title === "string" && serverScene.title.trim()) {
-      return serverScene.title
-    }
-
     return "Selected scene"
   }, [localSceneSnapshots, scenes, selectedSceneId])
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
-  const [screenLayoutPreset, setScreenLayoutPreset] = useState<
-  "classic" | "brand" | "speaker_focus" | "fullscreen"
->("classic")
+  const [screenLayoutPreset, setScreenLayoutPreset] = useState<ScreenLayoutPreset>("classic")
   const [programFlashActive, setProgramFlashActive] = useState(false)
   const [programState, setProgramState] = useState<StageState | null>(null)
   const [monitorHeight, setMonitorHeight] = useState(520)
@@ -206,11 +186,15 @@ export default function ProducerRoomClient({
 
   async function loadScenes() {
     const data = await api.loadScenes()
-    const nextScenes: Array<{ id: string | number }> = Array.isArray(data?.scenes)
-      ? data.scenes
+    const nextScenes: SceneSummary[] = Array.isArray(data?.scenes)
+      ? data.scenes.map((scene: { id: string | number; name?: string | null; title?: string | null; screenLayoutPreset?: ScreenLayoutPreset | null }) => ({
+          id: String(scene.id),
+          name: scene.name ?? scene.title ?? "Scene",
+          screenLayoutPreset: scene.screenLayoutPreset ?? null,
+        }))
       : []
 
-    setScenes(nextScenes.filter((scene) => !deletedSceneIds.has(String(scene.id))))
+    setScenes(nextScenes.filter((scene) => !deletedSceneIds.has(scene.id)))
   }
 
   const {
@@ -279,7 +263,7 @@ export default function ProducerRoomClient({
         const next = prev.filter((s) => String(s.id) !== savedSceneId)
         next.push({
           id: savedSceneId,
-          name: sceneName || prev.find(s => String(s.id) === savedSceneId)?.name || "Scene",
+          name: sceneName || prev.find((s) => String(s.id) === savedSceneId)?.name || "Scene",
           stageState: stageState ? { ...stageState } : null,
           previewBlocks: previewBlocks.map((b) => ({ ...b })),
           screenLayoutPreset,
