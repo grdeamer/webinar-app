@@ -397,6 +397,21 @@ export default function ProducerRoomClient({
     setError(null)
   }
 
+  function sendSlideToPreview(slideIndex: number) {
+    setSelectedSceneId(null)
+    setError(null)
+    addTestPdfBlock()
+    setSceneName(`Slide ${slideIndex} Preview`)
+  }
+
+  function takeSlide(slideIndex: number) {
+    sendSlideToPreview(slideIndex)
+    window.setTimeout(() => {
+      void runTake("cut")
+      setProgramSceneId(null)
+    }, 175)
+  }
+
   async function applySceneAndTake(sceneId: string) {
     await applyScene(sceneId)
     window.setTimeout(() => {
@@ -990,6 +1005,8 @@ export default function ProducerRoomClient({
               previewBlocks={previewBlocks}
               onAddScene={startNewScene}
               onUploadPdf={() => pdfInputRef.current?.click()}
+              onSendSlideToPreview={sendSlideToPreview}
+              onTakeSlide={takeSlide}
               onApplyScene={(sceneId) => void applyScene(sceneId)}
               onDoubleClickScene={(sceneId) => void applySceneAndTake(sceneId)}
               onDeleteScene={(sceneId) => void deleteScene(sceneId)}

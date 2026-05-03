@@ -430,7 +430,15 @@ function AssetListRow({
   )
 }
 
-function SlidesPreviewPanel({ onUploadPdf }: { onUploadPdf?: () => void }): JSX.Element {
+function SlidesPreviewPanel({
+  onUploadPdf,
+  onSendToPreview,
+  onTakeSlide,
+}: {
+  onUploadPdf?: () => void
+  onSendToPreview?: (slideIndex: number) => void
+  onTakeSlide?: (slideIndex: number) => void
+}): JSX.Element {
   const slideCount = 8
   const [currentSlide, setCurrentSlide] = useState(1)
 
@@ -495,6 +503,23 @@ function SlidesPreviewPanel({ onUploadPdf }: { onUploadPdf?: () => void }): JSX.
             Next
           </button>
         </div>
+
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          <button
+            type="button"
+            onClick={() => onSendToPreview?.(currentSlide)}
+            className="rounded-lg border border-violet-300/25 bg-violet-400/12 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/85 transition hover:border-violet-300/40 hover:bg-violet-400/18"
+          >
+            Preview
+          </button>
+          <button
+            type="button"
+            onClick={() => onTakeSlide?.(currentSlide)}
+            className="rounded-lg border border-red-300/25 bg-red-500/14 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-red-100/85 transition hover:border-red-300/40 hover:bg-red-500/20"
+          >
+            Take
+          </button>
+        </div>
       </div>
     </DockSection>
   )
@@ -529,6 +554,8 @@ export default function BottomAssetDock({
   previewBlocks,
   onAddScene,
   onUploadPdf,
+  onSendSlideToPreview,
+  onTakeSlide,
   onApplyScene,
   onDoubleClickScene,
   onDeleteScene,
@@ -540,6 +567,8 @@ export default function BottomAssetDock({
   previewBlocks: PreviewBlock[]
   onAddScene?: () => void
   onUploadPdf?: () => void
+  onSendSlideToPreview?: (slideIndex: number) => void
+  onTakeSlide?: (slideIndex: number) => void
   onApplyScene?: (sceneId: string) => void
   onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
@@ -681,7 +710,11 @@ export default function BottomAssetDock({
           )}
         </DockSection>
 
-        <SlidesPreviewPanel onUploadPdf={onUploadPdf} />
+        <SlidesPreviewPanel
+          onUploadPdf={onUploadPdf}
+          onSendToPreview={onSendSlideToPreview}
+          onTakeSlide={onTakeSlide}
+        />
         <DockSection title="Transitions" count={TRANSITION_PRESETS.length}>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-2">
