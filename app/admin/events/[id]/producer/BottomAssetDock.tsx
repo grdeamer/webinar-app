@@ -71,6 +71,8 @@ function SceneTile({
   scene,
   index,
   isActive,
+  isProgramLive,
+  isHotkeyTriggered,
   onApplyScene,
   onDoubleClickScene,
   onDeleteScene,
@@ -78,6 +80,8 @@ function SceneTile({
   scene: SceneSummary
   index: number
   isActive: boolean
+  isProgramLive: boolean
+  isHotkeyTriggered: boolean
   onApplyScene?: (sceneId: string) => void
   onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
@@ -89,13 +93,24 @@ function SceneTile({
       onClick={() => onApplyScene?.(scene.id)}
       onDoubleClick={() => onDoubleClickScene?.(scene.id)}
       className={`group relative min-w-[96px] rounded-[16px] border p-1.5 text-left transition duration-200 ${
-        isActive
-          ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_24px_rgba(168,85,247,0.22)]"
-          : "border-white/10 bg-white/[0.035]"
+        isHotkeyTriggered
+          ? "-translate-y-0.5 border-amber-200/70 bg-amber-300/14 shadow-[0_0_34px_rgba(251,191,36,0.32)]"
+          : isActive
+            ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_24px_rgba(168,85,247,0.22)]"
+            : "border-white/10 bg-white/[0.035]"
       } hover:-translate-y-0.5 hover:border-violet-300/40 hover:bg-violet-400/10 hover:shadow-[0_0_20px_rgba(168,85,247,0.18)] active:translate-y-0`}
     >
+      {isHotkeyTriggered ? (
+        <div className="absolute inset-0 rounded-[16px] border border-amber-200/50 shadow-[inset_0_0_18px_rgba(251,191,36,0.18)]" />
+      ) : null}
       {isActive ? (
         <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.95)]" />
+      ) : null}
+
+      {isProgramLive ? (
+        <div className="absolute left-1.5 bottom-[46px] z-10 rounded-md border border-red-300/30 bg-red-500/20 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-red-100 shadow-[0_0_14px_rgba(248,113,113,0.18)]">
+          Program
+        </div>
       ) : null}
 
       {onDeleteScene ? (
@@ -255,6 +270,8 @@ function SceneListRow({
   scene,
   index,
   isActive,
+  isProgramLive,
+  isHotkeyTriggered,
   onApplyScene,
   onDoubleClickScene,
   onDeleteScene,
@@ -262,6 +279,8 @@ function SceneListRow({
   scene: SceneSummary
   index: number
   isActive: boolean
+  isProgramLive: boolean
+  isHotkeyTriggered: boolean
   onApplyScene?: (sceneId: string) => void
   onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
@@ -274,9 +293,11 @@ function SceneListRow({
       onClick={() => onApplyScene?.(scene.id)}
       onDoubleClick={() => onDoubleClickScene?.(scene.id)}
       className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/10 ${
-        isActive
-          ? "border-violet-300/55 bg-violet-400/12"
-          : "border-white/10 bg-white/[0.035]"
+        isHotkeyTriggered
+          ? "border-amber-200/70 bg-amber-300/14 shadow-[0_0_28px_rgba(251,191,36,0.22)]"
+          : isActive
+            ? "border-violet-300/55 bg-violet-400/12"
+            : "border-white/10 bg-white/[0.035]"
       }`}
     >
       <div className="w-12 shrink-0">
@@ -295,6 +316,11 @@ function SceneListRow({
           <span className="rounded border border-violet-200/20 bg-violet-400/10 px-1.5 py-0.5 text-violet-100/65">
             ⇧{index + 1} Take
           </span>
+          {isProgramLive ? (
+            <span className="rounded border border-red-300/25 bg-red-500/15 px-1.5 py-0.5 text-red-100/75">
+              Program
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -427,6 +453,8 @@ function SlidesPreviewPanel(): JSX.Element {
 export default function BottomAssetDock({
   scenes,
   selectedSceneId,
+  programSceneId,
+  hotkeySceneId,
   previewBlocks,
   onAddScene,
   onApplyScene,
@@ -435,6 +463,8 @@ export default function BottomAssetDock({
 }: {
   scenes: SceneSummary[]
   selectedSceneId: string | null
+  programSceneId: string | null
+  hotkeySceneId: string | null
   previewBlocks: PreviewBlock[]
   onAddScene?: () => void
   onApplyScene?: (sceneId: string) => void
@@ -486,6 +516,8 @@ export default function BottomAssetDock({
                   scene={scene}
                   index={index}
                   isActive={selectedSceneId === scene.id}
+                  isProgramLive={programSceneId === scene.id}
+                  isHotkeyTriggered={hotkeySceneId === scene.id}
                   onApplyScene={onApplyScene}
                   onDoubleClickScene={onDoubleClickScene}
                   onDeleteScene={onDeleteScene}
@@ -511,6 +543,8 @@ export default function BottomAssetDock({
                   scene={scene}
                   index={index}
                   isActive={selectedSceneId === scene.id}
+                  isProgramLive={programSceneId === scene.id}
+                  isHotkeyTriggered={hotkeySceneId === scene.id}
                   onApplyScene={onApplyScene}
                   onDoubleClickScene={onDoubleClickScene}
                   onDeleteScene={onDeleteScene}

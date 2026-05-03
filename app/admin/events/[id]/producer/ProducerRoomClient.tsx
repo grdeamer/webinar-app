@@ -114,6 +114,7 @@ export default function ProducerRoomClient({
   const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
   const [deletedSceneIds, setDeletedSceneIds] = useState<Set<string>>(() => new Set())
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null)
+  const [hotkeySceneId, setHotkeySceneId] = useState<string | null>(null)
 
   const selectedSceneLabel = useMemo(
     () =>
@@ -124,11 +125,11 @@ export default function ProducerRoomClient({
       }),
     [localSceneSnapshots, scenes, selectedSceneId]
   )
-
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<ScreenLayoutPreset>("classic")
   const [programFlashActive, setProgramFlashActive] = useState(false)
   const [programState, setProgramState] = useState<StageState | null>(null)
+  const [programSceneId, setProgramSceneId] = useState<string | null>(null)
   const [monitorHeight, setMonitorHeight] = useState(520)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
@@ -384,7 +385,15 @@ export default function ProducerRoomClient({
     await applyScene(sceneId)
     window.setTimeout(() => {
       void runTake("cut")
+      setProgramSceneId(sceneId)
     }, 175)
+  }
+
+  function flashSceneHotkey(sceneId: string) {
+    setHotkeySceneId(sceneId)
+    window.setTimeout(() => {
+      setHotkeySceneId((current) => (current === sceneId ? null : current))
+    }, 450)
   }
 
   async function setAutoDirector(enabled: boolean) {
@@ -610,26 +619,17 @@ export default function ProducerRoomClient({
 
       event.preventDefault()
       void runTake("cut")
+      setProgramSceneId(selectedSceneId)
     }
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [runTake])
+  }, [runTake, selectedSceneId])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
       const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
       if (tag === "input" || tag === "textarea" || tag === "select") return
-
-      // Number keys 1–9 = apply scenes
-      if (event.key >= "1" && event.key <= "9") {
-        const index = Number(event.key) - 1
-        const scene = scenes[index]
-        if (scene) {
-          event.preventDefault()
-          void applyScene(scene.id)
-        }
-      }
 
       // Shift + number = apply + TAKE
       if (event.shiftKey && event.key >= "1" && event.key <= "9") {
@@ -637,7 +637,20 @@ export default function ProducerRoomClient({
         const scene = scenes[index]
         if (scene) {
           event.preventDefault()
+          flashSceneHotkey(scene.id)
           void applySceneAndTake(scene.id)
+        }
+        return
+      }
+
+      // Number keys 1–9 = apply scenes
+      if (event.key >= "1" && event.key <= "9") {
+        const index = Number(event.key) - 1
+        const scene = scenes[index]
+        if (scene) {
+          event.preventDefault()
+          flashSceneHotkey(scene.id)
+          void applyScene(scene.id)
         }
       }
     }
@@ -787,6 +800,7 @@ export default function ProducerRoomClient({
               transitionType?: CinematicTransitionType
             ): void => {
               void runTake(mode, transitionType)
+              setProgramSceneId(selectedSceneId)
             }}
           />
           <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
@@ -794,7 +808,10 @@ export default function ProducerRoomClient({
               <ProducerLeftRail
                 takeBusy={takeBusy}
                 previewProgramDifferent={previewProgramDifferent}
-                onTake={() => void runTake("cut")}
+                onTake={() => {
+                  void runTake("cut")
+                  setProgramSceneId(selectedSceneId)
+                }}
                 onGoLive={() =>
                   void goLive().catch((e: unknown) =>
                     setError(e instanceof Error ? e.message : "Unexpected error")
@@ -839,6 +856,7 @@ export default function ProducerRoomClient({
                   lastTakeMode={lastTakeMode}
                   onTake={(mode: "cut" | "auto"): void => {
                     void runTake(mode)
+                    setProgramSceneId(selectedSceneId)
                   }}
                   onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
                   stopDraggingBlock={stopDraggingBlock}
@@ -951,6 +969,8 @@ export default function ProducerRoomClient({
             <BottomAssetDock
               scenes={scenes}
               selectedSceneId={selectedSceneId}
+              programSceneId={programSceneId}
+              hotkeySceneId={hotkeySceneId}
               previewBlocks={previewBlocks}
               onAddScene={startNewScene}
               onApplyScene={(sceneId) => void applyScene(sceneId)}

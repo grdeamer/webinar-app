@@ -26,8 +26,9 @@ export function KeyboardShortcutsPanel(): JSX.Element {
         Hotkeys
       </span>
       <ShortcutPill keyLabel="Space" action="Take" />
-      <ShortcutPill keyLabel="1-6" action="Scenes" />
-      <ShortcutPill keyLabel="G" action="Graphic" />
+      <ShortcutPill keyLabel="1-9" action="Preview Scene" />
+      <ShortcutPill keyLabel="⇧1-9" action="Take Scene" />
+      <ShortcutPill keyLabel="G" action="Add Graphic" />
       <ShortcutPill keyLabel="Esc" action="Clear" />
     </div>
   )
