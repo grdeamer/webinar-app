@@ -74,6 +74,30 @@ export default function ProducerRoomClient({
   const [deletedSceneIds, setDeletedSceneIds] = useState<Set<string>>(() => new Set())
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null)
 
+  const selectedSceneLabel = useMemo(() => {
+    if (!selectedSceneId) return null
+
+    const localScene = localSceneSnapshots.find(
+      (scene) => String(scene.id) === String(selectedSceneId)
+    )
+
+    if (localScene?.name) return localScene.name
+
+    const serverScene = scenes.find(
+      (scene) => String(scene.id) === String(selectedSceneId)
+    )
+
+    if (typeof serverScene?.name === "string" && serverScene.name.trim()) {
+      return serverScene.name
+    }
+
+    if (typeof serverScene?.title === "string" && serverScene.title.trim()) {
+      return serverScene.title
+    }
+
+    return "Selected scene"
+  }, [localSceneSnapshots, scenes, selectedSceneId])
+
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<
   "classic" | "brand" | "speaker_focus" | "fullscreen"
@@ -772,6 +796,7 @@ export default function ProducerRoomClient({
                   sceneBusy={sceneBusy}
                   scenes={scenes}
                   selectedSceneId={selectedSceneId}
+                  selectedSceneLabel={selectedSceneLabel}
                   onApplyScene={(sceneId) => void applyScene(sceneId)}
                   onClearScreenShare={() =>
                     void clearScreenShare().catch((e: unknown) =>
@@ -854,6 +879,7 @@ export default function ProducerRoomClient({
 
             <BottomAssetDock
               scenes={scenes}
+              selectedSceneId={selectedSceneId}
               previewBlocks={previewBlocks}
               onDeleteScene={(sceneId) => void deleteScene(sceneId)}
             />

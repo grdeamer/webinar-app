@@ -8,6 +8,8 @@ export default function ScenesStatusPanel({
   sceneBusy,
   stageState,
   scenes,
+  selectedSceneId,
+  selectedSceneLabel,
   onApplyScene,
   onClearScreenShare,
   onUnpin,
@@ -19,6 +21,8 @@ export default function ScenesStatusPanel({
   sceneBusy: boolean
   stageState: StageState | null
   scenes: Array<{ id: string; name: string }>
+  selectedSceneId: string | null
+  selectedSceneLabel: string | null
   onApplyScene: (sceneId: string) => void
   onClearScreenShare: () => void
   onUnpin: () => void
@@ -34,7 +38,7 @@ export default function ScenesStatusPanel({
         <input
           value={sceneName}
           onChange={(e) => onSceneNameChange(e.target.value)}
-          placeholder="Scene name"
+          placeholder={selectedSceneId ? "Update selected scene" : "Scene name"}
           className="min-w-[220px] rounded-xl bg-white/10 px-3 py-2 text-sm outline-none ring-0 placeholder:text-white/30"
         />
 
@@ -43,7 +47,7 @@ export default function ScenesStatusPanel({
           disabled={sceneBusy}
           className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black transition hover:bg-white/90"
         >
-          Save Scene
+          {sceneBusy ? "Saving..." : selectedSceneId ? "Update Scene" : "Save Scene"}
         </button>
 
         <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/60">
@@ -86,12 +90,22 @@ export default function ScenesStatusPanel({
         ) : null}
       </div>
 
+      {selectedSceneId ? (
+        <p className="mt-2 text-[11px] font-medium uppercase tracking-[0.16em] text-sky-200/70">
+          Updating {selectedSceneLabel ?? "selected scene"}
+        </p>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap gap-2">
         {scenes.map((scene) => (
           <button
             key={scene.id}
             onClick={() => onApplyScene(scene.id)}
-            className="rounded-lg border border-white/15 px-3 py-1.5 text-xs transition hover:bg-white/5"
+            className={`rounded-lg px-3 py-1.5 text-xs transition ${
+              selectedSceneId === scene.id
+                ? "border border-sky-400 bg-sky-400/10 text-sky-200"
+                : "border border-white/15 hover:bg-white/5"
+            }`}
           >
             {scene.name}
           </button>

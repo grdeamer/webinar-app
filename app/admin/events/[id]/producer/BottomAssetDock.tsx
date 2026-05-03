@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
@@ -14,6 +15,56 @@ import {
   KeyboardShortcutsPanel,
   TallyIndicators,
 } from "./AssetDockChrome"
+
+function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
+  const preset = scene.screenLayoutPreset ?? null
+
+  if (preset === "full") {
+    return (
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
+        <div className="absolute inset-1 rounded-lg border border-sky-200/20 bg-sky-400/16" />
+        <div className="absolute bottom-1 left-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-sky-100/70">
+          Full
+        </div>
+      </div>
+    )
+  }
+
+  if (preset === "speaker") {
+    return (
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
+        <div className="absolute inset-y-1 left-1 w-[62%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
+        <div className="absolute right-1 top-1 h-[44%] w-[30%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
+        <div className="absolute bottom-1 right-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-violet-100/70">
+          Speaker
+        </div>
+      </div>
+    )
+  }
+
+  if (preset === "brand") {
+    return (
+      <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
+        <div className="absolute left-1 top-1 h-[58%] w-[58%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
+        <div className="absolute bottom-1 right-1 h-[34%] w-[34%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
+        <div className="absolute bottom-1 left-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-violet-100/70">
+          Brand
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.2),transparent_30%),radial-gradient(circle_at_70%_65%,rgba(168,85,247,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.015))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]">
+      <div className="absolute left-1 top-1 h-[46%] w-[46%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
+      <div className="absolute right-1 top-1 h-[46%] w-[46%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
+      <div className="absolute bottom-1 left-1 h-[32%] w-[46%] rounded-lg border border-white/10 bg-white/[0.055]" />
+      <div className="absolute bottom-1 right-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/60">
+        Classic
+      </div>
+    </div>
+  )
+}
 
 
 function SceneTile({
@@ -102,7 +153,7 @@ function SceneTile({
       <div className="absolute left-1.5 top-1.5 rounded-md border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
         {index + 1}
       </div>
-      <div className="aspect-video rounded-xl border border-white/10 bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.2),transparent_30%),radial-gradient(circle_at_70%_65%,rgba(168,85,247,0.18),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.015))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]" />
+      <SceneMiniVisualizer scene={scene} />
       <div className="mt-1.5 text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
         Scene {index + 1}
       </div>
@@ -208,13 +259,14 @@ function SceneListRow({
           : "border-white/10 bg-white/[0.035]"
       }`}
     >
-      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-black/35 text-[10px] font-black text-white/60">
-        {index + 1}
+      <div className="w-12 shrink-0">
+        <SceneMiniVisualizer scene={scene} />
       </div>
       <div className="min-w-0 flex-1">
         <div className="truncate text-[11px] font-semibold text-white/82">{scene.name}</div>
         <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/35">
           Scene {index + 1}
+          {scene.screenLayoutPreset ? ` · ${scene.screenLayoutPreset}` : ""}
         </div>
       </div>
 
@@ -336,10 +388,12 @@ function SlidesPreviewPanel(): JSX.Element {
 
 export default function BottomAssetDock({
   scenes,
+  selectedSceneId,
   previewBlocks,
   onDeleteScene,
 }: {
   scenes: SceneSummary[]
+  selectedSceneId: string | null
   previewBlocks: PreviewBlock[]
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
@@ -387,7 +441,7 @@ export default function BottomAssetDock({
                   key={scene.id}
                   scene={scene}
                   index={index}
-                  isActive={index === 0}
+                  isActive={selectedSceneId === scene.id}
                   onDeleteScene={onDeleteScene}
                 />
               ))}
@@ -409,7 +463,7 @@ export default function BottomAssetDock({
                   key={scene.id}
                   scene={scene}
                   index={index}
-                  isActive={index === 0}
+                  isActive={selectedSceneId === scene.id}
                   onDeleteScene={onDeleteScene}
                 />
               ))}

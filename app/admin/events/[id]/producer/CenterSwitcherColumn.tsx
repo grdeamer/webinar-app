@@ -46,6 +46,8 @@ export default function CenterSwitcherColumn({
   onSaveScene,
   sceneBusy,
   scenes,
+  selectedSceneId,
+  selectedSceneLabel,
   onApplyScene,
   onClearScreenShare,
   onUnpin,
@@ -98,6 +100,8 @@ export default function CenterSwitcherColumn({
   onSaveScene: () => void
   sceneBusy: boolean
   scenes: Array<{ id: string; name: string }>
+  selectedSceneId: string | null
+  selectedSceneLabel: string | null
   onApplyScene: (sceneId: string) => void
   onClearScreenShare: () => void
   onUnpin: () => void
@@ -527,6 +531,8 @@ export default function CenterSwitcherColumn({
           sceneBusy={sceneBusy}
           stageState={stageState}
           scenes={scenes}
+          selectedSceneId={selectedSceneId}
+          selectedSceneLabel={selectedSceneLabel}
           onApplyScene={onApplyScene}
           onClearScreenShare={onClearScreenShare}
           onUnpin={onUnpin}

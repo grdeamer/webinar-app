@@ -1,6 +1,10 @@
+
+export type ScreenLayoutPreset = "classic" | "brand" | "speaker" | "full"
+
 export type SceneSummary = {
   id: string
   name: string
+  screenLayoutPreset?: ScreenLayoutPreset | null
 }
 
 export type DockAsset = {
