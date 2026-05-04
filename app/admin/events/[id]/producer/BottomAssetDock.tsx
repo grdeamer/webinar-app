@@ -431,18 +431,30 @@ function AssetListRow({
 }
 
 function SlidesPreviewPanel({
+  programSlideLabel,
   onUploadPdf,
   onSendToPreview,
   onTakeSlide,
 }: {
+  programSlideLabel?: string | null
   onUploadPdf?: () => void
   onSendToPreview?: (slideIndex: number) => void
   onTakeSlide?: (slideIndex: number) => void
 }): JSX.Element {
-  const slideCount = 8
+  const slideCount = 8 // TODO: replace with real PDF page count
+  const slides = Array.from({ length: slideCount }, (_, i) => i + 1)
   const [currentSlide, setCurrentSlide] = useState(1)
+  const [slideFlash, setSlideFlash] = useState<"preview" | "take" | "nav" | null>(null)
+
+  const flashSlideAction = (mode: "preview" | "take" | "nav"): void => {
+    setSlideFlash(mode)
+    window.setTimeout(() => {
+      setSlideFlash((current) => (current === mode ? null : current))
+    }, 420)
+  }
 
   const goPrevious = (): void => {
+    flashSlideAction("nav")
     setCurrentSlide((value) => Math.max(1, value - 1))
   }
 
@@ -465,12 +477,14 @@ function SlidesPreviewPanel({
 
       if (event.key.toLowerCase() === "p" && event.shiftKey) {
         event.preventDefault()
+        flashSlideAction("take")
         onTakeSlide?.(currentSlide)
         return
       }
 
       if (event.key.toLowerCase() === "p") {
         event.preventDefault()
+        flashSlideAction("preview")
         onSendToPreview?.(currentSlide)
       }
     }
@@ -480,34 +494,57 @@ function SlidesPreviewPanel({
   }, [currentSlide, onSendToPreview, onTakeSlide])
 
   const goNext = (): void => {
+    flashSlideAction("nav")
     setCurrentSlide((value) => Math.min(slideCount, value + 1))
   }
 
   return (
     <DockSection title="Slides" count={slideCount}>
-      <div className="rounded-[18px] border border-amber-200/12 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(251,191,36,0.08)]">
+      <div
+        className={`rounded-[18px] border p-2 transition duration-200 ${
+          slideFlash === "take"
+            ? "border-red-300/45 bg-red-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(248,113,113,0.18)]"
+            : slideFlash === "preview"
+              ? "border-violet-300/45 bg-violet-400/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(168,85,247,0.18)]"
+              : slideFlash === "nav"
+                ? "border-amber-200/45 bg-amber-300/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(251,191,36,0.14)]"
+                : "border-amber-200/12 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(251,191,36,0.08)]"
+        }`}
+      >
         <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.88))]">
           <div className="absolute left-2 top-2 h-1.5 w-10 rounded-full bg-amber-200/70" />
           <div className="absolute left-2 top-5 h-1 w-16 rounded-full bg-white/35" />
           <div className="absolute left-2 top-8 h-1 w-12 rounded-full bg-white/20" />
-          <div className="absolute bottom-2 right-2 h-9 w-12 rounded-lg border border-amber-200/20 bg-amber-300/10" />
+          <div className="absolute bottom-2 right-2 h-9 w-12 rounded-lg border border-amber-200/20 bg-amber-300/10 flex items-center justify-center text-[10px] font-black text-amber-100/70">
+            {currentSlide}
+          </div>
           <div className="absolute right-2 top-2 rounded-full border border-amber-200/20 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-amber-100/80">
             {currentSlide}/{slideCount}
           </div>
           <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-amber-100/75">
             PDF Deck
           </div>
+          {programSlideLabel ? (
+            <div className="absolute bottom-2 right-2 rounded-full border border-red-300/25 bg-red-500/18 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-red-100/85 shadow-[0_0_12px_rgba(248,113,113,0.18)]">
+              Program
+            </div>
+          ) : null}
         </div>
 
-        <div className="mt-2 flex items-center justify-between gap-2">
-          <div className="min-w-0">
+        <div className="mt-2 flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
             <div className="truncate text-[11px] font-semibold text-white/82">
               Session Deck v1
             </div>
             <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/35">
               Slide {currentSlide} of {slideCount}
             </div>
-            <div className="mt-1 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/45">
+            {programSlideLabel ? (
+              <div className="mt-1 inline-flex rounded-full border border-red-300/25 bg-red-500/14 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-red-100/75">
+                Program: {programSlideLabel}
+              </div>
+            ) : null}
+            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/45">
               <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">[</span>
               <span>Prev</span>
               <span className="text-white/25">/</span>
@@ -525,10 +562,32 @@ function SlidesPreviewPanel({
           <button
             type="button"
             onClick={onUploadPdf}
-            className="rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15"
+            className="shrink-0 rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15"
           >
             Upload PDF
           </button>
+        </div>
+
+        <div className="mt-2 flex gap-1 overflow-x-auto pb-1">
+          {slides.map((slide) => (
+            <button
+              key={slide}
+              type="button"
+              onClick={() => {
+                flashSlideAction("nav")
+                setCurrentSlide(slide)
+              }}
+              className={`relative h-10 w-14 shrink-0 rounded-lg border text-[8px] font-black transition ${
+                slide === currentSlide
+                  ? "border-amber-200/50 bg-amber-300/20 text-amber-100"
+                  : "border-white/10 bg-black/30 text-white/40 hover:border-amber-200/30 hover:bg-amber-300/10"
+              }`}
+            >
+              <span className="absolute inset-0 flex items-center justify-center">
+                {slide}
+              </span>
+            </button>
+          ))}
         </div>
 
         <div className="mt-2 grid grid-cols-2 gap-1.5">
@@ -553,14 +612,20 @@ function SlidesPreviewPanel({
         <div className="mt-2 grid grid-cols-2 gap-1.5">
           <button
             type="button"
-            onClick={() => onSendToPreview?.(currentSlide)}
+            onClick={() => {
+              flashSlideAction("preview")
+              onSendToPreview?.(currentSlide)
+            }}
             className="rounded-lg border border-violet-300/25 bg-violet-400/12 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/85 transition hover:border-violet-300/40 hover:bg-violet-400/18"
           >
             P Preview
           </button>
           <button
             type="button"
-            onClick={() => onTakeSlide?.(currentSlide)}
+            onClick={() => {
+              flashSlideAction("take")
+              onTakeSlide?.(currentSlide)
+            }}
             className="rounded-lg border border-red-300/25 bg-red-500/14 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-red-100/85 transition hover:border-red-300/40 hover:bg-red-500/20"
           >
             ⇧P Take
@@ -596,6 +661,7 @@ export default function BottomAssetDock({
   scenes,
   selectedSceneId,
   programSceneId,
+  programSlideLabel,
   hotkeySceneId,
   previewBlocks,
   onAddScene,
@@ -609,6 +675,7 @@ export default function BottomAssetDock({
   scenes: SceneSummary[]
   selectedSceneId: string | null
   programSceneId: string | null
+  programSlideLabel: string | null
   hotkeySceneId: string | null
   previewBlocks: PreviewBlock[]
   onAddScene?: () => void
@@ -757,6 +824,7 @@ export default function BottomAssetDock({
         </DockSection>
 
         <SlidesPreviewPanel
+          programSlideLabel={programSlideLabel}
           onUploadPdf={onUploadPdf}
           onSendToPreview={onSendSlideToPreview}
           onTakeSlide={onTakeSlide}

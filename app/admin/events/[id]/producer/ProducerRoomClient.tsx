@@ -132,6 +132,7 @@ export default function ProducerRoomClient({
   const [programFlashActive, setProgramFlashActive] = useState(false)
   const [programState, setProgramState] = useState<StageState | null>(null)
   const [programSceneId, setProgramSceneId] = useState<string | null>(null)
+  const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
   const [monitorHeight, setMonitorHeight] = useState(520)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
@@ -400,7 +401,24 @@ export default function ProducerRoomClient({
   function sendSlideToPreview(slideIndex: number) {
     setSelectedSceneId(null)
     setError(null)
-    addTestPdfBlock()
+    setProgramSlideLabel(null)
+
+    const id = crypto.randomUUID()
+
+    setPreviewBlocks((prev) => [
+      ...prev,
+      {
+        id,
+        type: "pdf",
+        x: 10,
+        y: 10,
+        width: 60,
+        height: 60,
+        zIndex: prev.length + 1,
+        label: `Slide ${slideIndex}`,
+      },
+    ])
+
     setSceneName(`Slide ${slideIndex} Preview`)
   }
 
@@ -409,6 +427,7 @@ export default function ProducerRoomClient({
     window.setTimeout(() => {
       void runTake("cut")
       setProgramSceneId(null)
+      setProgramSlideLabel(`Slide ${slideIndex}`)
     }, 175)
   }
 
@@ -417,6 +436,7 @@ export default function ProducerRoomClient({
     window.setTimeout(() => {
       void runTake("cut")
       setProgramSceneId(sceneId)
+      setProgramSlideLabel(null)
     }, 175)
   }
 
@@ -651,6 +671,7 @@ export default function ProducerRoomClient({
       event.preventDefault()
       void runTake("cut")
       setProgramSceneId(selectedSceneId)
+      setProgramSlideLabel(null)
     }
 
     window.addEventListener("keydown", onKeyDown)
@@ -832,6 +853,7 @@ export default function ProducerRoomClient({
             ): void => {
               void runTake(mode, transitionType)
               setProgramSceneId(selectedSceneId)
+              setProgramSlideLabel(null)
             }}
           />
           <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
@@ -842,6 +864,7 @@ export default function ProducerRoomClient({
                 onTake={() => {
                   void runTake("cut")
                   setProgramSceneId(selectedSceneId)
+                  setProgramSlideLabel(null)
                 }}
                 onGoLive={() =>
                   void goLive().catch((e: unknown) =>
@@ -888,6 +911,7 @@ export default function ProducerRoomClient({
                   onTake={(mode: "cut" | "auto"): void => {
                     void runTake(mode)
                     setProgramSceneId(selectedSceneId)
+                    setProgramSlideLabel(null)
                   }}
                   onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
                   stopDraggingBlock={stopDraggingBlock}
@@ -1001,6 +1025,7 @@ export default function ProducerRoomClient({
               scenes={scenes}
               selectedSceneId={selectedSceneId}
               programSceneId={programSceneId}
+              programSlideLabel={programSlideLabel}
               hotkeySceneId={hotkeySceneId}
               previewBlocks={previewBlocks}
               onAddScene={startNewScene}
