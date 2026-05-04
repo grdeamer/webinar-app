@@ -62,6 +62,7 @@ type RawSceneSummary = {
 type LocalPdfDeck = {
   name: string
   pageCount: number
+  src?: string | null
 }
 
 async function estimatePdfPageCount(file: File): Promise<number> {
@@ -216,16 +217,21 @@ export default function ProducerRoomClient({
 
     if (!file) return
 
+    const src = URL.createObjectURL(file)
+    const name = file.name.replace(/\.pdf$/i, "")
+
     try {
       const pageCount = await estimatePdfPageCount(file)
       setLocalPdfDeck({
-        name: file.name.replace(/\.pdf$/i, ""),
+        name,
         pageCount,
+        src,
       })
     } catch (_err: unknown) {
       setLocalPdfDeck({
-        name: file.name.replace(/\.pdf$/i, ""),
+        name,
         pageCount: 1,
+        src,
       })
     }
   }
@@ -241,6 +247,7 @@ export default function ProducerRoomClient({
       setLocalPdfDeck({
         name: parsedDeck.name,
         pageCount: Math.max(1, parsedDeck.pageCount),
+        src: null,
       })
     } catch (_err: unknown) {
       // Ignore corrupted local deck cache.
@@ -254,7 +261,13 @@ export default function ProducerRoomClient({
         return
       }
 
-      window.localStorage.setItem(localPdfDeckStorageKey, JSON.stringify(localPdfDeck))
+      window.localStorage.setItem(
+        localPdfDeckStorageKey,
+        JSON.stringify({
+          name: localPdfDeck.name,
+          pageCount: localPdfDeck.pageCount,
+        })
+      )
     } catch (_err: unknown) {
       // Ignore storage failures; deck upload still works for the current session.
     }
@@ -470,9 +483,14 @@ export default function ProducerRoomClient({
     setError(null)
     setProgramSlideLabel(null)
 
+    const slideLabel = localPdfDeck?.name
+      ? `${localPdfDeck.name} · Slide ${slideIndex}`
+      : `Slide ${slideIndex}`
+
     setPreviewBlocks((prev) => {
       const existingSlideBlock = prev.find((block) => {
         if (block.type !== "pdf") return false
+        if (localPdfDeck?.src && block.src === localPdfDeck.src) return true
         const label = block.label ?? ""
         return label.includes("Slide ")
       })
@@ -482,9 +500,8 @@ export default function ProducerRoomClient({
           block.id === existingSlideBlock.id
             ? {
                 ...block,
-                label: localPdfDeck?.name
-                  ? `${localPdfDeck.name} · Slide ${slideIndex}`
-                  : `Slide ${slideIndex}`,
+                src: localPdfDeck?.src ?? block.src,
+                label: slideLabel,
               }
             : block
         )
@@ -495,23 +512,18 @@ export default function ProducerRoomClient({
         {
           id: crypto.randomUUID(),
           type: "pdf",
+          src: localPdfDeck?.src ?? undefined,
           x: 10,
           y: 10,
           width: 60,
           height: 60,
           zIndex: prev.length + 1,
-          label: localPdfDeck?.name
-            ? `${localPdfDeck.name} · Slide ${slideIndex}`
-            : `Slide ${slideIndex}`,
+          label: slideLabel,
         },
       ]
     })
 
-    setSceneName(
-      localPdfDeck?.name
-        ? `${localPdfDeck.name} · Slide ${slideIndex} Preview`
-        : `Slide ${slideIndex} Preview`
-    )
+    setSceneName(`${slideLabel} Preview`)
   }
 
   function takeSlide(slideIndex: number) {
