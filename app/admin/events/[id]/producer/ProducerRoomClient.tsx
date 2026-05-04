@@ -471,9 +471,11 @@ export default function ProducerRoomClient({
     setProgramSlideLabel(null)
 
     setPreviewBlocks((prev) => {
-      const existingSlideBlock = prev.find(
-        (block) => block.type === "pdf" && block.label?.startsWith("Slide ")
-      )
+      const existingSlideBlock = prev.find((block) => {
+        if (block.type !== "pdf") return false
+        const label = block.label ?? ""
+        return label.includes("Slide ")
+      })
 
       if (existingSlideBlock) {
         return prev.map((block) =>
