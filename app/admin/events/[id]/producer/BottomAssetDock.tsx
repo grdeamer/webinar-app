@@ -1,5 +1,5 @@
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import {
@@ -446,6 +446,39 @@ function SlidesPreviewPanel({
     setCurrentSlide((value) => Math.max(1, value - 1))
   }
 
+  useEffect(() => {
+    function onKeyDown(event: KeyboardEvent) {
+      const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
+      if (tag === "input" || tag === "textarea" || tag === "select") return
+
+      if (event.key === "[") {
+        event.preventDefault()
+        goPrevious()
+        return
+      }
+
+      if (event.key === "]") {
+        event.preventDefault()
+        goNext()
+        return
+      }
+
+      if (event.key.toLowerCase() === "p" && event.shiftKey) {
+        event.preventDefault()
+        onTakeSlide?.(currentSlide)
+        return
+      }
+
+      if (event.key.toLowerCase() === "p") {
+        event.preventDefault()
+        onSendToPreview?.(currentSlide)
+      }
+    }
+
+    window.addEventListener("keydown", onKeyDown)
+    return () => window.removeEventListener("keydown", onKeyDown)
+  }, [currentSlide, onSendToPreview, onTakeSlide])
+
   const goNext = (): void => {
     setCurrentSlide((value) => Math.min(slideCount, value + 1))
   }
@@ -472,7 +505,20 @@ function SlidesPreviewPanel({
               Session Deck v1
             </div>
             <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/35">
-              Slide {currentSlide} of {slideCount} · Local preview
+              Slide {currentSlide} of {slideCount}
+            </div>
+            <div className="mt-1 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/45">
+              <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">[</span>
+              <span>Prev</span>
+              <span className="text-white/25">/</span>
+              <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">]</span>
+              <span>Next</span>
+              <span className="text-white/25">/</span>
+              <span className="rounded border border-violet-200/20 bg-violet-400/10 px-1.5 py-0.5 text-violet-100/70">P</span>
+              <span>Preview</span>
+              <span className="text-white/25">/</span>
+              <span className="rounded border border-red-300/25 bg-red-500/15 px-1.5 py-0.5 text-red-100/80">⇧P</span>
+              <span>Take</span>
             </div>
           </div>
 
@@ -510,14 +556,14 @@ function SlidesPreviewPanel({
             onClick={() => onSendToPreview?.(currentSlide)}
             className="rounded-lg border border-violet-300/25 bg-violet-400/12 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/85 transition hover:border-violet-300/40 hover:bg-violet-400/18"
           >
-            Preview
+            P Preview
           </button>
           <button
             type="button"
             onClick={() => onTakeSlide?.(currentSlide)}
             className="rounded-lg border border-red-300/25 bg-red-500/14 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-red-100/85 transition hover:border-red-300/40 hover:bg-red-500/20"
           >
-            Take
+            ⇧P Take
           </button>
         </div>
       </div>
