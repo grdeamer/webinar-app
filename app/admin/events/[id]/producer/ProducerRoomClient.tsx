@@ -59,6 +59,17 @@ type RawSceneSummary = {
   previewBlocks?: PreviewBlock[] | null
 }
 
+type LocalPdfDeck = {
+  name: string
+  pageCount: number
+}
+
+async function estimatePdfPageCount(file: File): Promise<number> {
+  const text = new TextDecoder("latin1").decode(await file.arrayBuffer())
+  const matches = text.match(/\/Type\s*\/Page\b/g)
+  return Math.max(1, matches?.length ?? 1)
+}
+
 function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
   return {
     id: String(scene.id),
@@ -133,6 +144,7 @@ export default function ProducerRoomClient({
   const [programState, setProgramState] = useState<StageState | null>(null)
   const [programSceneId, setProgramSceneId] = useState<string | null>(null)
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
+  const [localPdfDeck, setLocalPdfDeck] = useState<LocalPdfDeck | null>(null)
   const [monitorHeight, setMonitorHeight] = useState(520)
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
@@ -150,6 +162,10 @@ export default function ProducerRoomClient({
   const producerScopeLabel = useMemo(() => {
     return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session"
   }, [sessionId])
+  const localPdfDeckStorageKey = useMemo(
+    () => `jupiter:producer:${eventId}:${sessionId}:pdfDeck`,
+    [eventId, sessionId]
+  )
   const api = useProducerRoomApi(eventId, sessionId)
   const {
     previewBlocks,
@@ -192,6 +208,57 @@ export default function ProducerRoomClient({
   const { handlePdfUpload, handleVideoUpload, handleImageUpload } = useProducerUploads({
     setPreviewBlocks,
   })
+
+  async function handleProducerPdfUpload(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0] ?? null
+
+    await handlePdfUpload(event)
+
+    if (!file) return
+
+    try {
+      const pageCount = await estimatePdfPageCount(file)
+      setLocalPdfDeck({
+        name: file.name.replace(/\.pdf$/i, ""),
+        pageCount,
+      })
+    } catch (_err: unknown) {
+      setLocalPdfDeck({
+        name: file.name.replace(/\.pdf$/i, ""),
+        pageCount: 1,
+      })
+    }
+  }
+
+  useEffect(() => {
+    try {
+      const rawDeck = window.localStorage.getItem(localPdfDeckStorageKey)
+      if (!rawDeck) return
+
+      const parsedDeck = JSON.parse(rawDeck) as Partial<LocalPdfDeck>
+      if (!parsedDeck.name || typeof parsedDeck.pageCount !== "number") return
+
+      setLocalPdfDeck({
+        name: parsedDeck.name,
+        pageCount: Math.max(1, parsedDeck.pageCount),
+      })
+    } catch (_err: unknown) {
+      // Ignore corrupted local deck cache.
+    }
+  }, [localPdfDeckStorageKey])
+
+  useEffect(() => {
+    try {
+      if (!localPdfDeck) {
+        window.localStorage.removeItem(localPdfDeckStorageKey)
+        return
+      }
+
+      window.localStorage.setItem(localPdfDeckStorageKey, JSON.stringify(localPdfDeck))
+    } catch (_err: unknown) {
+      // Ignore storage failures; deck upload still works for the current session.
+    }
+  }, [localPdfDeck, localPdfDeckStorageKey])
 
   const {
     takeBusy,
@@ -403,23 +470,46 @@ export default function ProducerRoomClient({
     setError(null)
     setProgramSlideLabel(null)
 
-    const id = crypto.randomUUID()
+    setPreviewBlocks((prev) => {
+      const existingSlideBlock = prev.find(
+        (block) => block.type === "pdf" && block.label?.startsWith("Slide ")
+      )
 
-    setPreviewBlocks((prev) => [
-      ...prev,
-      {
-        id,
-        type: "pdf",
-        x: 10,
-        y: 10,
-        width: 60,
-        height: 60,
-        zIndex: prev.length + 1,
-        label: `Slide ${slideIndex}`,
-      },
-    ])
+      if (existingSlideBlock) {
+        return prev.map((block) =>
+          block.id === existingSlideBlock.id
+            ? {
+                ...block,
+                label: localPdfDeck?.name
+                  ? `${localPdfDeck.name} · Slide ${slideIndex}`
+                  : `Slide ${slideIndex}`,
+              }
+            : block
+        )
+      }
 
-    setSceneName(`Slide ${slideIndex} Preview`)
+      return [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          type: "pdf",
+          x: 10,
+          y: 10,
+          width: 60,
+          height: 60,
+          zIndex: prev.length + 1,
+          label: localPdfDeck?.name
+            ? `${localPdfDeck.name} · Slide ${slideIndex}`
+            : `Slide ${slideIndex}`,
+        },
+      ]
+    })
+
+    setSceneName(
+      localPdfDeck?.name
+        ? `${localPdfDeck.name} · Slide ${slideIndex} Preview`
+        : `Slide ${slideIndex} Preview`
+    )
   }
 
   function takeSlide(slideIndex: number) {
@@ -427,7 +517,9 @@ export default function ProducerRoomClient({
     window.setTimeout(() => {
       void runTake("cut")
       setProgramSceneId(null)
-      setProgramSlideLabel(`Slide ${slideIndex}`)
+      setProgramSlideLabel(
+        localPdfDeck?.name ? `${localPdfDeck.name} · Slide ${slideIndex}` : `Slide ${slideIndex}`
+      )
     }, 175)
   }
 
@@ -815,7 +907,9 @@ export default function ProducerRoomClient({
             type="file"
             accept="application/pdf"
             className="hidden"
-            onChange={handlePdfUpload}
+            onChange={(event) => {
+              void handleProducerPdfUpload(event)
+            }}
           />
           <input
             ref={videoInputRef}
@@ -1028,6 +1122,8 @@ export default function ProducerRoomClient({
               programSlideLabel={programSlideLabel}
               hotkeySceneId={hotkeySceneId}
               previewBlocks={previewBlocks}
+              slideDeckName={localPdfDeck?.name ?? null}
+              slideCount={localPdfDeck?.pageCount ?? 8}
               onAddScene={startNewScene}
               onUploadPdf={() => pdfInputRef.current?.click()}
               onSendSlideToPreview={sendSlideToPreview}

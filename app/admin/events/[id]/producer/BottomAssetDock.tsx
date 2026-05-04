@@ -431,18 +431,22 @@ function AssetListRow({
 }
 
 function SlidesPreviewPanel({
+  deckName,
+  slideCount,
   programSlideLabel,
   onUploadPdf,
   onSendToPreview,
   onTakeSlide,
 }: {
+  deckName?: string | null
+  slideCount: number
   programSlideLabel?: string | null
   onUploadPdf?: () => void
   onSendToPreview?: (slideIndex: number) => void
   onTakeSlide?: (slideIndex: number) => void
 }): JSX.Element {
-  const slideCount = 8 // TODO: replace with real PDF page count
-  const slides = Array.from({ length: slideCount }, (_, i) => i + 1)
+  const safeSlideCount = Math.max(1, slideCount)
+  const slides = Array.from({ length: safeSlideCount }, (_, i) => i + 1)
   const [currentSlide, setCurrentSlide] = useState(1)
   const [slideFlash, setSlideFlash] = useState<"preview" | "take" | "nav" | null>(null)
 
@@ -457,6 +461,15 @@ function SlidesPreviewPanel({
     flashSlideAction("nav")
     setCurrentSlide((value) => Math.max(1, value - 1))
   }
+
+  const goNext = (): void => {
+    flashSlideAction("nav")
+    setCurrentSlide((value) => Math.min(safeSlideCount, value + 1))
+  }
+
+  useEffect(() => {
+    setCurrentSlide((value) => Math.min(Math.max(1, value), safeSlideCount))
+  }, [safeSlideCount])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -493,13 +506,8 @@ function SlidesPreviewPanel({
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [currentSlide, onSendToPreview, onTakeSlide])
 
-  const goNext = (): void => {
-    flashSlideAction("nav")
-    setCurrentSlide((value) => Math.min(slideCount, value + 1))
-  }
-
   return (
-    <DockSection title="Slides" count={slideCount}>
+    <DockSection title="Slides" count={safeSlideCount}>
       <div
         className={`rounded-[18px] border p-2 transition duration-200 ${
           slideFlash === "take"
@@ -519,7 +527,7 @@ function SlidesPreviewPanel({
             {currentSlide}
           </div>
           <div className="absolute right-2 top-2 rounded-full border border-amber-200/20 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-amber-100/80">
-            {currentSlide}/{slideCount}
+            {currentSlide}/{safeSlideCount}
           </div>
           <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-amber-100/75">
             PDF Deck
@@ -534,10 +542,10 @@ function SlidesPreviewPanel({
         <div className="mt-2 flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
             <div className="truncate text-[11px] font-semibold text-white/82">
-              Session Deck v1
+              {deckName ?? "Session Deck v1"}
             </div>
             <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/35">
-              Slide {currentSlide} of {slideCount}
+              Slide {currentSlide} of {safeSlideCount}
             </div>
             {programSlideLabel ? (
               <div className="mt-1 inline-flex rounded-full border border-red-300/25 bg-red-500/14 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-red-100/75">
@@ -602,7 +610,7 @@ function SlidesPreviewPanel({
           <button
             type="button"
             onClick={goNext}
-            disabled={currentSlide === slideCount}
+            disabled={currentSlide === safeSlideCount}
             className="rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15 disabled:cursor-not-allowed disabled:opacity-35"
           >
             Next
@@ -664,6 +672,8 @@ export default function BottomAssetDock({
   programSlideLabel,
   hotkeySceneId,
   previewBlocks,
+  slideDeckName,
+  slideCount,
   onAddScene,
   onUploadPdf,
   onSendSlideToPreview,
@@ -678,6 +688,8 @@ export default function BottomAssetDock({
   programSlideLabel: string | null
   hotkeySceneId: string | null
   previewBlocks: PreviewBlock[]
+  slideDeckName?: string | null
+  slideCount?: number
   onAddScene?: () => void
   onUploadPdf?: () => void
   onSendSlideToPreview?: (slideIndex: number) => void
@@ -824,6 +836,8 @@ export default function BottomAssetDock({
         </DockSection>
 
         <SlidesPreviewPanel
+          deckName={slideDeckName}
+          slideCount={slideCount ?? 8}
           programSlideLabel={programSlideLabel}
           onUploadPdf={onUploadPdf}
           onSendToPreview={onSendSlideToPreview}
