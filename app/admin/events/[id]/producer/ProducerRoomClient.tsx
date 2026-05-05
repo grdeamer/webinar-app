@@ -489,16 +489,44 @@ export default function ProducerRoomClient({
     const firstStageParticipant = stageState?.stage_participant_ids?.[0] ?? null
     const activeParticipant = screenShareParticipant ?? primaryParticipant ?? pinnedParticipant ?? firstStageParticipant
 
-    const payload = {
-      mode,
-      sourceType: screenShareParticipant ? "screen" : activeParticipant ? "camera" : "empty",
-      participantIdentity: activeParticipant,
-      screenShareParticipantIdentity: screenShareParticipant,
-      screenShareTrackId,
-      layout: stageState?.layout ?? null,
-      isLive: Boolean(stageState?.is_live),
-      updatedAt: Date.now(),
-    }
+    const visiblePreviewBlocks = previewBlocks
+      .filter((block) => !block.hidden)
+      .sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
+
+    const mediaBlock = visiblePreviewBlocks.find(
+      (block) =>
+        (block.type === "image" || block.type === "video") &&
+        typeof block.src === "string" &&
+        block.src.trim().length > 0
+    )
+
+    const payload = mediaBlock
+      ? {
+          mode,
+          sourceType: "media",
+          participantIdentity: activeParticipant,
+          screenShareParticipantIdentity: screenShareParticipant,
+          screenShareTrackId,
+          mediaUrl: mediaBlock.src ?? null,
+          mediaType: mediaBlock.type === "video" ? "video" : "image",
+          mediaLabel: mediaBlock.label ?? mediaBlock.type,
+          layout: stageState?.layout ?? null,
+          isLive: Boolean(stageState?.is_live),
+          updatedAt: Date.now(),
+        }
+      : {
+          mode,
+          sourceType: screenShareParticipant ? "screen" : activeParticipant ? "camera" : "empty",
+          participantIdentity: activeParticipant,
+          screenShareParticipantIdentity: screenShareParticipant,
+          screenShareTrackId,
+          mediaUrl: null,
+          mediaType: null,
+          mediaLabel: null,
+          layout: stageState?.layout ?? null,
+          isLive: Boolean(stageState?.is_live),
+          updatedAt: Date.now(),
+        }
 
     try {
       window.localStorage.setItem(channelKey, JSON.stringify(payload))
