@@ -9,6 +9,7 @@ import {
   useLocalParticipant,
   useTracks,
 } from "@livekit/components-react"
+import { Button } from "@/components/ui/button"
 import { ParticipantEvent, Track } from "livekit-client"
 function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMessage | null }) {
   const tracks = useTracks(
@@ -53,6 +54,7 @@ function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMess
         ? "CAMERA"
         : "NO SOURCE"
   const modeLabel = (programSource?.mode ?? "auto").toUpperCase()
+  const isProgramLive = Boolean(programSource?.isLive)
 
   const primaryTrackKey = primaryTrack
     ? `${primaryTrack.participant.identity}:${primaryTrack.publication?.trackSid ?? primaryTrack.source}`
@@ -102,6 +104,10 @@ function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMess
                 </motion.div>
               ) : null}
             </AnimatePresence>
+            <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/40 backdrop-blur">
+              <span className="h-2 w-2 rounded-full bg-white/35" />
+              Standby
+            </div>
             <div>
               <div className="mx-auto mb-4 h-14 w-14 rounded-full border border-white/10 bg-white/[0.035] shadow-[0_0_36px_rgba(255,255,255,0.06)]" />
               <div className="text-sm font-semibold uppercase tracking-[0.2em] text-white/35">
@@ -149,6 +155,16 @@ function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMess
               </motion.div>
             ) : null}
           </AnimatePresence>
+          <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-red-300/25 bg-red-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-50 shadow-[0_0_18px_rgba(248,113,113,0.18)] backdrop-blur">
+            <span
+              className={[
+                "h-2 w-2 rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.85)]",
+                isProgramLive ? "animate-pulse" : "opacity-40",
+              ].join(" ")}
+            />
+            {isProgramLive ? "Live" : "Standby"}
+          </div>
+
           <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 shadow-[0_0_18px_rgba(0,0,0,0.28)] backdrop-blur">
             PROGRAM · {sourceLabel} · {modeLabel}
           </div>
@@ -269,29 +285,50 @@ export function PresenterNextContentPanel({
               : "border-white/10 bg-black/50",
         ].join(" ")}
       >
-        <div className="px-6">
-          <div className="text-xs uppercase tracking-[0.2em] text-white/35">
-            {content ? label : "Waiting for producer"}
-          </div>
-          <div className="mt-3 text-2xl font-semibold text-white/85">
-            {content?.title ?? "No next content selected"}
-          </div>
-          <div className="mt-2 text-sm text-white/45">
-            {content?.subtitle ?? "Slides or screen share will appear here when the producer sends them."}
-          </div>
-        </div>
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={content ? `${content.type}:${content.title}:${content.mode ?? "preview"}:${content.updatedAt}` : "empty-next-content"}
+            initial={{ opacity: 0, y: 8, scale: 0.985 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -8, scale: 0.99 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="px-6"
+          >
+            <div className="text-xs uppercase tracking-[0.2em] text-white/35">
+              {content ? label : "Waiting for producer"}
+            </div>
+            <div className="mt-3 text-2xl font-semibold text-white/85">
+              {content?.title ?? "No next content selected"}
+            </div>
+            <div className="mt-2 text-sm text-white/45">
+              {content?.subtitle ?? "Slides or screen share will appear here when the producer sends them."}
+            </div>
+          </motion.div>
+        </AnimatePresence>
       </div>
 
-      <div className="mt-4 flex items-center gap-3">
-        <button className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/45" disabled>
-          ◀ Prev
-        </button>
-        <button className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/45" disabled>
-          ▶ Next
-        </button>
-        <button className="ml-auto rounded-lg border border-violet-300/30 bg-violet-500/10 px-4 py-2 text-sm text-violet-200 opacity-60" disabled>
-          Send to Preview
-        </button>
+      <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+        <div className="flex flex-col gap-2 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2">
+            <span
+              className={[
+                "h-2 w-2 rounded-full shadow-[0_0_10px_currentColor]",
+                content
+                  ? isProgram
+                    ? "bg-red-400 text-red-400"
+                    : "bg-violet-300 text-violet-300"
+                  : "bg-white/30 text-white/30",
+              ].join(" ")}
+            />
+            <span className="font-black uppercase tracking-[0.16em]">
+              {content ? (isProgram ? "In Program" : "In Preview") : "Producer Controlled"}
+            </span>
+          </div>
+
+          <div className="font-medium text-white/35">
+            Producer-controlled preview updates appear here in real time.
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -836,41 +873,47 @@ function PresenterControls({ statusChannelKey }: { statusChannelKey?: string }) 
       </div>
 
       <div className="mt-5 flex flex-wrap items-center gap-3 text-sm">
-        <button
+        <Button
+          type="button"
           onClick={toggleCamera}
+          variant="outline"
           className={[
-            "rounded-full px-4 py-2 transition border",
+            "rounded-full border px-4 py-2 text-sm font-semibold transition",
             cameraEnabled
-              ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
-              : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10",
+              ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15 hover:text-emerald-100"
+              : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10 hover:text-white",
           ].join(" ")}
         >
           {cameraEnabled ? "Camera On" : "Start Camera"}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          type="button"
           onClick={toggleMic}
+          variant="outline"
           className={[
-            "rounded-full px-4 py-2 transition border",
+            "rounded-full border px-4 py-2 text-sm font-semibold transition",
             micEnabled
-              ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200"
-              : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10",
+              ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15 hover:text-emerald-100"
+              : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10 hover:text-white",
           ].join(" ")}
         >
           {micEnabled ? "Mic On" : "Unmute Mic"}
-        </button>
+        </Button>
 
-        <button
+        <Button
+          type="button"
           onClick={toggleScreenShare}
+          variant="outline"
           className={[
-            "rounded-full px-4 py-2 transition border",
+            "rounded-full border px-4 py-2 text-sm font-semibold transition",
             screenShareEnabled
-              ? "border-violet-300/30 bg-violet-400/15 text-violet-100"
-              : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10",
+              ? "border-violet-300/30 bg-violet-400/15 text-violet-100 hover:bg-violet-400/20 hover:text-violet-50"
+              : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10 hover:text-white",
           ].join(" ")}
         >
           {screenShareEnabled ? "Screen Sharing" : "Share Screen"}
-        </button>
+        </Button>
 
         <div
           className={[
@@ -1001,7 +1044,6 @@ export default function SimplePresenterClient({
   const [token, setToken] = useState<string | null>(null)
   const [roomName, setRoomName] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [connectionStatus, setConnectionStatus] = useState<"connecting" | "connected" | "disconnected">("connecting")
 
   useEffect(() => {
     let cancelled = false
@@ -1009,7 +1051,6 @@ export default function SimplePresenterClient({
     async function loadToken() {
       try {
         setError(null)
-        setConnectionStatus("connecting")
 
         const res = await fetch(tokenEndpoint, {
           method: "POST",
@@ -1067,27 +1108,13 @@ export default function SimplePresenterClient({
 
   return (
     <div className="space-y-4">
-      {eventTitle ? (
-        <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-[11px] font-semibold uppercase leading-5 tracking-[0.2em] text-white/50">
-          {eventTitle}
+      <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
+          Backstage Device Check
         </div>
-      ) : roomName ? (
-        <div className="text-xs uppercase tracking-[0.18em] text-white/40">
-          Live room: {roomName}
+        <div className="mt-1 text-xs font-semibold uppercase leading-5 tracking-[0.16em] text-white/50">
+          {eventTitle ?? roomName ?? "Presenter Room"}
         </div>
-      ) : null}
-
-      <div
-        className={[
-          "rounded-2xl border px-4 py-3 text-sm",
-          connectionStatus === "connected"
-            ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100/80"
-            : connectionStatus === "disconnected"
-              ? "border-amber-300/20 bg-amber-400/10 text-amber-100/80"
-              : "border-white/10 bg-white/5 text-white/55",
-        ].join(" ")}
-      >
-        LiveKit connection: {connectionStatus}
       </div>
 
       <LiveKitRoom
@@ -1097,11 +1124,8 @@ export default function SimplePresenterClient({
         audio
         video
         className="contents"
-        onConnected={() => setConnectionStatus("connected")}
-        onDisconnected={() => setConnectionStatus("disconnected")}
         onError={(err) => {
           console.error("LiveKit room error", err)
-          setConnectionStatus("disconnected")
           setError(err instanceof Error ? err.message : "LiveKit connection failed")
         }}
       >
