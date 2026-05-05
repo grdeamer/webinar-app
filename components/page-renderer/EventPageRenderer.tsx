@@ -25,6 +25,37 @@ type EditorElement = {
 
 type SystemComponentsMap = Partial<Record<SystemComponentKey, ReactNode>>
 
+function getPublicHeroBody(body?: string | null) {
+  const value = body?.trim()
+  if (!value) return "Welcome to the live event experience. Stay tuned — the main stage will open here when programming begins."
+
+  const lower = value.toLowerCase()
+  const isEditorPlaceholder =
+    lower.includes("renderer mode is now active") ||
+    lower.includes("inside the page editor") ||
+    lower.includes("page editor")
+
+  if (isEditorPlaceholder) {
+    return "Welcome to the live event experience. Stay tuned — the main stage will open here when programming begins."
+  }
+
+  return value
+}
+
+function getPublicTitle(title?: string | null) {
+  const value = title?.trim()
+  if (!value) return ""
+
+  return value
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => {
+      const lower = word.toLowerCase()
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(" ")
+}
+
 function getWidthClass(width?: EventPageSection["config"]["contentWidth"]) {
   switch (width) {
     case "md":
@@ -421,7 +452,7 @@ export default function EventPageRenderer({
               {section.type === "hero" && hasHeader ? (
                 <div className={textAlignClass}>
                   <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-                    Event Page
+                    Live Event
                   </div>
 
                   {config.title ? (
@@ -429,18 +460,18 @@ export default function EventPageRenderer({
                       className="mt-3 text-4xl font-bold"
                       style={{ color: sectionTextColor }}
                     >
-                      {config.title}
+                      {getPublicTitle(config.title)}
                     </h1>
                   ) : null}
 
-                  {config.body ? (
+                  {getPublicHeroBody(config.body) ? (
                     <p
                       className={`mt-4 whitespace-pre-wrap ${
                         config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
                       }`}
                       style={{ color: sectionTextColor }}
                     >
-                      {config.body}
+                      {getPublicHeroBody(config.body)}
                     </p>
                   ) : null}
                 </div>
@@ -451,11 +482,11 @@ export default function EventPageRenderer({
                       className="text-2xl font-semibold"
                       style={{ color: sectionTextColor }}
                     >
-                      {config.title}
+                      {getPublicTitle(config.title)}
                     </h2>
                   ) : null}
 
-                  {config.body ? (
+                  {getPublicHeroBody(config.body) ? (
                     <p
                       className={
                         config.title
@@ -464,7 +495,7 @@ export default function EventPageRenderer({
                       }
                       style={{ color: sectionTextColor }}
                     >
-                      {config.body}
+                      {getPublicHeroBody(config.body)}
                     </p>
                   ) : null}
                 </div>

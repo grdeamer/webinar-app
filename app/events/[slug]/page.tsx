@@ -137,6 +137,19 @@ function formatAgendaRange(start?: string | null, end?: string | null) {
   return [formatTime(start), formatTime(end)].filter(Boolean).join(" – ")
 }
 
+function formatDisplayTitle(value?: string | null) {
+  if (!value) return "Untitled Event"
+
+  return value
+    .split(" ")
+    .filter(Boolean)
+    .map((word) => {
+      const lower = word.toLowerCase()
+      return lower.charAt(0).toUpperCase() + lower.slice(1)
+    })
+    .join(" ")
+}
+
 function FeaturedBreakouts({
   slug,
   breakouts,
@@ -422,11 +435,12 @@ export default async function EventHomePage(props: {
     )
 
   const stageIsActive = Boolean(liveDestination.href)
+  const displayEventTitle = formatDisplayTitle(event.title)
 
   const systemComponents = {
     jupiter_home_hero: (
       <JupiterHomeHero
-        title={event.title}
+        title={displayEventTitle}
         description={event.description}
         liveLabel={liveDestination.headline || "We’ll Be Right Back"}
         isLive={Boolean(liveDestination.href)}
@@ -436,13 +450,62 @@ export default async function EventHomePage(props: {
     live_state: <EventLiveDestinationCard destination={liveDestination} />,
 
     stage_player: (
-      <div className="space-y-4">
-        <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
-          Live Broadcast
+      <section className="relative overflow-hidden rounded-[2.25rem] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.18),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.065),rgba(255,255,255,0.018))] p-5 shadow-[0_0_80px_rgba(56,189,248,0.1),inset_0_1px_0_rgba(255,255,255,0.07)]">
+        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/45">
+              Jupiter Live
+            </div>
+            <div className="mt-1 text-lg font-semibold text-white">
+              {liveDestination.headline || "The Main Stage Awaits"}
+            </div>
+            <div className="mt-1 text-sm text-white/50">
+              {liveDestination.message ||
+                "Settle in. When the show begins, this screen becomes your live event theater."}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 rounded-full border border-red-300/25 bg-red-500/15 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-red-50 shadow-[0_0_20px_rgba(248,113,113,0.18)]">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.9)]" />
+            {stageIsActive ? "Live" : "Standby"}
+          </div>
         </div>
-        <StageTransitionOverlay active={stageIsActive} />
-        <StagePlayer slug={slug} sessionId={liveDestination.sessionId ?? undefined} />
-      </div>
+
+        <div className="relative aspect-video overflow-hidden rounded-[1.6rem] border border-white/10 bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_26px_80px_rgba(0,0,0,0.5)]">
+          <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.35)),linear-gradient(180deg,rgba(255,255,255,0.055),transparent_18%,transparent_80%,rgba(255,255,255,0.035))]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-24 bg-[linear-gradient(105deg,rgba(255,255,255,0.12),transparent_42%)] opacity-45" />
+          <div className="pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 shadow-[0_0_18px_rgba(0,0,0,0.25)] backdrop-blur">
+            Main Stage
+          </div>
+          <StageTransitionOverlay active={stageIsActive} />
+          <StagePlayer slug={slug} sessionId={liveDestination.sessionId ?? undefined} />
+        </div>
+
+        <div className="mt-4 grid gap-3 text-xs text-white/45 sm:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+            <div className="font-black uppercase tracking-[0.16em] text-white/35">
+              Experience
+            </div>
+            <div className="mt-1 font-medium text-white/60">Cinematic live stage</div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+            <div className="font-black uppercase tracking-[0.16em] text-white/35">
+              Status
+            </div>
+            <div className="mt-1 font-medium text-white/60">
+              {stageIsActive ? "Broadcast active" : "Standing by"}
+            </div>
+          </div>
+          <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
+            <div className="font-black uppercase tracking-[0.16em] text-white/35">
+              Routing
+            </div>
+            <div className="mt-1 font-medium text-white/60">
+              {liveDestination.sessionId ? "Session locked" : "Main event lobby"}
+            </div>
+          </div>
+        </div>
+      </section>
     ),
 
     countdown: (
@@ -506,7 +569,7 @@ export default async function EventHomePage(props: {
 
   const fallbackSections =
     createDefaultEventHomeSections({
-      title: event.title,
+      title: displayEventTitle,
       description: event.description,
     }) as EventPageSection[]
 
@@ -547,7 +610,7 @@ export default async function EventHomePage(props: {
 
       <EventPageRenderer
         event={{
-          title: event.title,
+          title: displayEventTitle,
           description: event.description,
         }}
         elements={[]}
