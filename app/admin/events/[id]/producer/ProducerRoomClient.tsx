@@ -478,6 +478,38 @@ export default function ProducerRoomClient({
     setError(null)
   }
 
+  // Helper function to broadcast the current Program source
+  function broadcastPresenterProgramSource(mode: "cut" | "auto") {
+    const channelKey = `jupiter:program-source:${sessionId}`
+
+    const screenShareParticipant = stageState?.screen_share_participant_id ?? null
+    const screenShareTrackId = stageState?.screen_share_track_id ?? null
+    const primaryParticipant = stageState?.primary_participant_id ?? null
+    const pinnedParticipant = stageState?.pinned_participant_id ?? null
+    const firstStageParticipant = stageState?.stage_participant_ids?.[0] ?? null
+    const activeParticipant = screenShareParticipant ?? primaryParticipant ?? pinnedParticipant ?? firstStageParticipant
+
+    const payload = {
+      mode,
+      sourceType: screenShareParticipant ? "screen" : activeParticipant ? "camera" : "empty",
+      participantIdentity: activeParticipant,
+      screenShareParticipantIdentity: screenShareParticipant,
+      screenShareTrackId,
+      layout: stageState?.layout ?? null,
+      isLive: Boolean(stageState?.is_live),
+      updatedAt: Date.now(),
+    }
+
+    try {
+      window.localStorage.setItem(channelKey, JSON.stringify(payload))
+      const channel = new BroadcastChannel(channelKey)
+      channel.postMessage(payload)
+      channel.close()
+    } catch (_err: unknown) {
+      // best effort
+    }
+  }
+
   function sendSlideToPreview(slideIndex: number) {
     setSelectedSceneId(null)
     setError(null)
@@ -530,6 +562,7 @@ export default function ProducerRoomClient({
     sendSlideToPreview(slideIndex)
     window.setTimeout(() => {
       void runTake("cut")
+      broadcastPresenterProgramSource("cut")
       setProgramSceneId(null)
       setProgramSlideLabel(
         localPdfDeck?.name ? `${localPdfDeck.name} · Slide ${slideIndex}` : `Slide ${slideIndex}`
@@ -541,6 +574,7 @@ export default function ProducerRoomClient({
     await applyScene(sceneId)
     window.setTimeout(() => {
       void runTake("cut")
+      broadcastPresenterProgramSource("cut")
       setProgramSceneId(sceneId)
       setProgramSlideLabel(null)
     }, 175)
@@ -775,9 +809,10 @@ export default function ProducerRoomClient({
       if (event.code !== "Space") return
 
       event.preventDefault()
-      void runTake("cut")
-      setProgramSceneId(selectedSceneId)
-      setProgramSlideLabel(null)
+void runTake("cut")
+broadcastPresenterProgramSource("cut")
+setProgramSceneId(selectedSceneId)
+setProgramSlideLabel(null)
     }
 
     window.addEventListener("keydown", onKeyDown)
@@ -959,9 +994,10 @@ export default function ProducerRoomClient({
               mode: "cut" | "auto",
               transitionType?: CinematicTransitionType
             ): void => {
-              void runTake(mode, transitionType)
-              setProgramSceneId(selectedSceneId)
-              setProgramSlideLabel(null)
+void runTake(mode, transitionType)
+broadcastPresenterProgramSource(mode)
+setProgramSceneId(selectedSceneId)
+setProgramSlideLabel(null)
             }}
           />
           <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
@@ -971,6 +1007,7 @@ export default function ProducerRoomClient({
                 previewProgramDifferent={previewProgramDifferent}
                 onTake={() => {
                   void runTake("cut")
+                  broadcastPresenterProgramSource("cut")
                   setProgramSceneId(selectedSceneId)
                   setProgramSlideLabel(null)
                 }}
@@ -1018,6 +1055,7 @@ export default function ProducerRoomClient({
                   lastTakeMode={lastTakeMode}
                   onTake={(mode: "cut" | "auto"): void => {
                     void runTake(mode)
+                    broadcastPresenterProgramSource(mode)
                     setProgramSceneId(selectedSceneId)
                     setProgramSlideLabel(null)
                   }}

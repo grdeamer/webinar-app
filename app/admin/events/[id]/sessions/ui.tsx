@@ -138,9 +138,11 @@ async function parseApiResponse(res: Response) {
 
 export default function SessionsEditor({
   event,
+  eventSlug,
   initialSessions,
 }: {
   event: EventRow
+  eventSlug: string
   initialSessions: SessionRow[]
 }) {
   const [sessions, setSessions] = useState<SessionRow[]>(initialSessions)
@@ -784,6 +786,16 @@ const res = await fetch(`/api/admin/sessions/${id}`, {
     className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-400/20"
   >
     Produce
+  </Link>
+
+  <Link
+    href={`/presenter/${eventSlug}/sessions/${session.id}`}
+    target="_blank"
+    rel="noreferrer"
+    onClick={(e) => e.stopPropagation()}
+    className="rounded-lg border border-violet-300/25 bg-violet-500/10 px-3 py-1.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20"
+  >
+    Presenter
   </Link>
 
   <button
