@@ -479,7 +479,10 @@ export default function ProducerRoomClient({
   }
 
   // Helper function to broadcast the current Program source
-  function broadcastPresenterProgramSource(mode: "cut" | "auto") {
+  function broadcastPresenterProgramSource(
+    mode: "cut" | "auto",
+    transitionType?: CinematicTransitionType
+  ) {
     const channelKey = `jupiter:program-source:${sessionId}`
 
     const screenShareParticipant = stageState?.screen_share_participant_id ?? null
@@ -488,10 +491,24 @@ export default function ProducerRoomClient({
     const pinnedParticipant = stageState?.pinned_participant_id ?? null
     const firstStageParticipant = stageState?.stage_participant_ids?.[0] ?? null
     const activeParticipant = screenShareParticipant ?? primaryParticipant ?? pinnedParticipant ?? firstStageParticipant
+    const resolvedTransitionType = mode === "cut" ? "none" : transitionType ?? "fade"
 
     const visiblePreviewBlocks = previewBlocks
       .filter((block) => !block.hidden)
       .sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
+
+    const programBlocksPayload = visiblePreviewBlocks.map((block) => ({
+      id: block.id,
+      type: block.type,
+      src: block.src ?? null,
+      label: block.label ?? null,
+      x: block.x,
+      y: block.y,
+      width: block.width,
+      height: block.height,
+      zIndex: block.zIndex ?? 0,
+      opacity: block.opacity ?? 1,
+    }))
 
     const mediaBlock = visiblePreviewBlocks.find(
       (block) =>
@@ -503,6 +520,7 @@ export default function ProducerRoomClient({
     const payload = mediaBlock
       ? {
           mode,
+          transitionType: resolvedTransitionType,
           sourceType: "media",
           participantIdentity: activeParticipant,
           screenShareParticipantIdentity: screenShareParticipant,
@@ -510,12 +528,14 @@ export default function ProducerRoomClient({
           mediaUrl: mediaBlock.src ?? null,
           mediaType: mediaBlock.type === "video" ? "video" : "image",
           mediaLabel: mediaBlock.label ?? mediaBlock.type,
+          programBlocks: programBlocksPayload,
           layout: stageState?.layout ?? null,
           isLive: Boolean(stageState?.is_live),
           updatedAt: Date.now(),
         }
       : {
           mode,
+          transitionType: resolvedTransitionType,
           sourceType: screenShareParticipant ? "screen" : activeParticipant ? "camera" : "empty",
           participantIdentity: activeParticipant,
           screenShareParticipantIdentity: screenShareParticipant,
@@ -523,6 +543,7 @@ export default function ProducerRoomClient({
           mediaUrl: null,
           mediaType: null,
           mediaLabel: null,
+          programBlocks: programBlocksPayload,
           layout: stageState?.layout ?? null,
           isLive: Boolean(stageState?.is_live),
           updatedAt: Date.now(),
@@ -1018,15 +1039,15 @@ setProgramSlideLabel(null)
             onStageCount={onStageParticipants.length}
             previewProgramDifferent={previewProgramDifferent}
             takeBusy={takeBusy}
-            onTake={(
-              mode: "cut" | "auto",
-              transitionType?: CinematicTransitionType
-            ): void => {
-void runTake(mode, transitionType)
-broadcastPresenterProgramSource(mode)
-setProgramSceneId(selectedSceneId)
-setProgramSlideLabel(null)
-            }}
+          onTake={(
+            mode: "cut" | "auto",
+            transitionType?: CinematicTransitionType
+          ): void => {
+            void runTake(mode, transitionType)
+            broadcastPresenterProgramSource(mode, transitionType)
+            setProgramSceneId(selectedSceneId)
+            setProgramSlideLabel(null)
+          }}
           />
           <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
             <div className="grid w-full items-start gap-4 lg:grid-cols-[250px_minmax(0,1fr)_320px] xl:grid-cols-[265px_minmax(0,1fr)_345px] 2xl:grid-cols-[285px_minmax(0,1fr)_375px] [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-0.5 [&_button:active]:translate-y-0">

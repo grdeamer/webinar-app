@@ -47,12 +47,14 @@ function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMess
   const primaryTrack = requestedTrack ?? cameraTrack ?? screenShareTrack
   const trackCount = tracks.length
   const selectedSource = primaryTrack?.source ?? programSource?.sourceType ?? "none"
-  const sourceLabel =
-    selectedSource === Track.Source.ScreenShare || selectedSource === "screen"
-      ? "SCREEN"
-      : selectedSource === Track.Source.Camera || selectedSource === "camera"
-        ? "CAMERA"
-        : "NO SOURCE"
+const selectedSourceName = String(selectedSource)
+
+const sourceLabel =
+  selectedSource === Track.Source.ScreenShare || selectedSourceName === "screen"
+    ? "SCREEN"
+    : selectedSource === Track.Source.Camera || selectedSourceName === "camera"
+      ? "CAMERA"
+      : "NO SOURCE"
   const modeLabel = (programSource?.mode ?? "auto").toUpperCase()
   const isProgramLive = Boolean(programSource?.isLive)
 

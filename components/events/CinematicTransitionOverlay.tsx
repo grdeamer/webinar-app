@@ -15,12 +15,38 @@ export default function CinematicTransitionOverlay({
 }): JSX.Element | null {
   if (!active || transitionType === "none") return null
 
+  const typeClass =
+    transitionType === "warp"
+      ? "bg-black/85 backdrop-blur-2xl"
+      : transitionType === "curtain"
+      ? "bg-black/90 backdrop-blur-lg"
+      : "bg-black/80 backdrop-blur-xl"
+
   return (
-    <div className="pointer-events-none fixed inset-0 z-[100] flex items-center justify-center overflow-hidden bg-black/80 backdrop-blur-xl">
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(56,189,248,0.22),transparent_34%),radial-gradient(circle_at_70%_70%,rgba(168,85,247,0.18),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.35),rgba(0,0,0,0.92))]" />
+    <div
+      className={[
+        "pointer-events-none fixed inset-0 z-[100] flex items-center justify-center overflow-hidden",
+        typeClass,
+      ].join(" ")}
+    >
+      <div
+        className={[
+          "absolute inset-0",
+          transitionType === "warp"
+            ? "bg-[radial-gradient(circle_at_50%_35%,rgba(56,189,248,0.35),transparent_30%),radial-gradient(circle_at_70%_70%,rgba(168,85,247,0.28),transparent_28%),linear-gradient(180deg,rgba(2,6,23,0.45),rgba(0,0,0,0.96))] animate-pulse"
+            : "bg-[radial-gradient(circle_at_50%_35%,rgba(56,189,248,0.22),transparent_34%),radial-gradient(circle_at_70%_70%,rgba(168,85,247,0.18),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.35),rgba(0,0,0,0.92))]",
+        ].join(" ")}
+      />
 
       <div className="absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(125,211,252,0.7),transparent)]" />
       <div className="absolute inset-x-0 bottom-0 h-px bg-[linear-gradient(90deg,transparent,rgba(196,181,253,0.55),transparent)]" />
+
+      {transitionType === "curtain" ? (
+        <>
+          <div className="absolute left-0 top-0 h-full w-1/2 bg-black animate-[slideInLeft_0.4s_ease-out]" />
+          <div className="absolute right-0 top-0 h-full w-1/2 bg-black animate-[slideInRight_0.4s_ease-out]" />
+        </>
+      ) : null}
 
       <div className="relative mx-6 max-w-2xl rounded-[32px] border border-white/10 bg-white/[0.045] p-8 text-center shadow-[0_30px_120px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)]">
         <div className="mx-auto mb-5 h-1.5 w-24 rounded-full bg-sky-300/70 shadow-[0_0_24px_rgba(125,211,252,0.65)]" />
@@ -29,7 +55,16 @@ export default function CinematicTransitionOverlay({
           Jupiter Event Routing
         </div>
 
-        <h2 className="mt-4 text-3xl font-black tracking-tight text-white md:text-5xl">
+        <h2
+          className={[
+            "mt-4 text-3xl font-black tracking-tight text-white md:text-5xl transition-all",
+            transitionType === "warp"
+              ? "scale-105"
+              : transitionType === "fade"
+              ? "opacity-90"
+              : "",
+          ].join(" ")}
+        >
           {headline || "Moving you to the next experience"}
         </h2>
 

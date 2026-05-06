@@ -143,41 +143,18 @@ function ControlStackPanel({
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.26em] text-white/35">
-              Control Stack
+              Audience Routing
             </div>
             <div className="mt-1 text-xs text-white/45">
-              Live switching and show state.
+              Send the audience live or off air.
             </div>
           </div>
-
-          <span className="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/80">
-            Armed
+          <span className="rounded-full border border-red-300/20 bg-red-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-red-100/80">
+            Live Route
           </span>
         </div>
 
         <div className="space-y-3">
-          <button
-            onClick={onTake}
-            disabled={takeBusy}
-            className={`group relative w-full overflow-hidden rounded-[22px] border px-4 py-4 text-sm font-black uppercase tracking-[0.24em] shadow-lg transition-all duration-300 hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-60 ${
-              previewProgramDifferent
-                ? "border-amber-200/60 bg-amber-300 text-black shadow-[0_0_34px_rgba(251,191,36,0.30)] hover:bg-amber-200"
-                : "border-sky-200/50 bg-sky-300 text-black shadow-[0_0_28px_rgba(56,189,248,0.22)] hover:bg-sky-200"
-            }`}
-          >
-            <span className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
-              <span className="absolute inset-y-0 left-[-40%] w-1/2 rotate-12 bg-white/35 blur-xl transition-transform duration-700 group-hover:translate-x-[330%]" />
-            </span>
-
-            <span className="relative z-10">
-              {takeBusy ? "Taking..." : previewProgramDifferent ? "TAKE CHANGES" : "TAKE"}
-            </span>
-
-            <span className="relative z-10 mt-1 block text-[9px] font-bold tracking-[0.2em] text-black/55">
-              SPACE
-            </span>
-          </button>
-
           <button
             onClick={onGoLive}
             className="w-full rounded-2xl border border-red-300/30 bg-red-500/16 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-red-100 shadow-[0_0_24px_rgba(239,68,68,0.16)] transition hover:-translate-y-0.5 hover:bg-red-500/24 active:translate-y-0"

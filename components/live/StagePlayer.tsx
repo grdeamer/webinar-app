@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react"
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -32,6 +32,7 @@ type PublicStageState = {
 
 type ProgramSourceMessage = {
   mode: "cut" | "auto"
+  transitionType?: "none" | "fade" | "warp" | "curtain"
   sourceType: "camera" | "screen" | "media" | "empty"
   participantIdentity: string | null
   screenShareParticipantIdentity: string | null
@@ -42,6 +43,101 @@ type ProgramSourceMessage = {
   layout: string | null
   isLive: boolean
   updatedAt: number
+  programBlocks?: {
+    id: string
+    type: string
+    src: string | null
+    label: string | null
+    x: number
+    y: number
+    width: number
+    height: number
+    zIndex: number
+    opacity: number
+  }[]
+}
+
+function AttendeeProgramTransition({
+  programSource,
+  children,
+}: {
+  programSource: ProgramSourceMessage | null
+  children: ReactNode
+}) {
+  const [showCutFlash, setShowCutFlash] = useState(false)
+
+  useEffect(() => {
+    if (!programSource) return
+    setShowCutFlash(true)
+    const timeout = window.setTimeout(
+      () => setShowCutFlash(false),
+      programSource.mode === "cut" ? 140 : 260
+    )
+
+    return () => window.clearTimeout(timeout)
+  }, [programSource?.updatedAt])
+
+  const transitionClass =
+    programSource?.transitionType === "warp"
+      ? "scale-[1.012]"
+      : programSource?.transitionType === "fade"
+      ? "opacity-95"
+      : programSource?.transitionType === "curtain"
+      ? "brightness-90"
+      : ""
+
+  return (
+    <div
+      className={[
+        "relative overflow-hidden transition-all duration-300 ease-out",
+        transitionClass,
+      ].join(" ")}
+    >
+      {showCutFlash ? (
+        <div
+          className={[
+            "pointer-events-none absolute inset-0 z-40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.78),rgba(125,211,252,0.2)_34%,transparent_72%)]",
+            programSource?.mode === "cut" ? "animate-pulse" : "",
+          ].join(" ")}
+        />
+      ) : null}
+      {children}
+    </div>
+  )
+}
+
+function AttendeeBroadcastFrame({
+  label = "Main Stage",
+  live = true,
+  children,
+}: {
+  label?: string
+  live?: boolean
+  children: ReactNode
+}) {
+  return (
+    <div className="relative overflow-hidden rounded-2xl bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_70px_rgba(0,0,0,0.45)]">
+      <div className="pointer-events-none absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_54%,rgba(0,0,0,0.58)),linear-gradient(180deg,rgba(255,255,255,0.045),transparent_20%,transparent_80%,rgba(255,255,255,0.03))]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-24 bg-[linear-gradient(105deg,rgba(255,255,255,0.12),transparent_42%)] opacity-35" />
+      <div className="pointer-events-none absolute inset-0 z-30 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:100%_5px] opacity-18" />
+
+      <div className="pointer-events-none absolute left-3 top-3 z-40 flex items-center gap-2 rounded-full border border-red-300/25 bg-red-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-50 shadow-[0_0_18px_rgba(248,113,113,0.18)] backdrop-blur">
+        <span
+          className={[
+            "h-2 w-2 rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.85)]",
+            live ? "animate-pulse" : "opacity-40",
+          ].join(" ")}
+        />
+        {live ? "Live" : "Standby"}
+      </div>
+
+      <div className="pointer-events-none absolute right-3 top-3 z-40 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 shadow-[0_0_18px_rgba(0,0,0,0.25)] backdrop-blur">
+        {label}
+      </div>
+
+      {children}
+    </div>
+  )
 }
 
 /* =========================
@@ -247,6 +343,61 @@ function AudienceStageTracks({
     )
   }
 
+  function renderProgramBlocks() {
+    const blocks = programSource?.programBlocks
+    if (!blocks || blocks.length === 0) return empty("Waiting for program…")
+
+    return (
+      <AttendeeProgramTransition programSource={programSource}>
+        <AttendeeBroadcastFrame label="Program" live={programSource?.isLive ?? stageState.is_live}>
+          <div className="relative aspect-video w-full bg-black">
+            {blocks.map((block) => {
+              const style: CSSProperties = {
+                position: "absolute",
+                left: "0%",
+                top: "0%",
+                width: "100%",
+                height: "100%",
+                transform: `translate(${block.x}%, ${block.y}%) scale(${block.width / 100}, ${block.height / 100})`,
+                transformOrigin: "top left",
+                zIndex: block.zIndex,
+                opacity: block.opacity,
+              }
+
+              if (block.type === "image" && block.src) {
+                return (
+                  <img
+                    key={block.id}
+                    src={block.src}
+                    alt={block.label || "image"}
+                    style={style}
+                    className="object-contain"
+                  />
+                )
+              }
+
+              if (block.type === "video" && block.src) {
+                return (
+                  <video
+                    key={block.id}
+                    src={block.src}
+                    style={style}
+                    className="object-contain"
+                    autoPlay
+                    muted
+                    playsInline
+                  />
+                )
+              }
+
+              return null
+            })}
+          </div>
+        </AttendeeBroadcastFrame>
+      </AttendeeProgramTransition>
+    )
+  }
+
   function renderMediaBlock() {
     if (!programSource?.mediaUrl) return empty("Waiting for media…")
 
@@ -254,54 +405,63 @@ function AudienceStageTracks({
 
     if (programSource.mediaType === "video") {
       return (
-        <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
-          <video
-            src={programSource.mediaUrl}
-            className="h-full w-full object-contain"
-            autoPlay
-            muted
-            playsInline
-            controls={false}
-          />
-          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
-          <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur">
-            {label}
-          </div>
-        </div>
+        <AttendeeProgramTransition programSource={programSource}>
+          <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live}>
+            <div className="relative aspect-video w-full bg-black">
+              <video
+                src={programSource.mediaUrl}
+                className="h-full w-full object-contain"
+                autoPlay
+                muted
+                playsInline
+                controls={false}
+              />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
+              <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur">
+                {label}
+              </div>
+            </div>
+          </AttendeeBroadcastFrame>
+        </AttendeeProgramTransition>
       )
     }
 
     return (
-      <div className="relative aspect-video w-full overflow-hidden rounded-2xl bg-black">
-        <img
-          src={programSource.mediaUrl}
-          alt={label}
-          className="h-full w-full object-contain"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
-        <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur">
-          {label}
-        </div>
-      </div>
+      <AttendeeProgramTransition programSource={programSource}>
+        <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live}>
+          <div className="relative aspect-video w-full bg-black">
+            <img
+              src={programSource.mediaUrl}
+              alt={label}
+              className="h-full w-full object-contain"
+            />
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
+            <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur">
+              {label}
+            </div>
+          </div>
+        </AttendeeBroadcastFrame>
+      </AttendeeProgramTransition>
     )
   }
 
-function renderSolo() {
-  const cam = pickPrimaryCamera()
-  if (!cam) return empty("Waiting for speaker…")
+  function renderSolo() {
+    const cam = pickPrimaryCamera()
+    if (!cam) return empty("Waiting for speaker…")
 
-  return (
-    <div className="relative w-full aspect-video overflow-hidden rounded-2xl bg-black">
-      <VideoTrack
-        trackRef={cam}
-        className="h-full w-full object-cover"
-      />
+    return (
+      <AttendeeProgramTransition programSource={programSource}>
+        <AttendeeBroadcastFrame label="Camera" live={programSource?.isLive ?? stageState.is_live}>
+          <div className="relative aspect-video w-full bg-black">
+            <VideoTrack trackRef={cam} className="h-full w-full object-cover" />
 
-      {/* subtle cinematic vignette */}
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.65))]" />
-    </div>
-  )
-}
+            {/* subtle cinematic vignette */}
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.65))]" />
+          </div>
+        </AttendeeBroadcastFrame>
+      </AttendeeProgramTransition>
+    )
+  }
 
   function renderGrid() {
     if (!onStageCameraTracks.length) {
@@ -332,26 +492,29 @@ function renderSolo() {
     }
 
     return (
-      <div className="grid gap-4 lg:grid-cols-[1.5fr_0.5fr]">
-        <div className="overflow-hidden rounded-2xl bg-black">
-          {screen ? (
-            <VideoTrack trackRef={screen} className="aspect-video h-full w-full object-contain" />
-          ) : (
-            empty("No screen")
-          )}
-        </div>
+      <AttendeeProgramTransition programSource={programSource}>
+        <div className="grid gap-4 lg:grid-cols-[1.5fr_0.5fr]">
+          <div className="overflow-hidden rounded-2xl bg-black">
+            {screen ? (
+              <VideoTrack trackRef={screen} className="aspect-video h-full w-full object-contain" />
+            ) : (
+              empty("No screen")
+            )}
+          </div>
 
-        <div className="overflow-hidden rounded-2xl bg-black">
-          {speaker ? (
-            <VideoTrack trackRef={speaker} className="aspect-video h-full w-full object-cover" />
-          ) : (
-            empty("No speaker")
-          )}
+          <div className="overflow-hidden rounded-2xl bg-black">
+            {speaker ? (
+              <VideoTrack trackRef={speaker} className="aspect-video h-full w-full object-cover" />
+            ) : (
+              empty("No speaker")
+            )}
+          </div>
         </div>
-      </div>
+      </AttendeeProgramTransition>
     )
   }
 
+  if (programSource?.programBlocks?.length) return renderProgramBlocks()
   if (programSource?.sourceType === "media") return renderMediaBlock()
   if (programSource?.sourceType === "screen") return renderScreenSpeaker()
   if (programSource?.sourceType === "camera") return renderSolo()
@@ -372,6 +535,12 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
   const [error, setError] = useState<string | null>(null)
   const [loading] = useState("Loading live stage...")
   const [programSource, setProgramSource] = useState<ProgramSourceMessage | null>(null)
+  const hasRenderableProgramSource = Boolean(
+    programSource?.programBlocks?.length ||
+      programSource?.sourceType === "media" ||
+      programSource?.sourceType === "camera" ||
+      programSource?.sourceType === "screen"
+  )
 
   async function loadState() {
     const res = await fetch(`/api/events/${slug}/live/state`, { cache: "no-store" })
@@ -415,7 +584,7 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
     return () => {
       mounted = false
     }
-  }, [slug])
+  }, [slug, sessionId])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -494,7 +663,7 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
     return <div className="p-6 text-white/60">{loading}</div>
   }
 
-  if (!stageState.is_live) {
+  if (!stageState.is_live && !hasRenderableProgramSource) {
     return (
       <div className="p-10 text-center text-white">
         <div className="text-sm text-white/40">Live Stage</div>
