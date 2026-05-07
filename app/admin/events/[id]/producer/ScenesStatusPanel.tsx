@@ -1,8 +1,11 @@
 import type { JSX } from "react"
 import {
+  CheckCircle2,
+  Clock3,
   Layers3,
   MonitorUp,
   Pin,
+  Sparkles,
   Star,
 } from "lucide-react"
 import type { StageState } from "./producerRoomTypes"
@@ -10,6 +13,41 @@ import type { StageState } from "./producerRoomTypes"
 function compactIdentity(value: string | null | undefined) {
   if (!value) return "None"
   return value.length > 18 ? `${value.slice(0, 8)}…${value.slice(-5)}` : value
+}
+
+function formatSceneTimestamp() {
+  return new Date().toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
+function SceneMemoryBadge({
+  active,
+}: {
+  active: boolean
+}): JSX.Element {
+  return (
+    <div
+      className={[
+        "flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] transition-all duration-300",
+        active
+          ? "border-emerald-300/22 bg-emerald-400/10 text-emerald-100/78 shadow-[0_0_18px_rgba(110,231,183,0.14)]"
+          : "border-white/10 bg-black/24 text-white/42",
+      ].join(" ")}
+    >
+      <span
+        className={[
+          "h-1.5 w-1.5 rounded-full",
+          active
+            ? "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.75)]"
+            : "bg-white/20",
+        ].join(" ")}
+      />
+
+      {active ? "Scene Armed" : "Scene Idle"}
+    </div>
+  )
 }
 
 function StatusChip({
@@ -86,9 +124,12 @@ export default function ScenesStatusPanel({
             Recall & Stage State
           </div>
         </div>
+        <div className="hidden items-center gap-2 lg:flex">
+          <SceneMemoryBadge active={Boolean(selectedSceneId)} />
 
-        <div className="hidden rounded-full border border-violet-300/14 bg-violet-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/72 lg:block">
-          Broadcast Memory
+          <div className="rounded-full border border-violet-300/14 bg-violet-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/72">
+            Broadcast Memory
+          </div>
         </div>
       </div>
 
@@ -107,6 +148,11 @@ export default function ScenesStatusPanel({
         >
           {sceneBusy ? "Saving..." : selectedSceneId ? "Update Scene" : "Save Scene"}
         </button>
+
+        <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/14 bg-emerald-400/8 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/62 shadow-[0_0_20px_rgba(110,231,183,0.06)]">
+          <CheckCircle2 size={13} />
+          Scene Recall Ready
+        </div>
 
         <StatusChip
           icon={<MonitorUp size={14} />}
@@ -158,10 +204,21 @@ export default function ScenesStatusPanel({
       </div>
 
       {selectedSceneId ? (
-        <p className="mt-2 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-sky-200/72">
+        <div className="mt-2 flex flex-wrap items-center gap-2 rounded-2xl border border-sky-300/14 bg-sky-400/8 px-3 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-sky-100/72 shadow-[0_0_22px_rgba(56,189,248,0.08)]">
           <Layers3 size={12} />
-          Updating {selectedSceneLabel ?? "selected scene"}
-        </p>
+          Armed Scene
+
+          <span className="text-white/28">•</span>
+
+          <span>{selectedSceneLabel ?? "Selected Scene"}</span>
+
+          <span className="text-white/28">•</span>
+
+          <span className="flex items-center gap-1 text-white/52">
+            <Clock3 size={11} />
+            {formatSceneTimestamp()}
+          </span>
+        </div>
       ) : null}
 
       <div className="mt-3 rounded-2xl border border-white/8 bg-black/18 p-2">
@@ -170,22 +227,45 @@ export default function ScenesStatusPanel({
             Scene Bank
           </div>
           <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/24">
-            {scenes.length} saved
+            {scenes.length} memory slots
+          </div>
+          <div className="hidden items-center gap-1 rounded-full border border-white/8 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/34 md:flex">
+            <Sparkles size={10} className="text-violet-100/55" />
+            Instant Recall
           </div>
         </div>
 
         <div className="flex max-h-24 flex-wrap gap-2 overflow-y-auto pr-1">
-          {scenes.map((scene) => (
+          {scenes.map((scene, index) => (
             <button
               key={scene.id}
               onClick={() => onApplyScene(scene.id)}
-              className={`group rounded-2xl border px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all duration-200 hover:-translate-y-0.5 ${
+              className={`group relative overflow-hidden rounded-2xl border px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all duration-200 hover:-translate-y-0.5 ${
                 selectedSceneId === scene.id
                   ? "border-sky-300/35 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_42%),rgba(56,189,248,0.08)] text-sky-100 shadow-[0_0_24px_rgba(56,189,248,0.18)]"
                   : "border-white/10 bg-black/20 text-white/58 hover:border-white/18 hover:bg-white/[0.06] hover:text-white"
               }`}
             >
-              {scene.name}
+              {selectedSceneId === scene.id ? (
+                <div className="absolute inset-y-0 left-0 w-1 rounded-r-full bg-sky-300 shadow-[0_0_14px_rgba(125,211,252,0.8)]" />
+              ) : null}
+              <div className="relative flex items-center gap-2">
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-lg border border-white/10 bg-black/28 px-1 text-[8px] font-black text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+                  {index + 1}
+                </span>
+
+                <span>{scene.name}</span>
+
+                {selectedSceneId === scene.id ? (
+                  <span className="rounded-full border border-sky-300/18 bg-sky-400/12 px-1.5 py-0.5 text-[8px] tracking-[0.12em] text-sky-100/75">
+                    Armed
+                  </span>
+                ) : (
+                  <span className="opacity-0 transition group-hover:opacity-100 rounded-full border border-white/10 bg-white/[0.035] px-1.5 py-0.5 text-[8px] tracking-[0.12em] text-white/42">
+                    Recall
+                  </span>
+                )}
+              </div>
             </button>
           ))}
           {scenes.length === 0 ? (

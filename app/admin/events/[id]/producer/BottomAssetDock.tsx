@@ -1,11 +1,20 @@
 
 import { useEffect, useState } from "react"
 import {
+  Clock3,
   Film,
   Images,
   Layers3,
   SlidersHorizontal,
+  Sparkles,
 } from "lucide-react"
+function formatMemoryTime(): string {
+  return new Date().toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  })
+}
+
 import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import {
@@ -117,6 +126,7 @@ function SceneTile({
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const memoryLabel = `M${String(index + 1).padStart(2, "0")}`
   return (
     <button
       type="button"
@@ -201,8 +211,8 @@ function SceneTile({
           ) : null}
         </>
       ) : null}
-      <div className="absolute left-1.5 top-1.5 rounded-md border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/55 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        {index + 1}
+      <div className="absolute left-1.5 top-1.5 rounded-md border border-white/10 bg-black/50 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+        {memoryLabel}
       </div>
 
       <div className="absolute bottom-[40px] right-1.5 z-10 rounded-md border border-violet-200/20 bg-black/55 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-violet-100/75 shadow-[0_0_12px_rgba(168,85,247,0.12)]">
@@ -210,9 +220,9 @@ function SceneTile({
       </div>
       <SceneMiniVisualizer scene={scene} />
       <div className="mt-1 flex items-center justify-between gap-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/32">
-        <span>Scene {index + 1}</span>
+        <span>{memoryLabel}</span>
         <span className="rounded border border-white/10 bg-white/[0.045] px-1 py-0.5 text-[7px] tracking-[0.08em] text-white/45">
-          {index + 1}
+          Recall
         </span>
       </div>
       <div
@@ -221,6 +231,15 @@ function SceneTile({
         }`}
       >
         {scene.name}
+      </div>
+      <div className="mt-1 flex items-center justify-between gap-1 text-[7px] font-black uppercase tracking-[0.1em] text-white/30">
+        <span className="inline-flex items-center gap-1">
+          <Clock3 size={8} />
+          {formatMemoryTime()}
+        </span>
+        <span className={isActive ? "text-violet-100/70" : "text-white/28"}>
+          {isActive ? "Armed" : "Memory"}
+        </span>
       </div>
     </button>
   )
@@ -316,6 +335,7 @@ function SceneListRow({
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const memoryLabel = `M${String(index + 1).padStart(2, "0")}`
 
   return (
     <button
@@ -336,12 +356,12 @@ function SceneListRow({
       <div className="min-w-0 flex-1">
         <div className="truncate text-[11px] font-semibold text-white/82">{scene.name}</div>
         <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/35">
-          Scene {index + 1}
+          {memoryLabel}
           {scene.screenLayoutPreset ? ` · ${scene.screenLayoutPreset}` : ""}
         </div>
         <div className="mt-1 flex items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/35">
           <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">
-            {index + 1} Preview
+            {memoryLabel} Preview
           </span>
           <span className="rounded border border-violet-200/20 bg-violet-400/10 px-1.5 py-0.5 text-violet-100/65">
             ⇧{index + 1} Take
@@ -748,6 +768,7 @@ export default function BottomAssetDock({
 
         <div className="flex items-center gap-2">
           <DockBankLabel icon={<Layers3 size={12} />} label="Scenes" value={String(scenes.length)} />
+          <DockBankLabel icon={<Sparkles size={12} />} label="Memory" value={`${scenes.length} slots`} />
           <DockBankLabel icon={<Images size={12} />} label="Graphics" value={String(graphics.length)} />
           <DockBankLabel icon={<Film size={12} />} label="Media" value={String(media.length)} />
           <DockSceneLegend />
@@ -760,7 +781,7 @@ export default function BottomAssetDock({
       </div>
 
       <div className="grid gap-2 xl:grid-cols-[1.05fr_0.82fr_0.82fr_0.95fr_0.72fr]">
-        <DockSection title="Scenes" count={scenes.length}>
+        <DockSection title="Scene Memory" count={scenes.length}>
           <ViewToggle value={scenesView} onChange={setScenesView} />
 
           {scenesView === "icons" ? (
@@ -787,7 +808,7 @@ export default function BottomAssetDock({
                 <div className="flex aspect-video items-center justify-center rounded-lg border border-white/10 bg-black/28 text-xl text-white/35">
                   +
                 </div>
-                <div className="mt-1.5">Add Scene</div>
+                <div className="mt-1.5">Add Memory</div>
               </button>
             </div>
           ) : (
@@ -810,7 +831,7 @@ export default function BottomAssetDock({
                 onClick={onAddScene}
                 className="flex w-full items-center justify-center rounded-2xl border border-dashed border-white/14 bg-black/20 px-2 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
               >
-                + Add Scene
+                + Add Memory Slot
               </button>
             </div>
           )}

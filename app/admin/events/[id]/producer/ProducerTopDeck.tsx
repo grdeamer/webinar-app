@@ -3,12 +3,18 @@
 import { useEffect, useMemo, useState } from "react"
 import type { JSX } from "react"
 import {
+  Activity,
+  Archive,
   ChevronRight,
   Circle,
   Clock3,
   Disc3,
+  Gauge,
+  HardDrive,
+  Radar,
   ShieldCheck,
   Signal,
+  TimerReset,
   Users,
   Wand2,
   Wifi,
@@ -59,25 +65,40 @@ function OpsChip({
   label,
   value,
   active = false,
+  tone = "neutral",
 }: {
   label: string
   value: string
   active?: boolean
+  tone?: "neutral" | "record" | "iso" | "program"
 }) {
+  const activeClass =
+    tone === "record"
+      ? "border-red-300/18 bg-red-400/8 text-red-100/62"
+      : tone === "iso"
+        ? "border-amber-300/18 bg-amber-400/8 text-amber-100/62"
+        : tone === "program"
+          ? "border-sky-300/18 bg-sky-400/8 text-sky-100/62"
+          : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/62"
+
   return (
     <div
       className={[
         "hidden items-center gap-1.5 rounded-full border px-2 py-1 sm:flex",
-        active
-          ? "border-red-300/18 bg-red-400/8 text-red-100/62"
-          : "border-white/8 bg-white/[0.025] text-white/36",
+        active ? activeClass : "border-white/8 bg-white/[0.025] text-white/36",
       ].join(" ")}
     >
       <span
         className={[
           "h-1.5 w-1.5 rounded-full",
           active
-            ? "bg-red-300 shadow-[0_0_10px_rgba(252,165,165,0.8)] animate-pulse"
+            ? tone === "record"
+              ? "bg-red-300 shadow-[0_0_10px_rgba(252,165,165,0.8)] animate-pulse"
+              : tone === "iso"
+                ? "bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.7)]"
+                : tone === "program"
+                  ? "bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.7)]"
+                  : "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.7)]"
             : "bg-white/22",
         ].join(" ")}
       />
@@ -89,13 +110,68 @@ function OpsChip({
   )
 }
 
+function DiagnosticSparkline({
+  values,
+}: {
+  values: number[]
+}): JSX.Element {
+  return (
+    <div className="flex h-6 items-end gap-0.5 rounded-xl border border-white/8 bg-black/24 px-1.5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      {values.map((value, index) => (
+        <span
+          key={`${value}-${index}`}
+          className="w-1 rounded-full bg-emerald-300/70 shadow-[0_0_8px_rgba(110,231,183,0.45)] transition-all duration-500"
+          style={{ height: `${Math.max(4, Math.min(20, value))}px` }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function DiagnosticChip({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string
+  value: string
+  tone?: "neutral" | "good" | "warn"
+}): JSX.Element {
+  const toneClass =
+    tone === "good"
+      ? "border-emerald-300/14 text-emerald-100/62"
+      : tone === "warn"
+        ? "border-amber-300/14 text-amber-100/62"
+        : "border-white/8 text-white/42"
+
+  return (
+    <div
+      className={`rounded-full border bg-black/24 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${toneClass}`}
+    >
+      <span className="text-white/30">{label}</span>{" "}
+      <span className="text-white/62">{value}</span>
+    </div>
+  )
+}
+
 export default function ProducerTopDeck(): JSX.Element {
   const [viewers, setViewers] = useState(2458)
   const [signalBars, setSignalBars] = useState(4)
   const [latencyScore, setLatencyScore] = useState(18)
   const [confidence, setConfidence] = useState(99)
+  const [storagePercent, setStoragePercent] = useState(68)
+  const [isoCount, setIsoCount] = useState(3)
+
+  const [bitrateMbps, setBitrateMbps] = useState(8.6)
+  const [packetLoss, setPacketLoss] = useState(0.2)
+  const [droppedFrames, setDroppedFrames] = useState(0)
+  const [jitterMs, setJitterMs] = useState(4)
+  const [diagnosticSamples, setDiagnosticSamples] = useState([
+    10, 14, 12, 16, 15, 18, 14, 17, 19, 16, 18, 20,
+  ])
 
   const [runtimeSeconds, setRuntimeSeconds] = useState(1727)
+  const [recordingSeconds, setRecordingSeconds] = useState(1727)
 
   const runtime = useMemo(() => {
     const hours = Math.floor(runtimeSeconds / 3600)
@@ -107,13 +183,38 @@ export default function ProducerTopDeck(): JSX.Element {
       .join(":")
   }, [runtimeSeconds])
 
+  const recordingRuntime = useMemo(() => {
+    const hours = Math.floor(recordingSeconds / 3600)
+    const minutes = Math.floor((recordingSeconds % 3600) / 60)
+    const seconds = recordingSeconds % 60
+
+    return [hours, minutes, seconds]
+      .map((value) => String(value).padStart(2, "0"))
+      .join(":")
+  }, [recordingSeconds])
+
   useEffect(() => {
     const id = setInterval(() => {
       setViewers((value) => Math.max(0, value + (Math.random() > 0.65 ? 1 : 0)))
       setRuntimeSeconds((value) => value + 1)
+      setRecordingSeconds((value) => value + 1)
       setSignalBars(3 + Math.floor(Math.random() * 2))
       setLatencyScore(16 + Math.floor(Math.random() * 8))
       setConfidence(98 + Math.floor(Math.random() * 2))
+      setStoragePercent((value) => Math.min(91, value + (Math.random() > 0.82 ? 1 : 0)))
+      setIsoCount(3 + Math.floor(Math.random() * 2))
+      const nextBitrate = Number((8.2 + Math.random() * 1.4).toFixed(1))
+      const nextPacketLoss = Number((Math.random() * 0.5).toFixed(1))
+      const nextJitter = 3 + Math.floor(Math.random() * 5)
+
+      setBitrateMbps(nextBitrate)
+      setPacketLoss(nextPacketLoss)
+      setJitterMs(nextJitter)
+      setDroppedFrames((value) => value + (Math.random() > 0.93 ? 1 : 0))
+      setDiagnosticSamples((values) => [
+        ...values.slice(1),
+        Math.round(8 + nextBitrate + (6 - nextJitter) + Math.random() * 5),
+      ])
     }, 1200)
 
     return () => clearInterval(id)
@@ -123,7 +224,7 @@ export default function ProducerTopDeck(): JSX.Element {
 
   return (
     <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.016))] p-2 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="grid gap-2 xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr_1fr]">
+      <div className="grid gap-2 xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr]">
         <StatusPill
           icon={
             <span className="relative flex items-center justify-center">
@@ -143,6 +244,13 @@ export default function ProducerTopDeck(): JSX.Element {
           label="Runtime"
           value={runtime}
           tone="border-white/10 tabular-nums"
+        />
+
+        <StatusPill
+          icon={<TimerReset size={15} className="text-red-200/80" />}
+          label="Recording"
+          value={recordingRuntime}
+          tone="border-red-300/18 tabular-nums"
         />
 
         <StatusPill
@@ -167,6 +275,20 @@ export default function ProducerTopDeck(): JSX.Element {
         />
 
         <StatusPill
+          icon={<Gauge size={15} />}
+          label="Bitrate"
+          value={`${bitrateMbps.toFixed(1)} Mbps`}
+          tone="border-sky-300/18"
+        />
+
+        <StatusPill
+          icon={<HardDrive size={15} />}
+          label="Storage"
+          value={`${storagePercent}% vault`}
+          tone="border-amber-300/18"
+        />
+
+        <StatusPill
           icon={<Wand2 size={15} className="animate-pulse" />}
           label="Transition"
           value="Auto · 600ms"
@@ -185,15 +307,25 @@ export default function ProducerTopDeck(): JSX.Element {
             <ChevronRight size={11} className="text-white/18" />
             <span>Holding pattern</span>
             <ChevronRight size={11} className="text-white/18" />
+            <span>{isoCount} ISO feeds armed</span>
+            <ChevronRight size={11} className="text-white/18" />
             <span>{confidence}% confidence</span>
+            <ChevronRight size={11} className="text-white/18" />
+            <span>{packetLoss.toFixed(1)}% packet loss</span>
           </div>
         </div>
 
         <div className="flex shrink-0 items-center gap-3">
           <div className="hidden items-center gap-1.5 lg:flex">
-            <OpsChip label="REC" value="Armed" active />
-            <OpsChip label="ISO" value="Ready" />
-            <OpsChip label="PGM" value="Clean" />
+            <OpsChip label="REC" value={recordingRuntime} active tone="record" />
+            <OpsChip label="ISO" value={`${isoCount} armed`} active tone="iso" />
+            <OpsChip label="PGM" value="Clean" active tone="program" />
+            <OpsChip label="Vault" value={`${storagePercent}%`} tone="neutral" />
+          </div>
+          <div className="hidden items-center gap-1.5 xl:flex">
+            <DiagnosticChip label="Loss" value={`${packetLoss.toFixed(1)}%`} tone="good" />
+            <DiagnosticChip label="Drop" value={String(droppedFrames)} />
+            <DiagnosticChip label="Jitter" value={`${jitterMs}ms`} tone="good" />
           </div>
           <span className="hidden text-[9px] tracking-[0.16em] text-emerald-100/35 sm:inline">
             UPLINK
@@ -212,6 +344,29 @@ export default function ProducerTopDeck(): JSX.Element {
               />
             ))}
           </div>
+          <div className="hidden items-center gap-1.5 rounded-full border border-white/8 bg-black/24 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/34 xl:flex">
+            <Archive size={11} className="text-amber-100/50" />
+            Vaulting
+          </div>
+        </div>
+      </div>
+      <div className="mt-2 grid gap-2 rounded-2xl border border-white/8 bg-black/18 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] xl:grid-cols-[1fr_180px]">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/56">
+            <Radar size={11} />
+            Stream Diagnostics
+          </div>
+
+          <DiagnosticChip label="Bitrate" value={`${bitrateMbps.toFixed(1)} Mbps`} tone="good" />
+          <DiagnosticChip label="Loss" value={`${packetLoss.toFixed(1)}%`} tone="good" />
+          <DiagnosticChip label="Frames" value={`${droppedFrames} dropped`} />
+          <DiagnosticChip label="Jitter" value={`${jitterMs}ms`} tone="good" />
+          <DiagnosticChip label="RTT" value={`${latencyScore + 22}ms`} />
+        </div>
+
+        <div className="flex items-center justify-end gap-2">
+          <Activity size={13} className="text-emerald-200/55" />
+          <DiagnosticSparkline values={diagnosticSamples} />
         </div>
       </div>
     </div>

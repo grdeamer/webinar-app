@@ -8,6 +8,77 @@ import type { TrackReference } from "@livekit/components-core"
 
 type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
 
+function MonitorBadge({
+  label,
+  tone = "neutral",
+}: {
+  label: string
+  tone?: "neutral" | "live" | "preview" | "confidence"
+}) {
+  const toneClass =
+    tone === "live"
+      ? "border-red-300/22 bg-red-400/14 text-red-100"
+      : tone === "preview"
+        ? "border-sky-300/22 bg-sky-400/14 text-sky-100"
+        : tone === "confidence"
+          ? "border-violet-300/22 bg-violet-400/14 text-violet-100"
+          : "border-white/10 bg-black/40 text-white/72"
+
+  return (
+    <span
+      className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] backdrop-blur-md shadow-[0_0_18px_rgba(0,0,0,0.18)] ${toneClass}`}
+    >
+      {label}
+    </span>
+  )
+}
+
+function RoutedMonitorFrame({
+  children,
+  mode = "program",
+}: {
+  children: React.ReactNode
+  mode?: "program" | "preview" | "confidence"
+}) {
+  const ringClass =
+    mode === "program"
+      ? "ring-red-400/40"
+      : mode === "preview"
+        ? "ring-sky-400/40"
+        : "ring-violet-400/40"
+
+  return (
+    <div
+      className={`relative overflow-hidden rounded-[26px] border border-white/10 bg-black shadow-[0_30px_120px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ${ringClass}`}
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_42%)]" />
+
+      <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2">
+        <MonitorBadge
+          label={
+            mode === "program"
+              ? "Program"
+              : mode === "preview"
+                ? "Preview"
+                : "Confidence"
+          }
+          tone={
+            mode === "program"
+              ? "live"
+              : mode === "preview"
+                ? "preview"
+                : "confidence"
+          }
+        />
+
+        <MonitorBadge label="Routed" />
+      </div>
+
+      {children}
+    </div>
+  )
+}
+
 export type StageState = {
   event_id: string
   room_id: string | null
@@ -148,27 +219,9 @@ export default function StageVideoPreview({
     const isPinned = stageState.pinned_participant_id === primary.participant.identity
 
     return (
-      <div
-        className={`relative overflow-hidden rounded-2xl bg-black ${
-          isPrimary ? "ring-2 ring-sky-400" : ""
-        }`}
-      >
+      <RoutedMonitorFrame mode={isPrimary ? "program" : "preview"}>
         <VideoTrack trackRef={primary} className="aspect-video h-full w-full object-cover" />
-
-        <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
-          {isPrimary ? (
-            <span className="rounded bg-sky-400 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-              PRIMARY
-            </span>
-          ) : null}
-
-          {isPinned ? (
-            <span className="rounded bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-              PINNED
-            </span>
-          ) : null}
-        </div>
-      </div>
+      </RoutedMonitorFrame>
     )
   }
 
@@ -189,27 +242,9 @@ export default function StageVideoPreview({
       const isPinned = stageState.pinned_participant_id === speakerTrack.participant.identity
 
       return (
-        <div
-          className={`relative overflow-hidden rounded-2xl bg-black ${
-            isPrimary ? "ring-2 ring-sky-400" : ""
-          }`}
-        >
+        <RoutedMonitorFrame mode={isPrimary ? "program" : "preview"}>
           <VideoTrack trackRef={speakerTrack} className="aspect-video h-full w-full object-cover" />
-
-          <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
-            {isPrimary ? (
-              <span className="rounded bg-sky-400 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-                PRIMARY
-              </span>
-            ) : null}
-
-            {isPinned ? (
-              <span className="rounded bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-                PINNED
-              </span>
-            ) : null}
-          </div>
-        </div>
+        </RoutedMonitorFrame>
       )
     }
 
@@ -333,7 +368,7 @@ export default function StageVideoPreview({
 
     return (
       <div className="grid min-h-[420px] gap-4 lg:grid-cols-[1.45fr_0.55fr]">
-        <div className="relative overflow-hidden rounded-2xl bg-black">
+        <RoutedMonitorFrame mode="program">
           {screenTrack ? (
             <VideoTrack trackRef={screenTrack} className="aspect-video h-full w-full object-contain" />
           ) : (
@@ -341,18 +376,15 @@ export default function StageVideoPreview({
               No screen share
             </div>
           )}
-
           <div className="pointer-events-none absolute left-3 top-3">
             <span className="rounded bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-950">
               SCREEN
             </span>
           </div>
-        </div>
+        </RoutedMonitorFrame>
 
-        <div
-          className={`relative overflow-hidden rounded-2xl bg-black ${
-            speakerIsPrimary ? "ring-2 ring-sky-400" : ""
-          }`}
+        <RoutedMonitorFrame
+          mode={speakerIsPrimary ? "program" : "confidence"}
         >
           {speakerTrack ? (
             <VideoTrack trackRef={speakerTrack} className="aspect-video h-full w-full object-cover" />
@@ -361,9 +393,8 @@ export default function StageVideoPreview({
               No speaker camera
             </div>
           )}
-
           {speakerBadges}
-        </div>
+        </RoutedMonitorFrame>
       </div>
     )
   }
@@ -391,14 +422,11 @@ export default function StageVideoPreview({
         const isPinned = stageState.pinned_participant_id === trackRef.participant.identity
 
         return (
-          <div
+          <RoutedMonitorFrame
             key={trackRef.participant.identity}
-            className={`relative overflow-hidden rounded-2xl bg-black ${
-              isPrimary ? "ring-2 ring-sky-400" : ""
-            }`}
+            mode={isPrimary ? "program" : isPinned ? "confidence" : "preview"}
           >
             <VideoTrack trackRef={trackRef} className="aspect-video h-full w-full object-cover" />
-
             <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
               {isPrimary ? (
                 <span className="rounded bg-sky-400 px-2 py-0.5 text-[10px] font-bold text-slate-950">
@@ -412,7 +440,7 @@ export default function StageVideoPreview({
                 </span>
               ) : null}
             </div>
-          </div>
+          </RoutedMonitorFrame>
         )
       })}
     </div>
