@@ -7,6 +7,7 @@ import {
   Radio,
   ShieldCheck,
   SlidersHorizontal,
+  Sparkles,
   TimerReset,
   Users,
 } from "lucide-react"
@@ -84,6 +85,61 @@ function RailSectionLabel({
   )
 }
 
+function InspectorTelemetryStrip(): JSX.Element {
+  return (
+    <div className="rounded-[24px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),linear-gradient(180deg,rgba(12,10,28,0.92),rgba(3,4,10,0.98))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/68">
+            <Sparkles size={13} />
+            Inspector Telemetry
+          </div>
+
+          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
+            Layer + Broadcast Intelligence
+          </div>
+        </div>
+
+        <div className="rounded-full border border-violet-300/14 bg-violet-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/62 shadow-[0_0_18px_rgba(168,85,247,0.12)]">
+          Synced
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {[
+          {
+            label: "Inspector",
+            value: "Ready",
+            tone: "border-sky-300/14 bg-sky-400/8 text-sky-100/70",
+          },
+          {
+            label: "Routing",
+            value: "Locked",
+            tone: "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/70",
+          },
+          {
+            label: "Graphics",
+            value: "Live",
+            tone: "border-violet-300/14 bg-violet-400/8 text-violet-100/70",
+          },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className={`rounded-2xl border px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${item.tone}`}
+          >
+            <div className="text-[8px] font-black uppercase tracking-[0.16em] opacity-70">
+              {item.label}
+            </div>
+            <div className="mt-1 text-xs font-semibold tracking-tight">
+              {item.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function RecordingCenterPanel(): JSX.Element {
   return (
     <div className="rounded-[28px] border border-red-300/14 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.12),transparent_34%),linear-gradient(180deg,rgba(20,8,10,0.94),rgba(8,4,6,0.98))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
@@ -104,6 +160,41 @@ function RecordingCenterPanel(): JSX.Element {
 
         <div className="rounded-full border border-red-300/20 bg-red-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-100/78 shadow-[0_0_18px_rgba(248,113,113,0.12)]">
           REC LIVE
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-[24px] border border-violet-300/10 bg-violet-400/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-violet-100/58">
+              <Radio size={11} />
+              Capture Telemetry
+            </div>
+
+            <div className="mt-1 text-sm font-semibold text-white/84">
+              Program diagnostics stable
+            </div>
+          </div>
+
+          <div className="rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/58">
+            59.94 fps
+          </div>
+        </div>
+
+        <div className="mt-3 flex items-center gap-1.5">
+          {Array.from({ length: 24 }).map((_, index) => (
+            <div
+              key={index}
+              className={[
+                "h-8 flex-1 rounded-full",
+                index > 18
+                  ? "bg-red-300/70"
+                  : index > 13
+                    ? "bg-amber-300/70"
+                    : "bg-emerald-300/70",
+              ].join(" ")}
+            />
+          ))}
         </div>
       </div>
 
@@ -265,10 +356,11 @@ export default function RightInspectorRail({
 }): JSX.Element {
   return (
     <div className="space-y-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.88),rgba(2,4,10,0.97))] p-2.5 shadow-[0_32px_120px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition duration-300 hover:border-white/14 xl:col-start-3">
+      <InspectorTelemetryStrip />
       <RailSectionLabel
         icon={<SlidersHorizontal size={16} />}
-        title="Inspector"
-        sub="Selected Layer Controls"
+        title="Layer Inspector"
+        sub="Selected Layer Control Surface"
       />
       <SelectedBlockInspector
         selectedBlock={selectedBlock}
@@ -282,14 +374,14 @@ export default function RightInspectorRail({
       />
       <RailSectionLabel
         icon={<Archive size={16} />}
-        title="Recording"
-        sub="Capture and Archive Systems"
+        title="Capture Systems"
+        sub="Program + ISO Archive Routing"
       />
 
       <RecordingCenterPanel />
       <RailSectionLabel
         icon={<Users size={16} />}
-        title="Backstage"
+        title="Talent Operations"
         sub={`${participants.length} Connected Participants`}
       />
 
