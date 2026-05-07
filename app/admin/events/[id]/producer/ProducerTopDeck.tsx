@@ -8,10 +8,13 @@ import {
   ChevronRight,
   Circle,
   Clock3,
+  Cpu,
   Disc3,
   Gauge,
+  Globe2,
   HardDrive,
   Radar,
+  SatelliteDish,
   ShieldCheck,
   Signal,
   TimerReset,
@@ -154,6 +157,35 @@ function DiagnosticChip({
   )
 }
 
+function TelemetryBadge({
+  icon,
+  label,
+  value,
+  tone = "neutral",
+}: {
+  icon: JSX.Element
+  label: string
+  value: string
+  tone?: "neutral" | "sky" | "green" | "amber"
+}): JSX.Element {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-300/14 bg-sky-400/8 text-sky-100/60"
+      : tone === "green"
+        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/60"
+        : tone === "amber"
+          ? "border-amber-300/14 bg-amber-400/8 text-amber-100/60"
+          : "border-white/10 bg-black/24 text-white/42"
+
+  return (
+    <div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+      <span className="opacity-80">{icon}</span>
+      <span className="text-white/34">{label}</span>
+      <span>{value}</span>
+    </div>
+  )
+}
+
 export default function ProducerTopDeck(): JSX.Element {
   const [viewers, setViewers] = useState(2458)
   const [signalBars, setSignalBars] = useState(4)
@@ -223,8 +255,42 @@ export default function ProducerTopDeck(): JSX.Element {
   const latencyLabel = latencyScore < 22 ? "Excellent" : "Good"
 
   return (
-    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.016))] p-2 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="grid gap-2 xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr]">
+    <div className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.10),transparent_28%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.016))] p-2 shadow-[0_22px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/18 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/30">
+            Mission Control Telemetry
+          </div>
+
+          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
+            Jupiter Producer Operations Deck
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <TelemetryBadge
+            icon={<SatelliteDish size={11} />}
+            label="Relay"
+            value="Locked"
+            tone="green"
+          />
+
+          <TelemetryBadge
+            icon={<Globe2 size={11} />}
+            label="CDN"
+            value="Healthy"
+            tone="sky"
+          />
+
+          <TelemetryBadge
+            icon={<Cpu size={11} />}
+            label="GPU"
+            value="62%"
+            tone="amber"
+          />
+        </div>
+      </div>
+      <div className="grid gap-2 xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr]">
         <StatusPill
           icon={
             <span className="relative flex items-center justify-center">
@@ -294,6 +360,13 @@ export default function ProducerTopDeck(): JSX.Element {
           value="Auto · 600ms"
           tone="border-violet-300/18"
         />
+
+        <StatusPill
+          icon={<Radar size={15} className="text-sky-200/75" />}
+          label="Telemetry"
+          value="Nominal"
+          tone="border-sky-300/18"
+        />
       </div>
       <div className="mt-2 flex items-center justify-between gap-3 rounded-2xl border border-white/8 bg-black/18 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
         <div className="flex min-w-0 items-center gap-3">
@@ -305,7 +378,7 @@ export default function ProducerTopDeck(): JSX.Element {
           <div className="hidden min-w-0 items-center gap-1 truncate text-white/32 md:flex">
             <span>Session A1</span>
             <ChevronRight size={11} className="text-white/18" />
-            <span>Holding pattern</span>
+            <span>Mission stable</span>
             <ChevronRight size={11} className="text-white/18" />
             <span>{isoCount} ISO feeds armed</span>
             <ChevronRight size={11} className="text-white/18" />
@@ -350,7 +423,7 @@ export default function ProducerTopDeck(): JSX.Element {
           </div>
         </div>
       </div>
-      <div className="mt-2 grid gap-2 rounded-2xl border border-white/8 bg-black/18 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] xl:grid-cols-[1fr_180px]">
+      <div className="mt-2 grid gap-2 rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] xl:grid-cols-[1fr_180px]">
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <div className="flex items-center gap-2 rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/56">
             <Radar size={11} />

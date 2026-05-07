@@ -4,38 +4,93 @@ import { useEffect, useState } from "react"
 import type { JSX } from "react"
 import { useRoomContext } from "@livekit/components-react"
 import {
-
   AudioLines,
   Camera,
-
+  Cpu,
+  Globe2,
   Mic2,
   MonitorUp,
   Radio,
-
+  SatelliteDish,
+  ShieldCheck,
   SlidersHorizontal,
   Zap,
 } from "lucide-react"
 import type { StageState } from "./producerRoomTypes"
 
+
 type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
+
+function RailTelemetryChip({
+  icon,
+  label,
+  value,
+  tone = "neutral",
+}: {
+  icon: JSX.Element
+  label: string
+  value: string
+  tone?: "neutral" | "sky" | "green" | "amber"
+}): JSX.Element {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-300/14 bg-sky-400/8 text-sky-100/62"
+      : tone === "green"
+        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
+        : tone === "amber"
+          ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
+          : "border-white/10 bg-black/24 text-white/42"
+
+  return (
+    <div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+      <span className="opacity-80">{icon}</span>
+      <span className="text-white/30">{label}</span>
+      <span>{value}</span>
+    </div>
+  )
+}
 
 function RailRackHeader(): JSX.Element {
   return (
-    <div className="rounded-[28px] border border-sky-300/14 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_36%),linear-gradient(180deg,rgba(8,18,34,0.92),rgba(3,7,16,0.98))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.045)]">
+    <div className="rounded-[30px] border border-sky-300/14 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.14),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.08),transparent_34%),linear-gradient(180deg,rgba(8,18,34,0.94),rgba(3,7,16,0.99))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.045)]">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/72">
             <Radio size={13} />
-            Control Rack
+            Mission Control Rack
           </div>
           <div className="mt-1 text-sm font-semibold tracking-tight text-white">
-            Transmission Stack
+            Transmission + Device Stack
           </div>
         </div>
 
-        <div className="rounded-full border border-emerald-300/16 bg-emerald-400/8 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/66">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/16 bg-emerald-400/8 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/66">
+          <ShieldCheck size={11} />
           Armed
         </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <RailTelemetryChip
+          icon={<SatelliteDish size={10} />}
+          label="Relay"
+          value="Locked"
+          tone="green"
+        />
+
+        <RailTelemetryChip
+          icon={<Globe2 size={10} />}
+          label="CDN"
+          value="Healthy"
+          tone="sky"
+        />
+
+        <RailTelemetryChip
+          icon={<Cpu size={10} />}
+          label="GPU"
+          value="62%"
+          tone="amber"
+        />
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2">
@@ -179,10 +234,10 @@ function AudioMetersPanel({ localMicLevel }: { localMicLevel: number }): JSX.Ele
 
       <div className="mt-4 flex flex-wrap gap-2">
         <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/50">
-          Space = Take
+          Space = TAKE
         </div>
         <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/50">
-          M = Mic
+          M = Talkback
         </div>
       </div>
     </div>
@@ -381,7 +436,7 @@ function ProducerMicControls(): JSX.Element {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
           <Mic2 size={13} />
-          Producer IFB Mic
+          Producer IFB + Talkback
         </div>
         <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
           micEnabled

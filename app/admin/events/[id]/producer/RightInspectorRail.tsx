@@ -2,9 +2,13 @@ import type { JSX } from "react"
 import {
   Archive,
   CircleDot,
+  Cpu,
+  Globe2,
   HardDrive,
   Layers3,
+  Radar,
   Radio,
+  SatelliteDish,
   ShieldCheck,
   SlidersHorizontal,
   Sparkles,
@@ -85,24 +89,85 @@ function RailSectionLabel({
   )
 }
 
+function InspectorStatusChip({
+  icon,
+  label,
+  value,
+  tone = "neutral",
+}: {
+  icon: JSX.Element
+  label: string
+  value: string
+  tone?: "neutral" | "sky" | "green" | "violet" | "amber"
+}): JSX.Element {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-300/14 bg-sky-400/8 text-sky-100/62"
+      : tone === "green"
+        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
+        : tone === "violet"
+          ? "border-violet-300/14 bg-violet-400/8 text-violet-100/62"
+          : tone === "amber"
+            ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
+            : "border-white/10 bg-black/24 text-white/42"
+
+  return (
+    <div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+      <span className="opacity-80">{icon}</span>
+      <span className="text-white/30">{label}</span>
+      <span>{value}</span>
+    </div>
+  )
+}
+
 function InspectorTelemetryStrip(): JSX.Element {
   return (
-    <div className="rounded-[24px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),linear-gradient(180deg,rgba(12,10,28,0.92),rgba(3,4,10,0.98))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="rounded-[28px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.14),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_32%),linear-gradient(180deg,rgba(12,10,28,0.94),rgba(3,4,10,0.99))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.04)]">
       <div className="flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/68">
             <Sparkles size={13} />
-            Inspector Telemetry
+            Mission Inspector Telemetry
           </div>
 
           <div className="mt-1 text-sm font-semibold tracking-tight text-white">
-            Layer + Broadcast Intelligence
+            Layer + Capture + Routing Intelligence
           </div>
         </div>
 
         <div className="rounded-full border border-violet-300/14 bg-violet-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/62 shadow-[0_0_18px_rgba(168,85,247,0.12)]">
           Synced
         </div>
+      </div>
+
+      <div className="mt-3 flex flex-wrap gap-2">
+        <InspectorStatusChip
+          icon={<SatelliteDish size={10} />}
+          label="Relay"
+          value="Locked"
+          tone="green"
+        />
+
+        <InspectorStatusChip
+          icon={<Globe2 size={10} />}
+          label="CDN"
+          value="Healthy"
+          tone="sky"
+        />
+
+        <InspectorStatusChip
+          icon={<Cpu size={10} />}
+          label="GPU"
+          value="62%"
+          tone="amber"
+        />
+
+        <InspectorStatusChip
+          icon={<Radar size={10} />}
+          label="Telemetry"
+          value="Nominal"
+          tone="violet"
+        />
       </div>
 
       <div className="mt-3 grid grid-cols-3 gap-2">
@@ -118,7 +183,7 @@ function InspectorTelemetryStrip(): JSX.Element {
             tone: "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/70",
           },
           {
-            label: "Graphics",
+            label: "Capture",
             value: "Live",
             tone: "border-violet-300/14 bg-violet-400/8 text-violet-100/70",
           },
@@ -150,11 +215,11 @@ function RecordingCenterPanel(): JSX.Element {
               size={12}
               className="animate-pulse text-red-300"
             />
-            Recording Center
+            Capture Mission Center
           </div>
 
           <div className="mt-1 text-lg font-semibold tracking-tight text-white">
-            Program Capture Active
+            Program + ISO Capture Active
           </div>
         </div>
 
@@ -172,7 +237,7 @@ function RecordingCenterPanel(): JSX.Element {
             </div>
 
             <div className="mt-1 text-sm font-semibold text-white/84">
-              Program diagnostics stable
+              Program and ISO diagnostics stable
             </div>
           </div>
 
@@ -355,7 +420,7 @@ export default function RightInspectorRail({
   onError: (value: string | null) => void
 }): JSX.Element {
   return (
-    <div className="space-y-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.88),rgba(2,4,10,0.97))] p-2.5 shadow-[0_32px_120px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition duration-300 hover:border-white/14 xl:col-start-3">
+    <div className="space-y-3 rounded-[38px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.92),rgba(2,4,10,0.99))] p-2.5 shadow-[0_38px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition duration-300 hover:border-white/14 xl:col-start-3">
       <InspectorTelemetryStrip />
       <RailSectionLabel
         icon={<SlidersHorizontal size={16} />}
@@ -375,13 +440,13 @@ export default function RightInspectorRail({
       <RailSectionLabel
         icon={<Archive size={16} />}
         title="Capture Systems"
-        sub="Program + ISO Archive Routing"
+        sub="Program + ISO Capture Routing"
       />
 
       <RecordingCenterPanel />
       <RailSectionLabel
         icon={<Users size={16} />}
-        title="Talent Operations"
+        title="Green Room Operations"
         sub={`${participants.length} Connected Participants`}
       />
 
@@ -393,7 +458,7 @@ export default function RightInspectorRail({
             </div>
 
             <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">
-              Backstage Idle
+              Green Room Idle
             </div>
 
             <div className="mt-2 text-sm text-white/40">
@@ -402,7 +467,7 @@ export default function RightInspectorRail({
 
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/24 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
               <Layers3 size={11} />
-              Production Queue Empty
+              Talent Queue Empty
             </div>
           </div>
         ) : (

@@ -3,7 +3,10 @@ import {
   Activity,
   CircleDot,
   Clock3,
+  Cpu,
+  Globe2,
   Radio,
+  SatelliteDish,
   ShieldCheck,
   Signal,
   UserCog,
@@ -47,6 +50,35 @@ function HeaderStatusChip({
           {value}
         </div>
       </div>
+    </div>
+  )
+}
+
+function TelemetryMiniChip({
+  icon,
+  label,
+  value,
+  tone = "neutral",
+}: {
+  icon: JSX.Element
+  label: string
+  value: string
+  tone?: "neutral" | "sky" | "green" | "amber"
+}): JSX.Element {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-300/14 bg-sky-400/8 text-sky-100/60"
+      : tone === "green"
+        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/60"
+        : tone === "amber"
+          ? "border-amber-300/14 bg-amber-400/8 text-amber-100/60"
+          : "border-white/10 bg-black/24 text-white/42"
+
+  return (
+    <div className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+      <span className="opacity-80">{icon}</span>
+      <span className="text-white/30">{label}</span>
+      <span>{value}</span>
     </div>
   )
 }
@@ -100,8 +132,31 @@ export default function ProducerRoomHeader({
   scopeLabel: string
 }): JSX.Element {
   return (
-    <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.09),transparent_32%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.09),transparent_28%),linear-gradient(180deg,rgba(6,12,26,0.96),rgba(2,6,16,0.9))] px-4 py-3 shadow-[0_24px_90px_rgba(0,0,0,0.48)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
+    <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_32%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.11),transparent_28%),linear-gradient(180deg,rgba(6,12,26,0.98),rgba(2,6,16,0.94))] px-4 py-3 shadow-[0_28px_110px_rgba(0,0,0,0.52)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+        <div className="flex flex-wrap items-center gap-2 rounded-[20px] border border-white/8 bg-black/18 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] xl:hidden">
+          <TelemetryMiniChip
+            icon={<SatelliteDish size={10} />}
+            label="Relay"
+            value="Locked"
+            tone="green"
+          />
+
+          <TelemetryMiniChip
+            icon={<Globe2 size={10} />}
+            label="CDN"
+            value="Healthy"
+            tone="sky"
+          />
+
+          <TelemetryMiniChip
+            icon={<Cpu size={10} />}
+            label="GPU"
+            value="62%"
+            tone="amber"
+          />
+        </div>
+
         <div className="flex min-w-0 items-center gap-3">
           <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border border-sky-300/22 bg-sky-400/10 shadow-[0_0_34px_rgba(56,189,248,0.2)]">
             <div className="h-6 w-6 rounded-full border border-sky-200/75 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.95),rgba(56,189,248,0.48)_35%,rgba(79,70,229,0.34)_70%)] shadow-[0_0_24px_rgba(125,211,252,0.65)]" />
@@ -112,7 +167,7 @@ export default function ProducerRoomHeader({
             <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-white/35">
               <span>Jupiter</span>
               <span className="text-white/20">•</span>
-              <span>Producer Mission Control</span>
+              <span>Mission Control</span>
               <span className="text-white/20">•</span>
               <span>{scopeLabel}</span>
             </div>
@@ -130,12 +185,17 @@ export default function ProducerRoomHeader({
                     ? "Grid"
                     : "Solo"}
               </span>
+
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/18 bg-emerald-400/8 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/78 shadow-[0_0_14px_rgba(52,211,153,0.12)]">
+                <ShieldCheck size={11} />
+                Telemetry Nominal
+              </span>
             </div>
           </div>
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[620px] xl:grid-cols-4">
-          <div className="relative overflow-hidden rounded-[22px] border border-red-400/22 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.18),transparent_42%),linear-gradient(180deg,rgba(127,29,29,0.42),rgba(239,68,68,0.09))] p-3 shadow-[0_0_38px_rgba(239,68,68,0.13)]">
+          <div className="relative overflow-hidden rounded-[24px] border border-red-400/22 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.18),transparent_42%),linear-gradient(180deg,rgba(127,29,29,0.42),rgba(239,68,68,0.09))] p-3 shadow-[0_0_42px_rgba(239,68,68,0.16)]">
             <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-red-100/65">
               <CircleDot size={12} className={isLive ? "animate-pulse text-red-300" : "text-white/30"} />
               Transmission
@@ -148,7 +208,7 @@ export default function ProducerRoomHeader({
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">
               <Radio size={12} />
               Show State

@@ -3,8 +3,12 @@ import {
   Archive,
   Camera,
   CircleDot,
+  Cpu,
+  Globe2,
   Mic2,
+  Radar,
   Radio,
+  SatelliteDish,
   ScreenShare,
   ShieldCheck,
   Users,
@@ -48,6 +52,37 @@ function RightRailMetric({
       <div className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-60">
         {label}
       </div>
+    </div>
+  )
+}
+
+function RailStatusChip({
+  icon,
+  label,
+  value,
+  tone = "neutral",
+}: {
+  icon: JSX.Element
+  label: string
+  value: string
+  tone?: "neutral" | "sky" | "green" | "violet" | "amber"
+}): JSX.Element {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-300/14 bg-sky-400/8 text-sky-100/62"
+      : tone === "green"
+        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
+        : tone === "violet"
+          ? "border-violet-300/14 bg-violet-400/8 text-violet-100/62"
+          : tone === "amber"
+            ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
+            : "border-white/10 bg-black/24 text-white/42"
+
+  return (
+    <div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+      <span className="opacity-80">{icon}</span>
+      <span className="text-white/30">{label}</span>
+      <span>{value}</span>
     </div>
   )
 }
@@ -99,52 +134,82 @@ export default function ProducerRightRail({
   const micCount = participants.filter((p) => p.micEnabled).length
   const screenCount = participants.filter((p) => p.screenShareEnabled).length
   return (
-    <div className="min-w-0 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.9),rgba(2,4,10,0.98))] p-2.5 shadow-[0_34px_130px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl transition duration-300 hover:border-white/14 lg:col-start-3">
+    <div className="min-w-0 overflow-hidden rounded-[38px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.92),rgba(2,4,10,0.99))] p-2.5 shadow-[0_38px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl transition duration-300 hover:border-white/14 lg:col-start-3">
       <div className="mb-3 overflow-hidden rounded-[30px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.13),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)]">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-100/62">
               <Radio size={13} />
-              Systems Rack
+              Mission Systems Rack
             </div>
             <div className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">
-              Inspector + Capture + Talent
+              Inspector + Capture + Telemetry
             </div>
             <div className="mt-1 text-xs leading-5 text-white/42">
-              Route contributors, inspect layers, monitor capture, and manage backstage confidence.
+              Route contributors, inspect layers, monitor telemetry, and manage backstage confidence.
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/72 shadow-[0_0_18px_rgba(52,211,153,0.08)]">
             <CircleDot size={11} className="text-emerald-300" />
-            {participants.length} Feeds Locked
+            {participants.length} Sources Locked
           </div>
+        </div>
+
+        <div className="mt-3 flex flex-wrap gap-2">
+          <RailStatusChip
+            icon={<SatelliteDish size={10} />}
+            label="Relay"
+            value="Locked"
+            tone="green"
+          />
+
+          <RailStatusChip
+            icon={<Globe2 size={10} />}
+            label="CDN"
+            value="Healthy"
+            tone="sky"
+          />
+
+          <RailStatusChip
+            icon={<Cpu size={10} />}
+            label="GPU"
+            value="62%"
+            tone="amber"
+          />
+
+          <RailStatusChip
+            icon={<Radar size={10} />}
+            label="Telemetry"
+            value="Nominal"
+            tone="violet"
+          />
         </div>
 
         <div className="mt-4 grid grid-cols-4 gap-2 text-center">
           <RightRailMetric
             icon={<Users size={13} />}
-            label="Stage"
+            label="Routed"
             value={stageIds.size}
             tone="sky"
           />
 
           <RightRailMetric
             icon={<Camera size={13} />}
-            label="Cam"
+            label="Camera"
             value={cameraCount}
             tone="neutral"
           />
 
           <RightRailMetric
             icon={<Mic2 size={13} />}
-            label="Mic"
+            label="Audio"
             value={micCount}
             tone="green"
           />
 
           <RightRailMetric
             icon={<ScreenShare size={13} />}
-            label="Screen"
+            label="Share"
             value={screenCount}
             tone="violet"
           />
@@ -153,17 +218,27 @@ export default function ProducerRightRail({
         <div className="mt-3 grid grid-cols-2 gap-2">
           <div className="flex items-center gap-2 rounded-2xl border border-red-300/12 bg-red-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <Archive size={12} />
-            Capture Online
+            ISO Capture Online
           </div>
 
           <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/12 bg-emerald-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <ShieldCheck size={12} />
-            Talent Safe
+            Confidence Safe
+          </div>
+
+          <div className="flex items-center gap-2 rounded-2xl border border-sky-300/12 bg-sky-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <Radar size={12} />
+            Telemetry Active
+          </div>
+
+          <div className="flex items-center gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <SatelliteDish size={12} />
+            Relay Stable
           </div>
         </div>
       </div>
 
-      <div className="rounded-[30px] border border-white/10 bg-black/24 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <RightInspectorRail
           selectedBlock={selectedBlock}
           onToggleHidden={onToggleHidden}
