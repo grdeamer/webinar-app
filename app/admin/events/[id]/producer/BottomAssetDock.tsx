@@ -7,7 +7,30 @@ import {
   Layers3,
   SlidersHorizontal,
   Sparkles,
+  Rows3,
+  Radio,
 } from "lucide-react"
+function DockStatusPill({
+  label,
+  value,
+  tone,
+}: {
+  label: string
+  value: string
+  tone: "sky" | "green"
+}): JSX.Element {
+  const toneClass =
+    tone === "sky"
+      ? "border-sky-300/18 bg-sky-400/8 text-sky-100/80"
+      : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/80"
+  return (
+    <div className={`hidden items-center gap-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] lg:flex ${toneClass}`}>
+      <span>{label}</span>
+      <span className="text-white/18">/</span>
+      <span className="text-white/48">{value}</span>
+    </div>
+  )
+}
 function formatMemoryTime(): string {
   return new Date().toLocaleTimeString([], {
     hour: "numeric",
@@ -758,30 +781,34 @@ export default function BottomAssetDock({
     <div className="mt-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.06),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.86),rgba(2,4,10,0.96))] px-2.5 py-2 shadow-[0_28px_100px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
       <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.28em] text-white/35">
-            Broadcast Asset Bank
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
+            <Rows3 size={13} className="text-sky-100/62" />
+            Broadcast Rundown Dock
           </div>
           <div className="mt-1 text-sm text-white/45">
-            Scene recall, media sources, decks, and transition presets.
+            Cue stack, scene recall, graphics, media, decks, and transition presets.
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <DockStatusPill label="Cue Stack" value="Synced" tone="sky" />
           <DockBankLabel icon={<Layers3 size={12} />} label="Scenes" value={String(scenes.length)} />
           <DockBankLabel icon={<Sparkles size={12} />} label="Memory" value={`${scenes.length} slots`} />
+          <DockStatusPill label="Ingest" value="Ready" tone="green" />
           <DockBankLabel icon={<Images size={12} />} label="Graphics" value={String(graphics.length)} />
           <DockBankLabel icon={<Film size={12} />} label="Media" value={String(media.length)} />
           <DockSceneLegend />
           <KeyboardShortcutsPanel />
           <TallyIndicators />
-          <span className="hidden rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/80 shadow-[0_0_18px_rgba(168,85,247,0.14)] sm:inline-flex">
+          <span className="hidden items-center gap-2 rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/80 shadow-[0_0_18px_rgba(168,85,247,0.14)] sm:inline-flex">
+            <Radio size={11} />
             Preview Rail
           </span>
         </div>
       </div>
 
       <div className="grid gap-2 xl:grid-cols-[1.05fr_0.82fr_0.82fr_0.95fr_0.72fr]">
-        <DockSection title="Scene Memory" count={scenes.length}>
+        <DockSection title="Rundown Scenes" count={scenes.length}>
           <ViewToggle value={scenesView} onChange={setScenesView} />
 
           {scenesView === "icons" ? (
@@ -808,7 +835,7 @@ export default function BottomAssetDock({
                 <div className="flex aspect-video items-center justify-center rounded-lg border border-white/10 bg-black/28 text-xl text-white/35">
                   +
                 </div>
-                <div className="mt-1.5">Add Memory</div>
+                <div className="mt-1.5">Add Cue</div>
               </button>
             </div>
           ) : (
@@ -831,13 +858,13 @@ export default function BottomAssetDock({
                 onClick={onAddScene}
                 className="flex w-full items-center justify-center rounded-2xl border border-dashed border-white/14 bg-black/20 px-2 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
               >
-                + Add Memory Slot
+                + Add Rundown Cue
               </button>
             </div>
           )}
         </DockSection>
 
-        <DockSection title="Graphics" count={graphics.length}>
+        <DockSection title="Graphics Cue" count={graphics.length}>
           <ViewToggle value={graphicsView} onChange={setGraphicsView} />
 
           {graphicsView === "icons" ? (
@@ -860,7 +887,7 @@ export default function BottomAssetDock({
           )}
         </DockSection>
 
-        <DockSection title="Media" count={media.length}>
+        <DockSection title="Media Roll" count={media.length}>
           <ViewToggle value={mediaView} onChange={setMediaView} />
 
           {mediaView === "icons" ? (

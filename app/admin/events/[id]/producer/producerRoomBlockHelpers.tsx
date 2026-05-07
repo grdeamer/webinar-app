@@ -1,6 +1,34 @@
 import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 
+export type SharedBlockStyleOptions = {
+  x: number
+  y: number
+  width: number
+  height: number
+  zIndex?: number
+  opacity?: number
+}
+
+export function getSharedBlockStyle({
+  x,
+  y,
+  width,
+  height,
+  zIndex,
+  opacity,
+}: SharedBlockStyleOptions): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: x,
+    top: y,
+    width,
+    height,
+    zIndex,
+    opacity: opacity ?? 1,
+  }
+}
+
 function renderBlockContent(block: PreviewBlock): JSX.Element | null {
   if (block.type === "text") {
     return <div className="p-2 text-sm">{block.content}</div>
@@ -72,14 +100,14 @@ export function renderPlacedBlocks({
               : "border border-white/20 bg-white/10"
             : "border border-white/10 bg-white/10"
         }`}
-        style={{
-          left: block.x,
-          top: block.y,
+        style={getSharedBlockStyle({
+          x: block.x,
+          y: block.y,
           width: block.width,
           height: block.height,
           zIndex: block.zIndex,
-          opacity: block.opacity ?? 1,
-        }}
+          opacity: block.opacity,
+        })}
       >
         {opts?.showChrome ? (
           <div

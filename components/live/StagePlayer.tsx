@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -55,6 +55,163 @@ type ProgramSourceMessage = {
     zIndex: number
     opacity: number
   }[]
+}
+
+type RenderableProgramBlock = {
+  id: string
+  type: "camera" | "screen" | "image" | "video" | "pdf" | "graphic"
+  rawType: string
+  src: string | null
+  label: string | null
+  x: number
+  y: number
+  width: number
+  height: number
+  zIndex: number
+  opacity: number
+}
+
+
+function clampPercent(value: number, fallback: number): number {
+  if (!Number.isFinite(value)) return fallback
+  return Math.max(0, Math.min(100, value))
+}
+
+function inferProgramBlockType(rawType: string, src: string | null): RenderableProgramBlock["type"] {
+  const type = rawType.toLowerCase().replace(/[-_\s]+/g, "_")
+
+  if (["camera", "cam", "participant", "presenter", "speaker", "video_track"].includes(type)) {
+    return "camera"
+  }
+
+  if (["screen", "screenshare", "screen_share", "share", "screen_track"].includes(type)) {
+    return "screen"
+  }
+
+  if (["image", "img", "logo", "bug", "lower_third_image"].includes(type)) {
+    return "image"
+  }
+
+  if (["video", "movie", "clip", "mp4", "asset_video"].includes(type)) {
+    return "video"
+  }
+
+  if (["pdf", "document", "deck", "slide_deck"].includes(type)) {
+    return "pdf"
+  }
+
+  if (["media", "asset", "file", "upload"].includes(type)) {
+    if (src && /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(src)) return "video"
+    if (src && /\.(png|jpe?g|gif|webp|svg)(\?|#|$)/i.test(src)) return "image"
+    if (src && /\.pdf(\?|#|$)/i.test(src)) return "pdf"
+  }
+
+  return "graphic"
+}
+
+function normalizeProgramBlock(block: ProgramSourceMessage["programBlocks"] extends (infer T)[] ? T : never): RenderableProgramBlock | null {
+  if (!block?.id) return null
+
+  const rawType = block.type || "graphic"
+  const src = block.src || null
+  const normalizedType = inferProgramBlockType(rawType, src)
+
+  return {
+    id: block.id,
+    type: normalizedType,
+    rawType,
+    src,
+    label: block.label,
+    x: clampPercent(block.x, 0),
+    y: clampPercent(block.y, 0),
+    width: clampPercent(block.width, 100),
+    height: clampPercent(block.height, 100),
+    zIndex: Number.isFinite(block.zIndex) ? block.zIndex : 1,
+    opacity: Number.isFinite(block.opacity) ? Math.max(0, Math.min(1, block.opacity)) : 1,
+  }
+}
+
+function getProgramBlockStyle(block: RenderableProgramBlock): React.CSSProperties {
+  return {
+    position: "absolute",
+    left: `${block.x}%`,
+    top: `${block.y}%`,
+    width: `${block.width}%`,
+    height: `${block.height}%`,
+    zIndex: block.zIndex,
+    opacity: block.opacity,
+  }
+}
+
+function ProgramMediaBlock({
+  block,
+  cameraTrack,
+  screenTrack,
+}: {
+  block: RenderableProgramBlock
+  cameraTrack?: TrackReference | null
+  screenTrack?: TrackReference | null
+}) {
+  const style = getProgramBlockStyle(block)
+  const label = block.label || block.type
+
+  if (block.type === "camera") {
+    if (!cameraTrack) return null
+
+    return (
+      <div style={style} className="overflow-hidden bg-black">
+        <VideoTrack trackRef={cameraTrack} className="h-full w-full object-cover" />
+      </div>
+    )
+  }
+
+  if (block.type === "screen") {
+    if (!screenTrack) return null
+
+    return (
+      <div style={style} className="overflow-hidden bg-black">
+        <VideoTrack trackRef={screenTrack} className="h-full w-full object-contain" />
+      </div>
+    )
+  }
+
+  if (block.type === "image" && block.src) {
+    return (
+      <img
+        src={block.src}
+        alt={label}
+        style={style}
+        className="h-full w-full object-contain"
+      />
+    )
+  }
+
+  if (block.type === "video" && block.src) {
+    return (
+      <video
+        src={block.src}
+        style={style}
+        className="h-full w-full object-contain"
+        autoPlay
+        muted
+        loop
+        playsInline
+      />
+    )
+  }
+
+  if (block.type === "pdf" && block.src) {
+    return (
+      <iframe
+        src={block.src}
+        style={style}
+        className="h-full w-full bg-white"
+        title={label}
+      />
+    )
+  }
+
+  return null
 }
 
 function AttendeeProgramTransition({
@@ -346,52 +503,34 @@ function AudienceStageTracks({
   function renderProgramBlocks() {
     const blocks = programSource?.programBlocks
     if (!blocks || blocks.length === 0) return empty("Waiting for program…")
+    const normalizedBlocks = blocks
+      .map(normalizeProgramBlock)
+      .filter((block): block is RenderableProgramBlock => Boolean(block))
+
+    if (!normalizedBlocks.length) return empty("Waiting for program…")
+
+    const programCameraTrack =
+      programSource?.participantIdentity
+        ? findCameraTrackByIdentity(programSource.participantIdentity)
+        : pickPrimaryCamera()
+
+    const programScreenTrack = findScreenTrackBySource({
+      identity: programSource?.screenShareParticipantIdentity,
+      trackId: programSource?.screenShareTrackId,
+    }) || pickScreenTrack()
 
     return (
       <AttendeeProgramTransition programSource={programSource}>
         <AttendeeBroadcastFrame label="Program" live={programSource?.isLive ?? stageState.is_live}>
-          <div className="relative aspect-video w-full bg-black">
-            {blocks.map((block) => {
-              const style: CSSProperties = {
-                position: "absolute",
-                left: "0%",
-                top: "0%",
-                width: "100%",
-                height: "100%",
-                transform: `translate(${block.x}%, ${block.y}%) scale(${block.width / 100}, ${block.height / 100})`,
-                transformOrigin: "top left",
-                zIndex: block.zIndex,
-                opacity: block.opacity,
-              }
-
-              if (block.type === "image" && block.src) {
-                return (
-                  <img
-                    key={block.id}
-                    src={block.src}
-                    alt={block.label || "image"}
-                    style={style}
-                    className="object-contain"
-                  />
-                )
-              }
-
-              if (block.type === "video" && block.src) {
-                return (
-                  <video
-                    key={block.id}
-                    src={block.src}
-                    style={style}
-                    className="object-contain"
-                    autoPlay
-                    muted
-                    playsInline
-                  />
-                )
-              }
-
-              return null
-            })}
+          <div className="relative aspect-video w-full overflow-hidden bg-black">
+            {normalizedBlocks.map((block) => (
+              <ProgramMediaBlock
+                key={block.id}
+                block={block}
+                cameraTrack={programCameraTrack}
+                screenTrack={programScreenTrack}
+              />
+            ))}
           </div>
         </AttendeeBroadcastFrame>
       </AttendeeProgramTransition>
@@ -402,43 +541,53 @@ function AudienceStageTracks({
     if (!programSource?.mediaUrl) return empty("Waiting for media…")
 
     const label = programSource.mediaLabel || "Program Media"
-
     if (programSource.mediaType === "video") {
+      const videoBlock: RenderableProgramBlock = {
+        id: "program-media-video",
+        type: "video",
+        rawType: "video",
+        src: programSource.mediaUrl,
+        label,
+        x: 0,
+        y: 0,
+        width: 100,
+        height: 100,
+        zIndex: 1,
+        opacity: 1,
+      }
+
       return (
         <AttendeeProgramTransition programSource={programSource}>
           <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live}>
-            <div className="relative aspect-video w-full bg-black">
-              <video
-                src={programSource.mediaUrl}
-                className="h-full w-full object-contain"
-                autoPlay
-                muted
-                playsInline
-                controls={false}
-              />
+            <div className="relative aspect-video w-full overflow-hidden bg-black">
+              <ProgramMediaBlock block={videoBlock} />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
-              <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur">
-                {label}
-              </div>
             </div>
           </AttendeeBroadcastFrame>
         </AttendeeProgramTransition>
       )
     }
 
+    const imageBlock: RenderableProgramBlock = {
+      id: "program-media-image",
+      type: "image",
+      rawType: "image",
+      src: programSource.mediaUrl,
+      label,
+      x: 0,
+      y: 0,
+      width: 100,
+      height: 100,
+      zIndex: 1,
+      opacity: 1,
+    }
+
     return (
       <AttendeeProgramTransition programSource={programSource}>
         <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live}>
-          <div className="relative aspect-video w-full bg-black">
-            <img
-              src={programSource.mediaUrl}
-              alt={label}
-              className="h-full w-full object-contain"
-            />
+          <div className="relative aspect-video w-full overflow-hidden bg-black">
+            <ProgramMediaBlock block={imageBlock} />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
-            <div className="pointer-events-none absolute left-4 top-4 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 backdrop-blur">
-              {label}
-            </div>
           </div>
         </AttendeeBroadcastFrame>
       </AttendeeProgramTransition>

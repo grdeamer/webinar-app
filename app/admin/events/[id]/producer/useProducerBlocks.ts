@@ -2,6 +2,9 @@
 
 import { useMemo, useState, type ChangeEvent, type MouseEvent } from "react"
 
+export const PRODUCER_BLOCK_CANVAS_WIDTH = 640
+export const PRODUCER_BLOCK_CANVAS_HEIGHT = 360
+
 export type PreviewBlock = {
   id: string
   type: "pdf" | "video" | "image" | "text"
