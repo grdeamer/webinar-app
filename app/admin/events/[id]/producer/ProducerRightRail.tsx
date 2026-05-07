@@ -1,7 +1,56 @@
 import type { JSX } from "react"
+import {
+  Archive,
+  Camera,
+  CircleDot,
+  Mic2,
+  Radio,
+  ScreenShare,
+  ShieldCheck,
+  Users,
+} from "lucide-react"
 import RightInspectorRail from "./RightInspectorRail"
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { ProducerParticipant, StageState } from "./producerRoomTypes"
+
+function RightRailMetric({
+  icon,
+  label,
+  value,
+  tone = "neutral",
+}: {
+  icon: JSX.Element
+  label: string
+  value: string | number
+  tone?: "neutral" | "green" | "violet" | "red" | "sky"
+}): JSX.Element {
+  const toneClass =
+    tone === "green"
+      ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/70"
+      : tone === "violet"
+        ? "border-violet-300/14 bg-violet-400/8 text-violet-100/70"
+        : tone === "red"
+          ? "border-red-300/14 bg-red-400/8 text-red-100/70"
+          : tone === "sky"
+            ? "border-sky-300/14 bg-sky-400/8 text-sky-100/70"
+            : "border-white/10 bg-white/[0.035] text-white/64"
+
+  return (
+    <div
+      className={`rounded-2xl border px-2 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${toneClass}`}
+    >
+      <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-xl border border-white/10 bg-black/24 text-white/68">
+        {icon}
+      </div>
+      <div className="mt-1.5 text-lg font-semibold tracking-tight text-white">
+        {value}
+      </div>
+      <div className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-60">
+        {label}
+      </div>
+    </div>
+  )
+}
 
 export default function ProducerRightRail({
   participants,
@@ -46,64 +95,75 @@ export default function ProducerRightRail({
   onRemoveFromStage: (identity: string) => void
   onError: (value: string | null) => void
 }): JSX.Element {
+  const cameraCount = participants.filter((p) => p.cameraEnabled).length
+  const micCount = participants.filter((p) => p.micEnabled).length
+  const screenCount = participants.filter((p) => p.screenShareEnabled).length
   return (
-    <div className="min-w-0 overflow-hidden rounded-[34px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.96))] p-3 shadow-[0_30px_120px_rgba(0,0,0,0.52)] backdrop-blur-2xl transition duration-300 hover:border-white/15 hover:shadow-[0_34px_140px_rgba(0,0,0,0.62)] lg:col-start-3">
-      <div className="mb-3 overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.12),transparent_38%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.025))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div className="min-w-0 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.9),rgba(2,4,10,0.98))] p-2.5 shadow-[0_34px_130px_rgba(0,0,0,0.56),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl transition duration-300 hover:border-white/14 lg:col-start-3">
+      <div className="mb-3 overflow-hidden rounded-[30px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.13),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="text-[10px] uppercase tracking-[0.26em] text-white/35">
-              Backstage
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-100/62">
+              <Radio size={13} />
+              Systems Rack
             </div>
             <div className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">
-              Talent Dock
+              Inspector + Capture + Talent
             </div>
-            <div className="mt-1 text-xs leading-5 text-white/45">
-              Route guests, camera, mic, screen, and stage status.
+            <div className="mt-1 text-xs leading-5 text-white/42">
+              Route contributors, inspect layers, monitor capture, and manage backstage confidence.
             </div>
           </div>
-          <div className="rounded-full border border-emerald-300/20 bg-emerald-500/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-emerald-100">
-            {participants.length} Feeds
+          <div className="flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/72 shadow-[0_0_18px_rgba(52,211,153,0.08)]">
+            <CircleDot size={11} className="text-emerald-300" />
+            {participants.length} Feeds Locked
           </div>
         </div>
 
-        <div className="mt-5 grid grid-cols-4 gap-2 text-center">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-3">
-            <div className="text-lg font-semibold text-white">{stageIds.size}</div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/35">
-              Stage
-            </div>
+        <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+          <RightRailMetric
+            icon={<Users size={13} />}
+            label="Stage"
+            value={stageIds.size}
+            tone="sky"
+          />
+
+          <RightRailMetric
+            icon={<Camera size={13} />}
+            label="Cam"
+            value={cameraCount}
+            tone="neutral"
+          />
+
+          <RightRailMetric
+            icon={<Mic2 size={13} />}
+            label="Mic"
+            value={micCount}
+            tone="green"
+          />
+
+          <RightRailMetric
+            icon={<ScreenShare size={13} />}
+            label="Screen"
+            value={screenCount}
+            tone="violet"
+          />
+        </div>
+
+        <div className="mt-3 grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2 rounded-2xl border border-red-300/12 bg-red-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <Archive size={12} />
+            Capture Online
           </div>
 
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-3">
-            <div className="text-lg font-semibold text-white">
-              {participants.filter((p) => p.cameraEnabled).length}
-            </div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/35">
-              Cam
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.04] px-2 py-3">
-            <div className="text-lg font-semibold text-white">
-              {participants.filter((p) => p.micEnabled).length}
-            </div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-white/35">
-              Mic
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-violet-300/15 bg-violet-500/[0.06] px-2 py-3">
-            <div className="text-lg font-semibold text-violet-100">
-              {participants.filter((p) => p.screenShareEnabled).length}
-            </div>
-            <div className="mt-1 text-[10px] uppercase tracking-[0.16em] text-violet-100/45">
-              Screen
-            </div>
+          <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/12 bg-emerald-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <ShieldCheck size={12} />
+            Talent Safe
           </div>
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-white/10 bg-black/20 p-2">
+      <div className="rounded-[30px] border border-white/10 bg-black/24 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <RightInspectorRail
           selectedBlock={selectedBlock}
           onToggleHidden={onToggleHidden}

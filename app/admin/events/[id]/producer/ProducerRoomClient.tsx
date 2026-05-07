@@ -50,6 +50,110 @@ function LiveBadge({ live }: { live: boolean }): JSX.Element {
   )
 }
 
+function OperationsSyncStrip({
+  previewProgramDifferent,
+  takeBusy,
+  selectedSceneLabel,
+  programSlideLabel,
+  onStageCount,
+  lastTakeMode,
+  hotkeySceneLabel,
+  lastTransportActionAt,
+  isLive,
+  layout,
+}: {
+  previewProgramDifferent: boolean
+  takeBusy: boolean
+  selectedSceneLabel: string | null
+  programSlideLabel: string | null
+  onStageCount: number
+  lastTakeMode: "cut" | "auto" | null
+  hotkeySceneLabel: string | null
+  lastTransportActionAt: number | null
+  isLive: boolean
+  layout: StageState["layout"] | null | undefined
+}): JSX.Element {
+  const commandState = takeBusy
+    ? "Transport Locked"
+    : previewProgramDifferent
+      ? "Preview Armed"
+      : "Program Synced"
+
+  const takeLabel = lastTakeMode
+    ? lastTakeMode === "auto"
+      ? "Last: Auto Transition"
+      : "Last: Cut"
+    : "Take Standby"
+
+  const routeLabel = isLive ? "Audience Route: Live" : "Audience Route: Holding"
+  const layoutLabel =
+    layout === "screen_speaker"
+      ? "Speaker + Screen"
+      : layout === "grid"
+        ? "Grid"
+        : "Solo"
+
+  return (
+    <div className="border-b border-white/8 bg-black/18 px-4 py-2 md:px-5 xl:px-6 2xl:px-7">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/36">
+          <span className="rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-violet-100/58">
+            Ops Sync
+          </span>
+          <span
+            className={[
+              "rounded-full border px-2.5 py-1",
+              isLive
+                ? "border-red-300/14 bg-red-400/8 text-red-100/56"
+                : "border-white/8 bg-black/24 text-white/42",
+            ].join(" ")}
+          >
+            {routeLabel}
+          </span>
+
+          <span className="rounded-full border border-white/8 bg-black/24 px-2.5 py-1">
+            {commandState}
+          </span>
+
+          <span className="rounded-full border border-red-300/12 bg-red-400/8 px-2.5 py-1 text-red-100/52">
+            {takeLabel}
+          </span>
+          <span className="rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-white/42">
+            Command: {formatTransportTimestamp(lastTransportActionAt)}
+          </span>
+
+          <span className="rounded-full border border-sky-300/12 bg-sky-400/8 px-2.5 py-1 text-sky-100/54">
+            {selectedSceneLabel ? `Scene: ${selectedSceneLabel}` : "Scene Memory Idle"}
+          </span>
+
+          {hotkeySceneLabel ? (
+            <span className="rounded-full border border-violet-300/16 bg-violet-400/10 px-2.5 py-1 text-violet-100/62 shadow-[0_0_16px_rgba(168,85,247,0.08)]">
+              Hotkey Recall: {hotkeySceneLabel}
+            </span>
+          ) : null}
+
+          <span className="rounded-full border border-amber-300/12 bg-amber-400/8 px-2.5 py-1 text-amber-100/54">
+            {programSlideLabel ? `Deck: ${programSlideLabel}` : "Deck Standby"}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
+          <span className="rounded-full border border-sky-300/12 bg-sky-400/8 px-2.5 py-1 text-sky-100/54">
+            Layout: {layoutLabel}
+          </span>
+          <span className="rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2.5 py-1 text-emerald-100/54">
+            {onStageCount} Talent Routed
+          </span>
+
+          <span className="hidden rounded-full border border-red-300/12 bg-red-400/8 px-2.5 py-1 text-red-100/54 lg:inline-flex">
+            Recording + Diagnostics Online
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // Helper types and functions for scene normalization and label
 type RawSceneSummary = {
   id: string | number
@@ -104,6 +208,16 @@ function getSelectedSceneLabel({
   return "Selected scene"
 }
 
+function formatTransportTimestamp(value: number | null): string {
+  if (!value) return "No commands yet"
+
+  return new Date(value).toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  })
+}
+
 
 
 
@@ -139,11 +253,17 @@ export default function ProducerRoomClient({
       }),
     [localSceneSnapshots, scenes, selectedSceneId]
   )
+  const hotkeySceneLabelText = useMemo(() => {
+    if (!hotkeySceneId) return null
+
+    const scene = scenes.find((item) => String(item.id) === String(hotkeySceneId))
+    return scene?.name ?? "Memory Slot"
+  }, [hotkeySceneId, scenes])
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<ScreenLayoutPreset>("classic")
   const [programFlashActive, setProgramFlashActive] = useState(false)
   const [selectedTransitionDurationMs] = useState(600)
-  const [, setLastTransportActionAt] = useState<number | null>(null)
+  const [lastTransportActionAt, setLastTransportActionAt] = useState<number | null>(null)
   const [programState, setProgramState] = useState<StageState | null>(null)
   const [programSceneId, setProgramSceneId] = useState<string | null>(null)
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
@@ -656,7 +776,7 @@ export default function ProducerRoomClient({
     setHotkeySceneId(sceneId)
     window.setTimeout(() => {
       setHotkeySceneId((current) => (current === sceneId ? null : current))
-    }, 450)
+    }, 1600)
   }
 
   async function setAutoDirector(enabled: boolean) {
@@ -1061,6 +1181,18 @@ export default function ProducerRoomClient({
             overlayCount={previewBlocks.length}
             isLive={Boolean(programState?.is_live)}
             scopeLabel={producerScopeLabel}
+          />
+          <OperationsSyncStrip
+            previewProgramDifferent={previewProgramDifferent}
+            takeBusy={takeBusy}
+            selectedSceneLabel={selectedSceneLabel}
+            programSlideLabel={programSlideLabel}
+            onStageCount={onStageParticipants.length}
+            lastTakeMode={lastTakeMode}
+            hotkeySceneLabel={hotkeySceneLabelText}
+            lastTransportActionAt={lastTransportActionAt}
+            isLive={Boolean(programState?.is_live)}
+            layout={stageState?.layout}
           />
           <BroadcastCommandDeck
             isLive={Boolean(programState?.is_live)}

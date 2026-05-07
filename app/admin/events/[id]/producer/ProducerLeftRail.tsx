@@ -3,9 +3,91 @@
 import { useEffect, useState } from "react"
 import type { JSX } from "react"
 import { useRoomContext } from "@livekit/components-react"
+import {
+
+  AudioLines,
+  Camera,
+
+  Mic2,
+  MonitorUp,
+  Radio,
+
+  SlidersHorizontal,
+  Zap,
+} from "lucide-react"
 import type { StageState } from "./producerRoomTypes"
 
 type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
+
+function RailRackHeader(): JSX.Element {
+  return (
+    <div className="rounded-[28px] border border-sky-300/14 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_36%),linear-gradient(180deg,rgba(8,18,34,0.92),rgba(3,7,16,0.98))] p-3 shadow-[0_20px_70px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/72">
+            <Radio size={13} />
+            Control Rack
+          </div>
+          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
+            Transmission Stack
+          </div>
+        </div>
+
+        <div className="rounded-full border border-emerald-300/16 bg-emerald-400/8 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/66">
+          Armed
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        {[
+          { label: "Route", value: "Live", tone: "text-red-100/68 border-red-300/14 bg-red-400/8" },
+          { label: "Stage", value: "Ready", tone: "text-sky-100/68 border-sky-300/14 bg-sky-400/8" },
+          { label: "Devices", value: "Locked", tone: "text-emerald-100/68 border-emerald-300/14 bg-emerald-400/8" },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className={`rounded-2xl border px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${item.tone}`}
+          >
+            <div className="text-[8px] font-black uppercase tracking-[0.16em] opacity-65">
+              {item.label}
+            </div>
+            <div className="mt-0.5 text-xs font-semibold tracking-tight">
+              {item.value}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function RackSectionHeader({
+  icon,
+  title,
+  sub,
+}: {
+  icon: JSX.Element
+  title: string
+  sub: string
+}): JSX.Element {
+  return (
+    <div className="mb-3 flex items-center justify-between gap-3">
+      <div className="flex min-w-0 items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-black/24 text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          {icon}
+        </span>
+        <div className="min-w-0">
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
+            {title}
+          </div>
+          <div className="mt-0.5 truncate text-xs text-white/42">
+            {sub}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function MonitorSizePanel({
   monitorHeight,
@@ -17,20 +99,15 @@ function MonitorSizePanel({
   return (
     <div className="rounded-[28px] border border-sky-300/18 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.16),transparent_38%),linear-gradient(180deg,rgba(14,27,45,0.84),rgba(4,9,18,0.94))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.32),0_0_28px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.055)]">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/85">
-            Monitor Size
-          </div>
-          <div className="mt-1 text-xs text-white/45">
-            Resize Preview and Program together.
-          </div>
-        </div>
-
-        <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[10px] font-semibold tabular-nums text-white/70">
+        <RackSectionHeader
+          icon={<MonitorUp size={15} />}
+          title="Monitor Trim"
+          sub="Resize Preview and Program together."
+        />
+        <span className="rounded-full border border-sky-300/16 bg-sky-400/8 px-2.5 py-1 text-[10px] font-semibold tabular-nums text-sky-100/70">
           {monitorHeight}px
         </span>
       </div>
-
       <input
         type="range"
         min="420"
@@ -41,7 +118,6 @@ function MonitorSizePanel({
         className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-sky-300"
         aria-label="Monitor size"
       />
-
       <div className="mt-2 flex justify-between text-[10px] text-white/35">
         <span>Compact</span>
         <span>Large</span>
@@ -54,8 +130,9 @@ function AudioMetersPanel({ localMicLevel }: { localMicLevel: number }): JSX.Ele
   return (
     <div className="rounded-[28px] border border-emerald-300/18 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_38%),linear-gradient(180deg,rgba(8,31,26,0.78),rgba(3,10,12,0.94))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.055)]">
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/70">
-          Audio Meters
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/70">
+          <AudioLines size={14} />
+          Audio Program
         </div>
         <div className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
           localMicLevel > 0.08
@@ -140,33 +217,34 @@ function ControlStackPanel({
   return (
     <>
       <div className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_34%),linear-gradient(180deg,rgba(18,22,38,0.82),rgba(5,7,16,0.94))] p-3.5 shadow-[0_22px_70px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.055)]">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.26em] text-white/35">
-              Audience Routing
-            </div>
-            <div className="mt-1 text-xs text-white/45">
-              Send the audience live or off air.
-            </div>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/38">
+            <Zap size={13} />
+            Transmission Route
           </div>
-          <span className="rounded-full border border-red-300/20 bg-red-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-red-100/80">
-            Live Route
-          </span>
+          <div className="mt-1 text-xs text-white/45">
+            Send the audience live or off air.
+          </div>
         </div>
+        <span className="rounded-full border border-red-300/20 bg-red-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-red-100/80">
+          Audience Path
+        </span>
+      </div>
 
         <div className="space-y-3">
           <button
             onClick={onGoLive}
             className="w-full rounded-2xl border border-red-300/30 bg-red-500/16 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-red-100 shadow-[0_0_24px_rgba(239,68,68,0.16)] transition hover:-translate-y-0.5 hover:bg-red-500/24 active:translate-y-0"
           >
-            Go Live
+            Send Live
           </button>
 
           <button
             onClick={onGoOffAir}
             className="w-full rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white/75 transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.075] active:translate-y-0"
           >
-            Off Air
+            Hold Off Air
           </button>
         </div>
       </div>
@@ -174,8 +252,9 @@ function ControlStackPanel({
       <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
-              Layout Modes
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
+              <SlidersHorizontal size={13} />
+              Stage Routing
             </div>
             <div className="mt-1 text-xs text-white/45">
               Choose the program composition.
@@ -300,8 +379,9 @@ function ProducerMicControls(): JSX.Element {
   return (
     <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3.5 shadow-[0_18px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.045)]">
       <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
-          Producer Mic
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
+          <Mic2 size={13} />
+          Producer IFB Mic
         </div>
         <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
           micEnabled
@@ -362,8 +442,9 @@ function DeviceSelectorPanel({
     <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.016))] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.045)]">
       <div className="mb-3 flex items-center justify-between gap-3">
         <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
-            Producer Devices
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
+            <Camera size={13} />
+            Device Rack
           </div>
           <div className="mt-1 text-xs text-white/45">
             Camera and microphone for this workstation.
@@ -377,7 +458,7 @@ function DeviceSelectorPanel({
               : "border-amber-300/25 bg-amber-400/10 text-amber-100/85"
           }`}
         >
-          {deviceAccessReady ? "Ready" : "Needs Access"}
+          {deviceAccessReady ? "Locked" : "Needs Access"}
         </span>
       </div>
 
@@ -483,7 +564,8 @@ export default function ProducerLeftRail({
   onSelectAudioDevice: (value: string) => void
 }): JSX.Element {
   return (
-    <div className="space-y-4 rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.12),transparent_34%),linear-gradient(180deg,rgba(8,13,30,0.72),rgba(2,4,10,0.88))] p-3 shadow-[0_30px_110px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition duration-300 hover:border-white/15 xl:col-start-1">
+    <div className="space-y-3 rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.10),transparent_34%),linear-gradient(180deg,rgba(6,11,26,0.88),rgba(2,4,10,0.97))] p-2.5 shadow-[0_32px_120px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition duration-300 hover:border-white/14 xl:col-start-1">
+      <RailRackHeader />
       <ControlStackPanel
         takeBusy={takeBusy}
         previewProgramDifferent={previewProgramDifferent}
