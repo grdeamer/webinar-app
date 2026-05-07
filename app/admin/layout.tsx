@@ -19,6 +19,8 @@ import {
   Video,
   Wrench,
   Zap,
+  ArrowLeft,
+  Satellite,
 } from "lucide-react"
 
 function matches(pathname: string, href: string) {
@@ -123,6 +125,55 @@ function QuickAction({
 }
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
+  const pathname = usePathname()
+  const isProducerWorkspace = /^\/admin\/events\/[^/]+\/producer(?:\/.*)?$/.test(pathname)
+  const producerMatch = pathname.match(/^\/admin\/events\/([^/]+)\/producer(?:\/.*)?$/)
+  const producerEventId = producerMatch?.[1]
+
+  if (isProducerWorkspace) {
+    return (
+      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.10),transparent_22%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.06),transparent_24%),linear-gradient(180deg,#020617_0%,#07111f_48%,#0f172a_100%)] text-white">
+        <main className="relative min-h-screen p-2 pt-16 lg:p-3 lg:pt-[72px] 2xl:p-4 2xl:pt-[76px]">
+          {producerEventId ? (
+            <div className="fixed left-3 right-3 top-3 z-50 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.72))] px-2.5 py-2 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl lg:left-4 lg:right-4 lg:top-4">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-300/10 text-violet-100/75">
+                  <Satellite size={14} />
+                </span>
+                <div className="hidden min-w-0 sm:block">
+                  <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-100/42">
+                    Producer Workspace
+                  </div>
+                  <div className="truncate text-xs font-semibold text-white/72">
+                    Fullscreen broadcast mode
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex shrink-0 items-center gap-2">
+                <Link
+                  href={`/admin/events/${producerEventId}`}
+                  className="flex h-8 items-center gap-2 rounded-xl border border-transparent px-2.5 text-xs font-semibold text-white/62 transition hover:border-white/10 hover:bg-white/8 hover:text-white"
+                  title="Back to event dashboard"
+                >
+                  <ArrowLeft size={14} />
+                  Event
+                </Link>
+                <Link
+                  href="/access"
+                  className="rounded-xl border border-violet-300/15 bg-violet-300/10 px-2.5 py-1.5 text-xs font-semibold text-violet-100/75 transition hover:border-violet-200/30 hover:bg-violet-300/15 hover:text-violet-50"
+                >
+                  Attendee View
+                </Link>
+              </div>
+            </div>
+          ) : null}
+          {children}
+        </main>
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.14),transparent_22%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.08),transparent_24%),linear-gradient(180deg,#020617_0%,#07111f_48%,#0f172a_100%)] text-white">
       <div className="flex min-h-screen">

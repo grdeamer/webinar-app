@@ -1,5 +1,11 @@
 
 import { useEffect, useState } from "react"
+import {
+  Film,
+  Images,
+  Layers3,
+  SlidersHorizontal,
+} from "lucide-react"
 import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import {
@@ -54,8 +60,8 @@ function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
 
   const baseClass =
     preset === "brand"
-      ? "relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
-      : "relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
+      ? "relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
+      : "relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
 
   return (
     <div className={baseClass}>
@@ -83,7 +89,7 @@ function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
         <SceneBlockPreview key={block.id} block={block} />
       ))}
 
-      <div className="absolute bottom-1 right-1 rounded-md bg-black/45 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/60">
+      <div className="absolute bottom-1 right-1 rounded-md border border-white/10 bg-black/55 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/58">
         {label}
       </div>
     </div>
@@ -116,7 +122,7 @@ function SceneTile({
       type="button"
       onClick={() => onApplyScene?.(scene.id)}
       onDoubleClick={() => onDoubleClickScene?.(scene.id)}
-      className={`group relative min-w-[96px] rounded-[16px] border p-1.5 text-left transition duration-200 ${
+      className={`group relative min-w-[88px] rounded-[16px] border p-1.5 text-left transition duration-200 ${
         isHotkeyTriggered
           ? "-translate-y-0.5 border-amber-200/70 bg-amber-300/14 shadow-[0_0_34px_rgba(251,191,36,0.32)]"
           : isActive
@@ -132,7 +138,7 @@ function SceneTile({
       ) : null}
 
       {isProgramLive ? (
-        <div className="absolute left-1.5 bottom-[46px] z-10 rounded-md border border-red-300/30 bg-red-500/20 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-red-100 shadow-[0_0_14px_rgba(248,113,113,0.18)]">
+        <div className="absolute left-1.5 bottom-[40px] z-10 rounded-md border border-red-300/30 bg-red-500/20 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-red-100 shadow-[0_0_14px_rgba(248,113,113,0.18)]">
           Program
         </div>
       ) : null}
@@ -199,18 +205,18 @@ function SceneTile({
         {index + 1}
       </div>
 
-      <div className="absolute bottom-[46px] right-1.5 z-10 rounded-md border border-violet-200/20 bg-black/55 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-violet-100/75 shadow-[0_0_12px_rgba(168,85,247,0.12)]">
+      <div className="absolute bottom-[40px] right-1.5 z-10 rounded-md border border-violet-200/20 bg-black/55 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-violet-100/75 shadow-[0_0_12px_rgba(168,85,247,0.12)]">
         ⇧{index + 1}
       </div>
       <SceneMiniVisualizer scene={scene} />
-      <div className="mt-1.5 flex items-center justify-between gap-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/35">
+      <div className="mt-1 flex items-center justify-between gap-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/32">
         <span>Scene {index + 1}</span>
         <span className="rounded border border-white/10 bg-white/[0.045] px-1 py-0.5 text-[7px] tracking-[0.08em] text-white/45">
           {index + 1}
         </span>
       </div>
       <div
-        className={`mt-0.5 truncate text-[11px] font-semibold group-hover:text-violet-100${
+        className={`mt-0.5 truncate text-[10px] font-semibold group-hover:text-violet-100${
           isActive ? " text-violet-100" : ""
         }`}
       >
@@ -224,12 +230,12 @@ function GraphicTile({ item }: { item: DockAsset }): JSX.Element {
   return (
     <button
       type="button"
-      className="group min-w-[96px] rounded-[16px] border border-white/10 bg-white/[0.035] p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/35 hover:bg-sky-400/10 hover:shadow-[0_0_18px_rgba(14,165,233,0.14)] active:translate-y-0"
+      className="group min-w-[88px] rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/35 hover:bg-sky-400/10 hover:shadow-[0_0_18px_rgba(14,165,233,0.14)] active:translate-y-0"
     >
-      <div className="flex aspect-video items-end rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(14,165,233,0.18),rgba(15,23,42,0.9))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-sky-200/25 p-2">
+      <div className="flex aspect-video items-end rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(14,165,233,0.18),rgba(15,23,42,0.9))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-sky-200/25">
         <div className="h-4 w-16 rounded-md bg-white/80" />
       </div>
-      <div className="mt-1.5 truncate text-[11px] font-semibold text-white/78">
+      <div className="mt-1 truncate text-[10px] font-semibold text-white/76">
         {item.label || "Graphic"}
       </div>
     </button>
@@ -246,14 +252,14 @@ function MediaTile({
   return (
     <button
       type="button"
-      className="group min-w-[96px] rounded-[16px] border border-white/10 bg-white/[0.035] p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_rgba(52,211,153,0.13)] active:translate-y-0"
+      className="group min-w-[88px] rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_rgba(52,211,153,0.13)] active:translate-y-0"
     >
-      <div className="relative aspect-video rounded-xl border border-white/10 bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.22),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.9),rgba(2,6,23,0.95))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-emerald-200/25">
+      <div className="relative aspect-video rounded-lg border border-white/10 bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.22),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.9),rgba(2,6,23,0.95))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-emerald-200/25">
         <div className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-black text-white/60">
           0{index}:15
         </div>
       </div>
-      <div className="mt-1.5 truncate text-[11px] font-semibold text-white/78">
+      <div className="mt-1 truncate text-[10px] font-semibold text-white/76">
         {item.label || "Media"}
       </div>
     </button>
@@ -271,13 +277,13 @@ function ViewToggle({
   onChange: (value: DockViewMode) => void
 }): JSX.Element {
   return (
-    <div className="mb-2 flex items-center gap-1 rounded-full border border-white/10 bg-black/25 p-1">
+    <div className="mb-1.5 flex items-center gap-1 rounded-full border border-white/10 bg-black/25 p-0.5">
       {(["icons", "list"] as DockViewMode[]).map((mode) => (
         <button
           key={mode}
           type="button"
           onClick={() => onChange(mode)}
-          className={`rounded-full px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition ${
+          className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition ${
             value === mode
               ? "bg-white/16 text-white"
               : "text-white/38 hover:bg-white/[0.06] hover:text-white/65"
@@ -509,7 +515,7 @@ function SlidesPreviewPanel({
   return (
     <DockSection title="Slides" count={safeSlideCount}>
       <div
-        className={`rounded-[18px] border p-2 transition duration-200 ${
+        className={`rounded-[18px] border p-1.5 transition duration-200 ${
           slideFlash === "take"
             ? "border-red-300/45 bg-red-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(248,113,113,0.18)]"
             : slideFlash === "preview"
@@ -576,7 +582,7 @@ function SlidesPreviewPanel({
           </button>
         </div>
 
-        <div className="mt-2 flex gap-1 overflow-x-auto pb-1">
+        <div className="mt-1.5 flex gap-1 overflow-x-auto pb-1">
           {slides.map((slide) => (
             <button
               key={slide}
@@ -585,7 +591,7 @@ function SlidesPreviewPanel({
                 flashSlideAction("nav")
                 setCurrentSlide(slide)
               }}
-              className={`relative h-10 w-14 shrink-0 rounded-lg border text-[8px] font-black transition ${
+              className={`relative h-8 w-12 shrink-0 rounded-lg border text-[8px] font-black transition ${
                 slide === currentSlide
                   ? "border-amber-200/50 bg-amber-300/20 text-amber-100"
                   : "border-white/10 bg-black/30 text-white/40 hover:border-amber-200/30 hover:bg-amber-300/10"
@@ -646,7 +652,7 @@ function SlidesPreviewPanel({
 
 function DockSceneLegend(): JSX.Element {
   return (
-    <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/24 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/38 lg:flex">
+    <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/24 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/38 xl:flex">
       <span className="inline-flex items-center gap-1">
         <span className="h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.7)]" />
         Preview
@@ -661,6 +667,25 @@ function DockSceneLegend(): JSX.Element {
         <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.7)]" />
         Hotkey
       </span>
+    </div>
+  )
+}
+
+function DockBankLabel({
+  icon,
+  label,
+  value,
+}: {
+  icon: JSX.Element
+  label: string
+  value: string
+}): JSX.Element {
+  return (
+    <div className="hidden items-center gap-2 rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34 lg:flex">
+      <span className="text-violet-100/55">{icon}</span>
+      <span>{label}</span>
+      <span className="text-white/18">/</span>
+      <span className="text-white/48">{value}</span>
     </div>
   )
 }
@@ -710,29 +735,31 @@ export default function BottomAssetDock({
   const [mediaView, setMediaView] = useState<DockViewMode>("icons")
 
   return (
-    <div className="mt-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.14),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(8,13,30,0.8),rgba(2,4,10,0.94))] px-3 py-2.5 shadow-[0_28px_100px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl">
-      <div className="mb-2 flex items-center justify-between gap-2 px-1">
+    <div className="mt-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.06),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.86),rgba(2,4,10,0.96))] px-2.5 py-2 shadow-[0_28px_100px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+      <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
         <div>
           <div className="text-[10px] font-black uppercase tracking-[0.28em] text-white/35">
-            Live Asset Dock
+            Broadcast Asset Bank
           </div>
           <div className="mt-1 text-sm text-white/45">
-            Scenes, graphics, media, and transition presets.
+            Scene recall, media sources, decks, and transition presets.
           </div>
         </div>
 
         <div className="flex items-center gap-2">
+          <DockBankLabel icon={<Layers3 size={12} />} label="Scenes" value={String(scenes.length)} />
+          <DockBankLabel icon={<Images size={12} />} label="Graphics" value={String(graphics.length)} />
+          <DockBankLabel icon={<Film size={12} />} label="Media" value={String(media.length)} />
           <DockSceneLegend />
           <KeyboardShortcutsPanel />
           <TallyIndicators />
-
           <span className="hidden rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/80 shadow-[0_0_18px_rgba(168,85,247,0.14)] sm:inline-flex">
             Preview Rail
           </span>
         </div>
       </div>
 
-      <div className="grid gap-2 xl:grid-cols-[1.05fr_0.9fr_0.9fr_1fr_0.8fr]">
+      <div className="grid gap-2 xl:grid-cols-[1.05fr_0.82fr_0.82fr_0.95fr_0.72fr]">
         <DockSection title="Scenes" count={scenes.length}>
           <ViewToggle value={scenesView} onChange={setScenesView} />
 
@@ -755,9 +782,9 @@ export default function BottomAssetDock({
               <button
                 type="button"
                 onClick={onAddScene}
-                className="min-w-[96px] rounded-[16px] border border-dashed border-white/14 bg-black/20 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
+                className="min-w-[88px] rounded-[16px] border border-dashed border-white/14 bg-black/22 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.04] active:translate-y-0"
               >
-                <div className="flex aspect-video items-center justify-center rounded-xl border border-white/10 bg-black/25 text-xl text-white/35">
+                <div className="flex aspect-video items-center justify-center rounded-lg border border-white/10 bg-black/28 text-xl text-white/35">
                   +
                 </div>
                 <div className="mt-1.5">Add Scene</div>
@@ -844,13 +871,17 @@ export default function BottomAssetDock({
           onTakeSlide={onTakeSlide}
         />
         <DockSection title="Transitions" count={TRANSITION_PRESETS.length}>
+          <div className="mb-1.5 flex items-center gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/55">
+            <SlidersHorizontal size={11} />
+            Transition Bank
+          </div>
           <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-1.5">
               {TRANSITION_PRESETS.map((transition) => (
                 <button
                   key={transition}
                   type="button"
-                  className={`rounded-xl border px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
+                  className={`rounded-xl border px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                     transition === "Cut"
                       ? "border-red-300/25 bg-red-400/10 text-red-100/80 shadow-[0_0_16px_rgba(248,113,113,0.12)] hover:border-red-300/40 hover:bg-red-400/15"
                       : "border-white/10 bg-white/[0.04] text-white/65 hover:border-white/20 hover:bg-white/[0.07]"
@@ -861,7 +892,7 @@ export default function BottomAssetDock({
               ))}
             </div>
 
-            <div className="rounded-2xl border border-white/10 bg-black/20 p-1.5">
+            <div className="rounded-2xl border border-white/10 bg-black/22 p-1.5">
               <div className="mb-1.5 flex items-center justify-between px-1">
                 <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">
                   Duration

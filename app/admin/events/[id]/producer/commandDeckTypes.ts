@@ -31,11 +31,26 @@ export type BroadcastCommandDeckProps = {
   onStageCount: number
   previewProgramDifferent: boolean
   takeBusy: boolean
-  onTake: (mode: TakeMode, transitionType?: CinematicTransitionType) => void
+  onTake: (
+    mode: TakeMode,
+    transitionType?: CinematicTransitionType,
+    transitionDurationMs?: number
+  ) => void
 }
 
 export type TakeControlProps = {
   previewProgramDifferent: boolean
   takeBusy: boolean
-  onTake: (mode: TakeMode, transitionType?: CinematicTransitionType) => void
+  onTake: (
+    mode: TakeMode,
+    transitionType?: CinematicTransitionType,
+    transitionDurationMs?: number
+  ) => void
+}
+
+export type TransitionModeControlProps = {
+  selectedTransitionType: CinematicTransitionType
+  onTransitionTypeChange: (value: CinematicTransitionType) => void
+  selectedTransitionDurationMs?: number
+  onTransitionDurationChange?: (value: number) => void
 }

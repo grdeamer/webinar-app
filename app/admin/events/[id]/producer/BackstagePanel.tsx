@@ -23,13 +23,9 @@ export default function BackstagePanel({
             Select who goes to stage and manage active sources.
           </div>
         </div>
-
-        <span className="rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/80 shadow-[0_0_18px_rgba(168,85,247,0.16)]">
-          Live Room
-        </span>
       </div>
 
-      <div className="space-y-3">{children}</div>
+      <div className="space-y-2.5">{children}</div>
     </div>
   )
 }

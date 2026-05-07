@@ -189,8 +189,8 @@ export default function CenterSwitcherColumn({
   }
 
   return (
-  <div className="space-y-3 xl:col-start-2">
-    <ProducerTopDeck />
+    <div className="space-y-3 xl:col-start-2">
+      <ProducerTopDeck />
       <div className="opacity-55 transition-opacity duration-300 hover:opacity-100">
         <AudienceOriginTestPanel
           onTriggerCue={triggerAudienceCue}
@@ -198,14 +198,14 @@ export default function CenterSwitcherColumn({
         />
       </div>
 
-      <div className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(35,46,92,0.36),transparent_42%),linear-gradient(180deg,rgba(8,14,34,0.96),rgba(3,5,14,0.99))] p-3 xl:p-3.5 2xl:p-4 shadow-[0_30px_110px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.06)]">
-        <div className="mb-3 flex items-end justify-between gap-4 px-1">
+      <div className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(35,46,92,0.28),transparent_42%),linear-gradient(180deg,rgba(5,10,24,0.98),rgba(2,4,12,0.995))] p-2.5 xl:p-3 2xl:p-3.5 shadow-[0_34px_120px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="mb-2.5 flex items-end justify-between gap-4 px-1">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.28em] text-white/32">
               Switcher Surface
             </div>
-            <div className="mt-1 text-lg font-semibold text-white">
-              Preview → Program
+            <div className="mt-1 text-lg font-semibold tracking-tight text-white">
+              Preview <span className="text-white/28">→</span> Program
             </div>
           </div>
 
@@ -222,7 +222,7 @@ export default function CenterSwitcherColumn({
             gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 56px minmax(0, ${100 - previewPanePercent}fr)`,
           }}
         >
-          <div className="relative min-w-0 rounded-[28px] border border-sky-300/15 bg-[linear-gradient(180deg,rgba(7,17,31,0.98),rgba(2,7,15,0.98))] p-2 xl:p-2.5 shadow-[0_22px_70px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.06)] before:pointer-events-none before:absolute before:inset-x-8 before:-bottom-2 before:h-2 before:rounded-b-[22px] before:bg-black/45 before:blur-sm">
+          <div className="relative min-w-0 rounded-[28px] border border-sky-300/14 bg-[linear-gradient(180deg,rgba(5,14,27,0.99),rgba(1,5,12,0.99))] p-2 xl:p-2.5 shadow-[0_24px_82px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.055)] before:pointer-events-none before:absolute before:inset-x-8 before:-bottom-2 before:h-2 before:rounded-b-[22px] before:bg-black/50 before:blur-sm">
             <MonitorHeader
               title="Preview"
               subtitle="What you are preparing"
@@ -230,7 +230,7 @@ export default function CenterSwitcherColumn({
               badge={
                 <span className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] shadow-[0_0_22px_rgba(56,189,248,0.14)] ${
                   previewProgramDifferent
-                    ? "border-amber-300/35 bg-amber-400/15 text-amber-100 shadow-[0_0_26px_rgba(251,191,36,0.18)]"
+                    ? "border-amber-300/35 bg-amber-400/14 text-amber-100 shadow-[0_0_26px_rgba(251,191,36,0.16)]"
                     : "border-sky-300/25 bg-sky-400/12 text-sky-100"
                 }`}>
                   <span className={`h-2 w-2 rounded-full ${
@@ -246,7 +246,7 @@ export default function CenterSwitcherColumn({
             <div
               className={`relative aspect-video w-full overflow-hidden rounded-[22px] border bg-[radial-gradient(circle_at_center,#05070b_0%,#000_76%,#000_100%)] transition-all duration-300 ${
                 previewProgramDifferent
-                  ? "border-amber-300/30 shadow-[0_0_0_1px_rgba(251,191,36,0.16),0_0_70px_rgba(251,191,36,0.16),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.9)] animate-pulse"
+                  ? "border-amber-300/30 shadow-[0_0_0_1px_rgba(251,191,36,0.14),0_0_58px_rgba(251,191,36,0.14),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.9)]"
                   : "border-sky-300/18 shadow-[0_0_0_1px_rgba(125,211,252,0.08),0_24px_80px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.9)]"
               }`}
               onMouseMove={onPreviewCanvasMouseMove}
@@ -261,8 +261,8 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
 
               {previewProgramDifferent ? (
-                <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-amber-300 px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-[0.26em] text-black shadow-[0_0_36px_rgba(251,191,36,0.34)]">
-                  Armed Preview
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-[linear-gradient(90deg,rgba(251,191,36,0.92),rgba(254,240,138,0.95),rgba(251,191,36,0.92))] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-[0.26em] text-black shadow-[0_0_34px_rgba(251,191,36,0.28)]">
+                  Preview Armed For Take
                 </div>
               ) : null}
 
@@ -290,107 +290,106 @@ export default function CenterSwitcherColumn({
               </div>
             </div>
           </div>
+          <div
+            className="group relative z-[999] flex min-h-full cursor-col-resize items-center justify-center self-stretch px-1"
+            onMouseDown={startSplitDrag}
+            onDoubleClick={resetSplit}
+            role="separator"
+            aria-orientation="vertical"
+            aria-label="Resize preview and program panes"
+          >
+            {/* center rail */}
+            <div className="absolute inset-y-4 left-1/2 w-[2px] -translate-x-1/2 rounded-full bg-gradient-to-b from-violet-200/14 via-violet-300/30 to-violet-200/14 transition-all duration-300 group-hover:w-[4px] group-hover:from-violet-100/55 group-hover:via-violet-200/80 group-hover:to-violet-100/55 group-hover:shadow-[0_0_22px_rgba(196,181,253,0.42)]" />
 
-<div
-  className="group relative z-[999] flex min-h-full cursor-col-resize items-center justify-center self-stretch px-1"
-  onMouseDown={startSplitDrag}
-  onDoubleClick={resetSplit}
-  role="separator"
-  aria-orientation="vertical"
-  aria-label="Resize preview and program panes"
->
-  {/* center rail */}
-  <div className="absolute inset-y-3 left-1/2 w-[2px] -translate-x-1/2 rounded-full bg-gradient-to-b from-violet-200/20 via-violet-300/35 to-violet-200/20 transition-all duration-300 group-hover:w-[4px] group-hover:from-violet-100/70 group-hover:via-violet-200/95 group-hover:to-violet-100/70 group-hover:shadow-[0_0_22px_rgba(196,181,253,0.55)]" />
+            {/* glow field */}
+            <div className="absolute inset-y-0 left-1/2 w-16 -translate-x-1/2 bg-gradient-to-r from-transparent via-violet-500/8 to-transparent blur-md" />
 
-  {/* glow field */}
-  <div className="absolute inset-y-0 left-1/2 w-16 -translate-x-1/2 bg-gradient-to-r from-transparent via-violet-500/8 to-transparent blur-md" />
+            <div className="relative z-20 flex h-full items-center">
+              <div className="rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.055),transparent_28%),linear-gradient(180deg,rgba(18,18,30,0.98),rgba(5,6,12,0.995))] px-2.5 py-3 shadow-[0_30px_110px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-1px_0_rgba(0,0,0,0.7)] backdrop-blur-xl">
+                <div className="flex flex-col items-center gap-3">
 
-  <div className="relative z-20 flex h-full items-center">
-    <div className="rounded-[32px] border border-white/12 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_28%),linear-gradient(180deg,rgba(28,28,42,0.97),rgba(8,8,14,0.99))] px-3 py-4 shadow-[0_30px_110px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.65)] backdrop-blur-xl">
-      <div className="flex flex-col items-center gap-3">
+                  {/* CUT */}
+                  <button
+                    type="button"
+                    onClick={() => onTake("cut")}
+                    disabled={takeBusy || !previewProgramDifferent}
+                    className={`relative h-13 w-13 rounded-2xl border text-[10px] font-black tracking-[0.18em] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
+                      previewProgramDifferent
+                        ? "border-red-300/40 bg-red-500/18 text-red-100 shadow-[0_0_28px_rgba(239,68,68,0.32)] animate-pulse"
+                        : "border-red-400/20 bg-red-500/10 text-red-200 shadow-[0_0_18px_rgba(239,68,68,0.18)]"
+                    }`}
+                  >
+                    <span className="absolute inset-x-2 top-1 h-[1px] bg-white/20" />
+                    {takeBusy ? "TAKING" : "CUT"}
+                  </button>
 
-        {/* CUT */}
-        <button
-          type="button"
-          onClick={() => onTake("cut")}
-          disabled={takeBusy || !previewProgramDifferent}
-          className={`relative h-14 w-14 rounded-2xl border text-[10px] font-black tracking-[0.18em] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
-            previewProgramDifferent
-              ? "border-red-300/40 bg-red-500/18 text-red-100 shadow-[0_0_28px_rgba(239,68,68,0.32)] animate-pulse"
-              : "border-red-400/20 bg-red-500/10 text-red-200 shadow-[0_0_18px_rgba(239,68,68,0.18)]"
-          }`}
-        >
-          <span className="absolute inset-x-2 top-1 h-[1px] bg-white/20" />
-          {takeBusy ? "TAKING" : "CUT"}
-        </button>
+                  {/* AUTO */}
+                  <button
+                    type="button"
+                    onClick={runAutoTransition}
+                    disabled={takeBusy || isAutoRunning || !previewProgramDifferent}
+                    className={`relative h-15 w-15 rounded-2xl border text-[10px] font-black tracking-[0.18em] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
+                      isAutoRunning
+                        ? "border-emerald-200/70 bg-emerald-400/25 text-emerald-50 shadow-[0_0_44px_rgba(52,211,153,0.44)]"
+                        : previewProgramDifferent
+                          ? "border-emerald-300/35 bg-emerald-500/14 text-emerald-100 shadow-[0_0_24px_rgba(52,211,153,0.24)]"
+                          : "border-emerald-400/20 bg-emerald-500/10 text-emerald-200 shadow-[0_0_18px_rgba(52,211,153,0.18)]"
+                    }`}
+                  >
+                    <span className="absolute inset-x-2 top-1 h-[1px] bg-white/20" />
+                    {isAutoRunning ? "RUN" : "AUTO"}
+                  </button>
 
-        {/* AUTO */}
-        <button
-          type="button"
-          onClick={runAutoTransition}
-          disabled={takeBusy || isAutoRunning || !previewProgramDifferent}
-          className={`relative h-16 w-16 rounded-2xl border text-[10px] font-black tracking-[0.18em] transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
-            isAutoRunning
-              ? "border-emerald-200/70 bg-emerald-400/25 text-emerald-50 shadow-[0_0_44px_rgba(52,211,153,0.44)]"
-              : previewProgramDifferent
-                ? "border-emerald-300/35 bg-emerald-500/14 text-emerald-100 shadow-[0_0_24px_rgba(52,211,153,0.24)]"
-                : "border-emerald-400/20 bg-emerald-500/10 text-emerald-200 shadow-[0_0_18px_rgba(52,211,153,0.18)]"
-          }`}
-        >
-          <span className="absolute inset-x-2 top-1 h-[1px] bg-white/20" />
-          {isAutoRunning ? "RUN" : "AUTO"}
-        </button>
+                  {/* T-Bar */}
+                  <div className="w-full px-1 pt-1">
+                    <div className="mb-1 text-center text-[8px] font-black tracking-[0.16em] text-white/30">
+                      T-BAR
+                    </div>
 
-        {/* T-Bar */}
-        <div className="w-full px-1 pt-1">
-          <div className="mb-1 text-center text-[8px] font-black tracking-[0.16em] text-white/30">
-            T-BAR
+                    <div className={`relative mx-auto h-16 w-3 rounded-full border bg-black/35 transition-all duration-300 ${
+                      isAutoRunning
+                        ? "border-emerald-300/35 shadow-[0_0_18px_rgba(52,211,153,0.22)]"
+                        : "border-white/10"
+                    }`}>
+                      <div className="absolute left-1/2 top-2 h-12 w-[2px] -translate-x-1/2 bg-white/10" />
+                      <div
+                        className={`absolute left-1/2 h-6 w-6 -translate-x-1/2 rounded-xl border border-white/15 bg-gradient-to-b from-zinc-300 to-zinc-600 shadow-[0_8px_18px_rgba(0,0,0,0.45)] transition-all duration-700 ease-in-out ${
+                          isAutoRunning ? "top-10" : "top-2"
+                        }`}
+                      />
+                    </div>
+                  </div>
+
+                  {/* status lights */}
+                  <div className={`grid grid-cols-2 gap-1 pt-1 transition-opacity duration-300 ${
+                    isAutoRunning || takeBusy ? "opacity-100" : "opacity-70"
+                  }`}>
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <span
+                        key={i}
+                        className={`h-[4px] w-[4px] rounded-full ${
+                          i < 2
+                            ? takeBusy
+                              ? "bg-red-200 animate-pulse shadow-[0_0_14px_rgba(252,165,165,0.95)]"
+                              : "bg-red-300 shadow-[0_0_10px_rgba(252,165,165,0.8)]"
+                            : i < 4
+                            ? isAutoRunning
+                              ? "bg-emerald-200 animate-pulse shadow-[0_0_14px_rgba(110,231,183,0.95)]"
+                              : "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.8)]"
+                            : "bg-violet-200/70"
+                        }`}
+                      />
+                    ))}
+                  </div>
+
+                  <div className="pt-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/32 [writing-mode:vertical-rl]">
+                    Split
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-
-          <div className={`relative mx-auto h-16 w-3 rounded-full border bg-black/35 transition-all duration-300 ${
-            isAutoRunning
-              ? "border-emerald-300/35 shadow-[0_0_18px_rgba(52,211,153,0.22)]"
-              : "border-white/10"
-          }`}>
-            <div className="absolute left-1/2 top-2 h-12 w-[2px] -translate-x-1/2 bg-white/10" />
-            <div
-              className={`absolute left-1/2 h-6 w-6 -translate-x-1/2 rounded-xl border border-white/15 bg-gradient-to-b from-zinc-300 to-zinc-600 shadow-[0_8px_18px_rgba(0,0,0,0.45)] transition-all duration-700 ease-in-out ${
-                isAutoRunning ? "top-10" : "top-2"
-              }`}
-            />
-          </div>
-        </div>
-
-        {/* status lights */}
-        <div className={`grid grid-cols-2 gap-1 pt-1 transition-opacity duration-300 ${
-          isAutoRunning || takeBusy ? "opacity-100" : "opacity-70"
-        }`}>
-          {Array.from({ length: 6 }).map((_, i) => (
-            <span
-              key={i}
-              className={`h-[4px] w-[4px] rounded-full ${
-                i < 2
-                  ? takeBusy
-                    ? "bg-red-200 animate-pulse shadow-[0_0_14px_rgba(252,165,165,0.95)]"
-                    : "bg-red-300 shadow-[0_0_10px_rgba(252,165,165,0.8)]"
-                  : i < 4
-                  ? isAutoRunning
-                    ? "bg-emerald-200 animate-pulse shadow-[0_0_14px_rgba(110,231,183,0.95)]"
-                    : "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.8)]"
-                  : "bg-violet-200/70"
-              }`}
-            />
-          ))}
-        </div>
-
-        <div className="pt-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/32 [writing-mode:vertical-rl]">
-          Split
-        </div>
-      </div>
-    </div>
-  </div>
-</div>
-          <div className="relative min-w-0 rounded-[28px] border border-red-300/18 bg-[linear-gradient(180deg,rgba(25,9,12,0.98),rgba(6,3,5,0.99))] p-2 xl:p-2.5 shadow-[0_22px_80px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.06)] before:pointer-events-none before:absolute before:inset-x-8 before:-bottom-2 before:h-2 before:rounded-b-[22px] before:bg-black/50 before:blur-sm">
+          <div className="relative min-w-0 rounded-[28px] border border-red-300/18 bg-[linear-gradient(180deg,rgba(20,7,10,0.99),rgba(4,2,4,0.995))] p-2 xl:p-2.5 shadow-[0_26px_90px_rgba(0,0,0,0.6),0_0_70px_rgba(239,68,68,0.08),inset_0_1px_0_rgba(255,255,255,0.055)] before:pointer-events-none before:absolute before:inset-x-8 before:-bottom-2 before:h-2 before:rounded-b-[22px] before:bg-black/55 before:blur-sm">
             <MonitorHeader
               title="Program"
               subtitle="What the audience is seeing"
@@ -411,7 +410,7 @@ export default function CenterSwitcherColumn({
               className={`relative aspect-video w-full overflow-hidden rounded-[18px] border bg-black transition-all duration-300 ${
                 isTransitioning
                   ? "rounded-[22px] border-white/40 shadow-[0_0_0_1px_rgba(255,255,255,0.22),0_0_95px_rgba(255,255,255,0.16),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.08)]"
-                  : "rounded-[22px] border-red-300/18 shadow-[0_0_0_1px_rgba(248,113,113,0.10),0_0_76px_rgba(239,68,68,0.14),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.9)]"
+                  : "rounded-[22px] border-red-300/18 shadow-[0_0_0_1px_rgba(248,113,113,0.10),0_0_62px_rgba(239,68,68,0.12),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.9)]"
               }`}
             >
               <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(118deg,transparent_4%,rgba(255,255,255,0.12)_18%,rgba(255,255,255,0.035)_28%,transparent_43%)] opacity-60" />

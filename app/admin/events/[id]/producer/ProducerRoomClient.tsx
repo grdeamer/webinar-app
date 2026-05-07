@@ -142,6 +142,8 @@ export default function ProducerRoomClient({
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<ScreenLayoutPreset>("classic")
   const [programFlashActive, setProgramFlashActive] = useState(false)
+  const [selectedTransitionDurationMs] = useState(600)
+  const [, setLastTransportActionAt] = useState<number | null>(null)
   const [programState, setProgramState] = useState<StageState | null>(null)
   const [programSceneId, setProgramSceneId] = useState<string | null>(null)
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
@@ -481,7 +483,8 @@ export default function ProducerRoomClient({
   // Helper function to broadcast the current Program source
   function broadcastPresenterProgramSource(
     mode: "cut" | "auto",
-    transitionType?: CinematicTransitionType
+    transitionType?: CinematicTransitionType,
+    transitionDurationMs = selectedTransitionDurationMs
   ) {
     const channelKey = `jupiter:program-source:${sessionId}`
 
@@ -521,6 +524,7 @@ export default function ProducerRoomClient({
       ? {
           mode,
           transitionType: resolvedTransitionType,
+          transitionDurationMs,
           sourceType: "media",
           participantIdentity: activeParticipant,
           screenShareParticipantIdentity: screenShareParticipant,
@@ -536,6 +540,7 @@ export default function ProducerRoomClient({
       : {
           mode,
           transitionType: resolvedTransitionType,
+          transitionDurationMs,
           sourceType: screenShareParticipant ? "screen" : activeParticipant ? "camera" : "empty",
           participantIdentity: activeParticipant,
           screenShareParticipantIdentity: screenShareParticipant,
@@ -557,6 +562,24 @@ export default function ProducerRoomClient({
     } catch (_err: unknown) {
       // best effort
     }
+  }
+
+  function takeProgram(
+    mode: "cut" | "auto",
+    transitionType?: CinematicTransitionType,
+    options?: {
+      sceneId?: string | null
+      slideLabel?: string | null
+      transitionDurationMs?: number
+    }
+  ) {
+    const durationMs = options?.transitionDurationMs ?? selectedTransitionDurationMs
+
+    setLastTransportActionAt(Date.now())
+    void runTake(mode, transitionType)
+    broadcastPresenterProgramSource(mode, transitionType, durationMs)
+    setProgramSceneId(options?.sceneId ?? selectedSceneId)
+    setProgramSlideLabel(options?.slideLabel ?? null)
   }
 
   function sendSlideToPreview(slideIndex: number) {
@@ -610,22 +633,22 @@ export default function ProducerRoomClient({
   function takeSlide(slideIndex: number) {
     sendSlideToPreview(slideIndex)
     window.setTimeout(() => {
-      void runTake("cut")
-      broadcastPresenterProgramSource("cut")
-      setProgramSceneId(null)
-      setProgramSlideLabel(
-        localPdfDeck?.name ? `${localPdfDeck.name} · Slide ${slideIndex}` : `Slide ${slideIndex}`
-      )
+      takeProgram("cut", undefined, {
+        sceneId: null,
+        slideLabel: localPdfDeck?.name
+          ? `${localPdfDeck.name} · Slide ${slideIndex}`
+          : `Slide ${slideIndex}`,
+      })
     }, 175)
   }
 
   async function applySceneAndTake(sceneId: string) {
     await applyScene(sceneId)
     window.setTimeout(() => {
-      void runTake("cut")
-      broadcastPresenterProgramSource("cut")
-      setProgramSceneId(sceneId)
-      setProgramSlideLabel(null)
+      takeProgram("cut", undefined, {
+        sceneId,
+        slideLabel: null,
+      })
     }, 175)
   }
 
@@ -854,19 +877,25 @@ export default function ProducerRoomClient({
     function onKeyDown(event: KeyboardEvent) {
       const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
       if (tag === "input" || tag === "textarea" || tag === "select") return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
 
-      if (event.code !== "Space") return
+      const key = event.key.toLowerCase()
 
-      event.preventDefault()
-void runTake("cut")
-broadcastPresenterProgramSource("cut")
-setProgramSceneId(selectedSceneId)
-setProgramSlideLabel(null)
+      if (event.code === "Space" || key === "t" || key === "c") {
+        event.preventDefault()
+        takeProgram("cut")
+        return
+      }
+
+      if (key === "a") {
+        event.preventDefault()
+        takeProgram("auto", "fade")
+      }
     }
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [runTake, selectedSceneId])
+  }, [takeProgram])
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
@@ -1039,15 +1068,13 @@ setProgramSlideLabel(null)
             onStageCount={onStageParticipants.length}
             previewProgramDifferent={previewProgramDifferent}
             takeBusy={takeBusy}
-          onTake={(
-            mode: "cut" | "auto",
-            transitionType?: CinematicTransitionType
-          ): void => {
-            void runTake(mode, transitionType)
-            broadcastPresenterProgramSource(mode, transitionType)
-            setProgramSceneId(selectedSceneId)
-            setProgramSlideLabel(null)
-          }}
+            onTake={(
+              mode: "cut" | "auto",
+              transitionType?: CinematicTransitionType,
+              transitionDurationMs?: number
+            ): void => {
+              takeProgram(mode, transitionType, { transitionDurationMs })
+            }}
           />
           <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
             <div className="grid w-full items-start gap-4 lg:grid-cols-[250px_minmax(0,1fr)_320px] xl:grid-cols-[265px_minmax(0,1fr)_345px] 2xl:grid-cols-[285px_minmax(0,1fr)_375px] [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-0.5 [&_button:active]:translate-y-0">
@@ -1055,10 +1082,7 @@ setProgramSlideLabel(null)
                 takeBusy={takeBusy}
                 previewProgramDifferent={previewProgramDifferent}
                 onTake={() => {
-                  void runTake("cut")
-                  broadcastPresenterProgramSource("cut")
-                  setProgramSceneId(selectedSceneId)
-                  setProgramSlideLabel(null)
+                  takeProgram("cut")
                 }}
                 onGoLive={() =>
                   void goLive().catch((e: unknown) =>
@@ -1103,10 +1127,7 @@ setProgramSlideLabel(null)
                   takeBusy={takeBusy}
                   lastTakeMode={lastTakeMode}
                   onTake={(mode: "cut" | "auto"): void => {
-                    void runTake(mode)
-                    broadcastPresenterProgramSource(mode)
-                    setProgramSceneId(selectedSceneId)
-                    setProgramSlideLabel(null)
+                    takeProgram(mode)
                   }}
                   onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
                   stopDraggingBlock={stopDraggingBlock}

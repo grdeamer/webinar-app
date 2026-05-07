@@ -11,7 +11,7 @@ type EventTransitionPayload = {
   durationMs?: number
 }
 async function readJson(res: Response) {
-  const data = await res.json().catch(() => null)
+    const data = await res.json().catch((): null => null)
 
   if (!res.ok) {
     throw new Error(data?.error || "Request failed")
