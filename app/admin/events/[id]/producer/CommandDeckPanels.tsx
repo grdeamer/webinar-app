@@ -3,7 +3,6 @@ import {
   Activity,
   Radio,
   SlidersHorizontal,
-  Mic2,
   Sparkles,
   CircleDot,
   Disc3,
@@ -11,6 +10,9 @@ import {
   Zap,
   Keyboard,
   CheckCircle2,
+  AudioLines,
+  LockKeyhole,
+  TimerReset,
 } from "lucide-react"
 
 import {
@@ -65,6 +67,63 @@ function ShortcutKey({
       <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-white/36">
         {shortcut.label}
       </span>
+    </div>
+  )
+}
+
+function CommandSafetyStrip({
+  previewProgramDifferent,
+  takeBusy,
+  selectedTransitionDurationMs,
+}: {
+  previewProgramDifferent: boolean
+  takeBusy: boolean
+  selectedTransitionDurationMs?: number
+}): JSX.Element {
+  const label = takeBusy
+    ? "Command Locked"
+    : previewProgramDifferent
+      ? "Take Armed"
+      : "Program Safe"
+
+  return (
+    <div className="mb-3 rounded-[22px] border border-white/8 bg-black/22 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/42">
+          <LockKeyhole size={12} className={previewProgramDifferent ? "text-amber-200/70" : "text-emerald-200/70"} />
+          {label}
+        </div>
+
+        <div className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
+          {selectedTransitionDurationMs ?? 600}ms Transport
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MiniStatusPill({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string
+  value: string
+  tone?: "neutral" | "green" | "violet" | "amber"
+}): JSX.Element {
+  const toneClass =
+    tone === "green"
+      ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
+      : tone === "violet"
+        ? "border-violet-300/14 bg-violet-400/8 text-violet-100/62"
+        : tone === "amber"
+          ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
+          : "border-white/10 bg-black/24 text-white/42"
+
+  return (
+    <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+      <span className="text-white/28">{label}</span>{" "}
+      <span>{value}</span>
     </div>
   )
 }
@@ -298,9 +357,14 @@ export function ControlStagePanel({
 }: ControlStagePanelProps): JSX.Element {
   return (
     <PanelCard>
+      <CommandSafetyStrip
+        previewProgramDifferent={previewProgramDifferent}
+        takeBusy={takeBusy}
+        selectedTransitionDurationMs={selectedTransitionDurationMs}
+      />
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-          Program Controls
+          Program Transport
         </div>
 
         <span
@@ -349,11 +413,11 @@ export function ControlStagePanel({
 
       {previewProgramDifferent ? (
         <div className="mt-3 text-xs font-medium text-amber-100/80">
-          Preview is armed. Cut or auto to send the look to Program.
+          Preview is armed. Operator may CUT or AUTO the look to Program.
         </div>
       ) : (
         <div className="mt-3 text-xs text-white/42">
-          Preview and Program are matched. Controls arm when preview changes.
+          Preview and Program are matched. Transport remains safe until preview changes.
         </div>
       )}
     </PanelCard>
@@ -435,9 +499,16 @@ export function TransitionPanel({
 }: TransitionModeControlProps): JSX.Element {
   return (
     <PanelCard className="border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.11),transparent_38%),rgba(0,0,0,0.24)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_0_34px_rgba(168,85,247,0.055)]">
-      <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-        <Activity size={14} />
-        Transition Bank
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
+          <Activity size={14} />
+          Transition Bank
+        </div>
+
+        <div className="flex items-center gap-1.5 rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/54">
+          <TimerReset size={10} />
+          Timed
+        </div>
       </div>
 
       <div className="grid grid-cols-3 gap-2">
@@ -460,8 +531,18 @@ export function TransitionPanel({
         })}
       </div>
 
-      <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
-        Armed transition: <span className="text-violet-100/80">{selectedTransitionType}</span>
+      <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
+            Armed transition: <span className="text-violet-100/80">{selectedTransitionType}</span>
+          </div>
+
+          <MiniStatusPill
+            label="Duration"
+            value={`${selectedTransitionDurationMs ?? 600}ms`}
+            tone="violet"
+          />
+        </div>
       </div>
 
       <div className="mt-3 rounded-2xl border border-white/10 bg-black/24 p-1.5">
@@ -503,14 +584,26 @@ export function TransitionPanel({
 export function AudioMixerPanel(): JSX.Element {
   return (
     <PanelCard className="border-emerald-300/14 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.13),transparent_38%),rgba(52,211,153,0.045)]">
-      <div className="mb-3 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-        <Mic2 size={14} />
-        Audio Program
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
+          <AudioLines size={14} />
+          Audio Program
+        </div>
+
+        <div className="rounded-full border border-emerald-300/14 bg-emerald-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-100/58">
+          Bus Safe
+        </div>
+      </div>
+
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <MiniStatusPill label="Master" value="-6 dB" tone="green" />
+        <MiniStatusPill label="Limit" value="Safe" tone="green" />
+        <MiniStatusPill label="IFB" value="Open" tone="violet" />
       </div>
 
       <div className="space-y-2">
         {AUDIO_MIXER_ROWS.map((row) => (
-          <div key={row} className="grid grid-cols-[74px_1fr] items-center gap-2">
+          <div key={row} className="grid grid-cols-[64px_1fr_34px] items-center gap-2">
             <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/48">
               {row}
             </div>
@@ -524,6 +617,9 @@ export function AudioMixerPanel(): JSX.Element {
                     : "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.5)]"
               }
             />
+            <div className="rounded-full border border-white/8 bg-black/24 px-1.5 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.08em] text-white/34">
+              PFL
+            </div>
           </div>
         ))}
       </div>
@@ -540,8 +636,14 @@ export function QuickActionsPanel(): JSX.Element {
           Ops Macros
         </span>
         <span className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] tracking-[0.12em] text-white/32">
-          Armed
+          Macro Bank
         </span>
+      </div>
+
+      <div className="mb-3 flex flex-wrap gap-2">
+        <MiniStatusPill label="Macros" value="Ready" tone="violet" />
+        <MiniStatusPill label="Safety" value="On" tone="green" />
+        <MiniStatusPill label="Recall" value="Armed" tone="amber" />
       </div>
 
       <div className="grid grid-cols-2 gap-2">
@@ -559,7 +661,7 @@ export function QuickActionsPanel(): JSX.Element {
       <div className="mt-3 rounded-2xl border border-white/8 bg-black/20 p-2">
         <div className="mb-1.5 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-white/30">
           <Keyboard size={11} />
-          Operator Keys
+          Operator Speed Keys
         </div>
 
         <div className="grid grid-cols-2 gap-1.5">
@@ -584,7 +686,7 @@ export function LowerCommandGrid({
   return (
     <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.09),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.96),rgba(2,5,16,0.985))] p-3 shadow-[0_28px_100px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.05)]">
       <TelemetryAccent />
-      <div className="relative grid gap-2.5 xl:grid-cols-[1.2fr_0.95fr_1fr_0.85fr]">
+      <div className="relative grid gap-2.5 xl:grid-cols-[1.15fr_0.95fr_1fr_0.9fr]">
         <ControlStagePanel
           previewProgramDifferent={previewProgramDifferent}
           takeBusy={takeBusy}
