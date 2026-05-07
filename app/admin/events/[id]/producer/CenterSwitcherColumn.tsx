@@ -13,6 +13,70 @@ import ProducerTopDeck from "./ProducerTopDeck"
 
 type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
 
+type ConfidenceMonitorMode = "standard" | "confidence" | "multiview"
+
+const CONFIDENCE_MONITOR_MODES: Array<{
+  value: ConfidenceMonitorMode
+  label: string
+  description: string
+}> = [
+  {
+    value: "standard",
+    label: "Standard",
+    description: "Preview and Program",
+  },
+  {
+    value: "confidence",
+    label: "Confidence",
+    description: "Presenter-safe output",
+  },
+  {
+    value: "multiview",
+    label: "Multiview",
+    description: "Operator grid awareness",
+  },
+]
+
+function MultiviewOverlay({
+  label,
+}: {
+  label: string
+}): JSX.Element {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[22px]">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:25%_25%] opacity-40" />
+
+      <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px bg-white/6">
+        {[
+          "Program",
+          "Preview",
+          "Confidence",
+          "Telemetry",
+        ].map((cell) => (
+          <div
+            key={cell}
+            className="relative overflow-hidden bg-black/18"
+          >
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.08),transparent_48%)]" />
+
+            <div className="absolute left-2 top-2 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/46 backdrop-blur-sm">
+              {cell}
+            </div>
+
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="h-12 w-20 rounded-xl border border-white/8 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="absolute bottom-3 right-3 rounded-full border border-violet-300/20 bg-black/65 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-violet-100/72 shadow-[0_0_20px_rgba(168,85,247,0.12)] backdrop-blur-md">
+        {label}
+      </div>
+    </div>
+  )
+}
+
 export default function CenterSwitcherColumn({
   triggerAudienceCue,
   onHideAudienceCue,
@@ -121,6 +185,8 @@ export default function CenterSwitcherColumn({
   const isDraggingSplitRef = useRef(false)
   const [previewPanePercent, setPreviewPanePercent] = useState(50)
   const [isAutoRunning, setIsAutoRunning] = useState(false)
+  const [confidenceMonitorMode, setConfidenceMonitorMode] =
+    useState<ConfidenceMonitorMode>("standard")
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem("producer-preview-pane-percent")
@@ -128,6 +194,18 @@ export default function CenterSwitcherColumn({
 
     if (Number.isFinite(parsedValue)) {
       setPreviewPanePercent(Math.max(32, Math.min(68, parsedValue)))
+    }
+  }, [])
+
+  useEffect(() => {
+    const storedValue = window.localStorage.getItem("producer-confidence-monitor-mode")
+
+    if (
+      storedValue === "standard" ||
+      storedValue === "confidence" ||
+      storedValue === "multiview"
+    ) {
+      setConfidenceMonitorMode(storedValue)
     }
   }, [])
 
@@ -174,6 +252,11 @@ export default function CenterSwitcherColumn({
     window.localStorage.setItem("producer-preview-pane-percent", "50")
   }
 
+  function setMonitorMode(value: ConfidenceMonitorMode) {
+    setConfidenceMonitorMode(value)
+    window.localStorage.setItem("producer-confidence-monitor-mode", value)
+  }
+
   function runAutoTransition() {
     if (takeBusy || isAutoRunning || !previewProgramDifferent) return
 
@@ -209,9 +292,34 @@ export default function CenterSwitcherColumn({
             </div>
           </div>
 
-          <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-white/35 backdrop-blur md:flex">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.7)]" />
-            Control online
+          <div className="hidden items-center gap-2 md:flex">
+            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-white/35 backdrop-blur">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.7)]" />
+              Control online
+            </div>
+
+            <div className="flex items-center gap-1 rounded-full border border-white/10 bg-black/30 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+              {CONFIDENCE_MONITOR_MODES.map((mode) => {
+                const active = confidenceMonitorMode === mode.value
+
+                return (
+                  <button
+                    key={mode.value}
+                    type="button"
+                    onClick={() => setMonitorMode(mode.value)}
+                    className={[
+                      "rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] transition",
+                      active
+                        ? "bg-violet-300/14 text-violet-100 shadow-[0_0_14px_rgba(168,85,247,0.14)]"
+                        : "text-white/34 hover:bg-white/[0.055] hover:text-white/68",
+                    ].join(" ")}
+                    title={mode.description}
+                  >
+                    {mode.label}
+                  </button>
+                )
+              })}
+            </div>
           </div>
         </div>
 
@@ -288,6 +396,15 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border border-sky-300/20 bg-black/65 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-sky-100 shadow-[0_0_24px_rgba(56,189,248,0.12)] backdrop-blur-md">
                 PVW
               </div>
+              {confidenceMonitorMode === "confidence" ? (
+                <div className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-full border border-violet-300/20 bg-black/65 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/78 shadow-[0_0_24px_rgba(168,85,247,0.12)] backdrop-blur-md">
+                  CONF OUT
+                </div>
+              ) : null}
+
+              {confidenceMonitorMode === "multiview" ? (
+                <MultiviewOverlay label="Preview Multiview" />
+              ) : null}
             </div>
           </div>
           <div
@@ -502,6 +619,15 @@ export default function CenterSwitcherColumn({
 
                 {programState?.is_live ? "LIVE" : "PGM HOLD"}
               </div>
+              {confidenceMonitorMode === "confidence" ? (
+                <div className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-full border border-violet-300/20 bg-black/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/78 shadow-[0_0_24px_rgba(168,85,247,0.12)] backdrop-blur-md">
+                  Presenter Confidence
+                </div>
+              ) : null}
+
+              {confidenceMonitorMode === "multiview" ? (
+                <MultiviewOverlay label="Operator Multiview" />
+              ) : null}
             </div>
           </div>
         </div>
