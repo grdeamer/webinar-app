@@ -5,6 +5,8 @@ import {
   Layers3,
   MonitorUp,
   Pin,
+  Radio,
+  Rows3,
   Sparkles,
   Star,
 } from "lucide-react"
@@ -20,6 +22,32 @@ function formatSceneTimestamp() {
     hour: "numeric",
     minute: "2-digit",
   })
+}
+
+function RundownStatusPill({
+  label,
+  value,
+  tone = "neutral",
+}: {
+  label: string
+  value: string
+  tone?: "neutral" | "green" | "violet" | "sky"
+}): JSX.Element {
+  const toneClass =
+    tone === "green"
+      ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/68"
+      : tone === "violet"
+        ? "border-violet-300/14 bg-violet-400/8 text-violet-100/68"
+        : tone === "sky"
+          ? "border-sky-300/14 bg-sky-400/8 text-sky-100/68"
+          : "border-white/10 bg-black/24 text-white/42"
+
+  return (
+    <div className={`rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${toneClass}`}>
+      <span className="text-white/32">{label}</span>{" "}
+      <span>{value}</span>
+    </div>
+  )
 }
 
 function SceneMemoryBadge({
@@ -114,26 +142,49 @@ export default function ScenesStatusPanel({
   onClearPrimary: () => void
 }): JSX.Element {
   return (
-    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.015))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">
-            Scene Control
-          </div>
-          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
-            Recall & Stage State
-          </div>
-        </div>
-        <div className="hidden items-center gap-2 lg:flex">
-          <SceneMemoryBadge active={Boolean(selectedSceneId)} />
+    <div className="rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.08),transparent_34%),linear-gradient(180deg,rgba(8,12,26,0.94),rgba(3,6,14,0.99))] p-3 shadow-[0_26px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="mb-3 rounded-[26px] border border-sky-300/10 bg-sky-400/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/64">
+              <Rows3 size={13} />
+              Broadcast Rundown
+            </div>
 
-          <div className="rounded-full border border-violet-300/14 bg-violet-300/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/72">
-            Broadcast Memory
+            <div className="mt-1 text-lg font-semibold tracking-tight text-white">
+              Scene Recall + Cue Stack
+            </div>
+
+            <div className="mt-1 text-sm leading-6 text-white/42">
+              Save compositions, recall stage states, and sequence live broadcast looks.
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            <SceneMemoryBadge active={Boolean(selectedSceneId)} />
+
+            <RundownStatusPill
+              label="Scenes"
+              value={String(scenes.length)}
+              tone="sky"
+            />
+
+            <RundownStatusPill
+              label="Recall"
+              value="Ready"
+              tone="green"
+            />
+
+            <RundownStatusPill
+              label="Mode"
+              value={selectedSceneId ? "Armed" : "Idle"}
+              tone={selectedSceneId ? "violet" : "neutral"}
+            />
           </div>
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5 rounded-[24px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <input
           value={sceneName}
           onChange={(e) => onSceneNameChange(e.target.value)}
@@ -144,7 +195,7 @@ export default function ScenesStatusPanel({
         <button
           onClick={onSaveScene}
           disabled={sceneBusy}
-          className="rounded-2xl border border-violet-200/20 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(226,232,240,0.92))] px-4 py-2 text-sm font-black tracking-[0.04em] text-slate-950 shadow-[0_12px_30px_rgba(255,255,255,0.12)] transition hover:-translate-y-0.5 hover:bg-white active:translate-y-0"
+          className="rounded-2xl border border-sky-200/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(226,232,240,0.92))] px-4 py-2 text-sm font-black tracking-[0.04em] text-slate-950 shadow-[0_14px_36px_rgba(255,255,255,0.14)] transition hover:-translate-y-0.5 hover:bg-white active:translate-y-0"
         >
           {sceneBusy ? "Saving..." : selectedSceneId ? "Update Scene" : "Save Scene"}
         </button>
@@ -152,6 +203,11 @@ export default function ScenesStatusPanel({
         <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/14 bg-emerald-400/8 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/62 shadow-[0_0_20px_rgba(110,231,183,0.06)]">
           <CheckCircle2 size={13} />
           Scene Recall Ready
+        </div>
+
+        <div className="flex items-center gap-2 rounded-2xl border border-violet-300/14 bg-violet-400/8 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100/58 shadow-[0_0_18px_rgba(168,85,247,0.08)]">
+          <Radio size={13} />
+          Cue Stack Synced
         </div>
 
         <StatusChip
@@ -221,13 +277,13 @@ export default function ScenesStatusPanel({
         </div>
       ) : null}
 
-      <div className="mt-3 rounded-2xl border border-white/8 bg-black/18 p-2">
+      <div className="mt-3 rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
-            Scene Bank
+            Rundown Memory Bank
           </div>
           <div className="text-[9px] font-semibold uppercase tracking-[0.16em] text-white/24">
-            {scenes.length} memory slots
+            {scenes.length} recall states
           </div>
           <div className="hidden items-center gap-1 rounded-full border border-white/8 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/34 md:flex">
             <Sparkles size={10} className="text-violet-100/55" />
@@ -270,7 +326,7 @@ export default function ScenesStatusPanel({
           ))}
           {scenes.length === 0 ? (
             <div className="flex min-h-12 w-full items-center justify-center rounded-2xl border border-dashed border-white/10 bg-white/[0.02] px-3 py-3 text-center text-[11px] font-semibold text-white/32">
-              No scenes saved yet. Build a look, name it, then save it here.
+              No rundown states saved yet. Build a broadcast look, then commit it to memory.
             </div>
           ) : null}
         </div>
