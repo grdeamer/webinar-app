@@ -56,6 +56,11 @@ function OperationsSyncStrip({
   selectedSceneLabel,
   programSlideLabel,
   onStageCount,
+  participantCount,
+  previewBlockCount,
+  programBlockCount,
+  hasProgramSource,
+  hasScreenShare,
   lastTakeMode,
   hotkeySceneLabel,
   lastTransportActionAt,
@@ -67,6 +72,11 @@ function OperationsSyncStrip({
   selectedSceneLabel: string | null
   programSlideLabel: string | null
   onStageCount: number
+  participantCount: number
+  previewBlockCount: number
+  programBlockCount: number
+  hasProgramSource: boolean
+  hasScreenShare: boolean
   lastTakeMode: "cut" | "auto" | null
   hotkeySceneLabel: string | null
   lastTransportActionAt: number | null
@@ -93,6 +103,44 @@ function OperationsSyncStrip({
         ? "Grid"
         : "Solo"
 
+  const returnStateLabel = hasProgramSource ? "Return: Clean" : "Return: No Source"
+  const recordStateLabel = isLive
+    ? hasProgramSource
+      ? "Record: Master + ISO Armed"
+      : "Record: Armed / No Source"
+    : "Record: Standby"
+  const commsStateLabel = onStageCount > 0 ? "IFB: Talent Routed" : "IFB: No Talent"
+  const assetStateLabel = `${previewBlockCount} Preview / ${programBlockCount} Program Assets`
+  const audienceStateLabel = isLive
+    ? `${participantCount} Connected Viewers`
+    : `${participantCount} In Holding`
+
+  const readinessLabel = takeBusy
+    ? "Readiness: Transport Locked"
+    : !hasProgramSource
+      ? "Readiness: Source Required"
+      : previewProgramDifferent
+        ? "Readiness: Preview Armed"
+        : "Readiness: Program Matched"
+
+  const readinessClassName = takeBusy
+    ? "border-red-300/14 bg-red-400/8 text-red-100/58"
+    : !hasProgramSource
+      ? "border-amber-300/14 bg-amber-400/8 text-amber-100/58"
+      : previewProgramDifferent
+        ? "border-sky-300/14 bg-sky-400/8 text-sky-100/58"
+        : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/58"
+
+  const guardrailLabel = !hasProgramSource
+    ? "Guardrail: No program source"
+    : isLive && previewProgramDifferent
+      ? "Guardrail: Confirm before TAKE"
+      : "Guardrail: Clear"
+
+  const guardrailClassName = !hasProgramSource || (isLive && previewProgramDifferent)
+    ? "border-amber-300/14 bg-amber-400/8 text-amber-100/58"
+    : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/54"
+
   return (
     <div className="border-b border-white/8 bg-black/18 px-4 py-2 md:px-5 xl:px-6 2xl:px-7">
       <div className="flex flex-wrap items-center justify-between gap-2 rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
@@ -114,9 +162,22 @@ function OperationsSyncStrip({
           <span className="rounded-full border border-white/8 bg-black/24 px-2.5 py-1">
             {commandState}
           </span>
+          <span className={["rounded-full border px-2.5 py-1", readinessClassName].join(" ")}>
+            {readinessLabel}
+          </span>
 
           <span className="rounded-full border border-red-300/12 bg-red-400/8 px-2.5 py-1 text-red-100/52">
             {takeLabel}
+          </span>
+          <span
+            className={[
+              "rounded-full border px-2.5 py-1",
+              hasProgramSource
+                ? "border-emerald-300/12 bg-emerald-400/8 text-emerald-100/54"
+                : "border-amber-300/12 bg-amber-400/8 text-amber-100/54",
+            ].join(" ")}
+          >
+            {returnStateLabel}
           </span>
           <span className="rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-white/42">
             Command: {formatTransportTimestamp(lastTransportActionAt)}
@@ -135,6 +196,9 @@ function OperationsSyncStrip({
           <span className="rounded-full border border-amber-300/12 bg-amber-400/8 px-2.5 py-1 text-amber-100/54">
             {programSlideLabel ? `Deck: ${programSlideLabel}` : "Deck Standby"}
           </span>
+          <span className={["rounded-full border px-2.5 py-1", guardrailClassName].join(" ")}>
+            {guardrailLabel}
+          </span>
         </div>
 
         <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
@@ -146,7 +210,26 @@ function OperationsSyncStrip({
           </span>
 
           <span className="hidden rounded-full border border-red-300/12 bg-red-400/8 px-2.5 py-1 text-red-100/54 lg:inline-flex">
-            Recording + Diagnostics Online
+            {recordStateLabel}
+          </span>
+          <span className="hidden rounded-full border border-violet-300/12 bg-violet-400/8 px-2.5 py-1 text-violet-100/54 xl:inline-flex">
+            {commsStateLabel}
+          </span>
+          <span className="hidden rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-white/42 2xl:inline-flex">
+            {assetStateLabel}
+          </span>
+          <span
+            className={[
+              "hidden rounded-full border px-2.5 py-1 2xl:inline-flex",
+              hasScreenShare
+                ? "border-sky-300/12 bg-sky-400/8 text-sky-100/54"
+                : "border-white/8 bg-black/24 text-white/38",
+            ].join(" ")}
+          >
+            {hasScreenShare ? "Screen Route: Active" : "Screen Route: Idle"}
+          </span>
+          <span className="hidden rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2.5 py-1 text-emerald-100/54 2xl:inline-flex">
+            {audienceStateLabel}
           </span>
         </div>
       </div>
@@ -1075,6 +1158,18 @@ export default function ProducerRoomClient({
     [stageState, programState, previewBlocks, programBlocks]
   )
 
+  const hasProgramSource = useMemo(() => {
+    if (programBlocks.some((block) => !block.hidden)) return true
+    if (programState?.screen_share_participant_id) return true
+    if (programState?.primary_participant_id) return true
+    if (programState?.pinned_participant_id) return true
+    return Boolean(programState?.stage_participant_ids?.length)
+  }, [programBlocks, programState])
+
+  const hasScreenShareRoute = Boolean(
+    stageState?.screen_share_participant_id && stageState?.screen_share_track_id
+  )
+
   useEffect(() => {
     if (!autoDirectorEnabled) return
     if (!stageState) return
@@ -1188,6 +1283,11 @@ export default function ProducerRoomClient({
             selectedSceneLabel={selectedSceneLabel}
             programSlideLabel={programSlideLabel}
             onStageCount={onStageParticipants.length}
+            participantCount={participants.length}
+            previewBlockCount={previewBlocks.length}
+            programBlockCount={programBlocks.length}
+            hasProgramSource={hasProgramSource}
+            hasScreenShare={hasScreenShareRoute}
             lastTakeMode={lastTakeMode}
             hotkeySceneLabel={hotkeySceneLabelText}
             lastTransportActionAt={lastTransportActionAt}

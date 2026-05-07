@@ -17,6 +17,14 @@ import {
   TimerReset,
   Volume2,
   VolumeX,
+  Route,
+  ClipboardList,
+  MonitorSpeaker,
+  SatelliteDish,
+  FileVideo,
+  MessageSquare,
+  PlayCircle,
+  AlertTriangle,
 } from "lucide-react"
 
 import {
@@ -29,11 +37,15 @@ import {
 } from "./commandDeckTypes"
 
 import {
+  BusBadge,
   CommandButton,
+  ConfidenceTile,
   IconGlassButton,
   LevelMeter,
   PanelCard,
   PrimaryTakeButton,
+  RoutingRow,
+  StatusPill,
   TelemetryAccent,
 } from "./CommandDeckChrome"
 
@@ -56,6 +68,68 @@ const OPERATOR_SHORTCUTS = [
   { key: "C", label: "Cut" },
   { key: "A", label: "Auto" },
   { key: "Space", label: "Quick Take" },
+] as const
+
+const CONFIDENCE_ROUTES = [
+  {
+    source: "Program Out",
+    destination: "Attendee player + record master",
+    status: "PGM",
+    tone: "live",
+    icon: SatelliteDish,
+  },
+  {
+    source: "Confidence Return",
+    destination: "Producer monitor + technical director",
+    status: "CONF",
+    tone: "safe",
+    icon: MonitorSpeaker,
+  },
+  {
+    source: "Presenter IFB",
+    destination: "Host + guest cue channel",
+    status: "IFB",
+    tone: "preview",
+    icon: Headphones,
+  },
+  {
+    source: "ISO Capture",
+    destination: "Host cam, guest cam, media playback",
+    status: "REC",
+    tone: "warning",
+    icon: FileVideo,
+  },
+] as const
+
+const RUNDOWN_CUES = [
+  {
+    code: "00",
+    label: "Preflight",
+    detail: "Confirm return feed, confidence audio, and record arm.",
+    state: "Done",
+    tone: "safe",
+  },
+  {
+    code: "01",
+    label: "Cold Open",
+    detail: "Roll slate, music bed, and intro animation to preview.",
+    state: "Ready",
+    tone: "preview",
+  },
+  {
+    code: "02",
+    label: "Host Toss",
+    detail: "Take host solo. IFB open. Guest held in green room.",
+    state: "Next",
+    tone: "warning",
+  },
+  {
+    code: "03",
+    label: "Audience Q&A",
+    detail: "Route questions, lower-third support, confidence monitor live.",
+    state: "Standby",
+    tone: "neutral",
+  },
 ] as const
 
 function ShortcutKey({
@@ -858,48 +932,129 @@ export function AudioMixerPanel(): JSX.Element {
   )
 }
 
-export function QuickActionsPanel(): JSX.Element {
+
+export function BroadcastRoutingPanel(): JSX.Element {
   return (
-    <PanelCard>
+    <PanelCard className="border-sky-300/12 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_38%),rgba(56,189,248,0.035)]">
       <div className="mb-3 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
         <span className="inline-flex items-center gap-2">
-          <Sparkles size={14} />
-          Ops Macros
+          <Route size={14} />
+          Routing + Confidence
         </span>
-        <span className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] tracking-[0.12em] text-white/32">
-          Macro Bank
-        </span>
+        <StatusPill label="Matrix" value="Safe" tone="safe" />
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-2">
-        <MiniStatusPill label="Macros" value="Ready" tone="violet" />
-        <MiniStatusPill label="Safety" value="On" tone="green" />
-        <MiniStatusPill label="Recall" value="Armed" tone="amber" />
+      <div className="mb-3 grid grid-cols-3 gap-1.5">
+        <BusBadge label="PGM" active tone="live" />
+        <BusBadge label="CONF" active tone="safe" />
+        <BusBadge label="IFB" active tone="preview" />
+        <BusBadge label="ISO" active tone="warning" />
+        <BusBadge label="AUX" />
+        <BusBadge label="DIRTY" />
       </div>
 
-      <div className="grid grid-cols-2 gap-2">
-        {QUICK_ACTIONS.map(({ label, icon }) => (
-          <IconGlassButton
-            key={label}
-            label={label}
-            icon={icon}
-            showLabel={false}
-            className="rounded-2xl bg-white/[0.045] p-3 shadow-[0_12px_28px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.03)] hover:bg-white/[0.07]"
+      <div className="grid gap-2">
+        {CONFIDENCE_ROUTES.map((route) => (
+          <RoutingRow
+            key={route.source}
+            source={route.source}
+            destination={route.destination}
+            status={route.status}
+            tone={route.tone}
+            icon={route.icon}
           />
         ))}
       </div>
 
-      <div className="mt-3 rounded-2xl border border-white/8 bg-black/20 p-2">
-        <div className="mb-1.5 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-white/30">
-          <Keyboard size={11} />
-          Operator Speed Keys
-        </div>
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <ConfidenceTile
+          label="Return Feed"
+          value="Clean"
+          detail="Program return is stable with confidence audio present."
+          tone="safe"
+          meter={8}
+        />
+        <ConfidenceTile
+          label="Operator Cue"
+          value="IFB Open"
+          detail="Talkback remains muted until explicitly armed."
+          tone="preview"
+          meter={6}
+        />
+      </div>
+    </PanelCard>
+  )
+}
 
-        <div className="grid grid-cols-2 gap-1.5">
-          {OPERATOR_SHORTCUTS.map((shortcut) => (
-            <ShortcutKey key={shortcut.key} shortcut={shortcut} />
-          ))}
+export function RundownCuePanel(): JSX.Element {
+  return (
+    <PanelCard>
+      <div className="mb-3 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
+        <span className="inline-flex items-center gap-2">
+          <ClipboardList size={14} />
+          Rundown Sequencer
+        </span>
+        <StatusPill label="Cue Stack" value="Armed" tone="warning" />
+      </div>
+
+      <div className="mb-3 grid grid-cols-3 gap-2">
+        <ConfidenceTile
+          label="Next Cue"
+          value="Host Toss"
+          detail="Stand by camera one and host lower-third."
+          tone="warning"
+          meter={7}
+        />
+        <ConfidenceTile
+          label="Record"
+          value="Master + ISO"
+          detail="Program and camera isolates are armed."
+          tone="live"
+          meter={9}
+        />
+        <ConfidenceTile
+          label="Comms"
+          value="IFB Ready"
+          detail="Presenter cue path is routed but talkback is safe."
+          tone="preview"
+          meter={6}
+        />
+      </div>
+
+      <div className="grid gap-2">
+        {RUNDOWN_CUES.map((cue) => (
+          <div
+            key={cue.code}
+            className="group rounded-[22px] border border-white/8 bg-black/20 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:-translate-y-0.5 hover:border-white/14 hover:bg-white/[0.035]"
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex min-w-0 gap-2.5">
+                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-[10px] font-black uppercase tracking-[0.12em] text-white/52">
+                  {cue.code}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/74">
+                      {cue.label}
+                    </p>
+                    {cue.state === "Next" ? <PlayCircle size={12} className="text-amber-200/70" /> : null}
+                    {cue.state === "Standby" ? <MessageSquare size={12} className="text-white/32" /> : null}
+                  </div>
+                  <p className="mt-1 text-[10px] leading-relaxed text-white/38">{cue.detail}</p>
+                </div>
+              </div>
+              <StatusPill label={cue.state} tone={cue.tone} pulse={cue.state === "Next"} />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-amber-300/12 bg-amber-400/8 p-2 text-[10px] leading-relaxed text-amber-50/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <div className="mb-1 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-amber-100/58">
+          <AlertTriangle size={11} />
+          Operator Guardrail
         </div>
+        Never advance a show cue unless confidence return, program audio, and record state are verified.
       </div>
     </PanelCard>
   )
@@ -917,7 +1072,7 @@ export function LowerCommandGrid({
   return (
     <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.09),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.96),rgba(2,5,16,0.985))] p-3 shadow-[0_28px_100px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.05)]">
       <TelemetryAccent />
-      <div className="relative grid gap-2.5 xl:grid-cols-[1.15fr_0.95fr_1fr_0.9fr]">
+      <div className="relative grid gap-2.5 xl:grid-cols-[1.05fr_0.95fr_1.18fr]">
         <ControlStagePanel
           previewProgramDifferent={previewProgramDifferent}
           takeBusy={takeBusy}
@@ -932,7 +1087,11 @@ export function LowerCommandGrid({
           onTransitionDurationChange={onTransitionDurationChange}
         />
         <AudioMixerPanel />
-        <QuickActionsPanel />
+      </div>
+
+      <div className="relative mt-2.5 grid gap-2.5 xl:grid-cols-[1fr_1fr]">
+        <BroadcastRoutingPanel />
+        <RundownCuePanel />
       </div>
     </div>
   )
