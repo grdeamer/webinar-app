@@ -11,8 +11,12 @@ import {
   Keyboard,
   CheckCircle2,
   AudioLines,
+  Headphones,
   LockKeyhole,
+  Mic2,
   TimerReset,
+  Volume2,
+  VolumeX,
 } from "lucide-react"
 
 import {
@@ -124,6 +128,179 @@ function MiniStatusPill({
     <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
       <span className="text-white/28">{label}</span>{" "}
       <span>{value}</span>
+    </div>
+  )
+}
+
+function AudioControlButton({
+  label,
+  active = false,
+  tone = "neutral",
+}: {
+  label: string
+  active?: boolean
+  tone?: "neutral" | "green" | "amber" | "red"
+}): JSX.Element {
+  const activeClass =
+    tone === "green"
+      ? "border-emerald-300/24 bg-emerald-400/12 text-emerald-100/72"
+      : tone === "amber"
+        ? "border-amber-300/24 bg-amber-400/12 text-amber-100/72"
+        : tone === "red"
+          ? "border-red-300/24 bg-red-400/12 text-red-100/72"
+          : "border-white/14 bg-white/[0.06] text-white/62"
+
+  return (
+    <button
+      type="button"
+      className={[
+        "rounded-lg border px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.1em] transition hover:-translate-y-0.5 active:translate-y-0",
+        active ? activeClass : "border-white/8 bg-black/22 text-white/30 hover:border-white/14 hover:bg-white/[0.04]",
+      ].join(" ")}
+    >
+      {label}
+    </button>
+  )
+}
+
+function AudioChannelStrip({
+  label,
+  value,
+  bars,
+  tone = "green",
+  muted = false,
+  solo = false,
+  pfl = false,
+}: {
+  label: string
+  value: string
+  bars: number
+  tone?: "green" | "sky" | "amber" | "violet"
+  muted?: boolean
+  solo?: boolean
+  pfl?: boolean
+}): JSX.Element {
+  const meterClass =
+    muted
+      ? "bg-white/10"
+      : tone === "sky"
+        ? "bg-sky-300 shadow-[0_0_8px_rgba(125,211,252,0.55)]"
+        : tone === "amber"
+          ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.55)]"
+          : tone === "violet"
+            ? "bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.55)]"
+            : "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.55)]"
+
+  return (
+    <div className="rounded-[22px] border border-white/8 bg-black/20 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/46">
+            {label}
+          </div>
+          <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
+            {value}
+          </div>
+        </div>
+
+        <div
+          className={[
+            "rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em]",
+            muted
+              ? "border-red-300/14 bg-red-400/8 text-red-100/52"
+              : solo
+                ? "border-amber-300/14 bg-amber-400/8 text-amber-100/58"
+                : pfl
+                  ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/58"
+                  : "border-white/8 bg-black/28 text-white/34",
+          ].join(" ")}
+        >
+          {muted ? "Mute" : solo ? "Solo" : pfl ? "PFL" : "On"}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[1fr_22px] gap-2">
+        <div className="flex h-20 items-end gap-1 rounded-2xl border border-white/8 bg-black/24 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          {Array.from({ length: 14 }).map((_, index) => (
+            <div
+              key={`${label}-${index}`}
+              className={`flex-1 rounded-full ${index < bars ? meterClass : "bg-white/8"}`}
+              style={{ height: `${Math.max(12, (index + 1) * 6)}%` }}
+            />
+          ))}
+        </div>
+
+        <div className="flex flex-col justify-between rounded-full border border-white/8 bg-black/24 p-1">
+          <div className="rounded-full bg-white/16" style={{ height: `${Math.max(20, bars * 6)}%` }} />
+        </div>
+      </div>
+
+      <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-white/8 bg-black/18 px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/28">
+        <span>Route</span>
+        <span className={muted ? "text-red-100/48" : "text-emerald-100/52"}>
+          {muted ? "Cut" : "Program"}
+        </span>
+      </div>
+
+      <div className="mt-2 grid grid-cols-3 gap-1">
+        <AudioControlButton label="M" active={muted} tone="red" />
+        <AudioControlButton label="S" active={solo} tone="amber" />
+        <AudioControlButton label="PFL" active={pfl} tone="green" />
+      </div>
+    </div>
+  )
+}
+
+function MonitorBusStrip(): JSX.Element {
+  const buses = [
+    { label: "PGM", value: "Open", tone: "green" },
+    { label: "IFB", value: "Routed", tone: "violet" },
+    { label: "TBK", value: "Safe", tone: "amber" },
+    { label: "PBK", value: "Standby", tone: "neutral" },
+    { label: "CONF", value: "Live", tone: "sky" },
+  ] as const
+
+  return (
+    <div className="mb-3 rounded-[22px] border border-white/8 bg-black/22 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/38">
+          <Headphones size={12} />
+          Monitor Bus
+        </div>
+
+        <div className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-white/34">
+          Operator Cue
+        </div>
+      </div>
+
+      <div className="grid grid-cols-5 gap-1.5">
+        {buses.map((bus) => {
+          const toneClass =
+            bus.tone === "green"
+              ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
+              : bus.tone === "violet"
+                ? "border-violet-300/14 bg-violet-400/8 text-violet-100/62"
+                : bus.tone === "amber"
+                  ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
+                  : bus.tone === "sky"
+                    ? "border-sky-300/14 bg-sky-400/8 text-sky-100/62"
+                    : "border-white/10 bg-black/24 text-white/42"
+
+          return (
+            <div
+              key={bus.label}
+              className={`rounded-2xl border px-1.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${toneClass}`}
+            >
+              <div className="text-[8px] font-black uppercase tracking-[0.12em] opacity-70">
+                {bus.label}
+              </div>
+              <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/48">
+                {bus.value}
+              </div>
+            </div>
+          )
+        })}
+      </div>
     </div>
   )
 }
@@ -587,10 +764,11 @@ export function AudioMixerPanel(): JSX.Element {
       <div className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
           <AudioLines size={14} />
-          Audio Program
+          Audio Program Mixer
         </div>
 
-        <div className="rounded-full border border-emerald-300/14 bg-emerald-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-100/58">
+        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/14 bg-emerald-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-100/58">
+          <ShieldCheck size={10} />
           Bus Safe
         </div>
       </div>
@@ -601,27 +779,80 @@ export function AudioMixerPanel(): JSX.Element {
         <MiniStatusPill label="IFB" value="Open" tone="violet" />
       </div>
 
-      <div className="space-y-2">
-        {AUDIO_MIXER_ROWS.map((row) => (
-          <div key={row} className="grid grid-cols-[64px_1fr_34px] items-center gap-2">
-            <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/48">
-              {row}
-            </div>
-            <LevelMeter
-              length={14}
-              getBarClassName={(index) =>
-                index > 10
-                  ? "bg-red-300 shadow-[0_0_8px_rgba(252,165,165,0.55)]"
-                  : index > 8
-                    ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.5)]"
-                    : "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.5)]"
-              }
-            />
-            <div className="rounded-full border border-white/8 bg-black/24 px-1.5 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.08em] text-white/34">
-              PFL
-            </div>
+      <div className="mb-3 grid grid-cols-2 gap-2">
+        <div className="rounded-2xl border border-emerald-300/12 bg-emerald-400/8 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.16em] text-emerald-100/54">
+            <Volume2 size={11} />
+            Program Bus
           </div>
-        ))}
+          <div className="mt-1 text-sm font-semibold text-white/82">Open</div>
+        </div>
+
+        <div className="rounded-2xl border border-violet-300/12 bg-violet-400/8 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/54">
+            <Headphones size={11} />
+            Confidence
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/82">Routed</div>
+        </div>
+      </div>
+
+      <MonitorBusStrip />
+
+      <div className="grid grid-cols-2 gap-2">
+        <AudioChannelStrip
+          label="Host"
+          value="Mic 1"
+          bars={11}
+          tone="green"
+          pfl
+        />
+        <AudioChannelStrip
+          label="Guest"
+          value="Mic 2"
+          bars={8}
+          tone="sky"
+          pfl
+        />
+        <AudioChannelStrip
+          label="Media"
+          value="Playback"
+          bars={9}
+          tone="violet"
+        />
+        <AudioChannelStrip
+          label="Talkback"
+          value="IFB"
+          bars={5}
+          tone="amber"
+          muted
+        />
+      </div>
+
+      <div className="mt-3 rounded-[22px] border border-white/8 bg-black/22 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/38">
+            <Mic2 size={12} />
+            Master Output
+          </div>
+
+          <div className="flex items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-emerald-100/56">
+            <VolumeX size={9} />
+            No Clipping
+          </div>
+        </div>
+
+        <LevelMeter
+          length={18}
+          activeBars={13}
+          getBarClassName={(index) =>
+            index > 15
+              ? "bg-red-300 shadow-[0_0_8px_rgba(252,165,165,0.55)]"
+              : index > 12
+                ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.5)]"
+                : "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.5)]"
+          }
+        />
       </div>
     </PanelCard>
   )
