@@ -1,6 +1,86 @@
-import type { JSX } from "react"
+import { useEffect, useMemo, useState, type JSX } from "react"
+import {
+  Activity,
+  CircleDot,
+  Clock3,
+  Radio,
+  ShieldCheck,
+  Signal,
+  UserCog,
+} from "lucide-react"
 
 type StageLayout = "solo" | "grid" | "screen_speaker"
+
+function HeaderStatusChip({
+  icon,
+  label,
+  value,
+  tone = "neutral",
+}: {
+  icon: JSX.Element
+  label: string
+  value: string
+  tone?: "neutral" | "live" | "good" | "warn"
+}): JSX.Element {
+  const toneClass =
+    tone === "live"
+      ? "border-red-300/18 bg-red-400/8 text-red-100/72"
+      : tone === "good"
+        ? "border-emerald-300/16 bg-emerald-400/8 text-emerald-100/68"
+        : tone === "warn"
+          ? "border-amber-300/16 bg-amber-400/8 text-amber-100/68"
+          : "border-white/10 bg-white/[0.035] text-white/58"
+
+  return (
+    <div
+      className={`flex items-center gap-2 rounded-2xl border px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] ${toneClass}`}
+    >
+      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/24 text-white/68">
+        {icon}
+      </span>
+
+      <div className="min-w-0">
+        <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">
+          {label}
+        </div>
+        <div className="truncate text-xs font-semibold text-white/82">
+          {value}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MissionClock(): JSX.Element {
+  const [seconds, setSeconds] = useState(4722)
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setSeconds((value) => value + 1)
+    }, 1000)
+
+    return () => window.clearInterval(id)
+  }, [])
+
+  const runtime = useMemo(() => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const remainingSeconds = seconds % 60
+
+    return [hours, minutes, remainingSeconds]
+      .map((value) => String(value).padStart(2, "0"))
+      .join(":")
+  }, [seconds])
+
+  return (
+    <HeaderStatusChip
+      icon={<Clock3 size={14} />}
+      label="Mission Clock"
+      value={runtime}
+      tone="neutral"
+    />
+  )
+}
 
 export default function ProducerRoomHeader({
   headline,
@@ -20,10 +100,10 @@ export default function ProducerRoomHeader({
   scopeLabel: string
 }): JSX.Element {
   return (
-    <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.1),transparent_32%),linear-gradient(180deg,rgba(8,15,28,0.94),rgba(3,8,20,0.84))] px-4 py-3 shadow-[0_20px_70px_rgba(0,0,0,0.42)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
+    <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.09),transparent_32%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.09),transparent_28%),linear-gradient(180deg,rgba(6,12,26,0.96),rgba(2,6,16,0.9))] px-4 py-3 shadow-[0_24px_90px_rgba(0,0,0,0.48)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center rounded-[17px] border border-sky-300/25 bg-sky-400/12 shadow-[0_0_36px_rgba(56,189,248,0.24)]">
+          <div className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-[18px] border border-sky-300/22 bg-sky-400/10 shadow-[0_0_34px_rgba(56,189,248,0.2)]">
             <div className="h-6 w-6 rounded-full border border-sky-200/75 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.95),rgba(56,189,248,0.48)_35%,rgba(79,70,229,0.34)_70%)] shadow-[0_0_24px_rgba(125,211,252,0.65)]" />
             <div className="absolute h-8 w-12 -rotate-12 rounded-full border border-sky-200/35" />
           </div>
@@ -32,7 +112,7 @@ export default function ProducerRoomHeader({
             <div className="flex flex-wrap items-center gap-2 text-[9px] uppercase tracking-[0.3em] text-white/35">
               <span>Jupiter</span>
               <span className="text-white/20">•</span>
-              <span>Mission Control</span>
+              <span>Producer Mission Control</span>
               <span className="text-white/20">•</span>
               <span>{scopeLabel}</span>
             </div>
@@ -42,7 +122,8 @@ export default function ProducerRoomHeader({
                 {headline}
               </h1>
 
-              <span className="rounded-full border border-sky-300/25 bg-sky-500/12 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-sky-100 shadow-[0_0_18px_rgba(56,189,248,0.16)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/22 bg-sky-500/10 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-sky-100/82 shadow-[0_0_16px_rgba(56,189,248,0.13)]">
+                <Activity size={11} />
                 {layout === "screen_speaker"
                   ? "Speaker + Screen"
                   : layout === "grid"
@@ -53,36 +134,49 @@ export default function ProducerRoomHeader({
           </div>
         </div>
 
-        <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[430px] xl:grid-cols-2">
-          <div className="relative overflow-hidden rounded-[22px] border border-red-400/25 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.2),transparent_42%),linear-gradient(180deg,rgba(127,29,29,0.5),rgba(239,68,68,0.11))] p-3 shadow-[0_0_42px_rgba(239,68,68,0.15)]">
-            <div className="text-[9px] uppercase tracking-[0.22em] text-red-100/65">
-              Program
+        <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[620px] xl:grid-cols-4">
+          <div className="relative overflow-hidden rounded-[22px] border border-red-400/22 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.18),transparent_42%),linear-gradient(180deg,rgba(127,29,29,0.42),rgba(239,68,68,0.09))] p-3 shadow-[0_0_38px_rgba(239,68,68,0.13)]">
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-red-100/65">
+              <CircleDot size={12} className={isLive ? "animate-pulse text-red-300" : "text-white/30"} />
+              Transmission
             </div>
-            <div className="mt-1.5 flex items-center gap-2">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${
-                  isLive
-                    ? "animate-pulse bg-red-400 shadow-[0_0_24px_rgba(248,113,113,1)]"
-                    : "bg-white/25"
-                }`}
-              />
-              <span className="text-base font-semibold tracking-[-0.03em] text-white">
-                {isLive ? "On Air" : "Holding"}
-              </span>
+            <div className="mt-1.5 text-base font-semibold tracking-[-0.03em] text-white">
+              {isLive ? "On Air" : "Holding"}
+            </div>
+            <div className="mt-0.5 text-[11px] text-red-50/38">
+              Program output {isLive ? "transmitting" : "standing by"}
             </div>
           </div>
 
-          <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.024))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-            <div className="text-[9px] uppercase tracking-[0.22em] text-white/35">
+          <div className="rounded-[22px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-white/35">
+              <Radio size={12} />
               Show State
             </div>
             <div className="mt-1.5 text-base font-semibold text-white">
-              {previewProgramDifferent ? "Preview Changed" : "In Sync"}
+              {previewProgramDifferent ? "Preview Armed" : "In Sync"}
             </div>
             <div className="mt-0.5 text-[11px] text-white/40">
               {onStageCount} talent · {overlayCount} overlays
             </div>
           </div>
+
+          <HeaderStatusChip
+            icon={<Signal size={14} />}
+            label="Uplink"
+            value="99% locked"
+            tone="good"
+          />
+
+          <HeaderStatusChip
+            icon={<UserCog size={14} />}
+            label="Operator"
+            value="Shift active"
+            tone="neutral"
+          />
+        </div>
+        <div className="hidden 2xl:block">
+          <MissionClock />
         </div>
       </div>
     </div>

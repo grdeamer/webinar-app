@@ -37,6 +37,7 @@ const CONFIDENCE_MONITOR_MODES: Array<{
   },
 ]
 
+
 function MultiviewOverlay({
   label,
 }: {
@@ -72,6 +73,87 @@ function MultiviewOverlay({
 
       <div className="absolute bottom-3 right-3 rounded-full border border-violet-300/20 bg-black/65 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-violet-100/72 shadow-[0_0_20px_rgba(168,85,247,0.12)] backdrop-blur-md">
         {label}
+      </div>
+    </div>
+  )
+}
+
+function PresenterConfidenceCue({
+  variant,
+}: {
+  variant: "preview" | "program"
+}): JSX.Element {
+  const isProgram = variant === "program"
+
+  const [countdownSeconds, setCountdownSeconds] = useState(5)
+
+  useEffect(() => {
+    if (isProgram) {
+      setCountdownSeconds(0)
+      return
+    }
+
+    setCountdownSeconds(5)
+
+    const id = window.setInterval(() => {
+      setCountdownSeconds((value) => Math.max(0, value - 1))
+    }, 1000)
+
+    return () => window.clearInterval(id)
+  }, [isProgram])
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[22px]">
+      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-violet-950/55 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
+
+      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full border border-violet-300/20 bg-black/62 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/78 shadow-[0_0_24px_rgba(168,85,247,0.12)] backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.75)]" />
+        Presenter Confidence
+      </div>
+
+      <div className="absolute right-3 top-3 flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/70 shadow-[0_0_20px_rgba(52,211,153,0.1)] backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.75)]" />
+        Return Feed Safe
+      </div>
+
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-[28px] border border-white/10 bg-black/50 px-6 py-4 text-center shadow-[0_24px_80px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md">
+        <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/36">
+          {isProgram ? "Audience Feed" : "Standby Countdown"}
+        </div>
+
+        <div className="mt-1 text-4xl font-black tracking-[-0.06em] text-white tabular-nums drop-shadow-[0_0_22px_rgba(196,181,253,0.22)]">
+          {isProgram ? "LIVE" : countdownSeconds}
+        </div>
+
+        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/62">
+          {isProgram
+            ? "You are on program"
+            : countdownSeconds === 0
+              ? "Ready for cue"
+              : "Prepare to go live"}
+        </div>
+      </div>
+
+      <div className="absolute bottom-3 left-3 right-3 grid gap-2 md:grid-cols-[1fr_auto]">
+        <div className="rounded-2xl border border-white/10 bg-black/62 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md">
+          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/34">
+            Presenter Cue
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/86">
+            {isProgram
+              ? "You are live to audience"
+              : countdownSeconds === 0
+                ? "Ready for producer cue"
+                : "Stand by for program"}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2 rounded-2xl border border-violet-300/16 bg-violet-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100/70 shadow-[0_0_20px_rgba(168,85,247,0.1)] backdrop-blur-md">
+          <span className="text-white/36">IFB</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.75)]" />
+          Open
+        </div>
       </div>
     </div>
   )
@@ -397,9 +479,7 @@ export default function CenterSwitcherColumn({
                 PVW
               </div>
               {confidenceMonitorMode === "confidence" ? (
-                <div className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-full border border-violet-300/20 bg-black/65 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/78 shadow-[0_0_24px_rgba(168,85,247,0.12)] backdrop-blur-md">
-                  CONF OUT
-                </div>
+                <PresenterConfidenceCue variant="preview" />
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
@@ -620,9 +700,7 @@ export default function CenterSwitcherColumn({
                 {programState?.is_live ? "LIVE" : "PGM HOLD"}
               </div>
               {confidenceMonitorMode === "confidence" ? (
-                <div className="pointer-events-none absolute bottom-3 right-3 z-20 rounded-full border border-violet-300/20 bg-black/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/78 shadow-[0_0_24px_rgba(168,85,247,0.12)] backdrop-blur-md">
-                  Presenter Confidence
-                </div>
+                <PresenterConfidenceCue variant="program" />
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
