@@ -1,10 +1,7 @@
-import type { JSX } from "react"
+import { useEffect, useState, type JSX } from "react"
 import {
   Activity,
   Radio,
-  SlidersHorizontal,
-  Sparkles,
-  CircleDot,
   Disc3,
   ShieldCheck,
   Zap,
@@ -12,11 +9,7 @@ import {
   CheckCircle2,
   AudioLines,
   Headphones,
-  LockKeyhole,
   Mic2,
-  TimerReset,
-  Volume2,
-  VolumeX,
   Route,
   ClipboardList,
   MonitorSpeaker,
@@ -25,29 +18,309 @@ import {
   MessageSquare,
   PlayCircle,
   AlertTriangle,
+  Clapperboard,
+  Users,
+  Timer,
+  Layers3,
+  Send,
+  Eye,
+  ChevronDown,
 } from "lucide-react"
 
 import {
-  AUDIO_MIXER_ROWS,
-  QUICK_ACTIONS,
+  CONFIDENCE_MONITORING_METRICS,
+  DEFAULT_RUNDOWN_CUES,
+  IFB_CHANNELS,
   TRANSITION_OPTIONS,
   type CinematicTransitionType,
+  type ConfidenceSeverity,
+  type IFBChannelState,
+  type RundownCueState,
   type TakeControlProps,
   type TakeMode,
 } from "./commandDeckTypes"
 
 import {
   BusBadge,
-  CommandButton,
+  CommandActionButton,
+  CompactStatusGrid,
   ConfidenceTile,
-  IconGlassButton,
   LevelMeter,
   PanelCard,
   PrimaryTakeButton,
   RoutingRow,
   StatusPill,
+  SurfaceDivider,
+  SurfaceHeader,
   TelemetryAccent,
 } from "./CommandDeckChrome"
+
+type CommandWorkspaceMode = "director" | "audio" | "ops" | "compact" | "custom"
+
+type CommandSurfaceKey = "transport" | "transition" | "audio" | "routing" | "rundown"
+
+const COMMAND_WORKSPACE_LABELS: Record<CommandWorkspaceMode, string> = {
+  director: "Director",
+  audio: "Audio",
+  ops: "Ops",
+  compact: "Compact",
+  custom: "Custom",
+}
+
+const COMMAND_WORKSPACE_OPEN_STATE: Record<CommandWorkspaceMode, Record<CommandSurfaceKey, boolean>> = {
+  director: {
+    transport: true,
+    transition: false,
+    audio: false,
+    routing: false,
+    rundown: true,
+  },
+  audio: {
+    transport: false,
+    transition: false,
+    audio: true,
+    routing: false,
+    rundown: false,
+  },
+  ops: {
+    transport: true,
+    transition: true,
+    audio: true,
+    routing: true,
+    rundown: true,
+  },
+  compact: {
+    transport: false,
+    transition: false,
+    audio: false,
+    routing: false,
+    rundown: false,
+  },
+  custom: {
+    transport: true,
+    transition: false,
+    audio: false,
+    routing: false,
+    rundown: true,
+  },
+}
+
+const COMMAND_SURFACE_STATUS_CHIPS: Array<{
+  key: CommandSurfaceKey
+  label: string
+  activeClassName: string
+}> = [
+  {
+    key: "transport",
+    label: "Transport",
+    activeClassName: "border-amber-300/14 bg-amber-400/8 text-amber-100/52",
+  },
+  {
+    key: "transition",
+    label: "Transition",
+    activeClassName: "border-violet-300/14 bg-violet-400/8 text-violet-100/52",
+  },
+  {
+    key: "audio",
+    label: "Audio",
+    activeClassName: "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/52",
+  },
+  {
+    key: "routing",
+    label: "Routing",
+    activeClassName: "border-sky-300/14 bg-sky-400/8 text-sky-100/52",
+  },
+  {
+    key: "rundown",
+    label: "Rundown",
+    activeClassName: "border-fuchsia-300/14 bg-fuchsia-400/8 text-fuchsia-100/52",
+  },
+]
+
+const COMMAND_WORKSPACE_STORAGE_KEY = "jupiter.commandDeck.workspace.v1"
+
+function getSystemPressureTone(
+  pressure: SystemPressureState
+): "safe" | "warning" | "danger" {
+  if (pressure === "critical") return "danger"
+  if (pressure === "watch") return "warning"
+  return "safe"
+}
+
+function getSystemPressureSurfaceTone(
+  pressure: SystemPressureState
+): "red" | "amber" | "emerald" {
+  if (pressure === "critical") return "red"
+  if (pressure === "watch") return "amber"
+  return "emerald"
+}
+
+function getSurfaceStatusLabel(openSurfaceCount: number): string {
+  return openSurfaceCount === 0
+    ? "All Surfaces Collapsed"
+    : `${openSurfaceCount} Surfaces Open`
+}
+
+function getTransportStatusLabel(previewProgramDifferent: boolean): string {
+  return previewProgramDifferent ? "Preview Armed" : "Program Matched"
+}
+
+function getSurfaceModeLabel({
+  focusedSurface,
+  workspaceMode,
+}: {
+  focusedSurface: CommandSurfaceKey | null
+  workspaceMode: CommandWorkspaceMode
+}): string {
+  return focusedSurface
+    ? `Focused · ${focusedSurface}`
+    : COMMAND_WORKSPACE_LABELS[workspaceMode]
+}
+
+function CollapsibleSurface({
+  title,
+  eyebrow,
+  status,
+  tone = "neutral",
+  defaultOpen = true,
+  open: controlledOpen,
+  isFocused = false,
+  isDimmed = false,
+  onFocus,
+  onClearFocus,
+  onOpenChange,
+  children,
+}: {
+  title: string
+  eyebrow: string
+  status?: string
+  tone?: "neutral" | "amber" | "emerald" | "sky" | "violet" | "red"
+  defaultOpen?: boolean
+  open?: boolean
+  isFocused?: boolean
+  isDimmed?: boolean
+  onFocus?: () => void
+  onClearFocus?: () => void
+  onOpenChange?: (open: boolean) => void
+  children: JSX.Element | JSX.Element[]
+}): JSX.Element {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen)
+  const open = controlledOpen ?? internalOpen
+
+  const toggleOpen = (): void => {
+    const nextOpen = !open
+    setInternalOpen(nextOpen)
+    onOpenChange?.(nextOpen)
+  }
+
+  const statusClassName =
+    tone === "amber"
+      ? "border-amber-300/14 bg-amber-400/8 text-amber-100/54"
+      : tone === "emerald"
+        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/54"
+        : tone === "sky"
+          ? "border-sky-300/14 bg-sky-400/8 text-sky-100/54"
+          : tone === "violet"
+            ? "border-violet-300/14 bg-violet-400/8 text-violet-100/54"
+            : tone === "red"
+              ? "border-red-300/14 bg-red-400/8 text-red-100/54"
+              : "border-white/10 bg-black/24 text-white/34"
+
+  return (
+    <div
+      className={[
+        "relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] shadow-[0_22px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)] transition-all duration-500 ease-out",
+        isFocused ? "xl:col-span-full scale-[1.006] border-violet-300/18 ring-1 ring-violet-300/20 shadow-[0_34px_110px_rgba(0,0,0,0.46),0_0_44px_rgba(168,85,247,0.10),inset_0_1px_0_rgba(255,255,255,0.06)]" : "",
+        isDimmed ? "scale-[0.985] opacity-45 grayscale-[0.42] blur-[0.2px]" : "",
+      ].join(" ")}
+    >
+      {isFocused ? (
+        <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(115deg,transparent,rgba(196,181,253,0.10),transparent)] animate-[surfaceFocusSweep_880ms_ease-out_forwards]" />
+      ) : null}
+
+      <button
+        type="button"
+        onClick={toggleOpen}
+        className="relative z-10 flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.03]"
+      >
+        <div className="min-w-0">
+          <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/28">
+            {eyebrow}
+          </div>
+          <div className="mt-1 flex flex-wrap items-center gap-2">
+            <span className="text-[13px] font-black uppercase tracking-[0.14em] text-white/78">
+              {title}
+            </span>
+            {status ? (
+              <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${statusClassName}`}>
+                {status}
+              </span>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {onFocus ? (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(event) => {
+                event.stopPropagation()
+                if (isFocused) {
+                  onClearFocus?.()
+                } else {
+                  onFocus()
+                }
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault()
+                  event.stopPropagation()
+                  if (isFocused) {
+                    onClearFocus?.()
+                  } else {
+                    onFocus()
+                  }
+                }
+              }}
+              className={[
+                "rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition",
+                isFocused
+                  ? "border-violet-300/24 bg-violet-400/14 text-violet-100"
+                  : "border-white/10 bg-black/24 text-white/34 hover:border-violet-300/18 hover:bg-violet-400/8 hover:text-violet-100/72",
+              ].join(" ")}
+            >
+              {isFocused ? "Exit Focus" : "Focus"}
+            </span>
+          ) : null}
+
+          <div className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/30">
+            {isDimmed ? "Peripheral" : isFocused ? "Primary" : "Active"}
+          </div>
+
+          <div className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+            {open ? "Expanded" : "Collapsed"}
+          </div>
+
+          <div
+            className={[
+              "flex h-8 w-8 items-center justify-center rounded-2xl border border-white/10 bg-black/24 text-white/42 transition",
+              open ? "rotate-180" : "rotate-0",
+            ].join(" ")}
+          >
+            <ChevronDown size={14} />
+          </div>
+        </div>
+      </button>
+
+      {open ? (
+        <div className="relative z-10 px-3 pb-3 animate-[surfaceReveal_220ms_ease-out_both]">
+          {children}
+        </div>
+      ) : null}
+    </div>
+  )
+}
 
 type TransitionModeControlProps = {
   selectedTransitionType: CinematicTransitionType
@@ -58,9 +331,13 @@ type TransitionModeControlProps = {
 
 type LowerCommandGridProps = TakeControlProps & TransitionModeControlProps
 
+type SystemPressureState = "stable" | "watch" | "critical"
+
 type ControlStagePanelProps = TakeControlProps & {
   selectedTransitionType: CinematicTransitionType
   selectedTransitionDurationMs?: number
+  systemPressure?: SystemPressureState
+  rundownMode?: "rehearsal" | "live"
 }
 
 const OPERATOR_SHORTCUTS = [
@@ -105,23 +382,35 @@ const RUNDOWN_CUES = [
   {
     code: "00",
     label: "Preflight",
-    detail: "Confirm return feed, confidence audio, and record arm.",
+    detail: "Confirm return feed, confidence audio, record arm, and presenter IFB.",
     state: "Done",
     tone: "safe",
+    type: "Check",
+    duration: "02:00",
+    target: "Ops",
+    systems: ["REC", "IFB", "TX"],
   },
   {
     code: "01",
     label: "Cold Open",
-    detail: "Roll slate, music bed, and intro animation to preview.",
+    detail: "Roll slate, music bed, and intro animation into preview.",
     state: "Ready",
     tone: "preview",
+    type: "Media",
+    duration: "00:45",
+    target: "Preview",
+    systems: ["MEDIA", "AUTO"],
   },
   {
     code: "02",
     label: "Host Toss",
-    detail: "Take host solo. IFB open. Guest held in green room.",
+    detail: "Take host solo. IFB open. Lower-third armed for host intro.",
     state: "Next",
     tone: "warning",
+    type: "Scene",
+    duration: "03:30",
+    target: "Program",
+    systems: ["SCENE", "L3", "IFB"],
   },
   {
     code: "03",
@@ -129,8 +418,125 @@ const RUNDOWN_CUES = [
     detail: "Route questions, lower-third support, confidence monitor live.",
     state: "Standby",
     tone: "neutral",
+    type: "Audience",
+    duration: "08:00",
+    target: "Live Route",
+    systems: ["QA", "ROUTE", "CONF"],
+  },
+  {
+    code: "04",
+    label: "Closing Look",
+    detail: "Recall branded closing scene, roll outro music, and prepare off-air route.",
+    state: "Later",
+    tone: "neutral",
+    type: "Scene",
+    duration: "01:15",
+    target: "Program",
+    systems: ["SCENE", "MEDIA", "ROUTE"],
   },
 ] as const
+
+type AudioMixerTone = "green" | "sky" | "amber" | "violet"
+
+type AudioMixerChannel = {
+  id: string
+  label: string
+  source: string
+  meterLevel: number
+  tone: AudioMixerTone
+  muted?: boolean
+  solo?: boolean
+  pfl?: boolean
+}
+
+const AUDIO_MIXER_CHANNELS: AudioMixerChannel[] = [
+  {
+    id: "host",
+    label: "Host",
+    source: "Mic 1",
+    meterLevel: 0.78,
+    tone: "green",
+    pfl: true,
+  },
+  {
+    id: "guest",
+    label: "Guest",
+    source: "Mic 2",
+    meterLevel: 0.58,
+    tone: "sky",
+    pfl: true,
+  },
+  {
+    id: "media",
+    label: "Media",
+    source: "Playback",
+    meterLevel: 0.64,
+    tone: "violet",
+  },
+  {
+    id: "talkback",
+    label: "Talkback",
+    source: "IFB",
+    meterLevel: 0.32,
+    tone: "amber",
+    muted: true,
+  },
+]
+
+function getAudioPanelStatus(systemPressure: SystemPressureState): string {
+  if (systemPressure === "critical") return "IFB Priority"
+  if (systemPressure === "watch") return "Monitor Return"
+  return "Bus Safe"
+}
+
+function getAudioPanelTone(systemPressure: SystemPressureState): "safe" | "warning" | "preview" {
+  if (systemPressure === "critical") return "warning"
+  if (systemPressure === "watch") return "preview"
+  return "safe"
+}
+
+function getMasterActiveBars(channels: AudioMixerChannel[]): number {
+  const audibleChannels = channels.filter((channel) => !channel.muted)
+  const averageMeterLevel = audibleChannels.length > 0
+    ? audibleChannels.reduce((total, channel) => total + channel.meterLevel, 0) / audibleChannels.length
+    : 0
+
+  return Math.max(0, Math.min(18, Math.round(averageMeterLevel * 18)))
+}
+
+function getCueTypeIcon(type: string): typeof Clapperboard {
+  if (type === "Media") return PlayCircle
+  if (type === "Audience") return Users
+  if (type === "Check") return ShieldCheck
+  return Clapperboard
+}
+
+function getCueToneClassName(tone: string): string {
+  if (tone === "safe") return "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/58"
+  if (tone === "preview") return "border-sky-300/14 bg-sky-400/8 text-sky-100/58"
+  if (tone === "warning") return "border-amber-300/18 bg-amber-400/10 text-amber-100/72"
+  return "border-white/8 bg-black/20 text-white/42"
+}
+
+function getConfidenceTone(severity: ConfidenceSeverity): "safe" | "warning" | "danger" {
+  if (severity === "critical") return "danger"
+  if (severity === "warning" || severity === "watch") return "warning"
+  return "safe"
+}
+
+function getIfbTone(state: IFBChannelState): "safe" | "preview" | "warning" | "danger" {
+  if (state === "priority") return "warning"
+  if (state === "muted" || state === "cough") return "danger"
+  return "safe"
+}
+
+function getRundownStateTone(state: RundownCueState): "safe" | "warning" | "preview" | "danger" | "neutral" {
+  if (state === "live") return "safe"
+  if (state === "next") return "warning"
+  if (state === "standby") return "preview"
+  if (state === "blocked") return "danger"
+  return "neutral"
+}
 
 function ShortcutKey({
   shortcut,
@@ -165,97 +571,47 @@ function CommandSafetyStrip({
       : "Program Safe"
 
   return (
-    <div className="mb-3 rounded-[22px] border border-white/8 bg-black/22 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/42">
-          <LockKeyhole size={12} className={previewProgramDifferent ? "text-amber-200/70" : "text-emerald-200/70"} />
-          {label}
-        </div>
-
-        <div className="rounded-full border border-white/10 bg-white/[0.035] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
-          {selectedTransitionDurationMs ?? 600}ms Transport
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function MiniStatusPill({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string
-  value: string
-  tone?: "neutral" | "green" | "violet" | "amber"
-}): JSX.Element {
-  const toneClass =
-    tone === "green"
-      ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
-      : tone === "violet"
-        ? "border-violet-300/14 bg-violet-400/8 text-violet-100/62"
-        : tone === "amber"
-          ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
-          : "border-white/10 bg-black/24 text-white/42"
-
-  return (
-    <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
-      <span className="text-white/28">{label}</span>{" "}
-      <span>{value}</span>
-    </div>
-  )
-}
-
-function AudioControlButton({
-  label,
-  active = false,
-  tone = "neutral",
-}: {
-  label: string
-  active?: boolean
-  tone?: "neutral" | "green" | "amber" | "red"
-}): JSX.Element {
-  const activeClass =
-    tone === "green"
-      ? "border-emerald-300/24 bg-emerald-400/12 text-emerald-100/72"
-      : tone === "amber"
-        ? "border-amber-300/24 bg-amber-400/12 text-amber-100/72"
-        : tone === "red"
-          ? "border-red-300/24 bg-red-400/12 text-red-100/72"
-          : "border-white/14 bg-white/[0.06] text-white/62"
-
-  return (
-    <button
-      type="button"
-      className={[
-        "rounded-lg border px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.1em] transition hover:-translate-y-0.5 active:translate-y-0",
-        active ? activeClass : "border-white/8 bg-black/22 text-white/30 hover:border-white/14 hover:bg-white/[0.04]",
-      ].join(" ")}
-    >
-      {label}
-    </button>
+    <CompactStatusGrid
+      className="mb-3"
+      columnsClassName="grid-cols-2"
+      items={[
+        {
+          label: "Command State",
+          value: label,
+          tone: takeBusy ? "danger" : previewProgramDifferent ? "warning" : "safe",
+        },
+        {
+          label: "Transport",
+          value: `${selectedTransitionDurationMs ?? 600}ms`,
+          tone: "neutral",
+        },
+      ]}
+    />
   )
 }
 
 function AudioChannelStrip({
   label,
-  value,
-  bars,
+  source,
+  meterLevel,
   tone = "green",
   muted = false,
   solo = false,
   pfl = false,
 }: {
   label: string
-  value: string
-  bars: number
-  tone?: "green" | "sky" | "amber" | "violet"
+  source: string
+  meterLevel: number
+  tone?: AudioMixerTone
   muted?: boolean
   solo?: boolean
   pfl?: boolean
 }): JSX.Element {
+  const [channelMuted, setChannelMuted] = useState(muted)
+  const [channelSolo, setChannelSolo] = useState(solo)
+  const [channelPfl, setChannelPfl] = useState(pfl)
   const meterClass =
-    muted
+    channelMuted
       ? "bg-white/10"
       : tone === "sky"
         ? "bg-sky-300 shadow-[0_0_8px_rgba(125,211,252,0.55)]"
@@ -265,6 +621,11 @@ function AudioChannelStrip({
             ? "bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.55)]"
             : "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.55)]"
 
+  const meterBars = channelMuted
+    ? 0
+    : Math.max(0, Math.min(14, Math.round(meterLevel * 14)))
+  const faderHeight = channelMuted ? 18 : Math.max(20, meterBars * 6)
+
   return (
     <div className="rounded-[22px] border border-white/8 bg-black/20 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
       <div className="mb-2 flex items-center justify-between gap-2">
@@ -273,23 +634,23 @@ function AudioChannelStrip({
             {label}
           </div>
           <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
-            {value}
+            {source}
           </div>
         </div>
 
         <div
           className={[
             "rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em]",
-            muted
+            channelMuted
               ? "border-red-300/14 bg-red-400/8 text-red-100/52"
-              : solo
+              : channelSolo
                 ? "border-amber-300/14 bg-amber-400/8 text-amber-100/58"
-                : pfl
+                : channelPfl
                   ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/58"
                   : "border-white/8 bg-black/28 text-white/34",
           ].join(" ")}
         >
-          {muted ? "Mute" : solo ? "Solo" : pfl ? "PFL" : "On"}
+          {channelMuted ? "Mute" : channelSolo ? "Solo" : channelPfl ? "PFL" : "On"}
         </div>
       </div>
 
@@ -298,111 +659,127 @@ function AudioChannelStrip({
           {Array.from({ length: 14 }).map((_, index) => (
             <div
               key={`${label}-${index}`}
-              className={`flex-1 rounded-full ${index < bars ? meterClass : "bg-white/8"}`}
+              className={`flex-1 rounded-full ${index < meterBars ? meterClass : "bg-white/8"}`}
               style={{ height: `${Math.max(12, (index + 1) * 6)}%` }}
             />
           ))}
         </div>
 
         <div className="flex flex-col justify-between rounded-full border border-white/8 bg-black/24 p-1">
-          <div className="rounded-full bg-white/16" style={{ height: `${Math.max(20, bars * 6)}%` }} />
+          <div className="rounded-full bg-white/16" style={{ height: `${faderHeight}%` }} />
         </div>
       </div>
 
-      <div className="mt-2 flex items-center justify-between gap-2 rounded-xl border border-white/8 bg-black/18 px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/28">
-        <span>Route</span>
-        <span className={muted ? "text-red-100/48" : "text-emerald-100/52"}>
-          {muted ? "Cut" : "Program"}
-        </span>
-      </div>
+      <CompactStatusGrid
+        className="mt-2"
+        columnsClassName="grid-cols-1"
+        items={[
+          {
+            label: "Route",
+            value: channelMuted ? "Cut" : channelSolo ? "Solo Bus" : "Program",
+            tone: channelMuted ? "danger" : channelSolo ? "warning" : "safe",
+          },
+        ]}
+      />
 
       <div className="mt-2 grid grid-cols-3 gap-1">
-        <AudioControlButton label="M" active={muted} tone="red" />
-        <AudioControlButton label="S" active={solo} tone="amber" />
-        <AudioControlButton label="PFL" active={pfl} tone="green" />
+        <CommandActionButton
+          tone={channelMuted ? "danger" : "muted"}
+          onClick={() => setChannelMuted((current) => !current)}
+          className="px-1.5 py-1 text-[7px]"
+        >
+          M
+        </CommandActionButton>
+        <CommandActionButton
+          tone={channelSolo ? "warning" : "muted"}
+          onClick={() => setChannelSolo((current) => !current)}
+          className="px-1.5 py-1 text-[7px]"
+        >
+          S
+        </CommandActionButton>
+        <CommandActionButton
+          tone={channelPfl ? "safe" : "muted"}
+          onClick={() => setChannelPfl((current) => !current)}
+          className="px-1.5 py-1 text-[7px]"
+        >
+          PFL
+        </CommandActionButton>
       </div>
     </div>
   )
 }
 
-function MonitorBusStrip(): JSX.Element {
-  const buses = [
-    { label: "PGM", value: "Open", tone: "green" },
-    { label: "IFB", value: "Routed", tone: "violet" },
-    { label: "TBK", value: "Safe", tone: "amber" },
-    { label: "PBK", value: "Standby", tone: "neutral" },
-    { label: "CONF", value: "Live", tone: "sky" },
-  ] as const
+function MonitorBusStrip({
+  systemPressure = "stable",
+}: {
+  systemPressure?: SystemPressureState
+}): JSX.Element {
+  const [producerOverrideActive, setProducerOverrideActive] = useState(false)
+  const pressureOverrideActive = systemPressure === "critical"
+  const effectiveOverrideActive = producerOverrideActive || pressureOverrideActive
+
+  const channels = IFB_CHANNELS.map((channel) =>
+    effectiveOverrideActive
+      ? {
+          ...channel,
+          state: channel.type === "producer" ? "priority" : channel.state,
+          route: channel.type === "producer" ? "All Talent" : channel.route,
+        }
+      : channel
+  )
 
   return (
     <div className="mb-3 rounded-[22px] border border-white/8 bg-black/22 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="mb-2 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/38">
-          <Headphones size={12} />
-          Monitor Bus
-        </div>
+      <SurfaceHeader
+        eyebrow="Operator Cue"
+        title="IFB + Monitor Bus"
+        status={
+          pressureOverrideActive
+            ? "Pressure Override"
+            : producerOverrideActive
+            ? "Producer Override"
+            : systemPressure === "watch"
+            ? "Watch Cue"
+            : "Routed"
+        }
+        tone={
+          effectiveOverrideActive
+            ? "warning"
+            : systemPressure === "watch"
+            ? "preview"
+            : "preview"
+        }
+        icon={Headphones}
+        className="mb-2"
+      />
 
-        <div className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-white/34">
-          Operator Cue
-        </div>
+      <div className="mb-2 grid grid-cols-2 gap-1.5">
+        <CommandActionButton
+          tone={effectiveOverrideActive ? "warning" : "muted"}
+          onClick={() => setProducerOverrideActive((current) => !current)}
+          disabled={pressureOverrideActive}
+          className="px-2 py-1.5 text-[8px]"
+        >
+          {pressureOverrideActive ? "Pressure Override" : "Producer Override"}
+        </CommandActionButton>
+        <CommandActionButton
+          tone={pressureOverrideActive ? "muted" : "safe"}
+          onClick={() => setProducerOverrideActive(false)}
+          disabled={pressureOverrideActive}
+          className="px-2 py-1.5 text-[8px]"
+        >
+          {pressureOverrideActive ? "Locked" : "Clear IFB"}
+        </CommandActionButton>
       </div>
 
-      <div className="grid grid-cols-5 gap-1.5">
-        {buses.map((bus) => {
-          const toneClass =
-            bus.tone === "green"
-              ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
-              : bus.tone === "violet"
-                ? "border-violet-300/14 bg-violet-400/8 text-violet-100/62"
-                : bus.tone === "amber"
-                  ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
-                  : bus.tone === "sky"
-                    ? "border-sky-300/14 bg-sky-400/8 text-sky-100/62"
-                    : "border-white/10 bg-black/24 text-white/42"
-
-          return (
-            <div
-              key={bus.label}
-              className={`rounded-2xl border px-1.5 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${toneClass}`}
-            >
-              <div className="text-[8px] font-black uppercase tracking-[0.12em] opacity-70">
-                {bus.label}
-              </div>
-              <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/48">
-                {bus.value}
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-function StatCard({
-  label,
-  value,
-  tone = "neutral",
-}: {
-  label: string
-  value: string
-  tone?: "neutral" | "green" | "red" | "blue"
-}): JSX.Element {
-  const toneClass =
-    tone === "green"
-      ? "border-emerald-300/18 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.14),transparent_38%),rgba(52,211,153,0.06)] text-emerald-100"
-      : tone === "red"
-        ? "border-red-300/18 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.14),transparent_38%),rgba(239,68,68,0.06)] text-red-100"
-        : tone === "blue"
-          ? "border-sky-300/18 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.14),transparent_38%),rgba(56,189,248,0.06)] text-sky-100"
-          : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.016))] text-white"
-
-  return (
-    <div className={`rounded-[22px] border px-3 py-2.5 shadow-[0_16px_45px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:-translate-y-0.5 ${toneClass}`}>
-      <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/34">
-        {label}
-      </div>
-      <div className="mt-1 text-base font-semibold tracking-tight">{value}</div>
+      <CompactStatusGrid
+        columnsClassName="grid-cols-4"
+        items={channels.map((channel) => ({
+          label: channel.label,
+          value: `${channel.state} · ${channel.route}`,
+          tone: getIfbTone(channel.state),
+        }))}
+      />
     </div>
   )
 }
@@ -450,34 +827,23 @@ export function CommandSurfaceHeader({
   isLive: boolean
 }): JSX.Element {
   return (
-    <div className="rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.014))] px-3 py-2 shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.035)]">
+    <PanelCard variant="elevated" className="px-3 py-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/42">
-          <Zap size={14} className="text-violet-100/70" />
-          Master Control Surface
-        </div>
+        <SurfaceHeader
+          eyebrow="Master Control Surface"
+          title="Broadcast Command Deck"
+          status="Stable"
+          tone="safe"
+          icon={Zap}
+        />
 
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/55">
-            <ShieldCheck size={12} className="text-emerald-200/70" /> Stable
-          </span>
-
-          <span
-            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] ${
-              isLive
-                ? "border-red-300/25 bg-red-500/12 text-red-100"
-                : "border-white/10 bg-black/30 text-white/50"
-            }`}
-          >
-            <CircleDot
-              size={12}
-              className={isLive ? "animate-pulse text-red-300" : "text-white/30"}
-            />
-            {isLive ? "Live Feed" : "Standby"}
-          </span>
-        </div>
+        <StatusPill
+          label={isLive ? "Live Feed" : "Standby"}
+          tone={isLive ? "live" : "muted"}
+          pulse={isLive}
+        />
       </div>
-    </div>
+    </PanelCard>
   )
 }
 
@@ -489,7 +855,7 @@ export function ActiveSessionCard({
   runtimeLabel: string
 }): JSX.Element {
   return (
-    <div className="rounded-[24px] border border-amber-200/12 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.08),transparent_36%),rgba(0,0,0,0.26)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_0_30px_rgba(251,191,36,0.045)]">
+    <PanelCard variant="critical" className="border-amber-200/12 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.08),transparent_36%),rgba(0,0,0,0.26)]">
       <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-white/34">
         <Radio size={13} />
         Active Program
@@ -517,7 +883,7 @@ export function ActiveSessionCard({
           {runtimeLabel}
         </span>
       </div>
-    </div>
+    </PanelCard>
   )
 }
 
@@ -573,13 +939,21 @@ export function TelemetryStrip({
       <div className="relative grid gap-2.5 xl:grid-cols-[230px_minmax(0,1fr)_150px]">
         <ActiveSessionCard isLive={isLive} runtimeLabel={runtimeLabel} />
 
-        <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-6">
-          <StatCard label="Stream Health" value="Excellent" tone="green" />
-          <StatCard label="Recording" value="Active" tone="red" />
-          <StatCard label="Audience" value={String(audienceCount)} tone="blue" />
-          <StatCard label="On Stage" value={String(onStageCount)} tone="neutral" />
-          <MeterCard label="GPU" value="74%" bars={9} tone="sky" />
-          <MeterCard label="Signal" value="-6 dB" bars={8} tone="emerald" />
+        <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.55fr)]">
+          <CompactStatusGrid
+            columnsClassName="sm:grid-cols-2 xl:grid-cols-4"
+            items={[
+              { label: "Stream Health", value: "Excellent", tone: "safe" },
+              { label: "Recording", value: "Active", tone: "danger" },
+              { label: "Audience", value: String(audienceCount), tone: "preview" },
+              { label: "On Stage", value: String(onStageCount), tone: "neutral" },
+            ]}
+          />
+
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+            <MeterCard label="GPU" value="74%" bars={9} tone="sky" />
+            <MeterCard label="Signal" value="-6 dB" bars={8} tone="emerald" />
+          </div>
         </div>
 
         <div className="flex min-w-0 flex-col gap-2 rounded-[24px] border border-white/10 bg-black/24 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
@@ -605,7 +979,19 @@ export function ControlStagePanel({
   onTake,
   selectedTransitionType,
   selectedTransitionDurationMs,
+  systemPressure = "stable",
+  rundownMode = "rehearsal",
 }: ControlStagePanelProps): JSX.Element {
+  const transportStatus =
+    systemPressure === "critical"
+      ? "Hold Recommended"
+      : previewProgramDifferent
+        ? rundownMode === "live"
+          ? "Live Armed"
+          : "Preview Armed"
+        : "Program Matched"
+  const takeDisabled = takeBusy || !previewProgramDifferent || systemPressure === "critical"
+
   return (
     <PanelCard>
       <CommandSafetyStrip
@@ -613,58 +999,58 @@ export function ControlStagePanel({
         takeBusy={takeBusy}
         selectedTransitionDurationMs={selectedTransitionDurationMs}
       />
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-          Program Transport
-        </div>
-
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
-            previewProgramDifferent
-              ? "border-amber-300/35 bg-amber-400/14 text-amber-100/90 shadow-[0_0_16px_rgba(251,191,36,0.16)]"
-              : "border-emerald-300/22 bg-emerald-400/10 text-emerald-100/75"
-          }`}
-        >
-          <span
-            className={`h-1.5 w-1.5 rounded-full ${
-              previewProgramDifferent
-                ? "animate-pulse bg-amber-300 shadow-[0_0_9px_rgba(252,211,77,0.9)]"
-                : "bg-emerald-300/70 shadow-[0_0_7px_rgba(110,231,183,0.55)]"
-            }`}
-          />
-          {previewProgramDifferent ? "Armed" : "Matched"}
-        </span>
-      </div>
+      <SurfaceHeader
+        eyebrow="Director Surface"
+        title="Program Transport"
+        status={transportStatus}
+        tone={
+          systemPressure !== "stable"
+            ? getSystemPressureTone(systemPressure)
+            : previewProgramDifferent
+              ? "warning"
+              : "safe"
+        }
+        icon={Zap}
+        className="mb-3"
+      />
 
       <div className="grid grid-cols-3 gap-2">
-        <PrimaryTakeButton
-          onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
-          disabled={takeBusy || !previewProgramDifferent}
-          isTaking={takeBusy}
-        />
+        <div className={previewProgramDifferent && systemPressure !== "critical" ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
+          <PrimaryTakeButton
+            onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
+            disabled={takeDisabled}
+            isTaking={takeBusy}
+          />
+        </div>
 
-        <CommandButton
+        <CommandActionButton
+          tone={systemPressure === "critical" ? "muted" : "danger"}
           onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
-          disabled={takeBusy || !previewProgramDifferent}
-          className="border-red-300/28 bg-[linear-gradient(180deg,rgba(239,68,68,0.16),rgba(127,29,29,0.18))] text-red-100 hover:border-red-300/40 hover:bg-red-500/18 hover:shadow-[0_0_20px_rgba(248,113,113,0.16)]"
+          disabled={takeDisabled}
           title="Cut preview to program (C)"
         >
           Cut
-        </CommandButton>
+        </CommandActionButton>
 
-        <CommandButton
+        <CommandActionButton
+          tone={systemPressure === "critical" ? "muted" : "preview"}
           onClick={() => onTake("auto", selectedTransitionType, selectedTransitionDurationMs)}
-          disabled={takeBusy || !previewProgramDifferent}
-          className="border-emerald-300/28 bg-[linear-gradient(180deg,rgba(16,185,129,0.15),rgba(6,78,59,0.18))] text-emerald-100 hover:border-emerald-300/40 hover:bg-emerald-500/18 hover:shadow-[0_0_20px_rgba(52,211,153,0.16)]"
+          disabled={takeDisabled}
           title="Auto take preview to program (A)"
         >
           Auto
-        </CommandButton>
+        </CommandActionButton>
       </div>
 
-      {previewProgramDifferent ? (
+      {systemPressure === "critical" ? (
+        <div className="mt-3 rounded-2xl border border-red-300/14 bg-red-400/8 px-3 py-2 text-xs font-medium text-red-100/74 shadow-[0_0_18px_rgba(239,68,68,0.10)]">
+          Confidence path degraded. Hold TAKE unless the producer explicitly confirms recovery.
+        </div>
+      ) : previewProgramDifferent ? (
         <div className="mt-3 text-xs font-medium text-amber-100/80">
-          Preview is armed. Operator may CUT or AUTO the look to Program.
+          {rundownMode === "live"
+            ? "Live Locked mode is armed. CUT and AUTO now represent production-critical actions."
+            : "Preview is armed. Operator may CUT or AUTO the look to Program."}
         </div>
       ) : (
         <div className="mt-3 text-xs text-white/42">
@@ -694,6 +1080,16 @@ export function CommandDeckStyles(): JSX.Element {
         100% {
           opacity: 0;
           transform: translateY(-8px) scale(0.992);
+        }
+      }
+
+      @keyframes takeReadyPulse {
+        0%,
+        100% {
+          box-shadow: 0 0 0 rgba(251, 191, 36, 0);
+        }
+        50% {
+          box-shadow: 0 0 24px rgba(251, 191, 36, 0.18);
         }
       }
 
@@ -728,6 +1124,54 @@ export function CommandDeckStyles(): JSX.Element {
         }
       }
 
+      @keyframes surfaceFocusSweep {
+        0% {
+          transform: translateX(-125%) skewX(-12deg);
+          opacity: 0;
+        }
+        22% {
+          opacity: 1;
+        }
+        100% {
+          transform: translateX(125%) skewX(-12deg);
+          opacity: 0;
+        }
+      }
+
+      @keyframes surfaceReveal {
+        0% {
+          opacity: 0;
+          transform: translateY(-6px) scale(0.992);
+        }
+        100% {
+          opacity: 1;
+          transform: translateY(0) scale(1);
+        }
+      }
+
+      @keyframes missionPressureSweep {
+        0%,
+        100% {
+          transform: translateX(-30%);
+          opacity: 0.2;
+        }
+
+        50% {
+          transform: translateX(30%);
+          opacity: 0.9;
+        }
+      }
+
+      @keyframes criticalSurfacePulse {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(239, 68, 68, 0.06);
+        }
+        50% {
+          box-shadow: 0 0 34px rgba(239, 68, 68, 0.14);
+        }
+      }
+
       @keyframes telemetryBlink {
         0%,
         100% {
@@ -742,6 +1186,7 @@ export function CommandDeckStyles(): JSX.Element {
     `}</style>
   )
 }
+
 export function TransitionPanel({
   selectedTransitionType,
   onTransitionTypeChange,
@@ -750,51 +1195,40 @@ export function TransitionPanel({
 }: TransitionModeControlProps): JSX.Element {
   return (
     <PanelCard className="border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.11),transparent_38%),rgba(0,0,0,0.24)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_0_34px_rgba(168,85,247,0.055)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-          <Activity size={14} />
-          Transition Bank
-        </div>
-
-        <div className="flex items-center gap-1.5 rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/54">
-          <TimerReset size={10} />
-          Timed
-        </div>
-      </div>
+      <SurfaceHeader
+        eyebrow="Motion Control"
+        title="Transition Bank"
+        status="Timed"
+        tone="preview"
+        icon={Activity}
+        className="mb-3"
+      />
 
       <div className="grid grid-cols-3 gap-2">
         {TRANSITION_OPTIONS.map((item) => {
           const isSelected = selectedTransitionType === item.value
 
           return (
-            <CommandButton
+            <CommandActionButton
               key={item.value}
+              tone={isSelected ? "preview" : "muted"}
               onClick={() => onTransitionTypeChange(item.value)}
-              className={
-                isSelected
-                  ? "border-violet-300/42 bg-violet-400/18 text-[10px] text-violet-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.09),0_0_22px_rgba(168,85,247,0.18)] active:scale-[0.98]"
-                  : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.022))] text-[10px] text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_10px_22px_rgba(0,0,0,0.18)] hover:border-violet-200/22 hover:bg-violet-400/10 hover:text-violet-100 active:scale-[0.98]"
-              }
+              className={isSelected ? "shadow-[0_0_22px_rgba(168,85,247,0.18)]" : ""}
             >
               {item.label}
-            </CommandButton>
+            </CommandActionButton>
           )
         })}
       </div>
 
-      <div className="mt-3 rounded-2xl border border-white/10 bg-black/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
-            Armed transition: <span className="text-violet-100/80">{selectedTransitionType}</span>
-          </div>
-
-          <MiniStatusPill
-            label="Duration"
-            value={`${selectedTransitionDurationMs ?? 600}ms`}
-            tone="violet"
-          />
-        </div>
-      </div>
+      <CompactStatusGrid
+        className="mt-3"
+        columnsClassName="grid-cols-2"
+        items={[
+          { label: "Armed Transition", value: selectedTransitionType, tone: "preview" },
+          { label: "Duration", value: `${selectedTransitionDurationMs ?? 600}ms`, tone: "preview" },
+        ]}
+      />
 
       <div className="mt-3 rounded-2xl border border-white/10 bg-black/24 p-1.5">
         <div className="mb-1.5 flex items-center justify-between px-1">
@@ -811,19 +1245,14 @@ export function TransitionPanel({
             const active = (selectedTransitionDurationMs ?? 600) === duration
 
             return (
-              <button
+              <CommandActionButton
                 key={duration}
-                type="button"
+                tone={active ? "preview" : "muted"}
                 onClick={() => onTransitionDurationChange?.(duration)}
-                className={[
-                  "rounded-lg border px-1 py-1 text-[8px] font-black uppercase tracking-[0.08em] transition",
-                  active
-                    ? "border-violet-300/30 bg-violet-400/12 text-violet-100/80 shadow-[0_0_12px_rgba(168,85,247,0.12)]"
-                    : "border-white/10 bg-white/[0.035] text-white/45 hover:border-violet-200/20 hover:bg-violet-400/8 hover:text-violet-100/65",
-                ].join(" ")}
+                className="px-1 py-1 text-[8px]"
               >
                 {duration}
-              </button>
+              </CommandActionButton>
             )
           })}
         </div>
@@ -832,99 +1261,127 @@ export function TransitionPanel({
   )
 }
 
-export function AudioMixerPanel(): JSX.Element {
+export function AudioMixerPanel({
+  systemPressure = "stable",
+}: {
+  systemPressure?: SystemPressureState
+}): JSX.Element {
+  const audioStatus = getAudioPanelStatus(systemPressure)
+  const audioTone = getAudioPanelTone(systemPressure)
+  const masterActiveBars = getMasterActiveBars(AUDIO_MIXER_CHANNELS)
+
   return (
     <PanelCard className="border-emerald-300/14 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.13),transparent_38%),rgba(52,211,153,0.045)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-          <AudioLines size={14} />
-          Audio Program Mixer
+      <SurfaceHeader
+        eyebrow="Broadcast Audio"
+        title="Audio Program Mixer"
+        status={audioStatus}
+        tone={audioTone}
+        icon={AudioLines}
+        className="mb-3"
+      />
+
+      <CompactStatusGrid
+        className="mb-3"
+        columnsClassName="grid-cols-3"
+        items={[
+          {
+            label: "Master",
+            value: systemPressure === "critical" ? "Hold" : "-6 dB",
+            tone: systemPressure === "critical" ? "warning" : "safe",
+          },
+          {
+            label: "Limit",
+            value: systemPressure === "critical" ? "Protected" : "Safe",
+            tone: "safe",
+          },
+          {
+            label: "IFB",
+            value: systemPressure === "critical" ? "Priority" : "Open",
+            tone: systemPressure === "critical" ? "warning" : "preview",
+          },
+        ]}
+      />
+
+      <CompactStatusGrid
+        className="mb-3"
+        columnsClassName="grid-cols-2"
+        items={[
+          { label: "Program Bus", value: "Open", tone: "safe" },
+          { label: "Confidence", value: "Routed", tone: "preview" },
+        ]}
+      />
+
+      {systemPressure !== "stable" ? (
+        <div className="mb-3 rounded-[22px] border border-amber-300/14 bg-amber-400/8 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <SurfaceHeader
+            eyebrow="Audio Recovery"
+            title={systemPressure === "critical" ? "Hold Talent Cue" : "Monitor Cue Path"}
+            status={systemPressure === "critical" ? "Priority" : "Watch"}
+            tone={systemPressure === "critical" ? "warning" : "preview"}
+            icon={Headphones}
+            className="mb-2"
+          />
+          <CompactStatusGrid
+            columnsClassName="grid-cols-3"
+            items={[
+              {
+                label: "Talent",
+                value: systemPressure === "critical" ? "Hold" : "Standby",
+                tone: systemPressure === "critical" ? "warning" : "safe",
+              },
+              {
+                label: "Talkback",
+                value: systemPressure === "critical" ? "Priority Ready" : "Muted",
+                tone: systemPressure === "critical" ? "warning" : "neutral",
+              },
+              {
+                label: "Program Audio",
+                value: "Protected",
+                tone: "safe",
+              },
+            ]}
+          />
         </div>
+      ) : null}
 
-        <div className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/14 bg-emerald-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-100/58">
-          <ShieldCheck size={10} />
-          Bus Safe
-        </div>
-      </div>
-
-      <div className="mb-3 grid grid-cols-3 gap-2">
-        <MiniStatusPill label="Master" value="-6 dB" tone="green" />
-        <MiniStatusPill label="Limit" value="Safe" tone="green" />
-        <MiniStatusPill label="IFB" value="Open" tone="violet" />
-      </div>
-
-      <div className="mb-3 grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-emerald-300/12 bg-emerald-400/8 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.16em] text-emerald-100/54">
-            <Volume2 size={11} />
-            Program Bus
-          </div>
-          <div className="mt-1 text-sm font-semibold text-white/82">Open</div>
-        </div>
-
-        <div className="rounded-2xl border border-violet-300/12 bg-violet-400/8 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/54">
-            <Headphones size={11} />
-            Confidence
-          </div>
-          <div className="mt-1 text-sm font-semibold text-white/82">Routed</div>
-        </div>
-      </div>
-
-      <MonitorBusStrip />
+      <MonitorBusStrip systemPressure={systemPressure} />
 
       <div className="grid grid-cols-2 gap-2">
-        <AudioChannelStrip
-          label="Host"
-          value="Mic 1"
-          bars={11}
-          tone="green"
-          pfl
-        />
-        <AudioChannelStrip
-          label="Guest"
-          value="Mic 2"
-          bars={8}
-          tone="sky"
-          pfl
-        />
-        <AudioChannelStrip
-          label="Media"
-          value="Playback"
-          bars={9}
-          tone="violet"
-        />
-        <AudioChannelStrip
-          label="Talkback"
-          value="IFB"
-          bars={5}
-          tone="amber"
-          muted
-        />
+        {AUDIO_MIXER_CHANNELS.map((channel) => (
+          <AudioChannelStrip
+            key={channel.id}
+            label={channel.label}
+            source={channel.source}
+            meterLevel={channel.meterLevel}
+            tone={channel.tone}
+            muted={channel.muted}
+            solo={channel.solo}
+            pfl={channel.pfl}
+          />
+        ))}
       </div>
 
       <div className="mt-3 rounded-[22px] border border-white/8 bg-black/22 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        <div className="mb-2 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/38">
-            <Mic2 size={12} />
-            Master Output
-          </div>
-
-          <div className="flex items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-emerald-100/56">
-            <VolumeX size={9} />
-            No Clipping
-          </div>
-        </div>
-
+        <SurfaceHeader
+          eyebrow="Program Mix"
+          title="Master Output"
+          status="No Clipping"
+          tone="safe"
+          icon={Mic2}
+          className="mb-2"
+        />
         <LevelMeter
           length={18}
-          activeBars={13}
+          activeBars={masterActiveBars}
           getBarClassName={(index) =>
-            index > 15
-              ? "bg-red-300 shadow-[0_0_8px_rgba(252,165,165,0.55)]"
-              : index > 12
-                ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.5)]"
-                : "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.5)]"
+            index >= masterActiveBars
+              ? "bg-white/8"
+              : index > 15
+                ? "bg-red-300 shadow-[0_0_8px_rgba(252,165,165,0.55)]"
+                : index > 12
+                  ? "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.5)]"
+                  : "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.5)]"
           }
         />
       </div>
@@ -932,21 +1389,119 @@ export function AudioMixerPanel(): JSX.Element {
   )
 }
 
+export function BroadcastRoutingPanel({
+  confidenceScenario = "stable",
+  onConfidenceScenarioChange,
+}: {
+  confidenceScenario?: SystemPressureState
+  onConfidenceScenarioChange?: (scenario: SystemPressureState) => void
+}): JSX.Element {
+  const setConfidenceScenario = onConfidenceScenarioChange ?? (() => undefined)
 
-export function BroadcastRoutingPanel(): JSX.Element {
+  const confidenceMetrics = CONFIDENCE_MONITORING_METRICS.map((metric) => {
+    if (confidenceScenario === "critical") {
+      if (metric.type === "latency") return { ...metric, value: "412ms", severity: "critical" as ConfidenceSeverity }
+      if (metric.type === "packet_loss") return { ...metric, value: "4.8%", severity: "critical" as ConfidenceSeverity }
+      if (metric.type === "return_feed") return { ...metric, value: "Unstable", severity: "warning" as ConfidenceSeverity }
+    }
+
+    if (confidenceScenario === "watch") {
+      if (metric.type === "latency") return { ...metric, value: "168ms", severity: "watch" as ConfidenceSeverity }
+      if (metric.type === "packet_loss") return { ...metric, value: "1.1%", severity: "watch" as ConfidenceSeverity }
+    }
+
+    return metric
+  })
+
+  const confidenceStatus =
+    confidenceScenario === "critical"
+      ? "Route Warning"
+      : confidenceScenario === "watch"
+        ? "Watch Return"
+        : "Matrix Safe"
+
+  const confidenceTone = getSystemPressureTone(confidenceScenario)
+
   return (
     <PanelCard className="border-sky-300/12 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_38%),rgba(56,189,248,0.035)]">
-      <div className="mb-3 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-        <span className="inline-flex items-center gap-2">
-          <Route size={14} />
-          Routing + Confidence
-        </span>
-        <StatusPill label="Matrix" value="Safe" tone="safe" />
+      <SurfaceHeader
+        eyebrow="Transmission"
+        title="Routing + Confidence"
+        status={confidenceStatus}
+        tone={confidenceTone}
+        icon={Route}
+        className="mb-3"
+      />
+
+      <div className="mb-3 grid grid-cols-3 gap-1.5">
+        <CommandActionButton
+          tone={confidenceScenario === "stable" ? "safe" : "muted"}
+          onClick={() => setConfidenceScenario("stable")}
+          className="px-2 py-1.5 text-[8px]"
+        >
+          Stable
+        </CommandActionButton>
+        <CommandActionButton
+          tone={confidenceScenario === "watch" ? "warning" : "muted"}
+          onClick={() => setConfidenceScenario("watch")}
+          className="px-2 py-1.5 text-[8px]"
+        >
+          Watch
+        </CommandActionButton>
+        <CommandActionButton
+          tone={confidenceScenario === "critical" ? "danger" : "muted"}
+          onClick={() => setConfidenceScenario("critical")}
+          className="px-2 py-1.5 text-[8px]"
+        >
+          Critical
+        </CommandActionButton>
       </div>
+
+      <CompactStatusGrid
+        className="mb-3"
+        items={confidenceMetrics.map((metric) => ({
+          label: metric.label,
+          value: metric.value,
+          tone: getConfidenceTone(metric.severity),
+        }))}
+      />
+
+      {confidenceScenario !== "stable" ? (
+        <div className="mb-3 rounded-[22px] border border-amber-300/14 bg-amber-400/8 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <SurfaceHeader
+            eyebrow="Recovery Workflow"
+            title="Producer Hold Recommended"
+            status={confidenceScenario === "critical" ? "Priority" : "Advisory"}
+            tone={confidenceScenario === "critical" ? "warning" : "preview"}
+            icon={AlertTriangle}
+            className="mb-2"
+          />
+          <CompactStatusGrid
+            columnsClassName="grid-cols-3"
+            items={[
+              {
+                label: "Action",
+                value: confidenceScenario === "critical" ? "Hold TAKE" : "Monitor",
+                tone: confidenceScenario === "critical" ? "warning" : "preview",
+              },
+              {
+                label: "IFB",
+                value: confidenceScenario === "critical" ? "Priority Ready" : "Standby",
+                tone: confidenceScenario === "critical" ? "warning" : "safe",
+              },
+              {
+                label: "Recovery",
+                value: confidenceScenario === "critical" ? "Confirm Return" : "Watch Path",
+                tone: "safe",
+              },
+            ]}
+          />
+        </div>
+      ) : null}
 
       <div className="mb-3 grid grid-cols-3 gap-1.5">
         <BusBadge label="PGM" active tone="live" />
-        <BusBadge label="CONF" active tone="safe" />
+        <BusBadge label="CONF" active tone={confidenceScenario === "critical" ? "warning" : "safe"} />
         <BusBadge label="IFB" active tone="preview" />
         <BusBadge label="ISO" active tone="warning" />
         <BusBadge label="AUX" />
@@ -959,8 +1514,8 @@ export function BroadcastRoutingPanel(): JSX.Element {
             key={route.source}
             source={route.source}
             destination={route.destination}
-            status={route.status}
-            tone={route.tone}
+            status={route.source === "Confidence Return" && confidenceScenario !== "stable" ? "WATCH" : route.status}
+            tone={route.source === "Confidence Return" && confidenceScenario === "critical" ? "warning" : route.tone}
             icon={route.icon}
           />
         ))}
@@ -969,92 +1524,431 @@ export function BroadcastRoutingPanel(): JSX.Element {
       <div className="mt-3 grid grid-cols-2 gap-2">
         <ConfidenceTile
           label="Return Feed"
-          value="Clean"
-          detail="Program return is stable with confidence audio present."
-          tone="safe"
-          meter={8}
+          value={confidenceScenario === "critical" ? "Unstable" : confidenceScenario === "watch" ? "Watch" : "Clean"}
+          detail={
+            confidenceScenario === "critical"
+              ? "Return feed is drifting. Hold non-essential transitions until the operator confirms recovery."
+              : confidenceScenario === "watch"
+                ? "Return feed remains usable, but latency and packet loss are elevated."
+                : "Program return is stable with confidence audio present."
+          }
+          tone={confidenceScenario === "critical" ? "warning" : confidenceScenario === "watch" ? "warning" : "safe"}
+          meter={confidenceScenario === "critical" ? 3 : confidenceScenario === "watch" ? 5 : 8}
         />
         <ConfidenceTile
           label="Operator Cue"
-          value="IFB Open"
-          detail="Talkback remains muted until explicitly armed."
-          tone="preview"
-          meter={6}
+          value={confidenceScenario === "critical" ? "IFB Priority" : "IFB Open"}
+          detail={
+            confidenceScenario === "critical"
+              ? "Producer override is ready so talent can be held while confidence path recovers."
+              : "Talkback remains muted until explicitly armed."
+          }
+          tone={confidenceScenario === "critical" ? "warning" : "preview"}
+          meter={confidenceScenario === "critical" ? 8 : 6}
         />
       </div>
     </PanelCard>
   )
 }
 
-export function RundownCuePanel(): JSX.Element {
+export function RundownCuePanel({
+  rundownMode: controlledRundownMode,
+  onRundownModeChange,
+}: {
+  rundownMode?: "rehearsal" | "live"
+  onRundownModeChange?: (mode: "rehearsal" | "live") => void
+}): JSX.Element {
+  const [activeCueIndex, setActiveCueIndex] = useState(0)
+  const [internalRundownMode, setInternalRundownMode] = useState<"rehearsal" | "live">("rehearsal")
+  const rundownMode = controlledRundownMode ?? internalRundownMode
+  const currentCue = RUNDOWN_CUES[activeCueIndex] ?? RUNDOWN_CUES[0]
+  const nextCue = RUNDOWN_CUES[activeCueIndex + 1] ?? RUNDOWN_CUES[RUNDOWN_CUES.length - 1]
+  const standbyCue = RUNDOWN_CUES[activeCueIndex + 2] ?? nextCue
+  const canAdvanceCue = activeCueIndex < RUNDOWN_CUES.length - 1
+  const completedCueCount = activeCueIndex
+
+  const advanceRundownCue = (): void => {
+    setActiveCueIndex((current) => Math.min(current + 1, RUNDOWN_CUES.length - 1))
+  }
+
+  const resetRundownCue = (): void => {
+    setActiveCueIndex(0)
+  }
+
+  const toggleRundownMode = (): void => {
+    const nextMode = rundownMode === "rehearsal" ? "live" : "rehearsal"
+    setInternalRundownMode(nextMode)
+    onRundownModeChange?.(nextMode)
+  }
+
+  const totalRuntime = RUNDOWN_CUES.reduce((total, cue) => {
+    const [minutes = "0", seconds = "0"] = cue.duration.split(":")
+    return total + Number(minutes) * 60 + Number(seconds)
+  }, 0)
+  const totalRuntimeLabel = `${Math.floor(totalRuntime / 60)}:${String(totalRuntime % 60).padStart(2, "0")}`
+
+  const liveCue = DEFAULT_RUNDOWN_CUES.find((cue) => cue.state === "live")
+  const typedNextCue = DEFAULT_RUNDOWN_CUES.find((cue) => cue.state === "next")
+  const blockedCueCount = DEFAULT_RUNDOWN_CUES.filter((cue) => cue.state === "blocked").length
+  const rundownProgressLabel = `${completedCueCount}/${RUNDOWN_CUES.length - 1}`
+  const speakerClockLabel = canAdvanceCue ? nextCue.duration : "00:00"
+  const activeSystems: string[] = canAdvanceCue ? [...nextCue.systems] : ["HOLD", "CONF", "ROUTE"]
+  const rehearsalLabel = rundownMode === "rehearsal" ? "Rehearsal" : "Live Locked"
+  const directorNote = canAdvanceCue
+    ? `${rundownMode === "rehearsal" ? "Rehearse" : "Stand by"} ${nextCue.label}. Confirm ${activeSystems.join(", ")} before TAKE. Target ${nextCue.target}.`
+    : "Final cue reached. Hold program until the producer confirms off-air routing."
+  const guardrailCopy = canAdvanceCue
+    ? rundownMode === "rehearsal"
+      ? "Rehearsal mode allows cue walking and operator practice. TAKE remains simulated until Live Locked is enabled."
+      : "Live Locked mode treats rundown actions as production-critical. Scene recall, media rolls, IFB prompts, and attendee routing should remain operator-confirmed."
+    : "End Hold is active. Keep the final program route stable until off-air routing is explicitly confirmed."
+
   return (
-    <PanelCard>
-      <div className="mb-3 flex items-center justify-between gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/38">
-        <span className="inline-flex items-center gap-2">
-          <ClipboardList size={14} />
-          Rundown Sequencer
-        </span>
-        <StatusPill label="Cue Stack" value="Armed" tone="warning" />
-      </div>
+    <PanelCard className="border-amber-300/12 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.11),transparent_36%),rgba(0,0,0,0.23)]">
+      <SurfaceHeader
+        eyebrow="Show Control"
+        title="Rundown Engine"
+        status={canAdvanceCue ? rehearsalLabel : "End Hold"}
+        tone="warning"
+        icon={ClipboardList}
+        className="mb-3"
+      />
+
+      <CompactStatusGrid
+        className="mb-3"
+        columnsClassName="md:grid-cols-4"
+        items={[
+          {
+            label: "Current",
+            value: currentCue.label,
+            tone: "safe",
+          },
+          {
+            label: "Next",
+            value: canAdvanceCue ? nextCue.label : "End Hold",
+            tone: canAdvanceCue ? "warning" : "neutral",
+          },
+          {
+            label: "Mode",
+            value: rehearsalLabel,
+            tone: rundownMode === "live" ? "danger" : "preview",
+          },
+          {
+            label: "Progress",
+            value: blockedCueCount > 0 ? `${rundownProgressLabel} · Blocked ${blockedCueCount}` : rundownProgressLabel,
+            tone: blockedCueCount > 0 ? "danger" : "preview",
+          },
+        ]}
+      />
 
       <div className="mb-3 grid grid-cols-3 gap-2">
         <ConfidenceTile
-          label="Next Cue"
-          value="Host Toss"
-          detail="Stand by camera one and host lower-third."
-          tone="warning"
-          meter={7}
+          label="Current"
+          value={currentCue.label}
+          detail={currentCue.detail}
+          tone="safe"
+          meter={Math.min(10, 6 + activeCueIndex)}
         />
         <ConfidenceTile
-          label="Record"
-          value="Master + ISO"
-          detail="Program and camera isolates are armed."
-          tone="live"
-          meter={9}
+          label="Next Take"
+          value={canAdvanceCue ? nextCue.label : "End Hold"}
+          detail={canAdvanceCue ? nextCue.detail : "No additional cues remain in the active rundown stack."}
+          tone={canAdvanceCue ? "warning" : "muted"}
+          meter={canAdvanceCue ? 7 : 2}
         />
         <ConfidenceTile
-          label="Comms"
-          value="IFB Ready"
-          detail="Presenter cue path is routed but talkback is safe."
+          label="Runtime"
+          value={totalRuntimeLabel}
+          detail={`${completedCueCount} completed · ${Math.max(0, RUNDOWN_CUES.length - completedCueCount - 1)} remaining`}
           tone="preview"
-          meter={6}
+          meter={Math.max(2, 8 - completedCueCount)}
         />
       </div>
 
-      <div className="grid gap-2">
-        {RUNDOWN_CUES.map((cue) => (
-          <div
-            key={cue.code}
-            className="group rounded-[22px] border border-white/8 bg-black/20 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:-translate-y-0.5 hover:border-white/14 hover:bg-white/[0.035]"
-          >
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex min-w-0 gap-2.5">
-                <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-[10px] font-black uppercase tracking-[0.12em] text-white/52">
-                  {cue.code}
+      <div className="mb-3 grid gap-2 md:grid-cols-[1.05fr_0.95fr]">
+        <div className="rounded-[22px] border border-amber-300/14 bg-amber-400/8 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <SurfaceHeader
+            eyebrow="Cue Execution"
+            title="Take Next"
+            status={canAdvanceCue ? nextCue.state : "End Hold"}
+            tone={canAdvanceCue ? nextCue.tone : "muted"}
+            icon={Send}
+            className="mb-2"
+          />
+          <div className="text-lg font-black tracking-tight text-white">{canAdvanceCue ? nextCue.label : "End Hold"}</div>
+          <div className="mt-1 text-[11px] leading-relaxed text-amber-50/58">
+            {canAdvanceCue ? nextCue.detail : "Rundown is complete. Keep program held until final route confirmation."}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {activeSystems.map((system) => (
+              <span
+                key={system}
+                className="rounded-full border border-amber-200/14 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-amber-100/58"
+              >
+                {system}
+              </span>
+            ))}
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            <CommandActionButton
+              tone="muted"
+              onClick={resetRundownCue}
+              className="px-2 py-1.5 text-[8px]"
+            >
+              Reset
+            </CommandActionButton>
+            <CommandActionButton
+              tone={rundownMode === "live" ? "danger" : "safe"}
+              onClick={toggleRundownMode}
+              className="px-2 py-1.5 text-[8px]"
+            >
+              {rundownMode === "live" ? "Live" : "Rehearse"}
+            </CommandActionButton>
+            <CommandActionButton
+              tone={canAdvanceCue ? "warning" : "muted"}
+              disabled={!canAdvanceCue}
+              onClick={advanceRundownCue}
+              className="px-2 py-1.5 text-[8px]"
+            >
+              {rundownMode === "live" ? "Take Live" : "Take Next"}
+            </CommandActionButton>
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-white/8 bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <SurfaceHeader
+            eyebrow="Upcoming"
+            title="Standby"
+            status={canAdvanceCue ? standbyCue.state : "Clear"}
+            tone={canAdvanceCue ? standbyCue.tone : "muted"}
+            icon={Eye}
+            className="mb-2"
+          />
+          <div className="text-sm font-black tracking-tight text-white/78">{canAdvanceCue ? standbyCue.label : "No Standby Cue"}</div>
+          <div className="mt-1 text-[11px] leading-relaxed text-white/42">
+            {canAdvanceCue ? standbyCue.detail : "All visible cues have been walked to the end of the active show stack."}
+          </div>
+          <div className="mt-3 grid grid-cols-2 gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+            <div className="rounded-xl border border-white/8 bg-black/20 px-2 py-1">Target · {standbyCue.target}</div>
+            <div className="rounded-xl border border-white/8 bg-black/20 px-2 py-1">Duration · {standbyCue.duration}</div>
+          </div>
+        </div>
+      </div>
+
+      <CompactStatusGrid
+        className="mb-3"
+        columnsClassName="md:grid-cols-4"
+        items={[
+          {
+            label: "Scene Recall",
+            value: activeSystems.includes("SCENE") ? `${nextCue.label} Armed` : "No Scene Cue",
+            tone: activeSystems.includes("SCENE") ? "warning" : "neutral",
+          },
+          {
+            label: "Lower Third",
+            value: activeSystems.includes("L3") ? "Graphic Ready" : "Clear",
+            tone: activeSystems.includes("L3") ? "preview" : "neutral",
+          },
+          {
+            label: "IFB Prompt",
+            value: activeSystems.includes("IFB") ? "Talent Standby" : "No IFB Prompt",
+            tone: activeSystems.includes("IFB") ? "safe" : "neutral",
+          },
+          {
+            label: "Audience Route",
+            value: activeSystems.includes("ROUTE") ? "Route Pending" : "Program Hold",
+            tone: activeSystems.includes("ROUTE") ? "warning" : "neutral",
+          },
+        ]}
+      />
+
+      <div className="mb-3 grid gap-2 md:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-[22px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <SurfaceHeader
+            eyebrow="For Next Cue"
+            title="Director Notes"
+            status={rundownMode === "live" ? "Live Note" : "Rehearsal Note"}
+            tone="warning"
+            icon={MessageSquare}
+            className="mb-2"
+          />
+          <div className="rounded-2xl border border-white/8 bg-black/22 px-3 py-2 text-[11px] leading-relaxed text-white/48">
+            {directorNote}
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <SurfaceHeader
+            eyebrow="Host"
+            title="Speaker Clock"
+            status={canAdvanceCue ? "Safe" : "Hold"}
+            tone="safe"
+            icon={Timer}
+            className="mb-2"
+          />
+          <CompactStatusGrid
+            columnsClassName="grid-cols-2"
+            items={[
+              { label: "Remaining", value: speakerClockLabel, tone: "neutral" },
+              { label: "Overrun", value: canAdvanceCue ? "Safe" : "Hold", tone: canAdvanceCue ? "safe" : "warning" },
+            ]}
+          />
+        </div>
+      </div>
+
+      <div className="mb-3 rounded-[22px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <SurfaceHeader
+          eyebrow="Cue Timing"
+          title="Show Timeline"
+          status="Next Cue Armed"
+          tone="warning"
+          icon={Timer}
+          className="mb-2"
+        />
+
+        <div className="grid gap-1.5 md:grid-cols-5">
+          {RUNDOWN_CUES.map((cue, index) => {
+            const active = index === activeCueIndex
+            const next = index === activeCueIndex + 1
+            const done = index < activeCueIndex
+            const standby = index === activeCueIndex + 2
+
+            return (
+              <div
+                key={`timeline-${cue.code}`}
+                className={[
+                  "relative overflow-hidden rounded-2xl border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]",
+                  active
+                    ? "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/72"
+                    : next
+                      ? "border-amber-300/24 bg-amber-400/10 text-amber-100/82"
+                      : done
+                        ? "border-white/8 bg-white/[0.035] text-white/32"
+                        : standby
+                          ? "border-sky-300/12 bg-sky-400/8 text-sky-100/54"
+                          : "border-white/8 bg-black/20 text-white/38",
+                ].join(" ")}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[8px] font-black uppercase tracking-[0.18em] opacity-70">{cue.code}</span>
+                  <span className="text-[8px] font-black uppercase tracking-[0.16em] opacity-60">{cue.duration}</span>
                 </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <p className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/74">
-                      {cue.label}
-                    </p>
-                    {cue.state === "Next" ? <PlayCircle size={12} className="text-amber-200/70" /> : null}
-                    {cue.state === "Standby" ? <MessageSquare size={12} className="text-white/32" /> : null}
-                  </div>
-                  <p className="mt-1 text-[10px] leading-relaxed text-white/38">{cue.detail}</p>
+                <div className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.14em]">
+                  {cue.label}
+                </div>
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/8">
+                  <div
+                    className={[
+                      "h-full rounded-full",
+                      active
+                        ? "w-3/4 bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.42)]"
+                        : next
+                          ? "w-1/2 bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.45)]"
+                          : done
+                            ? "w-full bg-white/22"
+                            : standby
+                              ? "w-1/3 bg-sky-300/55"
+                              : "w-1/5 bg-white/18",
+                    ].join(" ")}
+                  />
                 </div>
               </div>
-              <StatusPill label={cue.state} tone={cue.tone} pulse={cue.state === "Next"} />
-            </div>
-          </div>
-        ))}
+            )
+          })}
+        </div>
       </div>
 
-      <div className="mt-3 rounded-2xl border border-amber-300/12 bg-amber-400/8 p-2 text-[10px] leading-relaxed text-amber-50/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-        <div className="mb-1 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-amber-100/58">
-          <AlertTriangle size={11} />
-          Operator Guardrail
+      <details className="group rounded-[22px] border border-white/8 bg-black/16 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-2xl px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-white/36 transition hover:bg-white/[0.035] hover:text-white/62 [&::-webkit-details-marker]:hidden">
+          <span className="inline-flex items-center gap-2">
+            <ClipboardList size={12} />
+            Full Cue List
+          </span>
+          <span className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] tracking-[0.14em] text-white/32 group-open:border-amber-300/14 group-open:bg-amber-400/8 group-open:text-amber-100/54">
+            {RUNDOWN_CUES.length} Cues
+          </span>
+        </summary>
+
+        <div className="mt-2 grid gap-2">
+          {RUNDOWN_CUES.map((cue, index) => {
+            const Icon = getCueTypeIcon(cue.type)
+            const isNext = index === activeCueIndex + 1
+            const isCurrent = index === activeCueIndex
+            const isDone = index < activeCueIndex
+
+            return (
+              <div
+                key={cue.code}
+                className={[
+                  "group rounded-[22px] border p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] transition hover:-translate-y-0.5 hover:border-white/14 hover:bg-white/[0.035]",
+                  isCurrent
+                    ? "border-emerald-300/18 bg-emerald-400/8 shadow-[0_0_24px_rgba(16,185,129,0.08),inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    : isNext
+                      ? "border-amber-300/20 bg-amber-400/8 shadow-[0_0_24px_rgba(251,191,36,0.08),inset_0_1px_0_rgba(255,255,255,0.04)]"
+                      : isDone
+                        ? "border-white/8 bg-white/[0.03] opacity-60"
+                        : "border-white/8 bg-black/20",
+                ].join(" ")}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex min-w-0 gap-2.5">
+                    <div className="flex h-9 w-9 shrink-0 flex-col items-center justify-center rounded-2xl border border-white/10 bg-white/[0.045] text-white/52">
+                      <span className="text-[10px] font-black uppercase tracking-[0.12em]">{cue.code}</span>
+                      <Icon size={11} className="mt-0.5 text-white/34" />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <p className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/74">
+                          {cue.label}
+                        </p>
+                        <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${getCueToneClassName(cue.tone)}`}>
+                          {cue.type}
+                        </span>
+                        {isNext ? <PlayCircle size={12} className="text-amber-200/70" /> : null}
+                        {cue.state === "Standby" ? <MessageSquare size={12} className="text-white/32" /> : null}
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-white/38">{cue.detail}</p>
+                      <div className="mt-2 flex flex-wrap gap-1.5">
+                        <span className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                          <Timer size={9} className="mr-1 inline" />
+                          {cue.duration}
+                        </span>
+                        <span className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                          <Layers3 size={9} className="mr-1 inline" />
+                          {cue.target}
+                        </span>
+                        {cue.systems.map((system) => (
+                          <span
+                            key={`${cue.code}-${system}`}
+                            className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/30"
+                          >
+                            {system}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                  <StatusPill
+                    label={isCurrent ? "Live" : isNext ? "Next" : isDone ? "Done" : cue.state}
+                    tone={isCurrent ? "safe" : isNext ? "warning" : cue.tone}
+                    pulse={isNext}
+                  />
+                </div>
+              </div>
+            )
+          })}
         </div>
-        Never advance a show cue unless confidence return, program audio, and record state are verified.
+      </details>
+      <div className="mt-3 rounded-2xl border border-amber-300/12 bg-amber-400/8 p-2 text-[10px] leading-relaxed text-amber-50/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <SurfaceHeader
+          eyebrow="Safety"
+          title="Director Guardrail"
+          tone="warning"
+          icon={AlertTriangle}
+          className="mb-1"
+        />
+        {guardrailCopy}
       </div>
     </PanelCard>
   )
@@ -1069,29 +1963,448 @@ export function LowerCommandGrid({
   selectedTransitionDurationMs,
   onTransitionDurationChange,
 }: LowerCommandGridProps): JSX.Element {
+  const [workspaceMode, setWorkspaceMode] = useState<CommandWorkspaceMode>("director")
+  const [openSurfaces, setOpenSurfaces] = useState<Record<CommandSurfaceKey, boolean>>(
+    COMMAND_WORKSPACE_OPEN_STATE.director
+  )
+  const [focusedSurface, setFocusedSurface] = useState<CommandSurfaceKey | null>(null)
+  const [preFocusOpenSurfaces, setPreFocusOpenSurfaces] = useState<Record<CommandSurfaceKey, boolean> | null>(null)
+  const [workspaceHydrated, setWorkspaceHydrated] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    try {
+      const raw = window.localStorage.getItem(COMMAND_WORKSPACE_STORAGE_KEY)
+
+      if (!raw) {
+        setWorkspaceHydrated(true)
+        return
+      }
+
+      const parsed = JSON.parse(raw) as {
+        workspaceMode?: CommandWorkspaceMode
+        openSurfaces?: Record<CommandSurfaceKey, boolean>
+      }
+
+      if (parsed.workspaceMode) {
+        setWorkspaceMode(parsed.workspaceMode)
+      }
+
+      if (parsed.openSurfaces) {
+        setOpenSurfaces(parsed.openSurfaces)
+      }
+    } catch {
+      // Ignore corrupted workspace state.
+    } finally {
+      setWorkspaceHydrated(true)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !workspaceHydrated) return
+
+    window.localStorage.setItem(
+      COMMAND_WORKSPACE_STORAGE_KEY,
+      JSON.stringify({
+        workspaceMode,
+        openSurfaces,
+      })
+    )
+  }, [workspaceHydrated, workspaceMode, openSurfaces])
+
+  const applyWorkspaceMode = (mode: CommandWorkspaceMode): void => {
+    setWorkspaceMode(mode)
+    setFocusedSurface(null)
+    setPreFocusOpenSurfaces(null)
+
+    if (mode !== "custom") {
+      setOpenSurfaces(COMMAND_WORKSPACE_OPEN_STATE[mode])
+    }
+  }
+
+  const setSurfaceOpen = (surface: CommandSurfaceKey, open: boolean): void => {
+    setWorkspaceMode("custom")
+    setFocusedSurface(null)
+    setPreFocusOpenSurfaces(null)
+    setOpenSurfaces((current) => ({
+      ...current,
+      [surface]: open,
+    }))
+  }
+
+  const focusSurface = (surface: CommandSurfaceKey): void => {
+    setWorkspaceMode("custom")
+    setFocusedSurface(surface)
+    setPreFocusOpenSurfaces(openSurfaces)
+    setOpenSurfaces({
+      transport: surface === "transport",
+      transition: surface === "transition",
+      audio: surface === "audio",
+      routing: surface === "routing",
+      rundown: surface === "rundown",
+    })
+  }
+
+  const clearFocusedSurface = (): void => {
+    setFocusedSurface(null)
+    setOpenSurfaces(preFocusOpenSurfaces ?? COMMAND_WORKSPACE_OPEN_STATE.director)
+    setPreFocusOpenSurfaces(null)
+  }
+
+  const shouldShowSurface = (surface: CommandSurfaceKey): boolean => {
+    if (workspaceMode === "compact") {
+      return openSurfaces[surface]
+    }
+
+    if (focusedSurface) {
+      return openSurfaces[surface]
+    }
+
+    return true
+  }
+
+  const openSurfaceCount = Object.values(openSurfaces).filter(Boolean).length
+  const surfaceStatusLabel = getSurfaceStatusLabel(openSurfaceCount)
+  const transportStatusLabel = getTransportStatusLabel(previewProgramDifferent)
+  const surfaceModeLabel = getSurfaceModeLabel({ focusedSurface, workspaceMode })
+
+  const routingStatusLabel = openSurfaces.routing
+    ? "Confidence Visible"
+    : "Confidence Collapsed"
+
+  const rundownStatusLabel = openSurfaces.rundown
+    ? "Cue Stack Visible"
+    : "Cue Stack Collapsed"
+
+  const [systemPressure, setSystemPressure] = useState<SystemPressureState>("stable")
+  const [globalRundownMode, setGlobalRundownMode] = useState<"rehearsal" | "live">("rehearsal")
+  const systemPressureTone = getSystemPressureTone(systemPressure)
+  const systemPressureSurfaceTone = getSystemPressureSurfaceTone(systemPressure)
+  const missionStateLabel =
+    systemPressure === "critical"
+      ? "Confidence Degraded"
+      : systemPressure === "watch"
+        ? "Monitor Return"
+        : "Broadcast Stable"
+
+  const missionStateToneClass =
+    systemPressureSurfaceTone === "red"
+      ? "border-red-300/18 bg-red-400/10 text-red-100 shadow-[0_0_34px_rgba(239,68,68,0.12)]"
+      : systemPressureSurfaceTone === "amber"
+        ? "border-amber-300/18 bg-amber-400/10 text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.10)]"
+        : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100 shadow-[0_0_26px_rgba(16,185,129,0.08)]"
+
+  const deckPressureClass =
+    systemPressure === "critical"
+      ? "border-red-300/16 shadow-[0_28px_110px_rgba(0,0,0,0.48),0_0_48px_rgba(239,68,68,0.10),inset_0_1px_0_rgba(255,255,255,0.06)]"
+      : systemPressure === "watch"
+        ? "border-amber-300/14 shadow-[0_28px_105px_rgba(0,0,0,0.46),0_0_40px_rgba(251,191,36,0.08),inset_0_1px_0_rgba(255,255,255,0.055)]"
+        : "border-white/10 shadow-[0_28px_100px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.05)]"
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.09),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.96),rgba(2,5,16,0.985))] p-3 shadow-[0_28px_100px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div className={`relative overflow-hidden rounded-[30px] border bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.09),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.96),rgba(2,5,16,0.985))] p-3 transition-all duration-500 ${deckPressureClass}`}>
       <TelemetryAccent />
-      <div className="relative grid gap-2.5 xl:grid-cols-[1.05fr_0.95fr_1.18fr]">
-        <ControlStagePanel
-          previewProgramDifferent={previewProgramDifferent}
-          takeBusy={takeBusy}
-          onTake={onTake}
-          selectedTransitionType={selectedTransitionType}
-          selectedTransitionDurationMs={selectedTransitionDurationMs}
-        />
-        <TransitionPanel
-          selectedTransitionType={selectedTransitionType}
-          onTransitionTypeChange={onTransitionTypeChange}
-          selectedTransitionDurationMs={selectedTransitionDurationMs}
-          onTransitionDurationChange={onTransitionDurationChange}
-        />
-        <AudioMixerPanel />
+      {systemPressure !== "stable" ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.35),transparent)] animate-[missionPressureSweep_2.6s_ease-in-out_infinite]" />
+      ) : null}
+      <div className="relative mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-[26px] border border-white/10 bg-black/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <div className="flex flex-wrap items-center gap-3">
+          <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${missionStateToneClass}`}>
+            <span
+              className={[
+                "h-1.5 w-1.5 rounded-full",
+                systemPressure === "critical"
+                  ? "animate-pulse bg-red-300 shadow-[0_0_9px_rgba(252,165,165,0.8)]"
+                  : systemPressure === "watch"
+                    ? "animate-pulse bg-amber-300 shadow-[0_0_9px_rgba(252,211,77,0.72)]"
+                    : "bg-emerald-300/80 shadow-[0_0_8px_rgba(110,231,183,0.65)]",
+              ].join(" ")}
+            />
+            {missionStateLabel}
+          </div>
+
+          <div>
+            <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/28">
+              Command Workspace
+            </div>
+            <div className="mt-1 flex flex-wrap items-center gap-2">
+              <span className="text-[12px] font-black uppercase tracking-[0.16em] text-white/70">
+                {COMMAND_WORKSPACE_LABELS[workspaceMode]} Mode
+              </span>
+              <span className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/36">
+                {surfaceStatusLabel}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-1.5">
+          {(["director", "audio", "ops", "compact", "custom"] as const).map((mode) => {
+            const active = workspaceMode === mode
+
+            return (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => applyWorkspaceMode(mode)}
+                className={[
+                  "rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] transition-all duration-200",
+                  active
+                    ? "border-violet-300/24 bg-violet-400/14 text-violet-100 shadow-[0_0_20px_rgba(168,85,247,0.16)]"
+                    : mode === "custom"
+                      ? "border-amber-300/14 bg-amber-400/8 text-amber-100/52 hover:border-amber-300/24 hover:bg-amber-400/12 hover:text-amber-50"
+                      : "border-white/10 bg-black/24 text-white/38 hover:border-white/18 hover:bg-white/[0.05] hover:text-white/72",
+                ].join(" ")}
+              >
+                {COMMAND_WORKSPACE_LABELS[mode]}
+              </button>
+            )
+          })}
+        </div>
+        <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-1.5 py-1">
+          <button
+            type="button"
+            onClick={() => setSystemPressure("stable")}
+            className={[
+              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition",
+              systemPressure === "stable"
+                ? "bg-emerald-400/16 text-emerald-50"
+                : "text-white/34 hover:text-white/70",
+            ].join(" ")}
+          >
+            Stable
+          </button>
+          <button
+            type="button"
+            onClick={() => setSystemPressure("watch")}
+            className={[
+              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition",
+              systemPressure === "watch"
+                ? "bg-amber-400/16 text-amber-50"
+                : "text-white/34 hover:text-white/70",
+            ].join(" ")}
+          >
+            Watch
+          </button>
+          <button
+            type="button"
+            onClick={() => setSystemPressure("critical")}
+            className={[
+              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition",
+              systemPressure === "critical"
+                ? "bg-red-400/18 text-red-50"
+                : "text-white/34 hover:text-white/70",
+            ].join(" ")}
+          >
+            Critical
+          </button>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            setWorkspaceMode("ops")
+            setFocusedSurface(null)
+            setPreFocusOpenSurfaces(null)
+            setOpenSurfaces({
+              transport: true,
+              transition: true,
+              audio: true,
+              routing: true,
+              rundown: true,
+            })
+          }}
+          className="rounded-full border border-emerald-300/14 bg-emerald-400/8 px-3 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-emerald-100/58 transition hover:border-emerald-300/24 hover:bg-emerald-400/14 hover:text-emerald-50"
+        >
+          Open All
+        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          {workspaceMode === "custom" ? (
+            <div className="rounded-full border border-amber-300/14 bg-amber-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-amber-100/54">
+              Manual Surface Selection
+            </div>
+          ) : null}
+          {focusedSurface ? (
+            <button
+              type="button"
+              onClick={clearFocusedSurface}
+              className="rounded-full border border-violet-300/18 bg-violet-400/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/62 transition hover:border-violet-300/28 hover:bg-violet-400/14 hover:text-violet-50"
+            >
+              Focus · {focusedSurface} · Exit
+            </button>
+          ) : null}
+          {COMMAND_SURFACE_STATUS_CHIPS.map((surface) => (
+            <div
+              key={surface.key}
+              className={[
+                "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em]",
+                openSurfaces[surface.key]
+                  ? surface.activeClassName
+                  : "border-white/8 bg-black/20 text-white/28",
+              ].join(" ")}
+            >
+              {surface.label}
+            </div>
+          ))}
+        </div>
+      </div>
+      <CompactStatusGrid
+        className="relative mb-2.5"
+        items={[
+          {
+            label: "Transport",
+            value: systemPressure === "critical" ? "Hold Recommended" : transportStatusLabel,
+            tone:
+              systemPressureTone === "danger"
+                ? "danger"
+                : previewProgramDifferent
+                  ? "warning"
+                  : "safe",
+          },
+          {
+            label: "Transition",
+            value: `${selectedTransitionDurationMs ?? 600}ms ${selectedTransitionType}`,
+            tone: "preview",
+          },
+          {
+            label: "Audio",
+            value: openSurfaces.audio ? "Mixer Visible" : "Mixer Collapsed",
+            tone: openSurfaces.audio ? "safe" : "neutral",
+          },
+          {
+            label: "Routing",
+            value: systemPressure === "critical" ? "Confidence Risk" : routingStatusLabel,
+            tone: systemPressure === "critical" ? "danger" : openSurfaces.routing ? "safe" : "neutral",
+          },
+          {
+            label: surfaceModeLabel,
+            value: rundownStatusLabel,
+            tone: openSurfaces.rundown ? "warning" : "neutral",
+          },
+        ]}
+      />
+      <div className="relative grid gap-2.5 xl:grid-cols-[0.95fr_0.8fr_1.25fr]">
+        {shouldShowSurface("transport") ? (
+          <CollapsibleSurface
+            title="Program Transport"
+            eyebrow="Director Surface"
+            status={openSurfaces.transport ? systemPressure === "critical" ? "Hold Recommended" : transportStatusLabel : "Transport Collapsed"}
+            tone={
+              systemPressure !== "stable"
+                ? systemPressureSurfaceTone
+                : previewProgramDifferent
+                  ? "amber"
+                  : "emerald"
+            }
+            open={openSurfaces.transport}
+            isFocused={focusedSurface === "transport"}
+            isDimmed={focusedSurface !== null && focusedSurface !== "transport"}
+            onFocus={() => focusSurface("transport")}
+            onClearFocus={clearFocusedSurface}
+            onOpenChange={(open) => setSurfaceOpen("transport", open)}
+          >
+            <ControlStagePanel
+              previewProgramDifferent={previewProgramDifferent}
+              takeBusy={takeBusy}
+              onTake={onTake}
+              selectedTransitionType={selectedTransitionType}
+              selectedTransitionDurationMs={selectedTransitionDurationMs}
+              systemPressure={systemPressure}
+              rundownMode={globalRundownMode}
+            />
+          </CollapsibleSurface>
+        ) : null}
+
+        {shouldShowSurface("transition") ? (
+          <CollapsibleSurface
+            title="Transition Engine"
+            eyebrow="Motion Control"
+            status={openSurfaces.transition ? `${selectedTransitionDurationMs ?? 600}ms ${selectedTransitionType}` : "Transition Collapsed"}
+            tone="violet"
+            open={openSurfaces.transition}
+            isFocused={focusedSurface === "transition"}
+            isDimmed={focusedSurface !== null && focusedSurface !== "transition"}
+            onFocus={() => focusSurface("transition")}
+            onClearFocus={clearFocusedSurface}
+            onOpenChange={(open) => setSurfaceOpen("transition", open)}
+          >
+            <TransitionPanel
+              selectedTransitionType={selectedTransitionType}
+              onTransitionTypeChange={onTransitionTypeChange}
+              selectedTransitionDurationMs={selectedTransitionDurationMs}
+              onTransitionDurationChange={onTransitionDurationChange}
+            />
+          </CollapsibleSurface>
+        ) : null}
+
+        {shouldShowSurface("audio") ? (
+          <CollapsibleSurface
+            title="Audio Mixer"
+            eyebrow="Broadcast Audio"
+            status={systemPressure === "critical" ? "IFB Priority" : openSurfaces.audio ? "Mixer Visible" : "Mixer Collapsed"}
+            tone={systemPressure === "critical" ? "amber" : "emerald"}
+            open={openSurfaces.audio}
+            isFocused={focusedSurface === "audio"}
+            isDimmed={focusedSurface !== null && focusedSurface !== "audio"}
+            onFocus={() => focusSurface("audio")}
+            onClearFocus={clearFocusedSurface}
+            onOpenChange={(open) => setSurfaceOpen("audio", open)}
+          >
+            <AudioMixerPanel systemPressure={systemPressure} />
+          </CollapsibleSurface>
+        ) : null}
       </div>
 
-      <div className="relative mt-2.5 grid gap-2.5 xl:grid-cols-[1fr_1fr]">
-        <BroadcastRoutingPanel />
-        <RundownCuePanel />
+      <SurfaceDivider className="my-2 opacity-60" />
+      <div className="relative mt-2.5 grid gap-2.5 xl:grid-cols-[0.9fr_1.1fr]">
+        {shouldShowSurface("routing") ? (
+          <CollapsibleSurface
+            title="Routing + Confidence"
+            eyebrow="Transmission"
+            status={systemPressure === "critical" ? "Confidence Risk" : openSurfaces.routing ? "Confidence Visible" : "Confidence Collapsed"}
+            tone={systemPressure === "critical" ? "red" : systemPressure === "watch" ? "amber" : "sky"}
+            open={openSurfaces.routing}
+            isFocused={focusedSurface === "routing"}
+            isDimmed={focusedSurface !== null && focusedSurface !== "routing"}
+            onFocus={() => focusSurface("routing")}
+            onClearFocus={clearFocusedSurface}
+            onOpenChange={(open) => setSurfaceOpen("routing", open)}
+          >
+            <BroadcastRoutingPanel
+              confidenceScenario={systemPressure}
+              onConfidenceScenarioChange={setSystemPressure}
+            />
+          </CollapsibleSurface>
+        ) : null}
+
+        {shouldShowSurface("rundown") ? (
+          <CollapsibleSurface
+            title="Rundown Engine"
+            eyebrow="Show Control"
+            status={openSurfaces.rundown ? "Cue Stack Visible" : "Cue Stack Collapsed"}
+            tone="amber"
+            open={openSurfaces.rundown}
+            isFocused={focusedSurface === "rundown"}
+            isDimmed={focusedSurface !== null && focusedSurface !== "rundown"}
+            onFocus={() => focusSurface("rundown")}
+            onClearFocus={clearFocusedSurface}
+            onOpenChange={(open) => setSurfaceOpen("rundown", open)}
+          >
+            <div
+              className={
+                systemPressure === "critical"
+                  ? "rounded-[30px] border border-red-300/14 bg-red-400/[0.03] p-1 shadow-[0_0_24px_rgba(239,68,68,0.08)] animate-[criticalSurfacePulse_2.2s_ease-in-out_infinite]"
+                  : systemPressure === "watch"
+                    ? "rounded-[30px] border border-amber-300/12 bg-amber-400/[0.025] p-1 shadow-[0_0_20px_rgba(251,191,36,0.06)]"
+                    : "rounded-[30px] p-1"
+              }
+            >
+              <RundownCuePanel
+                rundownMode={globalRundownMode}
+                onRundownModeChange={setGlobalRundownMode}
+              />
+            </div>
+          </CollapsibleSurface>
+        ) : null}
       </div>
     </div>
   )
