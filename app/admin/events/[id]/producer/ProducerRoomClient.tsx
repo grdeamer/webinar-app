@@ -352,6 +352,9 @@ export default function ProducerRoomClient({
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
   const [localPdfDeck, setLocalPdfDeck] = useState<LocalPdfDeck | null>(null)
   const [monitorHeight, setMonitorHeight] = useState(520)
+  const handleAsyncError = useCallback((error: unknown) => {
+    setError(error instanceof Error ? error.message : "Unexpected error")
+  }, [])
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
@@ -1007,9 +1010,9 @@ export default function ProducerRoomClient({
 
         setLoadingText("Loading room state...")
         await refreshAll()
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (!mounted) return
-        setError(err?.message || "Failed to load producer room")
+        setError(err instanceof Error ? err.message : "Failed to load producer room")
       }
     }
 
@@ -1076,62 +1079,79 @@ export default function ProducerRoomClient({
 
   
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
-      if (tag === "input" || tag === "textarea" || tag === "select") return
-      if (event.metaKey || event.ctrlKey || event.altKey) return
+  const handleTransportHotkeys = useCallback(
+  (event: KeyboardEvent) => {
+    const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
 
-      const key = event.key.toLowerCase()
+    if (tag === "input" || tag === "textarea" || tag === "select") return
+    if (event.metaKey || event.ctrlKey || event.altKey) return
 
-      if (event.code === "Space" || key === "t" || key === "c") {
-        event.preventDefault()
-        takeProgram("cut")
-        return
-      }
+    const key = event.key.toLowerCase()
 
-      if (key === "a") {
-        event.preventDefault()
-        takeProgram("auto", "fade")
-      }
+    if (event.code === "Space" || key === "t" || key === "c") {
+      event.preventDefault()
+      takeProgram("cut")
+      return
     }
 
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [takeProgram])
+    if (key === "a") {
+      event.preventDefault()
+      takeProgram("auto", "fade")
+    }
+  },
+  [takeProgram]
+)
 
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
-      if (tag === "input" || tag === "textarea" || tag === "select") return
+useEffect(() => {
+  window.addEventListener("keydown", handleTransportHotkeys)
 
-      // Shift + number = apply + TAKE
-      if (event.shiftKey && event.key >= "1" && event.key <= "9") {
-        const index = Number(event.key) - 1
-        const scene = scenes[index]
-        if (scene) {
-          event.preventDefault()
-          flashSceneHotkey(scene.id)
-          void applySceneAndTake(scene.id)
-        }
-        return
+  return () => {
+    window.removeEventListener("keydown", handleTransportHotkeys)
+  }
+}, [handleTransportHotkeys])
+
+const handleSceneHotkeys = useCallback(
+  (event: KeyboardEvent) => {
+    const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
+
+    if (tag === "input" || tag === "textarea" || tag === "select") return
+
+    // Shift + number = apply + TAKE
+    if (event.shiftKey && event.key >= "1" && event.key <= "9") {
+      const index = Number(event.key) - 1
+      const scene = scenes[index]
+
+      if (scene) {
+        event.preventDefault()
+        flashSceneHotkey(scene.id)
+        void applySceneAndTake(scene.id)
       }
 
-      // Number keys 1–9 = apply scenes
-      if (event.key >= "1" && event.key <= "9") {
-        const index = Number(event.key) - 1
-        const scene = scenes[index]
-        if (scene) {
-          event.preventDefault()
-          flashSceneHotkey(scene.id)
-          void applyScene(scene.id)
-        }
-      }
+      return
     }
 
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [scenes, applyScene, applySceneAndTake])
+    // Number keys 1–9 = apply scenes
+    if (event.key >= "1" && event.key <= "9") {
+      const index = Number(event.key) - 1
+      const scene = scenes[index]
+
+      if (scene) {
+        event.preventDefault()
+        flashSceneHotkey(scene.id)
+        void applyScene(scene.id)
+      }
+    }
+  },
+  [scenes, applyScene, applySceneAndTake]
+)
+
+useEffect(() => {
+  window.addEventListener("keydown", handleSceneHotkeys)
+
+  return () => {
+    window.removeEventListener("keydown", handleSceneHotkeys)
+  }
+}, [handleSceneHotkeys])
 
   const previewProgramDifferent = useMemo(
     () =>
@@ -1198,9 +1218,9 @@ export default function ProducerRoomClient({
 
         // Future: we will refine positioning via blocks
         // For now, this ensures layout actually changes
-      } catch (e) {
-        console.error("Failed applying screen preset", e)
-      }
+      } catch (e: unknown) {
+  console.error("Failed applying screen preset", e)
+}
     }
 
     // Only react when preset changes
@@ -1316,29 +1336,15 @@ export default function ProducerRoomClient({
                 onTake={() => {
                   takeProgram("cut")
                 }}
-                onGoLive={() =>
-                  void goLive().catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
-                }
-                onGoOffAir={() =>
-                  void goOffAir().catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
-                }
+                onGoLive={() => void goLive().catch(handleAsyncError)}
+                onGoOffAir={() => void goOffAir().catch(handleAsyncError)}
                 layout={stageState?.layout}
-                onSetLayout={(layout) =>
-                  void setLayout(layout).catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
-                }
+                onSetLayout={(layout) => void setLayout(layout).catch(handleAsyncError)}
                 autoDirectorEnabled={autoDirectorEnabled}
                 screenLayoutPreset={screenLayoutPreset}
                 onSetScreenLayoutPreset={setScreenLayoutPreset}
                 onToggleAutoDirector={() =>
-                  void setAutoDirector(!autoDirectorEnabled).catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
+                  void setAutoDirector(!autoDirectorEnabled).catch(handleAsyncError)
                 }
                 localMicLevel={localMicLevel}
                 monitorHeight={monitorHeight}
@@ -1391,19 +1397,11 @@ export default function ProducerRoomClient({
                   selectedSceneLabel={selectedSceneLabel}
                   onApplyScene={(sceneId) => void applyScene(sceneId)}
                   onClearScreenShare={() =>
-                    void clearScreenShare().catch((e: unknown) =>
-                      setError(e instanceof Error ? e.message : "Unexpected error")
-                    )
+                    void clearScreenShare().catch(handleAsyncError)
                   }
-                  onUnpin={() =>
-                    void unpinParticipant().catch((e: unknown) =>
-                      setError(e instanceof Error ? e.message : "Unexpected error")
-                    )
-                  }
+                  onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
                   onClearPrimary={() =>
-                    void clearPrimaryParticipant().catch((e: unknown) =>
-                      setError(e instanceof Error ? e.message : "Unexpected error")
-                    )
+                    void clearPrimaryParticipant().catch(handleAsyncError)
                   }
                   addTestTextBlock={addTestTextBlock}
                   addTestVideoBlock={addTestVideoBlock}
@@ -1431,39 +1429,23 @@ export default function ProducerRoomClient({
                 stageState={stageState}
                 getScreenTrackSid={getScreenTrackSid}
                 onAddToStage={(identity) =>
-                  void addToStage(identity).catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
+                  void addToStage(identity).catch(handleAsyncError)
                 }
                 onSetScreenShare={(participantId, trackId) =>
-                  void setScreenShare(participantId, trackId).catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
+                  void setScreenShare(participantId, trackId).catch(handleAsyncError)
                 }
                 onClearPrimary={() =>
-                  void clearPrimaryParticipant().catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
+                  void clearPrimaryParticipant().catch(handleAsyncError)
                 }
                 onSetPrimary={(identity) =>
-                  void setPrimaryParticipant(identity).catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
+                  void setPrimaryParticipant(identity).catch(handleAsyncError)
                 }
-                onUnpin={() =>
-                  void unpinParticipant().catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
-                }
+                onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
                 onPin={(identity) =>
-                  void pinParticipant(identity).catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
+                  void pinParticipant(identity).catch(handleAsyncError)
                 }
                 onRemoveFromStage={(identity) =>
-                  void removeFromStage(identity).catch((e: unknown) =>
-                    setError(e instanceof Error ? e.message : "Unexpected error")
-                  )
+                  void removeFromStage(identity).catch(handleAsyncError)
                 }
                 onError={setError}
               />
