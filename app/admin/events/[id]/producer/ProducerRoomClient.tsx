@@ -24,20 +24,11 @@ import {
 } from "./producerRoomTypes"
 import type { CinematicTransitionType } from "./commandDeckTypes"
 import type { ScreenLayoutPreset } from "./assetDockTypes"
-
-
-type LocalPdfDeck = {
-  name: string
-  pageCount: number
-  src?: string | null
-}
-
-
-async function estimatePdfPageCount(file: File): Promise<number> {
-  const text = new TextDecoder("latin1").decode(await file.arrayBuffer())
-  const matches = text.match(/\/Type\s*\/Page\b/g)
-  return Math.max(1, matches?.length ?? 1)
-}
+import { broadcastPresenterProgramSource } from "./programTransportUtils"
+import {
+  type LocalPdfDeck,
+  estimatePdfPageCount,
+} from "./pdfDeckUtils"
 
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -331,88 +322,7 @@ export default function ProducerRoomClient({
   }
 
   // Helper function to broadcast the current Program source
-  function broadcastPresenterProgramSource(
-    mode: "cut" | "auto",
-    transitionType?: CinematicTransitionType,
-    transitionDurationMs = selectedTransitionDurationMs
-  ) {
-    const channelKey = `jupiter:program-source:${sessionId}`
-
-    const screenShareParticipant = stageState?.screen_share_participant_id ?? null
-    const screenShareTrackId = stageState?.screen_share_track_id ?? null
-    const primaryParticipant = stageState?.primary_participant_id ?? null
-    const pinnedParticipant = stageState?.pinned_participant_id ?? null
-    const firstStageParticipant = stageState?.stage_participant_ids?.[0] ?? null
-    const activeParticipant = screenShareParticipant ?? primaryParticipant ?? pinnedParticipant ?? firstStageParticipant
-    const resolvedTransitionType = mode === "cut" ? "none" : transitionType ?? "fade"
-
-    const visiblePreviewBlocks = previewBlocks
-      .filter((block) => !block.hidden)
-      .sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
-
-    const programBlocksPayload = visiblePreviewBlocks.map((block) => ({
-      id: block.id,
-      type: block.type,
-      src: block.src ?? null,
-      label: block.label ?? null,
-      x: block.x,
-      y: block.y,
-      width: block.width,
-      height: block.height,
-      zIndex: block.zIndex ?? 0,
-      opacity: block.opacity ?? 1,
-    }))
-
-    const mediaBlock = visiblePreviewBlocks.find(
-      (block) =>
-        (block.type === "image" || block.type === "video") &&
-        typeof block.src === "string" &&
-        block.src.trim().length > 0
-    )
-
-    const payload = mediaBlock
-      ? {
-          mode,
-          transitionType: resolvedTransitionType,
-          transitionDurationMs,
-          sourceType: "media",
-          participantIdentity: activeParticipant,
-          screenShareParticipantIdentity: screenShareParticipant,
-          screenShareTrackId,
-          mediaUrl: mediaBlock.src ?? null,
-          mediaType: mediaBlock.type === "video" ? "video" : "image",
-          mediaLabel: mediaBlock.label ?? mediaBlock.type,
-          programBlocks: programBlocksPayload,
-          layout: stageState?.layout ?? null,
-          isLive: Boolean(stageState?.is_live),
-          updatedAt: Date.now(),
-        }
-      : {
-          mode,
-          transitionType: resolvedTransitionType,
-          transitionDurationMs,
-          sourceType: screenShareParticipant ? "screen" : activeParticipant ? "camera" : "empty",
-          participantIdentity: activeParticipant,
-          screenShareParticipantIdentity: screenShareParticipant,
-          screenShareTrackId,
-          mediaUrl: null,
-          mediaType: null,
-          mediaLabel: null,
-          programBlocks: programBlocksPayload,
-          layout: stageState?.layout ?? null,
-          isLive: Boolean(stageState?.is_live),
-          updatedAt: Date.now(),
-        }
-
-    try {
-      window.localStorage.setItem(channelKey, JSON.stringify(payload))
-      const channel = new BroadcastChannel(channelKey)
-      channel.postMessage(payload)
-      channel.close()
-    } catch (_err: unknown) {
-      // best effort
-    }
-  }
+  
 
   function takeProgram(
     mode: "cut" | "auto",
@@ -427,7 +337,14 @@ export default function ProducerRoomClient({
 
     setLastTransportActionAt(Date.now())
     void runTake(mode, transitionType)
-    broadcastPresenterProgramSource(mode, transitionType, durationMs)
+    broadcastPresenterProgramSource({
+  mode,
+  transitionType,
+  transitionDurationMs: durationMs,
+  sessionId,
+  stageState,
+  previewBlocks,
+})
     setProgramSceneId(options?.sceneId ?? selectedSceneId)
     setProgramSlideLabel(options?.slideLabel ?? null)
   }
