@@ -434,19 +434,20 @@ export default function CenterSwitcherColumn({
             />
 
             <div
-              className={`relative aspect-video w-full overflow-hidden rounded-[22px] border bg-[radial-gradient(circle_at_center,#05070b_0%,#000_76%,#000_100%)] transition-all duration-300 ${
+              className={`relative aspect-video w-full overflow-hidden rounded-[24px] border bg-[radial-gradient(circle_at_50%_42%,rgba(15,23,42,0.92)_0%,rgba(2,6,23,0.98)_58%,#000_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-[24px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.075),transparent_13%,transparent_72%,rgba(255,255,255,0.035)),radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.12),transparent_38%)] before:opacity-80 after:pointer-events-none after:absolute after:inset-0 after:z-[11] after:rounded-[24px] after:bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.075),transparent)] after:translate-x-[-115%] after:animate-[monitor-sheen_6s_ease-in-out_infinite] ${
                 previewProgramDifferent
-                  ? "border-amber-300/30 shadow-[0_0_0_1px_rgba(251,191,36,0.14),0_0_58px_rgba(251,191,36,0.14),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.08),inset_0_-1px_0_rgba(0,0,0,0.9)]"
-                  : "border-sky-300/18 shadow-[0_0_0_1px_rgba(125,211,252,0.08),0_24px_80px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.9)]"
+                  ? "border-amber-200/36 shadow-[0_0_0_1px_rgba(251,191,36,0.16),0_0_72px_rgba(251,191,36,0.18),0_34px_105px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,255,255,0.10),inset_0_-1px_0_rgba(0,0,0,0.95)]"
+                  : "border-sky-200/20 shadow-[0_0_0_1px_rgba(125,211,252,0.10),0_0_52px_rgba(56,189,248,0.10),0_30px_96px_rgba(0,0,0,0.74),inset_0_1px_0_rgba(255,255,255,0.075),inset_0_-1px_0_rgba(0,0,0,0.95)]"
               }`}
               onMouseMove={onPreviewCanvasMouseMove}
               onMouseUp={stopDraggingBlock}
               onMouseLeave={stopDraggingBlock}
               onClick={onClearSelectedBlock}
             >
-              <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(118deg,transparent_4%,rgba(255,255,255,0.11)_18%,rgba(255,255,255,0.035)_28%,transparent_43%)] opacity-60" />
-              <div className="pointer-events-none absolute inset-x-8 top-0 z-10 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-              <div className="pointer-events-none absolute inset-0 z-10 rounded-[22px] shadow-[inset_0_0_46px_rgba(0,0,0,0.72),inset_0_0_0_1px_rgba(255,255,255,0.035)]" />
+              <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(118deg,transparent_4%,rgba(255,255,255,0.14)_18%,rgba(255,255,255,0.04)_29%,transparent_45%)] opacity-70" />
+              <div className="pointer-events-none absolute inset-x-8 top-0 z-10 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px] shadow-[inset_0_0_58px_rgba(0,0,0,0.78),inset_0_0_0_1px_rgba(255,255,255,0.045)]" />
+              <div className="pointer-events-none absolute inset-0 z-10 opacity-[0.055] [background:repeating-linear-gradient(0deg,rgba(255,255,255,0.9)_0px,rgba(255,255,255,0.9)_1px,transparent_1px,transparent_4px)]" />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
 
@@ -604,15 +605,16 @@ export default function CenterSwitcherColumn({
             />
 
             <div
-              className={`relative aspect-video w-full overflow-hidden rounded-[18px] border bg-black transition-all duration-300 ${
+              className={`relative aspect-video w-full overflow-hidden rounded-[24px] border bg-[radial-gradient(circle_at_50%_44%,rgba(12,5,8,0.98)_0%,rgba(3,1,3,0.995)_62%,#000_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-[24px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.08),transparent_14%,transparent_72%,rgba(255,255,255,0.035)),radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.16),transparent_42%)] before:opacity-85 after:pointer-events-none after:absolute after:inset-0 after:z-[11] after:rounded-[24px] after:bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.075),transparent)] after:translate-x-[-115%] after:animate-[monitor-sheen_7s_ease-in-out_infinite] ${
                 isTransitioning
-                  ? "rounded-[22px] border-white/40 shadow-[0_0_0_1px_rgba(255,255,255,0.22),0_0_95px_rgba(255,255,255,0.16),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.08)]"
-                  : "rounded-[22px] border-red-300/18 shadow-[0_0_0_1px_rgba(248,113,113,0.10),0_0_62px_rgba(239,68,68,0.12),0_28px_90px_rgba(0,0,0,0.72),inset_0_1px_0_rgba(255,255,255,0.06),inset_0_-1px_0_rgba(0,0,0,0.9)]"
+                  ? "border-white/42 shadow-[0_0_0_1px_rgba(255,255,255,0.24),0_0_105px_rgba(255,255,255,0.18),0_34px_105px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,255,255,0.10)]"
+                  : "border-red-200/22 shadow-[0_0_0_1px_rgba(248,113,113,0.12),0_0_78px_rgba(239,68,68,0.16),0_34px_105px_rgba(0,0,0,0.78),inset_0_1px_0_rgba(255,255,255,0.075),inset_0_-1px_0_rgba(0,0,0,0.95)]"
               }`}
             >
-              <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(118deg,transparent_4%,rgba(255,255,255,0.12)_18%,rgba(255,255,255,0.035)_28%,transparent_43%)] opacity-60" />
-              <div className="pointer-events-none absolute inset-x-8 top-0 z-10 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
-              <div className="pointer-events-none absolute inset-0 z-10 rounded-[22px] shadow-[inset_0_0_50px_rgba(0,0,0,0.74),inset_0_0_0_1px_rgba(255,255,255,0.035)]" />
+              <div className="pointer-events-none absolute inset-0 z-10 bg-[linear-gradient(118deg,transparent_4%,rgba(255,255,255,0.15)_18%,rgba(255,255,255,0.04)_29%,transparent_45%)] opacity-70" />
+              <div className="pointer-events-none absolute inset-x-8 top-0 z-10 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
+              <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px] shadow-[inset_0_0_62px_rgba(0,0,0,0.80),inset_0_0_0_1px_rgba(255,255,255,0.045)]" />
+              <div className="pointer-events-none absolute inset-0 z-10 opacity-[0.055] [background:repeating-linear-gradient(0deg,rgba(255,255,255,0.9)_0px,rgba(255,255,255,0.9)_1px,transparent_1px,transparent_4px)]" />
               {isTransitioning ? (
                 <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-white/[0.035] backdrop-blur-[1px]">
                   <div className="rounded-full border border-white/35 bg-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.32em] text-black shadow-[0_0_80px_rgba(255,255,255,0.55)] animate-pulse">
@@ -681,7 +683,7 @@ export default function CenterSwitcherColumn({
                 </div>
               ) : null}
 
-              <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-300/25 bg-black/70 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] text-red-100 shadow-[0_0_34px_rgba(239,68,68,0.18)] backdrop-blur-md">
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-200/32 bg-black/78 px-3.5 py-1.5 text-[10px] font-black uppercase tracking-[0.22em] text-red-50 shadow-[0_0_44px_rgba(239,68,68,0.24),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md">
                 <span className="relative flex h-2.5 w-2.5 items-center justify-center">
                   <span
                     className={`absolute inset-0 rounded-full ${
@@ -745,3 +747,18 @@ export default function CenterSwitcherColumn({
     </div>
   )
 }
+      <style jsx>{`
+        @keyframes monitor-sheen {
+          0%, 54% {
+            transform: translateX(-115%);
+            opacity: 0;
+          }
+          62% {
+            opacity: 0.65;
+          }
+          78%, 100% {
+            transform: translateX(115%);
+            opacity: 0;
+          }
+        }
+      `}</style>
