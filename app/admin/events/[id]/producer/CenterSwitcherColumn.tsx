@@ -267,6 +267,7 @@ export default function CenterSwitcherColumn({
   const isDraggingSplitRef = useRef(false)
   const [previewPanePercent, setPreviewPanePercent] = useState(50)
   const [isAutoRunning, setIsAutoRunning] = useState(false)
+  const [takeFlashVisible, setTakeFlashVisible] = useState(false)
   const [confidenceMonitorMode, setConfidenceMonitorMode] =
     useState<ConfidenceMonitorMode>("standard")
 
@@ -290,6 +291,18 @@ export default function CenterSwitcherColumn({
       setConfidenceMonitorMode(storedValue)
     }
   }, [])
+
+  useEffect(() => {
+    if (!isTransitioning) return
+
+    setTakeFlashVisible(true)
+
+    const id = window.setTimeout(() => {
+      setTakeFlashVisible(false)
+    }, 620)
+
+    return () => window.clearTimeout(id)
+  }, [isTransitioning, lastTakeMode])
 
   useEffect(() => {
     function onMouseMove(event: MouseEvent) {
@@ -450,6 +463,9 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-0 z-10 opacity-[0.055] [background:repeating-linear-gradient(0deg,rgba(255,255,255,0.9)_0px,rgba(255,255,255,0.9)_1px,transparent_1px,transparent_4px)]" />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+              <div className="pointer-events-none absolute right-3 top-3 z-30 rounded-full border border-white/10 bg-black/58 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+                Source Preview
+              </div>
 
               {previewProgramDifferent ? (
                 <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-[linear-gradient(90deg,rgba(251,191,36,0.92),rgba(254,240,138,0.95),rgba(251,191,36,0.92))] px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-[0.26em] text-black shadow-[0_0_34px_rgba(251,191,36,0.28)]">
@@ -615,10 +631,17 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-x-8 top-0 z-10 h-px bg-gradient-to-r from-transparent via-white/45 to-transparent" />
               <div className="pointer-events-none absolute inset-0 z-10 rounded-[24px] shadow-[inset_0_0_62px_rgba(0,0,0,0.80),inset_0_0_0_1px_rgba(255,255,255,0.045)]" />
               <div className="pointer-events-none absolute inset-0 z-10 opacity-[0.055] [background:repeating-linear-gradient(0deg,rgba(255,255,255,0.9)_0px,rgba(255,255,255,0.9)_1px,transparent_1px,transparent_4px)]" />
+              {takeFlashVisible ? (
+                <div className="pointer-events-none absolute inset-0 z-[70] bg-white/70 mix-blend-screen animate-pulse" />
+              ) : null}
+
               {isTransitioning ? (
                 <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-white/[0.035] backdrop-blur-[1px]">
-                  <div className="rounded-full border border-white/35 bg-white px-6 py-3 text-[10px] font-black uppercase tracking-[0.32em] text-black shadow-[0_0_80px_rgba(255,255,255,0.55)] animate-pulse">
-                    {lastTakeMode === "auto" ? "Auto Dissolve" : "Live Cut"}
+                  <div className="relative overflow-hidden rounded-full border border-white/35 bg-white px-7 py-3 text-[10px] font-black uppercase tracking-[0.34em] text-black shadow-[0_0_95px_rgba(255,255,255,0.62),0_0_34px_rgba(248,113,113,0.22)] animate-pulse">
+                    <span className="absolute inset-y-0 left-0 w-1/3 translate-x-[-120%] bg-gradient-to-r from-transparent via-black/10 to-transparent animate-[take-label-sheen_900ms_ease-out_infinite]" />
+                    <span className="relative">
+                      {lastTakeMode === "auto" ? "Auto Dissolve" : "Live Cut"}
+                    </span>
                   </div>
                 </div>
               ) : null}
@@ -626,6 +649,19 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
 
               <div className="relative z-10 h-full">
+                {!programState?.stage_participant_ids?.length && !programBlocks.some((block) => !block.hidden) ? (
+                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(248,113,113,0.08),transparent_48%)]">
+                    <div className="rounded-[26px] border border-red-200/18 bg-black/58 px-5 py-4 text-center shadow-[0_24px_80px_rgba(0,0,0,0.42),0_0_34px_rgba(248,113,113,0.12),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+                      <div className="text-[9px] font-black uppercase tracking-[0.28em] text-red-100/58">
+                        No Program Source
+                      </div>
+                      <div className="mt-1 text-sm font-semibold text-white/72">
+                        Take a preview source to Program
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+
                 <StageVideoPreview
                   stageState={programState}
                   participantIds={programState?.stage_participant_ids || []}
@@ -713,6 +749,21 @@ export default function CenterSwitcherColumn({
         </div>
       </div>
 
+      <style>{`
+        @keyframes take-label-sheen {
+          0% {
+            transform: translateX(-120%);
+            opacity: 0;
+          }
+          25% {
+            opacity: 0.7;
+          }
+          100% {
+            transform: translateX(320%);
+            opacity: 0;
+          }
+        }
+      `}</style>
       <div className="grid gap-3 opacity-65 transition-opacity duration-300 hover:opacity-100 xl:grid-cols-[1.2fr_0.8fr]">
         <MediaBlocksPanel
           previewBlocksCount={previewBlocks.length}
@@ -747,18 +798,3 @@ export default function CenterSwitcherColumn({
     </div>
   )
 }
-      <style jsx>{`
-        @keyframes monitor-sheen {
-          0%, 54% {
-            transform: translateX(-115%);
-            opacity: 0;
-          }
-          62% {
-            opacity: 0.65;
-          }
-          78%, 100% {
-            transform: translateX(115%);
-            opacity: 0;
-          }
-        }
-      `}</style>

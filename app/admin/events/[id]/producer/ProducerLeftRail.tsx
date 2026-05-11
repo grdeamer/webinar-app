@@ -5,6 +5,7 @@ import type { JSX } from "react"
 import { useRoomContext } from "@livekit/components-react"
 import {
   AudioLines,
+  Activity,
   Camera,
   Cpu,
   Globe2,
@@ -182,46 +183,66 @@ function MonitorSizePanel({
 }
 
 function AudioMetersPanel({ localMicLevel }: { localMicLevel: number }): JSX.Element {
+  const hostLevel = Math.max(2, Math.round(localMicLevel * 18))
+  const programLevel = Math.max(3, Math.round(localMicLevel * 18))
+
   return (
-    <div className="rounded-[28px] border border-emerald-300/18 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.14),transparent_38%),linear-gradient(180deg,rgba(8,31,26,0.78),rgba(3,10,12,0.94))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.055)]">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/70">
-          <AudioLines size={14} />
-          Audio Program
+    <div className="relative overflow-hidden rounded-[30px] border border-emerald-200/20 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.18),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.10),transparent_34%),linear-gradient(180deg,rgba(8,31,26,0.84),rgba(2,8,12,0.97))] p-4 shadow-[0_24px_72px_rgba(0,0,0,0.36),0_0_34px_rgba(16,185,129,0.10),inset_0_1px_0_rgba(255,255,255,0.065)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06] [background:repeating-linear-gradient(0deg,rgba(255,255,255,0.9)_0px,rgba(255,255,255,0.9)_1px,transparent_1px,transparent_5px)]" />
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-emerald-100/45 to-transparent" />
+
+      <div className="relative z-10 mb-3 flex items-center justify-between">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-emerald-100/76">
+            <AudioLines size={14} />
+            Audio Program
+          </div>
+          <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/34">
+            Confidence monitor · mix-minus · return feed
+          </div>
         </div>
-        <div className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
-          localMicLevel > 0.08
-            ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-100/85"
-            : "border-white/10 bg-black/25 text-white/45"
-        }`}>
+        <div
+          className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${
+            localMicLevel > 0.08
+              ? "border-emerald-200/32 bg-emerald-300/12 text-emerald-50"
+              : "border-white/10 bg-black/30 text-white/45"
+          }`}
+        >
           {localMicLevel > 0.08 ? "Mic Active" : "Standing By"}
         </div>
       </div>
 
-      <div className="space-y-3">
-        {["Host", "Guest", "Program"].map((label, rowIndex) => (
-          <div key={label} className="grid grid-cols-[64px_1fr] items-center gap-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/50">{label}</div>
-            <div className="flex h-3 items-center gap-1 rounded-full border border-white/8 bg-black/45 px-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="relative z-10 space-y-3">
+        {[
+          { label: "Host", level: hostLevel, badge: "IFB" },
+          { label: "Guest", level: 9, badge: "N-1" },
+          { label: "Program", level: programLevel, badge: "PGM" },
+        ].map((row) => (
+          <div key={row.label} className="rounded-[18px] border border-white/8 bg-black/24 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+            <div className="mb-2 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/55">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.55)]" />
+                {row.label}
+              </div>
+              <span className="rounded-full border border-white/10 bg-white/[0.045] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
+                {row.badge}
+              </span>
+            </div>
+
+            <div className="flex h-4 items-center gap-1 rounded-full border border-white/8 bg-black/55 px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               {Array.from({ length: 18 }).map((_, index) => {
-                const active =
-                  index <
-                  (rowIndex === 0
-                    ? Math.max(2, Math.round(localMicLevel * 18))
-                    : rowIndex === 1
-                      ? 9
-                      : Math.max(3, Math.round(localMicLevel * 18)))
+                const active = index < row.level
 
                 return (
                   <div
-                    key={`${label}-${index}`}
-                    className={`h-1.5 flex-1 rounded-full ${
+                    key={`${row.label}-${index}`}
+                    className={`h-2 flex-1 rounded-full transition-all duration-150 ${
                       active
                         ? index > 14
-                          ? "bg-red-400"
+                          ? "bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.50)]"
                           : index > 11
-                            ? "bg-amber-300"
-                            : "bg-emerald-400"
+                            ? "bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.45)]"
+                            : "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.45)]"
                         : "bg-white/10"
                     }`}
                   />
@@ -232,11 +253,26 @@ function AudioMetersPanel({ localMicLevel }: { localMicLevel: number }): JSX.Ele
         ))}
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/50">
+      <div className="relative z-10 mt-4 grid grid-cols-2 gap-2">
+        <div className="rounded-[18px] border border-sky-300/14 bg-sky-400/8 p-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-sky-100/48">
+            Monitor Bus
+          </div>
+          <div className="mt-1 text-xs font-semibold text-sky-50/75">Control Room</div>
+        </div>
+        <div className="rounded-[18px] border border-emerald-300/14 bg-emerald-400/8 p-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-100/48">
+            Return
+          </div>
+          <div className="mt-1 text-xs font-semibold text-emerald-50/75">Clean Feed</div>
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-4 flex flex-wrap gap-2">
+        <div className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/50">
           Space = TAKE
         </div>
-        <div className="rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/50">
+        <div className="rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-white/50">
           M = Talkback
         </div>
       </div>
@@ -432,30 +468,38 @@ function ProducerMicControls(): JSX.Element {
   }
 
   return (
-    <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3.5 shadow-[0_18px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.045)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
-          <Mic2 size={13} />
-          Producer IFB + Talkback
+    <div className="relative overflow-hidden rounded-[30px] border border-violet-200/18 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(59,130,246,0.10),transparent_34%),linear-gradient(180deg,rgba(24,18,38,0.84),rgba(6,6,14,0.96))] p-3.5 shadow-[0_22px_66px_rgba(0,0,0,0.34),0_0_30px_rgba(168,85,247,0.08),inset_0_1px_0_rgba(255,255,255,0.055)]">
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-100/42 to-transparent" />
+      <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-100/72">
+            <Mic2 size={13} />
+            IFB + Talkback
+          </div>
+          <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.13em] text-white/34">
+            Producer mic · talent cue channel
+          </div>
         </div>
-        <span className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
-          micEnabled
-            ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-100/80"
-            : "border-red-300/25 bg-red-500/10 text-red-100/80"
-        }`}>
+        <span
+          className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] ${
+            micEnabled
+              ? "border-emerald-200/32 bg-emerald-300/12 text-emerald-50"
+              : "border-red-200/28 bg-red-500/12 text-red-100"
+          }`}
+        >
           {micEnabled ? "Open" : "Muted"}
         </span>
       </div>
 
-      <div className="grid gap-2">
+      <div className="relative z-10 grid gap-2">
         <button
           type="button"
           disabled={busy}
           onClick={() => void setMic(!micEnabled)}
           className={`rounded-2xl border px-4 py-3 text-sm font-black uppercase tracking-[0.16em] transition hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 ${
             micEnabled
-              ? "border-emerald-200/40 bg-emerald-400/18 text-emerald-100 shadow-[0_0_22px_rgba(52,211,153,0.18)] hover:bg-emerald-400/26"
-              : "border-red-300/35 bg-red-500/18 text-red-100 shadow-[0_0_22px_rgba(239,68,68,0.18)] hover:bg-red-500/26"
+              ? "border-emerald-200/42 bg-emerald-300/18 text-emerald-50 shadow-[0_0_26px_rgba(52,211,153,0.20),inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-emerald-300/26"
+              : "border-red-200/36 bg-red-500/18 text-red-100 shadow-[0_0_26px_rgba(239,68,68,0.20),inset_0_1px_0_rgba(255,255,255,0.06)] hover:bg-red-500/26"
           }`}
         >
           {micEnabled ? "Mic On · M" : "Mic Muted · M"}
@@ -467,10 +511,25 @@ function ProducerMicControls(): JSX.Element {
           onMouseDown={() => void setMic(false)}
           onMouseUp={() => void setMic(true)}
           onMouseLeave={() => void setMic(true)}
-          className="rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-white/70 transition hover:-translate-y-0.5 hover:bg-white/[0.075] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-2xl border border-white/12 bg-white/[0.05] px-4 py-3 text-sm font-black uppercase tracking-[0.14em] text-white/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:-translate-y-0.5 hover:border-white/18 hover:bg-white/[0.08] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-40"
         >
           Hold to Cough
         </button>
+      </div>
+
+      <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-[16px] border border-white/8 bg-black/24 p-2 text-center">
+          <div className="flex items-center justify-center gap-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-white/38">
+            <Activity size={10} /> IFB
+          </div>
+          <div className="mt-1 text-xs font-semibold text-white/62">Talent</div>
+        </div>
+        <div className="rounded-[16px] border border-white/8 bg-black/24 p-2 text-center">
+          <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/38">
+            Talkback
+          </div>
+          <div className="mt-1 text-xs font-semibold text-white/62">Producer</div>
+        </div>
       </div>
     </div>
   )
