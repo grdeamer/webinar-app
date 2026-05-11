@@ -13,14 +13,14 @@ import {
   Radio,
   SatelliteDish,
   ShieldCheck,
-  SlidersHorizontal,
-  Zap,
 } from "lucide-react"
 import type { StageState } from "./producerRoomTypes"
 import AudioMixerPanel from "./AudioMixerPanel"
+import ControlStackPanel from "./ControlStackPanel"
+
+import type { ScreenLayoutPreset } from "./assetDockTypes"
 
 
-type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
 
 function RailTelemetryChip({
   icon,
@@ -183,161 +183,6 @@ function MonitorSizePanel({
 }
 
 
-
-function ControlStackPanel({
-  takeBusy,
-  previewProgramDifferent,
-  onTake,
-  onGoLive,
-  onGoOffAir,
-  layout,
-  onSetLayout,
-  autoDirectorEnabled,
-  onToggleAutoDirector,
-  screenLayoutPreset,
-  onSetScreenLayoutPreset,
-}: {
-  takeBusy: boolean
-  previewProgramDifferent: boolean
-  onTake: () => void
-  onGoLive: () => void
-  onGoOffAir: () => void
-  layout: StageState["layout"] | null | undefined
-  onSetLayout: (layout: StageState["layout"]) => void
-  autoDirectorEnabled: boolean
-  onToggleAutoDirector: () => void
-  screenLayoutPreset: ScreenLayoutPreset
-  onSetScreenLayoutPreset: (preset: ScreenLayoutPreset) => void
-}): JSX.Element {
-  return (
-    <>
-      <div className="rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.06),transparent_34%),linear-gradient(180deg,rgba(18,22,38,0.82),rgba(5,7,16,0.94))] p-3.5 shadow-[0_22px_70px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.055)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.26em] text-white/38">
-            <Zap size={13} />
-            Transmission Route
-          </div>
-          <div className="mt-1 text-xs text-white/45">
-            Send the audience live or off air.
-          </div>
-        </div>
-        <span className="rounded-full border border-red-300/20 bg-red-500/10 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-red-100/80">
-          Audience Path
-        </span>
-      </div>
-
-        <div className="space-y-3">
-          <button
-            onClick={onGoLive}
-            className="w-full rounded-2xl border border-red-300/30 bg-red-500/16 px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-red-100 shadow-[0_0_24px_rgba(239,68,68,0.16)] transition hover:-translate-y-0.5 hover:bg-red-500/24 active:translate-y-0"
-          >
-            Send Live
-          </button>
-
-          <button
-            onClick={onGoOffAir}
-            className="w-full rounded-2xl border border-white/12 bg-white/[0.045] px-4 py-3 text-sm font-black uppercase tracking-[0.18em] text-white/75 transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.075] active:translate-y-0"
-          >
-            Hold Off Air
-          </button>
-        </div>
-      </div>
-
-      <div className="rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
-              <SlidersHorizontal size={13} />
-              Stage Routing
-            </div>
-            <div className="mt-1 text-xs text-white/45">
-              Choose the program composition.
-            </div>
-          </div>
-
-          <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/45">
-            Stage
-          </span>
-        </div>
-
-        <div className="space-y-2">
-          <button
-            onClick={() => onSetLayout("solo")}
-            className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
-              layout === "solo"
-                ? "border-white/70 bg-white text-black shadow-[0_0_26px_rgba(255,255,255,0.18)]"
-                : "border-white/12 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.075]"
-            }`}
-          >
-            Solo
-          </button>
-
-          <button
-            onClick={() => onSetLayout("grid")}
-            className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
-              layout === "grid"
-                ? "border-white/70 bg-white text-black shadow-[0_0_26px_rgba(255,255,255,0.18)]"
-                : "border-white/12 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.075]"
-            }`}
-          >
-            Grid
-          </button>
-
-          <button
-            onClick={() => onSetLayout("screen_speaker")}
-            className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
-              layout === "screen_speaker"
-                ? "border-white/70 bg-white text-black shadow-[0_0_26px_rgba(255,255,255,0.18)]"
-                : "border-white/12 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.075]"
-            }`}
-          >
-            Speaker + Screen
-          </button>
-
-          <button
-            onClick={onToggleAutoDirector}
-            className={`w-full rounded-2xl border px-4 py-2.5 text-sm font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
-              autoDirectorEnabled
-                ? "border-emerald-200/50 bg-emerald-300 text-black shadow-[0_0_26px_rgba(52,211,153,0.22)]"
-                : "border-white/12 bg-white/[0.045] text-white/72 hover:border-white/20 hover:bg-white/[0.075]"
-            }`}
-          >
-            {autoDirectorEnabled ? "Auto Director On" : "Auto Director Off"}
-          </button>
-
-          <div className="mt-4 rounded-[22px] border border-violet-300/18 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.14),transparent_36%),rgba(0,0,0,0.24)] p-3">
-            <div className="mb-3 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/65">
-              Screen Presets
-            </div>
-
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { id: "classic", label: "Classic" },
-                { id: "brand", label: "Brand" },
-                { id: "speaker_focus", label: "Speaker" },
-                { id: "fullscreen", label: "Full" },
-              ].map((preset) => (
-                <button
-                  key={preset.id}
-                  type="button"
-                  onClick={() => onSetScreenLayoutPreset(preset.id as ScreenLayoutPreset)}
-                  className={`rounded-xl border px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.13em] transition hover:-translate-y-0.5 active:translate-y-0 ${
-                    screenLayoutPreset === preset.id
-                      ? "border-violet-200/60 bg-violet-200 text-black shadow-[0_0_22px_rgba(168,85,247,0.22)]"
-                      : "border-white/10 bg-white/[0.045] text-white/62 hover:border-white/20 hover:bg-white/[0.075]"
-                  }`}
-                >
-                  {preset.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
-  )
-}
 
 function ProducerMicControls(): JSX.Element {
   const room = useRoomContext()
@@ -596,8 +441,6 @@ export default function ProducerLeftRail({
         onToggleAutoDirector={onToggleAutoDirector}
         screenLayoutPreset={screenLayoutPreset}
         onSetScreenLayoutPreset={onSetScreenLayoutPreset}
-      />
-      <MonitorSizePanel
         monitorHeight={monitorHeight}
         onMonitorHeightChange={onMonitorHeightChange}
       />
