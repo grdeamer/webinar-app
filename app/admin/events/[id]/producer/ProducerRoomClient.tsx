@@ -10,6 +10,7 @@ import useProducerBlockEditor from "./useProducerBlockEditor"
 import useProducerUploads from "./useProducerUploads"
 import useProducerTransitions from "./useProducerTransitions"
 import useProducerDevices from "./useProducerDevices"
+import useProducerScenes from "./useProducerScenes"
 import ProducerRoomHeader from "./ProducerRoomHeader"
 import CenterSwitcherColumn from "./CenterSwitcherColumn"
 import ProducerLeftRail from "./ProducerLeftRail"
@@ -19,36 +20,9 @@ import BottomAssetDock from "./BottomAssetDock"
 import {
   type ProducerParticipant,
   type StageState,
-  type SceneSnapshot,
 } from "./producerRoomTypes"
 import type { CinematicTransitionType } from "./commandDeckTypes"
-import type { SceneSummary, ScreenLayoutPreset } from "./assetDockTypes"
-import { renderBlockContent, renderPlacedBlocks } from "./producerRoomRenderers"
-import {
-  AudienceOriginTestPanel,
-  MediaBlocksPanel,
-  MonitorHeader,
-  ScenesStatusPanel,
-} from "./producerRoomPanels"
-
-function LiveBadge({ live }: { live: boolean }): JSX.Element {
-  return (
-    <div
-      className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] transition ${
-        live
-          ? "border-red-400/25 bg-red-500/15 text-red-200 shadow-[0_0_24px_rgba(239,68,68,0.18)]"
-          : "border-white/10 bg-white/5 text-white/55"
-      }`}
-    >
-      <span
-        className={`h-2.5 w-2.5 rounded-full ${
-          live ? "animate-pulse bg-red-400" : "bg-white/30"
-        }`}
-      />
-      {live ? "Live" : "Off Air"}
-    </div>
-  )
-}
+import type { ScreenLayoutPreset } from "./assetDockTypes"
 
 function OperationsSyncStrip({
   previewProgramDifferent,
@@ -237,15 +211,6 @@ function OperationsSyncStrip({
   )
 }
 
-// Helper types and functions for scene normalization and label
-type RawSceneSummary = {
-  id: string | number
-  name?: string | null
-  title?: string | null
-  screenLayoutPreset?: ScreenLayoutPreset | null
-  previewBlocks?: PreviewBlock[] | null
-}
-
 type LocalPdfDeck = {
   name: string
   pageCount: number
@@ -257,40 +222,6 @@ async function estimatePdfPageCount(file: File): Promise<number> {
   const matches = text.match(/\/Type\s*\/Page\b/g)
   return Math.max(1, matches?.length ?? 1)
 }
-
-function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
-  return {
-    id: String(scene.id),
-    name: scene.name ?? scene.title ?? "Scene",
-    screenLayoutPreset: scene.screenLayoutPreset ?? null,
-    previewBlocks: scene.previewBlocks ?? null,
-  }
-}
-
-function getSelectedSceneLabel({
-  selectedSceneId,
-  localSceneSnapshots,
-  scenes,
-}: {
-  selectedSceneId: string | null
-  localSceneSnapshots: SceneSnapshot[]
-  scenes: SceneSummary[]
-}): string | null {
-  if (!selectedSceneId) return null
-
-  const localScene = localSceneSnapshots.find(
-    (scene) => String(scene.id) === String(selectedSceneId)
-  )
-
-  if (localScene?.name?.trim()) return localScene.name
-
-  const serverScene = scenes.find((scene) => scene.id === selectedSceneId)
-
-  if (serverScene?.name?.trim()) return serverScene.name
-
-  return "Selected scene"
-}
-
 function formatTransportTimestamp(value: number | null): string {
   if (!value) return "No commands yet"
 
@@ -301,8 +232,10 @@ function formatTransportTimestamp(value: number | null): string {
   })
 }
 
-
-
+function isTypingTarget(target: EventTarget | null): boolean {
+  const tag = (target as HTMLElement | null)?.tagName?.toLowerCase()
+  return tag === "input" || tag === "textarea" || tag === "select"
+}
 
 export default function ProducerRoomClient({
   eventId,
@@ -318,33 +251,8 @@ export default function ProducerRoomClient({
   const [loadingText, setLoadingText] = useState("Connecting producer...")
   const [error, setError] = useState<string | null>(null)
 
-
-  const [scenes, setScenes] = useState<SceneSummary[]>([])
-  const [sceneName, setSceneName] = useState("")
-  const [sceneBusy, setSceneBusy] = useState(false)
-  const [localSceneSnapshots, setLocalSceneSnapshots] = useState<SceneSnapshot[]>([])
-  const [deletedSceneIds, setDeletedSceneIds] = useState<Set<string>>(() => new Set())
-  const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null)
-  const [hotkeySceneId, setHotkeySceneId] = useState<string | null>(null)
-
-  const selectedSceneLabel = useMemo(
-    () =>
-      getSelectedSceneLabel({
-        selectedSceneId,
-        localSceneSnapshots,
-        scenes,
-      }),
-    [localSceneSnapshots, scenes, selectedSceneId]
-  )
-  const hotkeySceneLabelText = useMemo(() => {
-    if (!hotkeySceneId) return null
-
-    const scene = scenes.find((item) => String(item.id) === String(hotkeySceneId))
-    return scene?.name ?? "Memory Slot"
-  }, [hotkeySceneId, scenes])
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true)
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<ScreenLayoutPreset>("classic")
-  const [programFlashActive, setProgramFlashActive] = useState(false)
   const [selectedTransitionDurationMs] = useState(600)
   const [lastTransportActionAt, setLastTransportActionAt] = useState<number | null>(null)
   const [programState, setProgramState] = useState<StageState | null>(null)
@@ -358,9 +266,6 @@ export default function ProducerRoomClient({
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
-
-
-  
   const [showAudienceCue, setShowAudienceCue] = useState(false)
   const [audienceCueRegion, setAudienceCueRegion] = useState("Europe")
   const [audienceCueMoonMode, setAudienceCueMoonMode] = useState(false)
@@ -499,7 +404,6 @@ export default function ProducerRoomClient({
     setError,
   })
 
-
   async function loadToken() {
     const data = await api.loadToken()
     setToken(data.token)
@@ -521,14 +425,6 @@ export default function ProducerRoomClient({
     setStageState(data?.state ?? null)
   }
 
-  async function loadScenes() {
-    const data = await api.loadScenes()
-    const nextScenes: SceneSummary[] = Array.isArray(data?.scenes)
-      ? data.scenes.map((scene: RawSceneSummary) => normalizeSceneSummary(scene))
-      : []
-
-    setScenes(nextScenes.filter((scene) => !deletedSceneIds.has(scene.id)))
-  }
 
   const {
     videoDevices,
@@ -544,146 +440,79 @@ export default function ProducerRoomClient({
   } = useProducerDevices()
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([loadParticipants(), loadStageState(), loadProgramState(), loadScenes()])
-  }, [deletedSceneIds])
+    await Promise.all([loadParticipants(), loadStageState(), loadProgramState()])
+  }, [])
 
-  async function addToStage(identity: string) {
-    const data = await api.addToStage(identity)
-    setStageState(data.state)
-  }
+  const participantActions = useMemo(
+    () => ({
+      addToStage: async (identity: string) => {
+        const data = await api.addToStage(identity)
+        setStageState(data.state)
+      },
 
-  async function removeFromStage(identity: string) {
-    const data = await api.removeFromStage(identity)
-    setStageState(data.state)
-  }
+      removeFromStage: async (identity: string) => {
+        const data = await api.removeFromStage(identity)
+        setStageState(data.state)
+      },
 
-  async function pinParticipant(identity: string) {
-    const data = await api.pinParticipant(identity)
-    setStageState(data.state)
-  }
+      pinParticipant: async (identity: string) => {
+        const data = await api.pinParticipant(identity)
+        setStageState(data.state)
+      },
 
-  async function unpinParticipant() {
-    const data = await api.unpinParticipant()
-    setStageState(data.state)
-  }
+      unpinParticipant: async () => {
+        const data = await api.unpinParticipant()
+        setStageState(data.state)
+      },
 
-  async function setPrimaryParticipant(identity: string) {
-    const data = await api.setPrimaryParticipant(identity)
-    setStageState(data.state)
-  }
+      setPrimaryParticipant: async (identity: string) => {
+        const data = await api.setPrimaryParticipant(identity)
+        setStageState(data.state)
+      },
 
-  async function clearPrimaryParticipant() {
-    const data = await api.clearPrimaryParticipant()
-    setStageState(data.state)
-  }
+      clearPrimaryParticipant: async () => {
+        const data = await api.clearPrimaryParticipant()
+        setStageState(data.state)
+      },
+    }),
+    [api]
+  )
 
-  async function saveScene() {
-    if (!sceneName.trim() && !selectedSceneId) {
-      setError("Scene name required")
-      return
-    }
+  const {
+    scenes,
+    sceneName,
+    sceneBusy,
+    selectedSceneId,
+    selectedSceneLabel,
+    hotkeySceneId,
+    hotkeySceneLabelText,
+    setSceneName,
+    setSelectedSceneId,
+    loadScenes,
+    saveScene,
+    applyScene,
+    deleteScene,
+    startNewScene,
+    flashSceneHotkey,
+  } = useProducerScenes({
+    api,
+    stageState,
+    previewBlocks,
+    screenLayoutPreset,
+    setStageState,
+    setPreviewBlocks,
+    setSelectedBlockId,
+    refreshAll,
+  })
 
-    try {
-      setSceneBusy(true)
-
-      const targetId = selectedSceneId
-
-      const data = await api.saveScene(sceneName || "Updated Scene")
-
-      const savedSceneId = String(targetId ?? data?.scene?.id ?? crypto.randomUUID())
-
-      setLocalSceneSnapshots((prev) => {
-        const next = prev.filter((s) => String(s.id) !== savedSceneId)
-        next.push({
-          id: savedSceneId,
-          name: sceneName || prev.find((s) => String(s.id) === savedSceneId)?.name || "Scene",
-          stageState: stageState ? { ...stageState } : null,
-          previewBlocks: previewBlocks.map((b) => ({ ...b })),
-          screenLayoutPreset,
-        })
-        return next
+  async function applySceneAndTake(sceneId: string) {
+    await applyScene(sceneId)
+    window.setTimeout(() => {
+      takeProgram("cut", undefined, {
+        sceneId,
+        slideLabel: null,
       })
-
-      setScenes((prev) => {
-        const existing = prev.find((scene) => String(scene.id) === savedSceneId)
-        const next = prev.filter((scene) => String(scene.id) !== savedSceneId)
-
-        next.push({
-          id: savedSceneId,
-          name: sceneName || existing?.name || "Scene",
-          screenLayoutPreset,
-          previewBlocks: previewBlocks.map((block) => ({ ...block })),
-        })
-
-        return next
-      })
-
-      setSceneName("")
-      setSelectedSceneId(null)
-
-      await loadScenes()
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to save scene")
-    } finally {
-      setSceneBusy(false)
-    }
-  }
-
-  async function applyScene(sceneId: string) {
-    try {
-      setSelectedSceneId(String(sceneId))
-      setSceneBusy(true)
-
-      const data = await api.applyScene(sceneId)
-
-      setStageState(data.state)
-
-      await refreshAll()
-
-      const localSnapshot = localSceneSnapshots.find((s) => String(s.id) === String(sceneId))
-      if (localSnapshot) {
-        const preset = localSnapshot.screenLayoutPreset ?? "classic"
-
-        setPreviewBlocks(localSnapshot.previewBlocks.map((b) => ({ ...b })))
-        setScreenLayoutPreset(preset)
-        window.setTimeout(() => setScreenLayoutPreset(preset), 150)
-        setSelectedBlockId(null)
-      }
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to apply scene")
-    } finally {
-      setSceneBusy(false)
-    }
-  }
-
-  async function deleteScene(sceneId: string) {
-    try {
-      setSceneBusy(true)
-      setError(null)
-
-      setDeletedSceneIds((prev) => {
-        const next = new Set(prev)
-        next.add(String(sceneId))
-        return next
-      })
-
-      // For now, remove scene from the live producer UI/local snapshots.
-      // Server-side scene deletion can be wired once the scenes API exposes DELETE.
-      setLocalSceneSnapshots((prev) =>
-        prev.filter((scene) => String(scene.id) !== String(sceneId))
-      )
-      setScenes((prev) => prev.filter((scene) => String(scene.id) !== String(sceneId)))
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : "Failed to delete scene")
-    } finally {
-      setSceneBusy(false)
-    }
-  }
-
-  function startNewScene() {
-    setSelectedSceneId(null)
-    setSceneName("")
-    setError(null)
+    }, 175)
   }
 
   // Helper function to broadcast the current Program source
@@ -848,22 +677,39 @@ export default function ProducerRoomClient({
     }, 175)
   }
 
-  async function applySceneAndTake(sceneId: string) {
-    await applyScene(sceneId)
-    window.setTimeout(() => {
-      takeProgram("cut", undefined, {
-        sceneId,
-        slideLabel: null,
-      })
-    }, 175)
-  }
 
-  function flashSceneHotkey(sceneId: string) {
-    setHotkeySceneId(sceneId)
-    window.setTimeout(() => {
-      setHotkeySceneId((current) => (current === sceneId ? null : current))
-    }, 1600)
-  }
+  const sceneActions = useMemo(
+    () => ({
+      startNewScene,
+      saveScene,
+      applyScene,
+      applySceneAndTake,
+      deleteScene,
+      flashSceneHotkey,
+    }),
+    [
+      saveScene,
+      applyScene,
+      applySceneAndTake,
+      deleteScene,
+      flashSceneHotkey,
+    ]
+  )
+
+  const transportActions = useMemo(
+    () => ({
+      takeProgram,
+      broadcastPresenterProgramSource,
+      sendSlideToPreview,
+      takeSlide,
+    }),
+    [
+      takeProgram,
+      broadcastPresenterProgramSource,
+      sendSlideToPreview,
+      takeSlide,
+    ]
+  )
 
   async function setAutoDirector(enabled: boolean) {
     const data = await api.setAutoDirector(enabled)
@@ -966,7 +812,6 @@ export default function ProducerRoomClient({
     setResizingBlockId(null)
   }
 
-
   function triggerAudienceCue(options?: {
     region?: string
     moonMode?: boolean
@@ -1037,7 +882,6 @@ export default function ProducerRoomClient({
     }
   }, [stageState?.auto_director_enabled])
 
-
   const stageIds = useMemo(() => new Set(stageState?.stage_participant_ids || []), [stageState])
 
   const onStageParticipants = useMemo(
@@ -1077,81 +921,75 @@ export default function ProducerRoomClient({
     ]
   )
 
-  
-
   const handleTransportHotkeys = useCallback(
-  (event: KeyboardEvent) => {
-    const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
+    (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return
+      if (event.metaKey || event.ctrlKey || event.altKey) return
 
-    if (tag === "input" || tag === "textarea" || tag === "select") return
-    if (event.metaKey || event.ctrlKey || event.altKey) return
+      const key = event.key.toLowerCase()
 
-    const key = event.key.toLowerCase()
-
-    if (event.code === "Space" || key === "t" || key === "c") {
-      event.preventDefault()
-      takeProgram("cut")
-      return
-    }
-
-    if (key === "a") {
-      event.preventDefault()
-      takeProgram("auto", "fade")
-    }
-  },
-  [takeProgram]
-)
-
-useEffect(() => {
-  window.addEventListener("keydown", handleTransportHotkeys)
-
-  return () => {
-    window.removeEventListener("keydown", handleTransportHotkeys)
-  }
-}, [handleTransportHotkeys])
-
-const handleSceneHotkeys = useCallback(
-  (event: KeyboardEvent) => {
-    const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
-
-    if (tag === "input" || tag === "textarea" || tag === "select") return
-
-    // Shift + number = apply + TAKE
-    if (event.shiftKey && event.key >= "1" && event.key <= "9") {
-      const index = Number(event.key) - 1
-      const scene = scenes[index]
-
-      if (scene) {
+      if (event.code === "Space" || key === "t" || key === "c") {
         event.preventDefault()
-        flashSceneHotkey(scene.id)
-        void applySceneAndTake(scene.id)
+        takeProgram("cut")
+        return
       }
 
-      return
-    }
-
-    // Number keys 1–9 = apply scenes
-    if (event.key >= "1" && event.key <= "9") {
-      const index = Number(event.key) - 1
-      const scene = scenes[index]
-
-      if (scene) {
+      if (key === "a") {
         event.preventDefault()
-        flashSceneHotkey(scene.id)
-        void applyScene(scene.id)
+        takeProgram("auto", "fade")
       }
+    },
+    [takeProgram]
+  )
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleTransportHotkeys)
+
+    return () => {
+      window.removeEventListener("keydown", handleTransportHotkeys)
     }
-  },
-  [scenes, applyScene, applySceneAndTake]
-)
+  }, [handleTransportHotkeys])
 
-useEffect(() => {
-  window.addEventListener("keydown", handleSceneHotkeys)
+  const handleSceneHotkeys = useCallback(
+    (event: KeyboardEvent) => {
+      if (isTypingTarget(event.target)) return
 
-  return () => {
-    window.removeEventListener("keydown", handleSceneHotkeys)
-  }
-}, [handleSceneHotkeys])
+      // Shift + number = apply + TAKE
+      if (event.shiftKey && event.key >= "1" && event.key <= "9") {
+        const index = Number(event.key) - 1
+        const scene = scenes[index]
+
+        if (scene) {
+          event.preventDefault()
+          flashSceneHotkey(scene.id)
+          void applySceneAndTake(scene.id)
+        }
+
+        return
+      }
+
+      // Number keys 1–9 = apply scenes
+      if (event.key >= "1" && event.key <= "9") {
+        const index = Number(event.key) - 1
+        const scene = scenes[index]
+
+        if (scene) {
+          event.preventDefault()
+          flashSceneHotkey(scene.id)
+          void applyScene(scene.id)
+        }
+      }
+    },
+    [scenes, applyScene, applySceneAndTake]
+  )
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleSceneHotkeys)
+
+    return () => {
+      window.removeEventListener("keydown", handleSceneHotkeys)
+    }
+  }, [handleSceneHotkeys])
 
   const previewProgramDifferent = useMemo(
     () =>
@@ -1219,8 +1057,8 @@ useEffect(() => {
         // Future: we will refine positioning via blocks
         // For now, this ensures layout actually changes
       } catch (e: unknown) {
-  console.error("Failed applying screen preset", e)
-}
+        console.error("Failed applying screen preset", e)
+      }
     }
 
     // Only react when preset changes
@@ -1399,9 +1237,11 @@ useEffect(() => {
                   onClearScreenShare={() =>
                     void clearScreenShare().catch(handleAsyncError)
                   }
-                  onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
+                  onUnpin={() =>
+                    void participantActions.unpinParticipant().catch(handleAsyncError)
+                  }
                   onClearPrimary={() =>
-                    void clearPrimaryParticipant().catch(handleAsyncError)
+                    void participantActions.clearPrimaryParticipant().catch(handleAsyncError)
                   }
                   addTestTextBlock={addTestTextBlock}
                   addTestVideoBlock={addTestVideoBlock}
@@ -1429,23 +1269,25 @@ useEffect(() => {
                 stageState={stageState}
                 getScreenTrackSid={getScreenTrackSid}
                 onAddToStage={(identity) =>
-                  void addToStage(identity).catch(handleAsyncError)
+                  void participantActions.addToStage(identity).catch(handleAsyncError)
                 }
                 onSetScreenShare={(participantId, trackId) =>
                   void setScreenShare(participantId, trackId).catch(handleAsyncError)
                 }
                 onClearPrimary={() =>
-                  void clearPrimaryParticipant().catch(handleAsyncError)
+                  void participantActions.clearPrimaryParticipant().catch(handleAsyncError)
                 }
                 onSetPrimary={(identity) =>
-                  void setPrimaryParticipant(identity).catch(handleAsyncError)
+                  void participantActions.setPrimaryParticipant(identity).catch(handleAsyncError)
                 }
-                onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
+                onUnpin={() =>
+                  void participantActions.unpinParticipant().catch(handleAsyncError)
+                }
                 onPin={(identity) =>
-                  void pinParticipant(identity).catch(handleAsyncError)
+                  void participantActions.pinParticipant(identity).catch(handleAsyncError)
                 }
                 onRemoveFromStage={(identity) =>
-                  void removeFromStage(identity).catch(handleAsyncError)
+                  void participantActions.removeFromStage(identity).catch(handleAsyncError)
                 }
                 onError={setError}
               />
@@ -1460,13 +1302,13 @@ useEffect(() => {
               previewBlocks={previewBlocks}
               slideDeckName={localPdfDeck?.name ?? null}
               slideCount={localPdfDeck?.pageCount ?? 8}
-              onAddScene={startNewScene}
+              onAddScene={sceneActions.startNewScene}
               onUploadPdf={() => pdfInputRef.current?.click()}
-              onSendSlideToPreview={sendSlideToPreview}
-              onTakeSlide={takeSlide}
-              onApplyScene={(sceneId) => void applyScene(sceneId)}
-              onDoubleClickScene={(sceneId) => void applySceneAndTake(sceneId)}
-              onDeleteScene={(sceneId) => void deleteScene(sceneId)}
+              onSendSlideToPreview={transportActions.sendSlideToPreview}
+              onTakeSlide={transportActions.takeSlide}
+              onApplyScene={(sceneId) => void sceneActions.applyScene(sceneId)}
+              onDoubleClickScene={(sceneId) => void sceneActions.applySceneAndTake(sceneId)}
+              onDeleteScene={(sceneId) => void sceneActions.deleteScene(sceneId)}
             />
           </div>
         </div>
