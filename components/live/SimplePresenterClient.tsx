@@ -86,7 +86,7 @@ const sourceLabel =
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: exitScale }}
           transition={{ duration: transitionDuration, ease: "easeOut" }}
-          className="relative flex h-full w-full items-center justify-center bg-black text-center"
+          className="relative flex h-full w-full items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.08),transparent_48%),#000] text-center"
         >
           <>
             <AnimatePresence>
@@ -107,7 +107,7 @@ const sourceLabel =
                 </motion.div>
               ) : null}
             </AnimatePresence>
-            <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/40 backdrop-blur">
+            <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/62 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
               <span className="h-2 w-2 rounded-full bg-white/35" />
               Standby
             </div>
@@ -137,7 +137,7 @@ const sourceLabel =
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: exitScale }}
         transition={{ duration: transitionDuration, ease: "easeOut" }}
-        className="relative h-full w-full overflow-hidden bg-black [&_.lk-participant-tile]:h-full [&_.lk-participant-tile]:w-full [&_.lk-participant-tile]:border-0 [&_.lk-participant-tile]:bg-black [&_.lk-participant-tile]:p-0 [&_video]:h-full [&_video]:w-full [&_video]:object-contain"
+        className="relative h-full w-full overflow-hidden bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] [&_.lk-participant-tile]:h-full [&_.lk-participant-tile]:w-full [&_.lk-participant-tile]:border-0 [&_.lk-participant-tile]:bg-black [&_.lk-participant-tile]:p-0 [&_video]:h-full [&_video]:w-full [&_video]:object-contain"
       >
         <>
           <AnimatePresence>
@@ -158,7 +158,7 @@ const sourceLabel =
               </motion.div>
             ) : null}
           </AnimatePresence>
-          <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-red-300/25 bg-red-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-50 shadow-[0_0_18px_rgba(248,113,113,0.18)] backdrop-blur">
+          <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-red-300/28 bg-black/64 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-50 shadow-[0_0_24px_rgba(248,113,113,0.22),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
             <span
               className={[
                 "h-2 w-2 rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.85)]",
@@ -168,7 +168,7 @@ const sourceLabel =
             {isProgramLive ? "Live" : "Standby"}
           </div>
 
-          <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-full border border-white/10 bg-black/60 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 shadow-[0_0_18px_rgba(0,0,0,0.28)] backdrop-blur">
+          <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-full border border-white/10 bg-black/64 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/62 shadow-[0_0_18px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
             PROGRAM · {sourceLabel} · {modeLabel}
           </div>
           <ParticipantTile trackRef={primaryTrack} />
@@ -261,8 +261,10 @@ export function PresenterNextContentPanel({
   const label = content?.type === "screen" ? "Screen Share" : content?.type === "slide" ? "Slide" : "Next Content"
 
   return (
-    <div className="md:col-span-2 rounded-3xl border border-white/10 bg-white/[0.03] p-4">
-      <div className="mb-2 flex items-center justify-between text-xs uppercase tracking-[0.18em] text-amber-200/60">
+    <div className="md:col-span-2 relative overflow-hidden rounded-[30px] border border-amber-200/14 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.12),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.012))] p-4 shadow-[0_24px_78px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_10px)]" />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-amber-100/42 to-transparent" />
+      <div className="relative z-10 mb-2 flex items-center justify-between text-xs uppercase tracking-[0.18em] text-amber-200/68">
         <span>Next Content</span>
         {content ? (
           <span
@@ -280,7 +282,7 @@ export function PresenterNextContentPanel({
 
       <div
         className={[
-          "relative h-[220px] overflow-hidden rounded-2xl border flex items-center justify-center text-center transition",
+          "relative z-10 h-[220px] overflow-hidden rounded-[24px] border flex items-center justify-center text-center transition shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]",
           isProgram
             ? "border-red-300/25 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.18),transparent_36%),rgba(0,0,0,0.55)]"
             : content
@@ -310,7 +312,7 @@ export function PresenterNextContentPanel({
         </AnimatePresence>
       </div>
 
-      <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+      <div className="relative z-10 mt-4 rounded-2xl border border-white/10 bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
         <div className="flex flex-col gap-2 text-xs text-white/45 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
             <span
@@ -418,7 +420,7 @@ export function PresenterStatusRail({
 
       <div
         className={[
-          "grid gap-3 rounded-3xl border p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] transition duration-300 md:grid-cols-3",
+          "grid gap-3 rounded-[30px] border p-3 shadow-[0_24px_78px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.055)] transition duration-300 md:grid-cols-3",
           isLive
             ? "border-red-300/20 bg-red-500/[0.045] shadow-[0_0_34px_rgba(248,113,113,0.12),inset_0_1px_0_rgba(255,255,255,0.04)]"
             : "border-white/10 bg-white/[0.025]",
@@ -1105,8 +1107,10 @@ export default function SimplePresenterClient({
 
   if (!token || !serverUrl) {
     return (
-      <div className="rounded-3xl border border-white/10 bg-black/30 p-6 text-white">
-        Connecting to presenter room…
+      <div className="rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.10),transparent_48%),rgba(0,0,0,0.48)] p-6 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="inline-flex rounded-full border border-white/10 bg-black/42 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/50 backdrop-blur-md">
+          Connecting to presenter room…
+        </div>
       </div>
     )
   }
