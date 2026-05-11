@@ -9,6 +9,8 @@ import {
   Sparkles,
   Rows3,
   Radio,
+  Zap,
+  MonitorPlay,
 } from "lucide-react"
 function DockStatusPill({
   label,
@@ -155,23 +157,29 @@ function SceneTile({
       type="button"
       onClick={() => onApplyScene?.(scene.id)}
       onDoubleClick={() => onDoubleClickScene?.(scene.id)}
-      className={`group relative min-w-[88px] rounded-[16px] border p-1.5 text-left transition duration-200 ${
+      className={`group relative min-w-[96px] overflow-hidden rounded-[18px] border p-1.5 text-left transition duration-200 before:pointer-events-none before:absolute before:inset-0 before:rounded-[18px] before:bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_18%,transparent_36%)] before:opacity-0 before:transition-opacity hover:before:opacity-100 ${
         isHotkeyTriggered
-          ? "-translate-y-0.5 border-amber-200/70 bg-amber-300/14 shadow-[0_0_34px_rgba(251,191,36,0.32)]"
-          : isActive
-            ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_24px_rgba(168,85,247,0.22)]"
-            : "border-white/10 bg-white/[0.035]"
-      } hover:-translate-y-0.5 hover:border-violet-300/40 hover:bg-violet-400/10 hover:shadow-[0_0_20px_rgba(168,85,247,0.18)] active:translate-y-0`}
+          ? "-translate-y-0.5 border-amber-200/70 bg-amber-300/14 shadow-[0_0_38px_rgba(251,191,36,0.34),inset_0_1px_0_rgba(255,255,255,0.08)]"
+          : isProgramLive
+            ? "border-red-300/55 bg-red-500/12 shadow-[0_0_34px_rgba(248,113,113,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]"
+            : isActive
+              ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_28px_rgba(168,85,247,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]"
+              : "border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+      } hover:-translate-y-0.5 hover:border-violet-300/40 hover:bg-violet-400/10 hover:shadow-[0_0_24px_rgba(168,85,247,0.20)] active:translate-y-0`}
     >
       {isHotkeyTriggered ? (
         <div className="absolute inset-0 rounded-[16px] border border-amber-200/50 shadow-[inset_0_0_18px_rgba(251,191,36,0.18)]" />
+      ) : null}
+      {isProgramLive ? (
+        <div className="pointer-events-none absolute inset-0 rounded-[18px] border border-red-300/35 shadow-[inset_0_0_22px_rgba(248,113,113,0.16)]" />
       ) : null}
       {isActive ? (
         <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.95)]" />
       ) : null}
 
       {isProgramLive ? (
-        <div className="absolute left-1.5 bottom-[40px] z-10 rounded-md border border-red-300/30 bg-red-500/20 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-red-100 shadow-[0_0_14px_rgba(248,113,113,0.18)]">
+        <div className="absolute left-1.5 bottom-[42px] z-10 flex items-center gap-1 rounded-md border border-red-300/34 bg-red-500/22 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-red-100 shadow-[0_0_16px_rgba(248,113,113,0.22)]">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-300 shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
           Program
         </div>
       ) : null}
@@ -238,8 +246,8 @@ function SceneTile({
         {memoryLabel}
       </div>
 
-      <div className="absolute bottom-[40px] right-1.5 z-10 rounded-md border border-violet-200/20 bg-black/55 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-violet-100/75 shadow-[0_0_12px_rgba(168,85,247,0.12)]">
-        ⇧{index + 1}
+      <div className="absolute bottom-[42px] right-1.5 z-10 rounded-md border border-violet-200/20 bg-black/60 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-violet-100/75 shadow-[0_0_12px_rgba(168,85,247,0.14)]">
+        ⇧{index + 1} TAKE
       </div>
       <SceneMiniVisualizer scene={scene} />
       <div className="mt-1 flex items-center justify-between gap-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/32">
@@ -778,15 +786,20 @@ export default function BottomAssetDock({
   const [mediaView, setMediaView] = useState<DockViewMode>("icons")
 
   return (
-    <div className="mt-3 rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.10),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.06),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.86),rgba(2,4,10,0.96))] px-2.5 py-2 shadow-[0_28px_100px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl">
+    <div className="relative mt-3 overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.88),rgba(2,4,10,0.97))] px-2.5 py-2 shadow-[0_30px_110px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/42 to-transparent" />
       <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
             <Rows3 size={13} className="text-sky-100/62" />
             Broadcast Rundown Dock
           </div>
-          <div className="mt-1 text-sm text-white/45">
-            Cue stack, scene recall, graphics, media, decks, and transition presets.
+          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/45">
+            <span>Cue stack, scene recall, graphics, media, decks, and transition presets.</span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/14 bg-sky-400/8 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/55">
+              <MonitorPlay size={10} /> Operator Rail
+            </span>
           </div>
         </div>
 
@@ -918,10 +931,15 @@ export default function BottomAssetDock({
           onSendToPreview={onSendSlideToPreview}
           onTakeSlide={onTakeSlide}
         />
-        <DockSection title="Transitions" count={TRANSITION_PRESETS.length}>
-          <div className="mb-1.5 flex items-center gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/55">
-            <SlidersHorizontal size={11} />
-            Transition Bank
+        <DockSection title="Transition Bank" count={TRANSITION_PRESETS.length}>
+          <div className="mb-1.5 flex items-center justify-between gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/55">
+            <span className="inline-flex items-center gap-2">
+              <SlidersHorizontal size={11} />
+              Motion Language
+            </span>
+            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/24 px-1.5 py-0.5 text-[7px] text-white/38">
+              <Zap size={8} /> Armed
+            </span>
           </div>
           <div className="space-y-2">
             <div className="grid grid-cols-2 gap-1.5">
@@ -931,8 +949,10 @@ export default function BottomAssetDock({
                   type="button"
                   className={`rounded-xl border px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                     transition === "Cut"
-                      ? "border-red-300/25 bg-red-400/10 text-red-100/80 shadow-[0_0_16px_rgba(248,113,113,0.12)] hover:border-red-300/40 hover:bg-red-400/15"
-                      : "border-white/10 bg-white/[0.04] text-white/65 hover:border-white/20 hover:bg-white/[0.07]"
+                      ? "border-red-300/30 bg-red-400/12 text-red-100/85 shadow-[0_0_18px_rgba(248,113,113,0.16)] hover:border-red-300/45 hover:bg-red-400/18"
+                      : transition === "Fade"
+                        ? "border-violet-300/24 bg-violet-400/10 text-violet-100/78 shadow-[0_0_16px_rgba(168,85,247,0.12)] hover:border-violet-300/38 hover:bg-violet-400/16"
+                        : "border-white/10 bg-white/[0.04] text-white/65 hover:border-white/20 hover:bg-white/[0.07]"
                   }`}
                 >
                   {transition}

@@ -68,6 +68,128 @@ function CommandStatusPill({
   )
 }
 
+function BroadcastPresenceStrip({
+  isLive,
+  audienceCount,
+  onStageCount,
+  previewProgramDifferent,
+  takeBusy,
+  runtimeLabel,
+  selectedTransitionType,
+  selectedTransitionDurationMs,
+}: {
+  isLive: boolean
+  audienceCount: number
+  onStageCount: number
+  previewProgramDifferent: boolean
+  takeBusy: boolean
+  runtimeLabel: string
+  selectedTransitionType: CinematicTransitionType
+  selectedTransitionDurationMs: number
+}): JSX.Element {
+  const signalLabel = takeBusy
+    ? "Transport Locked"
+    : previewProgramDifferent
+      ? "Preview Armed"
+      : isLive
+        ? "Signal On-Air"
+        : "Signal Standby"
+
+  const signalClassName = takeBusy
+    ? "border-red-300/22 bg-red-500/12 text-red-100"
+    : previewProgramDifferent
+      ? "border-amber-300/20 bg-amber-400/10 text-amber-100"
+      : isLive
+        ? "border-red-300/22 bg-red-500/12 text-red-100"
+        : "border-emerald-300/16 bg-emerald-400/8 text-emerald-100/72"
+
+  const transitionLabel = selectedTransitionType.replace("_", " ")
+
+  return (
+    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.10),transparent_30%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.09),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.036),rgba(255,255,255,0.012))] px-3 py-3 shadow-[0_22px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_9px)]" />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
+
+      <div className="relative z-10 grid gap-2 md:grid-cols-[1.15fr_0.85fr_0.85fr_0.85fr]">
+        <div className="rounded-[22px] border border-white/10 bg-black/28 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <div className="flex items-center justify-between gap-2">
+            <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/30">
+              Program Presence
+            </div>
+            <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${signalClassName}`}>
+              {signalLabel}
+            </div>
+          </div>
+          <div className="mt-2 flex items-end justify-between gap-3">
+            <div>
+              <div className="text-lg font-black tracking-tight text-white">
+                {isLive ? "ON AIR" : "STANDBY"}
+              </div>
+              <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/36">
+                Runtime · {runtimeLabel}
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div
+                  key={index}
+                  className={`h-5 w-1.5 rounded-full ${
+                    takeBusy
+                      ? index < 3
+                        ? "bg-red-300 shadow-[0_0_12px_rgba(248,113,113,0.45)]"
+                        : "bg-white/10"
+                      : isLive
+                        ? "bg-red-300 shadow-[0_0_12px_rgba(248,113,113,0.45)]"
+                        : index < 4
+                          ? "bg-emerald-300/75 shadow-[0_0_10px_rgba(52,211,153,0.28)]"
+                          : "bg-white/10"
+                  }`}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-white/10 bg-black/24 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/30">
+            Audience Lock
+          </div>
+          <div className="mt-2 text-lg font-black tracking-tight text-white">
+            {audienceCount}
+          </div>
+          <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/36">
+            Connected viewers
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-white/10 bg-black/24 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/30">
+            Talent Route
+          </div>
+          <div className="mt-2 text-lg font-black tracking-tight text-white">
+            {onStageCount}
+          </div>
+          <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/36">
+            On-stage sources
+          </div>
+        </div>
+
+        <div className="rounded-[22px] border border-violet-300/14 bg-violet-400/8 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="text-[8px] font-black uppercase tracking-[0.22em] text-violet-100/38">
+            Transition Intent
+          </div>
+          <div className="mt-2 text-lg font-black capitalize tracking-tight text-white">
+            {transitionLabel}
+          </div>
+          <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-100/42">
+            {selectedTransitionDurationMs}ms transport
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 function TransmissionHealthCard({
   label,
   value,
@@ -351,6 +473,119 @@ function TransmissionMetricStrip({
             </div>
           </div>
         ))}
+      </div>
+    </div>
+  )
+}
+
+function TransitionIntentStrip({
+  selectedTransitionType,
+  selectedTransitionDurationMs,
+  onTransitionTypeChange,
+  onTransitionDurationChange,
+}: {
+  selectedTransitionType: CinematicTransitionType
+  selectedTransitionDurationMs: number
+  onTransitionTypeChange: (transitionType: CinematicTransitionType) => void
+  onTransitionDurationChange: (durationMs: number) => void
+}): JSX.Element {
+  const transitionOptions: Array<{
+    type: CinematicTransitionType
+    label: string
+    detail: string
+  }> = [
+    {
+      type: "fade",
+      label: "Dissolve",
+      detail: "Soft keynote-style blend",
+    },
+    {
+      type: "warp",
+      label: "Warp",
+      detail: "Energy burst between looks",
+    },
+    {
+      type: "curtain",
+      label: "Curtain",
+      detail: "Stage-style reveal move",
+    },
+  ]
+
+  return (
+    <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
+            Transition Package
+          </div>
+          <div className="mt-1 text-[11px] font-semibold text-white/46">
+            Choose the visual language before the next TAKE.
+          </div>
+        </div>
+        <div className="rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/58">
+          {selectedTransitionDurationMs}ms selected
+        </div>
+      </div>
+
+      <div className="grid gap-2 lg:grid-cols-3">
+        {transitionOptions.map((option) => {
+          const active = selectedTransitionType === option.type
+
+          return (
+            <button
+              key={option.type}
+              type="button"
+              onClick={() => onTransitionTypeChange(option.type)}
+              className={[
+                "rounded-[22px] border px-3 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0",
+                active
+                  ? "border-violet-300/28 bg-violet-400/14 shadow-[0_0_30px_rgba(168,85,247,0.18),inset_0_1px_0_rgba(255,255,255,0.045)]"
+                  : "border-white/10 bg-black/20 hover:border-white/18 hover:bg-white/[0.045]",
+              ].join(" ")}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/66">
+                  {option.label}
+                </div>
+                <div
+                  className={[
+                    "rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em]",
+                    active
+                      ? "border-violet-300/18 bg-violet-400/10 text-violet-100/74"
+                      : "border-white/8 bg-black/22 text-white/34",
+                  ].join(" ")}
+                >
+                  {active ? "Armed" : "Ready"}
+                </div>
+              </div>
+              <div className="mt-2 text-[11px] font-semibold leading-relaxed text-white/42">
+                {option.detail}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="mt-2 flex flex-wrap items-center gap-1.5">
+        {[250, 400, 600, 900, 1400].map((duration) => {
+          const active = selectedTransitionDurationMs === duration
+
+          return (
+            <button
+              key={duration}
+              type="button"
+              onClick={() => onTransitionDurationChange(duration)}
+              className={[
+                "rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] transition-all duration-200",
+                active
+                  ? "border-violet-300/28 bg-violet-400/16 text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.20)]"
+                  : "border-white/10 bg-black/28 text-white/42 hover:border-white/18 hover:bg-white/[0.05] hover:text-white",
+              ].join(" ")}
+            >
+              {duration}ms
+            </button>
+          )
+        })}
       </div>
     </div>
   )
@@ -737,6 +972,16 @@ export default function BroadcastCommandDeck({
         onStageCount={onStageCount}
         runtimeLabel={runtimeLabel}
       />
+      <BroadcastPresenceStrip
+        isLive={isLive}
+        audienceCount={audienceCount}
+        onStageCount={onStageCount}
+        previewProgramDifferent={previewProgramDifferent}
+        takeBusy={takeBusy}
+        runtimeLabel={runtimeLabel}
+        selectedTransitionType={selectedTransitionType}
+        selectedTransitionDurationMs={selectedTransitionDurationMs}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
         <div>
@@ -854,38 +1099,12 @@ export default function BroadcastCommandDeck({
         />
       ) : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.014))] px-3 py-2 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
-        <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/32">
-            Transition Transport
-          </div>
-          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
-            {selectedTransitionType.replace("_", " ")} · {selectedTransitionDurationMs}ms transport
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {[250, 400, 600, 900, 1400].map((duration) => {
-            const active = selectedTransitionDurationMs === duration
-
-            return (
-              <button
-                key={duration}
-                type="button"
-                onClick={() => setSelectedTransitionDurationMs(duration)}
-                className={[
-                  "rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] transition-all duration-200",
-                  active
-                    ? "border-violet-300/28 bg-violet-400/16 text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.20)]"
-                    : "border-white/10 bg-black/28 text-white/42 hover:border-white/18 hover:bg-white/[0.05] hover:text-white",
-                ].join(" ")}
-              >
-                {duration}ms
-              </button>
-            )
-          })}
-        </div>
-      </div>
+      <TransitionIntentStrip
+        selectedTransitionType={selectedTransitionType}
+        selectedTransitionDurationMs={selectedTransitionDurationMs}
+        onTransitionTypeChange={setSelectedTransitionType}
+        onTransitionDurationChange={setSelectedTransitionDurationMs}
+      />
 
       <LowerCommandGrid
         previewProgramDifferent={previewProgramDifferent}
