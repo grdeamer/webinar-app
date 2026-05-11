@@ -72,11 +72,11 @@ export default function AudienceOriginCue({
   const activePoint = points.find((point) => point.name === region) ?? points[0]
 
   const heightClass = broadcast ? "h-[132px]" : compact ? "h-[150px]" : "h-[320px]"
-const wrapperClass = broadcast
-  ? "rounded-[24px] border border-white/6 bg-black/0 shadow-none backdrop-blur-0"
-: compact
-  ? "rounded-none border-0 bg-transparent shadow-none backdrop-blur-0"
-    : "rounded-3xl border border-white/15 bg-black shadow-2xl"
+  const wrapperClass = broadcast
+    ? "rounded-[24px] border border-white/6 bg-black/0 shadow-none backdrop-blur-0"
+    : compact
+      ? "rounded-none border-0 bg-transparent shadow-none backdrop-blur-0"
+      : "rounded-3xl border border-white/15 bg-black shadow-2xl"
 
   const eyebrowClass = broadcast
     ? "text-[9px] uppercase tracking-[0.28em] text-white/50"
@@ -101,15 +101,16 @@ const wrapperClass = broadcast
 
   return (
     <div
-className={[
-  "relative overflow-hidden text-white transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] w-full mix-blend-screen",
-  heightClass,
-  wrapperClass,
-  animatedIn
-    ? "opacity-100 translate-y-0 scale-100"
-    : "pointer-events-none opacity-0 translate-y-3 scale-[0.985]",
-].join(" ")}
+      className={[
+        "relative overflow-hidden text-white transition-all duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] w-full mix-blend-screen",
+        heightClass,
+        wrapperClass,
+        animatedIn
+          ? "opacity-100 translate-y-0 scale-100"
+          : "pointer-events-none opacity-0 translate-y-3 scale-[0.985]",
+      ].join(" ")}
     >
+
 <div
   className="absolute inset-0 transition-transform duration-[1600ms] ease-out"
   style={{
@@ -125,6 +126,11 @@ className={[
     transform: animatedIn ? "scale(1)" : "scale(1.08)",
   }}
 />
+
+<div className="pointer-events-none absolute inset-0 opacity-70">
+  <div className="absolute left-1/2 top-1/2 h-[92%] w-[92%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-100/8 animate-[jupiter-orbit-roll_18s_linear_infinite]" />
+  <div className="absolute left-1/2 top-1/2 h-[72%] w-[72%] -translate-x-1/2 -translate-y-1/2 rotate-[28deg] rounded-full border border-white/8 animate-[jupiter-orbit-roll_24s_linear_infinite_reverse]" />
+</div>
 
 <div className="absolute inset-0 overflow-hidden">
   {STARFIELD.map((star) => (
@@ -257,20 +263,28 @@ className={[
                     "absolute rounded-full",
                     active
                       ? broadcast
-                        ? "h-8 w-8 bg-white/8 animate-ping"
-                        : "h-10 w-10 bg-white/10 animate-ping"
+                        ? "h-8 w-8 bg-sky-100/12 animate-ping"
+                        : "h-12 w-12 bg-sky-100/12 animate-ping"
                       : broadcast
                         ? "h-4 w-4 bg-white/5"
                         : "h-6 w-6 bg-white/5",
                   ].join(" ")}
                 />
+                {active ? (
+                  <div
+                    className={[
+                      "absolute rounded-full border border-sky-100/18 shadow-[0_0_24px_rgba(125,211,252,0.35)]",
+                      broadcast ? "h-12 w-12" : "h-16 w-16",
+                    ].join(" ")}
+                  />
+                ) : null}
                 <div
                   className={[
                     "relative rounded-full border",
                     active
                       ? broadcast
-                        ? "h-3 w-3 border-white bg-white shadow-[0_0_12px_rgba(255,255,255,0.55)]"
-                        : "h-4 w-4 border-white bg-white shadow-[0_0_18px_rgba(255,255,255,0.7)]"
+                        ? "h-3 w-3 border-sky-50 bg-sky-50 shadow-[0_0_14px_rgba(125,211,252,0.72)]"
+                        : "h-4 w-4 border-sky-50 bg-sky-50 shadow-[0_0_22px_rgba(125,211,252,0.85)]"
                       : broadcast
                         ? "h-2.5 w-2.5 border-white/45 bg-white/55"
                         : "h-3 w-3 border-white/50 bg-white/60",
@@ -310,6 +324,15 @@ className={[
           }
           50% {
             filter: brightness(1.12);
+          }
+        }
+
+        @keyframes jupiter-orbit-roll {
+          from {
+            transform: translate(-50%, -50%) rotate(0deg);
+          }
+          to {
+            transform: translate(-50%, -50%) rotate(360deg);
           }
         }
       `}</style>
