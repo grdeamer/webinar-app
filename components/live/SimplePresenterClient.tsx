@@ -10,6 +10,7 @@ import {
   useTracks,
 } from "@livekit/components-react"
 import { Button } from "@/components/ui/button"
+import { Camera, Mic2, MonitorPlay, Radio, ShieldCheck, Waves } from "lucide-react"
 import { ParticipantEvent, Track } from "livekit-client"
 function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMessage | null }) {
   const tracks = useTracks(
@@ -815,16 +816,18 @@ function PresenterControls({ statusChannelKey }: { statusChannelKey?: string }) 
   return (
     <div
       className={[
-        "relative overflow-hidden rounded-3xl border p-6 text-white transition-all duration-300",
+        "relative overflow-hidden rounded-[34px] border p-6 text-white transition-all duration-300 shadow-[0_30px_110px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.06)]",
         isLive
           ? "border-red-300/30 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.22),transparent_38%),rgba(127,29,29,0.22)] shadow-[0_0_44px_rgba(239,68,68,0.18)]"
-          : "border-white/10 bg-white/5",
+          : "border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.09),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))]",
       ].join(" ")}
     >
+      <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/42 to-transparent" />
       {isLive ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-1 bg-red-400 shadow-[0_0_24px_rgba(248,113,113,0.95)]" />
       ) : null}
-      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+      <div className="relative z-10 flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
         <div>
           <div className="text-xs uppercase tracking-[0.18em] text-violet-200/45">
             Presenter Confidence Panel
@@ -880,13 +883,13 @@ function PresenterControls({ statusChannelKey }: { statusChannelKey?: string }) 
           onClick={toggleCamera}
           variant="outline"
           className={[
-            "rounded-full border px-4 py-2 text-sm font-semibold transition",
+            "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition",
             cameraEnabled
               ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15 hover:text-emerald-100"
               : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10 hover:text-white",
           ].join(" ")}
         >
-          {cameraEnabled ? "Camera On" : "Start Camera"}
+          <><Camera size={15} /> {cameraEnabled ? "Camera On" : "Start Camera"}</>
         </Button>
 
         <Button
@@ -894,13 +897,13 @@ function PresenterControls({ statusChannelKey }: { statusChannelKey?: string }) 
           onClick={toggleMic}
           variant="outline"
           className={[
-            "rounded-full border px-4 py-2 text-sm font-semibold transition",
+            "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition",
             micEnabled
               ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200 hover:bg-emerald-400/15 hover:text-emerald-100"
               : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10 hover:text-white",
           ].join(" ")}
         >
-          {micEnabled ? "Mic On" : "Unmute Mic"}
+          <><Mic2 size={15} /> {micEnabled ? "Mic On" : "Unmute Mic"}</>
         </Button>
 
         <Button
@@ -908,13 +911,13 @@ function PresenterControls({ statusChannelKey }: { statusChannelKey?: string }) 
           onClick={toggleScreenShare}
           variant="outline"
           className={[
-            "rounded-full border px-4 py-2 text-sm font-semibold transition",
+            "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition",
             screenShareEnabled
               ? "border-violet-300/30 bg-violet-400/15 text-violet-100 hover:bg-violet-400/20 hover:text-violet-50"
               : "border-white/10 bg-black/20 text-white/60 hover:bg-white/10 hover:text-white",
           ].join(" ")}
         >
-          {screenShareEnabled ? "Screen Sharing" : "Share Screen"}
+          <><MonitorPlay size={15} /> {screenShareEnabled ? "Screen Sharing" : "Share Screen"}</>
         </Button>
 
         <div
@@ -1109,13 +1112,24 @@ export default function SimplePresenterClient({
   }
 
   return (
-    <div className="space-y-4">
-      <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="space-y-4 rounded-[34px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.08),transparent_34%),linear-gradient(180deg,rgba(2,6,23,0.42),rgba(0,0,0,0.18))] p-3 shadow-[0_30px_110px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-black/28 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]">
         <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/35">
           Backstage Device Check
         </div>
         <div className="mt-1 text-xs font-semibold uppercase leading-5 tracking-[0.16em] text-white/50">
           {eventTitle ?? roomName ?? "Presenter Room"}
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/38">
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/14 bg-emerald-400/8 px-2.5 py-1 text-emerald-100/58">
+            <ShieldCheck size={11} /> Assisted Backstage
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/14 bg-sky-400/8 px-2.5 py-1 text-sky-100/58">
+            <Radio size={11} /> Producer Controlled
+          </span>
+          <span className="inline-flex items-center gap-1 rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-violet-100/58">
+            <Waves size={11} /> Confidence Feed
+          </span>
         </div>
       </div>
 
