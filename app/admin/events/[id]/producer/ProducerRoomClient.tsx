@@ -17,6 +17,7 @@ import ProducerLeftRail from "./ProducerLeftRail"
 import ProducerRightRail from "./ProducerRightRail"
 import BroadcastCommandDeck from "./BroadcastCommandDeck"
 import BottomAssetDock from "./BottomAssetDock"
+import OperationsSyncStrip from "./OperationsSyncStrip"
 import {
   type ProducerParticipant,
   type StageState,
@@ -24,192 +25,6 @@ import {
 import type { CinematicTransitionType } from "./commandDeckTypes"
 import type { ScreenLayoutPreset } from "./assetDockTypes"
 
-function OperationsSyncStrip({
-  previewProgramDifferent,
-  takeBusy,
-  selectedSceneLabel,
-  programSlideLabel,
-  onStageCount,
-  participantCount,
-  previewBlockCount,
-  programBlockCount,
-  hasProgramSource,
-  hasScreenShare,
-  lastTakeMode,
-  hotkeySceneLabel,
-  lastTransportActionAt,
-  isLive,
-  layout,
-}: {
-  previewProgramDifferent: boolean
-  takeBusy: boolean
-  selectedSceneLabel: string | null
-  programSlideLabel: string | null
-  onStageCount: number
-  participantCount: number
-  previewBlockCount: number
-  programBlockCount: number
-  hasProgramSource: boolean
-  hasScreenShare: boolean
-  lastTakeMode: "cut" | "auto" | null
-  hotkeySceneLabel: string | null
-  lastTransportActionAt: number | null
-  isLive: boolean
-  layout: StageState["layout"] | null | undefined
-}): JSX.Element {
-  const commandState = takeBusy
-    ? "Transport Locked"
-    : previewProgramDifferent
-      ? "Preview Armed"
-      : "Program Synced"
-
-  const takeLabel = lastTakeMode
-    ? lastTakeMode === "auto"
-      ? "Last: Auto Transition"
-      : "Last: Cut"
-    : "Take Standby"
-
-  const routeLabel = isLive ? "Audience Route: Live" : "Audience Route: Holding"
-  const layoutLabel =
-    layout === "screen_speaker"
-      ? "Speaker + Screen"
-      : layout === "grid"
-        ? "Grid"
-        : "Solo"
-
-  const returnStateLabel = hasProgramSource ? "Return: Clean" : "Return: No Source"
-  const recordStateLabel = isLive
-    ? hasProgramSource
-      ? "Record: Master + ISO Armed"
-      : "Record: Armed / No Source"
-    : "Record: Standby"
-  const commsStateLabel = onStageCount > 0 ? "IFB: Talent Routed" : "IFB: No Talent"
-  const assetStateLabel = `${previewBlockCount} Preview / ${programBlockCount} Program Assets`
-  const audienceStateLabel = isLive
-    ? `${participantCount} Connected Viewers`
-    : `${participantCount} In Holding`
-
-  const readinessLabel = takeBusy
-    ? "Readiness: Transport Locked"
-    : !hasProgramSource
-      ? "Readiness: Source Required"
-      : previewProgramDifferent
-        ? "Readiness: Preview Armed"
-        : "Readiness: Program Matched"
-
-  const readinessClassName = takeBusy
-    ? "border-red-300/14 bg-red-400/8 text-red-100/58"
-    : !hasProgramSource
-      ? "border-amber-300/14 bg-amber-400/8 text-amber-100/58"
-      : previewProgramDifferent
-        ? "border-sky-300/14 bg-sky-400/8 text-sky-100/58"
-        : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/58"
-
-  const guardrailLabel = !hasProgramSource
-    ? "Guardrail: No program source"
-    : isLive && previewProgramDifferent
-      ? "Guardrail: Confirm before TAKE"
-      : "Guardrail: Clear"
-
-  const guardrailClassName = !hasProgramSource || (isLive && previewProgramDifferent)
-    ? "border-amber-300/14 bg-amber-400/8 text-amber-100/58"
-    : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/54"
-
-  return (
-    <div className="border-b border-white/8 bg-black/18 px-4 py-2 md:px-5 xl:px-6 2xl:px-7">
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        <div className="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/36">
-          <span className="rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-violet-100/58">
-            Ops Sync
-          </span>
-          <span
-            className={[
-              "rounded-full border px-2.5 py-1",
-              isLive
-                ? "border-red-300/14 bg-red-400/8 text-red-100/56"
-                : "border-white/8 bg-black/24 text-white/42",
-            ].join(" ")}
-          >
-            {routeLabel}
-          </span>
-
-          <span className="rounded-full border border-white/8 bg-black/24 px-2.5 py-1">
-            {commandState}
-          </span>
-          <span className={["rounded-full border px-2.5 py-1", readinessClassName].join(" ")}>
-            {readinessLabel}
-          </span>
-
-          <span className="rounded-full border border-red-300/12 bg-red-400/8 px-2.5 py-1 text-red-100/52">
-            {takeLabel}
-          </span>
-          <span
-            className={[
-              "rounded-full border px-2.5 py-1",
-              hasProgramSource
-                ? "border-emerald-300/12 bg-emerald-400/8 text-emerald-100/54"
-                : "border-amber-300/12 bg-amber-400/8 text-amber-100/54",
-            ].join(" ")}
-          >
-            {returnStateLabel}
-          </span>
-          <span className="rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-white/42">
-            Command: {formatTransportTimestamp(lastTransportActionAt)}
-          </span>
-
-          <span className="rounded-full border border-sky-300/12 bg-sky-400/8 px-2.5 py-1 text-sky-100/54">
-            {selectedSceneLabel ? `Scene: ${selectedSceneLabel}` : "Scene Memory Idle"}
-          </span>
-
-          {hotkeySceneLabel ? (
-            <span className="rounded-full border border-violet-300/16 bg-violet-400/10 px-2.5 py-1 text-violet-100/62 shadow-[0_0_16px_rgba(168,85,247,0.08)]">
-              Hotkey Recall: {hotkeySceneLabel}
-            </span>
-          ) : null}
-
-          <span className="rounded-full border border-amber-300/12 bg-amber-400/8 px-2.5 py-1 text-amber-100/54">
-            {programSlideLabel ? `Deck: ${programSlideLabel}` : "Deck Standby"}
-          </span>
-          <span className={["rounded-full border px-2.5 py-1", guardrailClassName].join(" ")}>
-            {guardrailLabel}
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
-          <span className="rounded-full border border-sky-300/12 bg-sky-400/8 px-2.5 py-1 text-sky-100/54">
-            Layout: {layoutLabel}
-          </span>
-          <span className="rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2.5 py-1 text-emerald-100/54">
-            {onStageCount} Talent Routed
-          </span>
-
-          <span className="hidden rounded-full border border-red-300/12 bg-red-400/8 px-2.5 py-1 text-red-100/54 lg:inline-flex">
-            {recordStateLabel}
-          </span>
-          <span className="hidden rounded-full border border-violet-300/12 bg-violet-400/8 px-2.5 py-1 text-violet-100/54 xl:inline-flex">
-            {commsStateLabel}
-          </span>
-          <span className="hidden rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-white/42 2xl:inline-flex">
-            {assetStateLabel}
-          </span>
-          <span
-            className={[
-              "hidden rounded-full border px-2.5 py-1 2xl:inline-flex",
-              hasScreenShare
-                ? "border-sky-300/12 bg-sky-400/8 text-sky-100/54"
-                : "border-white/8 bg-black/24 text-white/38",
-            ].join(" ")}
-          >
-            {hasScreenShare ? "Screen Route: Active" : "Screen Route: Idle"}
-          </span>
-          <span className="hidden rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2.5 py-1 text-emerald-100/54 2xl:inline-flex">
-            {audienceStateLabel}
-          </span>
-        </div>
-      </div>
-    </div>
-  )
-}
 
 type LocalPdfDeck = {
   name: string
@@ -224,15 +39,6 @@ async function estimatePdfPageCount(file: File): Promise<number> {
   return Math.max(1, matches?.length ?? 1)
 }
 
-function formatTransportTimestamp(value: number | null): string {
-  if (!value) return "No commands yet"
-
-  return new Date(value).toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  })
-}
 
 function isTypingTarget(target: EventTarget | null): boolean {
   const tag = (target as HTMLElement | null)?.tagName?.toLowerCase()
