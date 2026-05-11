@@ -5,7 +5,7 @@ import type { JSX } from "react"
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react"
 
 import useProducerRoomApi from "./useProducerRoomApi"
-import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks"
+import useProducerBlocks from "./useProducerBlocks"
 import useProducerBlockEditor from "./useProducerBlockEditor"
 import useProducerUploads from "./useProducerUploads"
 import useProducerTransitions from "./useProducerTransitions"
@@ -217,11 +217,13 @@ type LocalPdfDeck = {
   src?: string | null
 }
 
+
 async function estimatePdfPageCount(file: File): Promise<number> {
   const text = new TextDecoder("latin1").decode(await file.arrayBuffer())
   const matches = text.match(/\/Type\s*\/Page\b/g)
   return Math.max(1, matches?.length ?? 1)
 }
+
 function formatTransportTimestamp(value: number | null): string {
   if (!value) return "No commands yet"
 
@@ -443,40 +445,47 @@ export default function ProducerRoomClient({
     await Promise.all([loadParticipants(), loadStageState(), loadProgramState()])
   }, [])
 
-  const participantActions = useMemo(
-    () => ({
-      addToStage: async (identity: string) => {
-        const data = await api.addToStage(identity)
-        setStageState(data.state)
-      },
-
-      removeFromStage: async (identity: string) => {
-        const data = await api.removeFromStage(identity)
-        setStageState(data.state)
-      },
-
-      pinParticipant: async (identity: string) => {
-        const data = await api.pinParticipant(identity)
-        setStageState(data.state)
-      },
-
-      unpinParticipant: async () => {
-        const data = await api.unpinParticipant()
-        setStageState(data.state)
-      },
-
-      setPrimaryParticipant: async (identity: string) => {
-        const data = await api.setPrimaryParticipant(identity)
-        setStageState(data.state)
-      },
-
-      clearPrimaryParticipant: async () => {
-        const data = await api.clearPrimaryParticipant()
-        setStageState(data.state)
-      },
-    }),
+  const addToStage = useCallback(
+    async (identity: string) => {
+      const data = await api.addToStage(identity)
+      setStageState(data.state)
+    },
     [api]
   )
+
+  const removeFromStage = useCallback(
+    async (identity: string) => {
+      const data = await api.removeFromStage(identity)
+      setStageState(data.state)
+    },
+    [api]
+  )
+
+  const pinParticipant = useCallback(
+    async (identity: string) => {
+      const data = await api.pinParticipant(identity)
+      setStageState(data.state)
+    },
+    [api]
+  )
+
+  const unpinParticipant = useCallback(async () => {
+    const data = await api.unpinParticipant()
+    setStageState(data.state)
+  }, [api])
+
+  const setPrimaryParticipant = useCallback(
+    async (identity: string) => {
+      const data = await api.setPrimaryParticipant(identity)
+      setStageState(data.state)
+    },
+    [api]
+  )
+
+  const clearPrimaryParticipant = useCallback(async () => {
+    const data = await api.clearPrimaryParticipant()
+    setStageState(data.state)
+  }, [api])
 
   const {
     scenes,
@@ -1237,12 +1246,8 @@ export default function ProducerRoomClient({
                   onClearScreenShare={() =>
                     void clearScreenShare().catch(handleAsyncError)
                   }
-                  onUnpin={() =>
-                    void participantActions.unpinParticipant().catch(handleAsyncError)
-                  }
-                  onClearPrimary={() =>
-                    void participantActions.clearPrimaryParticipant().catch(handleAsyncError)
-                  }
+                  onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
+                  onClearPrimary={() => void clearPrimaryParticipant().catch(handleAsyncError)}
                   addTestTextBlock={addTestTextBlock}
                   addTestVideoBlock={addTestVideoBlock}
                   addTestPdfBlock={addTestPdfBlock}
@@ -1268,26 +1273,18 @@ export default function ProducerRoomClient({
                 onUpdateTextContent={updateSelectedTextBlockContent}
                 stageState={stageState}
                 getScreenTrackSid={getScreenTrackSid}
-                onAddToStage={(identity) =>
-                  void participantActions.addToStage(identity).catch(handleAsyncError)
-                }
+                onAddToStage={(identity) => void addToStage(identity).catch(handleAsyncError)}
                 onSetScreenShare={(participantId, trackId) =>
                   void setScreenShare(participantId, trackId).catch(handleAsyncError)
                 }
-                onClearPrimary={() =>
-                  void participantActions.clearPrimaryParticipant().catch(handleAsyncError)
-                }
+                onClearPrimary={() => void clearPrimaryParticipant().catch(handleAsyncError)}
                 onSetPrimary={(identity) =>
-                  void participantActions.setPrimaryParticipant(identity).catch(handleAsyncError)
+                  void setPrimaryParticipant(identity).catch(handleAsyncError)
                 }
-                onUnpin={() =>
-                  void participantActions.unpinParticipant().catch(handleAsyncError)
-                }
-                onPin={(identity) =>
-                  void participantActions.pinParticipant(identity).catch(handleAsyncError)
-                }
+                onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
+                onPin={(identity) => void pinParticipant(identity).catch(handleAsyncError)}
                 onRemoveFromStage={(identity) =>
-                  void participantActions.removeFromStage(identity).catch(handleAsyncError)
+                  void removeFromStage(identity).catch(handleAsyncError)
                 }
                 onError={setError}
               />
