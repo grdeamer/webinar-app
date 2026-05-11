@@ -225,38 +225,56 @@ function AttendeeProgramTransition({
 
   useEffect(() => {
     if (!programSource) return
+
     setShowCutFlash(true)
+
     const timeout = window.setTimeout(
       () => setShowCutFlash(false),
-      programSource.mode === "cut" ? 140 : 260
+      programSource.mode === "cut" ? 180 : 360
     )
 
     return () => window.clearTimeout(timeout)
-  }, [programSource?.updatedAt])
+  }, [programSource?.updatedAt, programSource?.mode])
 
   const transitionClass =
     programSource?.transitionType === "warp"
-      ? "scale-[1.012]"
+      ? "scale-[1.014] saturate-[1.08]"
       : programSource?.transitionType === "fade"
-      ? "opacity-95"
-      : programSource?.transitionType === "curtain"
-      ? "brightness-90"
-      : ""
+        ? "opacity-95"
+        : programSource?.transitionType === "curtain"
+          ? "brightness-90 contrast-110"
+          : ""
+
+  const transitionLabel =
+    programSource?.mode === "auto"
+      ? programSource.transitionType === "warp"
+        ? "Signal Warp"
+        : programSource.transitionType === "curtain"
+          ? "Stage Reveal"
+          : "Soft Dissolve"
+      : "Live Cut"
 
   return (
     <div
       className={[
-        "relative overflow-hidden transition-all duration-300 ease-out",
+        "relative overflow-hidden transition-all duration-500 ease-out",
         transitionClass,
       ].join(" ")}
     >
       {showCutFlash ? (
-        <div
-          className={[
-            "pointer-events-none absolute inset-0 z-40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.78),rgba(125,211,252,0.2)_34%,transparent_72%)]",
-            programSource?.mode === "cut" ? "animate-pulse" : "",
-          ].join(" ")}
-        />
+        <>
+          <div
+            className={[
+              "pointer-events-none absolute inset-0 z-40 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.82),rgba(125,211,252,0.22)_34%,transparent_72%)] mix-blend-screen",
+              programSource?.mode === "cut" ? "animate-pulse" : "",
+            ].join(" ")}
+          />
+          <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-black/[0.03] backdrop-blur-[1px]">
+            <div className="rounded-full border border-white/35 bg-white/92 px-5 py-2 text-[9px] font-black uppercase tracking-[0.28em] text-black shadow-[0_0_70px_rgba(255,255,255,0.52)]">
+              {transitionLabel}
+            </div>
+          </div>
+        </>
       ) : null}
       {children}
     </div>
@@ -273,26 +291,35 @@ function AttendeeBroadcastFrame({
   children: ReactNode
 }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_24px_70px_rgba(0,0,0,0.45)]">
-      <div className="pointer-events-none absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_54%,rgba(0,0,0,0.58)),linear-gradient(180deg,rgba(255,255,255,0.045),transparent_20%,transparent_80%,rgba(255,255,255,0.03))]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-24 bg-[linear-gradient(105deg,rgba(255,255,255,0.12),transparent_42%)] opacity-35" />
-      <div className="pointer-events-none absolute inset-0 z-30 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[length:100%_5px] opacity-18" />
+    <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(248,113,113,0.07),transparent_30%),#020617] p-1.5 shadow-[0_34px_110px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.075)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/42 to-transparent" />
 
-      <div className="pointer-events-none absolute left-3 top-3 z-40 flex items-center gap-2 rounded-full border border-red-300/25 bg-red-500/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-red-50 shadow-[0_0_18px_rgba(248,113,113,0.18)] backdrop-blur">
-        <span
-          className={[
-            "h-2 w-2 rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.85)]",
-            live ? "animate-pulse" : "opacity-40",
-          ].join(" ")}
-        />
-        {live ? "Live" : "Standby"}
+      <div className="relative overflow-hidden rounded-[24px] bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="pointer-events-none absolute inset-0 z-20 bg-[radial-gradient(circle_at_center,transparent_54%,rgba(0,0,0,0.62)),linear-gradient(180deg,rgba(255,255,255,0.055),transparent_20%,transparent_80%,rgba(255,255,255,0.035))]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 z-30 h-24 bg-[linear-gradient(105deg,rgba(255,255,255,0.14),transparent_42%)] opacity-40" />
+        <div className="pointer-events-none absolute inset-0 z-30 opacity-[0.055] [background:repeating-linear-gradient(0deg,rgba(255,255,255,0.9)_0px,rgba(255,255,255,0.9)_1px,transparent_1px,transparent_5px)]" />
+
+        <div className="pointer-events-none absolute left-3 top-3 z-40 flex items-center gap-2 rounded-full border border-red-300/28 bg-black/62 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-50 shadow-[0_0_24px_rgba(248,113,113,0.22),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-md">
+          <span
+            className={[
+              "h-2 w-2 rounded-full bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.85)]",
+              live ? "animate-pulse" : "opacity-40",
+            ].join(" ")}
+          />
+          {live ? "Live" : "Standby"}
+        </div>
+
+        <div className="pointer-events-none absolute right-3 top-3 z-40 rounded-full border border-white/10 bg-black/62 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/58 shadow-[0_0_18px_rgba(0,0,0,0.25),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-md">
+          {label}
+        </div>
+
+        <div className="pointer-events-none absolute bottom-3 left-3 z-40 rounded-full border border-sky-300/14 bg-sky-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-sky-100/60 backdrop-blur-md">
+          Jupiter Program Feed
+        </div>
+
+        {children}
       </div>
-
-      <div className="pointer-events-none absolute right-3 top-3 z-40 rounded-full border border-white/10 bg-black/55 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/55 shadow-[0_0_18px_rgba(0,0,0,0.25)] backdrop-blur">
-        {label}
-      </div>
-
-      {children}
     </div>
   )
 }
@@ -494,8 +521,10 @@ function AudienceStageTracks({
 
   function empty(msg: string) {
     return (
-      <div className="flex aspect-video items-center justify-center rounded-2xl border border-dashed border-white/15 bg-black/40 text-white/40">
-        {msg}
+      <div className="flex aspect-video items-center justify-center rounded-[28px] border border-dashed border-white/15 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.08),transparent_48%),rgba(0,0,0,0.48)] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="rounded-full border border-white/10 bg-black/42 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-md">
+          {msg}
+        </div>
       </div>
     )
   }
@@ -814,24 +843,34 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
 
   if (!stageState.is_live && !hasRenderableProgramSource) {
     return (
-      <div className="p-10 text-center text-white">
-        <div className="text-sm text-white/40">Live Stage</div>
-        <div className="mt-2 text-2xl font-semibold">
-          {stageState.headline || "Starting soon"}
-        </div>
-        {stageState.message ? (
-          <div className="mt-3 text-sm text-white/60 max-w-xl mx-auto">
-            {stageState.message}
+      <div className="relative overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_34%),linear-gradient(180deg,rgba(2,6,23,0.96),rgba(0,0,0,1))] p-10 text-center text-white shadow-[0_30px_100px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.06)]">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.05] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
+        <div className="relative z-10">
+          <div className="mx-auto inline-flex rounded-full border border-sky-300/14 bg-sky-400/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-sky-100/58">
+            Live Stage
           </div>
-        ) : null}
+          <div className="mt-4 text-3xl font-black tracking-tight">
+            {stageState.headline || "Starting soon"}
+          </div>
+          {stageState.message ? (
+            <div className="mx-auto mt-3 max-w-xl text-sm leading-relaxed text-white/60">
+              {stageState.message}
+            </div>
+          ) : null}
+          <div className="mx-auto mt-6 h-1.5 max-w-sm overflow-hidden rounded-full bg-white/10">
+            <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-sky-300 via-violet-300 to-emerald-300 shadow-[0_0_22px_rgba(125,211,252,0.32)]" />
+          </div>
+        </div>
       </div>
     )
   }
 
   if (!token || !serverUrl) {
     return (
-      <div className="flex aspect-video items-center justify-center text-white/50">
-        Connecting to live stage…
+      <div className="flex aspect-video items-center justify-center rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.10),transparent_48%),rgba(0,0,0,0.48)] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+        <div className="rounded-full border border-white/10 bg-black/42 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/50 backdrop-blur-md">
+          Connecting to live stage…
+        </div>
       </div>
     )
   }
