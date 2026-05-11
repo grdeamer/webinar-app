@@ -11,6 +11,10 @@ import useProducerUploads from "./useProducerUploads"
 import useProducerTransitions from "./useProducerTransitions"
 import useProducerDevices from "./useProducerDevices"
 import useProducerScenes from "./useProducerScenes"
+import useProducerParticipantActions from "./useProducerParticipantActions"
+import useProducerTransport from "./useProducerTransport"
+import useProducerCanvasInteractions from "./useProducerCanvasInteractions"
+import useProducerPdfDeck from "./useProducerPdfDeck"
 import ProducerRoomHeader from "./ProducerRoomHeader"
 import CenterSwitcherColumn from "./CenterSwitcherColumn"
 import ProducerLeftRail from "./ProducerLeftRail"
@@ -18,6 +22,11 @@ import ProducerRightRail from "./ProducerRightRail"
 import BroadcastCommandDeck from "./BroadcastCommandDeck"
 import BottomAssetDock from "./BottomAssetDock"
 import OperationsSyncStrip from "./OperationsSyncStrip"
+import useProducerHotkeys from "./useProducerHotkeys"
+import useProducerAutoDirectorEffects from "./useProducerAutoDirectorEffects"
+import useProducerRoomLifecycle from "./useProducerRoomLifecycle"
+
+import useAudienceCue from "./useAudienceCue"
 import {
   type ProducerParticipant,
   type StageState,
@@ -26,15 +35,9 @@ import type { CinematicTransitionType } from "./commandDeckTypes"
 import type { ScreenLayoutPreset } from "./assetDockTypes"
 import { broadcastPresenterProgramSource } from "./programTransportUtils"
 import {
-  type LocalPdfDeck,
-  estimatePdfPageCount,
-} from "./pdfDeckUtils"
-
-
-function isTypingTarget(target: EventTarget | null): boolean {
-  const tag = (target as HTMLElement | null)?.tagName?.toLowerCase()
-  return tag === "input" || tag === "textarea" || tag === "select"
-}
+  getHasProgramSource,
+  previewProgramStatesDifferent,
+} from "./producerRoomStatusUtils"
 
 export default function ProducerRoomClient({
   eventId,
@@ -54,10 +57,9 @@ export default function ProducerRoomClient({
   const [screenLayoutPreset, setScreenLayoutPreset] = useState<ScreenLayoutPreset>("classic")
   const [selectedTransitionDurationMs] = useState(600)
   const [lastTransportActionAt, setLastTransportActionAt] = useState<number | null>(null)
-  const [programState, setProgramState] = useState<StageState | null>(null)
   const [programSceneId, setProgramSceneId] = useState<string | null>(null)
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
-  const [localPdfDeck, setLocalPdfDeck] = useState<LocalPdfDeck | null>(null)
+  const [programState, setProgramState] = useState<StageState | null>(null)
   const [monitorHeight, setMonitorHeight] = useState(520)
   const handleAsyncError = useCallback((error: unknown) => {
     setError(error instanceof Error ? error.message : "Unexpected error")
@@ -65,20 +67,19 @@ export default function ProducerRoomClient({
   const pdfInputRef = useRef<HTMLInputElement | null>(null)
   const videoInputRef = useRef<HTMLInputElement | null>(null)
   const imageInputRef = useRef<HTMLInputElement | null>(null)
-  const [showAudienceCue, setShowAudienceCue] = useState(false)
-  const [audienceCueRegion, setAudienceCueRegion] = useState("Europe")
-  const [audienceCueMoonMode, setAudienceCueMoonMode] = useState(false)
-  const [audienceCueQuestionLabel, setAudienceCueQuestionLabel] = useState(
-    "How are outcomes differing across regions?"
-  )
-  const audienceCueTimeoutRef = useRef<number | null>(null)
+
+const {
+  showAudienceCue,
+  audienceCueRegion,
+  audienceCueMoonMode,
+  audienceCueQuestionLabel,
+  triggerAudienceCue,
+  setShowAudienceCue,
+} = useAudienceCue()
+
   const producerScopeLabel = useMemo(() => {
     return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session"
   }, [sessionId])
-  const localPdfDeckStorageKey = useMemo(
-    () => `jupiter:producer:${eventId}:${sessionId}:pdfDeck`,
-    [eventId, sessionId]
-  )
   const api = useProducerRoomApi(eventId, sessionId)
   const {
     previewBlocks,
@@ -122,69 +123,6 @@ export default function ProducerRoomClient({
     setPreviewBlocks,
   })
 
-  async function handleProducerPdfUpload(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.currentTarget.files?.[0] ?? null
-
-    await handlePdfUpload(event)
-
-    if (!file) return
-
-    const src = URL.createObjectURL(file)
-    const name = file.name.replace(/\.pdf$/i, "")
-
-    try {
-      const pageCount = await estimatePdfPageCount(file)
-      setLocalPdfDeck({
-        name,
-        pageCount,
-        src,
-      })
-    } catch (_err: unknown) {
-      setLocalPdfDeck({
-        name,
-        pageCount: 1,
-        src,
-      })
-    }
-  }
-
-  useEffect(() => {
-    try {
-      const rawDeck = window.localStorage.getItem(localPdfDeckStorageKey)
-      if (!rawDeck) return
-
-      const parsedDeck = JSON.parse(rawDeck) as Partial<LocalPdfDeck>
-      if (!parsedDeck.name || typeof parsedDeck.pageCount !== "number") return
-
-      setLocalPdfDeck({
-        name: parsedDeck.name,
-        pageCount: Math.max(1, parsedDeck.pageCount),
-        src: null,
-      })
-    } catch (_err: unknown) {
-      // Ignore corrupted local deck cache.
-    }
-  }, [localPdfDeckStorageKey])
-
-  useEffect(() => {
-    try {
-      if (!localPdfDeck) {
-        window.localStorage.removeItem(localPdfDeckStorageKey)
-        return
-      }
-
-      window.localStorage.setItem(
-        localPdfDeckStorageKey,
-        JSON.stringify({
-          name: localPdfDeck.name,
-          pageCount: localPdfDeck.pageCount,
-        })
-      )
-    } catch (_err: unknown) {
-      // Ignore storage failures; deck upload still works for the current session.
-    }
-  }, [localPdfDeck, localPdfDeckStorageKey])
-
   const {
     takeBusy,
     lastTakeMode,
@@ -203,26 +141,6 @@ export default function ProducerRoomClient({
     setError,
   })
 
-  async function loadToken() {
-    const data = await api.loadToken()
-    setToken(data.token)
-    setServerUrl(process.env.NEXT_PUBLIC_LIVEKIT_URL || "")
-  }
-
-  async function loadParticipants() {
-    const data = await api.loadParticipants()
-    setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-  }
-
-  async function loadProgramState() {
-    const data = await api.loadProgramState()
-    setProgramState(data?.state ?? null)
-  }
-
-  async function loadStageState() {
-    const data = await api.loadStageState()
-    setStageState(data?.state ?? null)
-  }
 
 
   const {
@@ -238,51 +156,31 @@ export default function ProducerRoomClient({
     setSelectedAudioDeviceId,
   } = useProducerDevices()
 
-  const refreshAll = useCallback(async () => {
-    await Promise.all([loadParticipants(), loadStageState(), loadProgramState()])
-  }, [])
+  const { refreshAll } = useProducerRoomLifecycle({
+    api,
+    eventId,
+    sessionId,
+    loadMediaDevices,
+    setToken,
+    setServerUrl,
+    setParticipants,
+    setStageState,
+    setProgramState,
+    setLoadingText,
+    setError,
+  })
 
-  const addToStage = useCallback(
-    async (identity: string) => {
-      const data = await api.addToStage(identity)
-      setStageState(data.state)
-    },
-    [api]
-  )
-
-  const removeFromStage = useCallback(
-    async (identity: string) => {
-      const data = await api.removeFromStage(identity)
-      setStageState(data.state)
-    },
-    [api]
-  )
-
-  const pinParticipant = useCallback(
-    async (identity: string) => {
-      const data = await api.pinParticipant(identity)
-      setStageState(data.state)
-    },
-    [api]
-  )
-
-  const unpinParticipant = useCallback(async () => {
-    const data = await api.unpinParticipant()
-    setStageState(data.state)
-  }, [api])
-
-  const setPrimaryParticipant = useCallback(
-    async (identity: string) => {
-      const data = await api.setPrimaryParticipant(identity)
-      setStageState(data.state)
-    },
-    [api]
-  )
-
-  const clearPrimaryParticipant = useCallback(async () => {
-    const data = await api.clearPrimaryParticipant()
-    setStageState(data.state)
-  }, [api])
+const {
+  addToStage,
+  removeFromStage,
+  pinParticipant,
+  unpinParticipant,
+  setPrimaryParticipant,
+  clearPrimaryParticipant,
+} = useProducerParticipantActions({
+  api,
+  setStageState: (state) => setStageState(state),
+})
 
   const {
     scenes,
@@ -311,103 +209,26 @@ export default function ProducerRoomClient({
     refreshAll,
   })
 
-  async function applySceneAndTake(sceneId: string) {
-    await applyScene(sceneId)
-    window.setTimeout(() => {
-      takeProgram("cut", undefined, {
-        sceneId,
-        slideLabel: null,
-      })
-    }, 175)
-  }
-
-  // Helper function to broadcast the current Program source
-  
-
-  function takeProgram(
-    mode: "cut" | "auto",
-    transitionType?: CinematicTransitionType,
-    options?: {
-      sceneId?: string | null
-      slideLabel?: string | null
-      transitionDurationMs?: number
-    }
-  ) {
-    const durationMs = options?.transitionDurationMs ?? selectedTransitionDurationMs
-
-    setLastTransportActionAt(Date.now())
-    void runTake(mode, transitionType)
-    broadcastPresenterProgramSource({
-  mode,
-  transitionType,
-  transitionDurationMs: durationMs,
+const { takeProgram } = useProducerTransport({
+  runTake,
   sessionId,
   stageState,
   previewBlocks,
+  selectedSceneId,
+  selectedTransitionDurationMs,
 })
-    setProgramSceneId(options?.sceneId ?? selectedSceneId)
-    setProgramSlideLabel(options?.slideLabel ?? null)
-  }
+async function applySceneAndTake(sceneId: string) {
+  await applyScene(sceneId)
 
-  function sendSlideToPreview(slideIndex: number) {
-    setSelectedSceneId(null)
-    setError(null)
-    setProgramSlideLabel(null)
-
-    const slideLabel = localPdfDeck?.name
-      ? `${localPdfDeck.name} · Slide ${slideIndex}`
-      : `Slide ${slideIndex}`
-
-    setPreviewBlocks((prev) => {
-      const existingSlideBlock = prev.find((block) => {
-        if (block.type !== "pdf") return false
-        if (localPdfDeck?.src && block.src === localPdfDeck.src) return true
-        const label = block.label ?? ""
-        return label.includes("Slide ")
-      })
-
-      if (existingSlideBlock) {
-        return prev.map((block) =>
-          block.id === existingSlideBlock.id
-            ? {
-                ...block,
-                src: localPdfDeck?.src ?? block.src,
-                label: slideLabel,
-              }
-            : block
-        )
-      }
-
-      return [
-        ...prev,
-        {
-          id: crypto.randomUUID(),
-          type: "pdf",
-          src: localPdfDeck?.src ?? undefined,
-          x: 10,
-          y: 10,
-          width: 60,
-          height: 60,
-          zIndex: prev.length + 1,
-          label: slideLabel,
-        },
-      ]
+  window.setTimeout(() => {
+    takeProgram("cut", undefined, {
+      sceneId,
+      slideLabel: null,
     })
+  }, 175)
+}
 
-    setSceneName(`${slideLabel} Preview`)
-  }
 
-  function takeSlide(slideIndex: number) {
-    sendSlideToPreview(slideIndex)
-    window.setTimeout(() => {
-      takeProgram("cut", undefined, {
-        sceneId: null,
-        slideLabel: localPdfDeck?.name
-          ? `${localPdfDeck.name} · Slide ${slideIndex}`
-          : `Slide ${slideIndex}`,
-      })
-    }, 175)
-  }
 
 
   const sceneActions = useMemo(
@@ -427,6 +248,30 @@ export default function ProducerRoomClient({
       flashSceneHotkey,
     ]
   )
+    const {
+    localPdfDeck,
+    handleProducerPdfUpload,
+    sendSlideToPreview,
+    takeSlide,
+  } = useProducerPdfDeck({
+    eventId,
+    sessionId,
+    setPreviewBlocks,
+    setSelectedSceneId,
+    setSceneName,
+    setError,
+    setProgramSlideLabel,
+    handlePdfUpload,
+    takeProgram,
+  })
+
+  useProducerHotkeys({
+    scenes,
+    applyScene,
+    applySceneAndTake,
+    flashSceneHotkey,
+    takeProgram,
+  })
 
   const transportActions = useMemo(
     () => ({
@@ -442,7 +287,25 @@ export default function ProducerRoomClient({
       takeSlide,
     ]
   )
-
+const {
+  startDraggingBlock,
+  startResizingBlock,
+  onPreviewCanvasMouseMove,
+  stopDraggingBlock,
+} = useProducerCanvasInteractions({
+  previewBlocks,
+  setPreviewBlocks,
+  selectedBlockId,
+  setSelectedBlockId,
+  draggingBlockId,
+  setDraggingBlockId,
+  resizingBlockId,
+  setResizingBlockId,
+  dragOffset,
+  setDragOffset,
+  previewCanvasRect,
+  setPreviewCanvasRect,
+})
   async function setAutoDirector(enabled: boolean) {
     const data = await api.setAutoDirector(enabled)
     setStageState(data.state)
@@ -474,139 +337,11 @@ export default function ProducerRoomClient({
     setStageState(data.state)
   }
 
-  function startDraggingBlock(e: React.MouseEvent<HTMLDivElement>, blockId: string) {
-    const rect = e.currentTarget.parentElement?.getBoundingClientRect() || null
-    if (!rect) return
-
-    const block = previewBlocks.find((b) => b.id === blockId)
-    if (!block) return
-
-    setPreviewCanvasRect(rect)
-    setDraggingBlockId(blockId)
-    setDragOffset({
-      x: e.clientX - rect.left - block.x,
-      y: e.clientY - rect.top - block.y,
-    })
-  }
-
-  function startResizingBlock(e: React.MouseEvent<HTMLDivElement>, blockId: string) {
-    e.stopPropagation()
-
-    const rect = e.currentTarget.parentElement?.getBoundingClientRect() || null
-    if (!rect) return
-
-    setPreviewCanvasRect(rect)
-    setResizingBlockId(blockId)
-    setSelectedBlockId(blockId)
-  }
-
-  function onPreviewCanvasMouseMove(e: React.MouseEvent<HTMLDivElement>) {
-    if (!previewCanvasRect) return
-
-    if (resizingBlockId) {
-      setPreviewBlocks((prev) =>
-        prev.map((block) => {
-          if (block.id !== resizingBlockId) return block
-
-          const nextWidth = e.clientX - previewCanvasRect.left - block.x
-          const nextHeight = e.clientY - previewCanvasRect.top - block.y
-
-          return {
-            ...block,
-            width: Math.max(80, nextWidth),
-            height: Math.max(60, nextHeight),
-          }
-        })
-      )
-      return
-    }
-
-    if (!draggingBlockId) return
-
-    const nextX = e.clientX - previewCanvasRect.left - dragOffset.x
-    const nextY = e.clientY - previewCanvasRect.top - dragOffset.y
-
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
-        block.id === draggingBlockId
-          ? {
-              ...block,
-              x: Math.max(0, nextX),
-              y: Math.max(0, nextY),
-            }
-          : block
-      )
-    )
-  }
-
-  function stopDraggingBlock() {
-    setDraggingBlockId(null)
-    setResizingBlockId(null)
-  }
-
-  function triggerAudienceCue(options?: {
-    region?: string
-    moonMode?: boolean
-    questionLabel?: string
-    durationMs?: number
-  }) {
-    if (audienceCueTimeoutRef.current) {
-      window.clearTimeout(audienceCueTimeoutRef.current)
-    }
-
-    setAudienceCueRegion(options?.region ?? "Europe")
-    setAudienceCueMoonMode(options?.moonMode ?? false)
-    setAudienceCueQuestionLabel(
-      options?.questionLabel ?? "How are outcomes differing across regions?"
-    )
-    setShowAudienceCue(true)
-
-    audienceCueTimeoutRef.current = window.setTimeout(() => {
-      setShowAudienceCue(false)
-      audienceCueTimeoutRef.current = null
-    }, options?.durationMs ?? 5000)
-  }
-
   function getScreenTrackSid(participant: ProducerParticipant) {
     const track = participant.tracks.find((t) => t.source === 3 || t.source === "SCREEN_SHARE")
     return track?.sid ?? null
   }
 
-  useEffect(() => {
-    let mounted = true
-
-    async function boot() {
-      try {
-        setError(null)
-        setLoadingText("Creating producer token...")
-        await loadToken()
-        if (!mounted) return
-
-        await loadMediaDevices()
-        if (!mounted) return
-
-        setLoadingText("Loading room state...")
-        await refreshAll()
-      } catch (err: unknown) {
-        if (!mounted) return
-        setError(err instanceof Error ? err.message : "Failed to load producer room")
-      }
-    }
-
-    void boot()
-
-    return () => {
-      mounted = false
-    }
-  }, [eventId, sessionId, loadMediaDevices, refreshAll])
-
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      void refreshAll().catch(() => {})
-    }, 3000)
-
-    return () => window.clearInterval(id)
-  }, [refreshAll])
 
   useEffect(() => {
     if (typeof stageState?.auto_director_enabled === "boolean") {
@@ -614,169 +349,39 @@ export default function ProducerRoomClient({
     }
   }, [stageState?.auto_director_enabled])
 
-  const stageIds = useMemo(() => new Set(stageState?.stage_participant_ids || []), [stageState])
+  const { stageIds, onStageParticipants } = useProducerAutoDirectorEffects({
+    autoDirectorEnabled,
+    stageState,
+    participants,
+    setScreenShare,
+    clearScreenShare,
+  })
 
-  const onStageParticipants = useMemo(
-    () => participants.filter((p) => stageIds.has(p.identity)),
-    [participants, stageIds]
-  )
 
-  const firstOnStageScreenShare = useMemo(
-    () =>
-      onStageParticipants.find((p) => {
-        if (!p.screenShareEnabled) return false
-
-        const screenTrack = p.tracks.find(
-          (t) => t.source === 3 || t.source === "SCREEN_SHARE"
-        )
-
-        return Boolean(screenTrack?.sid)
-      }),
-    [onStageParticipants]
-  )
-
-  const selectedScreenStillExists = useMemo(
-    () =>
-      onStageParticipants.some((p) => {
-        if (p.identity !== stageState?.screen_share_participant_id) return false
-
-        return p.tracks.some(
-          (t) =>
-            (t.source === 3 || t.source === "SCREEN_SHARE") &&
-            t.sid === stageState?.screen_share_track_id
-        )
-      }),
-    [
-      onStageParticipants,
-      stageState?.screen_share_participant_id,
-      stageState?.screen_share_track_id,
-    ]
-  )
-
-  const handleTransportHotkeys = useCallback(
-    (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return
-      if (event.metaKey || event.ctrlKey || event.altKey) return
-
-      const key = event.key.toLowerCase()
-
-      if (event.code === "Space" || key === "t" || key === "c") {
-        event.preventDefault()
-        takeProgram("cut")
-        return
-      }
-
-      if (key === "a") {
-        event.preventDefault()
-        takeProgram("auto", "fade")
-      }
-    },
-    [takeProgram]
-  )
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleTransportHotkeys)
-
-    return () => {
-      window.removeEventListener("keydown", handleTransportHotkeys)
-    }
-  }, [handleTransportHotkeys])
-
-  const handleSceneHotkeys = useCallback(
-    (event: KeyboardEvent) => {
-      if (isTypingTarget(event.target)) return
-
-      // Shift + number = apply + TAKE
-      if (event.shiftKey && event.key >= "1" && event.key <= "9") {
-        const index = Number(event.key) - 1
-        const scene = scenes[index]
-
-        if (scene) {
-          event.preventDefault()
-          flashSceneHotkey(scene.id)
-          void applySceneAndTake(scene.id)
-        }
-
-        return
-      }
-
-      // Number keys 1–9 = apply scenes
-      if (event.key >= "1" && event.key <= "9") {
-        const index = Number(event.key) - 1
-        const scene = scenes[index]
-
-        if (scene) {
-          event.preventDefault()
-          flashSceneHotkey(scene.id)
-          void applyScene(scene.id)
-        }
-      }
-    },
-    [scenes, applyScene, applySceneAndTake]
-  )
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleSceneHotkeys)
-
-    return () => {
-      window.removeEventListener("keydown", handleSceneHotkeys)
-    }
-  }, [handleSceneHotkeys])
 
   const previewProgramDifferent = useMemo(
     () =>
-      JSON.stringify({
-        layout: stageState?.layout ?? null,
-        stage_participant_ids: stageState?.stage_participant_ids ?? [],
-        primary_participant_id: stageState?.primary_participant_id ?? null,
-        pinned_participant_id: stageState?.pinned_participant_id ?? null,
-        screen_share_participant_id: stageState?.screen_share_participant_id ?? null,
-        screen_share_track_id: stageState?.screen_share_track_id ?? null,
-        is_live: stageState?.is_live ?? false,
-        blocks: previewBlocks,
-      }) !==
-      JSON.stringify({
-        layout: programState?.layout ?? null,
-        stage_participant_ids: programState?.stage_participant_ids ?? [],
-        primary_participant_id: programState?.primary_participant_id ?? null,
-        pinned_participant_id: programState?.pinned_participant_id ?? null,
-        screen_share_participant_id: programState?.screen_share_participant_id ?? null,
-        screen_share_track_id: programState?.screen_share_track_id ?? null,
-        is_live: programState?.is_live ?? false,
-        blocks: programBlocks,
+      previewProgramStatesDifferent({
+        stageState,
+        programState,
+        previewBlocks,
+        programBlocks,
       }),
     [stageState, programState, previewBlocks, programBlocks]
   )
 
-  const hasProgramSource = useMemo(() => {
-    if (programBlocks.some((block) => !block.hidden)) return true
-    if (programState?.screen_share_participant_id) return true
-    if (programState?.primary_participant_id) return true
-    if (programState?.pinned_participant_id) return true
-    return Boolean(programState?.stage_participant_ids?.length)
-  }, [programBlocks, programState])
+  const hasProgramSource = useMemo(
+    () =>
+      getHasProgramSource({
+        programBlocks,
+        programState,
+      }),
+    [programBlocks, programState]
+  )
 
   const hasScreenShareRoute = Boolean(
     stageState?.screen_share_participant_id && stageState?.screen_share_track_id
   )
-
-  useEffect(() => {
-    if (!autoDirectorEnabled) return
-    if (!stageState) return
-    if (stageState.layout !== "screen_speaker") return
-    if (stageState.screen_share_track_id) return
-    if (!firstOnStageScreenShare) return
-
-    const screenTrack = firstOnStageScreenShare.tracks.find(
-      (t) => t.source === 3 || t.source === "SCREEN_SHARE"
-    )
-
-    if (!screenTrack?.sid) return
-
-    void setScreenShare(firstOnStageScreenShare.identity, screenTrack.sid).catch(
-      (_err: unknown): void => {}
-    )
-  }, [autoDirectorEnabled, stageState, firstOnStageScreenShare])
 
   useEffect(() => {
     if (!stageState) return
@@ -797,21 +402,13 @@ export default function ProducerRoomClient({
     void applyPreset()
   }, [screenLayoutPreset])
 
-  useEffect(() => {
-    if (!stageState?.screen_share_track_id) return
-    if (selectedScreenStillExists) return
 
-    void clearScreenShare().catch((_err: unknown): void => {})
-  }, [stageState?.screen_share_track_id, selectedScreenStillExists])
-
-  useEffect(() => {
-    return () => {
-      if (audienceCueTimeoutRef.current) {
-        window.clearTimeout(audienceCueTimeoutRef.current)
-      }
-      stopLocalPreviewStream()
-    }
-  }, [stopLocalPreviewStream])
+useEffect(() => {
+  return () => {
+    setShowAudienceCue(false)
+    stopLocalPreviewStream()
+  }
+}, [setShowAudienceCue, stopLocalPreviewStream])
 
   if (error) {
     return <div className="p-8 text-red-400">{error}</div>
