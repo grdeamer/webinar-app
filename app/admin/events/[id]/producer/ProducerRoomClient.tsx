@@ -44,6 +44,93 @@ import {
   previewProgramStatesDifferent,
 } from "./producerRoomStatusUtils";
 
+function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
+      <div
+        className={`absolute left-[-18%] top-[8%] h-[520px] w-[520px] rounded-full blur-3xl transition-opacity duration-1000 ${
+          isLive ? "bg-red-500/12 opacity-100" : "bg-sky-500/9 opacity-75"
+        } animate-[producerAtmosphereDrift_14s_ease-in-out_infinite]`}
+      />
+      <div className="absolute right-[-16%] top-[28%] h-[620px] w-[620px] rounded-full bg-violet-500/8 blur-3xl animate-[producerAtmosphereCounterDrift_18s_ease-in-out_infinite]" />
+      <div className="absolute bottom-[-22%] left-[24%] h-[680px] w-[680px] rounded-full bg-cyan-500/7 blur-3xl animate-[producerAtmosphereBloom_12s_ease-in-out_infinite]" />
+
+      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_38%,transparent_62%)] animate-[producerTransmissionSheen_9s_ease-in-out_infinite]" />
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.016)_0px,rgba(255,255,255,0.016)_1px,transparent_1px,transparent_7px)] opacity-[0.14]" />
+
+      {isLive ? (
+        <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/38 to-transparent animate-[producerLiveScan_2.8s_ease-in-out_infinite]" />
+      ) : null}
+
+      <style jsx global>{`
+        @keyframes producerAtmosphereDrift {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          50% {
+            transform: translate3d(42px, 24px, 0) scale(1.08);
+          }
+        }
+
+        @keyframes producerAtmosphereCounterDrift {
+          0%,
+          100% {
+            transform: translate3d(0, 0, 0) scale(1);
+          }
+
+          50% {
+            transform: translate3d(-34px, 18px, 0) scale(1.06);
+          }
+        }
+
+        @keyframes producerAtmosphereBloom {
+          0%,
+          100% {
+            opacity: 0.55;
+            transform: scale(1);
+          }
+
+          50% {
+            opacity: 0.95;
+            transform: scale(1.08);
+          }
+        }
+
+        @keyframes producerTransmissionSheen {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-18%);
+          }
+
+          45% {
+            opacity: 0.9;
+          }
+
+          100% {
+            transform: translateX(18%);
+          }
+        }
+
+        @keyframes producerLiveScan {
+          0%,
+          100% {
+            opacity: 0.15;
+            transform: translateY(0);
+          }
+
+          50% {
+            opacity: 0.75;
+            transform: translateY(9px);
+          }
+        }
+      `}</style>
+    </div>
+  );
+}
+
 export default function ProducerRoomClient({
   eventId,
   sessionId,
@@ -943,6 +1030,7 @@ export default function ProducerRoomClient({
 
       <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#020617] text-white">
         <ProducerRoomBackground />
+        <ProducerRoomAtmosphere isLive={isProgramLive} />
 
         <ProducerRoomContentStack>
           <ProducerUploadInputs
