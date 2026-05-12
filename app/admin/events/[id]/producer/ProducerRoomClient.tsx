@@ -639,14 +639,6 @@ export default function ProducerRoomClient({
     };
   }, [setShowAudienceCue, stopLocalPreviewStream]);
 
-  if (error) {
-    return <div className="p-8 text-red-400">{error}</div>;
-  }
-
-  if (!token || !serverUrl) {
-    return <div className="p-8 text-white">{loadingText}</div>;
-  }
-
   const centerColumn = (
     <ProducerRoomCenterColumn>
       <CenterSwitcherColumn
@@ -751,6 +743,97 @@ export default function ProducerRoomClient({
     ],
   );
 
+  const rightRailProps = useMemo(
+    () => ({
+      participants,
+      stageIds,
+      selectedBlock,
+      onToggleHidden: toggleSelectedBlockHidden,
+      onUpdateOpacity: updateSelectedBlockOpacity,
+      onUpdateLabel: updateSelectedBlockLabel,
+      onUpdatePosition: updateSelectedBlockPosition,
+      onUpdateSize: updateSelectedBlockSize,
+      onUpdateSrc: updateSelectedBlockSrc,
+      onUpdateTextContent: updateSelectedTextBlockContent,
+      stageState,
+      getScreenTrackSid,
+      onAddToStage: handleAddParticipantToStage,
+      onSetScreenShare: handleSetParticipantScreenShare,
+      onClearPrimary: handleClearPrimaryParticipant,
+      onSetPrimary: handleSetPrimaryParticipant,
+      onUnpin: handleUnpinParticipant,
+      onPin: handlePinParticipant,
+      onRemoveFromStage: handleRemoveParticipantFromStage,
+      onError: setError,
+    }),
+    [
+      participants,
+      stageIds,
+      selectedBlock,
+      toggleSelectedBlockHidden,
+      updateSelectedBlockOpacity,
+      updateSelectedBlockLabel,
+      updateSelectedBlockPosition,
+      updateSelectedBlockSize,
+      updateSelectedBlockSrc,
+      updateSelectedTextBlockContent,
+      stageState,
+      getScreenTrackSid,
+      handleAddParticipantToStage,
+      handleSetParticipantScreenShare,
+      handleClearPrimaryParticipant,
+      handleSetPrimaryParticipant,
+      handleUnpinParticipant,
+      handlePinParticipant,
+      handleRemoveParticipantFromStage,
+      setError,
+    ],
+  );
+
+  const bottomAssetDockProps = useMemo(
+    () => ({
+      scenes,
+      selectedSceneId,
+      programSceneId,
+      programSlideLabel,
+      hotkeySceneId,
+      previewBlocks,
+      slideDeckName: localPdfDeck?.name ?? null,
+      slideCount: localPdfDeck?.pageCount ?? 8,
+      onAddScene: sceneActions.startNewScene,
+      onUploadPdf: handleUploadPdfClick,
+      onSendSlideToPreview: transportActions.sendSlideToPreview,
+      onTakeSlide: transportActions.takeSlide,
+      onApplyScene: handleDockApplyScene,
+      onDoubleClickScene: handleDockApplySceneAndTake,
+      onDeleteScene: handleDockDeleteScene,
+    }),
+    [
+      scenes,
+      selectedSceneId,
+      programSceneId,
+      programSlideLabel,
+      hotkeySceneId,
+      previewBlocks,
+      localPdfDeck?.name,
+      localPdfDeck?.pageCount,
+      sceneActions,
+      handleUploadPdfClick,
+      transportActions,
+      handleDockApplyScene,
+      handleDockApplySceneAndTake,
+      handleDockDeleteScene,
+    ],
+  );
+
+  if (error) {
+    return <div className="p-8 text-red-400">{error}</div>;
+  }
+
+  if (!token || !serverUrl) {
+    return <div className="p-8 text-white">{loadingText}</div>;
+  }
+
   return (
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
@@ -794,50 +877,11 @@ export default function ProducerRoomClient({
               <ProducerRoomWorkspace
                 leftRail={<ProducerLeftRail {...leftRailProps} />}
                 centerColumn={centerColumn}
-                rightRail={
-                  <ProducerRightRail
-                    participants={participants}
-                    stageIds={stageIds}
-                    selectedBlock={selectedBlock}
-                    onToggleHidden={toggleSelectedBlockHidden}
-                    onUpdateOpacity={updateSelectedBlockOpacity}
-                    onUpdateLabel={updateSelectedBlockLabel}
-                    onUpdatePosition={updateSelectedBlockPosition}
-                    onUpdateSize={updateSelectedBlockSize}
-                    onUpdateSrc={updateSelectedBlockSrc}
-                    onUpdateTextContent={updateSelectedTextBlockContent}
-                    stageState={stageState}
-                    getScreenTrackSid={getScreenTrackSid}
-                    onAddToStage={handleAddParticipantToStage}
-                    onSetScreenShare={handleSetParticipantScreenShare}
-                    onClearPrimary={handleClearPrimaryParticipant}
-                    onSetPrimary={handleSetPrimaryParticipant}
-                    onUnpin={handleUnpinParticipant}
-                    onPin={handlePinParticipant}
-                    onRemoveFromStage={handleRemoveParticipantFromStage}
-                    onError={setError}
-                  />
-                }
+                rightRail={<ProducerRightRail {...rightRailProps} />}
               />
             </ProducerRoomGrid>
 
-            <BottomAssetDock
-              scenes={scenes}
-              selectedSceneId={selectedSceneId}
-              programSceneId={programSceneId}
-              programSlideLabel={programSlideLabel}
-              hotkeySceneId={hotkeySceneId}
-              previewBlocks={previewBlocks}
-              slideDeckName={localPdfDeck?.name ?? null}
-              slideCount={localPdfDeck?.pageCount ?? 8}
-              onAddScene={sceneActions.startNewScene}
-              onUploadPdf={handleUploadPdfClick}
-              onSendSlideToPreview={transportActions.sendSlideToPreview}
-              onTakeSlide={transportActions.takeSlide}
-              onApplyScene={handleDockApplyScene}
-              onDoubleClickScene={handleDockApplySceneAndTake}
-              onDeleteScene={handleDockDeleteScene}
-            />
+            <BottomAssetDock {...bottomAssetDockProps} />
           </ProducerRoomWorkspaceFrame>
         </ProducerRoomContentStack>
       </div>
