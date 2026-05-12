@@ -68,6 +68,23 @@ function CommandStatusPill({
   )
 }
 
+function BroadcastSyncPulseOverlay({ active }: { active: boolean }): JSX.Element | null {
+  if (!active) return null
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[36px]">
+      <div className="absolute inset-0 animate-[commandDeckSyncFlash_720ms_ease-out] bg-red-400/10" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-200/70 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-red-200/40 to-transparent" />
+      <div className="absolute left-0 top-0 h-full w-24 animate-[commandDeckSweep_720ms_ease-out] bg-gradient-to-r from-transparent via-white/14 to-transparent" />
+      <div className="absolute right-5 top-5 flex items-center gap-2 rounded-full border border-red-200/20 bg-black/55 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-red-100/80 backdrop-blur-md shadow-[0_0_28px_rgba(248,113,113,0.22)]">
+        <span className="h-1.5 w-1.5 animate-ping rounded-full bg-red-300" />
+        Switcher Sync
+      </div>
+    </div>
+  )
+}
+
 function BroadcastPresenceStrip({
   isLive,
   audienceCount,
@@ -961,7 +978,8 @@ export default function BroadcastCommandDeck({
   const transportRuntimeLabel = TRANSPORT_RUNTIME_STATES[transportRuntimeIndex]
 
   return (
-    <div className="relative mb-3 space-y-2.5 rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.07),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.90),rgba(2,4,10,0.98))] px-3 py-3 shadow-[0_30px_120px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)] md:px-4 xl:px-5 2xl:px-6">
+    <div className="relative mb-3 space-y-2.5 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.07),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.90),rgba(2,4,10,0.98))] px-3 py-3 shadow-[0_30px_120px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)] md:px-4 xl:px-5 2xl:px-6">
+      <BroadcastSyncPulseOverlay active={Boolean(takeFlash) || takeBusy} />
       {takeFlash ? <TakeFlashOverlay mode={takeFlash} /> : null}
 
       <CommandSurfaceHeader isLive={isLive} />
@@ -1116,6 +1134,35 @@ export default function BroadcastCommandDeck({
         onTransitionDurationChange={setSelectedTransitionDurationMs}
       />
 
+      <style jsx global>{`
+        @keyframes commandDeckSyncFlash {
+          0% {
+            opacity: 0.45;
+            transform: scale(1.01);
+          }
+
+          100% {
+            opacity: 0;
+            transform: scale(1);
+          }
+        }
+
+        @keyframes commandDeckSweep {
+          0% {
+            opacity: 0;
+            transform: translateX(-120%);
+          }
+
+          24% {
+            opacity: 1;
+          }
+
+          100% {
+            opacity: 0;
+            transform: translateX(520%);
+          }
+        }
+      `}</style>
       <CommandDeckStyles />
     </div>
   )
