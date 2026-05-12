@@ -702,6 +702,55 @@ export default function ProducerRoomClient({
     </ProducerRoomCenterColumn>
   );
 
+  const leftRailProps = useMemo(
+    () => ({
+      takeBusy,
+      previewProgramDifferent,
+      onTake: handleLeftRailTake,
+      onGoLive: handleGoLive,
+      onGoOffAir: handleGoOffAir,
+      layout: stageState?.layout,
+      onSetLayout: handleSetLayout,
+      autoDirectorEnabled,
+      screenLayoutPreset,
+      onSetScreenLayoutPreset: setScreenLayoutPreset,
+      onToggleAutoDirector: handleToggleAutoDirector,
+      localMicLevel,
+      monitorHeight,
+      onMonitorHeightChange: setMonitorHeight,
+      deviceAccessReady,
+      videoDevices,
+      audioDevices,
+      selectedVideoDeviceId,
+      selectedAudioDeviceId,
+      onSelectVideoDevice: setSelectedVideoDeviceId,
+      onSelectAudioDevice: setSelectedAudioDeviceId,
+    }),
+    [
+      takeBusy,
+      previewProgramDifferent,
+      handleLeftRailTake,
+      handleGoLive,
+      handleGoOffAir,
+      stageState?.layout,
+      handleSetLayout,
+      autoDirectorEnabled,
+      screenLayoutPreset,
+      setScreenLayoutPreset,
+      handleToggleAutoDirector,
+      localMicLevel,
+      monitorHeight,
+      setMonitorHeight,
+      deviceAccessReady,
+      videoDevices,
+      audioDevices,
+      selectedVideoDeviceId,
+      selectedAudioDeviceId,
+      setSelectedVideoDeviceId,
+      setSelectedAudioDeviceId,
+    ],
+  );
+
   return (
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
@@ -743,31 +792,7 @@ export default function ProducerRoomClient({
           <ProducerRoomWorkspaceFrame>
             <ProducerRoomGrid>
               <ProducerRoomWorkspace
-                leftRail={
-                  <ProducerLeftRail
-                    takeBusy={takeBusy}
-                    previewProgramDifferent={previewProgramDifferent}
-                    onTake={handleLeftRailTake}
-                    onGoLive={handleGoLive}
-                    onGoOffAir={handleGoOffAir}
-                    layout={stageState?.layout}
-                    onSetLayout={handleSetLayout}
-                    autoDirectorEnabled={autoDirectorEnabled}
-                    screenLayoutPreset={screenLayoutPreset}
-                    onSetScreenLayoutPreset={setScreenLayoutPreset}
-                    onToggleAutoDirector={handleToggleAutoDirector}
-                    localMicLevel={localMicLevel}
-                    monitorHeight={monitorHeight}
-                    onMonitorHeightChange={setMonitorHeight}
-                    deviceAccessReady={deviceAccessReady}
-                    videoDevices={videoDevices}
-                    audioDevices={audioDevices}
-                    selectedVideoDeviceId={selectedVideoDeviceId}
-                    selectedAudioDeviceId={selectedAudioDeviceId}
-                    onSelectVideoDevice={setSelectedVideoDeviceId}
-                    onSelectAudioDevice={setSelectedAudioDeviceId}
-                  />
-                }
+                leftRail={<ProducerLeftRail {...leftRailProps} />}
                 centerColumn={centerColumn}
                 rightRail={
                   <ProducerRightRail
