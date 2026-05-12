@@ -611,7 +611,52 @@ export default function ProducerRoomClient({
     stageState?.screen_share_track_id,
   );
 
+
   const isProgramLive = Boolean(programState?.is_live);
+
+  const topChromeProps = useMemo(
+    () => ({
+      headline: stageState?.headline || "Live Production",
+      layout: stageState?.layout,
+      previewProgramDifferent,
+      onStageCount: onStageParticipants.length,
+      overlayCount: previewBlocks.length,
+      isProgramLive,
+      scopeLabel: producerScopeLabel,
+      takeBusy,
+      selectedSceneLabel,
+      programSlideLabel,
+      participantCount: participants.length,
+      previewBlockCount: previewBlocks.length,
+      programBlockCount: programBlocks.length,
+      hasProgramSource,
+      hasScreenShareRoute,
+      lastTakeMode,
+      hotkeySceneLabelText,
+      lastTransportActionAt,
+      onTake: handleCommandDeckTake,
+    }),
+    [
+      stageState?.headline,
+      stageState?.layout,
+      previewProgramDifferent,
+      onStageParticipants.length,
+      previewBlocks.length,
+      isProgramLive,
+      producerScopeLabel,
+      takeBusy,
+      selectedSceneLabel,
+      programSlideLabel,
+      participants.length,
+      programBlocks.length,
+      hasProgramSource,
+      hasScreenShareRoute,
+      lastTakeMode,
+      hotkeySceneLabelText,
+      lastTransportActionAt,
+      handleCommandDeckTake,
+    ],
+  );
 
   useEffect(() => {
     if (!stageState) return;
@@ -905,27 +950,7 @@ export default function ProducerRoomClient({
             onImageUpload={handleImageUpload}
           />
 
-          <ProducerRoomTopChrome
-            headline={stageState?.headline || "Live Production"}
-            layout={stageState?.layout}
-            previewProgramDifferent={previewProgramDifferent}
-            onStageCount={onStageParticipants.length}
-            overlayCount={previewBlocks.length}
-            isProgramLive={isProgramLive}
-            scopeLabel={producerScopeLabel}
-            takeBusy={takeBusy}
-            selectedSceneLabel={selectedSceneLabel}
-            programSlideLabel={programSlideLabel}
-            participantCount={participants.length}
-            previewBlockCount={previewBlocks.length}
-            programBlockCount={programBlocks.length}
-            hasProgramSource={hasProgramSource}
-            hasScreenShareRoute={hasScreenShareRoute}
-            lastTakeMode={lastTakeMode}
-            hotkeySceneLabelText={hotkeySceneLabelText}
-            lastTransportActionAt={lastTransportActionAt}
-            onTake={handleCommandDeckTake}
-          />
+          <ProducerRoomTopChrome {...topChromeProps} />
           <ProducerRoomWorkspaceFrame>
             <ProducerRoomGrid>
               <ProducerRoomWorkspace
