@@ -117,8 +117,9 @@ export function RoutedMonitorFrame({
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-[28px] border border-white/12 bg-[#020308] shadow-[0_34px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-28px_60px_rgba(0,0,0,0.72)] ring-1 ${ringClass} ${pulseClass}`}
+      className={`group relative overflow-hidden rounded-[28px] border border-white/12 bg-[#020308] opacity-0 shadow-[0_34px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-28px_60px_rgba(0,0,0,0.72)] ring-1 transition-all duration-700 animate-[monitorBoot_700ms_ease-out_forwards] ${ringClass} ${pulseClass}`}
     >
+      <div className="pointer-events-none absolute inset-0 z-30 bg-white/20 opacity-0 animate-[monitorFlash_900ms_ease-out]" />
       <div
         className={`pointer-events-none absolute inset-0 z-10 rounded-[28px] border opacity-70 ${edgePulseClass} ${mode === "program" ? "animate-pulse" : ""}`}
       />
@@ -129,6 +130,8 @@ export function RoutedMonitorFrame({
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.12),transparent_18%,transparent_56%,rgba(255,255,255,0.045)_72%,transparent_88%)] opacity-45 mix-blend-screen" />
       <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.025)_0px,rgba(255,255,255,0.025)_1px,transparent_1px,transparent_5px)] opacity-[0.18]" />
       <div className="pointer-events-none absolute inset-0 rounded-[28px] border border-white/8 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035),inset_0_0_42px_rgba(255,255,255,0.035)]" />
+
+      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_48%,rgba(0,0,0,0.22)_100%)]" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2">
         <MonitorBadge
@@ -182,6 +185,7 @@ export function RoutedMonitorFrame({
       <div className="pointer-events-none absolute inset-0 z-10 rounded-[28px] ring-1 ring-inset ring-white/6" />
       <div className="pointer-events-none absolute inset-x-6 bottom-0 z-10 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       <div className="pointer-events-none absolute inset-x-10 bottom-2 z-10 h-[1px] bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+      <MonitorChromeKeyframes />
     </div>
   )
 }
@@ -232,5 +236,40 @@ export function CompactEmptySignal({ label }: { label: string }): JSX.Element {
         </div>
       </div>
     </div>
+  )
+}
+
+export function MonitorChromeKeyframes(): JSX.Element {
+  return (
+    <style jsx global>{`
+      @keyframes monitorBoot {
+        0% {
+          opacity: 0;
+          transform: translateY(10px) scale(0.985);
+          filter: brightness(1.35) blur(3px);
+        }
+
+        45% {
+          opacity: 1;
+          filter: brightness(1.08) blur(0px);
+        }
+
+        100% {
+          opacity: 1;
+          transform: translateY(0px) scale(1);
+          filter: brightness(1);
+        }
+      }
+
+      @keyframes monitorFlash {
+        0% {
+          opacity: 0.18;
+        }
+
+        100% {
+          opacity: 0;
+        }
+      }
+    `}</style>
   )
 }
