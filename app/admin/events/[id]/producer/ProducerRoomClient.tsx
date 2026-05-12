@@ -22,6 +22,14 @@ import ProducerRightRail from "./ProducerRightRail"
 import BroadcastCommandDeck from "./BroadcastCommandDeck"
 import BottomAssetDock from "./BottomAssetDock"
 import OperationsSyncStrip from "./OperationsSyncStrip"
+import {
+  ProducerRoomBackground,
+  ProducerRoomCenterColumn,
+  ProducerRoomContentStack,
+  ProducerRoomGrid,
+  ProducerRoomWorkspaceFrame,
+  ProducerUploadInputs,
+} from "./ProducerRoomShell"
 import useProducerHotkeys from "./useProducerHotkeys"
 import useProducerAutoDirectorEffects from "./useProducerAutoDirectorEffects"
 import useProducerRoomLifecycle from "./useProducerRoomLifecycle"
@@ -38,6 +46,7 @@ import {
   getHasProgramSource,
   previewProgramStatesDifferent,
 } from "./producerRoomStatusUtils"
+
 
 export default function ProducerRoomClient({
   eventId,
@@ -277,24 +286,28 @@ const {
     captureSceneThumbnail,
   })
 
-const { takeProgram } = useProducerTransport({
-  runTake,
-  sessionId,
-  stageState,
-  previewBlocks,
-  selectedSceneId,
-  selectedTransitionDurationMs,
-})
-async function applySceneAndTake(sceneId: string) {
-  await applyScene(sceneId)
+  const { takeProgram } = useProducerTransport({
+    runTake,
+    sessionId,
+    stageState,
+    previewBlocks,
+    selectedSceneId,
+    selectedTransitionDurationMs,
+  })
 
-  window.setTimeout(() => {
-    takeProgram("cut", undefined, {
-      sceneId,
-      slideLabel: null,
-    })
-  }, 175)
-}
+  const applySceneAndTake = useCallback(
+    async (sceneId: string): Promise<void> => {
+      await applyScene(sceneId)
+
+      window.setTimeout(() => {
+        takeProgram("cut", undefined, {
+          sceneId,
+          slideLabel: null,
+        })
+      }, 175)
+    },
+    [applyScene, takeProgram]
+  )
 
 
 
@@ -309,6 +322,7 @@ async function applySceneAndTake(sceneId: string) {
       flashSceneHotkey,
     }),
     [
+      startNewScene,
       saveScene,
       applyScene,
       applySceneAndTake,
@@ -354,6 +368,149 @@ async function applySceneAndTake(sceneId: string) {
       sendSlideToPreview,
       takeSlide,
     ]
+  )
+
+  const handleCommandDeckTake = useCallback(
+    (
+      mode: "cut" | "auto",
+      transitionType?: CinematicTransitionType,
+      transitionDurationMs?: number
+    ): void => {
+      takeProgram(mode, transitionType, { transitionDurationMs })
+    },
+    [takeProgram]
+  )
+
+  const handleLeftRailTake = useCallback((): void => {
+    takeProgram("cut")
+  }, [takeProgram])
+
+  const handleCenterSwitcherTake = useCallback(
+    (mode: "cut" | "auto"): void => {
+      takeProgram(mode)
+    },
+    [takeProgram]
+  )
+
+  const handleGoLive = useCallback((): void => {
+    void goLive().catch(handleAsyncError)
+  }, [goLive, handleAsyncError])
+
+  const handleGoOffAir = useCallback((): void => {
+    void goOffAir().catch(handleAsyncError)
+  }, [goOffAir, handleAsyncError])
+
+  const handleSetLayout = useCallback(
+    (layout: "solo" | "grid" | "screen_speaker"): void => {
+      void setLayout(layout).catch(handleAsyncError)
+    },
+    [setLayout, handleAsyncError]
+  )
+
+  const handleToggleAutoDirector = useCallback((): void => {
+    void setAutoDirector(!autoDirectorEnabled).catch(handleAsyncError)
+  }, [autoDirectorEnabled, setAutoDirector, handleAsyncError])
+
+  const handleHideAudienceCue = useCallback((): void => {
+    setShowAudienceCue(false)
+  }, [setShowAudienceCue])
+
+  const handleClearSelectedBlock = useCallback((): void => {
+    setSelectedBlockId(null)
+  }, [setSelectedBlockId])
+
+  const handleApplyScene = useCallback(
+    (sceneId: string): void => {
+      void applyScene(sceneId)
+    },
+    [applyScene]
+  )
+
+  const handleClearScreenShare = useCallback((): void => {
+    void clearScreenShare().catch(handleAsyncError)
+  }, [clearScreenShare, handleAsyncError])
+
+  const handleUnpinParticipant = useCallback((): void => {
+    void unpinParticipant().catch(handleAsyncError)
+  }, [unpinParticipant, handleAsyncError])
+
+  const handleClearPrimaryParticipant = useCallback((): void => {
+    void clearPrimaryParticipant().catch(handleAsyncError)
+  }, [clearPrimaryParticipant, handleAsyncError])
+
+  const handleUploadPdfClick = useCallback((): void => {
+    pdfInputRef.current?.click()
+  }, [])
+
+  const handleUploadVideoClick = useCallback((): void => {
+    videoInputRef.current?.click()
+  }, [])
+
+  const handleUploadImageClick = useCallback((): void => {
+    imageInputRef.current?.click()
+  }, [])
+
+  const handleProducerPdfInputChange = useCallback(
+    (event: React.ChangeEvent<HTMLInputElement>): void => {
+      void handleProducerPdfUpload(event)
+    },
+    [handleProducerPdfUpload]
+  )
+
+  const handleAddParticipantToStage = useCallback(
+    (identity: string): void => {
+      void addToStage(identity).catch(handleAsyncError)
+    },
+    [addToStage, handleAsyncError]
+  )
+
+  const handleSetParticipantScreenShare = useCallback(
+    (participantId: string, trackId: string): void => {
+      void setScreenShare(participantId, trackId).catch(handleAsyncError)
+    },
+    [setScreenShare, handleAsyncError]
+  )
+
+  const handleSetPrimaryParticipant = useCallback(
+    (identity: string): void => {
+      void setPrimaryParticipant(identity).catch(handleAsyncError)
+    },
+    [setPrimaryParticipant, handleAsyncError]
+  )
+
+  const handlePinParticipant = useCallback(
+    (identity: string): void => {
+      void pinParticipant(identity).catch(handleAsyncError)
+    },
+    [pinParticipant, handleAsyncError]
+  )
+
+  const handleRemoveParticipantFromStage = useCallback(
+    (identity: string): void => {
+      void removeFromStage(identity).catch(handleAsyncError)
+    },
+    [removeFromStage, handleAsyncError]
+  )
+
+  const handleDockApplyScene = useCallback(
+    (sceneId: string): void => {
+      void sceneActions.applyScene(sceneId)
+    },
+    [sceneActions]
+  )
+
+  const handleDockApplySceneAndTake = useCallback(
+    (sceneId: string): void => {
+      void sceneActions.applySceneAndTake(sceneId)
+    },
+    [sceneActions]
+  )
+
+  const handleDockDeleteScene = useCallback(
+    (sceneId: string): void => {
+      void sceneActions.deleteScene(sceneId)
+    },
+    [sceneActions]
   )
 const {
   startDraggingBlock,
@@ -405,10 +562,10 @@ const {
     setStageState(data.state)
   }
 
-  function getScreenTrackSid(participant: ProducerParticipant) {
+  const getScreenTrackSid = useCallback((participant: ProducerParticipant): string | null => {
     const track = participant.tracks.find((t) => t.source === 3 || t.source === "SCREEN_SHARE")
     return track?.sid ?? null
-  }
+  }, [])
 
 
   useEffect(() => {
@@ -451,6 +608,8 @@ const {
     stageState?.screen_share_participant_id && stageState?.screen_share_track_id
   )
 
+  const isProgramLive = Boolean(programState?.is_live)
+
   useEffect(() => {
     if (!stageState) return
 
@@ -491,36 +650,16 @@ useEffect(() => {
       <RoomAudioRenderer />
 
       <div className="relative flex min-h-screen flex-col overflow-hidden bg-[#020617] text-white">
-        <div className="pointer-events-none absolute inset-0 z-0">
-          <div className="absolute left-[-10%] top-[-18%] h-[520px] w-[520px] rounded-full bg-sky-500/10 blur-3xl" />
-          <div className="absolute right-[-12%] top-[8%] h-[520px] w-[520px] rounded-full bg-indigo-500/10 blur-3xl" />
-          <div className="absolute bottom-[-20%] left-[30%] h-[620px] w-[620px] rounded-full bg-red-500/8 blur-3xl" />
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.06),transparent_42%)]" />
-        </div>
+        <ProducerRoomBackground />
 
-        <div className="relative z-10 flex min-h-screen flex-col">
-          <input
-            ref={pdfInputRef}
-            type="file"
-            accept="application/pdf"
-            className="hidden"
-            onChange={(event) => {
-              void handleProducerPdfUpload(event)
-            }}
-          />
-          <input
-            ref={videoInputRef}
-            type="file"
-            accept="video/*"
-            className="hidden"
-            onChange={handleVideoUpload}
-          />
-          <input
-            ref={imageInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleImageUpload}
+        <ProducerRoomContentStack>
+          <ProducerUploadInputs
+            pdfInputRef={pdfInputRef}
+            videoInputRef={videoInputRef}
+            imageInputRef={imageInputRef}
+            onPdfUpload={handleProducerPdfInputChange}
+            onVideoUpload={handleVideoUpload}
+            onImageUpload={handleImageUpload}
           />
 
           <ProducerRoomHeader
@@ -529,7 +668,7 @@ useEffect(() => {
             previewProgramDifferent={previewProgramDifferent}
             onStageCount={onStageParticipants.length}
             overlayCount={previewBlocks.length}
-            isLive={Boolean(programState?.is_live)}
+            isLive={isProgramLive}
             scopeLabel={producerScopeLabel}
           />
           <OperationsSyncStrip
@@ -546,41 +685,31 @@ useEffect(() => {
             lastTakeMode={lastTakeMode}
             hotkeySceneLabel={hotkeySceneLabelText}
             lastTransportActionAt={lastTransportActionAt}
-            isLive={Boolean(programState?.is_live)}
+            isLive={isProgramLive}
             layout={stageState?.layout}
           />
           <BroadcastCommandDeck
-            isLive={Boolean(programState?.is_live)}
+            isLive={isProgramLive}
             audienceCount={participants.length}
             onStageCount={onStageParticipants.length}
             previewProgramDifferent={previewProgramDifferent}
             takeBusy={takeBusy}
-            onTake={(
-              mode: "cut" | "auto",
-              transitionType?: CinematicTransitionType,
-              transitionDurationMs?: number
-            ): void => {
-              takeProgram(mode, transitionType, { transitionDurationMs })
-            }}
+            onTake={handleCommandDeckTake}
           />
-          <div className="flex-1 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_100%_20%,rgba(168,85,247,0.08),transparent_32%),linear-gradient(180deg,rgba(2,6,23,0.98),rgba(1,3,10,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
-            <div className="grid w-full items-start gap-4 lg:grid-cols-[250px_minmax(0,1fr)_320px] xl:grid-cols-[265px_minmax(0,1fr)_345px] 2xl:grid-cols-[285px_minmax(0,1fr)_375px] [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-0.5 [&_button:active]:translate-y-0">
+          <ProducerRoomWorkspaceFrame>
+            <ProducerRoomGrid>
               <ProducerLeftRail
                 takeBusy={takeBusy}
                 previewProgramDifferent={previewProgramDifferent}
-                onTake={() => {
-                  takeProgram("cut")
-                }}
-                onGoLive={() => void goLive().catch(handleAsyncError)}
-                onGoOffAir={() => void goOffAir().catch(handleAsyncError)}
+                onTake={handleLeftRailTake}
+                onGoLive={handleGoLive}
+                onGoOffAir={handleGoOffAir}
                 layout={stageState?.layout}
-                onSetLayout={(layout) => void setLayout(layout).catch(handleAsyncError)}
+                onSetLayout={handleSetLayout}
                 autoDirectorEnabled={autoDirectorEnabled}
                 screenLayoutPreset={screenLayoutPreset}
                 onSetScreenLayoutPreset={setScreenLayoutPreset}
-                onToggleAutoDirector={() =>
-                  void setAutoDirector(!autoDirectorEnabled).catch(handleAsyncError)
-                }
+                onToggleAutoDirector={handleToggleAutoDirector}
                 localMicLevel={localMicLevel}
                 monitorHeight={monitorHeight}
                 onMonitorHeightChange={setMonitorHeight}
@@ -592,19 +721,17 @@ useEffect(() => {
                 onSelectVideoDevice={setSelectedVideoDeviceId}
                 onSelectAudioDevice={setSelectedAudioDeviceId}
               />
-              <div className="min-w-0">
+              <ProducerRoomCenterColumn>
                 <CenterSwitcherColumn
                   triggerAudienceCue={triggerAudienceCue}
-                  onHideAudienceCue={() => setShowAudienceCue(false)}
+                  onHideAudienceCue={handleHideAudienceCue}
                   previewProgramDifferent={previewProgramDifferent}
                   takeBusy={takeBusy}
                   lastTakeMode={lastTakeMode}
-                  onTake={(mode: "cut" | "auto"): void => {
-                    takeProgram(mode)
-                  }}
+                  onTake={handleCenterSwitcherTake}
                   onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
                   stopDraggingBlock={stopDraggingBlock}
-                  onClearSelectedBlock={() => setSelectedBlockId(null)}
+                  onClearSelectedBlock={handleClearSelectedBlock}
                   stageState={stageState}
                   onStageParticipants={onStageParticipants}
                   previewBlocks={previewBlocks}
@@ -630,24 +757,22 @@ useEffect(() => {
                   scenes={scenes}
                   selectedSceneId={selectedSceneId}
                   selectedSceneLabel={selectedSceneLabel}
-                  onApplyScene={(sceneId) => void applyScene(sceneId)}
-                  onClearScreenShare={() =>
-                    void clearScreenShare().catch(handleAsyncError)
-                  }
-                  onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
-                  onClearPrimary={() => void clearPrimaryParticipant().catch(handleAsyncError)}
+                  onApplyScene={handleApplyScene}
+                  onClearScreenShare={handleClearScreenShare}
+                  onUnpin={handleUnpinParticipant}
+                  onClearPrimary={handleClearPrimaryParticipant}
                   addTestTextBlock={addTestTextBlock}
                   addTestVideoBlock={addTestVideoBlock}
                   addTestPdfBlock={addTestPdfBlock}
                   addTestImageBlock={addTestImageBlock}
-                  onUploadPdf={() => pdfInputRef.current?.click()}
-                  onUploadVideo={() => videoInputRef.current?.click()}
-                  onUploadImage={() => imageInputRef.current?.click()}
+                  onUploadPdf={handleUploadPdfClick}
+                  onUploadVideo={handleUploadVideoClick}
+                  onUploadImage={handleUploadImageClick}
                   duplicateSelectedBlock={duplicateSelectedBlock}
                   bringSelectedBlockToFront={bringSelectedBlockToFront}
                   deleteSelectedBlock={deleteSelectedBlock}
                 />
-              </div>
+              </ProducerRoomCenterColumn>
               <ProducerRightRail
                 participants={participants}
                 stageIds={stageIds}
@@ -661,22 +786,16 @@ useEffect(() => {
                 onUpdateTextContent={updateSelectedTextBlockContent}
                 stageState={stageState}
                 getScreenTrackSid={getScreenTrackSid}
-                onAddToStage={(identity) => void addToStage(identity).catch(handleAsyncError)}
-                onSetScreenShare={(participantId, trackId) =>
-                  void setScreenShare(participantId, trackId).catch(handleAsyncError)
-                }
-                onClearPrimary={() => void clearPrimaryParticipant().catch(handleAsyncError)}
-                onSetPrimary={(identity) =>
-                  void setPrimaryParticipant(identity).catch(handleAsyncError)
-                }
-                onUnpin={() => void unpinParticipant().catch(handleAsyncError)}
-                onPin={(identity) => void pinParticipant(identity).catch(handleAsyncError)}
-                onRemoveFromStage={(identity) =>
-                  void removeFromStage(identity).catch(handleAsyncError)
-                }
+                onAddToStage={handleAddParticipantToStage}
+                onSetScreenShare={handleSetParticipantScreenShare}
+                onClearPrimary={handleClearPrimaryParticipant}
+                onSetPrimary={handleSetPrimaryParticipant}
+                onUnpin={handleUnpinParticipant}
+                onPin={handlePinParticipant}
+                onRemoveFromStage={handleRemoveParticipantFromStage}
                 onError={setError}
               />
-            </div>
+            </ProducerRoomGrid>
 
             <BottomAssetDock
               scenes={scenes}
@@ -688,15 +807,15 @@ useEffect(() => {
               slideDeckName={localPdfDeck?.name ?? null}
               slideCount={localPdfDeck?.pageCount ?? 8}
               onAddScene={sceneActions.startNewScene}
-              onUploadPdf={() => pdfInputRef.current?.click()}
+              onUploadPdf={handleUploadPdfClick}
               onSendSlideToPreview={transportActions.sendSlideToPreview}
               onTakeSlide={transportActions.takeSlide}
-              onApplyScene={(sceneId) => void sceneActions.applyScene(sceneId)}
-              onDoubleClickScene={(sceneId) => void sceneActions.applySceneAndTake(sceneId)}
-              onDeleteScene={(sceneId) => void sceneActions.deleteScene(sceneId)}
+              onApplyScene={handleDockApplyScene}
+              onDoubleClickScene={handleDockApplySceneAndTake}
+              onDeleteScene={handleDockDeleteScene}
             />
-          </div>
-        </div>
+          </ProducerRoomWorkspaceFrame>
+        </ProducerRoomContentStack>
       </div>
     </LiveKitRoom>
   )
