@@ -1,8 +1,15 @@
-
-
 import type { JSX, ReactNode } from "react"
 
 type MonitorBadgeTone = "live" | "preview" | "confidence" | "default"
+
+type StatusPillTone =
+  | "live"
+  | "preview"
+  | "confidence"
+  | "primary"
+  | "pinned"
+  | "screen"
+  | "default"
 
 type MonitorBadgeProps = {
   label: string
@@ -25,6 +32,39 @@ export function MonitorBadge({
   return (
     <span
       className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] backdrop-blur-md ${toneClass}`}
+    >
+      {label}
+    </span>
+  )
+}
+
+type StatusPillProps = {
+  label: string
+  tone?: StatusPillTone
+}
+
+export function StatusPill({
+  label,
+  tone = "default",
+}: StatusPillProps): JSX.Element {
+  const toneClass =
+    tone === "live"
+      ? "border-red-300/30 bg-red-500/15 text-red-100 shadow-[0_0_20px_rgba(248,113,113,0.2)]"
+      : tone === "preview"
+        ? "border-sky-300/30 bg-sky-500/15 text-sky-100 shadow-[0_0_20px_rgba(56,189,248,0.18)]"
+        : tone === "confidence"
+          ? "border-violet-300/30 bg-violet-500/15 text-violet-100 shadow-[0_0_20px_rgba(167,139,250,0.18)]"
+          : tone === "primary"
+            ? "border-emerald-300/30 bg-emerald-500/14 text-emerald-100 shadow-[0_0_20px_rgba(110,231,183,0.16)]"
+            : tone === "pinned"
+              ? "border-amber-300/30 bg-amber-500/14 text-amber-100 shadow-[0_0_20px_rgba(251,191,36,0.16)]"
+              : tone === "screen"
+                ? "border-cyan-300/30 bg-cyan-500/14 text-cyan-100 shadow-[0_0_20px_rgba(103,232,249,0.16)]"
+                : "border-white/10 bg-black/35 text-white/58"
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] backdrop-blur-md ${toneClass}`}
     >
       {label}
     </span>
@@ -100,7 +140,7 @@ export function RoutedMonitorFrame({
                 : "confidence"
           }
         />
-        <MonitorBadge label="Routed" />
+        <StatusPill label="Routed" />
       </div>
 
       <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/42 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-md">
