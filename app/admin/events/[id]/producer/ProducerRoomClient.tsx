@@ -647,6 +647,61 @@ export default function ProducerRoomClient({
     return <div className="p-8 text-white">{loadingText}</div>;
   }
 
+  const centerColumn = (
+    <ProducerRoomCenterColumn>
+      <CenterSwitcherColumn
+        triggerAudienceCue={triggerAudienceCue}
+        onHideAudienceCue={handleHideAudienceCue}
+        previewProgramDifferent={previewProgramDifferent}
+        takeBusy={takeBusy}
+        lastTakeMode={lastTakeMode}
+        onTake={handleCenterSwitcherTake}
+        onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
+        stopDraggingBlock={stopDraggingBlock}
+        onClearSelectedBlock={handleClearSelectedBlock}
+        stageState={stageState}
+        onStageParticipants={onStageParticipants}
+        previewBlocks={previewBlocks}
+        selectedBlockId={selectedBlockId}
+        setSelectedBlockId={setSelectedBlockId}
+        startDraggingBlock={startDraggingBlock}
+        startResizingBlock={startResizingBlock}
+        programState={programState}
+        programBlocks={programBlocks}
+        screenLayoutPreset={screenLayoutPreset}
+        showAudienceCue={showAudienceCue}
+        audienceCueRegion={audienceCueRegion}
+        audienceCueMoonMode={audienceCueMoonMode}
+        audienceCueQuestionLabel={audienceCueQuestionLabel}
+        isTransitioning={isTransitioning}
+        transitionFromState={transitionFromState}
+        transitionFromBlocks={transitionFromBlocks}
+        transitionFadingOut={transitionFadingOut}
+        sceneName={sceneName}
+        onSceneNameChange={setSceneName}
+        onSaveScene={saveScene}
+        sceneBusy={sceneBusy}
+        scenes={scenes}
+        selectedSceneId={selectedSceneId}
+        selectedSceneLabel={selectedSceneLabel}
+        onApplyScene={handleApplyScene}
+        onClearScreenShare={handleClearScreenShare}
+        onUnpin={handleUnpinParticipant}
+        onClearPrimary={handleClearPrimaryParticipant}
+        addTestTextBlock={addTestTextBlock}
+        addTestVideoBlock={addTestVideoBlock}
+        addTestPdfBlock={addTestPdfBlock}
+        addTestImageBlock={addTestImageBlock}
+        onUploadPdf={handleUploadPdfClick}
+        onUploadVideo={handleUploadVideoClick}
+        onUploadImage={handleUploadImageClick}
+        duplicateSelectedBlock={duplicateSelectedBlock}
+        bringSelectedBlockToFront={bringSelectedBlockToFront}
+        deleteSelectedBlock={deleteSelectedBlock}
+      />
+    </ProducerRoomCenterColumn>
+  );
+
   return (
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
@@ -713,60 +768,7 @@ export default function ProducerRoomClient({
                     onSelectAudioDevice={setSelectedAudioDeviceId}
                   />
                 }
-                centerColumn={
-                  <ProducerRoomCenterColumn>
-                    <CenterSwitcherColumn
-                      triggerAudienceCue={triggerAudienceCue}
-                      onHideAudienceCue={handleHideAudienceCue}
-                      previewProgramDifferent={previewProgramDifferent}
-                      takeBusy={takeBusy}
-                      lastTakeMode={lastTakeMode}
-                      onTake={handleCenterSwitcherTake}
-                      onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
-                      stopDraggingBlock={stopDraggingBlock}
-                      onClearSelectedBlock={handleClearSelectedBlock}
-                      stageState={stageState}
-                      onStageParticipants={onStageParticipants}
-                      previewBlocks={previewBlocks}
-                      selectedBlockId={selectedBlockId}
-                      setSelectedBlockId={setSelectedBlockId}
-                      startDraggingBlock={startDraggingBlock}
-                      startResizingBlock={startResizingBlock}
-                      programState={programState}
-                      programBlocks={programBlocks}
-                      screenLayoutPreset={screenLayoutPreset}
-                      showAudienceCue={showAudienceCue}
-                      audienceCueRegion={audienceCueRegion}
-                      audienceCueMoonMode={audienceCueMoonMode}
-                      audienceCueQuestionLabel={audienceCueQuestionLabel}
-                      isTransitioning={isTransitioning}
-                      transitionFromState={transitionFromState}
-                      transitionFromBlocks={transitionFromBlocks}
-                      transitionFadingOut={transitionFadingOut}
-                      sceneName={sceneName}
-                      onSceneNameChange={setSceneName}
-                      onSaveScene={saveScene}
-                      sceneBusy={sceneBusy}
-                      scenes={scenes}
-                      selectedSceneId={selectedSceneId}
-                      selectedSceneLabel={selectedSceneLabel}
-                      onApplyScene={handleApplyScene}
-                      onClearScreenShare={handleClearScreenShare}
-                      onUnpin={handleUnpinParticipant}
-                      onClearPrimary={handleClearPrimaryParticipant}
-                      addTestTextBlock={addTestTextBlock}
-                      addTestVideoBlock={addTestVideoBlock}
-                      addTestPdfBlock={addTestPdfBlock}
-                      addTestImageBlock={addTestImageBlock}
-                      onUploadPdf={handleUploadPdfClick}
-                      onUploadVideo={handleUploadVideoClick}
-                      onUploadImage={handleUploadImageClick}
-                      duplicateSelectedBlock={duplicateSelectedBlock}
-                      bringSelectedBlockToFront={bringSelectedBlockToFront}
-                      deleteSelectedBlock={deleteSelectedBlock}
-                    />
-                  </ProducerRoomCenterColumn>
-                }
+                centerColumn={centerColumn}
                 rightRail={
                   <ProducerRightRail
                     participants={participants}
