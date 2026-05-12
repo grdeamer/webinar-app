@@ -1,11 +1,21 @@
 import type { JSX, ReactNode } from "react"
 
 type ProducerRoomWorkspaceProps = {
-  children: ReactNode
+  leftRail: ReactNode
+  centerColumn: ReactNode
+  rightRail: ReactNode
 }
 
 export default function ProducerRoomWorkspace({
-  children,
+  leftRail,
+  centerColumn,
+  rightRail,
 }: ProducerRoomWorkspaceProps): JSX.Element {
-  return <>{children}</>
+  return (
+    <>
+      {leftRail}
+      {centerColumn}
+      {rightRail}
+    </>
+  )
 }
