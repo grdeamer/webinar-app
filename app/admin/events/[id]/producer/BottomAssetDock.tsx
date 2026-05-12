@@ -40,6 +40,14 @@ function formatMemoryTime(): string {
   })
 }
 
+function formatDockRuntime(startedAt: number): string {
+  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
+  const minutes = Math.floor(elapsedSeconds / 60)
+  const seconds = elapsedSeconds % 60
+
+  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
+}
+
 import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import {
@@ -166,7 +174,20 @@ function SceneTile({
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [recallFlash, setRecallFlash] = useState(false)
   const memoryLabel = `M${String(index + 1).padStart(2, "0")}`
+
+  useEffect(() => {
+    if (!isActive && !isHotkeyTriggered) return
+
+    setRecallFlash(true)
+
+    const id = window.setTimeout(() => {
+      setRecallFlash(false)
+    }, 680)
+
+    return () => window.clearTimeout(id)
+  }, [isActive, isHotkeyTriggered, scene.id])
   return (
     <button
       type="button"
@@ -184,6 +205,16 @@ function SceneTile({
     >
       {isHotkeyTriggered ? (
         <div className="absolute inset-0 rounded-[16px] border border-amber-200/50 shadow-[inset_0_0_18px_rgba(251,191,36,0.18)]" />
+      ) : null}
+      {recallFlash ? (
+        <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[18px] border border-violet-200/45 bg-violet-400/10 shadow-[0_0_32px_rgba(168,85,247,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <div className="absolute inset-y-0 left-0 w-1/2 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/22 to-transparent animate-[scene-recall-sweep_680ms_ease-out_1]" />
+          <div className="absolute inset-0 flex items-center justify-center bg-black/18 backdrop-blur-[1px]">
+            <div className="rounded-full border border-white/18 bg-black/58 px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/78 shadow-[0_0_22px_rgba(255,255,255,0.16)]">
+              Memory Recall
+            </div>
+          </div>
+        </div>
       ) : null}
       {isProgramLive ? (
         <div className="pointer-events-none absolute inset-0 rounded-[18px] border border-red-300/35 shadow-[inset_0_0_22px_rgba(248,113,113,0.16)]" />
@@ -381,7 +412,20 @@ function SceneListRow({
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [recallFlash, setRecallFlash] = useState(false)
   const memoryLabel = `M${String(index + 1).padStart(2, "0")}`
+
+  useEffect(() => {
+    if (!isActive && !isHotkeyTriggered) return
+
+    setRecallFlash(true)
+
+    const id = window.setTimeout(() => {
+      setRecallFlash(false)
+    }, 680)
+
+    return () => window.clearTimeout(id)
+  }, [isActive, isHotkeyTriggered, scene.id])
 
   return (
     <button
@@ -396,6 +440,14 @@ function SceneListRow({
             : "border-white/10 bg-white/[0.035]"
       }`}
     >
+      {recallFlash ? (
+        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-2xl border border-violet-200/35 bg-violet-400/8 shadow-[0_0_24px_rgba(168,85,247,0.20)]">
+          <div className="absolute inset-y-0 left-0 w-1/3 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/18 to-transparent animate-[scene-recall-sweep_680ms_ease-out_1]" />
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-black/58 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.16em] text-white/66">
+            Recall
+          </div>
+        </div>
+      ) : null}
       <div className="w-12 shrink-0">
         <SceneMiniVisualizer scene={scene} />
       </div>
@@ -756,6 +808,22 @@ function DockBankLabel({
   )
 }
 
+function ProgramBusTelemetry({ runtimeLabel }: { runtimeLabel: string }): JSX.Element {
+  return (
+    <div className="hidden min-w-[190px] overflow-hidden rounded-full border border-red-300/18 bg-red-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/72 shadow-[0_0_20px_rgba(248,113,113,0.14),inset_0_1px_0_rgba(255,255,255,0.05)] xl:flex">
+      <div className="flex w-full items-center gap-2">
+        <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.85)] animate-pulse" />
+        <span>Program Bus</span>
+        <span className="text-white/20">/</span>
+        <span className="tabular-nums text-white/56">{runtimeLabel}</span>
+        <span className="relative h-1 flex-1 overflow-hidden rounded-full bg-white/10">
+          <span className="absolute inset-y-0 left-0 w-1/3 translate-x-[-120%] rounded-full bg-red-200/55 shadow-[0_0_10px_rgba(248,113,113,0.45)] animate-[dock-signal-slide_1450ms_ease-in-out_infinite]" />
+        </span>
+      </div>
+    </div>
+  )
+}
+
 export default function BottomAssetDock({
   scenes,
   selectedSceneId,
@@ -800,6 +868,20 @@ export default function BottomAssetDock({
   const [graphicsView, setGraphicsView] = useState<DockViewMode>("icons")
   const [mediaView, setMediaView] = useState<DockViewMode>("icons")
 
+  const [runtimeNow, setRuntimeNow] = useState(Date.now())
+  const [dockStartedAt] = useState(() => Date.now())
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setRuntimeNow(Date.now())
+    }, 1000)
+
+    return () => window.clearInterval(id)
+  }, [])
+
+  const runtimeLabel = formatDockRuntime(dockStartedAt)
+  void runtimeNow
+
   return (
     <div className="relative mt-3 overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.88),rgba(2,4,10,0.97))] px-2.5 py-2 shadow-[0_30px_110px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl">
       <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
@@ -819,6 +901,7 @@ export default function BottomAssetDock({
         </div>
 
         <div className="flex items-center gap-2">
+          <ProgramBusTelemetry runtimeLabel={runtimeLabel} />
           <DockStatusPill label="Cue Stack" value="Synced" tone="sky" />
           <DockBankLabel icon={<Layers3 size={12} />} label="Scenes" value={String(scenes.length)} />
           <DockBankLabel icon={<Sparkles size={12} />} label="Memory" value={`${scenes.length} slots`} />
@@ -953,6 +1036,7 @@ export default function BottomAssetDock({
               Motion Language
             </span>
             <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/24 px-1.5 py-0.5 text-[7px] text-white/38">
+              <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.75)] animate-pulse" />
               <Zap size={8} /> Armed
             </span>
           </div>
@@ -999,7 +1083,36 @@ export default function BottomAssetDock({
                     {duration}
                   </button>
                 ))}
-              </div>
+      </div>
+      <style>{`
+        @keyframes scene-recall-sweep {
+          0% {
+            transform: translateX(-120%);
+            opacity: 0;
+          }
+          24% {
+            opacity: 0.75;
+          }
+          100% {
+            transform: translateX(320%);
+            opacity: 0;
+          }
+        }
+
+        @keyframes dock-signal-slide {
+          0% {
+            transform: translateX(-120%);
+            opacity: 0;
+          }
+          28% {
+            opacity: 0.8;
+          }
+          100% {
+            transform: translateX(360%);
+            opacity: 0;
+          }
+        }
+      `}</style>
             </div>
           </div>
         </DockSection>

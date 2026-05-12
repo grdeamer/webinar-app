@@ -81,6 +81,31 @@ const {
     return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session"
   }, [sessionId])
   const api = useProducerRoomApi(eventId, sessionId)
+  const {
+    previewBlocks,
+    setPreviewBlocks,
+    programBlocks,
+    setProgramBlocks,
+    selectedBlockId,
+    setSelectedBlockId,
+    draggingBlockId,
+    setDraggingBlockId,
+    resizingBlockId,
+    setResizingBlockId,
+    dragOffset,
+    setDragOffset,
+    previewCanvasRect,
+    setPreviewCanvasRect,
+    selectedBlock,
+    addTestTextBlock,
+    addTestVideoBlock,
+    addTestPdfBlock,
+    addTestImageBlock,
+    deleteSelectedBlock,
+    duplicateSelectedBlock,
+    bringSelectedBlockToFront,
+  } = useProducerBlocks()
+
   const captureSceneThumbnail = useCallback((): string | null => {
     const layoutLabel = (stageState?.layout ?? screenLayoutPreset ?? "classic")
       .replace("screen_speaker", "screen")
@@ -147,30 +172,6 @@ const {
 
     return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
   }, [previewBlocks, screenLayoutPreset, stageState])
-  const {
-    previewBlocks,
-    setPreviewBlocks,
-    programBlocks,
-    setProgramBlocks,
-    selectedBlockId,
-    setSelectedBlockId,
-    draggingBlockId,
-    setDraggingBlockId,
-    resizingBlockId,
-    setResizingBlockId,
-    dragOffset,
-    setDragOffset,
-    previewCanvasRect,
-    setPreviewCanvasRect,
-    selectedBlock,
-    addTestTextBlock,
-    addTestVideoBlock,
-    addTestPdfBlock,
-    addTestImageBlock,
-    deleteSelectedBlock,
-    duplicateSelectedBlock,
-    bringSelectedBlockToFront,
-  } = useProducerBlocks()
 
   const {
     updateTextContent: updateSelectedTextBlockContent,
