@@ -590,6 +590,38 @@ function CommandSafetyStrip({
   )
 }
 
+function TransportBayChrome({
+  armed,
+  locked,
+  children,
+}: {
+  armed: boolean
+  locked: boolean
+  children: JSX.Element
+}): JSX.Element {
+  const stateClass = locked
+    ? "border-red-300/18 bg-red-400/8 shadow-[0_0_38px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
+    : armed
+      ? "border-amber-300/18 bg-amber-400/8 shadow-[0_0_42px_rgba(251,191,36,0.14),inset_0_1px_0_rgba(255,255,255,0.055)]"
+      : "border-white/8 bg-black/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+
+  return (
+    <div className={`relative overflow-hidden rounded-[26px] border p-2.5 transition-all duration-500 ${stateClass}`}>
+      {armed && !locked ? (
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.10),transparent)] animate-[transportBaySweep_2.2s_ease-in-out_infinite]" />
+      ) : null}
+
+      {locked ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-200/55 to-transparent" />
+      ) : armed ? (
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/55 to-transparent" />
+      ) : null}
+
+      <div className="relative z-10">{children}</div>
+    </div>
+  )
+}
+
 function AudioChannelStrip({
   label,
   source,
@@ -1014,33 +1046,40 @@ export function ControlStagePanel({
         className="mb-3"
       />
 
-      <div className="grid grid-cols-3 gap-2">
-        <div className={previewProgramDifferent && systemPressure !== "critical" ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
-          <PrimaryTakeButton
+      <TransportBayChrome
+        armed={previewProgramDifferent && systemPressure !== "critical"}
+        locked={takeBusy || systemPressure === "critical"}
+      >
+        <div className="grid grid-cols-3 gap-2">
+          <div className={previewProgramDifferent && systemPressure !== "critical" ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
+            <PrimaryTakeButton
+              onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
+              disabled={takeDisabled}
+              isTaking={takeBusy}
+            />
+          </div>
+
+          <CommandActionButton
+            tone={systemPressure === "critical" ? "muted" : "danger"}
             onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
             disabled={takeDisabled}
-            isTaking={takeBusy}
-          />
+            title="Cut preview to program (C)"
+            className="shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+          >
+            Cut
+          </CommandActionButton>
+
+          <CommandActionButton
+            tone={systemPressure === "critical" ? "muted" : "preview"}
+            onClick={() => onTake("auto", selectedTransitionType, selectedTransitionDurationMs)}
+            disabled={takeDisabled}
+            title="Auto take preview to program (A)"
+            className="shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+          >
+            Auto
+          </CommandActionButton>
         </div>
-
-        <CommandActionButton
-          tone={systemPressure === "critical" ? "muted" : "danger"}
-          onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
-          disabled={takeDisabled}
-          title="Cut preview to program (C)"
-        >
-          Cut
-        </CommandActionButton>
-
-        <CommandActionButton
-          tone={systemPressure === "critical" ? "muted" : "preview"}
-          onClick={() => onTake("auto", selectedTransitionType, selectedTransitionDurationMs)}
-          disabled={takeDisabled}
-          title="Auto take preview to program (A)"
-        >
-          Auto
-        </CommandActionButton>
-      </div>
+      </TransportBayChrome>
 
       {systemPressure === "critical" ? (
         <div className="mt-3 rounded-2xl border border-red-300/14 bg-red-400/8 px-3 py-2 text-xs font-medium text-red-100/74 shadow-[0_0_18px_rgba(239,68,68,0.10)]">
@@ -1181,6 +1220,27 @@ export function CommandDeckStyles(): JSX.Element {
         45% {
           opacity: 1;
           transform: scale(1);
+        }
+      }
+
+      @keyframes transportBaySweep {
+        0%,
+        100% {
+          transform: translateX(-120%);
+          opacity: 0;
+        }
+
+        32% {
+          opacity: 1;
+        }
+
+        64% {
+          opacity: 0.55;
+        }
+
+        100% {
+          transform: translateX(120%);
+          opacity: 0;
         }
       }
     `}</style>
