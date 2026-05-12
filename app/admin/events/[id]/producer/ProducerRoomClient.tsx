@@ -639,58 +639,112 @@ export default function ProducerRoomClient({
     };
   }, [setShowAudienceCue, stopLocalPreviewStream]);
 
+  const centerSwitcherProps = useMemo(
+    () => ({
+      triggerAudienceCue,
+      onHideAudienceCue: handleHideAudienceCue,
+      previewProgramDifferent,
+      takeBusy,
+      lastTakeMode,
+      onTake: handleCenterSwitcherTake,
+      onPreviewCanvasMouseMove,
+      stopDraggingBlock,
+      onClearSelectedBlock: handleClearSelectedBlock,
+      stageState,
+      onStageParticipants,
+      previewBlocks,
+      selectedBlockId,
+      setSelectedBlockId,
+      startDraggingBlock,
+      startResizingBlock,
+      programState,
+      programBlocks,
+      screenLayoutPreset,
+      showAudienceCue,
+      audienceCueRegion,
+      audienceCueMoonMode,
+      audienceCueQuestionLabel,
+      isTransitioning,
+      transitionFromState,
+      transitionFromBlocks,
+      transitionFadingOut,
+      sceneName,
+      onSceneNameChange: setSceneName,
+      onSaveScene: saveScene,
+      sceneBusy,
+      scenes,
+      selectedSceneId,
+      selectedSceneLabel,
+      onApplyScene: handleApplyScene,
+      onClearScreenShare: handleClearScreenShare,
+      onUnpin: handleUnpinParticipant,
+      onClearPrimary: handleClearPrimaryParticipant,
+      addTestTextBlock,
+      addTestVideoBlock,
+      addTestPdfBlock,
+      addTestImageBlock,
+      onUploadPdf: handleUploadPdfClick,
+      onUploadVideo: handleUploadVideoClick,
+      onUploadImage: handleUploadImageClick,
+      duplicateSelectedBlock,
+      bringSelectedBlockToFront,
+      deleteSelectedBlock,
+    }),
+    [
+      triggerAudienceCue,
+      handleHideAudienceCue,
+      previewProgramDifferent,
+      takeBusy,
+      lastTakeMode,
+      handleCenterSwitcherTake,
+      onPreviewCanvasMouseMove,
+      stopDraggingBlock,
+      handleClearSelectedBlock,
+      stageState,
+      onStageParticipants,
+      previewBlocks,
+      selectedBlockId,
+      setSelectedBlockId,
+      startDraggingBlock,
+      startResizingBlock,
+      programState,
+      programBlocks,
+      screenLayoutPreset,
+      showAudienceCue,
+      audienceCueRegion,
+      audienceCueMoonMode,
+      audienceCueQuestionLabel,
+      isTransitioning,
+      transitionFromState,
+      transitionFromBlocks,
+      transitionFadingOut,
+      sceneName,
+      setSceneName,
+      saveScene,
+      sceneBusy,
+      scenes,
+      selectedSceneId,
+      selectedSceneLabel,
+      handleApplyScene,
+      handleClearScreenShare,
+      handleUnpinParticipant,
+      handleClearPrimaryParticipant,
+      addTestTextBlock,
+      addTestVideoBlock,
+      addTestPdfBlock,
+      addTestImageBlock,
+      handleUploadPdfClick,
+      handleUploadVideoClick,
+      handleUploadImageClick,
+      duplicateSelectedBlock,
+      bringSelectedBlockToFront,
+      deleteSelectedBlock,
+    ],
+  );
+
   const centerColumn = (
     <ProducerRoomCenterColumn>
-      <CenterSwitcherColumn
-        triggerAudienceCue={triggerAudienceCue}
-        onHideAudienceCue={handleHideAudienceCue}
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        lastTakeMode={lastTakeMode}
-        onTake={handleCenterSwitcherTake}
-        onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
-        stopDraggingBlock={stopDraggingBlock}
-        onClearSelectedBlock={handleClearSelectedBlock}
-        stageState={stageState}
-        onStageParticipants={onStageParticipants}
-        previewBlocks={previewBlocks}
-        selectedBlockId={selectedBlockId}
-        setSelectedBlockId={setSelectedBlockId}
-        startDraggingBlock={startDraggingBlock}
-        startResizingBlock={startResizingBlock}
-        programState={programState}
-        programBlocks={programBlocks}
-        screenLayoutPreset={screenLayoutPreset}
-        showAudienceCue={showAudienceCue}
-        audienceCueRegion={audienceCueRegion}
-        audienceCueMoonMode={audienceCueMoonMode}
-        audienceCueQuestionLabel={audienceCueQuestionLabel}
-        isTransitioning={isTransitioning}
-        transitionFromState={transitionFromState}
-        transitionFromBlocks={transitionFromBlocks}
-        transitionFadingOut={transitionFadingOut}
-        sceneName={sceneName}
-        onSceneNameChange={setSceneName}
-        onSaveScene={saveScene}
-        sceneBusy={sceneBusy}
-        scenes={scenes}
-        selectedSceneId={selectedSceneId}
-        selectedSceneLabel={selectedSceneLabel}
-        onApplyScene={handleApplyScene}
-        onClearScreenShare={handleClearScreenShare}
-        onUnpin={handleUnpinParticipant}
-        onClearPrimary={handleClearPrimaryParticipant}
-        addTestTextBlock={addTestTextBlock}
-        addTestVideoBlock={addTestVideoBlock}
-        addTestPdfBlock={addTestPdfBlock}
-        addTestImageBlock={addTestImageBlock}
-        onUploadPdf={handleUploadPdfClick}
-        onUploadVideo={handleUploadVideoClick}
-        onUploadImage={handleUploadImageClick}
-        duplicateSelectedBlock={duplicateSelectedBlock}
-        bringSelectedBlockToFront={bringSelectedBlockToFront}
-        deleteSelectedBlock={deleteSelectedBlock}
-      />
+      <CenterSwitcherColumn {...centerSwitcherProps} />
     </ProducerRoomCenterColumn>
   );
 
