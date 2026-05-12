@@ -95,6 +95,53 @@ function RoutedMonitorFrame({
   )
 }
 
+function EmptyMonitorState({
+  title,
+  subtitle,
+}: {
+  title: string
+  subtitle: string
+}) {
+  return (
+    <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.12),transparent_34%),linear-gradient(180deg,#050816,#02040b)] shadow-[0_30px_120px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.06),transparent_24%,transparent_68%,rgba(255,255,255,0.035)_82%,transparent_100%)] opacity-70" />
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_6px)] opacity-[0.18]" />
+
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/40 shadow-[0_0_40px_rgba(56,189,248,0.12)] backdrop-blur-md">
+          <div className="h-3 w-3 rounded-full bg-red-400/80 shadow-[0_0_18px_rgba(248,113,113,0.7)]" />
+        </div>
+
+        <div className="text-sm font-black uppercase tracking-[0.28em] text-white/82">
+          {title}
+        </div>
+
+        <div className="mt-2 max-w-sm text-xs tracking-[0.14em] text-white/38">
+          {subtitle}
+        </div>
+      </div>
+
+      <div className="pointer-events-none absolute bottom-4 right-4 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-white/42 backdrop-blur-md">
+        No Signal
+      </div>
+    </div>
+  )
+}
+
+function CompactEmptySignal({ label }: { label: string }) {
+  return (
+    <div className="relative flex aspect-video min-h-[180px] items-center justify-center overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.10),transparent_34%),linear-gradient(180deg,#05070f,#020308)] text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_6px)] opacity-40" />
+      <div className="relative z-10 flex flex-col items-center gap-2 px-4">
+        <div className="h-2.5 w-2.5 rounded-full bg-red-400/80 shadow-[0_0_16px_rgba(248,113,113,0.72)]" />
+        <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/46">
+          {label}
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export type StageState = {
   event_id: string
   room_id: string | null
@@ -214,9 +261,10 @@ export default function StageVideoPreview({
 
   if (!stageState || participantIds.length === 0) {
     return (
-      <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.03] text-white/40">
-        Stage is empty
-      </div>
+      <EmptyMonitorState
+        title="Stage Offline"
+        subtitle="No routed participants currently assigned to the live stage"
+      />
     )
   }
 
@@ -225,9 +273,10 @@ export default function StageVideoPreview({
 
     if (!primary) {
       return (
-        <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.03] text-white/40">
-          No live camera tracks on stage
-        </div>
+        <EmptyMonitorState
+          title="No Camera Signal"
+          subtitle="No active camera feeds are currently routed to the stage"
+        />
       )
     }
 
@@ -247,9 +296,10 @@ export default function StageVideoPreview({
 
     if (!screenTrack && !speakerTrack) {
       return (
-        <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.03] text-white/40">
-          No screen share or speaker video available
-        </div>
+        <EmptyMonitorState
+          title="No Presentation Feed"
+          subtitle="No screen share or speaker feed is currently available"
+        />
       )
     }
 
@@ -287,24 +337,22 @@ export default function StageVideoPreview({
 
     if (screenLayoutPreset === "fullscreen") {
       return (
-        <div className="relative min-h-[420px] overflow-hidden rounded-2xl bg-black">
+        <RoutedMonitorFrame mode="program">
           {screenTrack ? (
             <VideoTrack
               trackRef={screenTrack}
               className="aspect-video h-full min-h-[420px] w-full object-contain"
             />
           ) : (
-            <div className="flex min-h-[420px] items-center justify-center text-white/40">
-              No screen share
-            </div>
+            <CompactEmptySignal label="No screen share" />
           )}
 
-          <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-              FULLSCREEN SCREEN
+          <div className="pointer-events-none absolute left-3 top-14 z-20">
+            <span className="rounded-full border border-white/12 bg-white/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.16)]">
+              Fullscreen Screen
             </span>
           </div>
-        </div>
+        </RoutedMonitorFrame>
       )
     }
 
@@ -323,9 +371,7 @@ export default function StageVideoPreview({
                 className="aspect-video h-full w-full object-contain"
               />
             ) : (
-              <div className="flex aspect-video items-center justify-center text-white/40">
-                No screen share
-              </div>
+              <CompactEmptySignal label="No screen share" />
             )}
           </div>
 
@@ -374,9 +420,10 @@ export default function StageVideoPreview({
               {speakerBadges}
             </div>
           ) : (
-            <div className="flex min-h-[320px] items-center justify-center text-white/40">
-              No speaker camera
-            </div>
+            <EmptyMonitorState
+              title="No Speaker Camera"
+              subtitle="The speaker focus layout is waiting for an active camera feed"
+            />
           )}
         </div>
       )
@@ -388,9 +435,7 @@ export default function StageVideoPreview({
           {screenTrack ? (
             <VideoTrack trackRef={screenTrack} className="aspect-video h-full w-full object-contain" />
           ) : (
-            <div className="flex aspect-video items-center justify-center text-white/40">
-              No screen share
-            </div>
+            <CompactEmptySignal label="No screen share" />
           )}
           <div className="pointer-events-none absolute left-3 top-3">
             <span className="rounded bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-950">
@@ -405,9 +450,7 @@ export default function StageVideoPreview({
           {speakerTrack ? (
             <VideoTrack trackRef={speakerTrack} className="aspect-video h-full w-full object-cover" />
           ) : (
-            <div className="flex aspect-video items-center justify-center text-white/40">
-              No speaker camera
-            </div>
+            <CompactEmptySignal label="No speaker camera" />
           )}
           {speakerBadges}
         </RoutedMonitorFrame>
@@ -417,9 +460,10 @@ export default function StageVideoPreview({
 
   if (onStageCameraTracks.length === 0) {
     return (
-      <div className="flex min-h-[320px] items-center justify-center rounded-2xl border border-dashed border-white/15 bg-white/[0.03] text-white/40">
-        No live camera tracks on stage
-      </div>
+      <EmptyMonitorState
+        title="No Active Cameras"
+        subtitle="No participant camera feeds are currently routed to this monitor"
+      />
     )
   }
 
