@@ -81,6 +81,72 @@ const {
     return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session"
   }, [sessionId])
   const api = useProducerRoomApi(eventId, sessionId)
+  const captureSceneThumbnail = useCallback((): string | null => {
+    const layoutLabel = (stageState?.layout ?? screenLayoutPreset ?? "classic")
+      .replace("screen_speaker", "screen")
+      .replace("speaker_focus", "speaker")
+      .toUpperCase()
+
+    const visibleBlocks = previewBlocks.filter((block) => !block.hidden).slice(0, 6)
+    const stageCount = stageState?.stage_participant_ids?.length ?? 0
+    const hasScreenShare = Boolean(
+      stageState?.screen_share_participant_id && stageState?.screen_share_track_id
+    )
+
+    const blockRects = visibleBlocks
+      .map((block, index) => {
+        const x = Math.max(0, Math.min(100, block.x ?? 0))
+        const y = Math.max(0, Math.min(100, block.y ?? 0))
+        const width = Math.max(6, Math.min(100, block.width ?? 20))
+        const height = Math.max(6, Math.min(100, block.height ?? 12))
+        const color =
+          block.type === "text"
+            ? "rgba(125,211,252,0.46)"
+            : block.type === "video"
+              ? "rgba(52,211,153,0.42)"
+              : block.type === "image"
+                ? "rgba(196,181,253,0.44)"
+                : "rgba(251,191,36,0.42)"
+
+        return `<rect x="${(x / 100) * 320}" y="${(y / 100) * 180}" width="${(width / 100) * 320}" height="${(height / 100) * 180}" rx="8" fill="${color}" stroke="rgba(255,255,255,0.42)" stroke-width="1" opacity="${0.9 - index * 0.06}" />`
+      })
+      .join("")
+
+    const layoutRects = hasScreenShare
+      ? `<rect x="18" y="20" width="205" height="118" rx="14" fill="rgba(56,189,248,0.18)" stroke="rgba(125,211,252,0.35)" />
+         <rect x="235" y="26" width="62" height="48" rx="12" fill="rgba(196,181,253,0.16)" stroke="rgba(196,181,253,0.28)" />
+         <rect x="235" y="86" width="62" height="48" rx="12" fill="rgba(255,255,255,0.08)" stroke="rgba(255,255,255,0.16)" />`
+      : stageState?.layout === "solo"
+        ? `<rect x="70" y="24" width="180" height="118" rx="18" fill="rgba(56,189,248,0.18)" stroke="rgba(125,211,252,0.35)" />`
+        : `<rect x="28" y="26" width="118" height="82" rx="14" fill="rgba(56,189,248,0.15)" stroke="rgba(125,211,252,0.28)" />
+           <rect x="174" y="26" width="118" height="82" rx="14" fill="rgba(196,181,253,0.15)" stroke="rgba(196,181,253,0.28)" />
+           <rect x="28" y="118" width="118" height="36" rx="10" fill="rgba(255,255,255,0.07)" stroke="rgba(255,255,255,0.14)" />`
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="320" height="180" viewBox="0 0 320 180">
+      <defs>
+        <radialGradient id="bg" cx="22%" cy="18%" r="82%">
+          <stop offset="0%" stop-color="#1e3a8a" stop-opacity="0.72" />
+          <stop offset="48%" stop-color="#111827" stop-opacity="1" />
+          <stop offset="100%" stop-color="#020617" stop-opacity="1" />
+        </radialGradient>
+        <linearGradient id="shine" x1="0" x2="1" y1="0" y2="1">
+          <stop offset="0%" stop-color="#ffffff" stop-opacity="0.18" />
+          <stop offset="38%" stop-color="#ffffff" stop-opacity="0" />
+        </linearGradient>
+      </defs>
+      <rect width="320" height="180" fill="url(#bg)" />
+      <rect width="320" height="180" fill="url(#shine)" />
+      <g opacity="0.55">${layoutRects}</g>
+      <g>${blockRects}</g>
+      <rect x="0.5" y="0.5" width="319" height="179" rx="18" fill="none" stroke="rgba(255,255,255,0.22)" />
+      <rect x="12" y="12" width="74" height="18" rx="9" fill="rgba(0,0,0,0.48)" stroke="rgba(255,255,255,0.16)" />
+      <text x="22" y="25" fill="rgba(255,255,255,0.78)" font-family="Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="1.4">${layoutLabel}</text>
+      <rect x="226" y="144" width="82" height="20" rx="10" fill="rgba(0,0,0,0.50)" stroke="rgba(255,255,255,0.14)" />
+      <text x="238" y="158" fill="rgba(255,255,255,0.70)" font-family="Arial, sans-serif" font-size="9" font-weight="700" letter-spacing="1.2">${stageCount} SRC · ${visibleBlocks.length} FX</text>
+    </svg>`
+
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`
+  }, [previewBlocks, screenLayoutPreset, stageState])
   const {
     previewBlocks,
     setPreviewBlocks,
@@ -207,6 +273,7 @@ const {
     setPreviewBlocks,
     setSelectedBlockId,
     refreshAll,
+    captureSceneThumbnail,
   })
 
 const { takeProgram } = useProducerTransport({

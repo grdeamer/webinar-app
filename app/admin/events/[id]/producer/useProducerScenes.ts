@@ -24,6 +24,7 @@ type RawSceneSummary = {
   title?: string | null
   screenLayoutPreset?: ScreenLayoutPreset | null
   previewBlocks?: PreviewBlock[] | null
+  thumbnailUrl?: string | null
 }
 
 function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
@@ -32,6 +33,7 @@ function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
     name: scene.name ?? scene.title ?? "Scene",
     screenLayoutPreset: scene.screenLayoutPreset ?? null,
     previewBlocks: scene.previewBlocks ?? null,
+    thumbnailUrl: scene.thumbnailUrl ?? null,
   }
 }
 
@@ -44,6 +46,7 @@ export default function useProducerScenes({
   setPreviewBlocks,
   setSelectedBlockId,
   refreshAll,
+  captureSceneThumbnail,
 }: {
   api: ProducerRoomApi
   stageState: StageState | null
@@ -53,6 +56,7 @@ export default function useProducerScenes({
   setPreviewBlocks: React.Dispatch<React.SetStateAction<PreviewBlock[]>>
   setSelectedBlockId: (id: string | null) => void
   refreshAll: () => Promise<void>
+  captureSceneThumbnail?: () => string | null
 }) {
   const [scenes, setScenes] = useState<SceneSummary[]>([])
   const [sceneName, setSceneName] = useState("")
@@ -109,6 +113,7 @@ export default function useProducerScenes({
       const data = await api.saveScene(sceneName || "Updated Scene")
 
       const savedSceneId = String(targetId ?? data?.scene?.id ?? crypto.randomUUID())
+      const thumbnailUrl = captureSceneThumbnail?.() ?? null
 
       setLocalSceneSnapshots((prev) => {
         const next = prev.filter((s) => String(s.id) !== savedSceneId)
@@ -134,6 +139,7 @@ export default function useProducerScenes({
           name: sceneName || existing?.name || "Scene",
           screenLayoutPreset,
           previewBlocks: previewBlocks.map((block) => ({ ...block })),
+          thumbnailUrl,
         })
 
         return next
