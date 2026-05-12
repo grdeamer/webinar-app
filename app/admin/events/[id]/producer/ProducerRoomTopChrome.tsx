@@ -1,5 +1,3 @@
-
-
 import type { JSX } from "react"
 
 import BroadcastCommandDeck from "./BroadcastCommandDeck"
@@ -34,6 +32,59 @@ type ProducerRoomTopChromeProps = {
   ) => void
 }
 
+function TopChromeTransmissionShell({
+  isLive,
+  children,
+}: {
+  isLive: boolean
+  children: JSX.Element
+}): JSX.Element {
+  return (
+    <div className="relative isolate overflow-hidden">
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-28 transition-opacity duration-700 ${
+          isLive
+            ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.16),transparent_62%)] opacity-100"
+            : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_62%)] opacity-80"
+        }`}
+      />
+      <div className="pointer-events-none absolute inset-x-6 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_8s_ease-in-out_infinite]" />
+
+      <div className="pointer-events-none absolute right-6 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/48 backdrop-blur-md">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            isLive
+              ? "animate-pulse bg-red-300 shadow-[0_0_14px_rgba(252,165,165,0.75)]"
+              : "bg-sky-300/80 shadow-[0_0_12px_rgba(125,211,252,0.45)]"
+          }`}
+        />
+        {isLive ? "On Air Chain" : "Standby Chain"}
+      </div>
+
+      <div className="relative z-10">{children}</div>
+
+      <style jsx global>{`
+        @keyframes topChromeTransmissionSweep {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-18%);
+          }
+
+          42% {
+            opacity: 0.8;
+          }
+
+          100% {
+            transform: translateX(18%);
+          }
+        }
+      `}</style>
+    </div>
+  )
+}
+
 export default function ProducerRoomTopChrome({
   headline,
   layout,
@@ -56,43 +107,45 @@ export default function ProducerRoomTopChrome({
   onTake,
 }: ProducerRoomTopChromeProps): JSX.Element {
   return (
-    <>
-      <ProducerRoomHeader
-        headline={headline}
-        layout={layout}
-        previewProgramDifferent={previewProgramDifferent}
-        onStageCount={onStageCount}
-        overlayCount={overlayCount}
-        isLive={isProgramLive}
-        scopeLabel={scopeLabel}
-      />
+    <TopChromeTransmissionShell isLive={isProgramLive}>
+      <>
+        <ProducerRoomHeader
+          headline={headline}
+          layout={layout}
+          previewProgramDifferent={previewProgramDifferent}
+          onStageCount={onStageCount}
+          overlayCount={overlayCount}
+          isLive={isProgramLive}
+          scopeLabel={scopeLabel}
+        />
 
-      <OperationsSyncStrip
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        selectedSceneLabel={selectedSceneLabel}
-        programSlideLabel={programSlideLabel}
-        onStageCount={onStageCount}
-        participantCount={participantCount}
-        previewBlockCount={previewBlockCount}
-        programBlockCount={programBlockCount}
-        hasProgramSource={hasProgramSource}
-        hasScreenShare={hasScreenShareRoute}
-        lastTakeMode={lastTakeMode}
-        hotkeySceneLabel={hotkeySceneLabelText}
-        lastTransportActionAt={lastTransportActionAt}
-        isLive={isProgramLive}
-        layout={layout}
-      />
+        <OperationsSyncStrip
+          previewProgramDifferent={previewProgramDifferent}
+          takeBusy={takeBusy}
+          selectedSceneLabel={selectedSceneLabel}
+          programSlideLabel={programSlideLabel}
+          onStageCount={onStageCount}
+          participantCount={participantCount}
+          previewBlockCount={previewBlockCount}
+          programBlockCount={programBlockCount}
+          hasProgramSource={hasProgramSource}
+          hasScreenShare={hasScreenShareRoute}
+          lastTakeMode={lastTakeMode}
+          hotkeySceneLabel={hotkeySceneLabelText}
+          lastTransportActionAt={lastTransportActionAt}
+          isLive={isProgramLive}
+          layout={layout}
+        />
 
-      <BroadcastCommandDeck
-        isLive={isProgramLive}
-        audienceCount={participantCount}
-        onStageCount={onStageCount}
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        onTake={onTake}
-      />
-    </>
+        <BroadcastCommandDeck
+          isLive={isProgramLive}
+          audienceCount={participantCount}
+          onStageCount={onStageCount}
+          previewProgramDifferent={previewProgramDifferent}
+          takeBusy={takeBusy}
+          onTake={onTake}
+        />
+      </>
+    </TopChromeTransmissionShell>
   )
 }
