@@ -614,6 +614,7 @@ export default function ProducerRoomClient({
 
   const isProgramLive = Boolean(programState?.is_live);
 
+  // Top chrome props
   const topChromeProps = useMemo(
     () => ({
       headline: stageState?.headline || "Live Production",
@@ -684,6 +685,7 @@ export default function ProducerRoomClient({
     };
   }, [setShowAudienceCue, stopLocalPreviewStream]);
 
+  // Center workspace props
   const centerSwitcherProps = useMemo(
     () => ({
       triggerAudienceCue,
@@ -793,6 +795,7 @@ export default function ProducerRoomClient({
     </ProducerRoomCenterColumn>
   );
 
+  // Rail props
   const leftRailProps = useMemo(
     () => ({
       takeBusy,
@@ -889,6 +892,7 @@ export default function ProducerRoomClient({
     ],
   );
 
+  // Dock props
   const bottomAssetDockProps = useMemo(
     () => ({
       scenes,
