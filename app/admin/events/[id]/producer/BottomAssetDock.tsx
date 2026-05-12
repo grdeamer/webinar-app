@@ -1040,7 +1040,30 @@ export default function BottomAssetDock({
               <Zap size={8} /> Armed
             </span>
           </div>
+
           <div className="space-y-2">
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              <div className="mb-1 flex items-center justify-between text-[8px] font-black uppercase tracking-[0.16em] text-white/38">
+                <span>Transition Preview</span>
+                <span className="text-violet-100/48">Realtime</span>
+              </div>
+
+              <div className="relative h-14 overflow-hidden rounded-xl border border-white/10 bg-black/35">
+                <div className="absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(135deg,rgba(168,85,247,0.28),rgba(15,23,42,0.9))]" />
+                <div className="absolute inset-y-0 right-0 w-1/2 bg-[linear-gradient(135deg,rgba(56,189,248,0.24),rgba(15,23,42,0.92))]" />
+                <div className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-white/14" />
+                <div className="absolute inset-y-0 left-[-30%] w-[30%] bg-gradient-to-r from-transparent via-white/28 to-transparent animate-[dock-transition-preview_2200ms_linear_infinite]" />
+
+                <div className="absolute left-2 top-2 rounded-full border border-violet-300/18 bg-violet-400/12 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-violet-100/72">
+                  Preview
+                </div>
+
+                <div className="absolute right-2 bottom-2 rounded-full border border-red-300/20 bg-red-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-red-100/75">
+                  Program
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-1.5">
               {TRANSITION_PRESETS.map((transition) => (
                 <button
@@ -1083,6 +1106,10 @@ export default function BottomAssetDock({
                     {duration}
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+        </DockSection>
       </div>
       <style>{`
         @keyframes scene-recall-sweep {
@@ -1112,11 +1139,21 @@ export default function BottomAssetDock({
             opacity: 0;
           }
         }
+
+        @keyframes dock-transition-preview {
+          0% {
+            transform: translateX(0%);
+            opacity: 0;
+          }
+          12% {
+            opacity: 0.85;
+          }
+          100% {
+            transform: translateX(520%);
+            opacity: 0;
+          }
+        }
       `}</style>
-            </div>
-          </div>
-        </DockSection>
-      </div>
     </div>
   )
 }
