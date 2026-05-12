@@ -15,13 +15,11 @@ import useProducerParticipantActions from "./useProducerParticipantActions"
 import useProducerTransport from "./useProducerTransport"
 import useProducerCanvasInteractions from "./useProducerCanvasInteractions"
 import useProducerPdfDeck from "./useProducerPdfDeck"
-import ProducerRoomHeader from "./ProducerRoomHeader"
 import CenterSwitcherColumn from "./CenterSwitcherColumn"
 import ProducerLeftRail from "./ProducerLeftRail"
 import ProducerRightRail from "./ProducerRightRail"
-import BroadcastCommandDeck from "./BroadcastCommandDeck"
 import BottomAssetDock from "./BottomAssetDock"
-import OperationsSyncStrip from "./OperationsSyncStrip"
+import ProducerRoomTopChrome from "./ProducerRoomTopChrome"
 import {
   ProducerRoomBackground,
   ProducerRoomCenterColumn,
@@ -48,92 +46,6 @@ import {
   previewProgramStatesDifferent,
 } from "./producerRoomStatusUtils"
 
-type ProducerRoomTopChromeProps = {
-  headline: string
-  layout: StageState["layout"] | undefined
-  previewProgramDifferent: boolean
-  onStageCount: number
-  overlayCount: number
-  isProgramLive: boolean
-  scopeLabel: string
-  takeBusy: boolean
-  selectedSceneLabel: string | null
-  programSlideLabel: string | null
-  participantCount: number
-  previewBlockCount: number
-  programBlockCount: number
-  hasProgramSource: boolean
-  hasScreenShareRoute: boolean
-  lastTakeMode: "cut" | "auto" | null
-  hotkeySceneLabelText: string | null
-  lastTransportActionAt: number | null
-  onTake: (
-    mode: "cut" | "auto",
-    transitionType?: CinematicTransitionType,
-    transitionDurationMs?: number
-  ) => void
-}
-
-function ProducerRoomTopChrome({
-  headline,
-  layout,
-  previewProgramDifferent,
-  onStageCount,
-  overlayCount,
-  isProgramLive,
-  scopeLabel,
-  takeBusy,
-  selectedSceneLabel,
-  programSlideLabel,
-  participantCount,
-  previewBlockCount,
-  programBlockCount,
-  hasProgramSource,
-  hasScreenShareRoute,
-  lastTakeMode,
-  hotkeySceneLabelText,
-  lastTransportActionAt,
-  onTake,
-}: ProducerRoomTopChromeProps): JSX.Element {
-  return (
-    <>
-      <ProducerRoomHeader
-        headline={headline}
-        layout={layout}
-        previewProgramDifferent={previewProgramDifferent}
-        onStageCount={onStageCount}
-        overlayCount={overlayCount}
-        isLive={isProgramLive}
-        scopeLabel={scopeLabel}
-      />
-      <OperationsSyncStrip
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        selectedSceneLabel={selectedSceneLabel}
-        programSlideLabel={programSlideLabel}
-        onStageCount={onStageCount}
-        participantCount={participantCount}
-        previewBlockCount={previewBlockCount}
-        programBlockCount={programBlockCount}
-        hasProgramSource={hasProgramSource}
-        hasScreenShare={hasScreenShareRoute}
-        lastTakeMode={lastTakeMode}
-        hotkeySceneLabel={hotkeySceneLabelText}
-        lastTransportActionAt={lastTransportActionAt}
-        isLive={isProgramLive}
-        layout={layout}
-      />
-      <BroadcastCommandDeck
-        isLive={isProgramLive}
-        audienceCount={participantCount}
-        onStageCount={onStageCount}
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        onTake={onTake}
-      />
-    </>
-  )
-}
 
 
 export default function ProducerRoomClient({
