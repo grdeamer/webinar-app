@@ -54,10 +54,25 @@ function RoutedMonitorFrame({
         ? "from-sky-400/18 via-sky-300/5"
         : "from-violet-400/18 via-violet-300/5"
 
+  const pulseClass =
+    mode === "program"
+      ? "shadow-red-500/22"
+      : mode === "preview"
+        ? "shadow-sky-500/18"
+        : "shadow-violet-500/18"
+
+  const edgePulseClass =
+    mode === "program"
+      ? "border-red-300/24 shadow-[0_0_42px_rgba(248,113,113,0.16)]"
+      : mode === "preview"
+        ? "border-sky-300/20 shadow-[0_0_36px_rgba(56,189,248,0.12)]"
+        : "border-violet-300/20 shadow-[0_0_36px_rgba(167,139,250,0.12)]"
+
   return (
     <div
-      className={`group relative overflow-hidden rounded-[28px] border border-white/12 bg-[#020308] shadow-[0_34px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-28px_60px_rgba(0,0,0,0.72)] ring-1 ${ringClass}`}
+      className={`group relative overflow-hidden rounded-[28px] border border-white/12 bg-[#020308] shadow-[0_34px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-28px_60px_rgba(0,0,0,0.72)] ring-1 ${ringClass} ${pulseClass}`}
     >
+      <div className={`pointer-events-none absolute inset-0 z-10 rounded-[28px] border opacity-70 ${edgePulseClass} ${mode === "program" ? "animate-pulse" : ""}`} />
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glowClass} to-transparent`} />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.075),transparent_34%),radial-gradient(circle_at_50%_105%,rgba(0,0,0,0.78),transparent_44%)]" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.12),transparent_18%,transparent_56%,rgba(255,255,255,0.045)_72%,transparent_88%)] opacity-45 mix-blend-screen" />
@@ -85,12 +100,16 @@ function RoutedMonitorFrame({
       </div>
 
       <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/42 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-md">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80 shadow-[0_0_10px_rgba(110,231,183,0.55)]" />
+        <span className="relative flex h-1.5 w-1.5">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300/45" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300/85 shadow-[0_0_10px_rgba(110,231,183,0.7)]" />
+        </span>
         Signal
       </div>
 
       {children}
       <div className="pointer-events-none absolute inset-0 z-10 rounded-[28px] ring-1 ring-inset ring-white/6" />
+      <div className="pointer-events-none absolute inset-x-6 bottom-0 z-10 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
     </div>
   )
 }
