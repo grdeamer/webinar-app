@@ -9,6 +9,7 @@ import {
   CompactEmptySignal,
   EmptyMonitorState,
   RoutedMonitorFrame,
+  StatusPill,
 } from "./monitorChrome"
 
 type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
@@ -194,15 +195,11 @@ export default function StageVideoPreview({
     const speakerBadges = speakerTrack ? (
       <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
         {speakerIsPrimary ? (
-          <span className="rounded bg-sky-400 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-            PRIMARY
-          </span>
+          <StatusPill label="Primary" tone="primary" />
         ) : null}
 
         {speakerIsPinned ? (
-          <span className="rounded bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-            PINNED
-          </span>
+          <StatusPill label="Pinned" tone="pinned" />
         ) : null}
       </div>
     ) : null
@@ -220,9 +217,7 @@ export default function StageVideoPreview({
           )}
 
           <div className="pointer-events-none absolute left-3 top-14 z-20">
-            <span className="rounded-full border border-white/12 bg-white/90 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-slate-950 shadow-[0_0_20px_rgba(255,255,255,0.16)]">
-              Fullscreen Screen
-            </span>
+            <StatusPill label="Fullscreen Screen" tone="screen" />
           </div>
         </RoutedMonitorFrame>
       )
@@ -273,9 +268,7 @@ export default function StageVideoPreview({
                 className="aspect-video h-full w-full object-contain"
               />
               <div className="pointer-events-none absolute left-3 top-3">
-                <span className="rounded bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-                  SCREEN
-                </span>
+                <StatusPill label="Screen" tone="screen" />
               </div>
             </div>
           ) : null}
@@ -310,9 +303,7 @@ export default function StageVideoPreview({
             <CompactEmptySignal label="No screen share" />
           )}
           <div className="pointer-events-none absolute left-3 top-3">
-            <span className="rounded bg-white/90 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-              SCREEN
-            </span>
+            <StatusPill label="Screen" tone="screen" />
           </div>
         </RoutedMonitorFrame>
 
@@ -361,15 +352,11 @@ export default function StageVideoPreview({
             <VideoTrack trackRef={trackRef} className="aspect-video h-full w-full object-cover" />
             <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
               {isPrimary ? (
-                <span className="rounded bg-sky-400 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-                  PRIMARY
-                </span>
+                <StatusPill label="Primary" tone="primary" />
               ) : null}
 
               {isPinned ? (
-                <span className="rounded bg-amber-300 px-2 py-0.5 text-[10px] font-bold text-slate-950">
-                  PINNED
-                </span>
+                <StatusPill label="Pinned" tone="pinned" />
               ) : null}
             </div>
           </RoutedMonitorFrame>
