@@ -47,11 +47,22 @@ function RoutedMonitorFrame({
         ? "ring-sky-400/40"
         : "ring-violet-400/40"
 
+  const glowClass =
+    mode === "program"
+      ? "from-red-400/18 via-red-300/5"
+      : mode === "preview"
+        ? "from-sky-400/18 via-sky-300/5"
+        : "from-violet-400/18 via-violet-300/5"
+
   return (
     <div
-      className={`relative overflow-hidden rounded-[26px] border border-white/10 bg-black shadow-[0_30px_120px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1 ${ringClass}`}
+      className={`group relative overflow-hidden rounded-[28px] border border-white/12 bg-[#020308] shadow-[0_34px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-28px_60px_rgba(0,0,0,0.72)] ring-1 ${ringClass}`}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.04),transparent_42%)]" />
+      <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glowClass} to-transparent`} />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.075),transparent_34%),radial-gradient(circle_at_50%_105%,rgba(0,0,0,0.78),transparent_44%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.12),transparent_18%,transparent_56%,rgba(255,255,255,0.045)_72%,transparent_88%)] opacity-45 mix-blend-screen" />
+      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.025)_0px,rgba(255,255,255,0.025)_1px,transparent_1px,transparent_5px)] opacity-[0.18]" />
+      <div className="pointer-events-none absolute inset-0 rounded-[28px] border border-white/8 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035),inset_0_0_42px_rgba(255,255,255,0.035)]" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2">
         <MonitorBadge
@@ -70,11 +81,16 @@ function RoutedMonitorFrame({
                 : "confidence"
           }
         />
-
         <MonitorBadge label="Routed" />
       </div>
 
+      <div className="pointer-events-none absolute bottom-3 right-3 z-20 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/42 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80 shadow-[0_0_10px_rgba(110,231,183,0.55)]" />
+        Signal
+      </div>
+
       {children}
+      <div className="pointer-events-none absolute inset-0 z-10 rounded-[28px] ring-1 ring-inset ring-white/6" />
     </div>
   )
 }
