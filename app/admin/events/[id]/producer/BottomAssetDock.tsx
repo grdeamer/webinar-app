@@ -82,6 +82,7 @@ function SceneBlockPreview({ block }: { block: PreviewBlock }): JSX.Element {
 function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
   const preset = scene.screenLayoutPreset ?? null
   const blocks = scene.previewBlocks?.slice(0, 5) ?? []
+  const thumbnailUrl = scene.thumbnailUrl ?? null
 
   const label =
     preset === "fullscreen"
@@ -99,32 +100,46 @@ function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
 
   return (
     <div className={baseClass}>
-      {preset === "fullscreen" ? (
+      {thumbnailUrl ? (
+        <img
+          src={thumbnailUrl}
+          alt={`${scene.name} preview`}
+          className="absolute inset-0 h-full w-full object-cover opacity-90"
+        />
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_52%,rgba(0,0,0,0.46)),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_26%,transparent_72%,rgba(0,0,0,0.34))]" />
+
+      {!thumbnailUrl && preset === "fullscreen" ? (
         <div className="absolute inset-1 rounded-lg border border-sky-200/20 bg-sky-400/16" />
-      ) : preset === "speaker_focus" ? (
+      ) : !thumbnailUrl && preset === "speaker_focus" ? (
         <>
           <div className="absolute inset-y-1 left-1 w-[62%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
           <div className="absolute right-1 top-1 h-[44%] w-[30%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
         </>
-      ) : preset === "brand" ? (
+      ) : !thumbnailUrl && preset === "brand" ? (
         <>
           <div className="absolute left-1 top-1 h-[58%] w-[58%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
           <div className="absolute bottom-1 right-1 h-[34%] w-[34%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
         </>
-      ) : (
+      ) : !thumbnailUrl ? (
         <>
           <div className="absolute left-1 top-1 h-[46%] w-[46%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
           <div className="absolute right-1 top-1 h-[46%] w-[46%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
           <div className="absolute bottom-1 left-1 h-[32%] w-[46%] rounded-lg border border-white/10 bg-white/[0.055]" />
         </>
-      )}
+      ) : null}
 
       {blocks.map((block) => (
         <SceneBlockPreview key={block.id} block={block} />
       ))}
 
-      <div className="absolute bottom-1 right-1 rounded-md border border-white/10 bg-black/55 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/58">
-        {label}
+      <div className="absolute bottom-1 right-1 rounded-md border border-white/10 bg-black/65 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+        {thumbnailUrl ? "Live" : label}
+      </div>
+
+      <div className="absolute left-1 top-1 rounded-md border border-white/10 bg-black/55 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/50">
+        {blocks.length ? `${blocks.length} FX` : "Clean"}
       </div>
     </div>
   )

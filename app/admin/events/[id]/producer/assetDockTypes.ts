@@ -1,4 +1,3 @@
-
 import type { PreviewBlock } from "./useProducerBlocks"
 
 export type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
@@ -8,6 +7,7 @@ export type SceneSummary = {
   name: string
   screenLayoutPreset?: ScreenLayoutPreset | null
   previewBlocks?: PreviewBlock[] | null
+  thumbnailUrl?: string | null
 }
 
 export type DockAsset = {
