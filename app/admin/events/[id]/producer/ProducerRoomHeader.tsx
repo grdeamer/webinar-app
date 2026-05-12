@@ -114,6 +114,30 @@ function MissionClock(): JSX.Element {
   )
 }
 
+function HeaderTransmissionBadge({ isLive }: { isLive: boolean }): JSX.Element {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.22em] backdrop-blur-md transition-all duration-500 ${
+        isLive
+          ? "border-red-200/24 bg-red-500/12 text-red-100 shadow-[0_0_26px_rgba(248,113,113,0.18)]"
+          : "border-sky-200/18 bg-sky-500/9 text-sky-100/76 shadow-[0_0_22px_rgba(56,189,248,0.12)]"
+      }`}
+    >
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.12)_44%,transparent_62%)] animate-[headerTransmissionSweep_4.8s_ease-in-out_infinite]" />
+      <div className="relative flex items-center gap-2">
+        <span
+          className={`h-1.5 w-1.5 rounded-full ${
+            isLive
+              ? "animate-pulse bg-red-300 shadow-[0_0_14px_rgba(252,165,165,0.72)]"
+              : "bg-sky-300 shadow-[0_0_12px_rgba(125,211,252,0.5)]"
+          }`}
+        />
+        {isLive ? "On Air" : "Standby"}
+      </div>
+    </div>
+  )
+}
+
 export default function ProducerRoomHeader({
   headline,
   layout,
@@ -132,7 +156,15 @@ export default function ProducerRoomHeader({
   scopeLabel: string
 }): JSX.Element {
   return (
-    <div className="border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_32%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.11),transparent_28%),linear-gradient(180deg,rgba(6,12,26,0.98),rgba(2,6,16,0.94))] px-4 py-3 shadow-[0_28px_110px_rgba(0,0,0,0.52)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
+    <div className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_32%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.11),transparent_28%),linear-gradient(180deg,rgba(6,12,26,0.98),rgba(2,6,16,0.94))] px-4 py-3 shadow-[0_28px_110px_rgba(0,0,0,0.52)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity duration-500 ${
+          isLive
+            ? "bg-gradient-to-r from-transparent via-red-200/55 to-transparent opacity-100"
+            : "bg-gradient-to-r from-transparent via-sky-200/28 to-transparent opacity-75"
+        }`}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_38%,transparent_62%)] animate-[headerTransmissionSweep_7s_ease-in-out_infinite]" />
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap items-center gap-2 rounded-[20px] border border-white/8 bg-black/18 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] xl:hidden">
           <TelemetryMiniChip
@@ -170,6 +202,9 @@ export default function ProducerRoomHeader({
               <span>Mission Control</span>
               <span className="text-white/20">•</span>
               <span>{scopeLabel}</span>
+              <span className="hidden sm:inline-flex">
+                <HeaderTransmissionBadge isLive={isLive} />
+              </span>
             </div>
 
             <div className="mt-1.5 flex flex-wrap items-end gap-2.5">
@@ -195,16 +230,23 @@ export default function ProducerRoomHeader({
         </div>
 
         <div className="grid gap-2 sm:grid-cols-2 xl:min-w-[620px] xl:grid-cols-4">
-          <div className="relative overflow-hidden rounded-[24px] border border-red-400/22 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.18),transparent_42%),linear-gradient(180deg,rgba(127,29,29,0.42),rgba(239,68,68,0.09))] p-3 shadow-[0_0_42px_rgba(239,68,68,0.16)]">
+          <div
+            className={`relative overflow-hidden rounded-[24px] border p-3 transition-all duration-500 ${
+              isLive
+                ? "border-red-400/28 bg-[radial-gradient(circle_at_top,rgba(248,113,113,0.24),transparent_42%),linear-gradient(180deg,rgba(127,29,29,0.50),rgba(239,68,68,0.12))] shadow-[0_0_52px_rgba(239,68,68,0.22)]"
+                : "border-sky-300/18 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_42%),linear-gradient(180deg,rgba(12,74,110,0.28),rgba(14,165,233,0.06))] shadow-[0_0_38px_rgba(56,189,248,0.12)]"
+            }`}
+          >
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.085)_44%,transparent_66%)] animate-[headerTransmissionSweep_5.6s_ease-in-out_infinite]" />
             <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-red-100/65">
               <CircleDot size={12} className={isLive ? "animate-pulse text-red-300" : "text-white/30"} />
               Transmission
             </div>
-            <div className="mt-1.5 text-base font-semibold tracking-[-0.03em] text-white">
-              {isLive ? "On Air" : "Holding"}
+            <div className="relative mt-1.5 text-base font-semibold tracking-[-0.03em] text-white">
+              {isLive ? "On Air" : "Standby Hold"}
             </div>
-            <div className="mt-0.5 text-[11px] text-red-50/38">
-              Program output {isLive ? "transmitting" : "standing by"}
+            <div className="relative mt-0.5 text-[11px] text-white/42">
+              Program output {isLive ? "transmitting to audience" : "armed for transmission"}
             </div>
           </div>
 
@@ -239,6 +281,23 @@ export default function ProducerRoomHeader({
           <MissionClock />
         </div>
       </div>
+      <style jsx global>{`
+        @keyframes headerTransmissionSweep {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-18%);
+          }
+
+          44% {
+            opacity: 0.8;
+          }
+
+          100% {
+            transform: translateX(18%);
+          }
+        }
+      `}</style>
     </div>
   )
 }
