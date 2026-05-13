@@ -75,7 +75,9 @@ function TelemetryMiniChip({
           : "border-white/10 bg-black/24 text-white/42"
 
   return (
-    <div className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+    <div
+      className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}
+    >
       <span className="opacity-80">{icon}</span>
       <span className="text-white/30">{label}</span>
       <span>{value}</span>
@@ -239,7 +241,10 @@ export default function ProducerRoomHeader({
           >
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.085)_44%,transparent_66%)] animate-[headerTransmissionSweep_5.6s_ease-in-out_infinite]" />
             <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.22em] text-red-100/65">
-              <CircleDot size={12} className={isLive ? "animate-pulse text-red-300" : "text-white/30"} />
+              <CircleDot
+                size={12}
+                className={isLive ? "animate-pulse text-red-300" : "text-white/30"}
+              />
               Transmission
             </div>
             <div className="relative mt-1.5 text-base font-semibold tracking-[-0.03em] text-white">
@@ -277,10 +282,12 @@ export default function ProducerRoomHeader({
             tone="neutral"
           />
         </div>
+
         <div className="hidden 2xl:block">
           <MissionClock />
         </div>
       </div>
+
       <style jsx global>{`
         @keyframes headerTransmissionSweep {
           0%,
