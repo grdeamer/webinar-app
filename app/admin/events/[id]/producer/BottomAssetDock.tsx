@@ -26,10 +26,22 @@ function DockStatusPill({
       ? "border-sky-300/18 bg-sky-400/8 text-sky-100/80"
       : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/80"
   return (
-    <div className={`hidden items-center gap-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] lg:flex ${toneClass}`}>
-      <span>{label}</span>
-      <span className="text-white/18">/</span>
-      <span className="text-white/48">{value}</span>
+    <div className={`group relative hidden items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] lg:flex ${toneClass}`}>
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+
+      <span className="relative z-10 inline-flex items-center gap-1.5">
+        <span
+          className={`h-1.5 w-1.5 rounded-full animate-pulse ${
+            tone === "sky"
+              ? "bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.65)]"
+              : "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.65)]"
+          }`}
+        />
+        {label}
+      </span>
+      <span className="relative z-10 text-white/18">/</span>
+      <span className="relative z-10 text-white/48">{value}</span>
     </div>
   )
 }
@@ -326,8 +338,10 @@ function GraphicTile({ item }: { item: DockAsset }): JSX.Element {
   return (
     <button
       type="button"
-      className="group min-w-[88px] rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/35 hover:bg-sky-400/10 hover:shadow-[0_0_18px_rgba(14,165,233,0.14)] active:translate-y-0"
+      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/35 hover:bg-sky-400/10 hover:shadow-[0_0_18px_rgba(14,165,233,0.14)] active:translate-y-0"
     >
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/18 to-transparent" />
       <div className="flex aspect-video items-end rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(14,165,233,0.18),rgba(15,23,42,0.9))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-sky-200/25">
         <div className="h-4 w-16 rounded-md bg-white/80" />
       </div>
@@ -348,8 +362,10 @@ function MediaTile({
   return (
     <button
       type="button"
-      className="group min-w-[88px] rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_rgba(52,211,153,0.13)] active:translate-y-0"
+      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_rgba(52,211,153,0.13)] active:translate-y-0"
     >
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/18 to-transparent" />
       <div className="relative aspect-video rounded-lg border border-white/10 bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.22),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.9),rgba(2,6,23,0.95))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-emerald-200/25">
         <div className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-black text-white/60">
           0{index}:15
@@ -373,7 +389,8 @@ function ViewToggle({
   onChange: (value: DockViewMode) => void
 }): JSX.Element {
   return (
-    <div className="mb-1.5 flex items-center gap-1 rounded-full border border-white/10 bg-black/25 p-0.5">
+    <div className="relative mb-1.5 flex items-center gap-1 overflow-hidden rounded-full border border-white/10 bg-black/25 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
       {(["icons", "list"] as DockViewMode[]).map((mode) => (
         <button
           key={mode}
@@ -799,7 +816,9 @@ function DockBankLabel({
   value: string
 }): JSX.Element {
   return (
-    <div className="hidden items-center gap-2 rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34 lg:flex">
+    <div className="group relative hidden items-center gap-2 overflow-hidden rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34 lg:flex">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/18 to-transparent" />
       <span className="text-violet-100/55">{icon}</span>
       <span>{label}</span>
       <span className="text-white/18">/</span>
@@ -810,7 +829,8 @@ function DockBankLabel({
 
 function ProgramBusTelemetry({ runtimeLabel }: { runtimeLabel: string }): JSX.Element {
   return (
-    <div className="hidden min-w-[190px] overflow-hidden rounded-full border border-red-300/18 bg-red-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/72 shadow-[0_0_20px_rgba(248,113,113,0.14),inset_0_1px_0_rgba(255,255,255,0.05)] xl:flex">
+    <div className="group hidden min-w-[190px] overflow-hidden rounded-full border border-red-300/18 bg-red-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/72 shadow-[0_0_20px_rgba(248,113,113,0.14),inset_0_1px_0_rgba(255,255,255,0.05)] xl:flex">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="flex w-full items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.85)] animate-pulse" />
         <span>Program Bus</span>
@@ -883,9 +903,10 @@ export default function BottomAssetDock({
   void runtimeNow
 
   return (
-    <div className="relative mt-3 overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.88),rgba(2,4,10,0.97))] px-2.5 py-2 shadow-[0_30px_110px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl">
+    <div className="group relative mt-3 overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.88),rgba(2,4,10,0.97))] px-2.5 py-2 shadow-[0_30px_110px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl transition duration-300 hover:border-white/14 hover:shadow-[0_36px_130px_rgba(0,0,0,0.60),0_0_36px_rgba(99,102,241,0.08)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/42 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
