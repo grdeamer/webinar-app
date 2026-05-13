@@ -41,15 +41,17 @@ function RightRailMetric({
 
   return (
     <div
-      className={`rounded-2xl border px-2 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${toneClass}`}
+      className={`group relative overflow-hidden rounded-2xl border px-2 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${toneClass}`}
     >
-      <div className="mx-auto flex h-7 w-7 items-center justify-center rounded-xl border border-white/10 bg-black/24 text-white/68">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.06)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+      <div className="relative z-10 mx-auto flex h-7 w-7 items-center justify-center rounded-xl border border-white/10 bg-black/24 text-white/68">
         {icon}
       </div>
-      <div className="mt-1.5 text-lg font-semibold tracking-tight text-white">
+      <div className="relative z-10 mt-1.5 text-lg font-semibold tracking-tight text-white">
         {value}
       </div>
-      <div className="mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-60">
+      <div className="relative z-10 mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-60">
         {label}
       </div>
     </div>
@@ -79,10 +81,29 @@ function RailStatusChip({
             : "border-white/10 bg-black/24 text-white/42"
 
   return (
-    <div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
-      <span className="opacity-80">{icon}</span>
-      <span className="text-white/30">{label}</span>
-      <span>{value}</span>
+    <div className={`group relative flex items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+
+      <span className="relative z-10 opacity-80">{icon}</span>
+      <span className="relative z-10 text-white/30">{label}</span>
+      <span className="relative z-10 inline-flex items-center gap-1.5">
+        {tone !== "neutral" ? (
+          <span
+            className={`h-1.5 w-1.5 rounded-full animate-pulse ${
+              tone === "sky"
+                ? "bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.65)]"
+                : tone === "green"
+                  ? "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.65)]"
+                  : tone === "violet"
+                    ? "bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.65)]"
+                    : "bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.55)]"
+            }`}
+          />
+        ) : null}
+
+        {value}
+      </span>
     </div>
   )
 }
@@ -134,9 +155,11 @@ export default function ProducerRightRail({
   const micCount = participants.filter((p) => p.micEnabled).length
   const screenCount = participants.filter((p) => p.screenShareEnabled).length
   return (
-    <div className="min-w-0 overflow-hidden rounded-[38px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.92),rgba(2,4,10,0.99))] p-2.5 shadow-[0_38px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl transition duration-300 hover:border-white/14 lg:col-start-3">
-      <div className="mb-3 overflow-hidden rounded-[30px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.13),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)]">
-        <div className="flex items-start justify-between gap-3">
+    <div className="group min-w-0 overflow-hidden rounded-[38px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.92),rgba(2,4,10,0.99))] p-2.5 shadow-[0_38px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl transition duration-300 hover:border-white/14 hover:shadow-[0_42px_150px_rgba(0,0,0,0.64),0_0_40px_rgba(168,85,247,0.08)] lg:col-start-3">
+      <div className="group relative mb-3 overflow-hidden rounded-[30px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.13),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)]">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/22 to-transparent" />
+        <div className="relative z-10 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-100/62">
               <Radio size={13} />
@@ -155,7 +178,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="relative z-10 mt-3 flex flex-wrap gap-2">
           <RailStatusChip
             icon={<SatelliteDish size={10} />}
             label="Relay"
@@ -185,7 +208,7 @@ export default function ProducerRightRail({
           />
         </div>
 
-        <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+        <div className="relative z-10 mt-4 grid grid-cols-4 gap-2 text-center">
           <RightRailMetric
             icon={<Users size={13} />}
             label="Routed"
@@ -215,7 +238,7 @@ export default function ProducerRightRail({
           />
         </div>
 
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
           <div className="flex items-center gap-2 rounded-2xl border border-red-300/12 bg-red-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <Archive size={12} />
             ISO Capture Online
