@@ -70,6 +70,8 @@ function SwitcherSurfaceChrome({
         <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/44 to-transparent animate-[switcherLiveRail_2.2s_ease-in-out_infinite]" />
       ) : null}
 
+      <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/10 to-transparent" />
+      <div className="pointer-events-none absolute left-1/2 top-1/2 h-[58%] w-24 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-transparent via-violet-300/[0.045] to-transparent blur-xl" />
       <div className="relative z-10">{children}</div>
     </div>
   )
@@ -418,8 +420,10 @@ export default function CenterSwitcherColumn({
         armed={previewProgramDifferent}
         live={Boolean(programState?.is_live)}
       >
-        <div className="mb-2.5 flex items-end justify-between gap-4 px-1">
-          <div>
+        <div className="relative mb-2.5 flex items-end justify-between gap-4 overflow-hidden rounded-[22px] border border-white/7 bg-black/18 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] animate-[switcherSurfaceSweep_9s_ease-in-out_infinite]" />
+          <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
+          <div className="relative z-10">
             <div className="text-[10px] font-black uppercase tracking-[0.28em] text-white/32">
               Switcher Surface
             </div>
@@ -427,8 +431,7 @@ export default function CenterSwitcherColumn({
               Preview <span className="text-white/28">→</span> Program
             </div>
           </div>
-
-          <div className="hidden items-center gap-2 md:flex">
+          <div className="relative z-10 hidden items-center gap-2 md:flex">
             <div className="flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-white/35 backdrop-blur">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.7)]" />
               Control online
@@ -461,11 +464,12 @@ export default function CenterSwitcherColumn({
 
         <div
           ref={switcherGridRef}
-          className="grid gap-0"
+          className="relative grid gap-0"
           style={{
             gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 56px minmax(0, ${100 - previewPanePercent}fr)`,
           }}
         >
+          <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-violet-200/22 to-transparent" />
           <div className="relative min-w-0 rounded-[28px] border border-sky-300/14 bg-[linear-gradient(180deg,rgba(5,14,27,0.99),rgba(1,5,12,0.99))] p-2 xl:p-2.5 shadow-[0_24px_82px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.055)] before:pointer-events-none before:absolute before:inset-x-8 before:-bottom-2 before:h-2 before:rounded-b-[22px] before:bg-black/50 before:blur-sm">
             <MonitorHeader
               title="Preview"
@@ -553,6 +557,7 @@ export default function CenterSwitcherColumn({
             aria-orientation="vertical"
             aria-label="Resize preview and program panes"
           >
+            <div className="pointer-events-none absolute inset-y-6 left-1/2 w-10 -translate-x-1/2 rounded-full bg-violet-300/[0.035] blur-md transition-opacity duration-300 group-hover:opacity-100" />
             {/* center rail */}
             <div className="absolute inset-y-4 left-1/2 w-[2px] -translate-x-1/2 rounded-full bg-gradient-to-b from-violet-200/14 via-violet-300/30 to-violet-200/14 transition-all duration-300 group-hover:w-[4px] group-hover:from-violet-100/55 group-hover:via-violet-200/80 group-hover:to-violet-100/55 group-hover:shadow-[0_0_22px_rgba(196,181,253,0.42)]" />
 
@@ -560,8 +565,10 @@ export default function CenterSwitcherColumn({
             <div className="absolute inset-y-0 left-1/2 w-16 -translate-x-1/2 bg-gradient-to-r from-transparent via-violet-500/8 to-transparent blur-md" />
 
             <div className="relative z-20 flex h-full items-center">
-              <div className="rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.055),transparent_28%),linear-gradient(180deg,rgba(18,18,30,0.98),rgba(5,6,12,0.995))] px-2.5 py-3 shadow-[0_30px_110px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-1px_0_rgba(0,0,0,0.7)] backdrop-blur-xl">
-                <div className="flex flex-col items-center gap-3">
+              <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.055),transparent_28%),linear-gradient(180deg,rgba(18,18,30,0.98),rgba(5,6,12,0.995))] px-2.5 py-3 shadow-[0_30px_110px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.055),inset_0_-1px_0_rgba(0,0,0,0.7)] backdrop-blur-xl">
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.06)_42%,transparent_64%)] animate-[switcherRailSweep_5.8s_ease-in-out_infinite]" />
+                <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent" />
+                <div className="relative z-10 flex flex-col items-center gap-3">
 
                   {/* CUT */}
                   <button
@@ -844,6 +851,21 @@ export default function CenterSwitcherColumn({
           50% {
             opacity: 0.9;
             transform: translateY(8px);
+          }
+        }
+        @keyframes switcherRailSweep {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-120%);
+          }
+
+          42% {
+            opacity: 0.82;
+          }
+
+          100% {
+            transform: translateX(220%);
           }
         }
       `}</style>
