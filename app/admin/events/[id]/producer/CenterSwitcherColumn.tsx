@@ -15,6 +15,7 @@ type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
 
 type ConfidenceMonitorMode = "standard" | "confidence" | "multiview"
 
+
 const CONFIDENCE_MONITOR_MODES: Array<{
   value: ConfidenceMonitorMode
   label: string
@@ -36,6 +37,43 @@ const CONFIDENCE_MONITOR_MODES: Array<{
     description: "Operator grid awareness",
   },
 ]
+
+function SwitcherSurfaceChrome({
+  armed,
+  live,
+  children,
+}: {
+  armed: boolean
+  live: boolean
+  children: React.ReactNode
+}): JSX.Element {
+  return (
+    <div
+      className={`relative overflow-hidden rounded-[32px] border p-2.5 shadow-[0_34px_120px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.06)] transition-all duration-700 xl:p-3 2xl:p-3.5 ${
+        live
+          ? "border-red-300/16 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.18),transparent_42%),radial-gradient(circle_at_20%_10%,rgba(56,189,248,0.10),transparent_32%),linear-gradient(180deg,rgba(10,8,20,0.99),rgba(2,4,12,0.995))]"
+          : armed
+            ? "border-amber-300/16 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.14),transparent_42%),radial-gradient(circle_at_20%_10%,rgba(56,189,248,0.12),transparent_32%),linear-gradient(180deg,rgba(5,10,24,0.98),rgba(2,4,12,0.995))]"
+            : "border-white/10 bg-[radial-gradient(circle_at_top,rgba(35,46,92,0.28),transparent_42%),linear-gradient(180deg,rgba(5,10,24,0.98),rgba(2,4,12,0.995))]"
+      }`}
+    >
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.028)_42%,transparent_64%)] animate-[switcherSurfaceSweep_8.5s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_8px)]" />
+      <div className="pointer-events-none absolute inset-0 rounded-[32px] shadow-[inset_0_0_80px_rgba(0,0,0,0.34)]" />
+
+      {armed ? (
+        <div className="pointer-events-none absolute inset-x-12 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200/38 to-transparent animate-[switcherArmedRail_2.4s_ease-in-out_infinite]" />
+      ) : null}
+
+      {live ? (
+        <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/44 to-transparent animate-[switcherLiveRail_2.2s_ease-in-out_infinite]" />
+      ) : null}
+
+      <div className="relative z-10">{children}</div>
+    </div>
+  )
+}
 
 
 function MultiviewOverlay({
@@ -376,7 +414,10 @@ export default function CenterSwitcherColumn({
         />
       </div>
 
-      <div className="rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(35,46,92,0.28),transparent_42%),linear-gradient(180deg,rgba(5,10,24,0.98),rgba(2,4,12,0.995))] p-2.5 xl:p-3 2xl:p-3.5 shadow-[0_34px_120px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.06)]">
+      <SwitcherSurfaceChrome
+        armed={previewProgramDifferent}
+        live={Boolean(programState?.is_live)}
+      >
         <div className="mb-2.5 flex items-end justify-between gap-4 px-1">
           <div>
             <div className="text-[10px] font-black uppercase tracking-[0.28em] text-white/32">
@@ -747,7 +788,7 @@ export default function CenterSwitcherColumn({
             </div>
           </div>
         </div>
-      </div>
+      </SwitcherSurfaceChrome>
 
       <style>{`
         @keyframes take-label-sheen {
@@ -761,6 +802,48 @@ export default function CenterSwitcherColumn({
           100% {
             transform: translateX(320%);
             opacity: 0;
+          }
+        }
+
+        @keyframes switcherSurfaceSweep {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-18%);
+          }
+
+          46% {
+            opacity: 0.8;
+          }
+
+          100% {
+            transform: translateX(18%);
+          }
+        }
+
+        @keyframes switcherArmedRail {
+          0%,
+          100% {
+            opacity: 0.2;
+            transform: scaleX(0.72);
+          }
+
+          50% {
+            opacity: 0.85;
+            transform: scaleX(1);
+          }
+        }
+
+        @keyframes switcherLiveRail {
+          0%,
+          100% {
+            opacity: 0.25;
+            transform: translateY(0);
+          }
+
+          50% {
+            opacity: 0.9;
+            transform: translateY(8px);
           }
         }
       `}</style>
