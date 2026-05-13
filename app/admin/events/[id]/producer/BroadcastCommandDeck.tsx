@@ -85,6 +85,37 @@ function BroadcastSyncPulseOverlay({ active }: { active: boolean }): JSX.Element
   )
 }
 
+function CommandDeckAtmosphere({
+  isLive,
+  armed,
+}: {
+  isLive: boolean
+  armed: boolean
+}): JSX.Element {
+  return (
+    <>
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 h-40 transition-opacity duration-700 ${
+          isLive
+            ? "bg-gradient-to-b from-red-300/12 via-violet-300/6 to-transparent"
+            : armed
+              ? "bg-gradient-to-b from-amber-300/10 via-sky-300/6 to-transparent"
+              : "bg-gradient-to-b from-violet-300/8 via-sky-300/5 to-transparent"
+        }`}
+      />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.028)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_10s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-sky-300/[0.045] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-red-300/[0.045] to-transparent" />
+
+      {armed ? (
+        <div className="pointer-events-none absolute inset-x-14 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200/32 to-transparent animate-[commandDeckArmedRail_2.6s_ease-in-out_infinite]" />
+      ) : null}
+    </>
+  )
+}
+
 function BroadcastPresenceStrip({
   isLive,
   audienceCount,
@@ -124,6 +155,7 @@ function BroadcastPresenceStrip({
 
   return (
     <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.10),transparent_30%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.09),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.036),rgba(255,255,255,0.012))] px-3 py-3 shadow-[0_22px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_9s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_9px)]" />
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
 
@@ -979,30 +1011,42 @@ export default function BroadcastCommandDeck({
 
   return (
     <div className="relative mb-3 space-y-2.5 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.07),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.90),rgba(2,4,10,0.98))] px-3 py-3 shadow-[0_30px_120px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)] md:px-4 xl:px-5 2xl:px-6">
+      <CommandDeckAtmosphere
+        isLive={isLive}
+        armed={previewProgramDifferent}
+      />
       <BroadcastSyncPulseOverlay active={Boolean(takeFlash) || takeBusy} />
       {takeFlash ? <TakeFlashOverlay mode={takeFlash} /> : null}
 
-      <CommandSurfaceHeader isLive={isLive} />
+      <div className="relative z-10">
+        <CommandSurfaceHeader isLive={isLive} />
+      </div>
 
-      <TelemetryStrip
-        isLive={isLive}
-        audienceCount={audienceCount}
-        onStageCount={onStageCount}
-        runtimeLabel={runtimeLabel}
-      />
-      <BroadcastPresenceStrip
-        isLive={isLive}
-        audienceCount={audienceCount}
-        onStageCount={onStageCount}
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        runtimeLabel={runtimeLabel}
-        selectedTransitionType={selectedTransitionType}
-        selectedTransitionDurationMs={selectedTransitionDurationMs}
-      />
+      <div className="relative z-10">
+        <TelemetryStrip
+          isLive={isLive}
+          audienceCount={audienceCount}
+          onStageCount={onStageCount}
+          runtimeLabel={runtimeLabel}
+        />
+      </div>
+      <div className="relative z-10">
+        <BroadcastPresenceStrip
+          isLive={isLive}
+          audienceCount={audienceCount}
+          onStageCount={onStageCount}
+          previewProgramDifferent={previewProgramDifferent}
+          takeBusy={takeBusy}
+          runtimeLabel={runtimeLabel}
+          selectedTransitionType={selectedTransitionType}
+          selectedTransitionDurationMs={selectedTransitionDurationMs}
+        />
+      </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
-        <div>
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_8s_ease-in-out_infinite]" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+        <div className="relative z-10">
           <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
             Broadcast Operations State
           </div>
@@ -1012,7 +1056,7 @@ export default function BroadcastCommandDeck({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="relative z-10 flex flex-wrap items-center gap-2">
           <CommandStatusPill
             label="Program"
             value={isLive ? "Live" : "Standby"}
@@ -1050,7 +1094,7 @@ export default function BroadcastCommandDeck({
       </div>
 
       {showHealthCards ? (
-        <div className="grid gap-2.5 xl:grid-cols-4">
+        <div className="relative z-10 grid gap-2.5 xl:grid-cols-4">
           <TransmissionHealthCard
             label="Transmission"
             value={isLive ? "Distribution Stable" : "Standby Transport"}
@@ -1081,58 +1125,70 @@ export default function BroadcastCommandDeck({
         </div>
       ) : null}
 
-      <OperationsStackHeader
-        openPanels={openOperationsPanels}
-        onTogglePanel={toggleOperationsPanel}
-        onCollapseAll={collapseAllOperationsPanels}
-        onOpenAll={openAllOperationsPanels}
-        activeDensityMode={deckDensityMode}
-        onSetDensityMode={applyDeckDensityMode}
-        isLive={isLive}
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        onStageCount={onStageCount}
-      />
-
-      {openOperationsPanels.transmission ? (
-        <TransmissionMetricStrip
+      <div className="relative z-10">
+        <OperationsStackHeader
+          openPanels={openOperationsPanels}
+          onTogglePanel={toggleOperationsPanel}
+          onCollapseAll={collapseAllOperationsPanels}
+          onOpenAll={openAllOperationsPanels}
+          activeDensityMode={deckDensityMode}
+          onSetDensityMode={applyDeckDensityMode}
           isLive={isLive}
           previewProgramDifferent={previewProgramDifferent}
           takeBusy={takeBusy}
+          onStageCount={onStageCount}
         />
+      </div>
+
+      {openOperationsPanels.transmission ? (
+        <div className="relative z-10">
+          <TransmissionMetricStrip
+            isLive={isLive}
+            previewProgramDifferent={previewProgramDifferent}
+            takeBusy={takeBusy}
+          />
+        </div>
       ) : null}
 
       {openOperationsPanels.recording ? (
-        <RecordingOperationsStrip
-          isLive={isLive}
-          takeBusy={takeBusy}
-        />
+        <div className="relative z-10">
+          <RecordingOperationsStrip
+            isLive={isLive}
+            takeBusy={takeBusy}
+          />
+        </div>
       ) : null}
 
       {openOperationsPanels.comms ? (
-        <CommsOperationsStrip
-          isLive={isLive}
-          onStageCount={onStageCount}
-          takeBusy={takeBusy}
-        />
+        <div className="relative z-10">
+          <CommsOperationsStrip
+            isLive={isLive}
+            onStageCount={onStageCount}
+            takeBusy={takeBusy}
+          />
+        </div>
       ) : null}
 
-      <TransitionIntentStrip
-        selectedTransitionType={selectedTransitionType}
-        selectedTransitionDurationMs={selectedTransitionDurationMs}
-        onTransitionTypeChange={setSelectedTransitionType}
-        onTransitionDurationChange={setSelectedTransitionDurationMs}
-      />
+      <div className="relative z-10">
+        <TransitionIntentStrip
+          selectedTransitionType={selectedTransitionType}
+          selectedTransitionDurationMs={selectedTransitionDurationMs}
+          onTransitionTypeChange={setSelectedTransitionType}
+          onTransitionDurationChange={setSelectedTransitionDurationMs}
+        />
+      </div>
 
-      <LowerCommandGrid
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        onTake={triggerTake}
-        selectedTransitionType={selectedTransitionType}
-        onTransitionTypeChange={setSelectedTransitionType}
-        selectedTransitionDurationMs={selectedTransitionDurationMs}
-        onTransitionDurationChange={setSelectedTransitionDurationMs}
-      />
+      <div className="relative z-10">
+        <LowerCommandGrid
+          previewProgramDifferent={previewProgramDifferent}
+          takeBusy={takeBusy}
+          onTake={triggerTake}
+          selectedTransitionType={selectedTransitionType}
+          onTransitionTypeChange={setSelectedTransitionType}
+          selectedTransitionDurationMs={selectedTransitionDurationMs}
+          onTransitionDurationChange={setSelectedTransitionDurationMs}
+        />
+      </div>
 
       <style jsx global>{`
         @keyframes commandDeckSyncFlash {
@@ -1160,6 +1216,35 @@ export default function BroadcastCommandDeck({
           100% {
             opacity: 0;
             transform: translateX(520%);
+          }
+        }
+
+        @keyframes commandDeckAtmosphereSweep {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-18%);
+          }
+
+          46% {
+            opacity: 0.78;
+          }
+
+          100% {
+            transform: translateX(18%);
+          }
+        }
+
+        @keyframes commandDeckArmedRail {
+          0%,
+          100% {
+            opacity: 0.22;
+            transform: scaleX(0.72);
+          }
+
+          50% {
+            opacity: 0.86;
+            transform: scaleX(1);
           }
         }
       `}</style>
