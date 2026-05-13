@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, type JSX } from "react"
 import { useTracks, VideoTrack } from "@livekit/components-react"
 import { Track } from "livekit-client"
 import { isTrackReference } from "@livekit/components-core"
@@ -31,6 +31,32 @@ export type StageState = {
   message: string | null
   updated_by: string | null
   updated_at: string
+}
+
+function SignalAtmosphere({
+  live,
+  tone = "neutral",
+}: {
+  live: boolean
+  tone?: "neutral" | "screen" | "speaker"
+}): JSX.Element {
+  const glowClass =
+    tone === "screen"
+      ? "from-sky-300/16 via-sky-300/5"
+      : tone === "speaker"
+        ? "from-violet-300/14 via-violet-300/5"
+        : live
+          ? "from-red-300/12 via-red-300/5"
+          : "from-white/8 via-white/[0.03]"
+
+  return (
+    <>
+      <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glowClass} to-transparent`} />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] animate-[stageSignalSweep_9s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+    </>
+  )
 }
 
 export default function StageVideoPreview({
@@ -225,13 +251,19 @@ export default function StageVideoPreview({
 
     if (screenLayoutPreset === "brand") {
       return (
-        <div className="relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-2xl border border-sky-300/15 bg-[radial-gradient(circle_at_50%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_70%,rgba(168,85,247,0.20),transparent_32%),linear-gradient(135deg,#020617,#0f172a_48%,#111827)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className="group relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-2xl border border-sky-300/15 bg-[radial-gradient(circle_at_50%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_70%,rgba(168,85,247,0.20),transparent_32%),linear-gradient(135deg,#020617,#0f172a_48%,#111827)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+          <SignalAtmosphere live={stageState.is_live} tone="screen" />
+
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.06),transparent_38%,rgba(255,255,255,0.035))]" />
+          <div className="pointer-events-none absolute inset-0 opacity-[0.08] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_24px)]" />
+
           <div className="pointer-events-none absolute left-6 top-5 rounded-full border border-sky-300/25 bg-black/35 px-3 py-1 text-[10px] uppercase tracking-[0.24em] text-sky-100/80 backdrop-blur">
             Jupiter Stage
           </div>
 
           <div className="relative w-[86%] overflow-hidden rounded-[28px] border border-white/15 bg-black shadow-[0_30px_100px_rgba(56,189,248,0.22)]">
+            <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.045)_42%,transparent_64%)] animate-[stageMonitorSweep_7s_ease-in-out_infinite]" />
+            <div className="pointer-events-none absolute inset-x-8 top-0 z-20 h-px bg-gradient-to-r from-transparent via-sky-200/24 to-transparent" />
             {screenTrack ? (
               <VideoTrack
                 trackRef={screenTrack}
@@ -244,6 +276,7 @@ export default function StageVideoPreview({
 
           {speakerTrack ? (
             <div className="absolute bottom-5 right-5 w-52 max-w-[28%] overflow-hidden rounded-2xl border border-sky-200/20 bg-black shadow-[0_20px_70px_rgba(56,189,248,0.18)]">
+              <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[stageMonitorSweep_8s_ease-in-out_infinite]" />
               <VideoTrack
                 trackRef={speakerTrack}
                 className="aspect-video w-full object-cover"
@@ -260,9 +293,11 @@ export default function StageVideoPreview({
 
     if (screenLayoutPreset === "speaker_focus") {
       return (
-        <div className="relative min-h-[420px] overflow-hidden rounded-2xl bg-black p-5">
+        <div className="group relative min-h-[420px] overflow-hidden rounded-2xl bg-black p-5">
+          <SignalAtmosphere live={stageState.is_live} tone="speaker" />
           {screenTrack ? (
             <div className="absolute right-5 top-7 w-[54%] overflow-hidden rounded-[24px] border border-white/10 bg-black opacity-80 shadow-2xl">
+              <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[stageMonitorSweep_7.4s_ease-in-out_infinite]" />
               <VideoTrack
                 trackRef={screenTrack}
                 className="aspect-video h-full w-full object-contain"
@@ -275,6 +310,7 @@ export default function StageVideoPreview({
 
           {speakerTrack ? (
             <div className="absolute bottom-5 left-5 w-[46%] max-w-[460px] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl">
+              <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.05)_42%,transparent_64%)] animate-[stageMonitorSweep_6.8s_ease-in-out_infinite]" />
               <VideoTrack
                 trackRef={speakerTrack}
                 className="aspect-video w-full object-cover"
@@ -295,7 +331,8 @@ export default function StageVideoPreview({
     }
 
     return (
-      <div className="grid min-h-[420px] gap-4 lg:grid-cols-[1.45fr_0.55fr]">
+      <div className="relative grid min-h-[420px] gap-4 lg:grid-cols-[1.45fr_0.55fr]">
+        <div className="pointer-events-none absolute inset-y-4 right-[28%] z-20 w-px bg-gradient-to-b from-transparent via-violet-200/20 to-transparent" />
         <RoutedMonitorFrame mode="program">
           {screenTrack ? (
             <VideoTrack trackRef={screenTrack} className="aspect-video h-full w-full object-contain" />
@@ -332,7 +369,7 @@ export default function StageVideoPreview({
 
   return (
     <div
-      className={`grid min-h-[420px] gap-4 ${
+      className={`relative grid min-h-[420px] gap-4 ${
         onStageCameraTracks.length === 1
           ? "grid-cols-1"
           : onStageCameraTracks.length === 2
@@ -340,6 +377,7 @@ export default function StageVideoPreview({
             : "grid-cols-1 md:grid-cols-2"
       }`}
     >
+      <div className="pointer-events-none absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_24px)]" />
       {onStageCameraTracks.map((trackRef) => {
         const isPrimary = stageState.primary_participant_id === trackRef.participant.identity
         const isPinned = stageState.pinned_participant_id === trackRef.participant.identity
@@ -362,6 +400,39 @@ export default function StageVideoPreview({
           </RoutedMonitorFrame>
         )
       })}
+      <style jsx global>{`
+        @keyframes stageSignalSweep {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-18%);
+          }
+
+          46% {
+            opacity: 0.78;
+          }
+
+          100% {
+            transform: translateX(18%);
+          }
+        }
+
+        @keyframes stageMonitorSweep {
+          0%,
+          100% {
+            opacity: 0;
+            transform: translateX(-120%);
+          }
+
+          42% {
+            opacity: 0.82;
+          }
+
+          100% {
+            transform: translateX(220%);
+          }
+        }
+      `}</style>
     </div>
   )
 }
