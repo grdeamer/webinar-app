@@ -246,8 +246,10 @@ export function StatusPill({
 }: StatusPillProps): JSX.Element {
   return (
     <div
-      className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${getToneClassName(tone)} ${className}`}
+      className={`group relative inline-flex items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${getToneClassName(tone)} ${className}`}
     >
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       <span
         className={`h-1.5 w-1.5 rounded-full ${
           tone === "live"
@@ -261,10 +263,10 @@ export function StatusPill({
                   : tone === "muted"
                     ? "bg-white/22"
                     : "bg-sky-300/80 shadow-[0_0_8px_rgba(125,211,252,0.48)]"
-        } ${pulse ? "animate-[telemetryBlink_1.65s_ease-in-out_infinite]" : ""}`}
+        } ${pulse ? "animate-[telemetryBlink_1.65s_ease-in-out_infinite]" : ""} relative z-10`}
       />
-      <span>{label}</span>
-      {value ? <span className="text-white/42">{value}</span> : null}
+      <span className="relative z-10">{label}</span>
+      {value ? <span className="relative z-10 text-white/42">{value}</span> : null}
     </div>
   )
 }
@@ -277,11 +279,13 @@ export function BusBadge({
 }: BusBadgeProps): JSX.Element {
   return (
     <div
-      className={`rounded-xl border px-2 py-1 text-[8px] font-black uppercase tracking-[0.18em] transition ${
+      className={`group relative overflow-hidden rounded-xl border px-2 py-1 text-[8px] font-black uppercase tracking-[0.18em] transition ${
         active ? getToneClassName(tone) : "border-white/8 bg-black/18 text-white/34"
       } ${className}`}
     >
-      {label}
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.06)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
+      <span className="relative z-10">{label}</span>
     </div>
   )
 }
@@ -388,9 +392,14 @@ export function PanelCard({
 }): JSX.Element {
   return (
     <div
-      className={`${COMMAND_SURFACE_RADIUS} border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName(variant)} ${className}`}
+      className={`group relative overflow-hidden ${COMMAND_SURFACE_RADIUS} border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName(variant)} ${className}`}
     >
-      {children}
+      <div className="pointer-events-none absolute inset-0 opacity-[0.08] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_7px)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.03)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="relative z-10">
+        {children}
+      </div>
     </div>
   )
 }
@@ -416,9 +425,11 @@ export function CommandButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`rounded-2xl border px-3 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border px-3 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
     >
-      {children}
+      <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+      <span className="relative z-10">{children}</span>
     </button>
   )
 }
