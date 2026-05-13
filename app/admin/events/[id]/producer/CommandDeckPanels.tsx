@@ -607,6 +607,8 @@ function TransportBayChrome({
 
   return (
     <div className={`relative overflow-hidden rounded-[26px] border p-2.5 transition-all duration-500 ${stateClass}`}>
+      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       {armed && !locked ? (
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.10),transparent)] animate-[transportBaySweep_2.2s_ease-in-out_infinite]" />
       ) : null}
@@ -616,6 +618,12 @@ function TransportBayChrome({
       ) : armed ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-200/55 to-transparent" />
       ) : null}
+
+      {armed || locked ? (
+        <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent animate-[transportBayReadyRail_2.4s_ease-in-out_infinite]" />
+      ) : null}
+
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
 
       <div className="relative z-10">{children}</div>
     </div>
@@ -1025,77 +1033,89 @@ export function ControlStagePanel({
   const takeDisabled = takeBusy || !previewProgramDifferent || systemPressure === "critical"
 
   return (
-    <PanelCard>
-      <CommandSafetyStrip
-        previewProgramDifferent={previewProgramDifferent}
-        takeBusy={takeBusy}
-        selectedTransitionDurationMs={selectedTransitionDurationMs}
-      />
-      <SurfaceHeader
-        eyebrow="Director Surface"
-        title="Program Transport"
-        status={transportStatus}
-        tone={
-          systemPressure !== "stable"
-            ? getSystemPressureTone(systemPressure)
+    <PanelCard className="relative overflow-hidden">
+      <div
+        className={`pointer-events-none absolute inset-x-0 top-0 h-28 transition-opacity duration-500 ${
+          takeBusy || systemPressure === "critical"
+            ? "bg-gradient-to-b from-red-300/10 to-transparent"
             : previewProgramDifferent
-              ? "warning"
-              : "safe"
-        }
-        icon={Zap}
-        className="mb-3"
+              ? "bg-gradient-to-b from-amber-300/10 to-transparent"
+              : "bg-gradient-to-b from-emerald-300/6 to-transparent"
+        }`}
       />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_42%,transparent_64%)] animate-[transportPanelSweep_9s_ease-in-out_infinite]" />
+      <div className="relative z-10">
+        <CommandSafetyStrip
+          previewProgramDifferent={previewProgramDifferent}
+          takeBusy={takeBusy}
+          selectedTransitionDurationMs={selectedTransitionDurationMs}
+        />
+        <SurfaceHeader
+          eyebrow="Director Surface"
+          title="Program Transport"
+          status={transportStatus}
+          tone={
+            systemPressure !== "stable"
+              ? getSystemPressureTone(systemPressure)
+              : previewProgramDifferent
+                ? "warning"
+                : "safe"
+          }
+          icon={Zap}
+          className="mb-3"
+        />
 
-      <TransportBayChrome
-        armed={previewProgramDifferent && systemPressure !== "critical"}
-        locked={takeBusy || systemPressure === "critical"}
-      >
-        <div className="grid grid-cols-3 gap-2">
-          <div className={previewProgramDifferent && systemPressure !== "critical" ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
-            <PrimaryTakeButton
+        <TransportBayChrome
+          armed={previewProgramDifferent && systemPressure !== "critical"}
+          locked={takeBusy || systemPressure === "critical"}
+        >
+          <div className="grid grid-cols-3 gap-2">
+            <div className={previewProgramDifferent && systemPressure !== "critical" ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
+              <PrimaryTakeButton
+                onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
+                disabled={takeDisabled}
+                isTaking={takeBusy}
+              />
+            </div>
+
+            <CommandActionButton
+              tone={systemPressure === "critical" ? "muted" : "danger"}
               onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
               disabled={takeDisabled}
-              isTaking={takeBusy}
-            />
+              title="Cut preview to program (C)"
+              className="shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+            >
+              Cut
+            </CommandActionButton>
+
+            <CommandActionButton
+              tone={systemPressure === "critical" ? "muted" : "preview"}
+              onClick={() => onTake("auto", selectedTransitionType, selectedTransitionDurationMs)}
+              disabled={takeDisabled}
+              title="Auto take preview to program (A)"
+              className="shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+            >
+              Auto
+            </CommandActionButton>
           </div>
+        </TransportBayChrome>
 
-          <CommandActionButton
-            tone={systemPressure === "critical" ? "muted" : "danger"}
-            onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
-            disabled={takeDisabled}
-            title="Cut preview to program (C)"
-            className="shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-          >
-            Cut
-          </CommandActionButton>
-
-          <CommandActionButton
-            tone={systemPressure === "critical" ? "muted" : "preview"}
-            onClick={() => onTake("auto", selectedTransitionType, selectedTransitionDurationMs)}
-            disabled={takeDisabled}
-            title="Auto take preview to program (A)"
-            className="shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
-          >
-            Auto
-          </CommandActionButton>
-        </div>
-      </TransportBayChrome>
-
-      {systemPressure === "critical" ? (
-        <div className="mt-3 rounded-2xl border border-red-300/14 bg-red-400/8 px-3 py-2 text-xs font-medium text-red-100/74 shadow-[0_0_18px_rgba(239,68,68,0.10)]">
-          Confidence path degraded. Hold TAKE unless the producer explicitly confirms recovery.
-        </div>
-      ) : previewProgramDifferent ? (
-        <div className="mt-3 text-xs font-medium text-amber-100/80">
-          {rundownMode === "live"
-            ? "Live Locked mode is armed. CUT and AUTO now represent production-critical actions."
-            : "Preview is armed. Operator may CUT or AUTO the look to Program."}
-        </div>
-      ) : (
-        <div className="mt-3 text-xs text-white/42">
-          Preview and Program are matched. Transport remains safe until preview changes.
-        </div>
-      )}
+        {systemPressure === "critical" ? (
+          <div className="mt-3 rounded-2xl border border-red-300/14 bg-red-400/8 px-3 py-2 text-xs font-medium text-red-100/74 shadow-[0_0_18px_rgba(239,68,68,0.10)]">
+            Confidence path degraded. Hold TAKE unless the producer explicitly confirms recovery.
+          </div>
+        ) : previewProgramDifferent ? (
+          <div className="mt-3 text-xs font-medium text-amber-100/80">
+            {rundownMode === "live"
+              ? "Live Locked mode is armed. CUT and AUTO now represent production-critical actions."
+              : "Preview is armed. Operator may CUT or AUTO the look to Program."}
+          </div>
+        ) : (
+          <div className="mt-3 text-xs text-white/42">
+            Preview and Program are matched. Transport remains safe until preview changes.
+          </div>
+        )}
+      </div>
     </PanelCard>
   )
 }
@@ -1103,6 +1123,14 @@ export function ControlStagePanel({
 export function CommandDeckStyles(): JSX.Element {
   return (
     <style jsx>{`
+            :global(:root) {
+        --jupiter-motion-fast: 220ms;
+        --jupiter-motion-medium: 620ms;
+        --jupiter-motion-slow: 900ms;
+        --jupiter-motion-drift: 2600ms;
+        --jupiter-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+        --jupiter-ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      }
       @keyframes takeFlash {
         0% {
           opacity: 0;
@@ -1241,6 +1269,35 @@ export function CommandDeckStyles(): JSX.Element {
         100% {
           transform: translateX(120%);
           opacity: 0;
+        }
+      }
+
+      @keyframes transportBayReadyRail {
+        0%,
+        100% {
+          opacity: 0.2;
+          transform: scaleX(0.72);
+        }
+
+        50% {
+          opacity: 0.86;
+          transform: scaleX(1);
+        }
+      }
+
+      @keyframes transportPanelSweep {
+        0%,
+        100% {
+          opacity: 0;
+          transform: translateX(-18%);
+        }
+
+        46% {
+          opacity: 0.72;
+        }
+
+        100% {
+          transform: translateX(18%);
         }
       }
     `}</style>
