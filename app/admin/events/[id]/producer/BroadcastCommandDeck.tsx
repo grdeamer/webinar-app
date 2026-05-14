@@ -326,20 +326,20 @@ function OperationsStackHeader({
   const stackStateLabel = openPanelCount === 0 ? "Compact" : `${openPanelCount} Open`
   const densityLabel = COMMAND_DECK_DENSITY_LABELS[activeDensityMode]
   const transmissionSummary = takeBusy
-    ? "Transport Locked"
+    ? "Transition Active"
     : previewProgramDifferent
-      ? "Return Verify"
+      ? "Preview Ready"
       : isLive
-        ? "Live Nominal"
-        : "Standby Nominal"
-  const recordingSummary = isLive ? "Master + ISO REC" : "Record Armed"
-  const commsSummary = onStageCount > 0 ? `${onStageCount} IFB Routed` : "IFB Standby"
+        ? "Broadcast Stable"
+        : "Standby Ready"
+  const recordingSummary = isLive ? "Master + ISO REC" : "Record Ready"
+  const commsSummary = onStageCount > 0 ? `${onStageCount} Returns Ready` : "Returns Standby"
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.034),rgba(255,255,255,0.012))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-            Broadcast Operations Stack
+            Operations Stack
           </div>
           <div className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
             {stackStateLabel}
@@ -349,17 +349,17 @@ function OperationsStackHeader({
           </div>
         </div>
         <div className="mt-1 text-[11px] font-semibold text-white/46">
-          Collapse deep systems when you need a cleaner switcher surface.
+          Keep advanced controls available without crowding the switcher.
         </div>
         <div className="mt-2 flex flex-wrap gap-1.5 text-[8px] font-black uppercase tracking-[0.15em]">
           <span className="rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2 py-0.5 text-emerald-100/52">
-            TX · {transmissionSummary}
+            Signal · {transmissionSummary}
           </span>
           <span className="rounded-full border border-red-300/12 bg-red-400/8 px-2 py-0.5 text-red-100/52">
             REC · {recordingSummary}
           </span>
           <span className="rounded-full border border-sky-300/12 bg-sky-400/8 px-2 py-0.5 text-sky-100/52">
-            IFB · {commsSummary}
+            Returns · {commsSummary}
           </span>
         </div>
       </div>
@@ -434,12 +434,12 @@ function TransmissionMetricStrip({
   takeBusy: boolean
 }): JSX.Element {
   const stateLabel = takeBusy
-    ? "Transport Lock"
+    ? "Transition Active"
     : previewProgramDifferent
-      ? "Preview Divergence"
+      ? "Preview Ready"
       : isLive
-        ? "Live Path Nominal"
-        : "Standby Path Nominal"
+        ? "Broadcast Stable"
+        : "Standby Ready"
 
   const stateClassName = takeBusy
     ? "border-red-300/18 bg-red-500/10 text-red-100/72"
@@ -460,12 +460,12 @@ function TransmissionMetricStrip({
     },
     {
       label: "Loss",
-      value: takeBusy ? "Hold" : previewProgramDifferent ? "0.2%" : "0.1%",
+      value: takeBusy ? "Ready" : previewProgramDifferent ? "0.2%" : "0.1%",
       tone: previewProgramDifferent ? "attention" : "stable",
     },
     {
       label: "Dropped",
-      value: takeBusy ? "Lock" : "0 fr",
+      value: takeBusy ? "Ready" : "0 fr",
       tone: takeBusy ? "attention" : "stable",
     },
     {
@@ -475,7 +475,7 @@ function TransmissionMetricStrip({
     },
     {
       label: "ISO",
-      value: isLive ? "3 Armed" : "Standby",
+      value: isLive ? "3 Ready" : "Standby",
       tone: isLive ? "stable" : "muted",
     },
   ] as const
@@ -484,7 +484,7 @@ function TransmissionMetricStrip({
     <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-          Transmission Telemetry
+          Stream Health
         </div>
 
         <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${stateClassName}`}>
@@ -565,10 +565,10 @@ function TransitionIntentStrip({
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-            Transition Package
+            Transition Style
           </div>
           <div className="mt-1 text-[11px] font-semibold text-white/46">
-            Choose the visual language before the next TAKE.
+            Choose the look before the next TAKE.
           </div>
         </div>
         <div className="rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/58">
@@ -604,7 +604,7 @@ function TransitionIntentStrip({
                       : "border-white/8 bg-black/22 text-white/34",
                   ].join(" ")}
                 >
-                  {active ? "Armed" : "Ready"}
+                  {active ? "Selected" : "Ready"}
                 </div>
               </div>
               <div className="mt-2 text-[11px] font-semibold leading-relaxed text-white/42">
@@ -648,10 +648,10 @@ function RecordingOperationsStrip({
   takeBusy: boolean
 }): JSX.Element {
   const recorderStateLabel = takeBusy
-    ? "Recorder Hold"
+    ? "Transition Active"
     : isLive
-      ? "Capture In Progress"
-      : "Record Standby"
+      ? "Recording"
+      : "Record Ready"
 
   const recorderStateClassName = takeBusy
     ? "border-red-300/18 bg-red-500/10 text-red-100/72"
@@ -662,19 +662,19 @@ function RecordingOperationsStrip({
   const recordTargets = [
     {
       label: "Master",
-      value: isLive ? "REC" : "ARM",
+      value: isLive ? "REC" : "READY",
       detail: "Program clean feed",
       tone: isLive ? "live" : "armed",
     },
     {
       label: "Host ISO",
-      value: isLive ? "REC" : "ARM",
+      value: isLive ? "REC" : "READY",
       detail: "Camera isolated",
       tone: isLive ? "live" : "armed",
     },
     {
       label: "Guest ISO",
-      value: isLive ? "REC" : "ARM",
+      value: isLive ? "REC" : "READY",
       detail: "Remote source isolated",
       tone: isLive ? "live" : "armed",
     },
@@ -687,14 +687,14 @@ function RecordingOperationsStrip({
   ] as const
 
   return (
-    <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.09),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
+    <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.06),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.011))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-            Recording Operations
+            Recording
           </div>
           <div className="mt-1 text-[11px] font-semibold text-white/46">
-            Master capture, ISO readiness, storage target, and failover posture.
+            Program capture, ISO feeds, storage, and failover.
           </div>
         </div>
 
@@ -742,7 +742,7 @@ function RecordingOperationsStrip({
 
       <div className="mt-2 grid gap-1.5 md:grid-cols-3">
         <div className="rounded-2xl border border-white/8 bg-black/18 px-2.5 py-2">
-          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">Storage Target</div>
+          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">Storage</div>
           <div className="mt-1 text-[12px] font-black text-white/72">Primary Cloud Bucket</div>
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/18 px-2.5 py-2">
@@ -751,7 +751,7 @@ function RecordingOperationsStrip({
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/18 px-2.5 py-2">
           <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">Failover</div>
-          <div className="mt-1 text-[12px] font-black text-white/72">Local Cache Armed</div>
+          <div className="mt-1 text-[12px] font-black text-white/72">Local Cache Ready</div>
         </div>
       </div>
     </div>
@@ -768,10 +768,10 @@ function CommsOperationsStrip({
   takeBusy: boolean
 }): JSX.Element {
   const commsStateLabel = takeBusy
-    ? "Comms Hold"
+    ? "Transition Active"
     : onStageCount > 0
-      ? "Talent Routed"
-      : "IFB Standby"
+      ? "Returns Ready"
+      : "Returns Standby"
 
   const commsStateClassName = takeBusy
     ? "border-red-300/18 bg-red-500/10 text-red-100/72"
@@ -787,34 +787,34 @@ function CommsOperationsStrip({
       tone: "safe",
     },
     {
-      label: "Host IFB",
-      value: onStageCount > 0 ? "Routed" : "Standby",
-      detail: "Cue-only talent return",
+      label: "Host Return",
+      value: onStageCount > 0 ? "Ready" : "Standby",
+      detail: "Host return feed",
       tone: onStageCount > 0 ? "active" : "muted",
     },
     {
-      label: "Guest IFB",
-      value: onStageCount > 1 ? "Routed" : "Standby",
-      detail: "Remote presenter return",
+      label: "Guest Return",
+      value: onStageCount > 1 ? "Ready" : "Standby",
+      detail: "Guest return feed",
       tone: onStageCount > 1 ? "active" : "muted",
     },
     {
       label: "Talkback",
-      value: takeBusy ? "Locked" : "Safe",
+      value: takeBusy ? "Hold" : "Ready",
       detail: "Push-to-talk disabled by default",
       tone: takeBusy ? "warning" : "safe",
     },
   ] as const
 
   return (
-    <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
+    <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.065),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.011))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
           <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-            IFB + Talkback Operations
+            Returns + Talkback
           </div>
           <div className="mt-1 text-[11px] font-semibold text-white/46">
-            Confidence listen buses, cue-only returns, and protected talkback posture.
+            Presenter returns, monitoring, and protected talkback.
           </div>
         </div>
 
@@ -866,16 +866,16 @@ function CommsOperationsStrip({
 
       <div className="mt-2 grid gap-1.5 md:grid-cols-3">
         <div className="rounded-2xl border border-white/8 bg-black/18 px-2.5 py-2">
-          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">Confidence Bus</div>
-          <div className="mt-1 text-[12px] font-black text-white/72">Program Return + IFB</div>
+          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">Return Bus</div>
+          <div className="mt-1 text-[12px] font-black text-white/72">Program Return</div>
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/18 px-2.5 py-2">
-          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">Talent Count</div>
-          <div className="mt-1 text-[12px] font-black text-white/72">{onStageCount} Routed</div>
+          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">On Stage</div>
+          <div className="mt-1 text-[12px] font-black text-white/72">{onStageCount} Sources</div>
         </div>
         <div className="rounded-2xl border border-white/8 bg-black/18 px-2.5 py-2">
           <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/28">Show State</div>
-          <div className="mt-1 text-[12px] font-black text-white/72">{isLive ? "Live Comms Protected" : "Standby Comms Safe"}</div>
+          <div className="mt-1 text-[12px] font-black text-white/72">{isLive ? "Live Returns Ready" : "Standby Returns Ready"}</div>
         </div>
       </div>
     </div>
@@ -929,9 +929,9 @@ export default function BroadcastCommandDeck({
   }, [])
 
   const commandState = useMemo(() => {
-    if (takeBusy) return "Transition Locked"
-    if (!previewProgramDifferent) return "Program Safe"
-    return "Preview Armed"
+    if (takeBusy) return "Transition Active"
+    if (!previewProgramDifferent) return "Program Stable"
+    return "Preview Ready"
   }, [previewProgramDifferent, takeBusy])
 
   const toggleOperationsPanel = (panel: OperationsPanelKey): void => {
@@ -1044,11 +1044,11 @@ export default function BroadcastCommandDeck({
       </div>
 
       <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_8s_ease-in-out_infinite]" />
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_13s_ease-in-out_infinite]" />
         <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
         <div className="relative z-10">
           <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-            Broadcast Operations State
+            Command State
           </div>
 
           <div className="mt-1 text-sm font-semibold tracking-tight text-white">
@@ -1065,13 +1065,13 @@ export default function BroadcastCommandDeck({
 
           <CommandStatusPill
             label="Preview"
-            value={previewProgramDifferent ? "Armed" : "Matched"}
+            value={previewProgramDifferent ? "Ready" : "Matched"}
             tone={previewProgramDifferent ? "violet" : "green"}
           />
 
           <CommandStatusPill
             label="Transition"
-            value={takeBusy ? "Locked" : "Ready"}
+            value={takeBusy ? "Active" : "Ready"}
             tone={takeBusy ? "red" : "green"}
           />
 
@@ -1097,29 +1097,29 @@ export default function BroadcastCommandDeck({
         <div className="relative z-10 grid gap-2.5 xl:grid-cols-4">
           <TransmissionHealthCard
             label="Transmission"
-            value={isLive ? "Distribution Stable" : "Standby Transport"}
-            detail="Encoder and downstream distribution paths remain synchronized."
+            value={isLive ? "Audience Path Stable" : "Standby Ready"}
+            detail="Encoder and audience delivery paths are stable."
             tone={transmissionHealth}
           />
 
           <TransmissionHealthCard
             label="Recording"
-            value={isLive ? "Master + ISO Armed" : "Record Standby"}
-            detail="Program and isolated recording paths are prepared for capture."
+            value={isLive ? "Master + ISO Recording" : "Record Ready"}
+            detail="Program and isolated feeds are ready for capture."
             tone={recordingHealth}
           />
 
           <TransmissionHealthCard
             label="Confidence Return"
-            value={previewProgramDifferent ? "Preview Diverged" : "Program Verified"}
-            detail="Return feed integrity is continuously validated against live program."
+            value={previewProgramDifferent ? "Preview Ready" : "Program Verified"}
+            detail="Return feed is checked against the live program."
             tone={returnFeedHealth}
           />
 
           <TransmissionHealthCard
             label="Operator Safety"
-            value={takeBusy ? "Transport Locked" : "Ready For TAKE"}
-            detail="Guardrails prevent accidental transitions during transport operations."
+            value={takeBusy ? "Transition Active" : "Ready For TAKE"}
+            detail="Guardrails help prevent accidental transitions."
             tone={takeBusy ? "critical" : "stable"}
           />
         </div>
