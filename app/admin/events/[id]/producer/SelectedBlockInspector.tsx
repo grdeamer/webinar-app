@@ -65,18 +65,18 @@ export default function SelectedBlockInspector({
       <div className="mb-5 rounded-[28px] border border-dashed border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_34%),rgba(255,255,255,0.02)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/56">
           <Sparkles size={13} />
-          Layer Inspector Idle
+          Inspector Ready
         </div>
 
         <div className="mt-2 text-sm leading-6 text-white/42">
-          Select a preview block to inspect routing, composition, visibility, and media properties.
+          Select a layer to adjust layout, visibility, and media settings.
         </div>
       </div>
     )
   }
 
   return (
-    <div className="mb-5 rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.018))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="mb-5 rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.06),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)]">
       <div className="mb-4 flex items-start justify-between gap-3 rounded-[24px] border border-violet-300/12 bg-violet-400/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/60">
@@ -89,7 +89,7 @@ export default function SelectedBlockInspector({
           </div>
 
           <div className="mt-1 text-xs text-white/42">
-            Live composition + routing properties
+            Layout and source settings
           </div>
         </div>
 
@@ -102,11 +102,11 @@ export default function SelectedBlockInspector({
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/36">
             <ScanLine size={12} />
-            Layer Visibility
+            Visibility
           </div>
 
           <div className="mt-1 text-sm text-white/56">
-            {selectedBlock.hidden ? "Currently hidden from composition" : "Currently routed to composition"}
+            {selectedBlock.hidden ? "Layer hidden from output" : "Layer visible in output"}
           </div>
         </div>
 
@@ -114,8 +114,8 @@ export default function SelectedBlockInspector({
           onClick={onToggleHidden}
           className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition-all ${
             selectedBlock.hidden
-              ? "border-amber-300/24 bg-amber-400/10 text-amber-100 shadow-[0_0_18px_rgba(251,191,36,0.08)]"
-              : "border-emerald-300/24 bg-emerald-400/10 text-emerald-100 shadow-[0_0_18px_rgba(52,211,153,0.08)]"
+              ? "border-amber-300/24 bg-amber-400/10 text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.05)]"
+              : "border-emerald-300/24 bg-emerald-400/10 text-emerald-100 shadow-[0_0_12px_rgba(52,211,153,0.05)]"
           }`}
         >
           {selectedBlock.hidden ? <Eye size={15} /> : <EyeOff size={15} />}
@@ -139,16 +139,16 @@ export default function SelectedBlockInspector({
           <div className="mb-3 flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/36">
               <Move size={13} className="text-violet-100/58" />
-              Geometry Controls
+              Layout Controls
             </div>
 
             <div className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
-              Canvas Space
+              Canvas
             </div>
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-          <InspectorField label="Position X">
+          <InspectorField label="X Position">
             <InspectorInput
               type="number"
               min={0}
@@ -156,7 +156,7 @@ export default function SelectedBlockInspector({
               onChange={(e) => onUpdatePosition("x", e.target.value)}
             />
           </InspectorField>
-          <InspectorField label="Position Y">
+          <InspectorField label="Y Position">
             <InspectorInput
               type="number"
               min={0}
@@ -184,14 +184,14 @@ export default function SelectedBlockInspector({
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          <InspectorField label="Layer Label">
+          <InspectorField label="Label">
             <InspectorInput
               value={selectedBlock.label || ""}
               onChange={(e) => onUpdateLabel(e.target.value)}
               placeholder="Layer label"
             />
           </InspectorField>
-          <InspectorField label="Layer Type">
+          <InspectorField label="Type">
             <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
               <Type size={14} className="text-violet-200/60" />
               {selectedBlock.type}
@@ -202,7 +202,7 @@ export default function SelectedBlockInspector({
         {(selectedBlock.type === "video" ||
           selectedBlock.type === "pdf" ||
           selectedBlock.type === "image") && (
-          <InspectorField label="Media Source">
+          <InspectorField label="Source URL">
             <InspectorInput
               value={selectedBlock.src || ""}
               onChange={(e) => onUpdateSrc(e.target.value)}
@@ -212,7 +212,7 @@ export default function SelectedBlockInspector({
         )}
 
         {selectedBlock.type === "text" && (
-          <InspectorField label="Text Content">
+          <InspectorField label="Text">
             <InspectorInput
               value={selectedBlock.content || ""}
               onChange={(e) => onUpdateTextContent(e.target.value)}

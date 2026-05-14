@@ -59,9 +59,9 @@ type StageState = {
 function RightRailAtmosphere(): JSX.Element {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-violet-300/10 via-sky-300/6 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.032)_42%,transparent_64%)] animate-[rightRailSignalSweep_9s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-violet-300/7 via-sky-300/4 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[rightRailSignalSweep_12s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.055] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/24 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-violet-300/[0.05] to-transparent" />
     </>
@@ -79,7 +79,7 @@ function RailSectionLabel({
 }): JSX.Element {
   return (
     <div className="relative overflow-hidden flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/22 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
       <div className="relative z-10 flex min-w-0 items-center gap-2.5">
         <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] text-white/72 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
@@ -97,7 +97,7 @@ function RailSectionLabel({
       </div>
 
       <div className="relative z-10 hidden rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/58 xl:block">
-        Live
+        Ready
       </div>
     </div>
   )
@@ -136,52 +136,52 @@ function InspectorStatusChip({
 
 function InspectorTelemetryStrip(): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.14),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_32%),linear-gradient(180deg,rgba(12,10,28,0.94),rgba(3,4,10,0.99))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[rightRailSignalSweep_8s_ease-in-out_infinite]" />
+    <div className="relative overflow-hidden rounded-[28px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.05),transparent_32%),linear-gradient(180deg,rgba(12,10,28,0.955),rgba(3,4,10,0.99))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[rightRailSignalSweep_12s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/26 to-transparent" />
       <div className="relative z-10 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/68">
             <Sparkles size={13} />
-            Mission Inspector Telemetry
+            Inspector
           </div>
 
           <div className="mt-1 text-sm font-semibold tracking-tight text-white">
-            Layer + Capture + Routing Intelligence
+            Layers, capture, and source routing
           </div>
         </div>
 
         <div className="rounded-full border border-violet-300/14 bg-violet-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/62 shadow-[0_0_18px_rgba(168,85,247,0.12)]">
-          Synced
+          Ready
         </div>
       </div>
 
       <div className="relative z-10 mt-3 flex flex-wrap gap-2">
         <InspectorStatusChip
           icon={<SatelliteDish size={10} />}
-          label="Relay"
-          value="Locked"
+          label="Signal"
+          value="Stable"
           tone="green"
         />
 
         <InspectorStatusChip
           icon={<Globe2 size={10} />}
-          label="CDN"
-          value="Healthy"
+          label="Audience"
+          value="Ready"
           tone="sky"
         />
 
         <InspectorStatusChip
           icon={<Cpu size={10} />}
-          label="GPU"
-          value="62%"
+          label="System"
+          value="Normal"
           tone="amber"
         />
 
         <InspectorStatusChip
           icon={<Radar size={10} />}
-          label="Telemetry"
-          value="Nominal"
+          label="Control"
+          value="Stable"
           tone="violet"
         />
       </div>
@@ -195,12 +195,12 @@ function InspectorTelemetryStrip(): JSX.Element {
           },
           {
             label: "Routing",
-            value: "Locked",
+            value: "Ready",
             tone: "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/70",
           },
           {
             label: "Capture",
-            value: "Live",
+            value: "Ready",
             tone: "border-violet-300/14 bg-violet-400/8 text-violet-100/70",
           },
         ].map((item) => (
@@ -208,8 +208,8 @@ function InspectorTelemetryStrip(): JSX.Element {
             key={item.label}
             className={`relative overflow-hidden rounded-2xl border px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${item.tone}`}
           >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.05)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-            <div className="relative z-10 mx-auto mb-1 h-1.5 w-1.5 rounded-full bg-current opacity-70 shadow-[0_0_12px_currentColor] animate-pulse" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+            <div className="relative z-10 mx-auto mb-1 h-1.5 w-1.5 rounded-full bg-current opacity-55 shadow-[0_0_10px_currentColor]" />
             <div className="text-[8px] font-black uppercase tracking-[0.16em] opacity-70">
               {item.label}
             </div>
@@ -225,28 +225,28 @@ function InspectorTelemetryStrip(): JSX.Element {
 
 function RecordingCenterPanel(): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-red-300/14 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.12),transparent_34%),linear-gradient(180deg,rgba(20,8,10,0.94),rgba(8,4,6,0.98))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[rightRailSignalSweep_10s_ease-in-out_infinite]" />
+    <div className="relative overflow-hidden rounded-[28px] border border-red-300/14 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.075),transparent_34%),linear-gradient(180deg,rgba(20,8,10,0.955),rgba(8,4,6,0.98))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[rightRailSignalSweep_13s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-red-200/28 to-transparent" />
       <div className="relative z-10">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-red-100/72">
-              <CircleDot
-                size={12}
-                className="animate-pulse text-red-300"
-              />
-              Capture Mission Center
-            </div>
-
-            <div className="mt-1 text-lg font-semibold tracking-tight text-white">
-              Program + ISO Capture Active
-            </div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-red-100/72">
+            <CircleDot
+              size={12}
+              className="animate-pulse text-red-300"
+            />
+            Recording
           </div>
 
-          <div className="rounded-full border border-red-300/20 bg-red-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-100/78 shadow-[0_0_18px_rgba(248,113,113,0.12)]">
-            REC LIVE
+          <div className="mt-1 text-lg font-semibold tracking-tight text-white">
+            Program and ISO capture
           </div>
+          </div>
+
+        <div className="rounded-full border border-red-300/20 bg-red-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-100/78 shadow-[0_0_18px_rgba(248,113,113,0.12)]">
+          Ready
+        </div>
         </div>
 
         <div className="mt-3 rounded-[24px] border border-violet-300/10 bg-violet-400/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
@@ -254,11 +254,11 @@ function RecordingCenterPanel(): JSX.Element {
             <div>
               <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-violet-100/58">
                 <Radio size={11} />
-                Capture Telemetry
+                Capture Status
               </div>
 
               <div className="mt-1 text-sm font-semibold text-white/84">
-                Program and ISO diagnostics stable
+                Program and ISO feeds stable
               </div>
             </div>
 
@@ -533,11 +533,9 @@ export default function RightInspectorRail({
             opacity: 0;
             transform: translateX(-18%);
           }
-
           46% {
-            opacity: 0.78;
+            opacity: 0.42;
           }
-
           100% {
             transform: translateX(18%);
           }

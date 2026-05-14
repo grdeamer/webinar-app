@@ -43,7 +43,7 @@ function RightRailMetric({
     <div
       className={`group relative overflow-hidden rounded-2xl border px-2 py-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${toneClass}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.06)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.025)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       <div className="relative z-10 mx-auto flex h-7 w-7 items-center justify-center rounded-xl border border-white/10 bg-black/24 text-white/68">
         {icon}
@@ -82,7 +82,7 @@ function RailStatusChip({
 
   return (
     <div className={`group relative flex items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.03)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
 
       <span className="relative z-10 opacity-80">{icon}</span>
@@ -155,55 +155,55 @@ export default function ProducerRightRail({
   const micCount = participants.filter((p) => p.micEnabled).length
   const screenCount = participants.filter((p) => p.screenShareEnabled).length
   return (
-    <div className="group min-w-0 overflow-hidden rounded-[38px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.92),rgba(2,4,10,0.99))] p-2.5 shadow-[0_38px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl transition duration-300 hover:border-white/14 hover:shadow-[0_42px_150px_rgba(0,0,0,0.64),0_0_40px_rgba(168,85,247,0.08)] lg:col-start-3">
-      <div className="group relative mb-3 overflow-hidden rounded-[30px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.13),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.08),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)]">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+    <div className="group min-w-0 overflow-hidden rounded-[38px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.055),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.94),rgba(2,4,10,0.99))] p-2.5 shadow-[0_38px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl transition duration-300 hover:border-white/14 hover:shadow-[0_42px_150px_rgba(0,0,0,0.64),0_0_40px_rgba(168,85,247,0.08)] lg:col-start-3">
+      <div className="group relative mb-3 overflow-hidden rounded-[30px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.05),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)]">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/22 to-transparent" />
         <div className="relative z-10 flex items-start justify-between gap-3">
           <div>
             <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-100/62">
               <Radio size={13} />
-              Mission Systems Rack
+              Operations Rack
             </div>
             <div className="mt-1 text-xl font-semibold tracking-[-0.04em] text-white">
-              Inspector + Capture + Telemetry
+              Inspector and source controls
             </div>
             <div className="mt-1 text-xs leading-5 text-white/42">
-              Route contributors, inspect layers, monitor telemetry, and manage backstage confidence.
+              Manage contributors, layouts, and source monitoring.
             </div>
           </div>
           <div className="flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/8 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/72 shadow-[0_0_18px_rgba(52,211,153,0.08)]">
             <CircleDot size={11} className="text-emerald-300" />
-            {participants.length} Sources Locked
+            {participants.length} Sources Ready
           </div>
         </div>
 
         <div className="relative z-10 mt-3 flex flex-wrap gap-2">
           <RailStatusChip
             icon={<SatelliteDish size={10} />}
-            label="Relay"
-            value="Locked"
+            label="Signal"
+            value="Stable"
             tone="green"
           />
 
           <RailStatusChip
             icon={<Globe2 size={10} />}
-            label="CDN"
-            value="Healthy"
+            label="Audience"
+            value="Ready"
             tone="sky"
           />
 
           <RailStatusChip
             icon={<Cpu size={10} />}
-            label="GPU"
-            value="62%"
+            label="System"
+            value="Normal"
             tone="amber"
           />
 
           <RailStatusChip
             icon={<Radar size={10} />}
-            label="Telemetry"
-            value="Nominal"
+            label="Control"
+            value="Stable"
             tone="violet"
           />
         </div>
@@ -211,14 +211,14 @@ export default function ProducerRightRail({
         <div className="relative z-10 mt-4 grid grid-cols-4 gap-2 text-center">
           <RightRailMetric
             icon={<Users size={13} />}
-            label="Routed"
+            label="On Stage"
             value={stageIds.size}
             tone="sky"
           />
 
           <RightRailMetric
             icon={<Camera size={13} />}
-            label="Camera"
+            label="Cameras"
             value={cameraCount}
             tone="neutral"
           />
@@ -232,7 +232,7 @@ export default function ProducerRightRail({
 
           <RightRailMetric
             icon={<ScreenShare size={13} />}
-            label="Share"
+            label="Shares"
             value={screenCount}
             tone="violet"
           />
@@ -241,22 +241,22 @@ export default function ProducerRightRail({
         <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
           <div className="flex items-center gap-2 rounded-2xl border border-red-300/12 bg-red-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <Archive size={12} />
-            ISO Capture Online
+            ISO Capture Ready
           </div>
 
           <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/12 bg-emerald-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <ShieldCheck size={12} />
-            Confidence Safe
+            Confidence Ready
           </div>
 
           <div className="flex items-center gap-2 rounded-2xl border border-sky-300/12 bg-sky-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <Radar size={12} />
-            Telemetry Active
+            Monitoring Active
           </div>
 
           <div className="flex items-center gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <SatelliteDish size={12} />
-            Relay Stable
+            Signal Stable
           </div>
         </div>
       </div>

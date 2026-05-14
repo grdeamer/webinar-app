@@ -1,4 +1,5 @@
 import type { JSX, ReactNode } from "react"
+import { Layers3, Library, MonitorPlay, Shapes } from "lucide-react"
 
 function ShortcutPill({
   keyLabel,
@@ -54,6 +55,40 @@ export function TallyIndicators(): JSX.Element {
   )
 }
 
+export function DockSectionHeader({
+  title,
+  count,
+}: {
+  title: string
+  count: number
+}): JSX.Element {
+  const icon =
+    title === "Scenes" ? (
+      <Layers3 className="h-3.5 w-3.5" />
+    ) : title === "Graphics" ? (
+      <Shapes className="h-3.5 w-3.5" />
+    ) : title === "Media" ? (
+      <MonitorPlay className="h-3.5 w-3.5" />
+    ) : (
+      <Library className="h-3.5 w-3.5" />
+    )
+
+  return (
+    <div className="mb-2 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/25 text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+          {icon}
+        </span>
+        <span>{title}</span>
+      </div>
+
+      <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/45">
+        {count}
+      </span>
+    </div>
+  )
+}
+
 export function DockSection({
   title,
   count,
@@ -65,14 +100,7 @@ export function DockSection({
 }): JSX.Element {
   return (
     <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_18px_44px_rgba(0,0,0,0.18)]">
-      <div className="mb-2 flex items-center justify-between gap-2">
-        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
-          {title}
-        </div>
-        <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/45">
-          {count}
-        </span>
-      </div>
+      <DockSectionHeader title={title} count={count} />
 
       {children}
     </div>

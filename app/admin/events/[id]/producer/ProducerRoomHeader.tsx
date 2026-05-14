@@ -134,7 +134,7 @@ function HeaderTransmissionBadge({ isLive }: { isLive: boolean }): JSX.Element {
               : "bg-sky-300 shadow-[0_0_12px_rgba(125,211,252,0.5)]"
           }`}
         />
-        {isLive ? "On Air" : "Standby"}
+        {isLive ? "Broadcast Active" : "Standby Ready"}
       </div>
     </div>
   )
@@ -158,7 +158,7 @@ export default function ProducerRoomHeader({
   scopeLabel: string
 }): JSX.Element {
   return (
-    <div className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_32%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.11),transparent_28%),linear-gradient(180deg,rgba(6,12,26,0.98),rgba(2,6,16,0.94))] px-4 py-3 shadow-[0_28px_110px_rgba(0,0,0,0.52)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
+    <div className="relative overflow-hidden border-b border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_32%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.08),transparent_28%),linear-gradient(180deg,rgba(6,12,26,0.985),rgba(2,6,16,0.96))] px-4 py-3 shadow-[0_28px_110px_rgba(0,0,0,0.52)] backdrop-blur-2xl md:px-5 xl:px-6 2xl:px-7">
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity duration-500 ${
           isLive
@@ -166,7 +166,7 @@ export default function ProducerRoomHeader({
             : "bg-gradient-to-r from-transparent via-sky-200/28 to-transparent opacity-75"
         }`}
       />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_38%,transparent_62%)] animate-[headerTransmissionSweep_7s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_38%,transparent_62%)] animate-[headerTransmissionSweep_10s_ease-in-out_infinite]" />
       <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-wrap items-center gap-2 rounded-[20px] border border-white/8 bg-black/18 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] xl:hidden">
           <TelemetryMiniChip
@@ -225,7 +225,7 @@ export default function ProducerRoomHeader({
 
               <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300/18 bg-emerald-400/8 px-2.5 py-0.5 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/78 shadow-[0_0_14px_rgba(52,211,153,0.12)]">
                 <ShieldCheck size={11} />
-                Telemetry Nominal
+                Systems Stable
               </span>
             </div>
           </div>
@@ -248,10 +248,10 @@ export default function ProducerRoomHeader({
               Transmission
             </div>
             <div className="relative mt-1.5 text-base font-semibold tracking-[-0.03em] text-white">
-              {isLive ? "On Air" : "Standby Hold"}
+              {isLive ? "Broadcast Active" : "Standby Ready"}
             </div>
             <div className="relative mt-0.5 text-[11px] text-white/42">
-              Program output {isLive ? "transmitting to audience" : "armed for transmission"}
+              Program output {isLive ? "live to audience" : "ready for transition"}
             </div>
           </div>
 

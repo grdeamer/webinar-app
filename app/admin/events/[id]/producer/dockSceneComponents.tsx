@@ -306,10 +306,16 @@ export function SceneListRow({
   }, [isActive, isHotkeyTriggered, scene.id])
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onApplyScene?.(scene.id)}
       onDoubleClick={() => onDoubleClickScene?.(scene.id)}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return
+        event.preventDefault()
+        onApplyScene?.(scene.id)
+      }}
       className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/10 ${
         isHotkeyTriggered
           ? "border-amber-200/70 bg-amber-300/14 shadow-[0_0_28px_rgba(251,191,36,0.22)]"
@@ -398,6 +404,6 @@ export function SceneListRow({
           ) : null}
         </>
       ) : null}
-    </button>
+    </div>
   )
 }

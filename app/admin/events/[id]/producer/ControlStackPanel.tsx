@@ -91,8 +91,8 @@ export default function ControlStackPanel({
   const selectedPreset = screenLayoutPreset
 
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.012))] p-4 shadow-[0_24px_74px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_10px)]" />
+    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.07),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] p-4 shadow-[0_24px_74px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.05)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.022] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_10px)]" />
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/42 to-transparent" />
 
       <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
@@ -102,7 +102,7 @@ export default function ControlStackPanel({
             Control Stack
           </div>
           <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/34">
-            Live routing · layouts · operator guardrails
+            Broadcast controls and layout tools
           </div>
         </div>
         <div
@@ -114,7 +114,7 @@ export default function ControlStackPanel({
                 : "border-emerald-300/16 bg-emerald-400/8 text-emerald-100/62"
           }`}
         >
-          {takeBusy ? "Locked" : previewProgramDifferent ? "Preview Armed" : "Synced"}
+          {takeBusy ? "Transition Active" : previewProgramDifferent ? "Preview Ready" : "Stable"}
         </div>
       </div>
 
@@ -127,28 +127,28 @@ export default function ControlStackPanel({
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em]">
-              <Zap size={14} /> TAKE TO PROGRAM
+              <Zap size={14} /> TAKE
             </div>
             <span className="rounded-full border border-white/12 bg-black/30 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/50">
               Space
             </span>
           </div>
           <div className="mt-1 text-[11px] font-semibold text-red-100/52">
-            Commit Preview to Program output.
+            Move Preview live to audience.
           </div>
         </button>
 
         <div className="grid grid-cols-2 gap-2">
           <ControlButton
             label="Go Live"
-            detail="Open audience route"
+            detail="Begin broadcast"
             active={false}
             tone="green"
             onClick={onGoLive}
           />
           <ControlButton
             label="Off Air"
-            detail="Return to holding"
+            detail="Exit live output"
             active={false}
             tone="red"
             onClick={onGoOffAir}
@@ -185,7 +185,7 @@ export default function ControlStackPanel({
       <div className="relative z-10 mt-4 rounded-[22px] border border-white/10 bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
         <div className="mb-2 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/38">
-            <Camera size={12} /> Screen Preset
+            <Camera size={12} /> Screen Layout
           </div>
           <button
             type="button"
@@ -196,7 +196,7 @@ export default function ControlStackPanel({
                 : "border-white/10 bg-black/24 text-white/36 hover:text-white/62"
             }`}
           >
-            Auto Director {autoDirectorEnabled ? "On" : "Off"}
+            Auto {autoDirectorEnabled ? "On" : "Off"}
           </button>
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -243,13 +243,13 @@ export default function ControlStackPanel({
         <div className="rounded-[16px] border border-white/8 bg-black/22 p-2">
           <ShieldCheck size={13} className="mx-auto text-emerald-100/62" />
           <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
-            Guarded
+            Ready
           </div>
         </div>
         <div className="rounded-[16px] border border-white/8 bg-black/22 p-2">
           <SatelliteDish size={13} className="mx-auto text-sky-100/62" />
           <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
-            Routed
+            Stable
           </div>
         </div>
         <div className="rounded-[16px] border border-white/8 bg-black/22 p-2">

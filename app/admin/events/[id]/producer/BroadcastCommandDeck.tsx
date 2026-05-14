@@ -17,10 +17,10 @@ type TransmissionHealthState = "stable" | "attention" | "critical"
 
 const TRANSPORT_RUNTIME_STATES = [
   "Encoder Stable",
-  "Return Feed Locked",
-  "ISO Matrix Armed",
-  "Confidence Monitoring Online",
-  "Distribution Path Healthy",
+  "Return Feed Ready",
+  "ISO Feeds Ready",
+  "Monitoring Stable",
+  "Audience Path Ready",
 ] as const
 
 type OperationsPanelKey = "transmission" | "recording" | "comms"
@@ -73,13 +73,13 @@ function BroadcastSyncPulseOverlay({ active }: { active: boolean }): JSX.Element
 
   return (
     <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-[36px]">
-      <div className="absolute inset-0 animate-[commandDeckSyncFlash_720ms_ease-out] bg-red-400/10" />
+      <div className="absolute inset-0 animate-[commandDeckSyncFlash_720ms_ease-out] bg-red-400/7" />
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-red-200/70 to-transparent" />
       <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-red-200/40 to-transparent" />
       <div className="absolute left-0 top-0 h-full w-24 animate-[commandDeckSweep_720ms_ease-out] bg-gradient-to-r from-transparent via-white/14 to-transparent" />
-      <div className="absolute right-5 top-5 flex items-center gap-2 rounded-full border border-red-200/20 bg-black/55 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-red-100/80 backdrop-blur-md shadow-[0_0_28px_rgba(248,113,113,0.22)]">
+      <div className="absolute right-5 top-5 flex items-center gap-2 rounded-full border border-red-200/18 bg-black/50 px-3 py-1 text-[9px] font-black uppercase tracking-[0.2em] text-red-100/72 backdrop-blur-md shadow-[0_0_18px_rgba(248,113,113,0.12)]">
         <span className="h-1.5 w-1.5 animate-ping rounded-full bg-red-300" />
-        Switcher Sync
+        Transition
       </div>
     </div>
   )
@@ -97,14 +97,14 @@ function CommandDeckAtmosphere({
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-40 transition-opacity duration-700 ${
           isLive
-            ? "bg-gradient-to-b from-red-300/12 via-violet-300/6 to-transparent"
+            ? "bg-gradient-to-b from-red-300/8 via-violet-300/4 to-transparent"
             : armed
-              ? "bg-gradient-to-b from-amber-300/10 via-sky-300/6 to-transparent"
-              : "bg-gradient-to-b from-violet-300/8 via-sky-300/5 to-transparent"
+              ? "bg-gradient-to-b from-amber-300/7 via-sky-300/4 to-transparent"
+              : "bg-gradient-to-b from-violet-300/6 via-sky-300/3 to-transparent"
         }`}
       />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.028)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_10s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_13s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.055] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-sky-300/[0.045] to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-red-300/[0.045] to-transparent" />
@@ -136,12 +136,12 @@ function BroadcastPresenceStrip({
   selectedTransitionDurationMs: number
 }): JSX.Element {
   const signalLabel = takeBusy
-    ? "Transport Locked"
+    ? "Transition Active"
     : previewProgramDifferent
-      ? "Preview Armed"
+      ? "Preview Ready"
       : isLive
-        ? "Signal On-Air"
-        : "Signal Standby"
+        ? "Broadcast Active"
+        : "Standby Ready"
 
   const signalClassName = takeBusy
     ? "border-red-300/22 bg-red-500/12 text-red-100"
@@ -154,8 +154,8 @@ function BroadcastPresenceStrip({
   const transitionLabel = selectedTransitionType.replace("_", " ")
 
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.10),transparent_30%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.09),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.036),rgba(255,255,255,0.012))] px-3 py-3 shadow-[0_22px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.045)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_9s_ease-in-out_infinite]" />
+    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(248,113,113,0.07),transparent_30%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.06),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.011))] px-3 py-3 shadow-[0_22px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_13s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_9px)]" />
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/35 to-transparent" />
 
@@ -163,7 +163,7 @@ function BroadcastPresenceStrip({
         <div className="rounded-[22px] border border-white/10 bg-black/28 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
           <div className="flex items-center justify-between gap-2">
             <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/30">
-              Program Presence
+              Program Status
             </div>
             <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${signalClassName}`}>
               {signalLabel}
@@ -201,37 +201,37 @@ function BroadcastPresenceStrip({
 
         <div className="rounded-[22px] border border-white/10 bg-black/24 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/30">
-            Audience Lock
+            Audience
           </div>
           <div className="mt-2 text-lg font-black tracking-tight text-white">
             {audienceCount}
           </div>
           <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/36">
-            Connected viewers
+            Connected
           </div>
         </div>
 
         <div className="rounded-[22px] border border-white/10 bg-black/24 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/30">
-            Talent Route
+            On Stage
           </div>
           <div className="mt-2 text-lg font-black tracking-tight text-white">
             {onStageCount}
           </div>
           <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/36">
-            On-stage sources
+            Sources
           </div>
         </div>
 
         <div className="rounded-[22px] border border-violet-300/14 bg-violet-400/8 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <div className="text-[8px] font-black uppercase tracking-[0.22em] text-violet-100/38">
-            Transition Intent
+            Transition
           </div>
           <div className="mt-2 text-lg font-black capitalize tracking-tight text-white">
             {transitionLabel}
           </div>
           <div className="mt-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-100/42">
-            {selectedTransitionDurationMs}ms transport
+            {selectedTransitionDurationMs}ms
           </div>
         </div>
       </div>
@@ -1010,7 +1010,7 @@ export default function BroadcastCommandDeck({
   const transportRuntimeLabel = TRANSPORT_RUNTIME_STATES[transportRuntimeIndex]
 
   return (
-    <div className="relative mb-3 space-y-2.5 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.07),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.90),rgba(2,4,10,0.98))] px-3 py-3 shadow-[0_30px_120px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)] md:px-4 xl:px-5 2xl:px-6">
+    <div className="relative mb-3 space-y-2.5 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.075),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.055),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.045),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.925),rgba(2,4,10,0.98))] px-3 py-3 shadow-[0_30px_120px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)] md:px-4 xl:px-5 2xl:px-6">
       <CommandDeckAtmosphere
         isLive={isLive}
         armed={previewProgramDifferent}
@@ -1227,7 +1227,7 @@ export default function BroadcastCommandDeck({
           }
 
           46% {
-            opacity: 0.78;
+            opacity: 0.42;
           }
 
           100% {
@@ -1243,7 +1243,7 @@ export default function BroadcastCommandDeck({
           }
 
           50% {
-            opacity: 0.86;
+            opacity: 0.48;
             transform: scaleX(1);
           }
         }

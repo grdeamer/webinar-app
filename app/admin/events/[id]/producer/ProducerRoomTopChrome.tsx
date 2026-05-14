@@ -49,9 +49,9 @@ function TopChromeTransmissionShell({
         }`}
       />
       <div className="pointer-events-none absolute inset-x-6 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_8s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_10s_ease-in-out_infinite]" />
 
-      <div className="pointer-events-none absolute right-6 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/35 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/48 backdrop-blur-md">
+      <div className="pointer-events-none absolute right-6 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/42 backdrop-blur-md">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
             isLive
@@ -59,7 +59,7 @@ function TopChromeTransmissionShell({
               : "bg-sky-300/80 shadow-[0_0_12px_rgba(125,211,252,0.45)]"
           }`}
         />
-        {isLive ? "On Air Chain" : "Standby Chain"}
+        {isLive ? "Broadcast Active" : "Standby Ready"}
       </div>
 
       <div className="relative z-10">{children}</div>

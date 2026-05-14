@@ -67,7 +67,7 @@ import {
   FALLBACK_MEDIA_ITEMS,
   TRANSITION_DURATIONS,
   TRANSITION_PRESETS,
-  type DockAsset,
+  type DockAssetRecord,
   type SceneSummary,
 } from "./assetDockTypes"
 import {
@@ -334,7 +334,7 @@ function SceneTile({
   )
 }
 
-function GraphicTile({ item }: { item: DockAsset }): JSX.Element {
+function GraphicTile({ item }: { item: DockAssetRecord }): JSX.Element {
   return (
     <button
       type="button"
@@ -356,7 +356,7 @@ function MediaTile({
   item,
   index,
 }: {
-  item: DockAsset
+  item: DockAssetRecord
   index: number
 }): JSX.Element {
   return (
@@ -445,10 +445,16 @@ function SceneListRow({
   }, [isActive, isHotkeyTriggered, scene.id])
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={() => onApplyScene?.(scene.id)}
       onDoubleClick={() => onDoubleClickScene?.(scene.id)}
+      onKeyDown={(event) => {
+        if (event.key !== "Enter" && event.key !== " ") return
+        event.preventDefault()
+        onApplyScene?.(scene.id)
+      }}
       className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/10 ${
         isHotkeyTriggered
           ? "border-amber-200/70 bg-amber-300/14 shadow-[0_0_28px_rgba(251,191,36,0.22)]"
@@ -537,7 +543,7 @@ function SceneListRow({
           ) : null}
         </>
       ) : null}
-    </button>
+    </div>
   )
 }
 
@@ -881,8 +887,18 @@ export default function BottomAssetDock({
   const media = previewBlocks.filter(
     (block) => block.type === "video" || block.type === "image" || block.type === "pdf"
   )
-  const graphicsItems: DockAsset[] = graphics.length ? graphics : FALLBACK_GRAPHICS_ITEMS
-  const mediaItems: DockAsset[] = media.length ? media : FALLBACK_MEDIA_ITEMS
+  const graphicsItems: DockAssetRecord[] = graphics.length
+    ? graphics.map((block) => ({
+        ...block,
+        category: "graphic",
+      }))
+    : FALLBACK_GRAPHICS_ITEMS
+  const mediaItems: DockAssetRecord[] = media.length
+    ? media.map((block) => ({
+        ...block,
+        category: "media",
+      }))
+    : FALLBACK_MEDIA_ITEMS
 
   const [scenesView, setScenesView] = useState<DockViewMode>("icons")
   const [graphicsView, setGraphicsView] = useState<DockViewMode>("icons")

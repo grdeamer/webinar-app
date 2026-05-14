@@ -2,7 +2,7 @@ import type { JSX } from "react"
 import type { StageState } from "./producerRoomTypes"
 
 function formatTransportTimestamp(value: number | null): string {
-  if (!value) return "No commands yet"
+  if (!value) return "Ready"
 
   return new Date(value).toLocaleTimeString([], {
     hour: "numeric",
@@ -72,10 +72,10 @@ export default function OperationsSyncStrip({
   layout: StageState["layout"] | null | undefined
 }): JSX.Element {
   const commandState = takeBusy
-    ? "Transport Locked"
+    ? "Transition Active"
     : previewProgramDifferent
-      ? "Preview Armed"
-      : "Program Synced"
+      ? "Preview Ready"
+      : "Program Stable"
 
   const commandTone = takeBusy
     ? "red"
@@ -86,7 +86,7 @@ export default function OperationsSyncStrip({
   return (
     <div className="relative overflow-hidden border-b border-white/8 bg-black/18 px-4 py-2 md:px-5 xl:px-6 2xl:px-7">
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.026)_42%,transparent_64%)] animate-[opsSyncDataSweep_7.5s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[opsSyncDataSweep_11s_ease-in-out_infinite]" />
       <div
         className={`pointer-events-none absolute inset-x-10 bottom-0 h-px transition-opacity duration-700 ${
           isLive
@@ -97,24 +97,24 @@ export default function OperationsSyncStrip({
 
       <div className="relative flex flex-wrap items-center justify-between gap-2 overflow-hidden rounded-[22px] border border-white/8 bg-black/24 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_60px_rgba(0,0,0,0.20)] backdrop-blur-md">
         <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_18px)] opacity-[0.16]" />
-        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 animate-[opsSyncRailSweep_5.8s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+        <div className="pointer-events-none absolute inset-y-0 left-0 w-24 animate-[opsSyncRailSweep_9s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-white/6 to-transparent" />
         <div className="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/36">
           <SyncPill tone="violet">
             <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_12px_rgba(167,139,250,0.55)]" />
-            Ops Sync
+            Control Bar
           </SyncPill>
           <SyncPill tone={commandTone as "amber" | "emerald" | "red"}>
             {commandState}
           </SyncPill>
-          <SyncPill>Command: {formatTransportTimestamp(lastTransportActionAt)}</SyncPill>
+          <SyncPill>Updated: {formatTransportTimestamp(lastTransportActionAt)}</SyncPill>
           <SyncPill tone="sky">
-            {selectedSceneLabel ? `Scene: ${selectedSceneLabel}` : "Scene Memory Idle"}
+            {selectedSceneLabel ? `Scene: ${selectedSceneLabel}` : "Scene Standby"}
           </SyncPill>
           {hotkeySceneLabel ? (
-            <SyncPill tone="violet">Hotkey Recall: {hotkeySceneLabel}</SyncPill>
+            <SyncPill tone="violet">Quick Recall: {hotkeySceneLabel}</SyncPill>
           ) : null}
           <SyncPill tone="amber">
-            {programSlideLabel ? `Deck: ${programSlideLabel}` : "Deck Standby"}
+            {programSlideLabel ? `Slides: ${programSlideLabel}` : "Slides Standby"}
           </SyncPill>
         </div>
 
@@ -122,30 +122,30 @@ export default function OperationsSyncStrip({
           <SyncPill tone="sky">
             Layout: {layout === "screen_speaker" ? "Speaker + Screen" : layout === "grid" ? "Grid" : "Solo"}
           </SyncPill>
-          <SyncPill tone="emerald">{onStageCount} Talent Routed</SyncPill>
+          <SyncPill tone="emerald">{onStageCount} On Stage</SyncPill>
           <span className="hidden xl:inline-flex">
             <SyncPill>{previewBlockCount} Preview / {programBlockCount} Program Assets</SyncPill>
           </span>
           <span className="hidden 2xl:inline-flex">
-            <SyncPill>{participantCount} Viewers</SyncPill>
+            <SyncPill>{participantCount} Connected</SyncPill>
           </span>
           <span className="hidden 2xl:inline-flex">
             <SyncPill tone={hasScreenShare ? "emerald" : "neutral"}>
-              {hasScreenShare ? "Screen Route: Active" : "Screen Route: Idle"}
+              {hasScreenShare ? "Screen Share: Active" : "Screen Share: Idle"}
             </SyncPill>
           </span>
           <span className="hidden 2xl:inline-flex">
             <SyncPill tone={hasProgramSource ? "emerald" : "neutral"}>
-              {hasProgramSource ? "Return: Clean" : "Return: No Source"}
+              {hasProgramSource ? "Program Feed: Stable" : "Program Feed: Waiting"}
             </SyncPill>
           </span>
           <span className="hidden 2xl:inline-flex">
             <SyncPill tone={isLive ? "red" : "neutral"}>
-              {isLive ? "Audience Route: Live" : "Audience Route: Holding"}
+              {isLive ? "Audience: Live" : "Audience: Holding"}
             </SyncPill>
           </span>
           <span className="hidden 2xl:inline-flex">
-            <SyncPill tone="red">{lastTakeMode ? `Last: ${lastTakeMode}` : "Take Standby"}</SyncPill>
+            <SyncPill tone="red">{lastTakeMode ? `Transition: ${lastTakeMode}` : "Transition Standby"}</SyncPill>
           </span>
         </div>
       </div>
@@ -158,7 +158,7 @@ export default function OperationsSyncStrip({
           }
 
           46% {
-            opacity: 0.75;
+            opacity: 0.48;
           }
 
           100% {
@@ -174,7 +174,7 @@ export default function OperationsSyncStrip({
           }
 
           38% {
-            opacity: 0.85;
+            opacity: 0.52;
           }
 
           100% {

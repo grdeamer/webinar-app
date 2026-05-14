@@ -50,7 +50,7 @@ function ParticipantStatusPill({
 }): JSX.Element {
   if (isPrimary) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/28 bg-sky-400/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100 shadow-[0_0_16px_rgba(56,189,248,0.13)]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/28 bg-sky-400/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.08)]">
         <Star size={10} className="text-sky-200" />
         Primary
       </span>
@@ -59,7 +59,7 @@ function ParticipantStatusPill({
 
   if (isPinned) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/28 bg-amber-400/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-100 shadow-[0_0_16px_rgba(251,191,36,0.13)]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-300/28 bg-amber-400/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.08)]">
         <Pin size={10} className="text-amber-200" />
         Pinned
       </span>
@@ -68,7 +68,7 @@ function ParticipantStatusPill({
 
   if (isOnStage) {
     return (
-      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-300/28 bg-red-400/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-100 shadow-[0_0_16px_rgba(239,68,68,0.13)]">
+      <span className="inline-flex items-center gap-1.5 rounded-full border border-red-300/28 bg-red-400/12 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-100 shadow-[0_0_12px_rgba(239,68,68,0.08)]">
         <Radio size={10} className="text-red-200" />
         On Stage
       </span>
@@ -108,7 +108,7 @@ function SourceChip({
       }`}
     >
       <span className={active ? "opacity-90" : "opacity-45"}>{icon}</span>
-      {label} {active ? "On" : "Off"}
+      {label} {active ? "Ready" : "Off"}
     </span>
   )
 }
@@ -136,7 +136,7 @@ function ParticipantSpeakingMeter({
           key={`${identity}-meter-${index}`}
           className={`h-1.5 flex-1 rounded-full ${
             index < activeBars
-              ? "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.7)]"
+              ? "bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.5)]"
               : "bg-white/10"
           }`}
         />
@@ -187,10 +187,10 @@ function TalentTelemetryRow({
 
       <div className="rounded-2xl border border-white/10 bg-black/22 px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
-          Route
+          Stage
         </div>
         <div className={`mt-1 text-[10px] font-black uppercase ${isOnStage ? "text-red-100/72" : "text-white/34"}`}>
-          {isOnStage ? "Stage" : "Hold"}
+          {isOnStage ? "Live" : "Ready"}
         </div>
       </div>
     </div>
@@ -212,12 +212,12 @@ function TalentReadinessStrip({
 }): JSX.Element {
   const ready = micEnabled && cameraEnabled
   const routeLabel = isPrimary
-    ? "Primary Feed"
+    ? "Primary"
     : isPinned
-      ? "Pinned Talent"
+      ? "Pinned"
       : isOnStage
-        ? "Routed Live"
-        : "Green Room"
+        ? "On Stage"
+        : "Backstage"
 
   return (
     <div className="mb-2 flex items-center justify-between gap-3 rounded-[20px] border border-white/8 bg-black/20 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
@@ -225,11 +225,11 @@ function TalentReadinessStrip({
         <span
           className={`h-1.5 w-1.5 rounded-full ${
             ready
-              ? "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.75)]"
-              : "bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.55)]"
+              ? "bg-emerald-300 shadow-[0_0_6px_rgba(110,231,183,0.5)]"
+              : "bg-amber-300 shadow-[0_0_6px_rgba(252,211,77,0.38)]"
           }`}
         />
-        {ready ? "Talent Ready" : "Check Sources"}
+        {ready ? "Ready" : "Check Inputs"}
       </div>
 
       <div className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
@@ -260,11 +260,11 @@ function TalentConfidenceReturn({
     >
       <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em]">
         <Headphones size={11} />
-        Confidence Return
+        Return Feed
       </div>
 
       <div className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
-        {isPrimary ? "Primary Return" : isOnStage ? "Stage Return" : "Standby"}
+        {isPrimary ? "Primary" : isOnStage ? "Stage" : "Standby"}
       </div>
     </div>
   )
@@ -309,11 +309,11 @@ export default function ParticipantCard({
       }}
       className={`group cursor-pointer rounded-[24px] border p-3 shadow-[0_18px_55px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:-translate-y-0.5 active:translate-y-0 ${
         isPrimary
-          ? "border-sky-300/45 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.18),transparent_36%),rgba(56,189,248,0.08)] shadow-[0_0_0_1px_rgba(125,211,252,0.08),0_22px_70px_rgba(56,189,248,0.08)]"
+          ? "border-sky-300/45 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_36%),rgba(56,189,248,0.08)] shadow-[0_0_0_1px_rgba(125,211,252,0.06),0_22px_60px_rgba(56,189,248,0.055)]"
           : isPinned
-            ? "border-amber-300/36 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.14),transparent_36%),rgba(251,191,36,0.045)]"
+            ? "border-amber-300/36 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.10),transparent_36%),rgba(251,191,36,0.045)]"
             : isOnStage
-              ? "border-red-300/24 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.12),transparent_36%),rgba(239,68,68,0.045)] shadow-[0_0_34px_rgba(239,68,68,0.08)]"
+              ? "border-red-300/24 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.09),transparent_36%),rgba(239,68,68,0.045)] shadow-[0_0_24px_rgba(239,68,68,0.055)]"
               : "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.014))] hover:border-white/16 hover:bg-white/[0.04]"
       }`}
     >
@@ -335,7 +335,7 @@ export default function ParticipantCard({
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border ${
                   participant.micEnabled
-                    ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100 shadow-[0_0_14px_rgba(52,211,153,0.14)]"
+                    ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100 shadow-[0_0_10px_rgba(52,211,153,0.08)]"
                     : "border-white/10 bg-black/28 text-white/34"
                 }`}
               >
@@ -346,7 +346,7 @@ export default function ParticipantCard({
                   {participant.name}
                 </div>
                 <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.18em] text-white/28">
-                  Production Roster
+                  Contributor
                 </div>
               </div>
             </div>
@@ -386,7 +386,7 @@ export default function ParticipantCard({
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-white/45">
           {isUsingScreen ? (
             <span className="rounded-full border border-violet-300/30 bg-violet-400/15 px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100 shadow-[0_0_16px_rgba(168,85,247,0.14)]">
-              Screen selected
+              Screen Active
             </span>
           ) : null}
 
@@ -399,7 +399,7 @@ export default function ParticipantCard({
 
           <span className="inline-flex items-center gap-1.5 rounded-full border border-sky-300/12 bg-sky-400/8 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-sky-100/56">
             <Signal size={10} />
-            Signal Locked
+            Signal Stable
           </span>
 
           <span className="inline-flex items-center gap-1.5 rounded-full border border-violet-300/12 bg-violet-400/8 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-violet-100/56">
@@ -409,18 +409,18 @@ export default function ParticipantCard({
 
           <span className="inline-flex items-center gap-1.5 rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/42">
             <Radio size={10} />
-            Return Online
+            Return Ready
           </span>
         </div>
 
         <div className="rounded-[22px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
           <div className="mb-2 flex items-center justify-between gap-3">
             <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/32">
-              Talent Routing Actions
+              Routing Actions
             </div>
 
             <div className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
-              Click Safe
+              Ready
             </div>
           </div>
 
@@ -437,7 +437,7 @@ export default function ParticipantCard({
                 }}
                 className={`rounded-xl border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                   isUsingScreen
-                    ? "border-violet-200/50 bg-violet-300 text-black shadow-[0_0_20px_rgba(168,85,247,0.20)]"
+                    ? "border-violet-200/50 bg-violet-300 text-black shadow-[0_0_14px_rgba(168,85,247,0.12)]"
                     : "border-white/12 bg-white/[0.045] text-white/70 hover:border-white/20 hover:bg-white/[0.075] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                 }`}
               >
@@ -458,7 +458,7 @@ export default function ParticipantCard({
                   }}
                   className={`rounded-xl border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                     isPrimary
-                      ? "border-sky-200/50 bg-sky-300 text-black shadow-[0_0_20px_rgba(56,189,248,0.20)]"
+                      ? "border-sky-200/50 bg-sky-300 text-black shadow-[0_0_14px_rgba(56,189,248,0.12)]"
                       : "border-sky-300/18 bg-sky-400/8 text-sky-100/70 hover:border-sky-300/32 hover:bg-sky-400/12"
                   }`}
                 >
@@ -476,7 +476,7 @@ export default function ParticipantCard({
                   }}
                   className={`rounded-xl border px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] transition hover:-translate-y-0.5 active:translate-y-0 ${
                     isPinned
-                      ? "border-amber-200/50 bg-amber-300 text-black shadow-[0_0_20px_rgba(251,191,36,0.20)]"
+                      ? "border-amber-200/50 bg-amber-300 text-black shadow-[0_0_14px_rgba(251,191,36,0.12)]"
                       : "border-amber-300/18 bg-amber-400/8 text-amber-100/70 hover:border-amber-300/32 hover:bg-amber-400/12"
                   }`}
                 >
@@ -493,7 +493,7 @@ export default function ParticipantCard({
             ) : (
               <button
                 onClick={() => onAddToStage(participant.identity)}
-                className="rounded-xl border border-emerald-200/70 bg-emerald-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-black shadow-[0_0_22px_rgba(52,211,153,0.18)] transition hover:-translate-y-0.5 hover:bg-emerald-100 active:translate-y-0"
+                className="rounded-xl border border-emerald-200/70 bg-emerald-200 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-black shadow-[0_0_14px_rgba(52,211,153,0.11)] transition hover:-translate-y-0.5 hover:bg-emerald-100 active:translate-y-0"
               >
                 Cue Talent
               </button>

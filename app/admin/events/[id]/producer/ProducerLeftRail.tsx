@@ -20,7 +20,7 @@ function LeftRailAtmosphere(): JSX.Element {
   return (
     <>
       <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-sky-300/10 via-violet-300/6 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.032)_42%,transparent_64%)] animate-[leftRailSignalSweep_9s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[leftRailSignalSweep_12s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/24 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-sky-300/[0.05] to-transparent" />
@@ -76,17 +76,17 @@ function RailTelemetryChip({
 
 function RailRackHeader(): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-sky-300/14 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.14),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.08),transparent_34%),linear-gradient(180deg,rgba(8,18,34,0.94),rgba(3,7,16,0.99))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.045)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[leftRailSignalSweep_8s_ease-in-out_infinite]" />
+    <div className="relative overflow-hidden rounded-[30px] border border-sky-300/14 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.09),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.055),transparent_34%),linear-gradient(180deg,rgba(8,18,34,0.955),rgba(3,7,16,0.99))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.40),inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[leftRailSignalSweep_12s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/26 to-transparent" />
       <div className="relative z-10 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/72">
             <Radio size={13} />
-            Mission Control Rack
+            Control Rack
           </div>
           <div className="mt-1 text-sm font-semibold tracking-tight text-white">
-            Transmission + Device Stack
+            Live controls and workstation inputs.
           </div>
         </div>
 
@@ -94,7 +94,7 @@ function RailRackHeader(): JSX.Element {
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
           <span className="relative z-10 flex items-center gap-1.5">
             <ShieldCheck size={11} />
-            Armed
+            Ready
           </span>
         </div>
       </div>
@@ -102,31 +102,31 @@ function RailRackHeader(): JSX.Element {
       <div className="relative z-10 mt-3 flex flex-wrap gap-2">
         <RailTelemetryChip
           icon={<SatelliteDish size={10} />}
-          label="Relay"
-          value="Locked"
+          label="Signal"
+          value="Stable"
           tone="green"
         />
 
         <RailTelemetryChip
           icon={<Globe2 size={10} />}
-          label="CDN"
-          value="Healthy"
+          label="Audience"
+          value="Ready"
           tone="sky"
         />
 
         <RailTelemetryChip
           icon={<Cpu size={10} />}
-          label="GPU"
-          value="62%"
+          label="System"
+          value="Normal"
           tone="amber"
         />
       </div>
 
       <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
         {[
-          { label: "Route", value: "Live", tone: "text-red-100/68 border-red-300/14 bg-red-400/8" },
-          { label: "Stage", value: "Ready", tone: "text-sky-100/68 border-sky-300/14 bg-sky-400/8" },
-          { label: "Devices", value: "Locked", tone: "text-emerald-100/68 border-emerald-300/14 bg-emerald-400/8" },
+          { label: "Program", value: "Ready", tone: "text-red-100/68 border-red-300/14 bg-red-400/8" },
+          { label: "Stage", value: "Set", tone: "text-sky-100/68 border-sky-300/14 bg-sky-400/8" },
+          { label: "Inputs", value: "Ready", tone: "text-emerald-100/68 border-emerald-300/14 bg-emerald-400/8" },
         ].map((item) => (
           <div
             key={item.label}
@@ -239,17 +239,17 @@ function DeviceSelectorPanel({
 }): JSX.Element {
   return (
     <div className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.016))] p-4 shadow-[0_18px_55px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.045)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.03)_42%,transparent_64%)] animate-[leftRailSignalSweep_11s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[leftRailSignalSweep_13s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
             <Camera size={13} />
-            Device Rack
+            Workstation Inputs
           </div>
           <div className="mt-1 text-xs text-white/45">
-            Camera and microphone for this workstation.
+            Camera and microphone selection.
           </div>
         </div>
 
@@ -426,7 +426,7 @@ export default function ProducerLeftRail({
           }
 
           46% {
-            opacity: 0.78;
+            opacity: 0.42;
           }
 
           100% {

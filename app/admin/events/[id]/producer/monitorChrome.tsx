@@ -71,9 +71,22 @@ export function StatusPill({
   )
 }
 
+
 type RoutedMonitorFrameProps = {
   children: ReactNode
   mode?: "program" | "preview" | "confidence"
+}
+
+type MonitorCornerLabelProps = {
+  label: string
+}
+
+function MonitorCornerLabel({ label }: MonitorCornerLabelProps): JSX.Element {
+  return (
+    <div className="pointer-events-none absolute left-4 bottom-4 z-20 rounded-full border border-white/10 bg-black/42 px-3 py-1 text-[9px] font-black uppercase tracking-[0.24em] text-white/42 backdrop-blur-md">
+      {label}
+    </div>
+  )
 }
 
 export function RoutedMonitorFrame({
@@ -171,7 +184,7 @@ export function RoutedMonitorFrame({
           <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-300/45" />
           <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-emerald-300/85 shadow-[0_0_10px_rgba(110,231,183,0.7)]" />
         </span>
-        Signal Locked
+        Sync Stable
       </div>
 
       <div className="pointer-events-none absolute right-4 top-4 z-20 flex items-center gap-1.5 rounded-full border border-white/10 bg-black/40 px-2.5 py-1 backdrop-blur-md">
@@ -180,7 +193,15 @@ export function RoutedMonitorFrame({
           HDR
         </span>
       </div>
-
+      <MonitorCornerLabel
+        label={
+          mode === "program"
+            ? "Broadcast"
+            : mode === "preview"
+              ? "Standby"
+              : "Confidence"
+        }
+      />
       {children}
       <div className="pointer-events-none absolute inset-0 z-10 rounded-[28px] ring-1 ring-inset ring-white/6" />
       <div className="pointer-events-none absolute inset-x-6 bottom-0 z-10 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
