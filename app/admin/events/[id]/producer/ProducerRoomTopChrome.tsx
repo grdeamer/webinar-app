@@ -44,22 +44,22 @@ function TopChromeTransmissionShell({
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-28 transition-opacity duration-700 ${
           isLive
-            ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.10),transparent_62%)] opacity-90"
-            : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.065),transparent_62%)] opacity-72"
+            ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.05),transparent_62%)] opacity-72"
+            : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.035),transparent_62%)] opacity-54"
         }`}
       />
-      <div className="pointer-events-none absolute inset-x-6 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/11 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_14s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-x-6 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/7 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.006)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_18s_ease-in-out_infinite]" />
 
-      <div className="pointer-events-none absolute right-6 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/42 backdrop-blur-md">
+      <div className="pointer-events-none absolute right-6 top-4 z-20 hidden items-center gap-2 rounded-full border border-white/8 bg-black/18 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/28 backdrop-blur-md 2xl:flex">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
             isLive
-              ? "bg-red-300 shadow-[0_0_8px_rgba(252,165,165,0.42)]"
-              : "bg-sky-300/75 shadow-[0_0_7px_rgba(125,211,252,0.28)]"
+              ? "bg-red-300/75 shadow-[0_0_5px_rgba(252,165,165,0.24)]"
+              : "bg-sky-300/70 shadow-[0_0_5px_rgba(125,211,252,0.18)]"
           }`}
         />
-        {isLive ? "Broadcast Active" : "Standby Ready"}
+        {isLive ? "Live" : "Standby"}
       </div>
 
       <div className="relative z-10">{children}</div>
@@ -73,7 +73,7 @@ function TopChromeTransmissionShell({
           }
 
           42% {
-            opacity: 0.36;
+            opacity: 0.16;
           }
 
           100% {

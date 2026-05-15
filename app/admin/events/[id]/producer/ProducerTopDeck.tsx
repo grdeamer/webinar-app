@@ -26,12 +26,12 @@ import {
 function TopDeckAtmosphere(): JSX.Element {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-sky-300/7 via-violet-300/4 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[topDeckSignalSweep_13s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.055] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/24 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-sky-300/[0.05] to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-violet-300/[0.05] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-sky-300/4 via-violet-300/2 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.008)_42%,transparent_64%)] animate-[topDeckSignalSweep_18s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.028] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_8px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/12 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 left-0 w-28 bg-gradient-to-r from-sky-300/[0.026] to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-28 bg-gradient-to-l from-violet-300/[0.026] to-transparent" />
     </>
   )
 }
@@ -53,25 +53,25 @@ function StatusPill({
     <div
       className={[
         "relative z-10 flex items-center gap-2 overflow-hidden rounded-2xl border px-3 py-1.5",
-        "bg-[linear-gradient(180deg,rgba(255,255,255,0.035),rgba(255,255,255,0.014))]",
-        "shadow-[0_12px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]",
+        "bg-[linear-gradient(180deg,rgba(255,255,255,0.024),rgba(255,255,255,0.01))]",
+        "shadow-[0_8px_24px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.026)]",
         tone,
       ].join(" ")}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-      <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-white/10 bg-black/30 text-white/72">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.008)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
+      <span className="relative z-10 flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border border-white/8 bg-black/18 text-white/46">
         {pulse ? (
-          <span className="absolute inset-1 rounded-lg bg-red-400/10 animate-pulse" />
+          <span className="absolute inset-1 rounded-lg bg-red-400/[0.045]" />
         ) : null}
         <span className="relative z-10">{icon}</span>
       </span>
 
       <div className="relative z-10 min-w-0">
-        <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/34">
+        <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/24">
           {label}
         </div>
-        <div className="truncate text-sm font-semibold text-white/88">
+        <div className="truncate text-sm font-semibold text-white/66">
           {value}
         </div>
       </div>
@@ -92,18 +92,18 @@ function OpsChip({
 }) {
   const activeClass =
     tone === "record"
-      ? "border-red-300/18 bg-red-400/8 text-red-100/62"
+      ? "border-red-300/12 bg-red-400/[0.06] text-red-100/50"
       : tone === "iso"
-        ? "border-amber-300/18 bg-amber-400/8 text-amber-100/62"
+        ? "border-amber-300/12 bg-amber-400/[0.06] text-amber-100/50"
         : tone === "program"
-          ? "border-sky-300/18 bg-sky-400/8 text-sky-100/62"
-          : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/62"
+          ? "border-sky-300/12 bg-sky-400/[0.06] text-sky-100/50"
+          : "border-emerald-300/12 bg-emerald-400/[0.06] text-emerald-100/50"
 
   return (
     <div
       className={[
-        "relative z-10 hidden items-center gap-1.5 overflow-hidden rounded-full border px-2 py-1 sm:flex",
-        active ? activeClass : "border-white/8 bg-white/[0.025] text-white/36",
+        "relative z-10 hidden items-center gap-1.5 overflow-hidden rounded-full border px-2 py-1 2xl:flex",
+        active ? activeClass : "border-white/8 bg-white/[0.018] text-white/28",
       ].join(" ")}
     >
       <span
@@ -111,17 +111,17 @@ function OpsChip({
           "h-1.5 w-1.5 rounded-full",
           active
             ? tone === "record"
-              ? "bg-red-300 shadow-[0_0_7px_rgba(252,165,165,0.52)] animate-pulse"
+              ? "bg-red-300/70 shadow-[0_0_5px_rgba(252,165,165,0.22)]"
               : tone === "iso"
-                ? "bg-amber-300 shadow-[0_0_7px_rgba(252,211,77,0.45)]"
+                ? "bg-amber-300/70 shadow-[0_0_5px_rgba(252,211,77,0.20)]"
                 : tone === "program"
-                  ? "bg-sky-300 shadow-[0_0_7px_rgba(125,211,252,0.45)]"
-                  : "bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.45)]"
+                  ? "bg-sky-300/70 shadow-[0_0_5px_rgba(125,211,252,0.20)]"
+                  : "bg-emerald-300/70 shadow-[0_0_5px_rgba(110,231,183,0.20)]"
             : "bg-white/22",
         ].join(" ")}
       />
       <span>{label}</span>
-      <span className={active ? "text-red-50/72" : "text-white/48"}>
+      <span className={active ? "text-white/58" : "text-white/36"}>
         {value}
       </span>
     </div>
@@ -134,11 +134,11 @@ function DiagnosticSparkline({
   values: number[]
 }): JSX.Element {
   return (
-    <div className="flex h-6 items-end gap-0.5 rounded-xl border border-white/8 bg-black/24 px-1.5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div className="flex h-6 items-end gap-0.5 rounded-xl border border-white/6 bg-black/16 px-1.5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
       {values.map((value, index) => (
         <span
           key={`${value}-${index}`}
-          className="w-1 rounded-full bg-emerald-300/55 shadow-[0_0_6px_rgba(110,231,183,0.28)] transition-all duration-500"
+          className="w-1 rounded-full bg-emerald-300/36 shadow-[0_0_4px_rgba(110,231,183,0.16)] transition-all duration-500"
           style={{ height: `${Math.max(4, Math.min(20, value))}px` }}
         />
       ))}
@@ -157,17 +157,17 @@ function DiagnosticChip({
 }): JSX.Element {
   const toneClass =
     tone === "good"
-      ? "border-emerald-300/14 text-emerald-100/62"
+      ? "border-emerald-300/10 text-emerald-100/46"
       : tone === "warn"
-        ? "border-amber-300/14 text-amber-100/62"
-        : "border-white/8 text-white/42"
+        ? "border-amber-300/10 text-amber-100/46"
+        : "border-white/6 text-white/30"
 
   return (
     <div
-      className={`rounded-full border bg-black/24 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${toneClass}`}
+      className={`rounded-full border bg-black/16 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] ${toneClass}`}
     >
-      <span className="text-white/30">{label}</span>{" "}
-      <span className="text-white/62">{value}</span>
+      <span className="text-white/20">{label}</span>{" "}
+      <span className="text-white/44">{value}</span>
     </div>
   )
 }
@@ -185,17 +185,17 @@ function TelemetryBadge({
 }): JSX.Element {
   const toneClass =
     tone === "sky"
-      ? "border-sky-300/14 bg-sky-400/8 text-sky-100/60"
+      ? "border-sky-300/10 bg-sky-400/[0.06] text-sky-100/50"
       : tone === "green"
-        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/60"
+        ? "border-emerald-300/10 bg-emerald-400/[0.06] text-emerald-100/50"
         : tone === "amber"
-          ? "border-amber-300/14 bg-amber-400/8 text-amber-100/60"
-          : "border-white/10 bg-black/24 text-white/42"
+          ? "border-amber-300/10 bg-amber-400/[0.06] text-amber-100/50"
+          : "border-white/8 bg-black/18 text-white/32"
 
   return (
     <div className={`relative z-10 flex items-center gap-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
-      <span className="opacity-80">{icon}</span>
-      <span className="text-white/34">{label}</span>
+      <span className="opacity-56">{icon}</span>
+      <span className="text-white/20">{label}</span>
       <span>{value}</span>
     </div>
   )
@@ -270,22 +270,22 @@ export default function ProducerTopDeck(): JSX.Element {
   const latencyLabel = latencyScore < 22 ? "Excellent" : "Good"
 
   return (
-    <div className="group relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.07),transparent_28%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.07),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] p-2 shadow-[0_22px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="group relative overflow-hidden rounded-[24px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.04),transparent_28%),radial-gradient(circle_at_top_right,rgba(168,85,247,0.04),transparent_30%),linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.008))] p-2 shadow-[0_16px_44px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.03)]">
       <TopDeckAtmosphere />
-      <div className="relative z-10 mb-2 flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-[22px] border border-white/8 bg-black/18 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[topDeckSignalSweep_13s_ease-in-out_infinite]" />
-        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/24 to-transparent" />
+      <div className="relative z-10 mb-2 flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/6 bg-black/14 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.008)_42%,transparent_64%)] animate-[topDeckSignalSweep_18s_ease-in-out_infinite]" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/12 to-transparent" />
         <div className="relative z-10">
-          <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/30">
-            Operations Deck
+          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/22">
+            Operations
           </div>
 
-          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
+          <div className="mt-1 text-sm font-semibold tracking-tight text-white/66">
             Live production status
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-2">
+        <div className="relative z-10 hidden flex-wrap items-center gap-2 2xl:flex">
           <TelemetryBadge
             icon={<SatelliteDish size={11} />}
             label="Signal"
@@ -308,18 +308,17 @@ export default function ProducerTopDeck(): JSX.Element {
           />
         </div>
       </div>
-      <div className="relative z-10 grid gap-2 xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr_1fr]">
+      <div className="relative z-10 grid gap-2 xl:grid-cols-5 2xl:grid-cols-[1.15fr_1fr_1fr_1fr_1fr]">
         <StatusPill
           icon={
             <span className="relative flex items-center justify-center">
-              <Disc3 size={15} className="text-red-300 animate-spin" />
-              <Circle size={6} className="absolute fill-red-300 text-red-300" />
-              <span className="absolute h-5 w-5 rounded-full border border-red-300/40 animate-ping" />
+              <Disc3 size={15} className="text-red-300/75" />
+              <Circle size={6} className="absolute fill-red-300/75 text-red-300/75" />
             </span>
           }
           label="Live Status"
-          value="Broadcast Active"
-          tone="border-red-400/20 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.12),transparent_36%),rgba(255,255,255,0.03)]"
+          value="Live"
+          tone="border-red-400/12 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.06),transparent_36%),rgba(255,255,255,0.018)]"
           pulse
         />
 
@@ -357,44 +356,16 @@ export default function ProducerTopDeck(): JSX.Element {
           value={`${latencyLabel} · ${latencyScore}ms`}
           tone="border-emerald-300/18"
         />
-
-        <StatusPill
-          icon={<Gauge size={15} />}
-          label="Bitrate"
-          value={`${bitrateMbps.toFixed(1)} Mbps`}
-          tone="border-sky-300/18"
-        />
-
-        <StatusPill
-          icon={<HardDrive size={15} />}
-          label="Storage"
-          value={`${storagePercent}% stored`}
-          tone="border-amber-300/18"
-        />
-
-        <StatusPill
-          icon={<Wand2 size={15} className="animate-pulse" />}
-          label="Transition"
-          value="Auto · 600ms"
-          tone="border-violet-300/18"
-        />
-
-        <StatusPill
-          icon={<Radar size={15} className="text-sky-200/75" />}
-          label="Monitoring"
-          value="Stable"
-          tone="border-sky-300/18"
-        />
       </div>
-      <div className="relative z-10 mt-2 flex items-center justify-between gap-3 overflow-hidden rounded-2xl border border-white/8 bg-black/18 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(16,185,129,0.035),transparent)] animate-[topDeckRouteSweep_9s_ease-in-out_infinite]" />
+      <div className="relative z-10 mt-2 flex items-center justify-between gap-3 overflow-hidden rounded-2xl border border-white/6 bg-black/14 px-3 py-1.5 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/28">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(16,185,129,0.014),transparent)] animate-[topDeckRouteSweep_14s_ease-in-out_infinite]" />
         <div className="relative z-10 flex min-w-0 items-center gap-3">
           <div className="flex items-center gap-2">
             <Wifi size={13} className="text-emerald-200/65" />
-            Signal Stable
+            Signal
           </div>
           <div className="hidden h-3 w-px bg-white/10 sm:block" />
-          <div className="hidden min-w-0 items-center gap-1 truncate text-white/32 md:flex">
+          <div className="hidden min-w-0 items-center gap-1 truncate text-white/22 2xl:flex">
             <span>Session A1</span>
             <ChevronRight size={11} className="text-white/18" />
             <span>Program stable</span>
@@ -414,12 +385,12 @@ export default function ProducerTopDeck(): JSX.Element {
             <OpsChip label="PGM" value="Stable" active tone="program" />
             <OpsChip label="Vault" value={`${storagePercent}%`} tone="neutral" />
           </div>
-          <div className="hidden items-center gap-1.5 xl:flex">
+          <div className="hidden items-center gap-1.5 2xl:flex">
             <DiagnosticChip label="Loss" value={`${packetLoss.toFixed(1)}%`} tone="good" />
             <DiagnosticChip label="Drop" value={String(droppedFrames)} />
             <DiagnosticChip label="Jitter" value={`${jitterMs}ms`} tone="good" />
           </div>
-          <span className="hidden text-[9px] tracking-[0.16em] text-emerald-100/35 sm:inline">
+          <span className="hidden text-[9px] tracking-[0.12em] text-emerald-100/24 2xl:inline">
             LIVE
           </span>
           <div className="flex items-end gap-1">
@@ -429,24 +400,24 @@ export default function ProducerTopDeck(): JSX.Element {
                 className={[
                   "w-1.5 rounded-full transition-all duration-500",
                   index < signalBars
-                    ? "bg-emerald-300 shadow-[0_0_7px_rgba(110,231,183,0.45)]"
+                    ? "bg-emerald-300/65 shadow-[0_0_4px_rgba(110,231,183,0.18)]"
                     : "bg-white/12",
                 ].join(" ")}
                 style={{ height: `${8 + index * 3}px` }}
               />
             ))}
           </div>
-          <div className="hidden items-center gap-1.5 rounded-full border border-white/8 bg-black/24 px-2 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/34 xl:flex">
+          <div className="hidden items-center gap-1.5 rounded-full border border-white/6 bg-black/16 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/24 2xl:flex">
             <Archive size={11} className="text-amber-100/50" />
             Stored
           </div>
         </div>
       </div>
-      <div className="relative z-10 mt-2 grid gap-2 overflow-hidden rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] xl:grid-cols-[1fr_180px]">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.045] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_22px)]" />
-        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/18 to-transparent" />
+      <div className="relative z-10 mt-2 hidden gap-2 overflow-hidden rounded-[20px] border border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] 2xl:grid-cols-[1fr_180px] 2xl:grid">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.022] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_26px)]" />
+        <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/10 to-transparent" />
         <div className="relative z-10 flex min-w-0 flex-wrap items-center gap-2">
-          <div className="flex items-center gap-2 rounded-full border border-emerald-300/12 bg-emerald-400/8 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/56">
+          <div className="flex items-center gap-2 rounded-full border border-emerald-300/10 bg-emerald-400/[0.06] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-100/44">
             <Radar size={11} />
             Stream Health
           </div>
@@ -472,7 +443,7 @@ export default function ProducerTopDeck(): JSX.Element {
           }
 
           46% {
-            opacity: 0.42;
+            opacity: 0.18;
           }
 
           100% {
@@ -488,7 +459,7 @@ export default function ProducerTopDeck(): JSX.Element {
           }
 
           38% {
-            opacity: 0.48;
+            opacity: 0.18;
           }
 
           100% {
