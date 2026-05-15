@@ -44,19 +44,19 @@ function TopChromeTransmissionShell({
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-28 transition-opacity duration-700 ${
           isLive
-            ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.16),transparent_62%)] opacity-100"
-            : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.10),transparent_62%)] opacity-80"
+            ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.10),transparent_62%)] opacity-90"
+            : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.065),transparent_62%)] opacity-72"
         }`}
       />
-      <div className="pointer-events-none absolute inset-x-6 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_10s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-x-6 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/11 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_14s_ease-in-out_infinite]" />
 
       <div className="pointer-events-none absolute right-6 top-4 z-20 flex items-center gap-2 rounded-full border border-white/10 bg-black/28 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.22em] text-white/42 backdrop-blur-md">
         <span
           className={`h-1.5 w-1.5 rounded-full ${
             isLive
-              ? "animate-pulse bg-red-300 shadow-[0_0_14px_rgba(252,165,165,0.75)]"
-              : "bg-sky-300/80 shadow-[0_0_12px_rgba(125,211,252,0.45)]"
+              ? "bg-red-300 shadow-[0_0_8px_rgba(252,165,165,0.42)]"
+              : "bg-sky-300/75 shadow-[0_0_7px_rgba(125,211,252,0.28)]"
           }`}
         />
         {isLive ? "Broadcast Active" : "Standby Ready"}
@@ -73,7 +73,7 @@ function TopChromeTransmissionShell({
           }
 
           42% {
-            opacity: 0.8;
+            opacity: 0.36;
           }
 
           100% {

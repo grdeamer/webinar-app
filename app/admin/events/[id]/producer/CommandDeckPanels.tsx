@@ -162,7 +162,7 @@ function getSurfaceStatusLabel(openSurfaceCount: number): string {
 }
 
 function getTransportStatusLabel(previewProgramDifferent: boolean): string {
-  return previewProgramDifferent ? "Preview Armed" : "Program Matched"
+  return previewProgramDifferent ? "Preview Ready" : "Program Matched"
 }
 
 function getSurfaceModeLabel({
@@ -356,14 +356,14 @@ const CONFIDENCE_ROUTES = [
     icon: SatelliteDish,
   },
   {
-    source: "Confidence Return",
+    source: "Program Return",
     destination: "Producer monitor + technical director",
     status: "CONF",
     tone: "safe",
     icon: MonitorSpeaker,
   },
   {
-    source: "Presenter IFB",
+    source: "Presenter Return",
     destination: "Host + guest cue channel",
     status: "IFB",
     tone: "preview",
@@ -565,10 +565,10 @@ function CommandSafetyStrip({
   selectedTransitionDurationMs?: number
 }): JSX.Element {
   const label = takeBusy
-    ? "Command Locked"
+    ? "Transition Active"
     : previewProgramDifferent
-      ? "Take Armed"
-      : "Program Safe"
+      ? "Preview Ready"
+      : "Program Stable"
 
   return (
     <CompactStatusGrid
@@ -772,7 +772,7 @@ function MonitorBusStrip({
     <div className="mb-3 rounded-[22px] border border-white/8 bg-black/22 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
       <SurfaceHeader
         eyebrow="Operator Cue"
-        title="IFB + Monitor Bus"
+        title="Returns + Monitoring"
         status={
           pressureOverrideActive
             ? "Pressure Override"
@@ -780,7 +780,7 @@ function MonitorBusStrip({
             ? "Producer Override"
             : systemPressure === "watch"
             ? "Watch Cue"
-            : "Routed"
+            : "Ready"
         }
         tone={
           effectiveOverrideActive
@@ -808,7 +808,7 @@ function MonitorBusStrip({
           disabled={pressureOverrideActive}
           className="px-2 py-1.5 text-[8px]"
         >
-          {pressureOverrideActive ? "Locked" : "Clear IFB"}
+          {pressureOverrideActive ? "Locked" : "Clear Returns"}
         </CommandActionButton>
       </div>
 
@@ -870,8 +870,8 @@ export function CommandSurfaceHeader({
     <PanelCard variant="elevated" className="px-3 py-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <SurfaceHeader
-          eyebrow="Master Control Surface"
-          title="Broadcast Command Deck"
+          eyebrow="Control Surface"
+          title="Command Deck"
           status="Stable"
           tone="safe"
           icon={Zap}
@@ -983,8 +983,8 @@ export function TelemetryStrip({
           <CompactStatusGrid
             columnsClassName="sm:grid-cols-2 xl:grid-cols-4"
             items={[
-              { label: "Stream Health", value: "Excellent", tone: "safe" },
-              { label: "Recording", value: "Active", tone: "danger" },
+              { label: "Signal", value: "Stable", tone: "safe" },
+{ label: "Recording", value: "Ready", tone: "danger" },
               { label: "Audience", value: String(audienceCount), tone: "preview" },
               { label: "On Stage", value: String(onStageCount), tone: "neutral" },
             ]}
@@ -999,7 +999,7 @@ export function TelemetryStrip({
         <div className="flex min-w-0 flex-col gap-2 rounded-[24px] border border-white/10 bg-black/24 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
           <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/36">
             <Keyboard size={13} />
-            Hotkeys
+            Shortcuts
           </div>
 
           <div className="grid gap-1.5">
@@ -1027,8 +1027,8 @@ export function ControlStagePanel({
       ? "Hold Recommended"
       : previewProgramDifferent
         ? rundownMode === "live"
-          ? "Live Armed"
-          : "Preview Armed"
+          ? "Live Ready"
+          : "Preview Ready"
         : "Program Matched"
   const takeDisabled = takeBusy || !previewProgramDifferent || systemPressure === "critical"
 
@@ -1052,7 +1052,7 @@ export function ControlStagePanel({
         />
         <SurfaceHeader
           eyebrow="Director Surface"
-          title="Program Transport"
+          title="Program Control"
           status={transportStatus}
           tone={
             systemPressure !== "stable"
@@ -1314,7 +1314,7 @@ export function TransitionPanel({
     <PanelCard className="border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.11),transparent_38%),rgba(0,0,0,0.24)] shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_0_34px_rgba(168,85,247,0.055)]">
       <SurfaceHeader
         eyebrow="Motion Control"
-        title="Transition Bank"
+        title="Transition Style"
         status="Timed"
         tone="preview"
         icon={Activity}
@@ -1342,7 +1342,7 @@ export function TransitionPanel({
         className="mt-3"
         columnsClassName="grid-cols-2"
         items={[
-          { label: "Armed Transition", value: selectedTransitionType, tone: "preview" },
+          { label: "Selected Transition", value: selectedTransitionType, tone: "preview" },
           { label: "Duration", value: `${selectedTransitionDurationMs ?? 600}ms`, tone: "preview" },
         ]}
       />
@@ -1391,7 +1391,7 @@ export function AudioMixerPanel({
     <PanelCard className="border-emerald-300/14 bg-[radial-gradient(circle_at_top_right,rgba(52,211,153,0.13),transparent_38%),rgba(52,211,153,0.045)]">
       <SurfaceHeader
         eyebrow="Broadcast Audio"
-        title="Audio Program Mixer"
+        title="Audio Mixer"
         status={audioStatus}
         tone={audioTone}
         icon={AudioLines}
@@ -1425,7 +1425,7 @@ export function AudioMixerPanel({
         columnsClassName="grid-cols-2"
         items={[
           { label: "Program Bus", value: "Open", tone: "safe" },
-          { label: "Confidence", value: "Routed", tone: "preview" },
+          { label: "Program Return", value: "Ready", tone: "preview" },
         ]}
       />
 
@@ -1543,7 +1543,7 @@ export function BroadcastRoutingPanel({
     <PanelCard className="border-sky-300/12 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_38%),rgba(56,189,248,0.035)]">
       <SurfaceHeader
         eyebrow="Transmission"
-        title="Routing + Confidence"
+        title="Routing + Monitoring"
         status={confidenceStatus}
         tone={confidenceTone}
         icon={Route}
@@ -1602,7 +1602,7 @@ export function BroadcastRoutingPanel({
                 tone: confidenceScenario === "critical" ? "warning" : "preview",
               },
               {
-                label: "IFB",
+                label: "Returns",
                 value: confidenceScenario === "critical" ? "Priority Ready" : "Standby",
                 tone: confidenceScenario === "critical" ? "warning" : "safe",
               },
@@ -1618,8 +1618,8 @@ export function BroadcastRoutingPanel({
 
       <div className="mb-3 grid grid-cols-3 gap-1.5">
         <BusBadge label="PGM" active tone="live" />
-        <BusBadge label="CONF" active tone={confidenceScenario === "critical" ? "warning" : "safe"} />
-        <BusBadge label="IFB" active tone="preview" />
+        <BusBadge label="RETURN" active tone={confidenceScenario === "critical" ? "warning" : "safe"} />
+        <BusBadge label="CUE" active tone="preview" />
         <BusBadge label="ISO" active tone="warning" />
         <BusBadge label="AUX" />
         <BusBadge label="DIRTY" />
@@ -1631,8 +1631,8 @@ export function BroadcastRoutingPanel({
             key={route.source}
             source={route.source}
             destination={route.destination}
-            status={route.source === "Confidence Return" && confidenceScenario !== "stable" ? "WATCH" : route.status}
-            tone={route.source === "Confidence Return" && confidenceScenario === "critical" ? "warning" : route.tone}
+            status={route.source === "Program Return" && confidenceScenario !== "stable" ? "WATCH" : route.status}
+            tone={route.source === "Program Return" && confidenceScenario === "critical" ? "warning" : route.tone}
             icon={route.icon}
           />
         ))}
@@ -1654,7 +1654,7 @@ export function BroadcastRoutingPanel({
         />
         <ConfidenceTile
           label="Operator Cue"
-          value={confidenceScenario === "critical" ? "IFB Priority" : "IFB Open"}
+          value={confidenceScenario === "critical" ? "Return Priority" : "Return Ready"}
           detail={
             confidenceScenario === "critical"
               ? "Producer override is ready so talent can be held while confidence path recovers."
@@ -1724,7 +1724,7 @@ export function RundownCuePanel({
     <PanelCard className="border-amber-300/12 bg-[radial-gradient(circle_at_top_right,rgba(251,191,36,0.11),transparent_36%),rgba(0,0,0,0.23)]">
       <SurfaceHeader
         eyebrow="Show Control"
-        title="Rundown Engine"
+        title="Rundown"
         status={canAdvanceCue ? rehearsalLabel : "End Hold"}
         tone="warning"
         icon={ClipboardList}

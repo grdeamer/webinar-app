@@ -158,6 +158,7 @@ export default function ProducerRoomClient({
   );
   const [programState, setProgramState] = useState<StageState | null>(null);
   const [monitorHeight, setMonitorHeight] = useState(520);
+  const [audienceOriginCollapsed, setAudienceOriginCollapsed] = useState(false);
   const handleAsyncError = useCallback((error: unknown) => {
     setError(error instanceof Error ? error.message : "Unexpected error");
   }, []);
@@ -502,6 +503,10 @@ export default function ProducerRoomClient({
     setShowAudienceCue(false);
   }, [setShowAudienceCue]);
 
+  const handleToggleAudienceOriginCollapsed = useCallback((): void => {
+    setAudienceOriginCollapsed((current) => !current);
+  }, []);
+
   const handleClearSelectedBlock = useCallback((): void => {
     setSelectedBlockId(null);
   }, [setSelectedBlockId]);
@@ -798,6 +803,8 @@ export default function ProducerRoomClient({
       audienceCueRegion,
       audienceCueMoonMode,
       audienceCueQuestionLabel,
+      audienceOriginCollapsed,
+      onToggleAudienceOriginCollapsed: handleToggleAudienceOriginCollapsed,
       isTransitioning,
       transitionFromState,
       transitionFromBlocks,
@@ -848,6 +855,8 @@ export default function ProducerRoomClient({
       audienceCueRegion,
       audienceCueMoonMode,
       audienceCueQuestionLabel,
+      audienceOriginCollapsed,
+      handleToggleAudienceOriginCollapsed,
       isTransitioning,
       transitionFromState,
       transitionFromBlocks,

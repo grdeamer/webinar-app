@@ -223,6 +223,8 @@ export default function CenterSwitcherColumn({
   audienceCueRegion,
   audienceCueMoonMode,
   audienceCueQuestionLabel,
+  audienceOriginCollapsed,
+  onToggleAudienceOriginCollapsed,
   isTransitioning,
   transitionFromState,
   transitionFromBlocks,
@@ -277,6 +279,8 @@ export default function CenterSwitcherColumn({
   audienceCueRegion: string
   audienceCueMoonMode: boolean
   audienceCueQuestionLabel: string
+  audienceOriginCollapsed: boolean
+  onToggleAudienceOriginCollapsed: () => void
   isTransitioning: boolean
   transitionFromState: StageState | null
   transitionFromBlocks: PreviewBlock[]
@@ -409,11 +413,40 @@ export default function CenterSwitcherColumn({
   return (
     <div className="space-y-3 xl:col-start-2">
       <ProducerTopDeck />
-      <div className="opacity-55 transition-opacity duration-300 hover:opacity-100">
-        <AudienceOriginTestPanel
-          onTriggerCue={triggerAudienceCue}
-          onHideCue={onHideAudienceCue}
-        />
+      <div
+        className={`overflow-hidden rounded-[24px] border border-white/8 bg-black/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] transition-all duration-300 ${
+          audienceOriginCollapsed
+            ? "opacity-45 hover:opacity-80"
+            : "opacity-60 hover:opacity-100"
+        }`}
+      >
+        <div className="flex items-center justify-between gap-3 px-3 py-2">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/34">
+              Audience Origin
+            </div>
+            <div className="mt-0.5 text-xs font-semibold text-white/45">
+              Earth / Moon cue controls
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={onToggleAudienceOriginCollapsed}
+            className="rounded-full border border-white/10 bg-white/[0.035] px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/48 transition hover:border-white/18 hover:bg-white/[0.06] hover:text-white/72"
+          >
+            {audienceOriginCollapsed ? "Show" : "Hide"}
+          </button>
+        </div>
+
+        {audienceOriginCollapsed ? null : (
+          <div className="border-t border-white/7 px-2 pb-2">
+            <AudienceOriginTestPanel
+              onTriggerCue={triggerAudienceCue}
+              onHideCue={onHideAudienceCue}
+            />
+          </div>
+        )}
       </div>
 
       <SwitcherSurfaceChrome
