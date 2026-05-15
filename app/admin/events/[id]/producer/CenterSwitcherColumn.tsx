@@ -450,16 +450,16 @@ export default function CenterSwitcherColumn({
       >
         <div className="relative mb-2 flex items-end justify-between gap-4 px-1 py-1">
           <div className="relative z-10">
-            <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/22">
+            <div className="text-[9px] font-black uppercase tracking-[0.10em] text-white/18">
               Switcher
             </div>
-            <div className="mt-0.5 text-lg font-semibold tracking-tight text-white/72">
+            <div className="mt-0.5 text-[17px] font-semibold tracking-[-0.02em] text-white/66">
               Preview <span className="text-white/20">→</span> Program
             </div>
           </div>
 
           <div className="relative z-10 hidden items-center gap-2 xl:flex">
-            <div className="flex items-center gap-1 rounded-full border border-white/8 bg-black/18 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+            <div className="flex items-center gap-1 rounded-full border border-white/6 bg-black/12 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
               {CONFIDENCE_MONITOR_MODES.map((mode) => {
                 const active = confidenceMonitorMode === mode.value;
 
@@ -469,10 +469,10 @@ export default function CenterSwitcherColumn({
                     type="button"
                     onClick={() => setMonitorMode(mode.value)}
                     className={[
-                      "rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] transition",
+                      "rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] transition",
                       active
-                        ? "bg-violet-300/[0.08] text-violet-100/58 shadow-[0_0_8px_rgba(168,85,247,0.05)]"
-                        : "text-white/28 hover:bg-white/[0.04] hover:text-white/58",
+                        ? "bg-white/[0.05] text-white/62 shadow-[0_0_6px_rgba(255,255,255,0.03)]"
+                        : "text-white/24 hover:bg-white/[0.03] hover:text-white/50",
                     ].join(" ")}
                     title={mode.description}
                   >
@@ -499,10 +499,10 @@ export default function CenterSwitcherColumn({
               tone="preview"
               badge={
                 <span
-                  className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] ${
+                  className={`inline-flex items-center gap-2 rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] ${
                     previewProgramDifferent
-                      ? "border-amber-300/18 bg-amber-400/[0.07] text-amber-100/58"
-                      : "border-sky-300/14 bg-sky-400/[0.06] text-sky-100/50"
+                      ? "border-amber-300/14 bg-amber-400/[0.05] text-amber-100/50"
+                      : "border-sky-300/10 bg-sky-400/[0.04] text-sky-100/42"
                   }`}
                 >
                   <span
@@ -536,7 +536,7 @@ export default function CenterSwitcherColumn({
               </div>
 
               {previewProgramDifferent ? (
-                <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-amber-300/82 px-3 py-1 text-center text-[9px] font-black uppercase tracking-[0.14em] text-black/82 shadow-[0_0_12px_rgba(251,191,36,0.12)]">
+                <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-amber-300/72 px-3 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-black/74 shadow-[0_0_8px_rgba(251,191,36,0.08)]">
                   Preview Ready
                 </div>
               ) : null}
@@ -560,7 +560,7 @@ export default function CenterSwitcherColumn({
                 startResizingBlock,
               })}
 
-              <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border border-sky-300/12 bg-black/36 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-sky-100/58 backdrop-blur-md">
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 rounded-full border border-sky-300/10 bg-black/28 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-sky-100/48 backdrop-blur-md">
                 PVW
               </div>
               {confidenceMonitorMode === "confidence" ? (
@@ -685,7 +685,7 @@ export default function CenterSwitcherColumn({
               subtitle="What the audience is seeing"
               tone="program"
               badge={
-                <span className="inline-flex items-center gap-2 rounded-full border border-red-300/16 bg-red-500/[0.08] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-red-100/62">
+                <span className="inline-flex items-center gap-2 rounded-full border border-red-300/12 bg-red-500/[0.05] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-red-100/54">
                   <span
                     className={`h-1.5 w-1.5 rounded-full ${
                       programState?.is_live
@@ -712,7 +712,7 @@ export default function CenterSwitcherColumn({
 
               {isTransitioning ? (
                 <div className="pointer-events-none absolute inset-0 z-50 flex items-center justify-center bg-white/[0.035] backdrop-blur-[1px]">
-                  <div className="relative overflow-hidden rounded-full border border-white/24 bg-white/92 px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.22em] text-black/82 shadow-[0_0_36px_rgba(255,255,255,0.28),0_0_16px_rgba(248,113,113,0.10)]">
+                  <div className="relative overflow-hidden rounded-full border border-white/18 bg-white/88 px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.12em] text-black/76 shadow-[0_0_20px_rgba(255,255,255,0.16),0_0_10px_rgba(248,113,113,0.06)]">
                     <span className="absolute inset-y-0 left-0 w-1/3 translate-x-[-120%] bg-gradient-to-r from-transparent via-black/10 to-transparent animate-[take-label-sheen_900ms_ease-out_infinite]" />
                     <span className="relative">
                       {lastTakeMode === "auto" ? "Auto Dissolve" : "Live Cut"}
@@ -797,7 +797,7 @@ export default function CenterSwitcherColumn({
                 </div>
               ) : null}
 
-              <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-200/18 bg-black/42 px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-red-100/68 shadow-[0_0_12px_rgba(239,68,68,0.09),inset_0_1px_0_rgba(255,255,255,0.032)] backdrop-blur-md">
+              <div className="pointer-events-none absolute bottom-3 left-3 z-20 flex items-center gap-2 rounded-full border border-red-200/12 bg-black/30 px-3 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-red-100/56 shadow-[0_0_8px_rgba(239,68,68,0.06),inset_0_1px_0_rgba(255,255,255,0.022)] backdrop-blur-md">
                 <span className="relative flex h-2.5 w-2.5 items-center justify-center">
                   <span
                     className={`absolute inset-0 rounded-full ${
@@ -901,7 +901,7 @@ export default function CenterSwitcherColumn({
           }
         }
       `}</style>
-      <div className="grid gap-2 opacity-42 transition-opacity duration-300 hover:opacity-92 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-2 opacity-34 transition-opacity duration-300 hover:opacity-86 xl:grid-cols-[1.15fr_0.85fr]">
         <MediaBlocksPanel
           previewBlocksCount={previewBlocks.length}
           onAddText={addTestTextBlock}
