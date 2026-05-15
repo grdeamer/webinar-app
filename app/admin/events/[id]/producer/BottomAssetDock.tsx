@@ -23,19 +23,19 @@ function DockStatusPill({
 }): JSX.Element {
   const toneClass =
     tone === "sky"
-      ? "border-sky-300/18 bg-sky-400/8 text-sky-100/80"
-      : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/80"
+      ? "border-sky-300/12 bg-sky-400/[0.06] text-sky-100/58"
+      : "border-emerald-300/12 bg-emerald-400/[0.06] text-emerald-100/58"
   return (
     <div className={`group relative hidden items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] lg:flex ${toneClass}`}>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
 
       <span className="relative z-10 inline-flex items-center gap-1.5">
         <span
           className={`h-1.5 w-1.5 rounded-full animate-pulse ${
             tone === "sky"
-              ? "bg-sky-300 shadow-[0_0_10px_rgba(125,211,252,0.65)]"
-              : "bg-emerald-300 shadow-[0_0_10px_rgba(110,231,183,0.65)]"
+              ? "bg-sky-300/75 shadow-[0_0_6px_rgba(125,211,252,0.32)]"
+              : "bg-emerald-300/75 shadow-[0_0_6px_rgba(110,231,183,0.32)]"
           }`}
         />
         {label}
@@ -919,44 +919,56 @@ export default function BottomAssetDock({
   void runtimeNow
 
   return (
-    <div className="group relative mt-3 overflow-hidden rounded-[34px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.12),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.08),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.88),rgba(2,4,10,0.97))] px-2.5 py-2 shadow-[0_30px_110px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.065)] backdrop-blur-xl transition duration-300 hover:border-white/14 hover:shadow-[0_36px_130px_rgba(0,0,0,0.60),0_0_36px_rgba(99,102,241,0.08)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.04] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/42 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+    <div className="group relative mt-3 overflow-hidden rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.07),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.045),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.91),rgba(2,4,10,0.975))] px-2.5 py-2 shadow-[0_24px_80px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_28px_90px_rgba(0,0,0,0.50),0_0_20px_rgba(99,102,241,0.045)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.022] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_14px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/24 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
             <Rows3 size={13} className="text-sky-100/62" />
-            Broadcast Rundown Dock
+            Asset Dock
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/45">
-            <span>Cue stack, scene recall, graphics, media, decks, and transition presets.</span>
+            <span>Scenes, graphics, media, slides, and transitions.</span>
             <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/14 bg-sky-400/8 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/55">
-              <MonitorPlay size={10} /> Operator Rail
+              <MonitorPlay size={10} /> Ready
             </span>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <ProgramBusTelemetry runtimeLabel={runtimeLabel} />
-          <DockStatusPill label="Cue Stack" value="Synced" tone="sky" />
+          <span className="hidden 2xl:inline-flex">
+            <ProgramBusTelemetry runtimeLabel={runtimeLabel} />
+          </span>
+          <DockStatusPill label="Dock" value="Ready" tone="sky" />
           <DockBankLabel icon={<Layers3 size={12} />} label="Scenes" value={String(scenes.length)} />
-          <DockBankLabel icon={<Sparkles size={12} />} label="Memory" value={`${scenes.length} slots`} />
-          <DockStatusPill label="Ingest" value="Ready" tone="green" />
-          <DockBankLabel icon={<Images size={12} />} label="Graphics" value={String(graphics.length)} />
-          <DockBankLabel icon={<Film size={12} />} label="Media" value={String(media.length)} />
-          <DockSceneLegend />
+          <span className="hidden 2xl:inline-flex">
+            <DockBankLabel icon={<Sparkles size={12} />} label="Memory" value={`${scenes.length} slots`} />
+          </span>
+          <span className="hidden 2xl:inline-flex">
+            <DockStatusPill label="Ingest" value="Ready" tone="green" />
+          </span>
+          <span className="hidden xl:inline-flex">
+            <DockBankLabel icon={<Images size={12} />} label="Graphics" value={String(graphics.length)} />
+          </span>
+          <span className="hidden xl:inline-flex">
+            <DockBankLabel icon={<Film size={12} />} label="Media" value={String(media.length)} />
+          </span>
+          <span className="hidden 2xl:inline-flex">
+            <DockSceneLegend />
+          </span>
           <KeyboardShortcutsPanel />
           <TallyIndicators />
           <span className="hidden items-center gap-2 rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/80 shadow-[0_0_18px_rgba(168,85,247,0.14)] sm:inline-flex">
             <Radio size={11} />
-            Preview Rail
+            Preview
           </span>
         </div>
       </div>
 
       <div className="grid gap-2 xl:grid-cols-[1.05fr_0.82fr_0.82fr_0.95fr_0.72fr]">
-        <DockSection title="Rundown Scenes" count={scenes.length}>
+        <DockSection title="Scenes" count={scenes.length}>
           <ViewToggle value={scenesView} onChange={setScenesView} />
 
           {scenesView === "icons" ? (
@@ -983,7 +995,7 @@ export default function BottomAssetDock({
                 <div className="flex aspect-video items-center justify-center rounded-lg border border-white/10 bg-black/28 text-xl text-white/35">
                   +
                 </div>
-                <div className="mt-1.5">Add Cue</div>
+                <div className="mt-1.5">Add</div>
               </button>
             </div>
           ) : (
@@ -1006,13 +1018,13 @@ export default function BottomAssetDock({
                 onClick={onAddScene}
                 className="flex w-full items-center justify-center rounded-2xl border border-dashed border-white/14 bg-black/20 px-2 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
               >
-                + Add Rundown Cue
+                + Add Scene
               </button>
             </div>
           )}
         </DockSection>
 
-        <DockSection title="Graphics Cue" count={graphics.length}>
+        <DockSection title="Graphics" count={graphics.length}>
           <ViewToggle value={graphicsView} onChange={setGraphicsView} />
 
           {graphicsView === "icons" ? (
@@ -1035,7 +1047,7 @@ export default function BottomAssetDock({
           )}
         </DockSection>
 
-        <DockSection title="Media Roll" count={media.length}>
+        <DockSection title="Media" count={media.length}>
           <ViewToggle value={mediaView} onChange={setMediaView} />
 
           {mediaView === "icons" ? (
@@ -1066,15 +1078,15 @@ export default function BottomAssetDock({
           onSendToPreview={onSendSlideToPreview}
           onTakeSlide={onTakeSlide}
         />
-        <DockSection title="Transition Bank" count={TRANSITION_PRESETS.length}>
+        <DockSection title="Transitions" count={TRANSITION_PRESETS.length}>
           <div className="mb-1.5 flex items-center justify-between gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/55">
             <span className="inline-flex items-center gap-2">
               <SlidersHorizontal size={11} />
-              Motion Language
+              Style
             </span>
             <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/24 px-1.5 py-0.5 text-[7px] text-white/38">
               <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.75)] animate-pulse" />
-              <Zap size={8} /> Armed
+              <Zap size={8} /> Ready
             </span>
           </div>
 

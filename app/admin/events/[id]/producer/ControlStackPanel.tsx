@@ -45,23 +45,23 @@ function ControlButton({
 }): JSX.Element {
   const toneClass = active
     ? tone === "red"
-      ? "border-red-300/36 bg-red-500/16 text-red-50 shadow-[0_0_24px_rgba(248,113,113,0.18)]"
+      ? "border-red-300/26 bg-red-500/[0.11] text-red-50 shadow-[0_0_14px_rgba(248,113,113,0.10)]"
       : tone === "green"
-        ? "border-emerald-300/30 bg-emerald-400/12 text-emerald-50 shadow-[0_0_22px_rgba(52,211,153,0.16)]"
+        ? "border-emerald-300/22 bg-emerald-400/[0.09] text-emerald-50 shadow-[0_0_12px_rgba(52,211,153,0.09)]"
         : tone === "sky"
-          ? "border-sky-300/30 bg-sky-400/12 text-sky-50 shadow-[0_0_22px_rgba(56,189,248,0.16)]"
+          ? "border-sky-300/22 bg-sky-400/[0.09] text-sky-50 shadow-[0_0_12px_rgba(56,189,248,0.09)]"
           : tone === "violet"
-            ? "border-violet-300/30 bg-violet-400/12 text-violet-50 shadow-[0_0_22px_rgba(168,85,247,0.16)]"
+            ? "border-violet-300/22 bg-violet-400/[0.09] text-violet-50 shadow-[0_0_12px_rgba(168,85,247,0.09)]"
             : tone === "amber"
-              ? "border-amber-300/30 bg-amber-400/12 text-amber-50 shadow-[0_0_22px_rgba(251,191,36,0.16)]"
-              : "border-white/18 bg-white/[0.08] text-white"
-    : "border-white/10 bg-black/22 text-white/54 hover:border-white/18 hover:bg-white/[0.06] hover:text-white"
+              ? "border-amber-300/22 bg-amber-400/[0.09] text-amber-50 shadow-[0_0_12px_rgba(251,191,36,0.09)]"
+              : "border-white/14 bg-white/[0.055] text-white/86"
+    : "border-white/8 bg-black/18 text-white/42 hover:border-white/14 hover:bg-white/[0.04] hover:text-white/78"
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[18px] border px-3 py-2.5 text-left transition hover:-translate-y-0.5 active:translate-y-0 ${toneClass}`}
+      className={`rounded-[16px] border px-3 py-2.5 text-left transition hover:-translate-y-px active:translate-y-0 ${toneClass}`}
     >
       <div className="text-[10px] font-black uppercase tracking-[0.16em]">{label}</div>
       {detail ? (
@@ -91,27 +91,27 @@ export default function ControlStackPanel({
   const selectedPreset = screenLayoutPreset
 
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.07),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))] p-4 shadow-[0_24px_74px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.022] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_10px)]" />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/42 to-transparent" />
+    <div className="relative overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.045),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.012] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_14px)]" />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/20 to-transparent" />
 
       <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/70">
             <Radio size={14} />
-            Control Stack
+            Controls
           </div>
           <div className="mt-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-white/34">
-            Broadcast controls and layout tools
+            Live controls and layout tools
           </div>
         </div>
         <div
           className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
             takeBusy
-              ? "border-red-300/22 bg-red-500/12 text-red-100"
+              ? "border-red-300/16 bg-red-500/[0.08] text-red-100/64"
               : previewProgramDifferent
-                ? "border-amber-300/18 bg-amber-400/10 text-amber-100/70"
-                : "border-emerald-300/16 bg-emerald-400/8 text-emerald-100/62"
+                ? "border-amber-300/14 bg-amber-400/[0.08] text-amber-100/58"
+                : "border-emerald-300/12 bg-emerald-400/[0.07] text-emerald-100/54"
           }`}
         >
           {takeBusy ? "Transition Active" : previewProgramDifferent ? "Preview Ready" : "Stable"}
@@ -123,7 +123,7 @@ export default function ControlStackPanel({
           type="button"
           disabled={takeBusy}
           onClick={onTake}
-          className="rounded-[22px] border border-red-300/28 bg-red-500/12 px-4 py-3 text-left text-red-50 shadow-[0_0_30px_rgba(248,113,113,0.16),inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:-translate-y-0.5 hover:bg-red-500/18 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
+          className="rounded-[20px] border border-red-300/20 bg-red-500/[0.09] px-4 py-3 text-left text-red-50 shadow-[0_0_16px_rgba(248,113,113,0.10),inset_0_1px_0_rgba(255,255,255,0.04)] transition hover:-translate-y-px hover:bg-red-500/[0.13] active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45"
         >
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.2em]">
@@ -134,7 +134,7 @@ export default function ControlStackPanel({
             </span>
           </div>
           <div className="mt-1 text-[11px] font-semibold text-red-100/52">
-            Move Preview live to audience.
+            Send Preview to Program.
           </div>
         </button>
 
@@ -156,8 +156,8 @@ export default function ControlStackPanel({
         </div>
       </div>
 
-      <div className="relative z-10 mt-4 rounded-[22px] border border-white/10 bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-        <div className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/38">
+      <div className="relative z-10 mt-4 rounded-[20px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+        <div className="mb-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
           <MonitorUp size={12} /> Stage Layout
         </div>
         <div className="grid grid-cols-3 gap-2">
@@ -182,9 +182,9 @@ export default function ControlStackPanel({
         </div>
       </div>
 
-      <div className="relative z-10 mt-4 rounded-[22px] border border-white/10 bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="relative z-10 mt-4 rounded-[20px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/38">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
             <Camera size={12} /> Screen Layout
           </div>
           <button
@@ -192,8 +192,8 @@ export default function ControlStackPanel({
             onClick={onToggleAutoDirector}
             className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition ${
               autoDirectorEnabled
-                ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100/70"
-                : "border-white/10 bg-black/24 text-white/36 hover:text-white/62"
+                ? "border-emerald-300/14 bg-emerald-400/[0.07] text-emerald-100/54"
+                : "border-white/8 bg-black/18 text-white/28 hover:text-white/52"
             }`}
           >
             Auto {autoDirectorEnabled ? "On" : "Off"}
@@ -221,12 +221,12 @@ export default function ControlStackPanel({
         </div>
       </div>
 
-      <div className="relative z-10 mt-4 rounded-[22px] border border-white/10 bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="relative z-10 mt-4 rounded-[20px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/38">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
             <SlidersHorizontal size={12} /> Monitor Height
           </div>
-          <div className="text-[10px] font-black tabular-nums text-white/44">{monitorHeight}px</div>
+          <div className="text-[10px] font-black tabular-nums text-white/34">{monitorHeight}px</div>
         </div>
         <input
           type="range"
@@ -240,21 +240,21 @@ export default function ControlStackPanel({
       </div>
 
       <div className="relative z-10 mt-4 grid grid-cols-3 gap-2 text-center">
-        <div className="rounded-[16px] border border-white/8 bg-black/22 p-2">
-          <ShieldCheck size={13} className="mx-auto text-emerald-100/62" />
-          <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
+        <div className="rounded-[14px] border border-white/6 bg-black/16 p-2">
+          <ShieldCheck size={13} className="mx-auto text-emerald-100/46" />
+          <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/24">
             Ready
           </div>
         </div>
-        <div className="rounded-[16px] border border-white/8 bg-black/22 p-2">
-          <SatelliteDish size={13} className="mx-auto text-sky-100/62" />
-          <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
+        <div className="rounded-[14px] border border-white/6 bg-black/16 p-2">
+          <SatelliteDish size={13} className="mx-auto text-sky-100/46" />
+          <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/24">
             Stable
           </div>
         </div>
-        <div className="rounded-[16px] border border-white/8 bg-black/22 p-2">
-          <Globe2 size={13} className="mx-auto text-violet-100/62" />
-          <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
+        <div className="rounded-[14px] border border-white/6 bg-black/16 p-2">
+          <Globe2 size={13} className="mx-auto text-violet-100/46" />
+          <div className="mt-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/24">
             Audience
           </div>
         </div>

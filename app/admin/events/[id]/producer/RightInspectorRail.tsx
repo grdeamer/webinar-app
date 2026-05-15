@@ -59,11 +59,11 @@ type StageState = {
 function RightRailAtmosphere(): JSX.Element {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-violet-300/7 via-sky-300/4 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[rightRailSignalSweep_12s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.055] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/24 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-violet-300/[0.05] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-36 bg-gradient-to-b from-violet-300/5 via-sky-300/3 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[rightRailSignalSweep_16s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.035] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_8px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/14 to-transparent" />
+      <div className="pointer-events-none absolute inset-y-0 right-0 w-20 bg-gradient-to-l from-violet-300/[0.03] to-transparent" />
     </>
   )
 }
@@ -78,19 +78,19 @@ function RailSectionLabel({
   sub: string
 }): JSX.Element {
   return (
-    <div className="relative overflow-hidden flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/22 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
+    <div className="relative overflow-hidden flex items-center justify-between gap-3 rounded-[20px] border border-white/6 bg-black/16 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
       <div className="relative z-10 flex min-w-0 items-center gap-2.5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] text-white/72 shadow-[0_10px_30px_rgba(0,0,0,0.2)]">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] text-white/48 shadow-[0_8px_22px_rgba(0,0,0,0.14)]">
           {icon}
         </span>
 
         <div className="min-w-0">
-          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/32">
+          <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/24">
             {title}
           </div>
-          <div className="truncate text-sm font-semibold text-white/82">
+          <div className="truncate text-sm font-semibold text-white/64">
             {sub}
           </div>
         </div>
@@ -116,18 +116,18 @@ function InspectorStatusChip({
 }): JSX.Element {
   const toneClass =
     tone === "sky"
-      ? "border-sky-300/14 bg-sky-400/8 text-sky-100/62"
+      ? "border-sky-300/10 bg-sky-400/[0.06] text-sky-100/52"
       : tone === "green"
-        ? "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/62"
+        ? "border-emerald-300/10 bg-emerald-400/[0.06] text-emerald-100/52"
         : tone === "violet"
-          ? "border-violet-300/14 bg-violet-400/8 text-violet-100/62"
+          ? "border-violet-300/10 bg-violet-400/[0.06] text-violet-100/52"
           : tone === "amber"
-            ? "border-amber-300/14 bg-amber-400/8 text-amber-100/62"
-            : "border-white/10 bg-black/24 text-white/42"
+            ? "border-amber-300/10 bg-amber-400/[0.06] text-amber-100/52"
+            : "border-white/8 bg-black/18 text-white/34"
 
   return (
     <div className={`relative z-10 flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
-      <span className="opacity-80">{icon}</span>
+      <span className="opacity-58">{icon}</span>
       <span className="text-white/30">{label}</span>
       <span>{value}</span>
     </div>
@@ -136,27 +136,27 @@ function InspectorStatusChip({
 
 function InspectorTelemetryStrip(): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.05),transparent_32%),linear-gradient(180deg,rgba(12,10,28,0.955),rgba(3,4,10,0.99))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[rightRailSignalSweep_12s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/26 to-transparent" />
+    <div className="relative overflow-hidden rounded-[26px] border border-violet-300/9 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.05),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.032),transparent_32%),linear-gradient(180deg,rgba(12,10,28,0.965),rgba(3,4,10,0.99))] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.032)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[rightRailSignalSweep_16s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/14 to-transparent" />
       <div className="relative z-10 flex items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/68">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">
             <Sparkles size={13} />
             Inspector
           </div>
 
-          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
+          <div className="mt-1 text-sm font-semibold tracking-tight text-white/70">
             Layers, capture, and source routing
           </div>
         </div>
 
-        <div className="rounded-full border border-violet-300/14 bg-violet-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/62 shadow-[0_0_18px_rgba(168,85,247,0.12)]">
+        <div className="rounded-full border border-violet-300/10 bg-violet-400/[0.06] px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/48 shadow-[0_0_8px_rgba(168,85,247,0.045)]">
           Ready
         </div>
       </div>
 
-      <div className="relative z-10 mt-3 flex flex-wrap gap-2">
+      <div className="relative z-10 mt-3 hidden flex-wrap gap-2 2xl:flex">
         <InspectorStatusChip
           icon={<SatelliteDish size={10} />}
           label="Signal"
@@ -186,30 +186,30 @@ function InspectorTelemetryStrip(): JSX.Element {
         />
       </div>
 
-      <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
+      <div className="relative z-10 mt-3 hidden grid-cols-3 gap-2 2xl:grid">
         {[
           {
             label: "Inspector",
             value: "Ready",
-            tone: "border-sky-300/14 bg-sky-400/8 text-sky-100/70",
+            tone: "border-sky-300/10 bg-sky-400/[0.06] text-sky-100/52",
           },
           {
             label: "Routing",
             value: "Ready",
-            tone: "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/70",
+            tone: "border-emerald-300/10 bg-emerald-400/[0.06] text-emerald-100/52",
           },
           {
             label: "Capture",
             value: "Ready",
-            tone: "border-violet-300/14 bg-violet-400/8 text-violet-100/70",
+            tone: "border-violet-300/10 bg-violet-400/[0.06] text-violet-100/52",
           },
         ].map((item) => (
           <div
             key={item.label}
             className={`relative overflow-hidden rounded-2xl border px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${item.tone}`}
           >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-            <div className="relative z-10 mx-auto mb-1 h-1.5 w-1.5 rounded-full bg-current opacity-55 shadow-[0_0_10px_currentColor]" />
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+            <div className="relative z-10 mx-auto mb-1 h-1.5 w-1.5 rounded-full bg-current opacity-40 shadow-[0_0_5px_currentColor]" />
             <div className="text-[8px] font-black uppercase tracking-[0.16em] opacity-70">
               {item.label}
             </div>
@@ -225,31 +225,28 @@ function InspectorTelemetryStrip(): JSX.Element {
 
 function RecordingCenterPanel(): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-red-300/14 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.075),transparent_34%),linear-gradient(180deg,rgba(20,8,10,0.955),rgba(8,4,6,0.98))] p-3 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[rightRailSignalSweep_13s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-red-200/28 to-transparent" />
+    <div className="relative overflow-hidden rounded-[26px] border border-red-300/10 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.045),transparent_34%),linear-gradient(180deg,rgba(20,8,10,0.965),rgba(8,4,6,0.98))] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.032)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[rightRailSignalSweep_16s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-red-200/14 to-transparent" />
       <div className="relative z-10">
         <div className="flex items-center justify-between gap-3">
           <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-red-100/72">
-            <CircleDot
-              size={12}
-              className="animate-pulse text-red-300"
-            />
-            Recording
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-red-100/50">
+              <CircleDot size={12} className="text-red-300/70" />
+              Recording
+            </div>
+
+            <div className="mt-1 text-lg font-semibold tracking-tight text-white/74">
+              Program and ISO capture
+            </div>
           </div>
 
-          <div className="mt-1 text-lg font-semibold tracking-tight text-white">
-            Program and ISO capture
+          <div className="rounded-full border border-red-300/12 bg-red-400/[0.07] px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-red-100/54 shadow-[0_0_8px_rgba(248,113,113,0.045)]">
+            Ready
           </div>
-          </div>
-
-        <div className="rounded-full border border-red-300/20 bg-red-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-100/78 shadow-[0_0_18px_rgba(248,113,113,0.12)]">
-          Ready
-        </div>
         </div>
 
-        <div className="mt-3 rounded-[24px] border border-violet-300/10 bg-violet-400/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="mt-3 rounded-[22px] border border-violet-300/8 bg-violet-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-violet-100/58">
@@ -257,12 +254,12 @@ function RecordingCenterPanel(): JSX.Element {
                 Capture Status
               </div>
 
-              <div className="mt-1 text-sm font-semibold text-white/84">
+              <div className="mt-1 text-sm font-semibold text-white/68">
                 Program and ISO feeds stable
               </div>
             </div>
 
-            <div className="rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/58">
+            <div className="rounded-full border border-violet-300/10 bg-violet-400/[0.06] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/46">
               59.94 fps
             </div>
           </div>
@@ -274,10 +271,10 @@ function RecordingCenterPanel(): JSX.Element {
                 className={[
                   "h-8 flex-1 rounded-full",
                   index > 18
-                    ? "bg-red-300/70"
+                    ? "bg-red-300/46"
                     : index > 13
-                      ? "bg-amber-300/70"
-                      : "bg-emerald-300/70",
+                      ? "bg-amber-300/46"
+                      : "bg-emerald-300/46",
                 ].join(" ")}
               />
             ))}
@@ -285,7 +282,7 @@ function RecordingCenterPanel(): JSX.Element {
         </div>
 
         <div className="mt-3 grid gap-2 sm:grid-cols-2">
-          <div className="rounded-2xl border border-white/8 bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="rounded-2xl border border-white/6 bg-black/16 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
             <div className="flex items-center justify-between gap-3">
               <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
                 Program Feed
@@ -293,17 +290,17 @@ function RecordingCenterPanel(): JSX.Element {
               <ShieldCheck size={13} className="text-emerald-200/62" />
             </div>
 
-            <div className="mt-2 text-xl font-black tracking-tight text-white tabular-nums">
+            <div className="mt-2 text-lg font-black tracking-tight text-white/76 tabular-nums">
               01:18:42
             </div>
 
             <div className="mt-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/52">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.8)]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75 shadow-[0_0_5px_rgba(110,231,183,0.32)]" />
               Archive Stable
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/8 bg-black/24 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="rounded-2xl border border-white/6 bg-black/16 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
             <div className="flex items-center justify-between gap-3">
               <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
                 ISO Feeds
@@ -311,18 +308,18 @@ function RecordingCenterPanel(): JSX.Element {
               <Archive size={13} className="text-amber-100/58" />
             </div>
 
-            <div className="mt-2 text-xl font-black tracking-tight text-white">
-              4 Armed
+            <div className="mt-2 text-lg font-black tracking-tight text-white/76">
+              4 Ready
             </div>
 
             <div className="mt-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-amber-100/52">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(252,211,77,0.75)]" />
-              Rolling Isolation
+              <span className="h-1.5 w-1.5 rounded-full bg-amber-300/75 shadow-[0_0_5px_rgba(252,211,77,0.30)]" />
+              ISO Ready
             </div>
           </div>
         </div>
 
-        <div className="mt-3 rounded-[24px] border border-white/8 bg-black/26 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="mt-3 hidden rounded-[22px] border border-white/6 bg-black/16 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] 2xl:block">
           <div className="flex items-center justify-between gap-3">
             <div>
               <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
@@ -350,7 +347,7 @@ function RecordingCenterPanel(): JSX.Element {
           </div>
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2">
+        <div className="mt-3 hidden grid-cols-3 gap-2 2xl:grid">
           {[
             {
               label: "Program",
@@ -385,7 +382,7 @@ function RecordingCenterPanel(): JSX.Element {
           ))}
         </div>
 
-        <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/8 bg-black/24 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="mt-3 flex items-center justify-between rounded-2xl border border-white/6 bg-black/16 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
           <span className="flex items-center gap-2">
             <TimerReset size={11} className="text-red-200/55" />
             Continuous Capture
@@ -442,7 +439,7 @@ export default function RightInspectorRail({
   onError: (value: string | null) => void
 }): JSX.Element {
   return (
-    <div className="group relative overflow-hidden space-y-3 rounded-[38px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.08),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.92),rgba(2,4,10,0.99))] p-2.5 shadow-[0_38px_140px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition duration-300 hover:border-white/14 xl:col-start-3">
+    <div className="group relative overflow-hidden space-y-3 rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.07),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.045),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.945),rgba(2,4,10,0.99))] p-2.5 shadow-[0_24px_86px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition duration-300 hover:border-white/11 xl:col-start-3">
       <RightRailAtmosphere />
       <div className="relative z-10 space-y-3">
         <InspectorTelemetryStrip />
@@ -534,7 +531,7 @@ export default function RightInspectorRail({
             transform: translateX(-18%);
           }
           46% {
-            opacity: 0.42;
+            opacity: 0.24;
           }
           100% {
             transform: translateX(18%);

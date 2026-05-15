@@ -42,19 +42,19 @@ function SignalAtmosphere({
 }): JSX.Element {
   const glowClass =
     tone === "screen"
-      ? "from-sky-300/16 via-sky-300/5"
+      ? "from-sky-300/10 via-sky-300/3"
       : tone === "speaker"
-        ? "from-violet-300/14 via-violet-300/5"
+        ? "from-violet-300/9 via-violet-300/3"
         : live
-          ? "from-red-300/12 via-red-300/5"
-          : "from-white/8 via-white/[0.03]"
+          ? "from-red-300/8 via-red-300/3"
+          : "from-white/5 via-white/[0.02]"
 
   return (
     <>
       <div className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glowClass} to-transparent`} />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] animate-[stageSignalSweep_9s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
-      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] animate-[stageSignalSweep_14s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.04] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_8px)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </>
   )
 }
@@ -409,7 +409,7 @@ export default function StageVideoPreview({
           }
 
           46% {
-            opacity: 0.78;
+            opacity: 0.26;
           }
 
           100% {
@@ -425,7 +425,7 @@ export default function StageVideoPreview({
           }
 
           42% {
-            opacity: 0.82;
+            opacity: 0.28;
           }
 
           100% {

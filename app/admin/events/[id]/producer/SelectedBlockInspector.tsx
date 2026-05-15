@@ -31,9 +31,9 @@ function InspectorField({
   children: React.ReactNode
 }) {
   return (
-    <div className="space-y-2">
-      <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/36">
-        <span className="h-1.5 w-1.5 rounded-full bg-violet-300/70 shadow-[0_0_8px_rgba(196,181,253,0.65)]" />
+    <div className="space-y-1.5">
+      <label className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/28">
+        <span className="h-1.5 w-1.5 rounded-full bg-violet-300/60 shadow-[0_0_5px_rgba(196,181,253,0.28)]" />
         {label}
       </label>
       {children}
@@ -45,7 +45,7 @@ function InspectorInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   return (
     <input
       {...props}
-      className="w-full rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.02))] px-3 py-2.5 text-sm text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] outline-none transition focus:border-violet-300/22 focus:bg-violet-400/[0.06]"
+      className="w-full rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] px-3 py-2.5 text-sm text-white/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)] outline-none transition focus:border-violet-300/16 focus:bg-violet-400/[0.04]"
     />
   )
 }
@@ -62,13 +62,13 @@ export default function SelectedBlockInspector({
 }: SelectedBlockInspectorProps) {
   if (!selectedBlock) {
     return (
-      <div className="mb-5 rounded-[28px] border border-dashed border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.08),transparent_34%),rgba(255,255,255,0.02)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/56">
+      <div className="mb-5 rounded-[24px] border border-dashed border-violet-300/8 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.05),transparent_34%),rgba(255,255,255,0.012)] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/42">
           <Sparkles size={13} />
           Inspector Ready
         </div>
 
-        <div className="mt-2 text-sm leading-6 text-white/42">
+        <div className="mt-2 text-sm leading-6 text-white/32">
           Select a layer to adjust layout, visibility, and media settings.
         </div>
       </div>
@@ -76,46 +76,46 @@ export default function SelectedBlockInspector({
   }
 
   return (
-    <div className="mb-5 rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.06),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] p-4 shadow-[0_24px_80px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="mb-4 flex items-start justify-between gap-3 rounded-[24px] border border-violet-300/12 bg-violet-400/[0.05] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div className="mb-5 rounded-[24px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.04),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="mb-4 flex items-start justify-between gap-3 rounded-[22px] border border-violet-300/8 bg-violet-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/60">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/44">
             <Layers3 size={13} />
             Selected Layer
           </div>
 
-          <div className="mt-1 text-base font-semibold tracking-tight text-white">
+          <div className="mt-1 text-base font-semibold tracking-tight text-white/78">
             {selectedBlock.label || selectedBlock.type}
           </div>
 
-          <div className="mt-1 text-xs text-white/42">
+          <div className="mt-1 text-xs text-white/32">
             Layout and source settings
           </div>
         </div>
 
-        <div className="rounded-full border border-violet-300/14 bg-violet-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/60 shadow-[0_0_18px_rgba(168,85,247,0.1)]">
+        <div className="rounded-full border border-violet-300/10 bg-violet-400/[0.06] px-3 py-1 text-[9px] font-black uppercase tracking-[0.14em] text-violet-100/46 shadow-[0_0_8px_rgba(168,85,247,0.04)]">
           {selectedBlock.type}
         </div>
       </div>
 
-      <div className="mb-4 flex items-center justify-between gap-3 rounded-[24px] border border-white/10 bg-black/20 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="mb-4 flex items-center justify-between gap-3 rounded-[22px] border border-white/8 bg-black/16 px-3 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/36">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/28">
             <ScanLine size={12} />
             Visibility
           </div>
 
-          <div className="mt-1 text-sm text-white/56">
+          <div className="mt-1 text-sm text-white/42">
             {selectedBlock.hidden ? "Layer hidden from output" : "Layer visible in output"}
           </div>
         </div>
 
         <button
           onClick={onToggleHidden}
-          className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition-all ${
+          className={`inline-flex items-center gap-2 rounded-2xl border px-4 py-2 text-sm font-semibold transition-all hover:-translate-y-px ${
             selectedBlock.hidden
-              ? "border-amber-300/24 bg-amber-400/10 text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.05)]"
-              : "border-emerald-300/24 bg-emerald-400/10 text-emerald-100 shadow-[0_0_12px_rgba(52,211,153,0.05)]"
+              ? "border-amber-300/14 bg-amber-400/[0.07] text-amber-100/62 shadow-[0_0_6px_rgba(251,191,36,0.03)]"
+              : "border-emerald-300/14 bg-emerald-400/[0.07] text-emerald-100/62 shadow-[0_0_6px_rgba(52,211,153,0.03)]"
           }`}
         >
           {selectedBlock.hidden ? <Eye size={15} /> : <EyeOff size={15} />}
@@ -135,14 +135,14 @@ export default function SelectedBlockInspector({
           />
         </InspectorField>
 
-        <div className="rounded-[24px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="rounded-[22px] border border-white/6 bg-black/14 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
           <div className="mb-3 flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/36">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/28">
               <Move size={13} className="text-violet-100/58" />
               Layout Controls
             </div>
 
-            <div className="rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+            <div className="rounded-full border border-white/8 bg-white/[0.022] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
               Canvas
             </div>
           </div>
@@ -192,7 +192,7 @@ export default function SelectedBlockInspector({
             />
           </InspectorField>
           <InspectorField label="Type">
-            <div className="flex items-center gap-2 rounded-2xl border border-white/10 bg-black/20 px-3 py-2.5 text-sm text-white/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-black/16 px-3 py-2.5 text-sm text-white/56 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
               <Type size={14} className="text-violet-200/60" />
               {selectedBlock.type}
             </div>

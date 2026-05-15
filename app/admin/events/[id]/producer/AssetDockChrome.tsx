@@ -9,11 +9,11 @@ function ShortcutPill({
   action: string
 }): JSX.Element {
   return (
-    <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.035] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <span className="rounded-md border border-white/10 bg-black/35 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/80">
+    <div className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.025] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <span className="rounded-md border border-white/8 bg-black/28 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/68">
         {keyLabel}
       </span>
-      <span className="text-[9px] font-black uppercase tracking-[0.12em] text-white/45">
+      <span className="text-[9px] font-black uppercase tracking-[0.12em] text-white/34">
         {action}
       </span>
     </div>
@@ -22,9 +22,9 @@ function ShortcutPill({
 
 export function KeyboardShortcutsPanel(): JSX.Element {
   return (
-    <div className="hidden xl:flex items-center gap-1.5 rounded-full border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] px-2 py-1 shadow-[0_0_20px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div className="hidden 2xl:flex items-center gap-1.5 rounded-full border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] px-2 py-1 shadow-[0_0_12px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]">
       <span className="mr-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
-        Hotkeys
+        Shortcuts
       </span>
       <ShortcutPill keyLabel="Space" action="Take" />
       <ShortcutPill keyLabel="1-9" action="Preview Scene" />
@@ -37,17 +37,17 @@ export function KeyboardShortcutsPanel(): JSX.Element {
 
 export function TallyIndicators(): JSX.Element {
   return (
-    <div className="hidden lg:flex items-center gap-1.5 rounded-full border border-white/10 bg-black/25 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="flex items-center gap-1.5 rounded-full border border-emerald-300/15 bg-emerald-400/8 px-2 py-1">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_9px_rgba(110,231,183,0.85)]" />
-        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/75">
+    <div className="hidden xl:flex items-center gap-1.5 rounded-full border border-white/8 bg-black/18 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <div className="flex items-center gap-1.5 rounded-full border border-emerald-300/10 bg-emerald-400/[0.06] px-2 py-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75 shadow-[0_0_5px_rgba(110,231,183,0.34)]" />
+        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/58">
           Preview
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5 rounded-full border border-red-300/18 bg-red-400/10 px-2 py-1">
-        <span className="h-1.5 w-1.5 rounded-full bg-red-300 shadow-[0_0_10px_rgba(252,165,165,0.9)]" />
-        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-red-100/80">
+      <div className="flex items-center gap-1.5 rounded-full border border-red-300/12 bg-red-400/[0.07] px-2 py-1">
+        <span className="h-1.5 w-1.5 rounded-full bg-red-300/78 shadow-[0_0_5px_rgba(252,165,165,0.36)]" />
+        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-red-100/60">
           Program
         </span>
       </div>
@@ -75,14 +75,14 @@ export function DockSectionHeader({
 
   return (
     <div className="mb-2 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/40">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/10 bg-black/25 text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/32">
+        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/8 bg-black/18 text-white/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
           {icon}
         </span>
         <span>{title}</span>
       </div>
 
-      <span className="rounded-full border border-white/10 bg-black/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/45">
+      <span className="rounded-full border border-white/8 bg-black/22 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
         {count}
       </span>
     </div>
@@ -99,7 +99,7 @@ export function DockSection({
   children: ReactNode
 }): JSX.Element {
   return (
-    <div className="rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.055),0_18px_44px_rgba(0,0,0,0.18)]">
+    <div className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_12px_30px_rgba(0,0,0,0.14)]">
       <DockSectionHeader title={title} count={count} />
 
       {children}
