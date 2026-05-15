@@ -564,15 +564,15 @@ function TransitionIntentStrip({
     <div className="rounded-[26px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.012))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-            Transition Style
+          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/26">
+            Transition Preset
           </div>
-          <div className="mt-1 text-[11px] font-semibold text-white/46">
-            Choose the look before the next TAKE.
+          <div className="mt-1 text-[11px] font-semibold text-white/36">
+            Select the look. Transport handles the move.
           </div>
         </div>
-        <div className="rounded-full border border-violet-300/14 bg-violet-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/58">
-          {selectedTransitionDurationMs}ms selected
+        <div className="rounded-full border border-violet-300/10 bg-violet-400/[0.055] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-violet-100/42">
+          {selectedTransitionDurationMs}ms
         </div>
       </div>
 
@@ -588,26 +588,26 @@ function TransitionIntentStrip({
               className={[
                 "rounded-[22px] border px-3 py-3 text-left transition-all duration-200 hover:-translate-y-0.5 active:translate-y-0",
                 active
-                  ? "border-violet-300/28 bg-violet-400/14 shadow-[0_0_30px_rgba(168,85,247,0.18),inset_0_1px_0_rgba(255,255,255,0.045)]"
-                  : "border-white/10 bg-black/20 hover:border-white/18 hover:bg-white/[0.045]",
+                  ? "border-violet-300/18 bg-violet-400/[0.085] shadow-[0_0_16px_rgba(168,85,247,0.10),inset_0_1px_0_rgba(255,255,255,0.028)]"
+                  : "border-white/7 bg-black/14 hover:border-white/12 hover:bg-white/[0.03]",
               ].join(" ")}
             >
               <div className="flex items-center justify-between gap-2">
-                <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/66">
+                <div className="text-[9px] font-black uppercase tracking-[0.10em] text-white/54">
                   {option.label}
                 </div>
                 <div
                   className={[
-                    "rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em]",
+                    "rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em]",
                     active
-                      ? "border-violet-300/18 bg-violet-400/10 text-violet-100/74"
-                      : "border-white/8 bg-black/22 text-white/34",
+                      ? "border-violet-300/12 bg-violet-400/[0.065] text-violet-100/56"
+                      : "border-white/6 bg-black/16 text-white/24",
                   ].join(" ")}
                 >
                   {active ? "Selected" : "Ready"}
                 </div>
               </div>
-              <div className="mt-2 text-[11px] font-semibold leading-relaxed text-white/42">
+              <div className="mt-1.5 text-[10px] font-semibold leading-relaxed text-white/32">
                 {option.detail}
               </div>
             </button>
@@ -625,10 +625,10 @@ function TransitionIntentStrip({
               type="button"
               onClick={() => onTransitionDurationChange(duration)}
               className={[
-                "rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] transition-all duration-200",
+                "rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-[0.10em] transition-all duration-200",
                 active
-                  ? "border-violet-300/28 bg-violet-400/16 text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.20)]"
-                  : "border-white/10 bg-black/28 text-white/42 hover:border-white/18 hover:bg-white/[0.05] hover:text-white",
+                  ? "border-violet-300/18 bg-violet-400/[0.095] text-violet-100/70 shadow-[0_0_12px_rgba(168,85,247,0.10)]"
+                  : "border-white/7 bg-black/18 text-white/30 hover:border-white/12 hover:bg-white/[0.035] hover:text-white/60",
               ].join(" ")}
             >
               {duration}ms
@@ -1010,7 +1010,7 @@ export default function BroadcastCommandDeck({
   const transportRuntimeLabel = TRANSPORT_RUNTIME_STATES[transportRuntimeIndex]
 
   return (
-    <div className="relative mb-3 space-y-2.5 overflow-hidden rounded-[36px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.075),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.055),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.045),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.925),rgba(2,4,10,0.98))] px-3 py-3 shadow-[0_30px_120px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)] md:px-4 xl:px-5 2xl:px-6">
+    <div className="relative mb-2.5 space-y-2 overflow-hidden rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.045),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.035),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.03),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.905),rgba(2,4,10,0.975))] px-3 py-2.5 shadow-[0_22px_82px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.038)] md:px-3.5 xl:px-4 2xl:px-5">
       <CommandDeckAtmosphere
         isLive={isLive}
         armed={previewProgramDifferent}
@@ -1043,20 +1043,20 @@ export default function BroadcastCommandDeck({
         />
       </div>
 
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-3 overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] px-3 py-2.5 shadow-[0_18px_55px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_13s_ease-in-out_infinite]" />
-        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-2 overflow-hidden rounded-[18px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] px-2.5 py-2 shadow-[0_12px_34px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.024)]">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.009)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_18s_ease-in-out_infinite]" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
         <div className="relative z-10">
-          <div className="text-[9px] font-black uppercase tracking-[0.22em] text-white/32">
-            Command State
+          <div className="text-[8px] font-black uppercase tracking-[0.10em] text-white/22">
+            Console State
           </div>
 
-          <div className="mt-1 text-sm font-semibold tracking-tight text-white">
+          <div className="mt-0.5 text-xs font-semibold tracking-tight text-white/72">
             {commandState} · {transportRuntimeLabel}
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-2">
+        <div className="relative z-10 flex flex-wrap items-center gap-1.5">
           <CommandStatusPill
             label="Program"
             value={isLive ? "Live" : "Standby"}
@@ -1082,10 +1082,10 @@ export default function BroadcastCommandDeck({
               setDeckDensityMode("custom")
             }}
             className={[
-              "rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] transition-all duration-200",
+              "rounded-full border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] transition-all duration-200",
               showHealthCards
-                ? "border-sky-300/22 bg-sky-400/12 text-sky-100 shadow-[0_0_20px_rgba(56,189,248,0.14)]"
-                : "border-white/10 bg-black/24 text-white/38 hover:border-white/18 hover:bg-white/[0.05] hover:text-white/74",
+                ? "border-sky-300/14 bg-sky-400/[0.075] text-sky-100/58 shadow-[0_0_10px_rgba(56,189,248,0.07)]"
+                : "border-white/7 bg-black/16 text-white/28 hover:border-white/12 hover:bg-white/[0.03] hover:text-white/56",
             ].join(" ")}
           >
             {showHealthCards ? "Hide Diagnostics" : "Show Diagnostics"}

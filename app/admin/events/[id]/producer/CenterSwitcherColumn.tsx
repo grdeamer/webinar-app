@@ -77,26 +77,26 @@ function SwitcherSurfaceChrome({
 
 function MultiviewOverlay({ label }: { label: string }): JSX.Element {
   return (
-    <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[22px]">
-      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.035)_1px,transparent_1px)] bg-[size:25%_25%] opacity-40" />
+    <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[20px]">
+      <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:25%_25%] opacity-28" />
 
-      <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px bg-white/6">
+      <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px bg-white/[0.035]">
         {["Program", "Preview", "Confidence", "Telemetry"].map((cell) => (
-          <div key={cell} className="relative overflow-hidden bg-black/18">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.08),transparent_48%)]" />
+          <div key={cell} className="relative overflow-hidden bg-black/24">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.035),transparent_48%)]" />
 
-            <div className="absolute left-2 top-2 rounded-full border border-white/10 bg-black/40 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/46 backdrop-blur-sm">
+            <div className="absolute left-2 top-2 rounded-full border border-white/7 bg-black/30 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white/34 backdrop-blur-sm">
               {cell}
             </div>
 
             <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-12 w-20 rounded-xl border border-white/8 bg-white/[0.03] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]" />
+              <div className="h-10 w-16 rounded-lg border border-white/6 bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]" />
             </div>
           </div>
         ))}
       </div>
 
-      <div className="absolute bottom-3 right-3 rounded-full border border-violet-300/20 bg-black/65 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-violet-100/72 shadow-[0_0_20px_rgba(168,85,247,0.12)] backdrop-blur-md">
+      <div className="absolute bottom-3 right-3 rounded-full border border-violet-300/12 bg-black/46 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-violet-100/52 shadow-[0_0_10px_rgba(168,85,247,0.06)] backdrop-blur-md">
         {label}
       </div>
     </div>
@@ -128,30 +128,30 @@ function PresenterConfidenceCue({
   }, [isProgram]);
 
   return (
-    <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[22px]">
-      <div className="absolute inset-x-0 top-0 h-20 bg-gradient-to-b from-violet-950/55 to-transparent" />
-      <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
+    <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[20px]">
+      <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-violet-950/34 to-transparent" />
+      <div className="absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/58 to-transparent" />
 
-      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full border border-violet-300/20 bg-black/62 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/78 shadow-[0_0_24px_rgba(168,85,247,0.12)] backdrop-blur-md">
-        <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.75)]" />
+      <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full border border-violet-300/12 bg-black/44 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-violet-100/56 shadow-[0_0_10px_rgba(168,85,247,0.06)] backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-violet-300/72 shadow-[0_0_5px_rgba(196,181,253,0.28)]" />
         Confidence Return
       </div>
 
-      <div className="absolute right-3 top-3 flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/70 shadow-[0_0_20px_rgba(52,211,153,0.1)] backdrop-blur-md">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.75)]" />
+      <div className="absolute right-3 top-3 flex items-center gap-2 rounded-full border border-emerald-300/12 bg-emerald-400/[0.07] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/52 shadow-[0_0_8px_rgba(52,211,153,0.05)] backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/72 shadow-[0_0_5px_rgba(110,231,183,0.28)]" />
         Return Active
       </div>
 
-      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-[28px] border border-white/10 bg-black/50 px-6 py-4 text-center shadow-[0_24px_80px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md">
-        <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/36">
+      <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-[22px] border border-white/7 bg-black/42 px-5 py-3 text-center shadow-[0_16px_44px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.026)] backdrop-blur-md">
+        <div className="text-[8px] font-black uppercase tracking-[0.10em] text-white/28">
           {isProgram ? "Program Return" : "Standby"}
         </div>
 
-        <div className="mt-1 text-4xl font-black tracking-[-0.06em] text-white tabular-nums drop-shadow-[0_0_22px_rgba(196,181,253,0.22)]">
+        <div className="mt-1 text-3xl font-black tracking-[-0.06em] text-white/90 tabular-nums drop-shadow-[0_0_14px_rgba(196,181,253,0.12)]">
           {isProgram ? "LIVE" : countdownSeconds}
         </div>
 
-        <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/62">
+        <div className="mt-1 text-[9px] font-black uppercase tracking-[0.10em] text-violet-100/46">
           {isProgram
             ? "Live to audience"
             : countdownSeconds === 0
@@ -160,8 +160,8 @@ function PresenterConfidenceCue({
         </div>
       </div>
 
-      <div className="absolute bottom-3 left-3 right-3 grid gap-2 md:grid-cols-[1fr_auto]">
-        <div className="rounded-2xl border border-white/10 bg-black/62 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md">
+      <div className="absolute bottom-3 left-3 right-3 grid gap-1.5 md:grid-cols-[1fr_auto]">
+        <div className="rounded-xl border border-white/7 bg-black/46 px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.024)] backdrop-blur-md">
           <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/34">
             Presenter Cue
           </div>
@@ -174,7 +174,7 @@ function PresenterConfidenceCue({
           </div>
         </div>
 
-        <div className="flex items-center gap-2 rounded-2xl border border-violet-300/16 bg-violet-400/10 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100/70 shadow-[0_0_20px_rgba(168,85,247,0.1)] backdrop-blur-md">
+        <div className="flex items-center gap-2 rounded-xl border border-violet-300/10 bg-violet-400/[0.06] px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-violet-100/50 shadow-[0_0_8px_rgba(168,85,247,0.05)] backdrop-blur-md">
           <span className="text-white/36">IFB</span>
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.75)]" />
           Open
@@ -406,36 +406,36 @@ export default function CenterSwitcherColumn({
   }
 
   return (
-    <div className="space-y-2 xl:col-start-2">
+    <div className="space-y-1.5 xl:col-start-2">
       <ProducerTopDeck />
       <div
-        className={`overflow-hidden rounded-[18px] border border-white/6 bg-black/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.016)] transition-all duration-300 ${
+        className={`overflow-hidden rounded-[14px] border border-white/4 bg-black/[0.055] shadow-[inset_0_1px_0_rgba(255,255,255,0.01)] transition-all duration-300 ${
           audienceOriginCollapsed
-            ? "opacity-35 hover:opacity-70"
-            : "opacity-50 hover:opacity-90"
+            ? "opacity-26 hover:opacity-56"
+            : "opacity-42 hover:opacity-78"
         }`}
       >
-        <div className="flex items-center justify-between gap-3 px-3 py-1.5">
+        <div className="flex items-center justify-between gap-2 px-2.5 py-1">
           <div>
-            <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/24">
-              Audience Origin
+            <div className="text-[8px] font-black uppercase tracking-[0.10em] text-white/18">
+              Audience
             </div>
-            <div className="mt-0.5 text-xs font-semibold text-white/30">
-              Audience signals
+            <div className="mt-0.5 text-[11px] font-semibold text-white/24">
+              Origin signals
             </div>
           </div>
 
           <button
             type="button"
             onClick={onToggleAudienceOriginCollapsed}
-            className="rounded-full border border-white/8 bg-white/[0.022] px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/38 transition hover:border-white/14 hover:bg-white/[0.04] hover:text-white/64"
+            className="rounded-full border border-white/6 bg-white/[0.014] px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/30 transition hover:border-white/10 hover:bg-white/[0.03] hover:text-white/54"
           >
             {audienceOriginCollapsed ? "Show" : "Hide"}
           </button>
         </div>
 
         {audienceOriginCollapsed ? null : (
-          <div className="border-t border-white/5 px-2 pb-2">
+          <div className="border-t border-white/4 px-1.5 pb-1.5">
             <AudienceOriginTestPanel
               onTriggerCue={triggerAudienceCue}
               onHideCue={onHideAudienceCue}
@@ -448,12 +448,12 @@ export default function CenterSwitcherColumn({
         armed={previewProgramDifferent}
         live={Boolean(programState?.is_live)}
       >
-        <div className="relative mb-1.5 flex items-end justify-between gap-3 px-1 py-0.5">
+        <div className="relative mb-1 flex items-end justify-between gap-3 px-1 py-0.5">
           <div className="relative z-10">
-            <div className="text-[9px] font-black uppercase tracking-[0.10em] text-white/18">
+            <div className="text-[8px] font-black uppercase tracking-[0.08em] text-white/14">
               Switcher
             </div>
-            <div className="mt-0.5 text-[15px] font-semibold tracking-[-0.02em] text-white/56">
+            <div className="mt-0.5 text-[14px] font-semibold tracking-[-0.02em] text-white/50">
               Live Switcher
             </div>
           </div>
