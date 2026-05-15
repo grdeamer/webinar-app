@@ -48,7 +48,7 @@ function SwitcherSurfaceChrome({
 }): JSX.Element {
   return (
     <div
-      className={`relative overflow-hidden rounded-[28px] border p-2 shadow-[0_22px_72px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.035)] transition-all duration-700 xl:p-2.5 ${
+      className={`relative overflow-hidden rounded-[24px] border p-1.5 shadow-[0_16px_52px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.025)] transition-all duration-700 xl:p-2 ${
         live
           ? "border-red-300/10 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.075),transparent_42%),linear-gradient(180deg,rgba(7,8,18,0.99),rgba(2,4,12,0.995))]"
           : armed
@@ -59,7 +59,7 @@ function SwitcherSurfaceChrome({
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[switcherSurfaceSweep_16s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.035] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_10px)]" />
-      <div className="pointer-events-none absolute inset-0 rounded-[28px] shadow-[inset_0_0_36px_rgba(0,0,0,0.22)]" />
+      <div className="pointer-events-none absolute inset-0 rounded-[24px] shadow-[inset_0_0_24px_rgba(0,0,0,0.18)]" />
 
       {armed ? (
         <div className="pointer-events-none absolute inset-x-12 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200/16 to-transparent animate-[switcherArmedRail_4s_ease-in-out_infinite]" />
@@ -134,17 +134,17 @@ function PresenterConfidenceCue({
 
       <div className="absolute left-3 top-3 flex items-center gap-2 rounded-full border border-violet-300/20 bg-black/62 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/78 shadow-[0_0_24px_rgba(168,85,247,0.12)] backdrop-blur-md">
         <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.75)]" />
-        Presenter Confidence
+        Confidence Return
       </div>
 
       <div className="absolute right-3 top-3 flex items-center gap-2 rounded-full border border-emerald-300/18 bg-emerald-400/10 px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.18em] text-emerald-100/70 shadow-[0_0_20px_rgba(52,211,153,0.1)] backdrop-blur-md">
         <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.75)]" />
-        Return Feed Safe
+        Return Active
       </div>
 
       <div className="absolute left-1/2 top-1/2 flex -translate-x-1/2 -translate-y-1/2 flex-col items-center rounded-[28px] border border-white/10 bg-black/50 px-6 py-4 text-center shadow-[0_24px_80px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-md">
         <div className="text-[9px] font-black uppercase tracking-[0.24em] text-white/36">
-          {isProgram ? "Audience Feed" : "Standby Countdown"}
+          {isProgram ? "Program Return" : "Standby"}
         </div>
 
         <div className="mt-1 text-4xl font-black tracking-[-0.06em] text-white tabular-nums drop-shadow-[0_0_22px_rgba(196,181,253,0.22)]">
@@ -153,10 +153,10 @@ function PresenterConfidenceCue({
 
         <div className="mt-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/62">
           {isProgram
-            ? "You are on program"
+            ? "Live to audience"
             : countdownSeconds === 0
               ? "Ready for cue"
-              : "Prepare to go live"}
+              : "Stand by"}
         </div>
       </div>
 
@@ -167,10 +167,10 @@ function PresenterConfidenceCue({
           </div>
           <div className="mt-1 text-sm font-semibold text-white/86">
             {isProgram
-              ? "You are live to audience"
+              ? "Live to audience"
               : countdownSeconds === 0
                 ? "Ready for producer cue"
-                : "Stand by for program"}
+                : "Stand by"}
           </div>
         </div>
 
@@ -421,7 +421,7 @@ export default function CenterSwitcherColumn({
               Audience Origin
             </div>
             <div className="mt-0.5 text-xs font-semibold text-white/30">
-              Earth / Moon cue controls
+              Audience signals
             </div>
           </div>
 
@@ -448,18 +448,18 @@ export default function CenterSwitcherColumn({
         armed={previewProgramDifferent}
         live={Boolean(programState?.is_live)}
       >
-        <div className="relative mb-2 flex items-end justify-between gap-4 px-1 py-1">
+        <div className="relative mb-1.5 flex items-end justify-between gap-3 px-1 py-0.5">
           <div className="relative z-10">
             <div className="text-[9px] font-black uppercase tracking-[0.10em] text-white/18">
               Switcher
             </div>
-            <div className="mt-0.5 text-[17px] font-semibold tracking-[-0.02em] text-white/66">
-              Preview <span className="text-white/20">→</span> Program
+            <div className="mt-0.5 text-[15px] font-semibold tracking-[-0.02em] text-white/56">
+              Live Switcher
             </div>
           </div>
 
           <div className="relative z-10 hidden items-center gap-2 xl:flex">
-            <div className="flex items-center gap-1 rounded-full border border-white/6 bg-black/12 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+            <div className="flex items-center gap-1 rounded-full border border-white/4 bg-black/10 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.008)]">
               {CONFIDENCE_MONITOR_MODES.map((mode) => {
                 const active = confidenceMonitorMode === mode.value;
 
@@ -469,10 +469,10 @@ export default function CenterSwitcherColumn({
                     type="button"
                     onClick={() => setMonitorMode(mode.value)}
                     className={[
-                      "rounded-full px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] transition",
+                      "rounded-full px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] transition",
                       active
-                        ? "bg-white/[0.05] text-white/62 shadow-[0_0_6px_rgba(255,255,255,0.03)]"
-                        : "text-white/24 hover:bg-white/[0.03] hover:text-white/50",
+                        ? "bg-white/[0.035] text-white/52 shadow-[0_0_4px_rgba(255,255,255,0.02)]"
+                        : "text-white/18 hover:bg-white/[0.02] hover:text-white/38",
                     ].join(" ")}
                     title={mode.description}
                   >
@@ -486,16 +486,16 @@ export default function CenterSwitcherColumn({
 
         <div
           ref={switcherGridRef}
-          className="relative grid gap-0"
+          className="relative grid items-stretch gap-0"
           style={{
-            gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 56px minmax(0, ${100 - previewPanePercent}fr)`,
+            gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 42px minmax(0, ${100 - previewPanePercent}fr)`,
           }}
         >
           <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/8 to-transparent" />
-          <div className="relative min-w-0 rounded-[22px] border border-sky-300/8 bg-[linear-gradient(180deg,rgba(5,14,27,0.99),rgba(1,5,12,0.99))] p-1.5 shadow-[0_18px_54px_rgba(0,0,0,0.38),inset_0_1px_0_rgba(255,255,255,0.035)] xl:p-2">
+          <div className="relative min-w-0 rounded-[20px] border border-sky-300/6 bg-[linear-gradient(180deg,rgba(5,14,27,0.985),rgba(1,5,12,0.992))] p-1 shadow-[0_14px_40px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.025)] xl:p-1.5">
             <MonitorHeader
               title="Preview"
-              subtitle="What you are preparing"
+              subtitle=""
               tone="preview"
               badge={
                 <span
@@ -512,7 +512,7 @@ export default function CenterSwitcherColumn({
                         : "bg-sky-300/70 shadow-[0_0_5px_rgba(125,211,252,0.22)]"
                     }`}
                   />
-                  {previewProgramDifferent ? "Ready" : "Matched"}
+                  {previewProgramDifferent ? "READY" : "SYNC"}
                 </span>
               }
             />
@@ -531,13 +531,10 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-0 z-10 rounded-[20px] shadow-[inset_0_0_34px_rgba(0,0,0,0.58),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
-              <div className="pointer-events-none absolute right-3 top-3 z-30 hidden rounded-full border border-white/8 bg-black/32 px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] backdrop-blur-md 2xl:block">
-                Source
-              </div>
 
               {previewProgramDifferent ? (
                 <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-amber-300/72 px-3 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-black/74 shadow-[0_0_8px_rgba(251,191,36,0.08)]">
-                  Preview Ready
+                  READY
                 </div>
               ) : null}
 
@@ -568,42 +565,42 @@ export default function CenterSwitcherColumn({
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
-                <MultiviewOverlay label="Preview Multiview" />
+                <MultiviewOverlay label="Multiview" />
               ) : null}
             </div>
           </div>
           <div
-            className="group relative z-[999] flex min-h-full cursor-col-resize items-center justify-center self-stretch px-1"
+            className="group relative z-[999] flex min-h-full cursor-col-resize items-center justify-center self-stretch px-0.5"
             onMouseDown={startSplitDrag}
             onDoubleClick={resetSplit}
             role="separator"
             aria-orientation="vertical"
             aria-label="Resize preview and program panes"
           >
-            <div className="pointer-events-none absolute inset-y-6 left-1/2 w-8 -translate-x-1/2 rounded-full bg-white/[0.018] blur-md opacity-60 transition-opacity duration-300 group-hover:opacity-100" />
+            <div className="pointer-events-none absolute inset-y-6 left-1/2 w-6 -translate-x-1/2 rounded-full bg-white/[0.014] blur-md opacity-50 transition-opacity duration-300 group-hover:opacity-80" />
             {/* center rail */}
-            <div className="absolute inset-y-4 left-1/2 w-px -translate-x-1/2 rounded-full bg-gradient-to-b from-white/6 via-white/14 to-white/6 transition-all duration-300 group-hover:via-white/28" />
+            <div className="absolute inset-y-5 left-1/2 w-px -translate-x-1/2 rounded-full bg-gradient-to-b from-white/5 via-white/10 to-white/5 transition-all duration-300 group-hover:via-white/22" />
 
             {/* glow field */}
-            <div className="absolute inset-y-0 left-1/2 w-10 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/[0.018] to-transparent blur-md" />
+            <div className="absolute inset-y-0 left-1/2 w-7 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/[0.012] to-transparent blur-md" />
 
             <div className="relative z-20 flex h-full items-center">
-              <div className="relative overflow-hidden rounded-[22px] border border-white/7 bg-[linear-gradient(180deg,rgba(18,18,30,0.88),rgba(5,6,12,0.96))] px-2 py-2.5 shadow-[0_16px_44px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.028)] backdrop-blur-md">
+              <div className="relative overflow-hidden rounded-[18px] border border-white/5 bg-[linear-gradient(180deg,rgba(18,18,30,0.82),rgba(5,6,12,0.94))] px-1.5 py-2 shadow-[0_10px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.02)] backdrop-blur-md">
                 <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] animate-[switcherRailSweep_14s_ease-in-out_infinite]" />
                 <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-                <div className="relative z-10 flex flex-col items-center gap-3">
+                <div className="relative z-10 flex flex-col items-center gap-2">
                   {/* CUT */}
                   <button
                     type="button"
                     onClick={() => onTake("cut")}
                     disabled={takeBusy || !previewProgramDifferent}
-                    className={`relative h-12 w-12 rounded-2xl border text-[10px] font-black tracking-[0.14em] transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
+                    className={`relative h-10 w-10 rounded-[14px] border text-[9px] font-black tracking-[0.12em] transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
                       previewProgramDifferent
                         ? "border-red-300/22 bg-red-500/[0.10] text-red-100/72 shadow-[0_0_12px_rgba(239,68,68,0.12)]"
                         : "border-red-400/12 bg-red-500/[0.055] text-red-200/48 shadow-[0_0_8px_rgba(239,68,68,0.06)]"
                     }`}
                   >
-                    <span className="absolute inset-x-2 top-1 h-[1px] bg-white/20" />
+                    <span className="absolute inset-x-2 top-1 h-px bg-white/12" />
                     {takeBusy ? "TAKING" : "CUT"}
                   </button>
 
@@ -614,7 +611,7 @@ export default function CenterSwitcherColumn({
                     disabled={
                       takeBusy || isAutoRunning || !previewProgramDifferent
                     }
-                    className={`relative h-14 w-14 rounded-2xl border text-[10px] font-black tracking-[0.14em] transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
+                    className={`relative h-11 w-11 rounded-[15px] border text-[9px] font-black tracking-[0.12em] transition-all duration-200 hover:-translate-y-px active:translate-y-0 active:scale-95 disabled:cursor-not-allowed disabled:opacity-45 ${
                       isAutoRunning
                         ? "border-emerald-200/32 bg-emerald-400/[0.13] text-emerald-50/80 shadow-[0_0_16px_rgba(52,211,153,0.16)]"
                         : previewProgramDifferent
@@ -622,27 +619,27 @@ export default function CenterSwitcherColumn({
                           : "border-emerald-400/12 bg-emerald-500/[0.055] text-emerald-200/48 shadow-[0_0_8px_rgba(52,211,153,0.06)]"
                     }`}
                   >
-                    <span className="absolute inset-x-2 top-1 h-[1px] bg-white/20" />
+                    <span className="absolute inset-x-2 top-1 h-px bg-white/12" />
                     {isAutoRunning ? "RUN" : "AUTO"}
                   </button>
 
                   {/* T-Bar */}
-                  <div className="w-full px-1 pt-1">
-                    <div className="mb-1 text-center text-[8px] font-black tracking-[0.12em] text-white/22">
+                  <div className="w-full px-0.5 pt-0.5">
+                    <div className="mb-0.5 text-center text-[7px] font-black tracking-[0.08em] text-white/16">
                       T-BAR
                     </div>
 
                     <div
-                      className={`relative mx-auto h-14 w-2.5 rounded-full border bg-black/24 transition-all duration-300 ${
+                      className={`relative mx-auto h-11 w-2 rounded-full border bg-black/18 transition-all duration-300 ${
                         isAutoRunning
                           ? "border-emerald-300/20 shadow-[0_0_8px_rgba(52,211,153,0.10)]"
                           : "border-white/7"
                       }`}
                     >
-                      <div className="absolute left-1/2 top-2 h-12 w-[2px] -translate-x-1/2 bg-white/10" />
+                      <div className="absolute left-1/2 top-1.5 h-8 w-px -translate-x-1/2 bg-white/8" />
                       <div
-                        className={`absolute left-1/2 h-5 w-5 -translate-x-1/2 rounded-lg border border-white/10 bg-gradient-to-b from-zinc-300/80 to-zinc-700/90 shadow-[0_6px_12px_rgba(0,0,0,0.34)] transition-all duration-700 ease-in-out ${
-                          isAutoRunning ? "top-9" : "top-2"
+                        className={`absolute left-1/2 h-4 w-4 -translate-x-1/2 rounded-md border border-white/8 bg-gradient-to-b from-zinc-300/70 to-zinc-700/85 shadow-[0_4px_8px_rgba(0,0,0,0.28)] transition-all duration-700 ease-in-out ${
+                          isAutoRunning ? "top-6" : "top-1.5"
                         }`}
                       />
                     </div>
@@ -650,14 +647,14 @@ export default function CenterSwitcherColumn({
 
                   {/* status lights */}
                   <div
-                    className={`grid grid-cols-2 gap-1 pt-1 transition-opacity duration-300 ${
+                    className={`grid grid-cols-2 gap-0.5 pt-0.5 transition-opacity duration-300 ${
                       isAutoRunning || takeBusy ? "opacity-72" : "opacity-38"
                     }`}
                   >
                     {Array.from({ length: 6 }).map((_, i) => (
                       <span
                         key={i}
-                        className={`h-[4px] w-[4px] rounded-full ${
+                        className={`h-[3px] w-[3px] rounded-full ${
                           i < 2
                             ? takeBusy
                               ? "bg-red-200/75 shadow-[0_0_5px_rgba(252,165,165,0.28)]"
@@ -672,17 +669,17 @@ export default function CenterSwitcherColumn({
                     ))}
                   </div>
 
-                  <div className="pt-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/22 [writing-mode:vertical-rl]">
+                  <div className="pt-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white/16 [writing-mode:vertical-rl]">
                     Split
                   </div>
                 </div>
               </div>
             </div>
           </div>
-          <div className="relative min-w-0 rounded-[22px] border border-red-300/10 bg-[linear-gradient(180deg,rgba(20,7,10,0.99),rgba(4,2,4,0.995))] p-1.5 shadow-[0_18px_54px_rgba(0,0,0,0.42),0_0_24px_rgba(239,68,68,0.045),inset_0_1px_0_rgba(255,255,255,0.035)] xl:p-2">
+          <div className="relative min-w-0 rounded-[20px] border border-red-300/7 bg-[linear-gradient(180deg,rgba(20,7,10,0.985),rgba(4,2,4,0.992))] p-1 shadow-[0_14px_40px_rgba(0,0,0,0.34),0_0_18px_rgba(239,68,68,0.03),inset_0_1px_0_rgba(255,255,255,0.025)] xl:p-1.5">
             <MonitorHeader
               title="Program"
-              subtitle="What the audience is seeing"
+              subtitle=""
               tone="program"
               badge={
                 <span className="inline-flex items-center gap-2 rounded-full border border-red-300/12 bg-red-500/[0.05] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.08em] text-red-100/54">
@@ -693,7 +690,7 @@ export default function CenterSwitcherColumn({
                         : "bg-white/25"
                     }`}
                   />
-                  {programState?.is_live ? "Live" : "Hold"}
+                  {programState?.is_live ? "LIVE" : "OFF AIR"}
                 </span>
               }
             />
@@ -729,10 +726,10 @@ export default function CenterSwitcherColumn({
                   <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(248,113,113,0.08),transparent_48%)]">
                     <div className="rounded-[22px] border border-red-200/12 bg-black/42 px-5 py-4 text-center shadow-[0_16px_44px_rgba(0,0,0,0.32),0_0_16px_rgba(248,113,113,0.06),inset_0_1px_0_rgba(255,255,255,0.032)] backdrop-blur-md">
                       <div className="text-[9px] font-black uppercase tracking-[0.16em] text-red-100/42">
-                        No Program Source
+                        Program Idle
                       </div>
                       <div className="mt-1 text-sm font-semibold text-white/72">
-                        Take a preview source to Program
+                        Awaiting source
                       </div>
                     </div>
                   </div>
@@ -822,7 +819,7 @@ export default function CenterSwitcherColumn({
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
-                <MultiviewOverlay label="Operator Multiview" />
+                <MultiviewOverlay label="Multiview" />
               ) : null}
             </div>
           </div>
@@ -901,7 +898,7 @@ export default function CenterSwitcherColumn({
           }
         }
       `}</style>
-      <div className="grid gap-2 opacity-34 transition-opacity duration-300 hover:opacity-86 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-1.5 opacity-24 transition-opacity duration-300 hover:opacity-72 xl:grid-cols-[1.15fr_0.85fr]">
         <MediaBlocksPanel
           previewBlocksCount={previewBlocks.length}
           onAddText={addTestTextBlock}
