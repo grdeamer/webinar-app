@@ -324,7 +324,6 @@ function OperationsStackHeader({
 }): JSX.Element {
   const openPanelCount = Object.values(openPanels).filter(Boolean).length
   const stackStateLabel = openPanelCount === 0 ? "Compact" : `${openPanelCount} Open`
-  const densityLabel = COMMAND_DECK_DENSITY_LABELS[activeDensityMode]
   const transmissionSummary = takeBusy
     ? "Transition Active"
     : previewProgramDifferent
@@ -344,9 +343,7 @@ function OperationsStackHeader({
           <div className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
             {stackStateLabel}
           </div>
-          <div className="rounded-full border border-violet-300/12 bg-violet-400/8 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/48">
-            {densityLabel} View
-          </div>
+
         </div>
         <div className="mt-1 text-[11px] font-semibold text-white/46">
           Keep advanced controls available without crowding the switcher.
