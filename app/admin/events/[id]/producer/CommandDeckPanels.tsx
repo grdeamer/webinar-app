@@ -993,7 +993,7 @@ export function TelemetryStrip({
             columnsClassName="sm:grid-cols-2 xl:grid-cols-4"
             items={[
               { label: "Signal", value: "Stable", tone: "safe" },
-     { label: "Recording", value: "Ready", tone: "danger" },
+      { label: "Recording", value: "Ready", tone: "danger" },
               { label: "Audience", value: String(audienceCount), tone: "preview" },
               { label: "On Stage", value: String(onStageCount), tone: "neutral" },
             ]}
@@ -2294,30 +2294,9 @@ export function LowerCommandGrid({
               ].join(" ")}
             />
             {missionStateLabel}
-          </div>
-<div className="relative flex h-2.5 w-2.5 items-center justify-center">
-  <span
-    className={[
-      "absolute inline-flex h-full w-full rounded-full opacity-75",
-      systemPressure === "critical"
-        ? "bg-red-300 animate-ping"
-        : systemPressure === "watch"
-          ? "bg-amber-300 animate-pulse"
-          : "bg-emerald-300 animate-[telemetryBlink_2.4s_ease-in-out_infinite]",
-    ].join(" ")}
-  />
-  <span
-    className={[
-      "relative inline-flex h-2.5 w-2.5 rounded-full",
-      systemPressure === "critical"
-        ? "bg-red-200 shadow-[0_0_10px_rgba(252,165,165,0.8)]"
-        : systemPressure === "watch"
-          ? "bg-amber-200 shadow-[0_0_10px_rgba(252,211,77,0.75)]"
-          : "bg-emerald-200 shadow-[0_0_10px_rgba(110,231,183,0.7)]",
-    ].join(" ")}
-  />
 </div>
-          <div>
+
+<div>
             <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/28">
               Command Workspace
             </div>
