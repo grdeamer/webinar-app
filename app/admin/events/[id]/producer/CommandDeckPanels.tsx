@@ -229,9 +229,9 @@ function CollapsibleSurface({
   return (
     <div
       className={[
-        "relative overflow-hidden rounded-[28px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] shadow-[0_22px_70px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.045)] transition-all duration-500 ease-out",
-        isFocused ? "xl:col-span-full scale-[1.006] border-violet-300/18 ring-1 ring-violet-300/20 shadow-[0_34px_110px_rgba(0,0,0,0.46),0_0_44px_rgba(168,85,247,0.10),inset_0_1px_0_rgba(255,255,255,0.06)]" : "",
-        isDimmed ? "scale-[0.985] opacity-45 grayscale-[0.42] blur-[0.2px]" : "",
+        "relative overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.024),rgba(255,255,255,0.01))] shadow-[0_18px_52px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-500 ease-out",
+        isFocused ? "xl:col-span-full scale-[1.003] border-violet-300/14 ring-1 ring-violet-300/14 shadow-[0_26px_82px_rgba(0,0,0,0.38),0_0_26px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.05)]" : "",
+        isDimmed ? "scale-[0.992] opacity-45 blur-[1px] grayscale-[0.22]" : "",
       ].join(" ")}
     >
       {isFocused ? (
@@ -241,18 +241,18 @@ function CollapsibleSurface({
       <button
         type="button"
         onClick={toggleOpen}
-        className="relative z-10 flex w-full items-center justify-between gap-3 px-4 py-3 text-left transition hover:bg-white/[0.03]"
+        className="relative z-10 flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.02]"
       >
         <div className="min-w-0">
-          <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/28">
+          <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/24">
             {eyebrow}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <span className="text-[13px] font-black uppercase tracking-[0.14em] text-white/78">
+            <span className="text-[12px] font-black uppercase tracking-[0.18em] text-white/72">
               {title}
             </span>
             {status ? (
-              <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${statusClassName}`}>
+              <span className={`rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] ${statusClassName}`}>
                 {status}
               </span>
             ) : null}
@@ -284,28 +284,37 @@ function CollapsibleSurface({
                 }
               }}
               className={[
-                "rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition",
+                "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] transition",
                 isFocused
-                  ? "border-violet-300/24 bg-violet-400/14 text-violet-100"
-                  : "border-white/10 bg-black/24 text-white/34 hover:border-violet-300/18 hover:bg-violet-400/8 hover:text-violet-100/72",
+                  ? "border-violet-300/24 bg-violet-400/12 text-violet-100/76 shadow-[0_0_10px_rgba(168,85,247,0.08)]"
+                  : "border-white/12 bg-black/30 text-white/44 hover:border-violet-300/18 hover:bg-violet-400/8 hover:text-violet-100/72",
               ].join(" ")}
             >
               {isFocused ? "Exit Focus" : "Focus"}
             </span>
           ) : null}
 
-          <div className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/30">
-            {isDimmed ? "Peripheral" : isFocused ? "Primary" : "Active"}
+          <div className="rounded-full border border-white/12 bg-black/30 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/38">
+            {isDimmed ? "Background" : isFocused ? "Focused" : "Ready"}
           </div>
 
-          <div className="rounded-full border border-white/10 bg-black/24 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+          <div
+            className={[
+              "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] transition",
+              open
+                ? "border-white/12 bg-black/30 text-white/42"
+                : "border-sky-300/16 bg-sky-400/[0.065] text-sky-100/62 shadow-[0_0_10px_rgba(56,189,248,0.06)]",
+            ].join(" ")}
+          >
             {open ? "Expanded" : "Collapsed"}
           </div>
 
           <div
             className={[
-              "flex h-8 w-8 items-center justify-center rounded-2xl border border-white/10 bg-black/24 text-white/42 transition",
-              open ? "rotate-180" : "rotate-0",
+              "flex h-8 w-8 items-center justify-center rounded-2xl border transition",
+              open
+                ? "rotate-180 border-white/12 bg-black/30 text-white/46"
+                : "rotate-0 border-sky-300/18 bg-sky-400/[0.07] text-sky-100/70 shadow-[0_0_12px_rgba(56,189,248,0.06)]",
             ].join(" ")}
           >
             <ChevronDown size={14} />
@@ -314,7 +323,7 @@ function CollapsibleSurface({
       </button>
 
       {open ? (
-        <div className="relative z-10 px-3 pb-3 animate-[surfaceReveal_220ms_ease-out_both]">
+        <div className="relative z-10 px-3 pb-3 animate-[surfaceReveal_var(--jupiter-motion-fast)_var(--jupiter-ease-out)_both]">
           {children}
         </div>
       ) : null}
@@ -1022,15 +1031,22 @@ export function ControlStagePanel({
   systemPressure = "stable",
   rundownMode = "rehearsal",
 }: ControlStagePanelProps): JSX.Element {
+  const liveLocked = rundownMode === "live"
+
   const transportStatus =
     systemPressure === "critical"
       ? "Hold Recommended"
       : previewProgramDifferent
-        ? rundownMode === "live"
+        ? liveLocked
           ? "Live Ready"
-          : "Preview Ready"
+          : "Rehearsal Only"
         : "Program Matched"
-  const takeDisabled = takeBusy || !previewProgramDifferent || systemPressure === "critical"
+
+  const takeDisabled =
+    takeBusy ||
+    !previewProgramDifferent ||
+    systemPressure === "critical" ||
+    !liveLocked
 
   return (
     <PanelCard className="relative overflow-hidden">
@@ -1066,11 +1082,11 @@ export function ControlStagePanel({
         />
 
         <TransportBayChrome
-          armed={previewProgramDifferent && systemPressure !== "critical"}
-          locked={takeBusy || systemPressure === "critical"}
+          armed={previewProgramDifferent && systemPressure !== "critical" && liveLocked}
+          locked={takeBusy || systemPressure === "critical" || !liveLocked}
         >
           <div className="grid grid-cols-3 gap-2">
-            <div className={previewProgramDifferent && systemPressure !== "critical" ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
+            <div className={previewProgramDifferent && systemPressure !== "critical" && liveLocked ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
               <PrimaryTakeButton
                 onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
                 disabled={takeDisabled}
@@ -1079,7 +1095,7 @@ export function ControlStagePanel({
             </div>
 
             <CommandActionButton
-              tone={systemPressure === "critical" ? "muted" : "danger"}
+              tone={systemPressure === "critical" || !liveLocked ? "muted" : "danger"}
               onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
               disabled={takeDisabled}
               title="Cut preview to program (C)"
@@ -1089,7 +1105,7 @@ export function ControlStagePanel({
             </CommandActionButton>
 
             <CommandActionButton
-              tone={systemPressure === "critical" ? "muted" : "preview"}
+              tone={systemPressure === "critical" || !liveLocked ? "muted" : "preview"}
               onClick={() => onTake("auto", selectedTransitionType, selectedTransitionDurationMs)}
               disabled={takeDisabled}
               title="Auto take preview to program (A)"
@@ -1105,10 +1121,17 @@ export function ControlStagePanel({
             Confidence path degraded. Hold TAKE unless the producer explicitly confirms recovery.
           </div>
         ) : previewProgramDifferent ? (
-          <div className="mt-3 text-xs font-medium text-amber-100/80">
-            {rundownMode === "live"
-              ? "Live Locked mode is armed. CUT and AUTO now represent production-critical actions."
-              : "Preview is armed. Operator may CUT or AUTO the look to Program."}
+          <div
+            className={[
+              "mt-3 rounded-2xl border px-3 py-2 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]",
+              liveLocked
+                ? "border-amber-300/14 bg-amber-400/8 text-amber-100/80"
+                : "border-sky-300/14 bg-sky-400/8 text-sky-100/72",
+            ].join(" ")}
+          >
+            {liveLocked
+              ? "Live Locked is enabled. CUT and AUTO will send the armed preview to Program."
+              : "Rehearsal mode is active. CUT and AUTO are locked until Live Locked is confirmed in the rundown."}
           </div>
         ) : (
           <div className="mt-3 text-xs text-white/42">
@@ -1677,6 +1700,7 @@ export function RundownCuePanel({
 }): JSX.Element {
   const [activeCueIndex, setActiveCueIndex] = useState(0)
   const [internalRundownMode, setInternalRundownMode] = useState<"rehearsal" | "live">("rehearsal")
+  const [liveLockConfirming, setLiveLockConfirming] = useState(false)
   const rundownMode = controlledRundownMode ?? internalRundownMode
   const currentCue = RUNDOWN_CUES[activeCueIndex] ?? RUNDOWN_CUES[0]
   const nextCue = RUNDOWN_CUES[activeCueIndex + 1] ?? RUNDOWN_CUES[RUNDOWN_CUES.length - 1]
@@ -1693,7 +1717,14 @@ export function RundownCuePanel({
   }
 
   const toggleRundownMode = (): void => {
+    if (rundownMode === "rehearsal" && !liveLockConfirming) {
+      setLiveLockConfirming(true)
+      return
+    }
+
     const nextMode = rundownMode === "rehearsal" ? "live" : "rehearsal"
+
+    setLiveLockConfirming(false)
     setInternalRundownMode(nextMode)
     onRundownModeChange?.(nextMode)
   }
@@ -1758,6 +1789,24 @@ export function RundownCuePanel({
         ]}
       />
 
+      {liveLockConfirming ? (
+        <div className="mb-3 rounded-[22px] border border-red-300/16 bg-red-400/8 p-3 shadow-[0_0_24px_rgba(239,68,68,0.10),inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <SurfaceHeader
+            eyebrow="Live Lock Confirmation"
+            title="Enable Real TAKE Controls"
+            status="Confirm Required"
+            tone="danger"
+            icon={AlertTriangle}
+            className="mb-2"
+          />
+
+          <div className="text-[11px] leading-relaxed text-red-50/66">
+            You are about to unlock production-critical CUT and AUTO actions.
+            Use this only when the show is ready for real program output changes.
+          </div>
+        </div>
+      ) : null}
+
       <div className="mb-3 grid grid-cols-3 gap-2">
         <ConfidenceTile
           label="Current"
@@ -1816,11 +1865,15 @@ export function RundownCuePanel({
               Reset
             </CommandActionButton>
             <CommandActionButton
-              tone={rundownMode === "live" ? "danger" : "safe"}
+              tone={rundownMode === "live" ? "danger" : liveLockConfirming ? "warning" : "safe"}
               onClick={toggleRundownMode}
               className="px-2 py-1.5 text-[8px]"
             >
-              {rundownMode === "live" ? "Live" : "Rehearse"}
+              {rundownMode === "live"
+                ? "Exit Live"
+                : liveLockConfirming
+                  ? "Confirm Live"
+                  : "Arm Live"}
             </CommandActionButton>
             <CommandActionButton
               tone={canAdvanceCue ? "warning" : "muted"}
@@ -2196,6 +2249,7 @@ export function LowerCommandGrid({
 
   const [systemPressure, setSystemPressure] = useState<SystemPressureState>("stable")
   const [globalRundownMode, setGlobalRundownMode] = useState<"rehearsal" | "live">("rehearsal")
+  const liveLocked = globalRundownMode === "live"
   const systemPressureTone = getSystemPressureTone(systemPressure)
   const systemPressureSurfaceTone = getSystemPressureSurfaceTone(systemPressure)
   const missionStateLabel =
@@ -2203,7 +2257,9 @@ export function LowerCommandGrid({
       ? "Confidence Degraded"
       : systemPressure === "watch"
         ? "Monitor Return"
-        : "Broadcast Stable"
+        : liveLocked
+          ? "Live Locked"
+          : "Rehearsal Safe"
 
   const missionStateToneClass =
     systemPressureSurfaceTone === "red"
@@ -2219,12 +2275,12 @@ export function LowerCommandGrid({
         ? "border-amber-300/14 shadow-[0_28px_105px_rgba(0,0,0,0.46),0_0_40px_rgba(251,191,36,0.08),inset_0_1px_0_rgba(255,255,255,0.055)]"
         : "border-white/10 shadow-[0_28px_100px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.05)]"
   return (
-    <div className={`relative overflow-hidden rounded-[30px] border bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.09),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.96),rgba(2,5,16,0.985))] p-3 transition-all duration-500 ${deckPressureClass}`}>
+    <div className={`relative overflow-hidden rounded-[30px] border bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.06),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.965),rgba(2,5,16,0.99))] p-3 transition-all duration-500 ${deckPressureClass}`}>
       <TelemetryAccent />
       {systemPressure !== "stable" ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.35),transparent)] animate-[missionPressureSweep_2.6s_ease-in-out_infinite]" />
       ) : null}
-      <div className="relative mb-2.5 flex flex-wrap items-center justify-between gap-2 rounded-[26px] border border-white/10 bg-black/20 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="relative mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[26px] border border-white/8 bg-black/18 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
         <div className="flex flex-wrap items-center gap-3">
           <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${missionStateToneClass}`}>
             <span
@@ -2245,7 +2301,7 @@ export function LowerCommandGrid({
               Command Workspace
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-[12px] font-black uppercase tracking-[0.16em] text-white/70">
+              <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white/66">
                 {COMMAND_WORKSPACE_LABELS[workspaceMode]} Mode
               </span>
               <span className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/36">
@@ -2349,19 +2405,25 @@ export function LowerCommandGrid({
               Focus · {focusedSurface} · Exit
             </button>
           ) : null}
-          {COMMAND_SURFACE_STATUS_CHIPS.map((surface) => (
-            <div
-              key={surface.key}
-              className={[
-                "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em]",
-                openSurfaces[surface.key]
-                  ? surface.activeClassName
-                  : "border-white/8 bg-black/20 text-white/28",
-              ].join(" ")}
-            >
-              {surface.label}
-            </div>
-          ))}
+{COMMAND_SURFACE_STATUS_CHIPS.map((surface) => {
+  const active = openSurfaces[surface.key]
+
+  return (
+    <button
+      key={surface.key}
+      type="button"
+      onClick={() => setSurfaceOpen(surface.key, !active)}
+      className={[
+        "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition-all duration-300",
+        active
+          ? surface.activeClassName
+          : "border-white/8 bg-black/24 text-white/28 hover:border-white/14 hover:text-white/52",
+      ].join(" ")}
+    >
+      {surface.label}
+    </button>
+  )
+})}
         </div>
       </div>
       <CompactStatusGrid
