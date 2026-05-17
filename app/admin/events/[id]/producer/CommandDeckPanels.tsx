@@ -35,7 +35,6 @@ import {
   type CinematicTransitionType,
   type ConfidenceSeverity,
   type IFBChannelState,
-  type RundownCueState,
   type TakeControlProps,
   type TakeMode,
 } from "./commandDeckTypes"
@@ -537,14 +536,6 @@ function getIfbTone(state: IFBChannelState): "safe" | "preview" | "warning" | "d
   if (state === "priority") return "warning"
   if (state === "muted" || state === "cough") return "danger"
   return "safe"
-}
-
-function getRundownStateTone(state: RundownCueState): "safe" | "warning" | "preview" | "danger" | "neutral" {
-  if (state === "live") return "safe"
-  if (state === "next") return "warning"
-  if (state === "standby") return "preview"
-  if (state === "blocked") return "danger"
-  return "neutral"
 }
 
 function ShortcutKey({
@@ -1734,9 +1725,6 @@ export function RundownCuePanel({
     return total + Number(minutes) * 60 + Number(seconds)
   }, 0)
   const totalRuntimeLabel = `${Math.floor(totalRuntime / 60)}:${String(totalRuntime % 60).padStart(2, "0")}`
-
-  const liveCue = DEFAULT_RUNDOWN_CUES.find((cue) => cue.state === "live")
-  const typedNextCue = DEFAULT_RUNDOWN_CUES.find((cue) => cue.state === "next")
   const blockedCueCount = DEFAULT_RUNDOWN_CUES.filter((cue) => cue.state === "blocked").length
   const rundownProgressLabel = `${completedCueCount}/${RUNDOWN_CUES.length - 1}`
   const speakerClockLabel = canAdvanceCue ? nextCue.duration : "00:00"
