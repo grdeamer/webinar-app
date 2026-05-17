@@ -993,7 +993,7 @@ export function TelemetryStrip({
             columnsClassName="sm:grid-cols-2 xl:grid-cols-4"
             items={[
               { label: "Signal", value: "Stable", tone: "safe" },
-{ label: "Recording", value: "Ready", tone: "danger" },
+     { label: "Recording", value: "Ready", tone: "danger" },
               { label: "Audience", value: String(audienceCount), tone: "preview" },
               { label: "On Stage", value: String(onStageCount), tone: "neutral" },
             ]}
@@ -2295,7 +2295,28 @@ export function LowerCommandGrid({
             />
             {missionStateLabel}
           </div>
-
+<div className="relative flex h-2.5 w-2.5 items-center justify-center">
+  <span
+    className={[
+      "absolute inline-flex h-full w-full rounded-full opacity-75",
+      systemPressure === "critical"
+        ? "bg-red-300 animate-ping"
+        : systemPressure === "watch"
+          ? "bg-amber-300 animate-pulse"
+          : "bg-emerald-300 animate-[telemetryBlink_2.4s_ease-in-out_infinite]",
+    ].join(" ")}
+  />
+  <span
+    className={[
+      "relative inline-flex h-2.5 w-2.5 rounded-full",
+      systemPressure === "critical"
+        ? "bg-red-200 shadow-[0_0_10px_rgba(252,165,165,0.8)]"
+        : systemPressure === "watch"
+          ? "bg-amber-200 shadow-[0_0_10px_rgba(252,211,77,0.75)]"
+          : "bg-emerald-200 shadow-[0_0_10px_rgba(110,231,183,0.7)]",
+    ].join(" ")}
+  />
+</div>
           <div>
             <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/28">
               Command Workspace
@@ -2461,6 +2482,74 @@ export function LowerCommandGrid({
           },
         ]}
       />
+      <div
+  className={[
+    "relative mb-2.5 overflow-hidden rounded-[24px] border px-4 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-500",
+    systemPressure === "critical"
+      ? "border-red-300/18 bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.16),transparent_42%),rgba(60,0,0,0.34)]"
+      : systemPressure === "watch"
+        ? "border-amber-300/16 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_42%),rgba(42,28,0,0.30)]"
+        : liveLocked
+          ? "border-emerald-300/14 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_42%),rgba(0,24,18,0.28)]"
+          : "border-sky-300/14 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_42%),rgba(0,16,32,0.28)]",
+  ].join(" ")}
+>
+  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.05),transparent)] animate-[transportPanelSweep_8s_ease-in-out_infinite]" />
+
+  <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/34">
+        Program Safety Rail
+      </div>
+
+      <div className="mt-1 flex flex-wrap items-center gap-2">
+        <div
+          className={[
+            "rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]",
+            systemPressure === "critical"
+              ? "border-red-300/22 bg-red-400/14 text-red-50 shadow-[0_0_18px_rgba(239,68,68,0.18)]"
+              : systemPressure === "watch"
+                ? "border-amber-300/22 bg-amber-400/14 text-amber-50 shadow-[0_0_18px_rgba(251,191,36,0.16)]"
+                : liveLocked
+                  ? "border-emerald-300/18 bg-emerald-400/12 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.14)]"
+                  : "border-sky-300/18 bg-sky-400/12 text-sky-50 shadow-[0_0_18px_rgba(56,189,248,0.14)]",
+          ].join(" ")}
+        >
+          {systemPressure === "critical"
+            ? "Hold Transitions"
+            : systemPressure === "watch"
+              ? "Confidence Degraded"
+              : liveLocked
+                ? "Safe To Take"
+                : "Rehearsal Mode"}
+        </div>
+
+        <div className="rounded-full border border-white/10 bg-black/28 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+          {previewProgramDifferent
+            ? "Preview Armed"
+            : "Program Matched"}
+        </div>
+      </div>
+    </div>
+
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="rounded-full border border-white/10 bg-black/24 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+        {selectedTransitionType} · {selectedTransitionDurationMs ?? 600}ms
+      </div>
+
+      <div
+        className={[
+          "rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em]",
+          takeBusy
+            ? "border-red-300/18 bg-red-400/12 text-red-50"
+            : "border-white/10 bg-black/24 text-white/42",
+        ].join(" ")}
+      >
+        {takeBusy ? "Transition Active" : "Transport Ready"}
+      </div>
+    </div>
+  </div>
+</div>
       <div className="relative grid gap-2.5 xl:grid-cols-[0.95fr_0.8fr_1.25fr]">
         {shouldShowSurface("transport") ? (
           <CollapsibleSurface
