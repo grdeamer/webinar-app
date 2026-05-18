@@ -112,27 +112,27 @@ const COMMAND_SURFACE_STATUS_CHIPS: Array<{
   {
     key: "transport",
     label: "Transport",
-    activeClassName: "border-amber-300/14 bg-amber-400/8 text-amber-100/52",
+    activeClassName: "border-amber-300/15 bg-amber-400/10 text-amber-100/60",
   },
   {
     key: "transition",
     label: "Transition",
-    activeClassName: "border-violet-300/14 bg-violet-400/8 text-violet-100/52",
+    activeClassName: "border-violet-300/15 bg-violet-400/10 text-violet-100/60",
   },
   {
     key: "audio",
     label: "Audio",
-    activeClassName: "border-emerald-300/14 bg-emerald-400/8 text-emerald-100/52",
+    activeClassName: "border-emerald-300/15 bg-emerald-400/10 text-emerald-100/60",
   },
   {
     key: "routing",
     label: "Routing",
-    activeClassName: "border-sky-300/14 bg-sky-400/8 text-sky-100/52",
+    activeClassName: "border-sky-300/15 bg-sky-400/10 text-sky-100/60",
   },
   {
     key: "rundown",
     label: "Rundown",
-    activeClassName: "border-fuchsia-300/14 bg-fuchsia-400/8 text-fuchsia-100/52",
+    activeClassName: "border-fuchsia-300/15 bg-fuchsia-400/10 text-fuchsia-100/60",
   },
 ]
 
@@ -265,6 +265,7 @@ function CollapsibleSurface({
               tabIndex={0}
               onClick={(event) => {
                 event.stopPropagation()
+
                 if (isFocused) {
                   onClearFocus?.()
                 } else {
@@ -275,6 +276,7 @@ function CollapsibleSurface({
                 if (event.key === "Enter" || event.key === " ") {
                   event.preventDefault()
                   event.stopPropagation()
+
                   if (isFocused) {
                     onClearFocus?.()
                   } else {
@@ -548,7 +550,7 @@ function ShortcutKey({
       <kbd className="min-w-7 rounded-lg border border-white/10 bg-white/[0.055] px-1.5 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-white/70 shadow-[0_6px_14px_rgba(0,0,0,0.2)]">
         {shortcut.key}
       </kbd>
-      <span className="truncate text-[9px] font-black uppercase tracking-[0.14em] text-white/36">
+      <span className="truncate text-[9px] font-black uppercase tracking-[0.13em] text-white/36">
         {shortcut.label}
       </span>
     </div>
@@ -1837,7 +1839,7 @@ export function RundownCuePanel({
             {activeSystems.map((system) => (
               <span
                 key={system}
-                className="rounded-full border border-amber-200/14 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-amber-100/58"
+                className="rounded-full border border-amber-200/14 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] text-amber-100/58"
               >
                 {system}
               </span>
@@ -1887,7 +1889,7 @@ export function RundownCuePanel({
           <div className="mt-1 text-[11px] leading-relaxed text-white/42">
             {canAdvanceCue ? standbyCue.detail : "All visible cues have been walked to the end of the active show stack."}
           </div>
-          <div className="mt-3 grid grid-cols-2 gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+          <div className="mt-3 grid grid-cols-2 gap-1.5 text-[8px] font-black uppercase tracking-[0.13em] text-white/34">
             <div className="rounded-xl border border-white/8 bg-black/20 px-2 py-1">Target · {standbyCue.target}</div>
             <div className="rounded-xl border border-white/8 bg-black/20 px-2 py-1">Duration · {standbyCue.duration}</div>
           </div>
@@ -1992,7 +1994,7 @@ export function RundownCuePanel({
                   <span className="text-[8px] font-black uppercase tracking-[0.18em] opacity-70">{cue.code}</span>
                   <span className="text-[8px] font-black uppercase tracking-[0.16em] opacity-60">{cue.duration}</span>
                 </div>
-                <div className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.14em]">
+                <div className="mt-1 truncate text-[10px] font-black uppercase tracking-[0.13em]">
                   {cue.label}
                 </div>
                 <div className="mt-2 h-1 overflow-hidden rounded-full bg-white/8">
@@ -2023,7 +2025,7 @@ export function RundownCuePanel({
             <ClipboardList size={12} />
             Full Cue List
           </span>
-          <span className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] tracking-[0.14em] text-white/32 group-open:border-amber-300/14 group-open:bg-amber-400/8 group-open:text-amber-100/54">
+          <span className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] tracking-[0.13em] text-white/32 group-open:border-amber-300/14 group-open:bg-amber-400/8 group-open:text-amber-100/54">
             {RUNDOWN_CUES.length} Cues
           </span>
         </summary>
@@ -2060,7 +2062,7 @@ export function RundownCuePanel({
                         <p className="truncate text-[11px] font-black uppercase tracking-[0.16em] text-white/74">
                           {cue.label}
                         </p>
-                        <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] ${getCueToneClassName(cue.tone)}`}>
+                        <span className={`rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] ${getCueToneClassName(cue.tone)}`}>
                           {cue.type}
                         </span>
                         {isNext ? <PlayCircle size={12} className="text-amber-200/70" /> : null}
@@ -2068,18 +2070,18 @@ export function RundownCuePanel({
                       </div>
                       <p className="mt-1 text-[10px] leading-relaxed text-white/38">{cue.detail}</p>
                       <div className="mt-2 flex flex-wrap gap-1.5">
-                        <span className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                        <span className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] text-white/34">
                           <Timer size={9} className="mr-1 inline" />
                           {cue.duration}
                         </span>
-                        <span className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                        <span className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] text-white/34">
                           <Layers3 size={9} className="mr-1 inline" />
                           {cue.target}
                         </span>
                         {cue.systems.map((system) => (
                           <span
                             key={`${cue.code}-${system}`}
-                            className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/30"
+                            className="rounded-full border border-white/8 bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] text-white/30"
                           >
                             {system}
                           </span>
@@ -2222,18 +2224,24 @@ export function LowerCommandGrid({
     return true
   }
 
-  const openSurfaceCount = Object.values(openSurfaces).filter(Boolean).length
-  const surfaceStatusLabel = getSurfaceStatusLabel(openSurfaceCount)
-  const transportStatusLabel = getTransportStatusLabel(previewProgramDifferent)
-  const routingStatusLabel =
-    workspaceMode === "ops"
-      ? "Ops Monitoring"
-      : openSurfaces.routing
-        ? "Confidence Visible"
-        : "Confidence Hidden"
-
   const [systemPressure, setSystemPressure] = useState<SystemPressureState>("stable")
   const [globalRundownMode, setGlobalRundownMode] = useState<"rehearsal" | "live">("rehearsal")
+
+  const openSurfaceCount = Object.values(openSurfaces).filter(Boolean).length
+  const surfaceStatusLabel = getSurfaceStatusLabel(openSurfaceCount)
+  const transportStatusLabel =
+    systemPressure === "critical"
+      ? "Transport Hold"
+      : getTransportStatusLabel(previewProgramDifferent)
+
+  const routingStatusLabel =
+    systemPressure === "critical"
+      ? "Recovery Mode"
+      : workspaceMode === "ops"
+        ? "Ops Monitoring"
+        : openSurfaces.routing
+          ? "Confidence Visible"
+          : "Confidence Hidden"
   const liveLocked = globalRundownMode === "live"
 
   const rundownStatusLabel =
@@ -2255,12 +2263,38 @@ export function LowerCommandGrid({
           ? "Live Locked"
           : "Rehearsal Safe"
 
-  const missionStateToneClass =
-    systemPressureSurfaceTone === "red"
-      ? "border-red-300/18 bg-red-400/10 text-red-100 shadow-[0_0_34px_rgba(239,68,68,0.12)]"
-      : systemPressureSurfaceTone === "amber"
-        ? "border-amber-300/18 bg-amber-400/10 text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.10)]"
-        : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100 shadow-[0_0_26px_rgba(16,185,129,0.08)]"
+const missionStateToneClass =
+  systemPressureSurfaceTone === "red"
+    ? "border-red-300/18 bg-red-400/10 text-red-100 shadow-[0_0_34px_rgba(239,68,68,0.12)]"
+    : systemPressureSurfaceTone === "amber"
+      ? "border-amber-300/18 bg-amber-400/10 text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.10)]"
+      : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100 shadow-[0_0_26px_rgba(16,185,129,0.08)]"
+
+const workspaceButtonClass = (
+  active: boolean,
+  tone: "neutral" | "sky" | "violet" | "emerald"
+): string => {
+  const baseClass =
+    "relative overflow-hidden border px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] transition-all duration-300"
+
+  if (active) {
+    if (tone === "sky") {
+      return `${baseClass} border-sky-300/20 bg-sky-400/12 text-sky-100 shadow-[0_0_22px_rgba(56,189,248,0.12)]`
+    }
+
+    if (tone === "violet") {
+      return `${baseClass} border-violet-300/20 bg-violet-400/12 text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.12)]`
+    }
+
+    if (tone === "emerald") {
+      return `${baseClass} border-emerald-300/20 bg-emerald-400/12 text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.12)]`
+    }
+
+    return `${baseClass} border-white/16 bg-white/[0.08] text-white`
+  }
+
+  return `${baseClass} border-white/10 bg-black/24 text-white/42 hover:border-white/16 hover:bg-white/[0.045] hover:text-white/72`
+}
 
   const deckPressureClass =
     systemPressure === "critical"
@@ -2274,9 +2308,9 @@ export function LowerCommandGrid({
       {systemPressure !== "stable" ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.35),transparent)] animate-[missionPressureSweep_2.6s_ease-in-out_infinite]" />
       ) : null}
-      <div className="relative mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[26px] border border-white/8 bg-black/14 px-3.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
-        <div className="flex flex-wrap items-center gap-3">
-          <div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.18em] ${missionStateToneClass}`}>
+      <div className="relative mb-3 grid gap-2 rounded-[24px] border border-white/7 bg-black/10 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.022)] xl:grid-cols-[minmax(220px,0.8fr)_minmax(320px,1.2fr)_auto] xl:items-center">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.16em] ${missionStateToneClass}`}>
             <span
               className={[
                 "h-1.5 w-1.5 rounded-full",
@@ -2288,17 +2322,17 @@ export function LowerCommandGrid({
               ].join(" ")}
             />
             {missionStateLabel}
-</div>
+          </div>
 
-<div>
-            <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/28">
-              Command Workspace
+          <div>
+            <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/24">
+              Command Desk
             </div>
             <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-[0.22em] text-white/66">
-                {COMMAND_WORKSPACE_LABELS[workspaceMode]} Mode
+              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
+                {COMMAND_WORKSPACE_LABELS[workspaceMode]}
               </span>
-              <span className="rounded-full border border-white/10 bg-black/24 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/36">
+              <span className="rounded-full border border-white/8 bg-black/18 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] text-white/30">
                 {surfaceStatusLabel}
               </span>
             </div>
@@ -2315,12 +2349,12 @@ export function LowerCommandGrid({
                 type="button"
                 onClick={() => applyWorkspaceMode(mode)}
                 className={[
-                  "rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] transition-all duration-200",
+                  "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.13em] transition-all duration-200",
                   active
-                    ? "border-violet-300/24 bg-violet-400/14 text-violet-100 shadow-[0_0_20px_rgba(168,85,247,0.16)]"
+                    ? "border-violet-300/18 bg-violet-400/10 text-violet-100/78 shadow-[0_0_14px_rgba(168,85,247,0.10)]"
                     : mode === "custom"
-                      ? "border-amber-300/14 bg-amber-400/8 text-amber-100/52 hover:border-amber-300/24 hover:bg-amber-400/12 hover:text-amber-50"
-                      : "border-white/10 bg-black/24 text-white/38 hover:border-white/18 hover:bg-white/[0.05] hover:text-white/72",
+                      ? "border-amber-300/12 bg-amber-400/6 text-amber-100/46 hover:border-amber-300/20 hover:bg-amber-400/10 hover:text-amber-50/82"
+                      : "border-white/8 bg-black/18 text-white/32 hover:border-white/14 hover:bg-white/[0.035] hover:text-white/62",
                 ].join(" ")}
               >
                 {COMMAND_WORKSPACE_LABELS[mode]}
@@ -2328,12 +2362,12 @@ export function LowerCommandGrid({
             )
           })}
         </div>
-        <div className="flex items-center gap-1.5 rounded-full border border-white/10 bg-black/20 px-1.5 py-1">
+        <div className="flex items-center gap-1 rounded-full border border-white/8 bg-black/16 px-1.5 py-1">
           <button
             type="button"
             onClick={() => setSystemPressure("stable")}
             className={[
-              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition",
+              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] transition",
               systemPressure === "stable"
                 ? "bg-emerald-400/16 text-emerald-50"
                 : "text-white/34 hover:text-white/70",
@@ -2345,7 +2379,7 @@ export function LowerCommandGrid({
             type="button"
             onClick={() => setSystemPressure("watch")}
             className={[
-              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition",
+              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] transition",
               systemPressure === "watch"
                 ? "bg-amber-400/16 text-amber-50"
                 : "text-white/34 hover:text-white/70",
@@ -2357,7 +2391,7 @@ export function LowerCommandGrid({
             type="button"
             onClick={() => setSystemPressure("critical")}
             className={[
-              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition",
+              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] transition",
               systemPressure === "critical"
                 ? "bg-red-400/18 text-red-50"
                 : "text-white/34 hover:text-white/70",
@@ -2380,7 +2414,7 @@ export function LowerCommandGrid({
               rundown: true,
             })
           }}
-          className="rounded-full border border-emerald-300/14 bg-emerald-400/8 px-3 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-emerald-100/58 transition hover:border-emerald-300/24 hover:bg-emerald-400/14 hover:text-emerald-50"
+          className="rounded-full border border-emerald-300/12 bg-emerald-400/6 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.13em] text-emerald-100/50 transition hover:border-emerald-300/20 hover:bg-emerald-400/10 hover:text-emerald-50/82"
         >
           Open All
         </button>
@@ -2408,7 +2442,7 @@ export function LowerCommandGrid({
       type="button"
       onClick={() => setSurfaceOpen(surface.key, !active)}
       className={[
-        "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] transition-all duration-300",
+        "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.13em] transition-all duration-300",
         active
           ? surface.activeClassName
           : "border-white/8 bg-black/24 text-white/28 hover:border-white/14 hover:text-white/52",
