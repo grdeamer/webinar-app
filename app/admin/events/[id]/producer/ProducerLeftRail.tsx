@@ -76,30 +76,28 @@ function RailTelemetryChip({
 
 function RailRackHeader(): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[26px] border border-sky-300/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.055),transparent_36%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.035),transparent_34%),linear-gradient(180deg,rgba(8,18,34,0.965),rgba(3,7,16,0.99))] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.035)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[leftRailSignalSweep_12s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/14 to-transparent" />
-      <div className="relative z-10 flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/54">
-            <Radio size={13} />
+    <div className="relative overflow-hidden rounded-[26px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.045),transparent_34%),linear-gradient(180deg,rgba(14,23,39,0.84),rgba(5,9,18,0.94))] p-3 shadow-[0_18px_48px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] animate-[leftRailSignalSweep_14s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
+
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.24em] text-white/36">
+            <Radio size={12} />
             Control Rack
           </div>
-          <div className="mt-1 text-sm font-semibold tracking-tight text-white/78">
+          <div className="mt-1 text-sm font-semibold tracking-tight text-white/70">
             Live controls and workstation inputs.
           </div>
         </div>
 
-        <div className="group relative overflow-hidden inline-flex items-center gap-1.5 rounded-full border border-emerald-300/10 bg-emerald-400/[0.06] px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/52">
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-          <span className="relative z-10 flex items-center gap-1.5">
-            <ShieldCheck size={11} />
-            Ready
-          </span>
+        <div className="relative overflow-hidden inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-400/[0.065] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-emerald-100/62">
+          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75 shadow-[0_0_6px_rgba(110,231,183,0.34)]" />
+          Ready
         </div>
       </div>
 
-      <div className="relative z-10 mt-3 flex flex-wrap gap-2">
+      <div className="relative z-10 mt-3 grid gap-2 sm:grid-cols-3">
         <RailTelemetryChip
           icon={<SatelliteDish size={10} />}
           label="Signal"
@@ -118,31 +116,8 @@ function RailRackHeader(): JSX.Element {
           icon={<Cpu size={10} />}
           label="System"
           value="Normal"
-          tone="amber"
+          tone="neutral"
         />
-      </div>
-
-      <div className="relative z-10 mt-3 grid grid-cols-3 gap-2">
-        {[
-          { label: "Program", value: "Ready", tone: "text-red-100/52 border-red-300/10 bg-red-400/[0.06]" },
-          { label: "Stage", value: "Set", tone: "text-sky-100/52 border-sky-300/10 bg-sky-400/[0.06]" },
-          { label: "Inputs", value: "Ready", tone: "text-emerald-100/52 border-emerald-300/10 bg-emerald-400/[0.06]" },
-        ].map((item) => (
-          <div
-            key={item.label}
-            className={`group relative overflow-hidden rounded-2xl border px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${item.tone}`}
-          >
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.022)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-            <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-            <div className="relative z-10 mx-auto mb-1 h-1.5 w-1.5 rounded-full bg-current opacity-45 shadow-[0_0_6px_currentColor]" />
-            <div className="text-[8px] font-black uppercase tracking-[0.16em] opacity-65">
-              {item.label}
-            </div>
-            <div className="mt-0.5 text-xs font-semibold tracking-tight">
-              {item.value}
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   )
@@ -186,9 +161,9 @@ function MonitorSizePanel({
   onMonitorHeightChange: (value: number) => void
 }): JSX.Element {
   return (
-    <div className="group relative overflow-hidden rounded-[28px] border border-sky-300/18 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.16),transparent_38%),linear-gradient(180deg,rgba(14,27,45,0.84),rgba(4,9,18,0.94))] p-4 shadow-[0_20px_60px_rgba(0,0,0,0.32),0_0_28px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.055)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[leftRailSignalSweep_10s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/20 to-transparent" />
+    <div className="group relative overflow-hidden rounded-[26px] border border-sky-300/12 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.075),transparent_38%),linear-gradient(180deg,rgba(13,24,39,0.78),rgba(5,9,18,0.92))] p-4 shadow-[0_16px_44px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[leftRailSignalSweep_13s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/14 to-transparent" />
       <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
         <RackSectionHeader
           icon={<MonitorUp size={15} />}
@@ -238,7 +213,7 @@ function DeviceSelectorPanel({
   onSelectAudioDevice: (value: string) => void
 }): JSX.Element {
   return (
-    <div className="group relative overflow-hidden rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.011))] p-4 shadow-[0_14px_38px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.032)]">
+    <div className="group relative overflow-hidden rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] p-4 shadow-[0_14px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.028)]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[leftRailSignalSweep_13s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -381,7 +356,7 @@ export default function ProducerLeftRail({
   onSelectAudioDevice: (value: string) => void
 }): JSX.Element {
   return (
-    <div className="group relative overflow-hidden space-y-3 rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.06),transparent_34%),linear-gradient(180deg,rgba(6,11,26,0.91),rgba(2,4,10,0.975))] p-2.5 shadow-[0_24px_86px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_28px_96px_rgba(0,0,0,0.48),0_0_20px_rgba(96,165,250,0.045)] xl:col-start-1">
+    <div className="group relative overflow-hidden space-y-3 rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.035),transparent_34%),linear-gradient(180deg,rgba(10,15,29,0.88),rgba(4,7,14,0.955))] p-2.5 shadow-[0_22px_74px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_26px_84px_rgba(0,0,0,0.38),0_0_18px_rgba(96,165,250,0.035)] xl:col-start-1">
       <LeftRailAtmosphere />
       <div className="relative z-10 space-y-3">
         <RailRackHeader />
