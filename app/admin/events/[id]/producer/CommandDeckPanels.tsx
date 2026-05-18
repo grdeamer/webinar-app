@@ -223,12 +223,12 @@ function CollapsibleSurface({
             ? "border-violet-300/14 bg-violet-400/8 text-violet-100/54"
             : tone === "red"
               ? "border-red-300/14 bg-red-400/8 text-red-100/54"
-              : "border-white/10 bg-black/24 text-white/34"
+              : "border-white/7 bg-white/[0.035] text-white/32"
 
   return (
     <div
       className={[
-        "relative overflow-hidden rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.024),rgba(255,255,255,0.01))] shadow-[0_18px_52px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-500 ease-out",
+        "relative overflow-hidden rounded-[24px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.009))] shadow-[0_14px_42px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.032)] transition-all duration-500 ease-out",
         isFocused ? "xl:col-span-full scale-[1.003] border-violet-300/14 ring-1 ring-violet-300/14 shadow-[0_26px_82px_rgba(0,0,0,0.38),0_0_26px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.05)]" : "",
         isDimmed ? "scale-[0.992] opacity-45 blur-[1px] grayscale-[0.22]" : "",
       ].join(" ")}
@@ -240,14 +240,14 @@ function CollapsibleSurface({
       <button
         type="button"
         onClick={toggleOpen}
-        className="relative z-10 flex w-full items-center justify-between gap-3 px-4 py-3.5 text-left transition hover:bg-white/[0.02]"
+        className="relative z-10 flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-white/[0.018]"
       >
         <div className="min-w-0">
-          <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/24">
+          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/22">
             {eyebrow}
           </div>
           <div className="mt-1 flex flex-wrap items-center gap-2">
-            <span className="text-[12px] font-black uppercase tracking-[0.18em] text-white/72">
+            <span className="text-[11px] font-black uppercase tracking-[0.14em] text-white/64">
               {title}
             </span>
             {status ? (

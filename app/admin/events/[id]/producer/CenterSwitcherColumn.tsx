@@ -995,12 +995,12 @@ export default function CenterSwitcherColumn({
           onDelete={deleteSelectedBlock}
           hasSelectedBlock={Boolean(selectedBlockId)}
         />
-        <CommandWorkspaceWell
+           <CommandWorkspaceWell
           previewBlocksCount={previewBlocks.length}
           scenesCount={scenes.length}
           selectedSceneLabel={selectedSceneLabel}
           isLive={Boolean(programState?.is_live)}
-          />
+        />
         <ScenesStatusPanel
           sceneName={sceneName}
           onSceneNameChange={onSceneNameChange}
