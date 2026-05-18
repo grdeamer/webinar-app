@@ -105,9 +105,9 @@ const surfaceVariantClassNames: Record<SurfaceVariant, string> = {
     "border-white/8 bg-black/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]",
 }
 
-export const COMMAND_SURFACE_PADDING = "p-3"
-export const COMMAND_SURFACE_RADIUS = "rounded-[24px]"
-export const COMMAND_SECTION_GAP = "gap-2.5"
+export const COMMAND_SURFACE_PADDING = "p-2.5"
+export const COMMAND_SURFACE_RADIUS = "rounded-[22px]"
+export const COMMAND_SECTION_GAP = "gap-2"
 
 function getToneClassName(tone: OperationalTone = "neutral"): string {
   return toneClassNames[tone]
@@ -126,13 +126,13 @@ export function SurfaceHeader({
   className = "",
 }: SurfaceHeaderProps): JSX.Element {
   return (
-    <div className={`flex flex-wrap items-start justify-between gap-3 ${className}`}>
+    <div className={`flex flex-wrap items-start justify-between gap-2.5 ${className}`}>
       <div className="min-w-0">
         <div className="flex flex-wrap items-center gap-2 text-[8px] font-black uppercase tracking-[0.22em] text-white/28">
           {Icon ? <Icon size={12} className="text-white/34" /> : null}
           <span>{eyebrow}</span>
         </div>
-        <div className="mt-1 text-[13px] font-black uppercase tracking-[0.14em] text-white/78">
+        <div className="mt-0.5 text-[12px] font-black uppercase tracking-[0.13em] text-white/76">
           {title}
         </div>
       </div>
@@ -149,9 +149,9 @@ export function CompactStatTile({
   className = "",
 }: CompactStatTileProps): JSX.Element {
   return (
-    <div className={`rounded-2xl border px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${getToneClassName(tone)} ${className}`}>
+    <div className={`rounded-[18px] border px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${getToneClassName(tone)} ${className}`}>
       <div className="text-[8px] font-black uppercase tracking-[0.18em] opacity-55">{label}</div>
-      <div className="mt-1 text-[12px] font-black text-white/82">{value}</div>
+      <div className="mt-0.5 text-[11px] font-black text-white/80">{value}</div>
       {detail ? <div className="mt-1 text-[10px] font-semibold opacity-50">{detail}</div> : null}
     </div>
   )
@@ -215,7 +215,7 @@ export function CommandActionButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`rounded-2xl border px-3 py-2.5 text-[10px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-sky-300/18 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 ${toneClassName} ${className}`}
+      className={`rounded-[18px] border px-2.5 py-2 text-[9px] font-black uppercase tracking-[0.13em] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-sky-300/18 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 ${toneClassName} ${className}`}
     >
       {children}
     </button>
@@ -392,7 +392,7 @@ export function PanelCard({
 }): JSX.Element {
   return (
     <div
-      className={`group relative overflow-hidden ${COMMAND_SURFACE_RADIUS} border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName(variant)} ${className}`}
+      className={`group relative overflow-hidden ${COMMAND_SURFACE_RADIUS} border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName(variant)} transition-all duration-300 hover:scale-[1.002] ${className}`}
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.04] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_7px)]" />
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
@@ -425,7 +425,7 @@ export function CommandButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`group relative overflow-hidden rounded-2xl border px-3 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 ${className}`}
+      className={`group relative overflow-hidden rounded-2xl border px-3 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 ${className}`}
     >
       <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
@@ -448,7 +448,7 @@ export function PrimaryTakeButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="relative group overflow-hidden rounded-2xl border border-amber-100/65 bg-[linear-gradient(180deg,rgba(253,230,138,0.98),rgba(251,191,36,0.98))] px-3 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] text-black shadow-[0_0_18px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(255,255,255,0.42)] transition hover:-translate-y-px hover:shadow-[0_0_24px_rgba(251,191,36,0.24),inset_0_1px_0_rgba(255,255,255,0.5)] focus:outline-none focus:ring-2 focus:ring-amber-200/35 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45"
+      className="relative group overflow-hidden rounded-[18px] border border-amber-100/65 bg-[linear-gradient(180deg,rgba(253,230,138,0.98),rgba(251,191,36,0.98))] px-2.5 py-2 text-[11px] font-black uppercase tracking-[0.13em] text-black shadow-[0_0_18px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(255,255,255,0.42)] transition hover:-translate-y-px hover:shadow-[0_0_24px_rgba(251,191,36,0.24),inset_0_1px_0_rgba(255,255,255,0.5)] focus:outline-none focus:ring-2 focus:ring-amber-200/35 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:active:scale-100"
       title="Take preview to program (T)"
     >
       <span className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent)] opacity-0 transition group-hover:opacity-100" />
