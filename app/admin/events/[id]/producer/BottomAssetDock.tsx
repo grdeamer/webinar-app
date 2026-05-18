@@ -27,7 +27,7 @@ function DockStatusPill({
       : "border-emerald-300/12 bg-emerald-400/[0.06] text-emerald-100/58"
   return (
     <div className={`group relative hidden items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] lg:flex ${toneClass}`}>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
 
       <span className="relative z-10 inline-flex items-center gap-1.5">
@@ -115,8 +115,8 @@ function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
 
   const baseClass =
     preset === "brand"
-      ? "relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
-      : "relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-violet-200/25 group-hover:shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_0_18px_rgba(168,85,247,0.12)]"
+      ? "relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition duration-200 border-violet-200/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_14px_rgba(168,85,247,0.10)]"
+      : "relative aspect-video overflow-hidden rounded-lg border border-violet-200/18 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_14px_rgba(168,85,247,0.10)] transition duration-200"
 
   return (
     <div className={baseClass}>
@@ -272,7 +272,7 @@ function SceneTile({
                 Delete scene?
               </div>
 
-              <div className="mt-2 grid grid-cols-2 gap-1.5">
+              <div className="mt-2.5 grid grid-cols-2 gap-2">
                 <button
                   type="button"
                   onClick={(event) => {
@@ -340,7 +340,7 @@ function GraphicTile({ item }: { item: DockAssetRecord }): JSX.Element {
       type="button"
       className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/35 hover:bg-sky-400/10 hover:shadow-[0_0_18px_rgba(14,165,233,0.14)] active:translate-y-0"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/18 to-transparent" />
       <div className="flex aspect-video items-end rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(14,165,233,0.18),rgba(15,23,42,0.9))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-sky-200/25">
         <div className="h-4 w-16 rounded-md bg-white/80" />
@@ -364,7 +364,7 @@ function MediaTile({
       type="button"
       className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_rgba(52,211,153,0.13)] active:translate-y-0"
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/18 to-transparent" />
       <div className="relative aspect-video rounded-lg border border-white/10 bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.22),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.9),rgba(2,6,23,0.95))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-emerald-200/25">
         <div className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-black text-white/60">
@@ -656,7 +656,7 @@ function SlidesPreviewPanel({
   return (
     <DockSection title="Slides" count={safeSlideCount}>
       <div
-        className={`rounded-[18px] border p-1.5 transition duration-200 ${
+        className={`rounded-[20px] border p-2 transition duration-200 ${
           slideFlash === "take"
             ? "border-red-300/45 bg-red-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(248,113,113,0.18)]"
             : slideFlash === "preview"
@@ -666,7 +666,7 @@ function SlidesPreviewPanel({
                 : "border-amber-200/12 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(251,191,36,0.08)]"
         }`}
       >
-        <div className="relative aspect-video overflow-hidden rounded-xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.88))]">
+        <div className="relative aspect-[16/9] min-h-[148px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
           <div className="absolute left-2 top-2 h-1.5 w-10 rounded-full bg-amber-200/70" />
           <div className="absolute left-2 top-5 h-1 w-16 rounded-full bg-white/35" />
           <div className="absolute left-2 top-8 h-1 w-12 rounded-full bg-white/20" />
@@ -686,7 +686,7 @@ function SlidesPreviewPanel({
           ) : null}
         </div>
 
-        <div className="mt-2 flex items-start justify-between gap-2">
+        <div className="mt-2.5 flex items-start justify-between gap-3">
           <div className="min-w-0 flex-1">
             <div className="truncate text-[11px] font-semibold text-white/82">
               {deckName ?? "Session Deck v1"}
@@ -723,7 +723,7 @@ function SlidesPreviewPanel({
           </button>
         </div>
 
-        <div className="mt-1.5 flex gap-1 overflow-x-auto pb-1">
+        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
           {slides.map((slide) => (
             <button
               key={slide}
@@ -732,7 +732,7 @@ function SlidesPreviewPanel({
                 flashSlideAction("nav")
                 setCurrentSlide(slide)
               }}
-              className={`relative h-8 w-12 shrink-0 rounded-lg border text-[8px] font-black transition ${
+              className={`relative h-9 w-14 shrink-0 rounded-xl border text-[8px] font-black transition ${
                 slide === currentSlide
                   ? "border-amber-200/50 bg-amber-300/20 text-amber-100"
                   : "border-white/10 bg-black/30 text-white/40 hover:border-amber-200/30 hover:bg-amber-300/10"
@@ -745,7 +745,7 @@ function SlidesPreviewPanel({
           ))}
         </div>
 
-        <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <div className="mt-2.5 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={goPrevious}
@@ -764,7 +764,7 @@ function SlidesPreviewPanel({
           </button>
         </div>
 
-        <div className="mt-2 grid grid-cols-2 gap-1.5">
+        <div className="mt-2.5 grid grid-cols-2 gap-2">
           <button
             type="button"
             onClick={() => {
@@ -823,7 +823,7 @@ function DockBankLabel({
 }): JSX.Element {
   return (
     <div className="group relative hidden items-center gap-2 overflow-hidden rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34 lg:flex">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/18 to-transparent" />
       <span className="text-violet-100/55">{icon}</span>
       <span>{label}</span>
@@ -836,7 +836,7 @@ function DockBankLabel({
 function ProgramBusTelemetry({ runtimeLabel }: { runtimeLabel: string }): JSX.Element {
   return (
     <div className="group hidden min-w-[190px] overflow-hidden rounded-full border border-red-300/18 bg-red-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/72 shadow-[0_0_20px_rgba(248,113,113,0.14),inset_0_1px_0_rgba(255,255,255,0.05)] xl:flex">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
       <div className="flex w-full items-center gap-2">
         <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.85)] animate-pulse" />
         <span>Program Bus</span>
@@ -919,10 +919,10 @@ export default function BottomAssetDock({
   void runtimeNow
 
   return (
-    <div className="group relative mt-3 overflow-hidden rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.07),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.045),transparent_32%),linear-gradient(180deg,rgba(6,10,24,0.91),rgba(2,4,10,0.975))] px-2.5 py-2 shadow-[0_24px_80px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_28px_90px_rgba(0,0,0,0.50),0_0_20px_rgba(99,102,241,0.045)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.022] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_14px)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/24 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+    <div className="group relative mt-3 overflow-hidden rounded-[30px] border border-white/11 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.095),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.06),transparent_32%),linear-gradient(180deg,rgba(12,18,36,0.94),rgba(5,9,19,0.982))] px-2.5 py-2 shadow-[0_28px_90px_rgba(0,0,0,0.46),0_0_20px_rgba(99,102,241,0.045),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition duration-300 hover:border-white/13 hover:shadow-[0_30px_96px_rgba(0,0,0,0.50),0_0_24px_rgba(99,102,241,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.032] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_14px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/34 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-100 transition-opacity duration-500 hover:opacity-100" />
       <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
         <div>
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
@@ -967,7 +967,7 @@ export default function BottomAssetDock({
         </div>
       </div>
 
-      <div className="grid gap-2 xl:grid-cols-[1.05fr_0.82fr_0.82fr_0.95fr_0.72fr]">
+      <div className="grid gap-2 xl:grid-cols-[1.08fr_0.84fr_0.84fr_1.02fr_0.78fr] 2xl:grid-cols-[1.12fr_0.88fr_0.88fr_1.08fr_0.82fr]">
         <DockSection title="Scenes" count={scenes.length}>
           <ViewToggle value={scenesView} onChange={setScenesView} />
 

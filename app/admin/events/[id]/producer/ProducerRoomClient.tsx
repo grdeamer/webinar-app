@@ -49,14 +49,14 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
       <div
         className={`absolute left-[-18%] top-[8%] h-[520px] w-[520px] rounded-full blur-3xl transition-opacity duration-1000 ${
-          isLive ? "bg-red-300/12 opacity-90" : "bg-sky-200/14 opacity-85"
+          isLive ? "bg-red-300/13 opacity-95" : "bg-sky-200/18 opacity-95"
         } animate-[producerAtmosphereDrift_14s_ease-in-out_infinite]`}
       />
-      <div className="absolute right-[-16%] top-[28%] h-[620px] w-[620px] rounded-full bg-violet-200/12 blur-3xl animate-[producerAtmosphereCounterDrift_18s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[-22%] left-[24%] h-[680px] w-[680px] rounded-full bg-cyan-200/13 blur-3xl animate-[producerAtmosphereBloom_12s_ease-in-out_infinite]" />
+      <div className="absolute right-[-16%] top-[28%] h-[620px] w-[620px] rounded-full bg-violet-200/15 blur-3xl animate-[producerAtmosphereCounterDrift_18s_ease-in-out_infinite]" />
+      <div className="absolute bottom-[-22%] left-[24%] h-[680px] w-[680px] rounded-full bg-cyan-200/16 blur-3xl animate-[producerAtmosphereBloom_12s_ease-in-out_infinite]" />
 
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_38%,transparent_62%)] animate-[producerTransmissionSheen_9s_ease-in-out_infinite]" />
-      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.020)_0px,rgba(255,255,255,0.020)_1px,transparent_1px,transparent_7px)] opacity-[0.12]" />
+      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_38%,transparent_62%)] animate-[producerTransmissionSheen_9s_ease-in-out_infinite]" />
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)] opacity-[0.16]" />
 
       {isLive ? (
         <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/38 to-transparent animate-[producerLiveScan_2.8s_ease-in-out_infinite]" />
@@ -1037,7 +1037,7 @@ export default function ProducerRoomClient({
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
 
-      <div className="relative flex min-h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.24),transparent_35%),radial-gradient(circle_at_82%_16%,rgba(196,181,253,0.18),transparent_33%),radial-gradient(circle_at_48%_96%,rgba(34,211,238,0.12),transparent_40%),linear-gradient(180deg,#23304a_0%,#19243a_46%,#121b2e_100%)] text-white">
+      <div className="relative flex min-h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.30),transparent_35%),radial-gradient(circle_at_82%_16%,rgba(196,181,253,0.23),transparent_33%),radial-gradient(circle_at_48%_96%,rgba(34,211,238,0.16),transparent_40%),linear-gradient(180deg,#2b3854_0%,#202c44_46%,#172238_100%)] text-white">
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 

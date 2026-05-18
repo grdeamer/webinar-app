@@ -139,9 +139,8 @@ export function ProducerRoomWorkspaceFrame({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.18),transparent_42%),radial-gradient(circle_at_100%_20%,rgba(196,181,253,0.12),transparent_40%),linear-gradient(180deg,rgba(31,43,70,0.985),rgba(17,26,48,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_56%,rgba(0,0,0,0.055)_100%)]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.035] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.024)_0px,rgba(255,255,255,0.024)_1px,transparent_1px,transparent_28px)]" />
+    <div className="relative flex-1 overflow-hidden bg-[radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.22),transparent_42%),radial-gradient(circle_at_100%_20%,rgba(196,181,253,0.16),transparent_40%),linear-gradient(180deg,rgba(38,52,82,0.985),rgba(22,32,58,1))] px-3 py-3 md:px-4 xl:px-5 xl:py-4 2xl:px-6">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_28px)]" />
       {children}
     </div>
   )

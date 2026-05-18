@@ -6,7 +6,6 @@ import {
   Cpu,
   Globe2,
   Mic2,
-  Radar,
   Radio,
   SatelliteDish,
   ScreenShare,
@@ -30,28 +29,28 @@ function RightRailMetric({
 }): JSX.Element {
   const toneClass =
     tone === "green"
-      ? "border-emerald-300/10 bg-emerald-400/[0.06] text-emerald-100/52"
+      ? "border-emerald-300/12 bg-emerald-400/[0.07] text-emerald-100/62"
       : tone === "violet"
-        ? "border-violet-300/10 bg-violet-400/[0.06] text-violet-100/52"
+        ? "border-violet-300/12 bg-violet-400/[0.07] text-violet-100/62"
         : tone === "red"
-          ? "border-red-300/10 bg-red-400/[0.06] text-red-100/52"
+          ? "border-red-300/12 bg-red-400/[0.07] text-red-100/62"
           : tone === "sky"
-            ? "border-sky-300/10 bg-sky-400/[0.06] text-sky-100/52"
-            : "border-white/8 bg-white/[0.024] text-white/42"
+            ? "border-sky-300/12 bg-sky-400/[0.07] text-sky-100/62"
+            : "border-white/10 bg-white/[0.04] text-white/52"
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border px-2 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.022)] ${toneClass}`}
+      className={`group relative overflow-hidden rounded-2xl border px-2 py-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] ${toneClass}`}
     >
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <div className="relative z-10 mx-auto flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/46">
+      <div className="relative z-10 mx-auto flex h-7 w-7 items-center justify-center rounded-xl border border-white/10 bg-white/[0.045] text-white/58">
         {icon}
       </div>
-      <div className="relative z-10 mt-1.5 text-lg font-semibold tracking-tight text-white/78">
+      <div className="relative z-10 mt-1.5 text-lg font-semibold tracking-tight text-white/86">
         {value}
       </div>
-      <div className="relative z-10 mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-48">
+      <div className="relative z-10 mt-1 text-[9px] font-black uppercase tracking-[0.16em] opacity-60">
         {label}
       </div>
     </div>
@@ -71,22 +70,22 @@ function RailStatusChip({
 }): JSX.Element {
   const toneClass =
     tone === "sky"
-      ? "border-sky-300/10 bg-sky-400/[0.06] text-sky-100/52"
+      ? "border-sky-300/12 bg-sky-400/[0.07] text-sky-100/62"
       : tone === "green"
-        ? "border-emerald-300/10 bg-emerald-400/[0.06] text-emerald-100/52"
+        ? "border-emerald-300/12 bg-emerald-400/[0.07] text-emerald-100/62"
         : tone === "violet"
-          ? "border-violet-300/10 bg-violet-400/[0.06] text-violet-100/52"
+          ? "border-violet-300/12 bg-violet-400/[0.07] text-violet-100/62"
           : tone === "amber"
-            ? "border-amber-300/10 bg-amber-400/[0.06] text-amber-100/52"
-            : "border-white/8 bg-black/18 text-white/34"
+            ? "border-amber-300/12 bg-amber-400/[0.07] text-amber-100/62"
+            : "border-white/10 bg-white/[0.035] text-white/48"
 
   return (
     <div className={`group relative flex items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-      <span className="relative z-10 opacity-58">{icon}</span>
-      <span className="relative z-10 text-white/30">{label}</span>
+      <span className="relative z-10 opacity-70">{icon}</span>
+      <span className="relative z-10 text-white/42">{label}</span>
       <span className="relative z-10 inline-flex items-center gap-1.5">
         {tone !== "neutral" ? (
           <span
@@ -154,31 +153,44 @@ export default function ProducerRightRail({
   const cameraCount = participants.filter((p) => p.cameraEnabled).length
   const micCount = participants.filter((p) => p.micEnabled).length
   const screenCount = participants.filter((p) => p.screenShareEnabled).length
+  const selectedBlockLabel = selectedBlock?.label || selectedBlock?.type || "No block selected"
+  const sourceHealthLabel = participants.length > 0 ? "Sources online" : "Waiting for sources"
+  const stageReadinessLabel = stageIds.size > 0 ? "Stage populated" : "Stage empty"
+  const sourceBadgeLabel = participants.length > 0 ? `${participants.length} Sources Ready` : "No Sources Yet"
+  const sourceBadgeToneClass = participants.length > 0
+    ? "border-emerald-300/12 bg-emerald-400/[0.075] text-emerald-100/64 shadow-[0_0_10px_rgba(52,211,153,0.055)]"
+    : "border-amber-300/12 bg-amber-400/[0.07] text-amber-100/62 shadow-[0_0_10px_rgba(251,191,36,0.045)]"
+  const sourceBadgeDotClass = participants.length > 0
+    ? "text-emerald-300/78"
+    : "text-amber-300/78"
+  const inspectorToneClass = selectedBlock
+    ? "border-sky-300/10 bg-sky-400/[0.045]"
+    : "border-white/8 bg-black/12"
   return (
-    <div className="group min-w-0 overflow-hidden rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.055),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.035),transparent_30%),linear-gradient(180deg,rgba(7,12,28,0.955),rgba(2,4,10,0.99))] p-2.5 shadow-[0_24px_86px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_28px_96px_rgba(0,0,0,0.48),0_0_20px_rgba(168,85,247,0.045)] lg:col-start-3">
-      <div className="group relative mb-3 overflow-hidden rounded-[26px] border border-violet-300/9 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.05),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.032),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.035)]">
+    <div className="group min-w-0 overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.04),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.026),transparent_30%),linear-gradient(180deg,rgba(18,24,42,0.92),rgba(8,12,22,0.965))] p-2.5 shadow-[0_20px_70px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.05)] backdrop-blur-xl transition duration-300 hover:border-white/14 hover:shadow-[0_24px_78px_rgba(0,0,0,0.34),0_0_18px_rgba(168,85,247,0.035)] lg:col-start-3">
+      <div className="group relative mb-3 overflow-hidden rounded-[26px] border border-white/9 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.038),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(16,185,129,0.026),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.014))] p-3 shadow-[0_14px_42px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.045)]">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/12 to-transparent" />
+        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/18 to-transparent" />
         <div className="relative z-10 flex items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-100/46">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-violet-100/58">
               <Radio size={13} />
               Operations Rack
             </div>
-            <div className="mt-1 text-lg font-semibold tracking-[-0.035em] text-white/80">
+            <div className="mt-1 text-lg font-semibold tracking-[-0.035em] text-white/84">
               Inspector and source controls
             </div>
-            <div className="mt-1 text-xs leading-5 text-white/34">
+            <div className="mt-1 text-xs leading-5 text-white/42">
               Manage contributors, layouts, and source monitoring.
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-emerald-300/10 bg-emerald-400/[0.06] px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/52 shadow-[0_0_8px_rgba(52,211,153,0.045)]">
-            <CircleDot size={11} className="text-emerald-300/70" />
-            {participants.length} Sources Ready
+          <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${sourceBadgeToneClass}`}>
+            <CircleDot size={11} className={sourceBadgeDotClass} />
+            {sourceBadgeLabel}
           </div>
         </div>
 
-        <div className="relative z-10 mt-3 hidden flex-wrap gap-2 2xl:flex">
+        <div className="relative z-10 mt-3 flex flex-wrap gap-2">
           <RailStatusChip
             icon={<SatelliteDish size={10} />}
             label="Signal"
@@ -198,13 +210,6 @@ export default function ProducerRightRail({
             label="System"
             value="Normal"
             tone="amber"
-          />
-
-          <RailStatusChip
-            icon={<Radar size={10} />}
-            label="Control"
-            value="Stable"
-            tone="violet"
           />
         </div>
 
@@ -238,30 +243,40 @@ export default function ProducerRightRail({
           />
         </div>
 
-        <div className="relative z-10 mt-3 hidden grid-cols-2 gap-2 2xl:grid">
-          <div className="flex items-center gap-2 rounded-2xl border border-red-300/12 bg-red-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+        <div className="relative z-10 mt-3 grid gap-2 rounded-[22px] border border-white/9 bg-white/[0.025] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] sm:grid-cols-2">
+          <div className={`rounded-2xl border px-3 py-2 ${inspectorToneClass}`}>
+            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/36">
+              Inspector Focus
+            </div>
+            <div className="mt-1 truncate text-[11px] font-semibold text-white/76">
+              {selectedBlockLabel}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/8 bg-black/12 px-3 py-2">
+            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/36">
+              Source Health
+            </div>
+            <div className="mt-1 truncate text-[11px] font-semibold text-white/76">
+              {sourceHealthLabel}
+            </div>
+          </div>
+        </div>
+
+        <div className="relative z-10 mt-3 grid grid-cols-2 gap-2">
+          <div className="flex items-center gap-2 rounded-2xl border border-red-300/10 bg-red-400/[0.04] px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/56 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
             <Archive size={12} />
-            ISO Capture Ready
+            ISO Capture Standby
           </div>
 
-          <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/12 bg-emerald-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+          <div className="flex items-center gap-2 rounded-2xl border border-emerald-300/10 bg-emerald-400/[0.04] px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
             <ShieldCheck size={12} />
-            Confidence Ready
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-sky-300/12 bg-sky-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-            <Radar size={12} />
-            Monitoring Active
-          </div>
-
-          <div className="flex items-center gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] text-violet-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-            <SatelliteDish size={12} />
-            Signal Stable
+            {stageReadinessLabel}
           </div>
         </div>
       </div>
 
-      <div className="rounded-[28px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.022)]">
+      <div className="rounded-[28px] border border-white/9 bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.014))] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.032)]">
         <RightInspectorRail
           selectedBlock={selectedBlock}
           onToggleHidden={onToggleHidden}

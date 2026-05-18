@@ -142,11 +142,11 @@ export default function ScenesStatusPanel({
   onClearPrimary: () => void
 }): JSX.Element {
   return (
-    <div className="rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_34%),radial-gradient(circle_at_bottom_left,rgba(168,85,247,0.08),transparent_34%),linear-gradient(180deg,rgba(8,12,26,0.94),rgba(3,6,14,0.99))] p-3 shadow-[0_26px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="mb-3 rounded-[26px] border border-sky-300/10 bg-sky-400/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,22,38,0.96),rgba(8,13,24,0.99))] p-3 shadow-[0_22px_72px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.045)]">
+      <div className="mb-3 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_14px_34px_rgba(0,0,0,0.16)]">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/64">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/52">
               <Rows3 size={13} />
               Broadcast Rundown
             </div>
@@ -184,7 +184,7 @@ export default function ScenesStatusPanel({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2.5 rounded-[24px] border border-white/8 bg-black/18 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="flex flex-wrap items-center gap-2.5 rounded-[24px] border border-white/10 bg-white/[0.045] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_14px_34px_rgba(0,0,0,0.16)]">
         <input
           value={sceneName}
           onChange={(e) => onSceneNameChange(e.target.value)}
@@ -195,7 +195,7 @@ export default function ScenesStatusPanel({
         <button
           onClick={onSaveScene}
           disabled={sceneBusy}
-          className="rounded-2xl border border-sky-200/18 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(226,232,240,0.92))] px-4 py-2 text-sm font-black tracking-[0.04em] text-slate-950 shadow-[0_14px_36px_rgba(255,255,255,0.14)] transition hover:-translate-y-0.5 hover:bg-white active:translate-y-0"
+          className="rounded-2xl border border-sky-200/24 bg-white px-4 py-2 text-sm font-black tracking-[0.04em] text-slate-950 shadow-[0_16px_40px_rgba(255,255,255,0.16)] transition active:translate-y-0"
         >
           {sceneBusy ? "Saving..." : selectedSceneId ? "Update Scene" : "Save Scene"}
         </button>
@@ -234,7 +234,7 @@ export default function ScenesStatusPanel({
         {stageState?.screen_share_participant_id ? (
           <button
             onClick={onClearScreenShare}
-            className="rounded-xl border border-white/12 bg-black/25 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white/70 transition hover:border-white/18 hover:bg-white/8 hover:text-white"
+            className="rounded-xl border border-white/18 bg-white/8 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white transition"
           >
             Clear screen
           </button>
@@ -243,7 +243,7 @@ export default function ScenesStatusPanel({
         {stageState?.pinned_participant_id ? (
           <button
             onClick={onUnpin}
-            className="rounded-xl border border-white/12 bg-black/25 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white/70 transition hover:border-white/18 hover:bg-white/8 hover:text-white"
+            className="rounded-xl border border-white/18 bg-white/8 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white transition"
           >
             Clear pin
           </button>
@@ -252,7 +252,7 @@ export default function ScenesStatusPanel({
         {stageState?.primary_participant_id ? (
           <button
             onClick={onClearPrimary}
-            className="rounded-xl border border-white/12 bg-black/25 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white/70 transition hover:border-white/18 hover:bg-white/8 hover:text-white"
+            className="rounded-xl border border-white/18 bg-white/8 px-3 py-1.5 text-[11px] font-black uppercase tracking-[0.14em] text-white transition"
           >
             Clear primary
           </button>
@@ -277,7 +277,7 @@ export default function ScenesStatusPanel({
         </div>
       ) : null}
 
-      <div className="mt-3 rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.015))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="mt-3 rounded-[26px] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_14px_34px_rgba(0,0,0,0.16)]">
         <div className="mb-2 flex items-center justify-between gap-3 px-1">
           <div className="text-[9px] font-black uppercase tracking-[0.2em] text-white/30">
             Rundown Memory Bank
@@ -296,10 +296,10 @@ export default function ScenesStatusPanel({
             <button
               key={scene.id}
               onClick={() => onApplyScene(scene.id)}
-              className={`group relative overflow-hidden rounded-2xl border px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all duration-200 hover:-translate-y-0.5 ${
+              className={`group relative overflow-hidden rounded-2xl border px-3 py-2 text-[11px] font-black uppercase tracking-[0.14em] transition-all duration-200 ${
                 selectedSceneId === scene.id
                   ? "border-sky-300/35 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.16),transparent_42%),rgba(56,189,248,0.08)] text-sky-100 shadow-[0_0_24px_rgba(56,189,248,0.18)]"
-                  : "border-white/10 bg-black/20 text-white/58 hover:border-white/18 hover:bg-white/[0.06] hover:text-white"
+                  : "border-white/18 bg-white/[0.06] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_12px_30px_rgba(0,0,0,0.20)]"
               }`}
             >
               {selectedSceneId === scene.id ? (
@@ -317,7 +317,7 @@ export default function ScenesStatusPanel({
                     Armed
                   </span>
                 ) : (
-                  <span className="opacity-0 transition group-hover:opacity-100 rounded-full border border-white/10 bg-white/[0.035] px-1.5 py-0.5 text-[8px] tracking-[0.12em] text-white/42">
+                  <span className="rounded-full border border-white/14 bg-white/[0.055] px-1.5 py-0.5 text-[8px] tracking-[0.12em] text-white/70 transition">
                     Recall
                   </span>
                 )}

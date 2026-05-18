@@ -898,7 +898,7 @@ export default function CenterSwitcherColumn({
           }
         }
       `}</style>
-      <div className="grid gap-1.5 opacity-24 transition-opacity duration-300 hover:opacity-72 xl:grid-cols-[1.15fr_0.85fr]">
+      <div className="grid gap-1.5 opacity-72 transition-opacity duration-300 xl:grid-cols-[1.15fr_0.85fr]">
         <MediaBlocksPanel
           previewBlocksCount={previewBlocks.length}
           onAddText={addTestTextBlock}

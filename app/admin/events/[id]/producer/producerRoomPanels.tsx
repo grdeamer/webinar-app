@@ -193,7 +193,7 @@ export function ScenesStatusPanel({
             <button
               key={scene.id}
               onClick={() => onApplyScene(scene.id)}
-              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-3 text-left transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.05]"
+              className="group rounded-2xl border border-white/14 bg-white/[0.045] p-3 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_10px_28px_rgba(0,0,0,0.18)] transition-all duration-200 hover:-translate-y-0.5 hover:border-white/20 hover:bg-white/[0.06]"
             >
               <div className="mb-3 aspect-video rounded-xl border border-white/10 bg-[radial-gradient(circle_at_30%_30%,rgba(56,189,248,0.18),transparent_30%),radial-gradient(circle_at_70%_60%,rgba(239,68,68,0.16),transparent_32%),linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.01))]" />
               <div className="text-[10px] uppercase tracking-[0.18em] text-white/35">Scene {index + 1}</div>

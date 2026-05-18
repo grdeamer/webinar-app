@@ -88,7 +88,6 @@ export function DockSectionHeader({
     </div>
   )
 }
-
 export function DockSection({
   title,
   count,
@@ -99,10 +98,14 @@ export function DockSection({
   children: ReactNode
 }): JSX.Element {
   return (
-    <div className="rounded-[24px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.012))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_12px_30px_rgba(0,0,0,0.14)]">
-      <DockSectionHeader title={title} count={count} />
+    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.05),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_40px_rgba(0,0,0,0.18)] transition duration-300">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04),transparent)] opacity-100" />
 
-      {children}
+      <div className="relative z-10">
+        <DockSectionHeader title={title} count={count} />
+
+        {children}
+      </div>
     </div>
   )
 }
