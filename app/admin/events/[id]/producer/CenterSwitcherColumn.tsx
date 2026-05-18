@@ -48,16 +48,16 @@ function SwitcherSurfaceChrome({
 }): JSX.Element {
   return (
     <div
-      className={`relative overflow-hidden rounded-[24px] border p-1.5 shadow-[0_16px_52px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.025)] transition-all duration-700 xl:p-2 ${
+      className={`relative overflow-hidden rounded-[24px] border p-1.5 shadow-[0_16px_52px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.035)] transition-all duration-700 xl:p-2 ${
         live
-          ? "border-red-300/10 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.075),transparent_42%),linear-gradient(180deg,rgba(7,8,18,0.99),rgba(2,4,12,0.995))]"
+          ? "border-red-300/12 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.085),transparent_42%),linear-gradient(180deg,rgba(16,14,25,0.99),rgba(8,9,18,0.995))]"
           : armed
-            ? "border-amber-300/10 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.055),transparent_42%),linear-gradient(180deg,rgba(5,10,24,0.985),rgba(2,4,12,0.995))]"
-            : "border-white/7 bg-[linear-gradient(180deg,rgba(5,10,24,0.985),rgba(2,4,12,0.995))]"
+            ? "border-amber-300/12 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.068),transparent_42%),linear-gradient(180deg,rgba(13,19,34,0.985),rgba(7,10,20,0.995))]"
+            : "border-white/9 bg-[linear-gradient(180deg,rgba(13,19,34,0.985),rgba(7,10,20,0.995))]"
       }`}
     >
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[switcherSurfaceSweep_16s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[switcherSurfaceSweep_16s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-0 opacity-[0.035] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_10px)]" />
       <div className="pointer-events-none absolute inset-0 rounded-[24px] shadow-[inset_0_0_24px_rgba(0,0,0,0.18)]" />
 
@@ -492,7 +492,7 @@ export default function CenterSwitcherColumn({
           }}
         >
           <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/8 to-transparent" />
-          <div className="relative min-w-0 rounded-[20px] border border-sky-300/6 bg-[linear-gradient(180deg,rgba(5,14,27,0.985),rgba(1,5,12,0.992))] p-1 shadow-[0_14px_40px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.025)] xl:p-1.5">
+          <div className="relative min-w-0 rounded-[20px] border border-sky-300/9 bg-[linear-gradient(180deg,rgba(12,24,42,0.985),rgba(5,12,24,0.992))] p-1 shadow-[0_14px_38px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] xl:p-1.5">
             <MonitorHeader
               title="Preview"
               subtitle=""
@@ -518,10 +518,10 @@ export default function CenterSwitcherColumn({
             />
 
             <div
-              className={`relative aspect-video w-full overflow-hidden rounded-[20px] border bg-[radial-gradient(circle_at_50%_42%,rgba(15,23,42,0.92)_0%,rgba(2,6,23,0.98)_58%,#000_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-[20px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.035),transparent_13%,transparent_72%,rgba(255,255,255,0.014)),radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.055),transparent_38%)] before:opacity-65 ${
+              className={`relative aspect-video w-full overflow-hidden rounded-[20px] border bg-[radial-gradient(circle_at_50%_42%,rgba(24,36,58,0.94)_0%,rgba(9,17,32,0.985)_58%,rgba(2,7,16,0.998)_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-[20px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.045),transparent_13%,transparent_72%,rgba(255,255,255,0.018)),radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.075),transparent_38%)] before:opacity-75 ${
                 previewProgramDifferent
                   ? "border-amber-200/20 shadow-[0_0_0_1px_rgba(251,191,36,0.08),0_0_28px_rgba(251,191,36,0.08),0_22px_64px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.055)]"
-                  : "border-sky-200/14 shadow-[0_0_0_1px_rgba(125,211,252,0.055),0_0_24px_rgba(56,189,248,0.055),0_22px_64px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.045)]"
+                  : "border-sky-200/18 shadow-[0_0_0_1px_rgba(125,211,252,0.07),0_0_24px_rgba(56,189,248,0.07),0_20px_56px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)]"
               }`}
               onMouseMove={onPreviewCanvasMouseMove}
               onMouseUp={stopDraggingBlock}
@@ -529,8 +529,8 @@ export default function CenterSwitcherColumn({
               onClick={onClearSelectedBlock}
             >
               <div className="pointer-events-none absolute inset-0 z-10 rounded-[20px] shadow-[inset_0_0_34px_rgba(0,0,0,0.58),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/24 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/24 to-transparent" />
 
               {previewProgramDifferent ? (
                 <div className="pointer-events-none absolute inset-x-0 top-0 z-30 bg-amber-300/72 px-3 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-black/74 shadow-[0_0_8px_rgba(251,191,36,0.08)]">
@@ -676,7 +676,7 @@ export default function CenterSwitcherColumn({
               </div>
             </div>
           </div>
-          <div className="relative min-w-0 rounded-[20px] border border-red-300/7 bg-[linear-gradient(180deg,rgba(20,7,10,0.985),rgba(4,2,4,0.992))] p-1 shadow-[0_14px_40px_rgba(0,0,0,0.34),0_0_18px_rgba(239,68,68,0.03),inset_0_1px_0_rgba(255,255,255,0.025)] xl:p-1.5">
+          <div className="relative min-w-0 rounded-[20px] border border-red-300/10 bg-[linear-gradient(180deg,rgba(34,16,22,0.985),rgba(14,8,14,0.992))] p-1 shadow-[0_14px_38px_rgba(0,0,0,0.30),0_0_18px_rgba(239,68,68,0.04),inset_0_1px_0_rgba(255,255,255,0.04)] xl:p-1.5">
             <MonitorHeader
               title="Program"
               subtitle=""
@@ -696,10 +696,10 @@ export default function CenterSwitcherColumn({
             />
 
             <div
-              className={`relative aspect-video w-full overflow-hidden rounded-[20px] border bg-[radial-gradient(circle_at_50%_44%,rgba(12,5,8,0.98)_0%,rgba(3,1,3,0.995)_62%,#000_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-[20px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.038),transparent_14%,transparent_72%,rgba(255,255,255,0.014)),radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.065),transparent_42%)] before:opacity-68 ${
+              className={`relative aspect-video w-full overflow-hidden rounded-[20px] border bg-[radial-gradient(circle_at_50%_44%,rgba(31,18,24,0.985)_0%,rgba(12,7,13,0.995)_62%,rgba(3,2,5,0.998)_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-[20px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.046),transparent_14%,transparent_72%,rgba(255,255,255,0.018)),radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.082),transparent_42%)] before:opacity-76 ${
                 isTransitioning
                   ? "border-white/26 shadow-[0_0_0_1px_rgba(255,255,255,0.12),0_0_42px_rgba(255,255,255,0.08),0_22px_64px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.06)]"
-                  : "border-red-200/16 shadow-[0_0_0_1px_rgba(248,113,113,0.07),0_0_30px_rgba(239,68,68,0.075),0_22px_64px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.045)]"
+                  : "border-red-200/20 shadow-[0_0_0_1px_rgba(248,113,113,0.085),0_0_30px_rgba(239,68,68,0.09),0_20px_56px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.055)]"
               }`}
             >
               <div className="pointer-events-none absolute inset-0 z-10 rounded-[20px] shadow-[inset_0_0_36px_rgba(0,0,0,0.60),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
@@ -717,8 +717,8 @@ export default function CenterSwitcherColumn({
                   </div>
                 </div>
               ) : null}
-              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/35 to-transparent" />
-              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/35 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-12 bg-gradient-to-b from-black/24 to-transparent" />
+              <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-16 bg-gradient-to-t from-black/24 to-transparent" />
 
               <div className="relative z-10 h-full">
                 {!programState?.stage_participant_ids?.length &&
