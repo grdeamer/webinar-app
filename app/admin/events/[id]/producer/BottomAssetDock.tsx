@@ -205,7 +205,7 @@ function SceneTile({
       type="button"
       onClick={() => onApplyScene?.(scene.id)}
       onDoubleClick={() => onDoubleClickScene?.(scene.id)}
-      className={`group relative min-w-[96px] overflow-hidden rounded-[18px] border p-1.5 text-left transition duration-200 before:pointer-events-none before:absolute before:inset-0 before:rounded-[18px] before:bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_18%,transparent_36%)] before:opacity-0 before:transition-opacity hover:before:opacity-100 ${
+      className={`group relative min-w-[88px] overflow-hidden rounded-[18px] border p-1.5 text-left transition duration-200 before:pointer-events-none before:absolute before:inset-0 before:rounded-[18px] before:bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_18%,transparent_36%)] before:opacity-0 before:transition-opacity hover:before:opacity-100 ${
         isHotkeyTriggered
           ? "-translate-y-0.5 border-amber-200/70 bg-amber-300/14 shadow-[0_0_38px_rgba(251,191,36,0.34),inset_0_1px_0_rgba(255,255,255,0.08)]"
           : isProgramLive
@@ -213,7 +213,7 @@ function SceneTile({
             : isActive
               ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_28px_rgba(168,85,247,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]"
               : "border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
-      } hover:-translate-y-0.5 hover:border-violet-300/40 hover:bg-violet-400/10 hover:shadow-[0_0_24px_rgba(168,85,247,0.20)] active:translate-y-0`}
+      } hover:-translate-y-px hover:border-violet-300/30 hover:bg-violet-400/[0.07] hover:shadow-[0_0_16px_rgba(168,85,247,0.12)] active:translate-y-0`}
     >
       {isHotkeyTriggered ? (
         <div className="absolute inset-0 rounded-[16px] border border-amber-200/50 shadow-[inset_0_0_18px_rgba(251,191,36,0.18)]" />
@@ -338,7 +338,7 @@ function GraphicTile({ item }: { item: DockAssetRecord }): JSX.Element {
   return (
     <button
       type="button"
-      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-sky-300/35 hover:bg-sky-400/10 hover:shadow-[0_0_18px_rgba(14,165,233,0.14)] active:translate-y-0"
+      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-px hover:border-sky-300/28 hover:bg-sky-400/[0.07] hover:shadow-[0_0_14px_rgba(14,165,233,0.10)] active:translate-y-0"
     >
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/18 to-transparent" />
@@ -362,7 +362,7 @@ function MediaTile({
   return (
     <button
       type="button"
-      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300/35 hover:bg-emerald-400/10 hover:shadow-[0_0_18px_rgba(52,211,153,0.13)] active:translate-y-0"
+      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-px hover:border-emerald-300/28 hover:bg-emerald-400/[0.07] hover:shadow-[0_0_14px_rgba(52,211,153,0.10)] active:translate-y-0"
     >
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
       <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/18 to-transparent" />
@@ -455,7 +455,7 @@ function SceneListRow({
         event.preventDefault()
         onApplyScene?.(scene.id)
       }}
-      className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/10 ${
+      className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/[0.06] ${
         isHotkeyTriggered
           ? "border-amber-200/70 bg-amber-300/14 shadow-[0_0_28px_rgba(251,191,36,0.22)]"
           : isActive
@@ -564,7 +564,7 @@ function AssetListRow({
   return (
     <button
       type="button"
-      className={`flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:-translate-y-0.5 ${toneClass}`}
+      className={`flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:-translate-y-px ${toneClass}`}
     >
       <div className="h-7 w-9 shrink-0 rounded-lg border border-white/10 bg-black/35" />
       <div className="min-w-0 flex-1">
@@ -919,17 +919,17 @@ export default function BottomAssetDock({
   void runtimeNow
 
   return (
-    <div className="group relative mt-3 overflow-hidden rounded-[30px] border border-white/11 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.095),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.06),transparent_32%),linear-gradient(180deg,rgba(12,18,36,0.94),rgba(5,9,19,0.982))] px-2.5 py-2 shadow-[0_28px_90px_rgba(0,0,0,0.46),0_0_20px_rgba(99,102,241,0.045),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition duration-300 hover:border-white/13 hover:shadow-[0_30px_96px_rgba(0,0,0,0.50),0_0_24px_rgba(99,102,241,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]">
+    <div className="group relative mt-3 overflow-hidden rounded-[28px] border border-white/9 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.095),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.06),transparent_32%),linear-gradient(180deg,rgba(12,18,36,0.94),rgba(5,9,19,0.982))] px-2.5 py-2 shadow-[0_22px_72px_rgba(0,0,0,0.40),0_0_20px_rgba(99,102,241,0.045),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition duration-300 hover:border-white/13 hover:shadow-[0_24px_80px_rgba(0,0,0,0.44),0_0_24px_rgba(99,102,241,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.032] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_14px)]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/34 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-100 transition-opacity duration-500 hover:opacity-100" />
       <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.28em] text-white/38">
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
             <Rows3 size={13} className="text-sky-100/62" />
             Asset Dock
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-white/45">
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/38">
             <span>Scenes, graphics, media, slides, and transitions.</span>
             <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/14 bg-sky-400/8 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/55">
               <MonitorPlay size={10} /> Ready
@@ -990,7 +990,7 @@ export default function BottomAssetDock({
               <button
                 type="button"
                 onClick={onAddScene}
-                className="min-w-[88px] rounded-[16px] border border-dashed border-white/14 bg-black/22 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:-translate-y-0.5 hover:border-white/25 hover:bg-white/[0.04] active:translate-y-0"
+                className="min-w-[88px] rounded-[16px] border border-dashed border-white/14 bg-black/22 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.04] active:translate-y-0"
               >
                 <div className="flex aspect-video items-center justify-center rounded-lg border border-white/10 bg-black/28 text-xl text-white/35">
                   +
@@ -1090,7 +1090,7 @@ export default function BottomAssetDock({
             </span>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
               <div className="mb-1 flex items-center justify-between text-[8px] font-black uppercase tracking-[0.16em] text-white/38">
                 <span>Transition Preview</span>
@@ -1118,7 +1118,7 @@ export default function BottomAssetDock({
                 <button
                   key={transition}
                   type="button"
-                  className={`rounded-xl border px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] transition hover:-translate-y-0.5 active:translate-y-0 ${
+                  className={`rounded-xl border px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] transition hover:-translate-y-px active:translate-y-0 ${
                     transition === "Cut"
                       ? "border-red-300/30 bg-red-400/12 text-red-100/85 shadow-[0_0_18px_rgba(248,113,113,0.16)] hover:border-red-300/45 hover:bg-red-400/18"
                       : transition === "Fade"

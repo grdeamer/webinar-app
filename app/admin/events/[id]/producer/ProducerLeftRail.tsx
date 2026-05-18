@@ -19,9 +19,9 @@ import type { ScreenLayoutPreset } from "./assetDockTypes"
 function LeftRailAtmosphere(): JSX.Element {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-sky-300/6 via-violet-300/3 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[leftRailSignalSweep_12s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.045] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_8px)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-sky-300/[0.045] via-violet-300/[0.018] to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] animate-[leftRailSignalSweep_14s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.032] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_8px)]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/14 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-sky-300/[0.05] to-transparent" />
     </>
@@ -46,11 +46,11 @@ function RailTelemetryChip({
         ? "border-emerald-300/10 bg-emerald-400/[0.06] text-emerald-100/52"
         : tone === "amber"
           ? "border-amber-300/10 bg-amber-400/[0.06] text-amber-100/52"
-          : "border-white/8 bg-black/20 text-white/34"
+          : "border-white/7 bg-white/[0.035] text-white/34"
 
   return (
     <div className={`group relative z-10 flex items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-40 transition-opacity duration-500 group-hover:opacity-70" />
       <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
 
       <span className="relative z-10 opacity-80">{icon}</span>
@@ -76,28 +76,28 @@ function RailTelemetryChip({
 
 function RailRackHeader(): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[26px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.045),transparent_34%),linear-gradient(180deg,rgba(14,23,39,0.84),rgba(5,9,18,0.94))] p-3 shadow-[0_18px_48px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className="relative overflow-hidden rounded-[24px] border border-white/7 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.032),transparent_34%),linear-gradient(180deg,rgba(16,22,38,0.82),rgba(7,11,20,0.93))] p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] animate-[leftRailSignalSweep_14s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
 
       <div className="relative z-10 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.24em] text-white/36">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
             <Radio size={12} />
             Control Rack
           </div>
-          <div className="mt-1 text-sm font-semibold tracking-tight text-white/70">
+          <div className="mt-1 text-xs font-semibold tracking-tight text-white/58">
             Live controls and workstation inputs.
           </div>
         </div>
 
-        <div className="relative overflow-hidden inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-400/[0.065] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-emerald-100/62">
+        <div className="relative overflow-hidden inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-400/[0.065] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-100/56">
           <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75 shadow-[0_0_6px_rgba(110,231,183,0.34)]" />
           Ready
         </div>
       </div>
 
-      <div className="relative z-10 mt-3 grid gap-2 sm:grid-cols-3">
+      <div className="relative z-10 mt-2.5 grid gap-1.5 sm:grid-cols-3">
         <RailTelemetryChip
           icon={<SatelliteDish size={10} />}
           label="Signal"
@@ -133,18 +133,18 @@ function RackSectionHeader({
   sub: string
 }): JSX.Element {
   return (
-    <div className="relative mb-3 flex items-center justify-between gap-3 overflow-hidden rounded-[20px] border border-white/5 bg-white/[0.012] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+    <div className="relative mb-3 flex items-center justify-between gap-3 overflow-hidden rounded-[18px] border border-white/5 bg-white/[0.018] px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)]" />
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
       <div className="relative z-10 flex min-w-0 items-center gap-2.5">
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl border border-white/7 bg-black/18 text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border border-white/6 bg-white/[0.035] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
           {icon}
         </span>
         <div className="min-w-0">
-          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/30">
+          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/30">
             {title}
           </div>
-          <div className="mt-0.5 truncate text-xs text-white/34">
+          <div className="mt-0.5 truncate text-[11px] text-white/32">
             {sub}
           </div>
         </div>
@@ -213,23 +213,23 @@ function DeviceSelectorPanel({
   onSelectAudioDevice: (value: string) => void
 }): JSX.Element {
   return (
-    <div className="group relative overflow-hidden rounded-[26px] border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] p-4 shadow-[0_14px_36px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.028)]">
+    <div className="group relative overflow-hidden rounded-[24px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.009))] p-3 shadow-[0_12px_34px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.026)]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[leftRailSignalSweep_13s_ease-in-out_infinite]" />
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
       <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
         <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/32">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/30">
             <Camera size={13} />
             Workstation Inputs
           </div>
-          <div className="mt-1 text-xs text-white/36">
+          <div className="mt-1 text-[11px] text-white/32">
             Camera and microphone selection.
           </div>
         </div>
 
         <span
-          className={`relative overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${
+          className={`relative overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${
             deviceAccessReady
               ? "border-emerald-300/14 bg-emerald-400/[0.07] text-emerald-100/58"
               : "border-amber-300/14 bg-amber-400/[0.07] text-amber-100/58"
@@ -256,7 +256,7 @@ function DeviceSelectorPanel({
           <select
             value={selectedVideoDeviceId}
             onChange={(e) => onSelectVideoDevice(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none transition hover:border-white/18 hover:bg-black/42 focus:border-sky-300/35 focus:bg-black/45"
+            className="w-full rounded-2xl border border-white/8 bg-white/[0.045] px-3 py-2 text-sm text-white outline-none transition hover:border-white/12 hover:bg-white/[0.055] focus:border-sky-300/28 focus:bg-white/[0.06]"
           >
             {videoDevices.length === 0 ? (
               <option value="">No cameras found</option>
@@ -277,7 +277,7 @@ function DeviceSelectorPanel({
           <select
             value={selectedAudioDeviceId}
             onChange={(e) => onSelectAudioDevice(e.target.value)}
-            className="w-full rounded-2xl border border-white/10 bg-black/35 px-3 py-2 text-sm text-white outline-none transition hover:border-white/18 hover:bg-black/42 focus:border-sky-300/35 focus:bg-black/45"
+            className="w-full rounded-2xl border border-white/8 bg-white/[0.045] px-3 py-2 text-sm text-white outline-none transition hover:border-white/12 hover:bg-white/[0.055] focus:border-sky-300/28 focus:bg-white/[0.06]"
           >
             {audioDevices.length === 0 ? (
               <option value="">No microphones found</option>
@@ -292,14 +292,14 @@ function DeviceSelectorPanel({
         </div>
       </div>
 
-      <div className="relative z-10 mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/45">
-        <span className="relative overflow-hidden rounded-full border border-white/10 bg-black/30 px-3 py-1">
+      <div className="relative z-10 mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
+        <span className="relative overflow-hidden rounded-full border border-white/8 bg-white/[0.035] px-3 py-1">
           <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
           <span className="relative z-10">
             Cameras: {videoDevices.length}
           </span>
         </span>
-        <span className="relative overflow-hidden rounded-full border border-white/10 bg-black/30 px-3 py-1">
+        <span className="relative overflow-hidden rounded-full border border-white/8 bg-white/[0.035] px-3 py-1">
           <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
           <span className="relative z-10">
             Mics: {audioDevices.length}
@@ -356,9 +356,9 @@ export default function ProducerLeftRail({
   onSelectAudioDevice: (value: string) => void
 }): JSX.Element {
   return (
-    <div className="group relative overflow-hidden space-y-3 rounded-[32px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.035),transparent_34%),linear-gradient(180deg,rgba(10,15,29,0.88),rgba(4,7,14,0.955))] p-2.5 shadow-[0_22px_74px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_26px_84px_rgba(0,0,0,0.38),0_0_18px_rgba(96,165,250,0.035)] xl:col-start-1">
+    <div className="group relative overflow-hidden space-y-2.5 rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.026),transparent_34%),linear-gradient(180deg,rgba(16,22,38,0.90),rgba(7,11,20,0.955))] p-2 shadow-[0_18px_60px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_22px_68px_rgba(0,0,0,0.28),0_0_14px_rgba(96,165,250,0.025)] xl:col-start-1">
       <LeftRailAtmosphere />
-      <div className="relative z-10 space-y-3">
+      <div className="relative z-10 space-y-2.5">
         <RailRackHeader />
 
         <ControlStackPanel

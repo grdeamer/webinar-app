@@ -183,7 +183,89 @@ function PresenterConfidenceCue({
     </div>
   );
 }
+function CommandWorkspaceWell({
+  previewBlocksCount,
+  scenesCount,
+  selectedSceneLabel,
+  isLive,
+}: {
+  previewBlocksCount: number;
+  scenesCount: number;
+  selectedSceneLabel: string | null;
+  isLive: boolean;
+}): JSX.Element {
+  return (
+    <div className="relative mt-1.5 min-h-[238px] overflow-hidden rounded-[28px] border border-white/6 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.045),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.035),transparent_32%),linear-gradient(180deg,rgba(10,15,28,0.88),rgba(5,8,16,0.965))] shadow-[0_18px_54px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.026)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background:linear-gradient(rgba(255,255,255,0.75)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.75)_1px,transparent_1px)] bg-[size:48px_48px]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/18 to-transparent" />
 
+      <div className="relative z-10 flex min-h-[238px] flex-col justify-between p-4">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/26">
+              Command Workspace
+            </div>
+            <div className="mt-1 text-sm font-semibold tracking-[-0.01em] text-white/46">
+              Workspace clear for scene notes, timeline checks, and producer focus.
+            </div>
+          </div>
+
+          <span className="rounded-full border border-emerald-300/10 bg-emerald-400/[0.055] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-100/48">
+            Console Ready
+          </span>
+        </div>
+
+        <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
+          <div className="flex h-12 w-12 items-center justify-center rounded-[20px] border border-white/8 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+            <span className="h-2.5 w-2.5 rounded-full bg-sky-300/60 shadow-[0_0_18px_rgba(125,211,252,0.28)]" />
+          </div>
+
+          <div className="mt-3 text-[10px] font-black uppercase tracking-[0.22em] text-white/30">
+            No active workspace selected
+          </div>
+          <div className="mt-1 max-w-md text-xs leading-relaxed text-white/34">
+            This area intentionally stays quiet so Preview, Program, and producer decisions remain the visual priority.
+          </div>
+        </div>
+
+        <div className="grid gap-2 md:grid-cols-3">
+          <div className="rounded-2xl border border-white/6 bg-white/[0.028] px-3 py-2">
+            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/24">
+              Program
+            </div>
+            <div className="mt-1 text-[11px] font-black uppercase tracking-[0.12em] text-white/46">
+              {isLive ? "Live" : "Standby"}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/6 bg-white/[0.028] px-3 py-2">
+            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/24">
+              Scene Memory
+            </div>
+            <div className="mt-1 text-[11px] font-black uppercase tracking-[0.12em] text-sky-100/56">
+              {scenesCount} saved
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/6 bg-white/[0.028] px-3 py-2">
+            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/24">
+              Preview Blocks
+            </div>
+            <div className="mt-1 text-[11px] font-black uppercase tracking-[0.12em] text-violet-100/56">
+              {previewBlocksCount} active
+            </div>
+          </div>
+        </div>
+
+        {selectedSceneLabel ? (
+          <div className="absolute bottom-4 right-4 rounded-full border border-sky-300/10 bg-sky-400/[0.045] px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-sky-100/42">
+            Armed · {selectedSceneLabel}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
 export default function CenterSwitcherColumn({
   triggerAudienceCue,
   onHideAudienceCue,
@@ -898,7 +980,7 @@ export default function CenterSwitcherColumn({
           }
         }
       `}</style>
-      <div className="grid gap-1.5 opacity-72 transition-opacity duration-300 xl:grid-cols-[1.15fr_0.85fr]">
+            <div className="grid gap-2 opacity-78 transition-opacity duration-300 xl:grid-cols-[1.05fr_0.9fr_1.05fr]">
         <MediaBlocksPanel
           previewBlocksCount={previewBlocks.length}
           onAddText={addTestTextBlock}
@@ -913,7 +995,12 @@ export default function CenterSwitcherColumn({
           onDelete={deleteSelectedBlock}
           hasSelectedBlock={Boolean(selectedBlockId)}
         />
-
+        <CommandWorkspaceWell
+          previewBlocksCount={previewBlocks.length}
+          scenesCount={scenes.length}
+          selectedSceneLabel={selectedSceneLabel}
+          isLive={Boolean(programState?.is_live)}
+          />
         <ScenesStatusPanel
           sceneName={sceneName}
           onSceneNameChange={onSceneNameChange}
