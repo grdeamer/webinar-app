@@ -2225,19 +2225,25 @@ export function LowerCommandGrid({
   const openSurfaceCount = Object.values(openSurfaces).filter(Boolean).length
   const surfaceStatusLabel = getSurfaceStatusLabel(openSurfaceCount)
   const transportStatusLabel = getTransportStatusLabel(previewProgramDifferent)
-  const surfaceModeLabel = getSurfaceModeLabel({ focusedSurface, workspaceMode })
-
-  const routingStatusLabel = openSurfaces.routing
-    ? "Confidence Visible"
-    : "Confidence Collapsed"
-
-  const rundownStatusLabel = openSurfaces.rundown
-    ? "Cue Stack Visible"
-    : "Cue Stack Collapsed"
+  const routingStatusLabel =
+    workspaceMode === "ops"
+      ? "Ops Monitoring"
+      : openSurfaces.routing
+        ? "Confidence Visible"
+        : "Confidence Hidden"
 
   const [systemPressure, setSystemPressure] = useState<SystemPressureState>("stable")
   const [globalRundownMode, setGlobalRundownMode] = useState<"rehearsal" | "live">("rehearsal")
   const liveLocked = globalRundownMode === "live"
+
+  const rundownStatusLabel =
+    liveLocked
+      ? "Live Locked"
+      : openSurfaces.rundown
+        ? "Rehearsal Active"
+        : "Rundown Hidden"
+
+  const surfaceModeLabel = getSurfaceModeLabel({ focusedSurface, workspaceMode })
   const systemPressureTone = getSystemPressureTone(systemPressure)
   const systemPressureSurfaceTone = getSystemPressureSurfaceTone(systemPressure)
   const missionStateLabel =
