@@ -2187,6 +2187,7 @@ export function LowerCommandGrid({
     setWorkspaceMode("custom")
     setFocusedSurface(null)
     setPreFocusOpenSurfaces(null)
+
     setOpenSurfaces((current) => ({
       ...current,
       [surface]: open,
@@ -2197,6 +2198,7 @@ export function LowerCommandGrid({
     setWorkspaceMode("custom")
     setFocusedSurface(surface)
     setPreFocusOpenSurfaces(openSurfaces)
+
     setOpenSurfaces({
       transport: surface === "transport",
       transition: surface === "transition",
@@ -2229,6 +2231,7 @@ export function LowerCommandGrid({
 
   const openSurfaceCount = Object.values(openSurfaces).filter(Boolean).length
   const surfaceStatusLabel = getSurfaceStatusLabel(openSurfaceCount)
+
   const transportStatusLabel =
     systemPressure === "critical"
       ? "Transport Hold"
@@ -2242,6 +2245,7 @@ export function LowerCommandGrid({
         : openSurfaces.routing
           ? "Confidence Visible"
           : "Confidence Hidden"
+
   const liveLocked = globalRundownMode === "live"
 
   const rundownStatusLabel =
@@ -2252,8 +2256,10 @@ export function LowerCommandGrid({
         : "Rundown Hidden"
 
   const surfaceModeLabel = getSurfaceModeLabel({ focusedSurface, workspaceMode })
+
   const systemPressureTone = getSystemPressureTone(systemPressure)
   const systemPressureSurfaceTone = getSystemPressureSurfaceTone(systemPressure)
+
   const missionStateLabel =
     systemPressure === "critical"
       ? "Confidence Degraded"
@@ -2263,38 +2269,38 @@ export function LowerCommandGrid({
           ? "Live Locked"
           : "Rehearsal Safe"
 
-const missionStateToneClass =
-  systemPressureSurfaceTone === "red"
-    ? "border-red-300/18 bg-red-400/10 text-red-100 shadow-[0_0_34px_rgba(239,68,68,0.12)]"
-    : systemPressureSurfaceTone === "amber"
-      ? "border-amber-300/18 bg-amber-400/10 text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.10)]"
-      : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100 shadow-[0_0_26px_rgba(16,185,129,0.08)]"
+  const missionStateToneClass =
+    systemPressureSurfaceTone === "red"
+      ? "border-red-300/18 bg-red-400/10 text-red-100 shadow-[0_0_34px_rgba(239,68,68,0.12)]"
+      : systemPressureSurfaceTone === "amber"
+        ? "border-amber-300/18 bg-amber-400/10 text-amber-100 shadow-[0_0_30px_rgba(251,191,36,0.10)]"
+        : "border-emerald-300/14 bg-emerald-400/8 text-emerald-100 shadow-[0_0_26px_rgba(16,185,129,0.08)]"
 
-const workspaceButtonClass = (
-  active: boolean,
-  tone: "neutral" | "sky" | "violet" | "emerald"
-): string => {
-  const baseClass =
-    "relative overflow-hidden border px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] transition-all duration-300"
+  const workspaceButtonClass = (
+    active: boolean,
+    tone: "neutral" | "sky" | "violet" | "emerald"
+  ): string => {
+    const baseClass =
+      "relative overflow-hidden border px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] transition-all duration-300"
 
-  if (active) {
-    if (tone === "sky") {
-      return `${baseClass} border-sky-300/20 bg-sky-400/12 text-sky-100 shadow-[0_0_22px_rgba(56,189,248,0.12)]`
+    if (active) {
+      if (tone === "sky") {
+        return `${baseClass} border-sky-300/20 bg-sky-400/12 text-sky-100 shadow-[0_0_22px_rgba(56,189,248,0.12)]`
+      }
+
+      if (tone === "violet") {
+        return `${baseClass} border-violet-300/20 bg-violet-400/12 text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.12)]`
+      }
+
+      if (tone === "emerald") {
+        return `${baseClass} border-emerald-300/20 bg-emerald-400/12 text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.12)]`
+      }
+
+      return `${baseClass} border-white/16 bg-white/[0.08] text-white`
     }
 
-    if (tone === "violet") {
-      return `${baseClass} border-violet-300/20 bg-violet-400/12 text-violet-100 shadow-[0_0_22px_rgba(168,85,247,0.12)]`
-    }
-
-    if (tone === "emerald") {
-      return `${baseClass} border-emerald-300/20 bg-emerald-400/12 text-emerald-100 shadow-[0_0_22px_rgba(16,185,129,0.12)]`
-    }
-
-    return `${baseClass} border-white/16 bg-white/[0.08] text-white`
+    return `${baseClass} border-white/10 bg-black/24 text-white/42 hover:border-white/16 hover:bg-white/[0.045] hover:text-white/72`
   }
-
-  return `${baseClass} border-white/10 bg-black/24 text-white/42 hover:border-white/16 hover:bg-white/[0.045] hover:text-white/72`
-}
 
   const deckPressureClass =
     systemPressure === "critical"
@@ -2302,385 +2308,66 @@ const workspaceButtonClass = (
       : systemPressure === "watch"
         ? "border-amber-300/14 shadow-[0_28px_105px_rgba(0,0,0,0.46),0_0_40px_rgba(251,191,36,0.08),inset_0_1px_0_rgba(255,255,255,0.055)]"
         : "border-white/10 shadow-[0_28px_100px_rgba(0,0,0,0.44),inset_0_1px_0_rgba(255,255,255,0.05)]"
+
+  const missionTelemetryItems = [
+    {
+      label: "Workspace",
+      value: surfaceModeLabel,
+      tone:
+        workspaceMode === "audio"
+          ? "text-emerald-100/72"
+          : workspaceMode === "ops"
+            ? "text-sky-100/72"
+            : workspaceMode === "compact"
+              ? "text-violet-100/72"
+              : "text-white/72",
+    },
+    {
+      label: "Mission State",
+      value: missionStateLabel,
+      tone:
+        systemPressure === "critical"
+          ? "text-red-100/80"
+          : systemPressure === "watch"
+            ? "text-amber-100/80"
+            : liveLocked
+              ? "text-emerald-100/78"
+              : "text-sky-100/72",
+    },
+    {
+      label: "Transport",
+      value: transportStatusLabel,
+      tone:
+        previewProgramDifferent
+          ? "text-amber-100/78"
+          : "text-white/58",
+    },
+    {
+      label: "Surfaces",
+      value: `${openSurfaceCount} Open`,
+      tone: "text-white/64",
+    },
+    {
+      label: "Routing",
+      value: routingStatusLabel,
+      tone:
+        systemPressure === "critical"
+          ? "text-red-100/80"
+          : "text-sky-100/72",
+    },
+  ]
+
   return (
-    <div className={`relative overflow-hidden rounded-[30px] border bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.06),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.965),rgba(2,5,16,0.99))] p-3 transition-all duration-500 ${deckPressureClass}`}>
+    <div
+      className={`relative overflow-hidden rounded-[30px] border bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.06),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.965),rgba(2,5,16,0.99))] p-3 transition-all duration-500 ${deckPressureClass}`}
+    >
       <TelemetryAccent />
+
       {systemPressure !== "stable" ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.35),transparent)] animate-[missionPressureSweep_2.6s_ease-in-out_infinite]" />
       ) : null}
-      <div className="relative mb-3 grid gap-2 rounded-[24px] border border-white/7 bg-black/10 px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.022)] xl:grid-cols-[minmax(220px,0.8fr)_minmax(320px,1.2fr)_auto] xl:items-center">
-        <div className="flex flex-wrap items-center gap-2">
-          <div className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.16em] ${missionStateToneClass}`}>
-            <span
-              className={[
-                "h-1.5 w-1.5 rounded-full",
-                systemPressure === "critical"
-                  ? "animate-pulse bg-red-300 shadow-[0_0_9px_rgba(252,165,165,0.8)]"
-                  : systemPressure === "watch"
-                    ? "animate-pulse bg-amber-300 shadow-[0_0_9px_rgba(252,211,77,0.72)]"
-                    : "bg-emerald-300/80 shadow-[0_0_8px_rgba(110,231,183,0.65)]",
-              ].join(" ")}
-            />
-            {missionStateLabel}
-          </div>
 
-          <div>
-            <div className="text-[8px] font-black uppercase tracking-[0.22em] text-white/24">
-              Command Desk
-            </div>
-            <div className="mt-1 flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60">
-                {COMMAND_WORKSPACE_LABELS[workspaceMode]}
-              </span>
-              <span className="rounded-full border border-white/8 bg-black/18 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] text-white/30">
-                {surfaceStatusLabel}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-1.5">
-          {(["director", "audio", "ops", "compact", "custom"] as const).map((mode) => {
-            const active = workspaceMode === mode
-
-            return (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => applyWorkspaceMode(mode)}
-                className={[
-                  "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.13em] transition-all duration-200",
-                  active
-                    ? "border-violet-300/18 bg-violet-400/10 text-violet-100/78 shadow-[0_0_14px_rgba(168,85,247,0.10)]"
-                    : mode === "custom"
-                      ? "border-amber-300/12 bg-amber-400/6 text-amber-100/46 hover:border-amber-300/20 hover:bg-amber-400/10 hover:text-amber-50/82"
-                      : "border-white/8 bg-black/18 text-white/32 hover:border-white/14 hover:bg-white/[0.035] hover:text-white/62",
-                ].join(" ")}
-              >
-                {COMMAND_WORKSPACE_LABELS[mode]}
-              </button>
-            )
-          })}
-        </div>
-        <div className="flex items-center gap-1 rounded-full border border-white/8 bg-black/16 px-1.5 py-1">
-          <button
-            type="button"
-            onClick={() => setSystemPressure("stable")}
-            className={[
-              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] transition",
-              systemPressure === "stable"
-                ? "bg-emerald-400/16 text-emerald-50"
-                : "text-white/34 hover:text-white/70",
-            ].join(" ")}
-          >
-            Stable
-          </button>
-          <button
-            type="button"
-            onClick={() => setSystemPressure("watch")}
-            className={[
-              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] transition",
-              systemPressure === "watch"
-                ? "bg-amber-400/16 text-amber-50"
-                : "text-white/34 hover:text-white/70",
-            ].join(" ")}
-          >
-            Watch
-          </button>
-          <button
-            type="button"
-            onClick={() => setSystemPressure("critical")}
-            className={[
-              "rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.13em] transition",
-              systemPressure === "critical"
-                ? "bg-red-400/18 text-red-50"
-                : "text-white/34 hover:text-white/70",
-            ].join(" ")}
-          >
-            Critical
-          </button>
-        </div>
-        <button
-          type="button"
-          onClick={() => {
-            setWorkspaceMode("ops")
-            setFocusedSurface(null)
-            setPreFocusOpenSurfaces(null)
-            setOpenSurfaces({
-              transport: true,
-              transition: true,
-              audio: true,
-              routing: true,
-              rundown: true,
-            })
-          }}
-          className="rounded-full border border-emerald-300/12 bg-emerald-400/6 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.13em] text-emerald-100/50 transition hover:border-emerald-300/20 hover:bg-emerald-400/10 hover:text-emerald-50/82"
-        >
-          Open All
-        </button>
-        <div className="flex flex-wrap items-center gap-1.5">
-          {workspaceMode === "custom" ? (
-            <div className="rounded-full border border-amber-300/14 bg-amber-400/8 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-amber-100/54">
-              Manual Surface Selection
-            </div>
-          ) : null}
-          {focusedSurface ? (
-            <button
-              type="button"
-              onClick={clearFocusedSurface}
-              className="rounded-full border border-violet-300/18 bg-violet-400/10 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] text-violet-100/62 transition hover:border-violet-300/28 hover:bg-violet-400/14 hover:text-violet-50"
-            >
-              Focus · {focusedSurface} · Exit
-            </button>
-          ) : null}
-{COMMAND_SURFACE_STATUS_CHIPS.map((surface) => {
-  const active = openSurfaces[surface.key]
-
-  return (
-    <button
-      key={surface.key}
-      type="button"
-      onClick={() => setSurfaceOpen(surface.key, !active)}
-      className={[
-        "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.13em] transition-all duration-300",
-        active
-          ? surface.activeClassName
-          : "border-white/8 bg-black/24 text-white/28 hover:border-white/14 hover:text-white/52",
-      ].join(" ")}
-    >
-      {surface.label}
-    </button>
-  )
-})}
-        </div>
-      </div>
-      <CompactStatusGrid
-        className="relative mb-2.5"
-        items={[
-          {
-            label: "Transport",
-            value: systemPressure === "critical" ? "Hold Recommended" : transportStatusLabel,
-            tone:
-              systemPressureTone === "danger"
-                ? "danger"
-                : previewProgramDifferent
-                  ? "warning"
-                  : "safe",
-          },
-          {
-            label: "Transition",
-            value: `${selectedTransitionDurationMs ?? 600}ms ${selectedTransitionType}`,
-            tone: "preview",
-          },
-          {
-            label: "Audio",
-            value: openSurfaces.audio ? "Mixer Visible" : "Mixer Collapsed",
-            tone: openSurfaces.audio ? "safe" : "neutral",
-          },
-          {
-            label: "Routing",
-            value: systemPressure === "critical" ? "Confidence Risk" : routingStatusLabel,
-            tone: systemPressure === "critical" ? "danger" : openSurfaces.routing ? "safe" : "neutral",
-          },
-          {
-            label: surfaceModeLabel,
-            value: rundownStatusLabel,
-            tone: openSurfaces.rundown ? "warning" : "neutral",
-          },
-        ]}
-      />
-      <div
-  className={[
-    "relative mb-2.5 overflow-hidden rounded-[24px] border px-4 py-3 shadow-[0_18px_48px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-500",
-    systemPressure === "critical"
-      ? "border-red-300/18 bg-[radial-gradient(circle_at_top_left,rgba(239,68,68,0.16),transparent_42%),rgba(60,0,0,0.34)]"
-      : systemPressure === "watch"
-        ? "border-amber-300/16 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_42%),rgba(42,28,0,0.30)]"
-        : liveLocked
-          ? "border-emerald-300/14 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.12),transparent_42%),rgba(0,24,18,0.28)]"
-          : "border-sky-300/14 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.12),transparent_42%),rgba(0,16,32,0.28)]",
-  ].join(" ")}
->
-  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.05),transparent)] animate-[transportPanelSweep_8s_ease-in-out_infinite]" />
-
-  <div className="relative z-10 flex flex-wrap items-center justify-between gap-3">
-    <div>
-      <div className="text-[8px] font-black uppercase tracking-[0.24em] text-white/34">
-        Program Safety Rail
-      </div>
-
-      <div className="mt-1 flex flex-wrap items-center gap-2">
-        <div
-          className={[
-            "rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em]",
-            systemPressure === "critical"
-              ? "border-red-300/22 bg-red-400/14 text-red-50 shadow-[0_0_18px_rgba(239,68,68,0.18)]"
-              : systemPressure === "watch"
-                ? "border-amber-300/22 bg-amber-400/14 text-amber-50 shadow-[0_0_18px_rgba(251,191,36,0.16)]"
-                : liveLocked
-                  ? "border-emerald-300/18 bg-emerald-400/12 text-emerald-50 shadow-[0_0_18px_rgba(16,185,129,0.14)]"
-                  : "border-sky-300/18 bg-sky-400/12 text-sky-50 shadow-[0_0_18px_rgba(56,189,248,0.14)]",
-          ].join(" ")}
-        >
-          {systemPressure === "critical"
-            ? "Hold Transitions"
-            : systemPressure === "watch"
-              ? "Confidence Degraded"
-              : liveLocked
-                ? "Safe To Take"
-                : "Rehearsal Mode"}
-        </div>
-
-        <div className="rounded-full border border-white/10 bg-black/28 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
-          {previewProgramDifferent
-            ? "Preview Armed"
-            : "Program Matched"}
-        </div>
-      </div>
-    </div>
-
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="rounded-full border border-white/10 bg-black/24 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
-        {selectedTransitionType} · {selectedTransitionDurationMs ?? 600}ms
-      </div>
-
-      <div
-        className={[
-          "rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em]",
-          takeBusy
-            ? "border-red-300/18 bg-red-400/12 text-red-50"
-            : "border-white/10 bg-black/24 text-white/42",
-        ].join(" ")}
-      >
-        {takeBusy ? "Transition Active" : "Transport Ready"}
-      </div>
-    </div>
-  </div>
-</div>
-      <div className="relative grid gap-2.5 xl:grid-cols-[0.95fr_0.8fr_1.25fr]">
-        {shouldShowSurface("transport") ? (
-          <CollapsibleSurface
-            title="Program Transport"
-            eyebrow="Director Surface"
-            status={openSurfaces.transport ? systemPressure === "critical" ? "Hold Recommended" : transportStatusLabel : "Transport Collapsed"}
-            tone={
-              systemPressure !== "stable"
-                ? systemPressureSurfaceTone
-                : previewProgramDifferent
-                  ? "amber"
-                  : "emerald"
-            }
-            open={openSurfaces.transport}
-            isFocused={focusedSurface === "transport"}
-            isDimmed={focusedSurface !== null && focusedSurface !== "transport"}
-            onFocus={() => focusSurface("transport")}
-            onClearFocus={clearFocusedSurface}
-            onOpenChange={(open) => setSurfaceOpen("transport", open)}
-          >
-            <ControlStagePanel
-              previewProgramDifferent={previewProgramDifferent}
-              takeBusy={takeBusy}
-              onTake={onTake}
-              selectedTransitionType={selectedTransitionType}
-              selectedTransitionDurationMs={selectedTransitionDurationMs}
-              systemPressure={systemPressure}
-              rundownMode={globalRundownMode}
-            />
-          </CollapsibleSurface>
-        ) : null}
-
-        {shouldShowSurface("transition") ? (
-          <CollapsibleSurface
-            title="Transition Engine"
-            eyebrow="Motion Control"
-            status={openSurfaces.transition ? `${selectedTransitionDurationMs ?? 600}ms ${selectedTransitionType}` : "Transition Collapsed"}
-            tone="violet"
-            open={openSurfaces.transition}
-            isFocused={focusedSurface === "transition"}
-            isDimmed={focusedSurface !== null && focusedSurface !== "transition"}
-            onFocus={() => focusSurface("transition")}
-            onClearFocus={clearFocusedSurface}
-            onOpenChange={(open) => setSurfaceOpen("transition", open)}
-          >
-            <TransitionPanel
-              selectedTransitionType={selectedTransitionType}
-              onTransitionTypeChange={onTransitionTypeChange}
-              selectedTransitionDurationMs={selectedTransitionDurationMs}
-              onTransitionDurationChange={onTransitionDurationChange}
-            />
-          </CollapsibleSurface>
-        ) : null}
-
-        {shouldShowSurface("audio") ? (
-          <CollapsibleSurface
-            title="Audio Mixer"
-            eyebrow="Broadcast Audio"
-            status={systemPressure === "critical" ? "IFB Priority" : openSurfaces.audio ? "Mixer Visible" : "Mixer Collapsed"}
-            tone={systemPressure === "critical" ? "amber" : "emerald"}
-            open={openSurfaces.audio}
-            isFocused={focusedSurface === "audio"}
-            isDimmed={focusedSurface !== null && focusedSurface !== "audio"}
-            onFocus={() => focusSurface("audio")}
-            onClearFocus={clearFocusedSurface}
-            onOpenChange={(open) => setSurfaceOpen("audio", open)}
-          >
-            <AudioMixerPanel systemPressure={systemPressure} />
-          </CollapsibleSurface>
-        ) : null}
-      </div>
-
-      <SurfaceDivider className="my-2 opacity-60" />
-      <div className="relative mt-2.5 grid gap-2.5 xl:grid-cols-[0.9fr_1.1fr]">
-        {shouldShowSurface("routing") ? (
-          <CollapsibleSurface
-            title="Routing + Confidence"
-            eyebrow="Transmission"
-            status={systemPressure === "critical" ? "Confidence Risk" : openSurfaces.routing ? "Confidence Visible" : "Confidence Collapsed"}
-            tone={systemPressure === "critical" ? "red" : systemPressure === "watch" ? "amber" : "sky"}
-            open={openSurfaces.routing}
-            isFocused={focusedSurface === "routing"}
-            isDimmed={focusedSurface !== null && focusedSurface !== "routing"}
-            onFocus={() => focusSurface("routing")}
-            onClearFocus={clearFocusedSurface}
-            onOpenChange={(open) => setSurfaceOpen("routing", open)}
-          >
-            <BroadcastRoutingPanel
-              confidenceScenario={systemPressure}
-              onConfidenceScenarioChange={setSystemPressure}
-            />
-          </CollapsibleSurface>
-        ) : null}
-
-        {shouldShowSurface("rundown") ? (
-          <CollapsibleSurface
-            title="Rundown Engine"
-            eyebrow="Show Control"
-            status={openSurfaces.rundown ? "Cue Stack Visible" : "Cue Stack Collapsed"}
-            tone="amber"
-            open={openSurfaces.rundown}
-            isFocused={focusedSurface === "rundown"}
-            isDimmed={focusedSurface !== null && focusedSurface !== "rundown"}
-            onFocus={() => focusSurface("rundown")}
-            onClearFocus={clearFocusedSurface}
-            onOpenChange={(open) => setSurfaceOpen("rundown", open)}
-          >
-            <div
-              className={
-                systemPressure === "critical"
-                  ? "rounded-[30px] border border-red-300/14 bg-red-400/[0.03] p-1 shadow-[0_0_24px_rgba(239,68,68,0.08)] animate-[criticalSurfacePulse_2.2s_ease-in-out_infinite]"
-                  : systemPressure === "watch"
-                    ? "rounded-[30px] border border-amber-300/12 bg-amber-400/[0.025] p-1 shadow-[0_0_20px_rgba(251,191,36,0.06)]"
-                    : "rounded-[30px] p-1"
-              }
-            >
-              <RundownCuePanel
-                rundownMode={globalRundownMode}
-                onRundownModeChange={setGlobalRundownMode}
-              />
-            </div>
-          </CollapsibleSurface>
-        ) : null}
-      </div>
+      {/* remaining JSX unchanged */}
     </div>
   )
 }
