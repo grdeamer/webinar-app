@@ -59,11 +59,11 @@ type CommandWorkspaceMode = "director" | "audio" | "ops" | "compact" | "custom"
 type CommandSurfaceKey = "transport" | "transition" | "audio" | "routing" | "rundown"
 
 const COMMAND_WORKSPACE_LABELS: Record<CommandWorkspaceMode, string> = {
-  director: "Director",
-  audio: "Audio",
-  ops: "Ops",
-  compact: "Compact",
-  custom: "Custom",
+  director: "Director Desk",
+  audio: "Audio Desk",
+  ops: "Ops View",
+  compact: "Clean View",
+  custom: "Custom Desk",
 }
 
 const COMMAND_WORKSPACE_OPEN_STATE: Record<CommandWorkspaceMode, Record<CommandSurfaceKey, boolean>> = {
@@ -973,10 +973,10 @@ export function TelemetryStrip({
   runtimeLabel: string
 }): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.09),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.96),rgba(2,5,16,0.985))] p-3 shadow-[0_28px_100px_rgba(0,0,0,0.46),inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.075),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.95),rgba(2,5,16,0.985))] p-3 shadow-[0_24px_82px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.05)]">
       <TelemetryAccent />
 
-      <div className="relative grid gap-2.5 xl:grid-cols-[230px_minmax(0,1fr)_150px]">
+      <div className="relative grid gap-2.5 xl:grid-cols-[220px_minmax(0,1fr)_132px]">
         <ActiveSessionCard isLive={isLive} runtimeLabel={runtimeLabel} />
 
         <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.55fr)]">
@@ -984,9 +984,9 @@ export function TelemetryStrip({
             columnsClassName="sm:grid-cols-2 xl:grid-cols-4"
             items={[
               { label: "Signal", value: "Stable", tone: "safe" },
-      { label: "Recording", value: "Ready", tone: "danger" },
+              { label: "Record", value: "Armed", tone: "warning" },
               { label: "Audience", value: String(audienceCount), tone: "preview" },
-              { label: "On Stage", value: String(onStageCount), tone: "neutral" },
+              { label: "Stage", value: String(onStageCount), tone: "neutral" },
             ]}
           />
 
@@ -996,13 +996,13 @@ export function TelemetryStrip({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-2 rounded-[24px] border border-white/10 bg-black/24 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/36">
+        <div className="flex min-w-0 flex-col gap-1.5 rounded-[24px] border border-white/8 bg-black/18 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-white/30">
             <Keyboard size={13} />
             Shortcuts
           </div>
 
-          <div className="grid gap-1.5">
+          <div className="grid gap-1">
             {OPERATOR_SHORTCUTS.slice(0, 3).map((shortcut) => (
               <ShortcutKey key={shortcut.key} shortcut={shortcut} />
             ))}
@@ -2274,9 +2274,9 @@ export function LowerCommandGrid({
       {systemPressure !== "stable" ? (
         <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.35),transparent)] animate-[missionPressureSweep_2.6s_ease-in-out_infinite]" />
       ) : null}
-      <div className="relative mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[26px] border border-white/8 bg-black/18 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+      <div className="relative mb-3 flex flex-wrap items-center justify-between gap-3 rounded-[26px] border border-white/8 bg-black/14 px-3.5 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
         <div className="flex flex-wrap items-center gap-3">
-          <div className={`flex items-center gap-2 rounded-full border px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] ${missionStateToneClass}`}>
+          <div className={`flex items-center gap-2 rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.18em] ${missionStateToneClass}`}>
             <span
               className={[
                 "h-1.5 w-1.5 rounded-full",
