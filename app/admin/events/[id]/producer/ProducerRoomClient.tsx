@@ -48,18 +48,18 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
       <div
-        className={`absolute left-[-18%] top-[8%] h-[520px] w-[520px] rounded-full blur-3xl transition-opacity duration-1000 ${
-          isLive ? "bg-red-300/13 opacity-95" : "bg-sky-200/18 opacity-95"
-        } animate-[producerAtmosphereDrift_14s_ease-in-out_infinite]`}
+        className={`absolute left-[-18%] top-[8%] h-[460px] w-[460px] rounded-full blur-3xl transition-opacity duration-1000 ${
+          isLive ? "bg-red-300/[0.075] opacity-80" : "bg-sky-200/[0.095] opacity-78"
+        } animate-[producerAtmosphereDrift_22s_ease-in-out_infinite]`}
       />
-      <div className="absolute right-[-16%] top-[28%] h-[620px] w-[620px] rounded-full bg-violet-200/15 blur-3xl animate-[producerAtmosphereCounterDrift_18s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[-22%] left-[24%] h-[680px] w-[680px] rounded-full bg-cyan-200/16 blur-3xl animate-[producerAtmosphereBloom_12s_ease-in-out_infinite]" />
+      <div className="absolute right-[-16%] top-[28%] h-[540px] w-[540px] rounded-full bg-violet-200/[0.075] blur-3xl animate-[producerAtmosphereCounterDrift_26s_ease-in-out_infinite]" />
+      <div className="absolute bottom-[-22%] left-[24%] h-[580px] w-[580px] rounded-full bg-cyan-200/[0.075] blur-3xl animate-[producerAtmosphereBloom_22s_ease-in-out_infinite]" />
 
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_38%,transparent_62%)] animate-[producerTransmissionSheen_9s_ease-in-out_infinite]" />
-      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)] opacity-[0.16]" />
+      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.010)_38%,transparent_62%)] animate-[producerTransmissionSheen_18s_ease-in-out_infinite]" />
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_10px)] opacity-[0.08]" />
 
       {isLive ? (
-        <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/38 to-transparent animate-[producerLiveScan_2.8s_ease-in-out_infinite]" />
+        <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/24 to-transparent animate-[producerLiveScan_4.6s_ease-in-out_infinite]" />
       ) : null}
 
       <style jsx global>{`
@@ -70,7 +70,7 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
           }
 
           50% {
-            transform: translate3d(42px, 24px, 0) scale(1.08);
+            transform: translate3d(26px, 16px, 0) scale(1.04);
           }
         }
 
@@ -81,20 +81,20 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
           }
 
           50% {
-            transform: translate3d(-34px, 18px, 0) scale(1.06);
+            transform: translate3d(-22px, 12px, 0) scale(1.035);
           }
         }
 
         @keyframes producerAtmosphereBloom {
           0%,
           100% {
-            opacity: 0.55;
+            opacity: 0.34;
             transform: scale(1);
           }
 
           50% {
-            opacity: 0.95;
-            transform: scale(1.08);
+            opacity: 0.56;
+            transform: scale(1.04);
           }
         }
 
@@ -106,7 +106,7 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
           }
 
           45% {
-            opacity: 0.9;
+            opacity: 0.45;
           }
 
           100% {
@@ -122,8 +122,8 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
           }
 
           50% {
-            opacity: 0.75;
-            transform: translateY(9px);
+            opacity: 0.48;
+            transform: translateY(6px);
           }
         }
       `}</style>
@@ -1037,7 +1037,7 @@ export default function ProducerRoomClient({
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
 
-      <div className="relative flex min-h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.30),transparent_35%),radial-gradient(circle_at_82%_16%,rgba(196,181,253,0.23),transparent_33%),radial-gradient(circle_at_48%_96%,rgba(34,211,238,0.16),transparent_40%),linear-gradient(180deg,#2b3854_0%,#202c44_46%,#172238_100%)] text-white">
+      <div className="relative flex min-h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.18),transparent_35%),radial-gradient(circle_at_82%_16%,rgba(196,181,253,0.13),transparent_33%),radial-gradient(circle_at_48%_96%,rgba(34,211,238,0.09),transparent_40%),linear-gradient(180deg,#25334f_0%,#1d2941_46%,#162137_100%)] text-white">
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 
