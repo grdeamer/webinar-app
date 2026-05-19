@@ -229,8 +229,8 @@ function CollapsibleSurface({
     <div
       className={[
         "relative overflow-hidden rounded-[24px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.009))] shadow-[0_14px_42px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.032)] transition-all duration-500 ease-out",
-        isFocused ? "xl:col-span-full scale-[1.003] border-violet-300/14 ring-1 ring-violet-300/14 shadow-[0_26px_82px_rgba(0,0,0,0.38),0_0_26px_rgba(168,85,247,0.06),inset_0_1px_0_rgba(255,255,255,0.05)]" : "",
-        isDimmed ? "scale-[0.992] opacity-45 blur-[1px] grayscale-[0.22]" : "",
+        isFocused ? "xl:col-span-full scale-[1.001] border-violet-300/10 ring-1 ring-violet-300/10 shadow-[0_18px_58px_rgba(0,0,0,0.28),0_0_14px_rgba(168,85,247,0.035),inset_0_1px_0_rgba(255,255,255,0.04)]" : "",
+        isDimmed ? "scale-[0.996] opacity-38 grayscale-[0.18]" : "",
       ].join(" ")}
     >
       {isFocused ? (
@@ -287,15 +287,15 @@ function CollapsibleSurface({
               className={[
                 "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] transition",
                 isFocused
-                  ? "border-violet-300/24 bg-violet-400/12 text-violet-100/76 shadow-[0_0_10px_rgba(168,85,247,0.08)]"
-                  : "border-white/12 bg-black/30 text-white/44 hover:border-violet-300/18 hover:bg-violet-400/8 hover:text-violet-100/72",
+                  ? "border-violet-300/16 bg-violet-400/[0.08] text-violet-100/62 shadow-[0_0_8px_rgba(168,85,247,0.05)]"
+                  : "border-white/8 bg-white/[0.028] text-white/32 hover:border-violet-300/12 hover:bg-violet-400/[0.055] hover:text-violet-100/58",
               ].join(" ")}
             >
               {isFocused ? "Exit Focus" : "Focus"}
             </span>
           ) : null}
 
-          <div className="rounded-full border border-white/12 bg-black/30 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/38">
+          <div className="rounded-full border border-white/7 bg-white/[0.026] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/28">
             {isDimmed ? "Background" : isFocused ? "Focused" : "Ready"}
           </div>
 
@@ -303,8 +303,8 @@ function CollapsibleSurface({
             className={[
               "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] transition",
               open
-                ? "border-white/12 bg-black/30 text-white/42"
-                : "border-sky-300/16 bg-sky-400/[0.065] text-sky-100/62 shadow-[0_0_10px_rgba(56,189,248,0.06)]",
+                ? "border-white/7 bg-white/[0.026] text-white/30"
+                : "border-sky-300/12 bg-sky-400/[0.045] text-sky-100/50 shadow-[0_0_7px_rgba(56,189,248,0.035)]",
             ].join(" ")}
           >
             {open ? "Expanded" : "Collapsed"}
@@ -314,8 +314,8 @@ function CollapsibleSurface({
             className={[
               "flex h-8 w-8 items-center justify-center rounded-2xl border transition",
               open
-                ? "rotate-180 border-white/12 bg-black/30 text-white/46"
-                : "rotate-0 border-sky-300/18 bg-sky-400/[0.07] text-sky-100/70 shadow-[0_0_12px_rgba(56,189,248,0.06)]",
+                ? "rotate-180 border-white/7 bg-white/[0.026] text-white/34"
+                : "rotate-0 border-sky-300/12 bg-sky-400/[0.045] text-sky-100/54 shadow-[0_0_8px_rgba(56,189,248,0.035)]",
             ].join(" ")}
           >
             <ChevronDown size={14} />
@@ -546,11 +546,11 @@ function ShortcutKey({
   shortcut: (typeof OPERATOR_SHORTCUTS)[number]
 }): JSX.Element {
   return (
-    <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-black/24 px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <kbd className="min-w-7 rounded-lg border border-white/10 bg-white/[0.055] px-1.5 py-1 text-center text-[9px] font-black uppercase tracking-[0.08em] text-white/70 shadow-[0_6px_14px_rgba(0,0,0,0.2)]">
+    <div className="flex items-center gap-1.5 rounded-xl border border-white/7 bg-white/[0.026] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.022)]">
+      <kbd className="min-w-6 rounded-md border border-white/8 bg-white/[0.04] px-1.5 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.08em] text-white/58 shadow-[0_4px_10px_rgba(0,0,0,0.16)]">
         {shortcut.key}
       </kbd>
-      <span className="truncate text-[9px] font-black uppercase tracking-[0.13em] text-white/36">
+      <span className="truncate text-[8px] font-black uppercase tracking-[0.1em] text-white/28">
         {shortcut.label}
       </span>
     </div>
@@ -574,7 +574,7 @@ function CommandSafetyStrip({
 
   return (
     <CompactStatusGrid
-      className="mb-3"
+      className="mb-2"
       columnsClassName="grid-cols-2"
       items={[
         {
@@ -605,11 +605,11 @@ function TransportBayChrome({
     ? "border-red-300/18 bg-red-400/8 shadow-[0_0_38px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]"
     : armed
       ? "border-amber-300/18 bg-amber-400/8 shadow-[0_0_42px_rgba(251,191,36,0.14),inset_0_1px_0_rgba(255,255,255,0.055)]"
-      : "border-white/8 bg-black/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+      : "border-white/7 bg-white/[0.024] shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]"
 
   return (
-    <div className={`relative overflow-hidden rounded-[26px] border p-2.5 transition-all duration-500 ${stateClass}`}>
-      <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_7px)]" />
+    <div className={`relative overflow-hidden rounded-[20px] border p-2 transition-all duration-500 ${stateClass}`}>
+      <div className="pointer-events-none absolute inset-0 opacity-[0.035] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_10px)]" />
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       {armed && !locked ? (
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(251,191,36,0.10),transparent)] animate-[transportBaySweep_2.2s_ease-in-out_infinite]" />
@@ -625,7 +625,7 @@ function TransportBayChrome({
         <div className="pointer-events-none absolute inset-x-6 bottom-0 h-px bg-gradient-to-r from-transparent via-white/24 to-transparent animate-[transportBayReadyRail_2.4s_ease-in-out_infinite]" />
       ) : null}
 
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.035)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] opacity-25 transition-opacity duration-500 group-hover:opacity-45" />
 
       <div className="relative z-10">{children}</div>
     </div>
@@ -975,13 +975,13 @@ export function TelemetryStrip({
   runtimeLabel: string
 }): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[30px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.075),transparent_34%),linear-gradient(180deg,rgba(7,12,28,0.95),rgba(2,5,16,0.985))] p-3 shadow-[0_24px_82px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.05)]">
+    <div className="relative overflow-hidden rounded-[24px] border border-white/7 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.038),transparent_34%),linear-gradient(180deg,rgba(8,12,26,0.90),rgba(3,6,14,0.965))] p-2 shadow-[0_14px_44px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.032)]">
       <TelemetryAccent />
 
-      <div className="relative grid gap-2.5 xl:grid-cols-[220px_minmax(0,1fr)_132px]">
+      <div className="relative grid gap-1.5 xl:grid-cols-[190px_minmax(0,1fr)_112px]">
         <ActiveSessionCard isLive={isLive} runtimeLabel={runtimeLabel} />
 
-        <div className="grid gap-2 xl:grid-cols-[minmax(0,1fr)_minmax(220px,0.55fr)]">
+        <div className="grid gap-1.5 xl:grid-cols-[minmax(0,1fr)_minmax(190px,0.5fr)]">
           <CompactStatusGrid
             columnsClassName="sm:grid-cols-2 xl:grid-cols-4"
             items={[
@@ -992,14 +992,14 @@ export function TelemetryStrip({
             ]}
           />
 
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-1">
+          <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-1">
             <MeterCard label="GPU" value="74%" bars={9} tone="sky" />
             <MeterCard label="Signal" value="-6 dB" bars={8} tone="emerald" />
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-col gap-1.5 rounded-[24px] border border-white/8 bg-black/18 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
-          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.18em] text-white/30">
+        <div className="flex min-w-0 flex-col gap-1 rounded-[18px] border border-white/7 bg-white/[0.024] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.022)]">
+          <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
             <Keyboard size={13} />
             Shortcuts
           </div>
@@ -1042,7 +1042,7 @@ export function ControlStagePanel({
     !liveLocked
 
   return (
-    <PanelCard className="relative overflow-hidden">
+    <PanelCard className="relative overflow-hidden border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.010))]">
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-28 transition-opacity duration-500 ${
           takeBusy || systemPressure === "critical"
@@ -1052,7 +1052,7 @@ export function ControlStagePanel({
               : "bg-gradient-to-b from-emerald-300/6 to-transparent"
         }`}
       />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_42%,transparent_64%)] animate-[transportPanelSweep_9s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.010)_42%,transparent_64%)] animate-[transportPanelSweep_18s_ease-in-out_infinite]" />
       <div className="relative z-10">
         <CommandSafetyStrip
           previewProgramDifferent={previewProgramDifferent}
@@ -1078,7 +1078,7 @@ export function ControlStagePanel({
           armed={previewProgramDifferent && systemPressure !== "critical" && liveLocked}
           locked={takeBusy || systemPressure === "critical" || !liveLocked}
         >
-          <div className="grid grid-cols-3 gap-2">
+          <div className="grid grid-cols-[1.18fr_0.82fr_0.82fr] gap-1.5">
             <div className={previewProgramDifferent && systemPressure !== "critical" && liveLocked ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
               <PrimaryTakeButton
                 onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}

@@ -48,18 +48,18 @@ function SwitcherSurfaceChrome({
 }): JSX.Element {
   return (
     <div
-      className={`relative overflow-hidden rounded-[24px] border p-1.5 shadow-[0_16px_52px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.035)] transition-all duration-700 xl:p-2 ${
+      className={`relative overflow-hidden rounded-[26px] border p-1.5 shadow-[0_18px_58px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.04)] transition-all duration-700 xl:p-2 ${
         live
-          ? "border-red-300/12 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.085),transparent_42%),linear-gradient(180deg,rgba(16,14,25,0.99),rgba(8,9,18,0.995))]"
+          ? "border-red-300/10 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.055),transparent_42%),linear-gradient(180deg,rgba(16,14,25,0.99),rgba(8,9,18,0.995))]"
           : armed
-            ? "border-amber-300/12 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.068),transparent_42%),linear-gradient(180deg,rgba(13,19,34,0.985),rgba(7,10,20,0.995))]"
+            ? "border-amber-300/10 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.045),transparent_42%),linear-gradient(180deg,rgba(13,19,34,0.985),rgba(7,10,20,0.995))]"
             : "border-white/9 bg-[linear-gradient(180deg,rgba(13,19,34,0.985),rgba(7,10,20,0.995))]"
       }`}
     >
       <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[switcherSurfaceSweep_16s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.035] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_10px)]" />
-      <div className="pointer-events-none absolute inset-0 rounded-[24px] shadow-[inset_0_0_24px_rgba(0,0,0,0.18)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.008)_42%,transparent_64%)] animate-[switcherSurfaceSweep_24s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.022] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_12px)]" />
+      <div className="pointer-events-none absolute inset-0 rounded-[26px] shadow-[inset_0_0_24px_rgba(0,0,0,0.18)]" />
 
       {armed ? (
         <div className="pointer-events-none absolute inset-x-12 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200/16 to-transparent animate-[switcherArmedRail_4s_ease-in-out_infinite]" />
@@ -195,27 +195,27 @@ function CommandWorkspaceWell({
   isLive: boolean;
 }): JSX.Element {
   return (
-    <div className="relative mt-1.5 min-h-[238px] overflow-hidden rounded-[28px] border border-white/6 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.045),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.035),transparent_32%),linear-gradient(180deg,rgba(10,15,28,0.88),rgba(5,8,16,0.965))] shadow-[0_18px_54px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.026)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.035] [background:linear-gradient(rgba(255,255,255,0.75)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.75)_1px,transparent_1px)] bg-[size:48px_48px]" />
+    <div className="relative mt-1 min-h-[188px] overflow-hidden rounded-[22px] border border-white/5 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.026),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.020),transparent_32%),linear-gradient(180deg,rgba(10,15,28,0.72),rgba(5,8,16,0.88))] shadow-[0_10px_32px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.018)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.018] [background:linear-gradient(rgba(255,255,255,0.55)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.55)_1px,transparent_1px)] bg-[size:56px_56px]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/18 to-transparent" />
 
-      <div className="relative z-10 flex min-h-[238px] flex-col justify-between p-4">
+      <div className="relative z-10 flex min-h-[188px] flex-col justify-between p-3">
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
             <div className="text-[9px] font-black uppercase tracking-[0.18em] text-white/26">
               Command Workspace
             </div>
-            <div className="mt-1 text-sm font-semibold tracking-[-0.01em] text-white/46">
+            <div className="mt-0.5 text-[11px] font-semibold tracking-[-0.01em] text-white/32">
               Workspace clear for scene notes, timeline checks, and producer focus.
             </div>
           </div>
 
-          <span className="rounded-full border border-emerald-300/10 bg-emerald-400/[0.055] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-100/48">
+          <span className="rounded-full border border-emerald-300/8 bg-emerald-400/[0.035] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-emerald-100/34">
             Console Ready
           </span>
         </div>
 
-        <div className="mx-auto flex max-w-2xl flex-col items-center text-center">
+        <div className="mx-auto hidden max-w-2xl flex-col items-center text-center 2xl:flex">
           <div className="flex h-12 w-12 items-center justify-center rounded-[20px] border border-white/8 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
             <span className="h-2.5 w-2.5 rounded-full bg-sky-300/60 shadow-[0_0_18px_rgba(125,211,252,0.28)]" />
           </div>
@@ -229,29 +229,29 @@ function CommandWorkspaceWell({
         </div>
 
         <div className="grid gap-2 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/6 bg-white/[0.028] px-3 py-2">
-            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/24">
+          <div className="rounded-xl border border-white/5 bg-white/[0.020] px-2.5 py-1.5">
+            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/20">
               Program
             </div>
-            <div className="mt-1 text-[11px] font-black uppercase tracking-[0.12em] text-white/46">
+            <div className="mt-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-white/32">
               {isLive ? "Live" : "Standby"}
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/6 bg-white/[0.028] px-3 py-2">
-            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/24">
+          <div className="rounded-xl border border-white/5 bg-white/[0.020] px-2.5 py-1.5">
+            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/20">
               Scene Memory
             </div>
-            <div className="mt-1 text-[11px] font-black uppercase tracking-[0.12em] text-sky-100/56">
+            <div className="mt-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-sky-100/56">
               {scenesCount} saved
             </div>
           </div>
 
-          <div className="rounded-2xl border border-white/6 bg-white/[0.028] px-3 py-2">
-            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/24">
+          <div className="rounded-xl border border-white/5 bg-white/[0.020] px-2.5 py-1.5">
+            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/20">
               Preview Blocks
             </div>
-            <div className="mt-1 text-[11px] font-black uppercase tracking-[0.12em] text-violet-100/56">
+            <div className="mt-0.5 text-[10px] font-black uppercase tracking-[0.1em] text-violet-100/56">
               {previewBlocksCount} active
             </div>
           </div>
@@ -488,7 +488,7 @@ export default function CenterSwitcherColumn({
   }
 
   return (
-    <div className="space-y-1.5 xl:col-start-2">
+    <div className="space-y-2 xl:col-start-2">
       <ProducerTopDeck />
       <div
         className={`overflow-hidden rounded-[14px] border border-white/4 bg-black/[0.055] shadow-[inset_0_1px_0_rgba(255,255,255,0.01)] transition-all duration-300 ${
@@ -530,7 +530,7 @@ export default function CenterSwitcherColumn({
         armed={previewProgramDifferent}
         live={Boolean(programState?.is_live)}
       >
-        <div className="relative mb-1 flex items-end justify-between gap-3 px-1 py-0.5">
+        <div className="relative mb-1.5 flex items-end justify-between gap-3 px-1.5 py-0.5">
           <div className="relative z-10">
             <div className="text-[8px] font-black uppercase tracking-[0.08em] text-white/14">
               Switcher
@@ -568,13 +568,13 @@ export default function CenterSwitcherColumn({
 
         <div
           ref={switcherGridRef}
-          className="relative grid items-stretch gap-0"
+          className="relative grid items-stretch gap-1"
           style={{
-            gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 42px minmax(0, ${100 - previewPanePercent}fr)`,
+            gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 38px minmax(0, ${100 - previewPanePercent}fr)`,
           }}
         >
           <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/8 to-transparent" />
-          <div className="relative min-w-0 rounded-[20px] border border-sky-300/9 bg-[linear-gradient(180deg,rgba(12,24,42,0.985),rgba(5,12,24,0.992))] p-1 shadow-[0_14px_38px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.04)] xl:p-1.5">
+          <div className="relative min-w-0 rounded-[22px] border border-sky-300/8 bg-[linear-gradient(180deg,rgba(14,25,42,0.982),rgba(7,13,24,0.992))] p-1.5 shadow-[0_14px_42px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.04)] xl:p-1.5">
             <MonitorHeader
               title="Preview"
               subtitle=""
@@ -758,7 +758,7 @@ export default function CenterSwitcherColumn({
               </div>
             </div>
           </div>
-          <div className="relative min-w-0 rounded-[20px] border border-red-300/10 bg-[linear-gradient(180deg,rgba(34,16,22,0.985),rgba(14,8,14,0.992))] p-1 shadow-[0_14px_38px_rgba(0,0,0,0.30),0_0_18px_rgba(239,68,68,0.04),inset_0_1px_0_rgba(255,255,255,0.04)] xl:p-1.5">
+          <div className="relative min-w-0 rounded-[22px] border border-red-300/9 bg-[linear-gradient(180deg,rgba(32,18,24,0.982),rgba(14,9,15,0.992))] p-1.5 shadow-[0_14px_42px_rgba(0,0,0,0.28),0_0_14px_rgba(239,68,68,0.03),inset_0_1px_0_rgba(255,255,255,0.04)] xl:p-1.5">
             <MonitorHeader
               title="Program"
               subtitle=""
@@ -931,7 +931,7 @@ export default function CenterSwitcherColumn({
           }
 
           46% {
-            opacity: 0.18;
+            opacity: 0.09;
           }
 
           100% {
@@ -947,7 +947,7 @@ export default function CenterSwitcherColumn({
           }
 
           50% {
-            opacity: 0.38;
+            opacity: 0.24;
             transform: scaleX(1);
           }
         }
@@ -960,7 +960,7 @@ export default function CenterSwitcherColumn({
           }
 
           50% {
-            opacity: 0.42;
+            opacity: 0.28;
             transform: translateY(8px);
           }
         }
@@ -980,7 +980,7 @@ export default function CenterSwitcherColumn({
           }
         }
       `}</style>
-            <div className="grid gap-2 opacity-78 transition-opacity duration-300 xl:grid-cols-[1.05fr_0.9fr_1.05fr]">
+      <div className="grid gap-2 opacity-58 saturate-[0.82] transition-opacity duration-300 hover:opacity-82 xl:grid-cols-[1.05fr_0.78fr_1.05fr]">
         <MediaBlocksPanel
           previewBlocksCount={previewBlocks.length}
           onAddText={addTestTextBlock}
@@ -995,7 +995,7 @@ export default function CenterSwitcherColumn({
           onDelete={deleteSelectedBlock}
           hasSelectedBlock={Boolean(selectedBlockId)}
         />
-           <CommandWorkspaceWell
+        <CommandWorkspaceWell
           previewBlocksCount={previewBlocks.length}
           scenesCount={scenes.length}
           selectedSceneLabel={selectedSceneLabel}

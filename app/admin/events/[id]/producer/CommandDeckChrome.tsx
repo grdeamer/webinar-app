@@ -83,31 +83,31 @@ type CompactStatusGridProps = {
 }
 
 const toneClassNames: Record<OperationalTone, string> = {
-  neutral: "border-white/10 bg-white/[0.035] text-white/68",
-  live: "border-rose-300/30 bg-rose-400/[0.085] text-rose-100 shadow-[0_0_14px_rgba(251,113,133,0.08)]",
-  preview: "border-emerald-300/26 bg-emerald-400/[0.075] text-emerald-100 shadow-[0_0_12px_rgba(52,211,153,0.07)]",
-  safe: "border-sky-300/26 bg-sky-400/[0.075] text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.07)]",
-  warning: "border-amber-300/30 bg-amber-300/[0.085] text-amber-100 shadow-[0_0_12px_rgba(251,191,36,0.075)]",
-  danger: "border-red-300/30 bg-red-400/[0.095] text-red-100 shadow-[0_0_14px_rgba(248,113,113,0.085)]",
-  muted: "border-white/8 bg-black/24 text-white/42",
+  neutral: "border-white/6 bg-white/[0.022] text-white/48",
+  live: "border-rose-300/20 bg-rose-400/[0.055] text-rose-100/74 shadow-[0_0_8px_rgba(251,113,133,0.04)]",
+  preview: "border-emerald-300/16 bg-emerald-400/[0.045] text-emerald-100/70 shadow-[0_0_7px_rgba(52,211,153,0.035)]",
+  safe: "border-sky-300/16 bg-sky-400/[0.045] text-sky-100/70 shadow-[0_0_7px_rgba(56,189,248,0.035)]",
+  warning: "border-amber-300/20 bg-amber-300/[0.055] text-amber-100/74 shadow-[0_0_7px_rgba(251,191,36,0.04)]",
+  danger: "border-red-300/20 bg-red-400/[0.06] text-red-100/74 shadow-[0_0_8px_rgba(248,113,113,0.045)]",
+  muted: "border-white/6 bg-white/[0.02] text-white/28",
 }
 
 const surfaceVariantClassNames: Record<SurfaceVariant, string> = {
   default:
-    "border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.032),rgba(255,255,255,0.014))] shadow-[0_18px_45px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.03)]",
+    "border-white/6 bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.009))] shadow-[0_10px_28px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.022)]",
   elevated:
-    "border-white/12 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] shadow-[0_24px_65px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.04)]",
+    "border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] shadow-[0_14px_38px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.028)]",
   glass:
-    "border-sky-200/10 bg-[linear-gradient(180deg,rgba(125,211,252,0.045),rgba(255,255,255,0.014))] shadow-[0_22px_58px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl",
+    "border-sky-200/6 bg-[linear-gradient(180deg,rgba(125,211,252,0.024),rgba(255,255,255,0.009))] shadow-[0_12px_34px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.024)] backdrop-blur-xl",
   critical:
-    "border-amber-300/14 bg-[linear-gradient(180deg,rgba(251,191,36,0.075),rgba(255,255,255,0.014))] shadow-[0_24px_62px_rgba(0,0,0,0.32),0_0_18px_rgba(251,191,36,0.045),inset_0_1px_0_rgba(255,255,255,0.04)]",
+    "border-amber-300/8 bg-[linear-gradient(180deg,rgba(251,191,36,0.040),rgba(255,255,255,0.009))] shadow-[0_14px_38px_rgba(0,0,0,0.20),0_0_9px_rgba(251,191,36,0.024),inset_0_1px_0_rgba(255,255,255,0.026)]",
   minimal:
-    "border-white/8 bg-black/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]",
+    "border-white/5 bg-white/[0.018] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]",
 }
 
-export const COMMAND_SURFACE_PADDING = "p-2.5"
-export const COMMAND_SURFACE_RADIUS = "rounded-[22px]"
-export const COMMAND_SECTION_GAP = "gap-2"
+export const COMMAND_SURFACE_PADDING = "p-1.5"
+export const COMMAND_SURFACE_RADIUS = "rounded-[18px]"
+export const COMMAND_SECTION_GAP = "gap-1.5"
 
 function getToneClassName(tone: OperationalTone = "neutral"): string {
   return toneClassNames[tone]
@@ -126,13 +126,13 @@ export function SurfaceHeader({
   className = "",
 }: SurfaceHeaderProps): JSX.Element {
   return (
-    <div className={`flex flex-wrap items-start justify-between gap-2.5 ${className}`}>
+    <div className={`flex flex-wrap items-start justify-between gap-2 ${className}`}>
       <div className="min-w-0">
-        <div className="flex flex-wrap items-center gap-2 text-[8px] font-black uppercase tracking-[0.22em] text-white/28">
-          {Icon ? <Icon size={12} className="text-white/34" /> : null}
+        <div className="flex flex-wrap items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.16em] text-white/24">
+          {Icon ? <Icon size={12} className="text-white/30" /> : null}
           <span>{eyebrow}</span>
         </div>
-        <div className="mt-0.5 text-[12px] font-black uppercase tracking-[0.13em] text-white/76">
+        <div className="mt-0.5 text-[11px] font-black uppercase tracking-[0.11em] text-white/66">
           {title}
         </div>
       </div>
@@ -149,9 +149,9 @@ export function CompactStatTile({
   className = "",
 }: CompactStatTileProps): JSX.Element {
   return (
-    <div className={`rounded-[18px] border px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${getToneClassName(tone)} ${className}`}>
-      <div className="text-[8px] font-black uppercase tracking-[0.18em] opacity-55">{label}</div>
-      <div className="mt-0.5 text-[11px] font-black text-white/80">{value}</div>
+    <div className={`rounded-[16px] border px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.022)] ${getToneClassName(tone)} ${className}`}>
+      <div className="text-[8px] font-black uppercase tracking-[0.13em] opacity-48">{label}</div>
+      <div className="mt-0.5 text-[10px] font-black text-white/72">{value}</div>
       {detail ? <div className="mt-1 text-[10px] font-semibold opacity-50">{detail}</div> : null}
     </div>
   )
@@ -180,7 +180,7 @@ export function CompactStatusGrid({
 export function SurfaceDivider({ className = "" }: SurfaceDividerProps): JSX.Element {
   return (
     <div
-      className={`h-px w-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.12),transparent)] ${className}`}
+      className={`h-px w-full bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.08),transparent)] ${className}`}
     />
   )
 }
@@ -196,18 +196,18 @@ export function CommandActionButton({
 }: CommandActionButtonProps): JSX.Element {
   const toneClassName =
     tone === "live"
-      ? "border-rose-300/35 bg-rose-400/12 text-rose-100 hover:bg-rose-400/16"
+      ? "border-rose-300/24 bg-rose-400/[0.085] text-rose-100/78 hover:bg-rose-400/[0.12]"
       : tone === "preview"
-        ? "border-emerald-300/24 bg-emerald-400/10 text-emerald-100 hover:bg-emerald-400/14"
+        ? "border-emerald-300/18 bg-emerald-400/[0.065] text-emerald-100/72 hover:bg-emerald-400/[0.095]"
         : tone === "safe"
-          ? "border-sky-300/24 bg-sky-400/10 text-sky-100 hover:bg-sky-400/14"
+          ? "border-sky-300/18 bg-sky-400/[0.065] text-sky-100/72 hover:bg-sky-400/[0.095]"
           : tone === "warning"
-            ? "border-amber-300/30 bg-amber-400/12 text-amber-100 hover:bg-amber-400/16"
+            ? "border-amber-300/22 bg-amber-400/[0.085] text-amber-100/76 hover:bg-amber-400/[0.12]"
             : tone === "danger"
-              ? "border-red-300/32 bg-red-400/12 text-red-100 hover:bg-red-400/16"
+              ? "border-red-300/24 bg-red-400/[0.085] text-red-100/76 hover:bg-red-400/[0.12]"
               : tone === "muted"
-                ? "border-white/8 bg-black/20 text-white/34 hover:bg-white/[0.035]"
-                : "border-white/10 bg-black/24 text-white/62 hover:bg-white/[0.05] hover:text-white/84"
+                ? "border-white/7 bg-white/[0.026] text-white/32 hover:bg-white/[0.038]"
+                : "border-white/7 bg-white/[0.032] text-white/54 hover:bg-white/[0.045] hover:text-white/74"
 
   return (
     <button
@@ -215,7 +215,7 @@ export function CommandActionButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`rounded-[18px] border px-2.5 py-2 text-[9px] font-black uppercase tracking-[0.13em] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-sky-300/18 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 ${toneClassName} ${className}`}
+      className={`rounded-[14px] border px-2.5 py-1.5 text-[8px] font-black uppercase tracking-[0.1em] shadow-[inset_0_1px_0_rgba(255,255,255,0.022)] transition hover:-translate-y-px focus:outline-none focus:ring-2 focus:ring-sky-300/12 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 ${toneClassName} ${className}`}
     >
       {children}
     </button>
@@ -224,15 +224,15 @@ export function CommandActionButton({
 
 export function TelemetryAccent(): JSX.Element {
   return (
-    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[30px] opacity-65">
-      <div className="absolute left-0 right-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(125,211,252,0.18),transparent)] animate-[telemetryScan_8s_ease-in-out_infinite]" />
-      <div className="absolute bottom-3 right-4 flex items-center gap-1.5 opacity-75">
+    <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[24px] opacity-42">
+      <div className="absolute left-0 right-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(125,211,252,0.10),transparent)] animate-[telemetryScan_8s_ease-in-out_infinite]" />
+      <div className="absolute bottom-3 right-4 flex items-center gap-1 opacity-52">
         <span className="h-1 w-1 rounded-full bg-sky-300/70 shadow-[0_0_6px_rgba(125,211,252,0.38)] animate-[telemetryBlink_1.8s_ease-in-out_infinite]" />
         <span className="h-1 w-1 rounded-full bg-violet-300/60 shadow-[0_0_6px_rgba(196,181,253,0.32)] animate-[telemetryBlink_2.4s_ease-in-out_infinite]" />
         <span className="h-1 w-1 rounded-full bg-emerald-300/60 shadow-[0_0_6px_rgba(110,231,183,0.32)] animate-[telemetryBlink_3.1s_ease-in-out_infinite]" />
       </div>
-      <div className="absolute left-4 top-4 h-10 w-16 rounded-full border border-sky-200/8 opacity-40" />
-      <div className="absolute left-7 top-7 h-px w-10 rotate-[-18deg] bg-sky-200/8" />
+      <div className="absolute left-4 top-4 h-8 w-14 rounded-full border border-sky-200/6 opacity-26" />
+      <div className="absolute left-7 top-7 h-px w-8 rotate-[-18deg] bg-sky-200/6" />
     </div>
   )
 }
@@ -246,10 +246,10 @@ export function StatusPill({
 }: StatusPillProps): JSX.Element {
   return (
     <div
-      className={`group relative inline-flex items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] ${getToneClassName(tone)} ${className}`}
+      className={`group relative inline-flex items-center gap-1.5 overflow-hidden rounded-full border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] ${getToneClassName(tone)} ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.028)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] opacity-20 transition-opacity duration-500 group-hover:opacity-38" />
+      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <span
         className={`h-1.5 w-1.5 rounded-full ${
           tone === "live"
@@ -279,11 +279,11 @@ export function BusBadge({
 }: BusBadgeProps): JSX.Element {
   return (
     <div
-      className={`group relative overflow-hidden rounded-xl border px-2 py-1 text-[8px] font-black uppercase tracking-[0.18em] transition ${
-        active ? getToneClassName(tone) : "border-white/8 bg-black/18 text-white/34"
+      className={`group relative overflow-hidden rounded-xl border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] transition ${
+        active ? getToneClassName(tone) : "border-white/7 bg-white/[0.026] text-white/30"
       } ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-20 transition-opacity duration-500 group-hover:opacity-40" />
       <div className="pointer-events-none absolute inset-x-2 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
       <span className="relative z-10">{label}</span>
     </div>
@@ -300,7 +300,7 @@ export function RoutingRow({
 }: RoutingRowProps): JSX.Element {
   return (
     <div
-      className={`group relative overflow-hidden rounded-2xl border border-white/8 bg-black/22 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${className}`}
+      className={`group relative overflow-hidden rounded-[18px] border border-white/7 bg-white/[0.026] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)] ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.15),transparent)] opacity-0 transition group-hover:opacity-100" />
       <div className="flex items-center justify-between gap-3">
@@ -333,7 +333,7 @@ export function ConfidenceTile({
 
   return (
     <div
-      className={`rounded-[22px] border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName("default")} ${className}`}
+      className={`rounded-[18px] border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName("default")} ${className}`}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -360,7 +360,7 @@ export function LevelMeter({
   getBarClassName?: (index: number) => string
 }): JSX.Element {
   return (
-    <div className="relative flex h-3 overflow-hidden rounded-full border border-white/8 bg-black/38 px-1 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
+    <div className="relative flex h-2.5 overflow-hidden rounded-full border border-white/7 bg-white/[0.035] px-1 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.024)]">
       <div className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.055),transparent)] opacity-30 animate-[meterSweep_4.6s_ease-in-out_infinite]" />
       <div className="relative z-10 flex w-full gap-1">
         {Array.from({ length }).map((_, index) => (
@@ -392,11 +392,11 @@ export function PanelCard({
 }): JSX.Element {
   return (
     <div
-      className={`group relative overflow-hidden ${COMMAND_SURFACE_RADIUS} border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName(variant)} transition-all duration-300 hover:scale-[1.002] ${className}`}
+      className={`group relative overflow-hidden ${COMMAND_SURFACE_RADIUS} border ${COMMAND_SURFACE_PADDING} ${getSurfaceVariantClassName(variant)} transition-all duration-300 hover:scale-[1.001] ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 opacity-[0.04] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_7px)]" />
-      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/16 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.012)_0px,rgba(255,255,255,0.012)_1px,transparent_1px,transparent_9px)]" />
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.010)_42%,transparent_64%)] opacity-18 transition-opacity duration-500 group-hover:opacity-32" />
       <div className="relative z-10">
         {children}
       </div>
@@ -425,10 +425,10 @@ export function CommandButton({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`group relative overflow-hidden rounded-2xl border px-3 py-2.5 text-[12px] font-black uppercase tracking-[0.14em] shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] transition hover:-translate-y-0.5 active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 ${className}`}
+      className={`group relative overflow-hidden rounded-[16px] border px-2.5 py-2 text-[10px] font-black uppercase tracking-[0.11em] shadow-[inset_0_1px_0_rgba(255,255,255,0.032)] transition hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 ${className}`}
     >
-      <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.026)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
+      <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-20 transition-opacity duration-500 group-hover:opacity-42" />
+      <span className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       <span className="relative z-10">{children}</span>
     </button>
   )
@@ -448,7 +448,7 @@ export function PrimaryTakeButton({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="relative group overflow-hidden rounded-[18px] border border-amber-100/65 bg-[linear-gradient(180deg,rgba(253,230,138,0.98),rgba(251,191,36,0.98))] px-2.5 py-2 text-[11px] font-black uppercase tracking-[0.13em] text-black shadow-[0_0_18px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(255,255,255,0.42)] transition hover:-translate-y-px hover:shadow-[0_0_24px_rgba(251,191,36,0.24),inset_0_1px_0_rgba(255,255,255,0.5)] focus:outline-none focus:ring-2 focus:ring-amber-200/35 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:active:scale-100"
+      className="relative group overflow-hidden rounded-[16px] border border-amber-100/55 bg-[linear-gradient(180deg,rgba(253,230,138,0.94),rgba(251,191,36,0.94))] px-2.5 py-1.5 text-[10px] font-black uppercase tracking-[0.12em] text-black shadow-[0_0_14px_rgba(251,191,36,0.14),inset_0_1px_0_rgba(255,255,255,0.36)] transition hover:-translate-y-px hover:shadow-[0_0_18px_rgba(251,191,36,0.18),inset_0_1px_0_rgba(255,255,255,0.42)] focus:outline-none focus:ring-2 focus:ring-amber-200/30 active:translate-y-0 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45 disabled:hover:translate-y-0 disabled:active:scale-100"
       title="Take preview to program (T)"
     >
       <span className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent)] opacity-0 transition group-hover:opacity-100" />
@@ -471,7 +471,7 @@ export function IconGlassButton({
   return (
     <button
       type="button"
-      className={`rounded-[24px] border px-3 py-3 text-[9px] font-black uppercase tracking-[0.16em] text-white/62 transition hover:-translate-y-px hover:border-white/16 hover:bg-white/[0.04] hover:text-white/86 focus:outline-none focus:ring-2 focus:ring-sky-300/18 active:translate-y-0 ${getSurfaceVariantClassName("glass")} ${className}`}
+      className={`rounded-[18px] border px-2.5 py-2 text-[8px] font-black uppercase tracking-[0.1em] text-white/52 transition hover:-translate-y-px hover:border-white/12 hover:bg-white/[0.032] hover:text-white/74 focus:outline-none focus:ring-2 focus:ring-sky-300/12 active:translate-y-0 ${getSurfaceVariantClassName("glass")} ${className}`}
       aria-label={label}
     >
       <Icon size={15} className={showLabel ? "mx-auto mb-1.5" : "mx-auto"} />
@@ -491,7 +491,7 @@ export function CommandDeckChromeStyles(): JSX.Element {
         }
         45% {
           transform: translateX(22%);
-          opacity: 0.38;
+          opacity: 0.22;
         }
       }
       @keyframes telemetryBlink {
@@ -501,7 +501,7 @@ export function CommandDeckChromeStyles(): JSX.Element {
           transform: scale(0.86);
         }
         45% {
-          opacity: 0.72;
+          opacity: 0.52;
           transform: scale(1);
         }
       }
@@ -511,10 +511,10 @@ export function CommandDeckChromeStyles(): JSX.Element {
           opacity: 0;
         }
         22% {
-          opacity: 0.5;
+          opacity: 0.32;
         }
         55% {
-          opacity: 0.28;
+          opacity: 0.18;
         }
         100% {
           transform: translateX(330%);
@@ -529,7 +529,7 @@ export function CommandDeckChromeStyles(): JSX.Element {
           transform: scaleY(0.92);
         }
         45% {
-          opacity: 0.82;
+          opacity: 0.66;
           transform: scaleY(1);
         }
       }

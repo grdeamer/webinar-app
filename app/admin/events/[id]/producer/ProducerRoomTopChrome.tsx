@@ -132,7 +132,6 @@ export default function ProducerRoomTopChrome({
             hasProgramSource={hasProgramSource}
             hasScreenShare={hasScreenShareRoute}
             lastTakeMode={lastTakeMode}
-            hotkeySceneLabel={hotkeySceneLabelText}
             lastTransportActionAt={lastTransportActionAt}
             isLive={isProgramLive}
             layout={layout}
