@@ -524,7 +524,7 @@ export function CommandDeckChromeStyles(): JSX.Element {
 
       @keyframes meterPulse {
         0%,
-        100% {
+        100% {s
           opacity: 0.62;
           transform: scaleY(0.92);
         }
