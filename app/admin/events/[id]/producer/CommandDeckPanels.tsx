@@ -72,7 +72,7 @@ const COMMAND_WORKSPACE_OPEN_STATE: Record<CommandWorkspaceMode, Record<CommandS
     transition: false,
     audio: false,
     routing: false,
-    rundown: true,
+    rundown: false,
   },
   audio: {
     transport: false,
@@ -100,7 +100,7 @@ const COMMAND_WORKSPACE_OPEN_STATE: Record<CommandWorkspaceMode, Record<CommandS
     transition: false,
     audio: false,
     routing: false,
-    rundown: true,
+    rundown: false,
   },
 }
 
@@ -228,8 +228,8 @@ function CollapsibleSurface({
   return (
     <div
       className={[
-        "relative overflow-hidden rounded-[24px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.009))] shadow-[0_14px_42px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.032)] transition-all duration-500 ease-out",
-        isFocused ? "xl:col-span-full scale-[1.001] border-violet-300/10 ring-1 ring-violet-300/10 shadow-[0_18px_58px_rgba(0,0,0,0.28),0_0_14px_rgba(168,85,247,0.035),inset_0_1px_0_rgba(255,255,255,0.04)]" : "",
+        "relative overflow-hidden rounded-[18px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(255,255,255,0.014),rgba(255,255,255,0.006))] shadow-[0_8px_24px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.020)] transition-all duration-500 ease-out",
+        isFocused ? "xl:col-span-full scale-[1.001] border-violet-300/9 ring-1 ring-violet-300/9 shadow-[0_14px_42px_rgba(0,0,0,0.22),0_0_10px_rgba(168,85,247,0.028),inset_0_1px_0_rgba(255,255,255,0.032)]" : "",
         isDimmed ? "scale-[0.996] opacity-38 grayscale-[0.18]" : "",
       ].join(" ")}
     >
@@ -240,25 +240,25 @@ function CollapsibleSurface({
       <button
         type="button"
         onClick={toggleOpen}
-        className="relative z-10 flex w-full items-center justify-between gap-3 px-3.5 py-3 text-left transition hover:bg-white/[0.018]"
+        className="relative z-10 flex w-full items-center justify-between gap-2 px-2.5 py-1.75 text-left transition hover:bg-white/[0.014]"
       >
         <div className="min-w-0">
-          <div className="text-[8px] font-black uppercase tracking-[0.18em] text-white/22">
+          <div className="text-[7px] font-black uppercase tracking-[0.14em] text-white/18">
             {eyebrow}
           </div>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-black uppercase tracking-[0.14em] text-white/64">
+          <div className="mt-0.5 flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-black uppercase tracking-[0.12em] text-white/56">
               {title}
             </span>
             {status ? (
-              <span className={`rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.18em] ${statusClassName}`}>
+              <span className={`rounded-full border px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.14em] ${statusClassName}`}>
                 {status}
               </span>
             ) : null}
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-1">
           {onFocus ? (
             <span
               role="button"
@@ -285,7 +285,7 @@ function CollapsibleSurface({
                 }
               }}
               className={[
-                "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] transition",
+                "rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] transition",
                 isFocused
                   ? "border-violet-300/16 bg-violet-400/[0.08] text-violet-100/62 shadow-[0_0_8px_rgba(168,85,247,0.05)]"
                   : "border-white/8 bg-white/[0.028] text-white/32 hover:border-violet-300/12 hover:bg-violet-400/[0.055] hover:text-violet-100/58",
@@ -295,13 +295,13 @@ function CollapsibleSurface({
             </span>
           ) : null}
 
-          <div className="rounded-full border border-white/7 bg-white/[0.026] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/28">
+          <div className="rounded-full border border-white/6 bg-white/[0.018] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white/22">
             {isDimmed ? "Background" : isFocused ? "Focused" : "Ready"}
           </div>
 
           <div
             className={[
-              "rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] transition",
+              "rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] transition",
               open
                 ? "border-white/7 bg-white/[0.026] text-white/30"
                 : "border-sky-300/12 bg-sky-400/[0.045] text-sky-100/50 shadow-[0_0_7px_rgba(56,189,248,0.035)]",
@@ -312,19 +312,19 @@ function CollapsibleSurface({
 
           <div
             className={[
-              "flex h-8 w-8 items-center justify-center rounded-2xl border transition",
+              "flex h-6 w-6 items-center justify-center rounded-xl border transition",
               open
                 ? "rotate-180 border-white/7 bg-white/[0.026] text-white/34"
                 : "rotate-0 border-sky-300/12 bg-sky-400/[0.045] text-sky-100/54 shadow-[0_0_8px_rgba(56,189,248,0.035)]",
             ].join(" ")}
           >
-            <ChevronDown size={14} />
+            <ChevronDown size={12} />
           </div>
         </div>
       </button>
 
       {open ? (
-        <div className="relative z-10 px-3 pb-3 animate-[surfaceReveal_var(--jupiter-motion-fast)_var(--jupiter-ease-out)_both]">
+        <div className="relative z-10 px-2.5 pb-2.5 animate-[surfaceReveal_var(--jupiter-motion-fast)_var(--jupiter-ease-out)_both]">
           {children}
         </div>
       ) : null}
@@ -546,7 +546,7 @@ function ShortcutKey({
   shortcut: (typeof OPERATOR_SHORTCUTS)[number]
 }): JSX.Element {
   return (
-    <div className="flex items-center gap-1.5 rounded-xl border border-white/7 bg-white/[0.026] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.022)]">
+    <div className="flex items-center gap-1 rounded-lg border border-white/6 bg-white/[0.018] px-1.5 py-0.75 shadow-[inset_0_1px_0_rgba(255,255,255,0.016)]">
       <kbd className="min-w-6 rounded-md border border-white/8 bg-white/[0.04] px-1.5 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.08em] text-white/58 shadow-[0_4px_10px_rgba(0,0,0,0.16)]">
         {shortcut.key}
       </kbd>
@@ -574,7 +574,7 @@ function CommandSafetyStrip({
 
   return (
     <CompactStatusGrid
-      className="mb-2"
+      className="mb-1.5"
       columnsClassName="grid-cols-2"
       items={[
         {
@@ -608,7 +608,7 @@ function TransportBayChrome({
       : "border-white/7 bg-white/[0.024] shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]"
 
   return (
-    <div className={`relative overflow-hidden rounded-[20px] border p-2 transition-all duration-500 ${stateClass}`}>
+    <div className={`relative overflow-hidden rounded-[16px] border p-1.5 transition-all duration-500 ${stateClass}`}>
       <div className="pointer-events-none absolute inset-0 opacity-[0.035] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_10px)]" />
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
       {armed && !locked ? (
@@ -1071,14 +1071,14 @@ export function ControlStagePanel({
                 : "safe"
           }
           icon={Zap}
-          className="mb-3"
+          className="mb-2"
         />
 
         <TransportBayChrome
           armed={previewProgramDifferent && systemPressure !== "critical" && liveLocked}
           locked={takeBusy || systemPressure === "critical" || !liveLocked}
         >
-          <div className="grid grid-cols-[1.18fr_0.82fr_0.82fr] gap-1.5">
+          <div className="grid grid-cols-[1.12fr_0.88fr_0.88fr] gap-1">
             <div className={previewProgramDifferent && systemPressure !== "critical" && liveLocked ? "rounded-2xl animate-[takeReadyPulse_1.8s_ease-in-out_infinite]" : ""}>
               <PrimaryTakeButton
                 onClick={() => onTake("cut", selectedTransitionType, selectedTransitionDurationMs)}
@@ -1110,13 +1110,13 @@ export function ControlStagePanel({
         </TransportBayChrome>
 
         {systemPressure === "critical" ? (
-          <div className="mt-3 rounded-2xl border border-red-300/14 bg-red-400/8 px-3 py-2 text-xs font-medium text-red-100/74 shadow-[0_0_18px_rgba(239,68,68,0.10)]">
+          <div className="mt-2 rounded-2xl border border-red-300/14 bg-red-400/8 px-3 py-2 text-xs font-medium text-red-100/74 shadow-[0_0_18px_rgba(239,68,68,0.10)]">
             Confidence path degraded. Hold TAKE unless the producer explicitly confirms recovery.
           </div>
         ) : previewProgramDifferent ? (
           <div
             className={[
-              "mt-3 rounded-2xl border px-3 py-2 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]",
+              "mt-2 rounded-2xl border px-3 py-2 text-xs font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]",
               liveLocked
                 ? "border-amber-300/14 bg-amber-400/8 text-amber-100/80"
                 : "border-sky-300/14 bg-sky-400/8 text-sky-100/72",
@@ -1127,7 +1127,7 @@ export function ControlStagePanel({
               : "Rehearsal mode is active. CUT and AUTO are locked until Live Locked is confirmed in the rundown."}
           </div>
         ) : (
-          <div className="mt-3 text-xs text-white/42">
+          <div className="mt-2 text-xs text-white/42">
             Preview and Program are matched. Transport remains safe until preview changes.
           </div>
         )}
@@ -2215,15 +2215,10 @@ export function LowerCommandGrid({
   }
 
   const shouldShowSurface = (surface: CommandSurfaceKey): boolean => {
-    if (workspaceMode === "compact") {
-      return openSurfaces[surface]
-    }
-
     if (focusedSurface) {
       return openSurfaces[surface]
     }
-
-    return true
+    return openSurfaces[surface]
   }
 
   const [systemPressure, setSystemPressure] = useState<SystemPressureState>("stable")
@@ -2281,7 +2276,7 @@ export function LowerCommandGrid({
     tone: "neutral" | "sky" | "violet" | "emerald"
   ): string => {
     const baseClass =
-      "relative overflow-hidden border px-3 py-2 text-[9px] font-black uppercase tracking-[0.16em] transition-all duration-300"
+      "relative overflow-hidden border px-2 py-1.25 text-[8px] font-black uppercase tracking-[0.12em] transition-all duration-300"
 
     if (active) {
       if (tone === "sky") {

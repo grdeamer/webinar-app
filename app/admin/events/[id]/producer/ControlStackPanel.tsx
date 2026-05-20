@@ -45,27 +45,28 @@ function ControlButton({
 }): JSX.Element {
   const toneClass = active
     ? tone === "red"
-      ? "border-red-300/26 bg-red-500/[0.11] text-red-50 shadow-[0_0_14px_rgba(248,113,113,0.10)]"
+      ? "border-red-300/14 bg-red-500/[0.055] text-red-50/82 shadow-[0_0_10px_rgba(248,113,113,0.06)]"
       : tone === "green"
-        ? "border-emerald-300/22 bg-emerald-400/[0.09] text-emerald-50 shadow-[0_0_12px_rgba(52,211,153,0.09)]"
+        ? "border-emerald-300/12 bg-emerald-400/[0.05] text-emerald-50/82 shadow-[0_0_8px_rgba(52,211,153,0.05)]"
         : tone === "sky"
-          ? "border-sky-300/22 bg-sky-400/[0.09] text-sky-50 shadow-[0_0_12px_rgba(56,189,248,0.09)]"
+          ? "border-sky-300/12 bg-sky-400/[0.05] text-sky-50/82 shadow-[0_0_8px_rgba(56,189,248,0.05)]"
           : tone === "violet"
-            ? "border-violet-300/22 bg-violet-400/[0.09] text-violet-50 shadow-[0_0_12px_rgba(168,85,247,0.09)]"
+            ? "border-violet-300/12 bg-violet-400/[0.05] text-violet-50/82 shadow-[0_0_8px_rgba(168,85,247,0.05)]"
             : tone === "amber"
-              ? "border-amber-300/22 bg-amber-400/[0.09] text-amber-50 shadow-[0_0_12px_rgba(251,191,36,0.09)]"
-              : "border-white/14 bg-white/[0.055] text-white/86"
-    : "border-white/8 bg-black/18 text-white/42 hover:border-white/14 hover:bg-white/[0.04] hover:text-white/78"
+              ? "border-amber-300/12 bg-amber-400/[0.05] text-amber-50/82 shadow-[0_0_8px_rgba(251,191,36,0.05)]"
+              : "border-white/10 bg-white/[0.03] text-white/70"
+    : "border-white/6 bg-white/[0.014] text-white/28 hover:border-white/10 hover:bg-white/[0.026] hover:text-white/54"
 
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`rounded-[16px] border px-3 py-2.5 text-left transition hover:-translate-y-px active:translate-y-0 ${toneClass}`}
+      className={`rounded-[14px] border px-2.5 py-2 text-left transition hover:-translate-y-px active:translate-y-0 ${toneClass}`}
     >
-      <div className="text-[10px] font-black uppercase tracking-[0.16em]">{label}</div>
+      <div className="text-[8px] font-black uppercase tracking-[0.1em]">{label}</div>
+
       {detail ? (
-        <div className="mt-1 text-[10px] font-semibold leading-relaxed text-white/38">
+        <div className="mt-0.5 text-[9px] font-semibold leading-relaxed text-white/24">
           {detail}
         </div>
       ) : null}
@@ -91,9 +92,9 @@ export default function ControlStackPanel({
   const selectedPreset = screenLayoutPreset
 
   return (
-    <div className="relative overflow-hidden rounded-[28px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.045),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.012] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_14px)]" />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/20 to-transparent" />
+    <div className="relative overflow-hidden rounded-[22px] border border-white/6 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.020),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.014),rgba(255,255,255,0.005))] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.14),inset_0_1px_0_rgba(255,255,255,0.022)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.006] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.75)_0px,rgba(255,255,255,0.75)_1px,transparent_1px,transparent_18px)]" />
+      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/8 to-transparent" />
 
       <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
         <div>

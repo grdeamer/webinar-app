@@ -48,15 +48,15 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
       <div
-        className={`absolute left-[-18%] top-[8%] h-[460px] w-[460px] rounded-full blur-3xl transition-opacity duration-1000 ${
-          isLive ? "bg-red-300/[0.075] opacity-80" : "bg-sky-200/[0.095] opacity-78"
-        } animate-[producerAtmosphereDrift_22s_ease-in-out_infinite]`}
+        className={`absolute left-[-20%] top-[6%] h-[430px] w-[430px] rounded-full blur-3xl transition-opacity duration-1000 ${
+          isLive ? "bg-red-300/[0.030] opacity-44" : "bg-sky-200/[0.036] opacity-40"
+        } animate-[producerAtmosphereDrift_34s_ease-in-out_infinite]`}
       />
-      <div className="absolute right-[-16%] top-[28%] h-[540px] w-[540px] rounded-full bg-violet-200/[0.075] blur-3xl animate-[producerAtmosphereCounterDrift_26s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[-22%] left-[24%] h-[580px] w-[580px] rounded-full bg-cyan-200/[0.075] blur-3xl animate-[producerAtmosphereBloom_22s_ease-in-out_infinite]" />
+      <div className="absolute right-[-18%] top-[26%] h-[460px] w-[460px] rounded-full bg-violet-200/[0.026] blur-3xl animate-[producerAtmosphereCounterDrift_38s_ease-in-out_infinite]" />
+      <div className="absolute bottom-[-24%] left-[26%] h-[470px] w-[470px] rounded-full bg-cyan-200/[0.022] blur-3xl animate-[producerAtmosphereBloom_36s_ease-in-out_infinite]" />
 
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.010)_38%,transparent_62%)] animate-[producerTransmissionSheen_18s_ease-in-out_infinite]" />
-      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_10px)] opacity-[0.08]" />
+      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.003)_38%,transparent_62%)] animate-[producerTransmissionSheen_42s_ease-in-out_infinite]" />
+      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.008)_0px,rgba(255,255,255,0.008)_1px,transparent_1px,transparent_16px)] opacity-[0.018]" />
 
       {isLive ? (
         <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/24 to-transparent animate-[producerLiveScan_4.6s_ease-in-out_infinite]" />
@@ -88,12 +88,12 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
         @keyframes producerAtmosphereBloom {
           0%,
           100% {
-            opacity: 0.34;
+            opacity: 0.18;
             transform: scale(1);
           }
 
           50% {
-            opacity: 0.56;
+            opacity: 0.32;
             transform: scale(1.04);
           }
         }
@@ -106,7 +106,7 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
           }
 
           45% {
-            opacity: 0.45;
+            opacity: 0.14;
           }
 
           100% {
@@ -122,7 +122,7 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
           }
 
           50% {
-            opacity: 0.48;
+            opacity: 0.28;
             transform: translateY(6px);
           }
         }
@@ -142,6 +142,9 @@ export default function ProducerRoomClient({
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [participants, setParticipants] = useState<ProducerParticipant[]>([]);
   const [stageState, setStageState] = useState<StageState | null>(null);
+  const latestStageStateRef = useRef<StageState | null>(null);
+  const manualStageParticipantIdsRef = useRef<Set<string>>(new Set());
+  const manualPrimaryParticipantIdRef = useRef<string | null>(null);
   const [loadingText, setLoadingText] = useState("Connecting producer...");
   const [error, setError] = useState<string | null>(null);
 
@@ -157,8 +160,47 @@ export default function ProducerRoomClient({
     null,
   );
   const [programState, setProgramState] = useState<StageState | null>(null);
-  const [monitorHeight, setMonitorHeight] = useState(520);
-  const [audienceOriginCollapsed, setAudienceOriginCollapsed] = useState(false);
+  const [monitorHeight, setMonitorHeight] = useState(640);
+  const [audienceOriginCollapsed, setAudienceOriginCollapsed] = useState(true);
+  const [assetDockExpanded, setAssetDockExpanded] = useState(true);
+const updateStageState = useCallback(
+  (updater: StageState | null | ((current: StageState | null) => StageState | null)): void => {
+    setStageState((current) => {
+      const nextStateBase = typeof updater === "function" ? updater(current) : updater;
+
+      if (!nextStateBase) {
+        latestStageStateRef.current = null;
+        return null;
+      }
+
+      const manualParticipantIds = Array.from(manualStageParticipantIdsRef.current);
+
+      if (manualParticipantIds.length === 0) {
+        latestStageStateRef.current = nextStateBase;
+        return nextStateBase;
+      }
+
+      const stageParticipantIds = Array.from(
+        new Set([...(nextStateBase.stage_participant_ids ?? []), ...manualParticipantIds]),
+      );
+
+      const nextState: StageState = {
+        ...nextStateBase,
+        auto_director_enabled: false,
+        stage_participant_ids: stageParticipantIds,
+        primary_participant_id:
+          nextStateBase.primary_participant_id ??
+          manualPrimaryParticipantIdRef.current ??
+          stageParticipantIds[0] ??
+          null,
+      };
+
+      latestStageStateRef.current = nextState;
+      return nextState;
+    });
+  },
+  [],
+);
   const handleAsyncError = useCallback((error: unknown) => {
     setError(error instanceof Error ? error.message : "Unexpected error");
   }, []);
@@ -174,6 +216,10 @@ export default function ProducerRoomClient({
     triggerAudienceCue,
     setShowAudienceCue,
   } = useAudienceCue();
+
+  useEffect(() => {
+    latestStageStateRef.current = stageState;
+  }, [stageState]);
 
   const producerScopeLabel = useMemo(() => {
     return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session";
@@ -331,7 +377,7 @@ export default function ProducerRoomClient({
     setToken,
     setServerUrl,
     setParticipants,
-    setStageState,
+    setStageState: updateStageState,
     setProgramState,
     setLoadingText,
     setError,
@@ -346,7 +392,7 @@ export default function ProducerRoomClient({
     clearPrimaryParticipant,
   } = useProducerParticipantActions({
     api,
-    setStageState: (state) => setStageState(state),
+    setStageState: (state) => updateStageState(state),
   });
 
   const {
@@ -464,20 +510,50 @@ export default function ProducerRoomClient({
       transitionType?: CinematicTransitionType,
       transitionDurationMs?: number,
     ): void => {
+      const previewState = latestStageStateRef.current ?? stageState;
+
+      if (previewState) {
+        setProgramState({
+          ...previewState,
+          is_live: Boolean(previewState.is_live ?? programState?.is_live),
+        });
+        setProgramBlocks(previewBlocks);
+      }
+
       takeProgram(mode, transitionType, { transitionDurationMs });
     },
-    [takeProgram],
+    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, takeProgram],
   );
 
   const handleLeftRailTake = useCallback((): void => {
+    const previewState = latestStageStateRef.current ?? stageState;
+
+    if (previewState) {
+      setProgramState({
+        ...previewState,
+        is_live: Boolean(previewState.is_live ?? programState?.is_live),
+      });
+      setProgramBlocks(previewBlocks);
+    }
+
     takeProgram("cut");
-  }, [takeProgram]);
+  }, [previewBlocks, programState?.is_live, setProgramBlocks, stageState, takeProgram]);
 
   const handleCenterSwitcherTake = useCallback(
     (mode: "cut" | "auto"): void => {
+      const previewState = latestStageStateRef.current ?? stageState;
+
+      if (previewState) {
+        setProgramState({
+          ...previewState,
+          is_live: Boolean(previewState.is_live ?? programState?.is_live),
+        });
+        setProgramBlocks(previewBlocks);
+      }
+
       takeProgram(mode);
     },
-    [takeProgram],
+    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, takeProgram],
   );
 
   const handleGoLive = useCallback((): void => {
@@ -505,6 +581,10 @@ export default function ProducerRoomClient({
 
   const handleToggleAudienceOriginCollapsed = useCallback((): void => {
     setAudienceOriginCollapsed((current) => !current);
+  }, []);
+
+  const handleToggleAssetDockExpanded = useCallback((): void => {
+    setAssetDockExpanded((current) => !current);
   }, []);
 
   const handleClearSelectedBlock = useCallback((): void => {
@@ -551,23 +631,81 @@ export default function ProducerRoomClient({
 
   const handleAddParticipantToStage = useCallback(
     (identity: string): void => {
-      void addToStage(identity).catch(handleAsyncError);
+      manualStageParticipantIdsRef.current.add(identity);
+      manualPrimaryParticipantIdRef.current = manualPrimaryParticipantIdRef.current ?? identity;
+      setAutoDirectorEnabled(false);
+      updateStageState((current) => {
+        if (!current) return current;
+
+        const stageParticipantIds = Array.from(
+          new Set([...(current.stage_participant_ids ?? []), identity]),
+        );
+
+        return {
+          ...current,
+          auto_director_enabled: false,
+          stage_participant_ids: stageParticipantIds,
+          primary_participant_id: current.primary_participant_id ?? identity,
+        };
+      });
+
+      void api.setAutoDirector(false)
+        .then(() => addToStage(identity))
+        .catch(handleAsyncError);
     },
-    [addToStage, handleAsyncError],
+    [addToStage, handleAsyncError, updateStageState, api],
   );
 
   const handleSetParticipantScreenShare = useCallback(
     (participantId: string, trackId: string): void => {
-      void setScreenShare(participantId, trackId).catch(handleAsyncError);
+      setAutoDirectorEnabled(false);
+      updateStageState((current) => {
+        if (!current) return current;
+
+        const stageParticipantIds = Array.from(
+          new Set([...(current.stage_participant_ids ?? []), participantId]),
+        );
+
+        return {
+          ...current,
+          auto_director_enabled: false,
+          layout: "screen_speaker",
+          stage_participant_ids: stageParticipantIds,
+          screen_share_participant_id: participantId,
+          screen_share_track_id: trackId,
+        };
+      });
+
+      void api.setAutoDirector(false)
+        .then(() => setScreenShare(participantId, trackId))
+        .catch(handleAsyncError);
     },
-    [setScreenShare, handleAsyncError],
+    [handleAsyncError, setScreenShare, updateStageState, api],
   );
 
   const handleSetPrimaryParticipant = useCallback(
     (identity: string): void => {
-      void setPrimaryParticipant(identity).catch(handleAsyncError);
+      setAutoDirectorEnabled(false);
+      updateStageState((current) => {
+        if (!current) return current;
+
+        const stageParticipantIds = Array.from(
+          new Set([...(current.stage_participant_ids ?? []), identity]),
+        );
+
+        return {
+          ...current,
+          auto_director_enabled: false,
+          stage_participant_ids: stageParticipantIds,
+          primary_participant_id: identity,
+        };
+      });
+
+      void api.setAutoDirector(false)
+        .then(() => setPrimaryParticipant(identity))
+        .catch(handleAsyncError);
     },
-    [setPrimaryParticipant, handleAsyncError],
+    [handleAsyncError, setPrimaryParticipant, updateStageState, api],
   );
 
   const handlePinParticipant = useCallback(
@@ -579,9 +717,43 @@ export default function ProducerRoomClient({
 
   const handleRemoveParticipantFromStage = useCallback(
     (identity: string): void => {
+      manualStageParticipantIdsRef.current.delete(identity);
+      if (manualPrimaryParticipantIdRef.current === identity) {
+        manualPrimaryParticipantIdRef.current = Array.from(manualStageParticipantIdsRef.current)[0] ?? null;
+      }
+
+      updateStageState((current) => {
+        if (!current) return current;
+
+        const stageParticipantIds = (current.stage_participant_ids ?? []).filter(
+          (participantId) => participantId !== identity,
+        );
+
+        return {
+          ...current,
+          stage_participant_ids: stageParticipantIds,
+          primary_participant_id:
+            current.primary_participant_id === identity
+              ? (stageParticipantIds[0] ?? null)
+              : current.primary_participant_id,
+          pinned_participant_id:
+            current.pinned_participant_id === identity
+              ? null
+              : current.pinned_participant_id,
+          screen_share_participant_id:
+            current.screen_share_participant_id === identity
+              ? null
+              : current.screen_share_participant_id,
+          screen_share_track_id:
+            current.screen_share_participant_id === identity
+              ? null
+              : current.screen_share_track_id,
+        };
+      });
+
       void removeFromStage(identity).catch(handleAsyncError);
     },
-    [removeFromStage, handleAsyncError],
+    [handleAsyncError, removeFromStage, updateStageState],
   );
 
   const handleDockApplyScene = useCallback(
@@ -625,33 +797,33 @@ export default function ProducerRoomClient({
   });
   async function setAutoDirector(enabled: boolean) {
     const data = await api.setAutoDirector(enabled);
-    setStageState(data.state);
+    updateStageState(data.state);
     setAutoDirectorEnabled(Boolean(data?.state?.auto_director_enabled));
   }
 
   async function goLive() {
     const data = await api.goLive();
-    setStageState(data.state);
+    updateStageState(data.state);
   }
 
   async function goOffAir() {
     const data = await api.goOffAir();
-    setStageState(data.state);
+    updateStageState(data.state);
   }
 
   async function setLayout(layout: "solo" | "grid" | "screen_speaker") {
     const data = await api.setLayout(layout);
-    setStageState(data.state);
+    updateStageState(data.state);
   }
 
   async function setScreenShare(participantId: string, trackId: string) {
     const data = await api.setScreenShare(participantId, trackId);
-    setStageState(data.state);
+    updateStageState(data.state);
   }
 
   async function clearScreenShare() {
     const data = await api.clearScreenShare();
-    setStageState(data.state);
+    updateStageState(data.state);
   }
 
   const getScreenTrackSid = useCallback(
@@ -705,6 +877,7 @@ export default function ProducerRoomClient({
 
 
   const isProgramLive = Boolean(programState?.is_live);
+
 
   // Top chrome props
   const topChromeProps = useMemo(
@@ -997,6 +1170,7 @@ export default function ProducerRoomClient({
       programSlideLabel,
       hotkeySceneId,
       previewBlocks,
+      localMicLevel,
       slideDeckName: localPdfDeck?.name ?? null,
       slideCount: localPdfDeck?.pageCount ?? 8,
       onAddScene: sceneActions.startNewScene,
@@ -1014,6 +1188,7 @@ export default function ProducerRoomClient({
       programSlideLabel,
       hotkeySceneId,
       previewBlocks,
+      localMicLevel,
       localPdfDeck?.name,
       localPdfDeck?.pageCount,
       sceneActions,
@@ -1024,6 +1199,8 @@ export default function ProducerRoomClient({
       handleDockDeleteScene,
     ],
   );
+
+  const bottomDock = <BottomAssetDock {...bottomAssetDockProps} />;
 
   if (error) {
     return <div className="p-8 text-red-400">{error}</div>;
@@ -1037,7 +1214,7 @@ export default function ProducerRoomClient({
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
 
-      <div className="relative flex min-h-screen flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.18),transparent_35%),radial-gradient(circle_at_82%_16%,rgba(196,181,253,0.13),transparent_33%),radial-gradient(circle_at_48%_96%,rgba(34,211,238,0.09),transparent_40%),linear-gradient(180deg,#25334f_0%,#1d2941_46%,#162137_100%)] text-white">
+      <div className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.070),transparent_35%),radial-gradient(circle_at_82%_16%,rgba(196,181,253,0.050),transparent_33%),radial-gradient(circle_at_48%_96%,rgba(34,211,238,0.030),transparent_40%),linear-gradient(180deg,#172238_0%,#111b2f_46%,#0b1324_100%)] text-white">
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 
@@ -1053,15 +1230,16 @@ export default function ProducerRoomClient({
 
           <ProducerRoomTopChrome {...topChromeProps} />
           <ProducerRoomWorkspaceFrame>
-            <ProducerRoomGrid>
-              <ProducerRoomWorkspace
-                leftRail={<ProducerLeftRail {...leftRailProps} />}
-                centerColumn={centerColumn}
-                rightRail={<ProducerRightRail {...rightRailProps} />}
-              />
-            </ProducerRoomGrid>
-
-            <BottomAssetDock {...bottomAssetDockProps} />
+            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+              <ProducerRoomGrid>
+                <ProducerRoomWorkspace
+                  leftRail={<ProducerLeftRail {...leftRailProps} />}
+                  centerColumn={centerColumn}
+                  rightRail={<ProducerRightRail {...rightRailProps} />}
+                  bottomDock={bottomDock}
+                />
+              </ProducerRoomGrid>
+            </div>
           </ProducerRoomWorkspaceFrame>
         </ProducerRoomContentStack>
       </div>

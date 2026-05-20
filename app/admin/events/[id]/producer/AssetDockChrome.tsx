@@ -9,11 +9,11 @@ function ShortcutPill({
   action: string
 }): JSX.Element {
   return (
-    <div className="flex items-center gap-1.5 rounded-full border border-white/8 bg-white/[0.025] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
-      <span className="rounded-md border border-white/8 bg-black/28 px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] text-white/68">
+    <div className="flex items-center gap-1 rounded-full border border-white/5 bg-white/[0.012] px-1 py-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+      <span className="rounded-md border border-white/5 bg-black/16 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.09em] text-white/40">
         {keyLabel}
       </span>
-      <span className="text-[9px] font-black uppercase tracking-[0.12em] text-white/34">
+      <span className="text-[7px] font-black uppercase tracking-[0.09em] text-white/18">
         {action}
       </span>
     </div>
@@ -22,8 +22,8 @@ function ShortcutPill({
 
 export function KeyboardShortcutsPanel(): JSX.Element {
   return (
-    <div className="hidden 2xl:flex items-center gap-1.5 rounded-full border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),rgba(255,255,255,0.014))] px-2 py-1 shadow-[0_0_12px_rgba(0,0,0,0.10),inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <span className="mr-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/35">
+    <div className="hidden 2xl:flex items-center gap-1 rounded-full border border-white/5 bg-[linear-gradient(180deg,rgba(255,255,255,0.012),rgba(255,255,255,0.005))] px-1 py-0.5 shadow-[0_0_6px_rgba(0,0,0,0.045),inset_0_1px_0_rgba(255,255,255,0.012)]">
+      <span className="mr-0.5 text-[7px] font-black uppercase tracking-[0.09em] text-white/18">
         Shortcuts
       </span>
       <ShortcutPill keyLabel="Space" action="Take" />
@@ -37,17 +37,17 @@ export function KeyboardShortcutsPanel(): JSX.Element {
 
 export function TallyIndicators(): JSX.Element {
   return (
-    <div className="hidden xl:flex items-center gap-1.5 rounded-full border border-white/8 bg-black/18 px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
-      <div className="flex items-center gap-1.5 rounded-full border border-emerald-300/10 bg-emerald-400/[0.06] px-2 py-1">
-        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75 shadow-[0_0_5px_rgba(110,231,183,0.34)]" />
-        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-emerald-100/58">
+    <div className="hidden xl:flex items-center gap-1 rounded-full border border-white/5 bg-black/10 px-1 py-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+      <div className="flex items-center gap-1 rounded-full border border-emerald-300/6 bg-emerald-400/[0.026] px-1 py-0.5">
+        <span className="h-1 w-1 rounded-full bg-emerald-300/58 shadow-[0_0_4px_rgba(110,231,183,0.18)]" />
+        <span className="text-[7px] font-black uppercase tracking-[0.09em] text-emerald-100/34">
           Preview
         </span>
       </div>
 
-      <div className="flex items-center gap-1.5 rounded-full border border-red-300/12 bg-red-400/[0.07] px-2 py-1">
-        <span className="h-1.5 w-1.5 rounded-full bg-red-300/78 shadow-[0_0_5px_rgba(252,165,165,0.36)]" />
-        <span className="text-[9px] font-black uppercase tracking-[0.16em] text-red-100/60">
+      <div className="flex items-center gap-1 rounded-full border border-red-300/7 bg-red-400/[0.030] px-1 py-0.5">
+        <span className="h-1 w-1 rounded-full bg-red-300/60 shadow-[0_0_4px_rgba(252,165,165,0.18)]" />
+        <span className="text-[7px] font-black uppercase tracking-[0.09em] text-red-100/36">
           Program
         </span>
       </div>
@@ -64,25 +64,25 @@ export function DockSectionHeader({
 }): JSX.Element {
   const icon =
     title === "Scenes" ? (
-      <Layers3 className="h-3.5 w-3.5" />
+      <Layers3 className="h-3 w-3" />
     ) : title === "Graphics" ? (
-      <Shapes className="h-3.5 w-3.5" />
+      <Shapes className="h-3 w-3" />
     ) : title === "Media" ? (
-      <MonitorPlay className="h-3.5 w-3.5" />
+      <MonitorPlay className="h-3 w-3" />
     ) : (
-      <Library className="h-3.5 w-3.5" />
+      <Library className="h-3 w-3" />
     )
 
   return (
-    <div className="mb-2 flex items-center justify-between gap-2">
-      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.24em] text-white/32">
-        <span className="flex h-6 w-6 items-center justify-center rounded-full border border-white/8 bg-black/18 text-white/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+    <div className="mb-1.5 flex items-center justify-between gap-2">
+      <div className="flex items-center gap-1 text-[7px] font-black uppercase tracking-[0.10em] text-white/18">
+        <span className="flex h-4.5 w-4.5 items-center justify-center rounded-full border border-white/5 bg-black/10 text-white/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
           {icon}
         </span>
         <span>{title}</span>
       </div>
 
-      <span className="rounded-full border border-white/8 bg-black/22 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
+      <span className="rounded-full border border-white/5 bg-black/12 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.09em] text-white/18">
         {count}
       </span>
     </div>
@@ -98,8 +98,8 @@ export function DockSection({
   children: ReactNode
 }): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[24px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.05),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.02))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05),0_18px_40px_rgba(0,0,0,0.18)] transition duration-300">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04),transparent)] opacity-100" />
+    <div className="relative overflow-hidden rounded-[16px] border border-white/[0.045] bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.014),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.014),rgba(255,255,255,0.006))] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.016),0_6px_18px_rgba(0,0,0,0.075)] transition duration-300">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.005),transparent)] opacity-24" />
 
       <div className="relative z-10">
         <DockSectionHeader title={title} count={count} />

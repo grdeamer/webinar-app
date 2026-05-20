@@ -1,575 +1,115 @@
 
-import { useEffect, useState } from "react"
+import { useState, type JSX } from "react"
+type UtilityPanel = "record" | "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
+
 import {
-  Clock3,
-  Film,
-  Images,
+  CalendarDays,
+  CircleDot,
+  Clapperboard,
+  Image,
+  Keyboard,
   Layers3,
-  SlidersHorizontal,
-  Sparkles,
-  Rows3,
-  Radio,
-  Zap,
+  Mic2,
   MonitorPlay,
+  Radio,
+  Settings,
+  SlidersHorizontal,
+  Video,
+  Volume2,
+  Waves,
 } from "lucide-react"
-function DockStatusPill({
-  label,
-  value,
-  tone,
-}: {
-  label: string
-  value: string
-  tone: "sky" | "green"
-}): JSX.Element {
-  const toneClass =
-    tone === "sky"
-      ? "border-sky-300/12 bg-sky-400/[0.06] text-sky-100/58"
-      : "border-emerald-300/12 bg-emerald-400/[0.06] text-emerald-100/58"
-  return (
-    <div className={`group relative hidden items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] lg:flex ${toneClass}`}>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
 
-      <span className="relative z-10 inline-flex items-center gap-1.5">
-        <span
-          className={`h-1.5 w-1.5 rounded-full animate-pulse ${
-            tone === "sky"
-              ? "bg-sky-300/75 shadow-[0_0_6px_rgba(125,211,252,0.32)]"
-              : "bg-emerald-300/75 shadow-[0_0_6px_rgba(110,231,183,0.32)]"
-          }`}
-        />
-        {label}
-      </span>
-      <span className="relative z-10 text-white/18">/</span>
-      <span className="relative z-10 text-white/48">{value}</span>
-    </div>
-  )
-}
-function formatMemoryTime(): string {
-  return new Date().toLocaleTimeString([], {
-    hour: "numeric",
-    minute: "2-digit",
-  })
-}
-
-function formatDockRuntime(startedAt: number): string {
-  const elapsedSeconds = Math.max(0, Math.floor((Date.now() - startedAt) / 1000))
-  const minutes = Math.floor(elapsedSeconds / 60)
-  const seconds = elapsedSeconds % 60
-
-  return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`
-}
-
-import type { JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import {
-  FALLBACK_GRAPHICS_ITEMS,
   FALLBACK_MEDIA_ITEMS,
-  TRANSITION_DURATIONS,
-  TRANSITION_PRESETS,
   type DockAssetRecord,
   type SceneSummary,
 } from "./assetDockTypes"
-import {
-  DockSection,
-  KeyboardShortcutsPanel,
-  TallyIndicators,
-} from "./AssetDockChrome"
 
-function SceneBlockPreview({ block }: { block: PreviewBlock }): JSX.Element {
-  const left = `${Math.max(0, Math.min(100, block.x ?? 0))}%`
-  const top = `${Math.max(0, Math.min(100, block.y ?? 0))}%`
-  const width = `${Math.max(6, Math.min(100, block.width ?? 20))}%`
-  const height = `${Math.max(6, Math.min(100, block.height ?? 12))}%`
-
-  const tone =
-    block.type === "text"
-      ? "border-sky-200/35 bg-sky-300/18"
-      : block.type === "video"
-        ? "border-emerald-200/35 bg-emerald-300/18"
-        : block.type === "image"
-          ? "border-violet-200/35 bg-violet-300/18"
-          : "border-amber-200/35 bg-amber-300/18"
-
-  return (
-    <div
-      className={`absolute rounded-[3px] border ${tone} shadow-[0_0_8px_rgba(255,255,255,0.08)]`}
-      style={{ left, top, width, height }}
-    />
-  )
-}
-
-function SceneMiniVisualizer({ scene }: { scene: SceneSummary }): JSX.Element {
-  const preset = scene.screenLayoutPreset ?? null
-  const blocks = scene.previewBlocks?.slice(0, 5) ?? []
-  const thumbnailUrl = scene.thumbnailUrl ?? null
-
-  const label =
-    preset === "fullscreen"
-      ? "Full"
-      : preset === "speaker_focus"
-        ? "Speaker"
-        : preset === "brand"
-          ? "Brand"
-          : "Classic"
-
-  const baseClass =
-    preset === "brand"
-      ? "relative aspect-video overflow-hidden rounded-lg border border-white/10 bg-[radial-gradient(circle_at_25%_25%,rgba(168,85,247,0.24),transparent_34%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition duration-200 border-violet-200/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_14px_rgba(168,85,247,0.10)]"
-      : "relative aspect-video overflow-hidden rounded-lg border border-violet-200/18 bg-[linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))] shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_0_14px_rgba(168,85,247,0.10)] transition duration-200"
-
-  return (
-    <div className={baseClass}>
-      {thumbnailUrl ? (
-        <img
-          src={thumbnailUrl}
-          alt={`${scene.name} preview`}
-          className="absolute inset-0 h-full w-full object-cover opacity-90"
-        />
-      ) : null}
-
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_52%,rgba(0,0,0,0.46)),linear-gradient(180deg,rgba(255,255,255,0.05),transparent_26%,transparent_72%,rgba(0,0,0,0.34))]" />
-
-      {!thumbnailUrl && preset === "fullscreen" ? (
-        <div className="absolute inset-1 rounded-lg border border-sky-200/20 bg-sky-400/16" />
-      ) : !thumbnailUrl && preset === "speaker_focus" ? (
-        <>
-          <div className="absolute inset-y-1 left-1 w-[62%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
-          <div className="absolute right-1 top-1 h-[44%] w-[30%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
-        </>
-      ) : !thumbnailUrl && preset === "brand" ? (
-        <>
-          <div className="absolute left-1 top-1 h-[58%] w-[58%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
-          <div className="absolute bottom-1 right-1 h-[34%] w-[34%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
-        </>
-      ) : !thumbnailUrl ? (
-        <>
-          <div className="absolute left-1 top-1 h-[46%] w-[46%] rounded-lg border border-sky-200/18 bg-sky-400/12" />
-          <div className="absolute right-1 top-1 h-[46%] w-[46%] rounded-lg border border-violet-200/18 bg-violet-400/14" />
-          <div className="absolute bottom-1 left-1 h-[32%] w-[46%] rounded-lg border border-white/10 bg-white/[0.055]" />
-        </>
-      ) : null}
-
-      {blocks.map((block) => (
-        <SceneBlockPreview key={block.id} block={block} />
-      ))}
-
-      <div className="absolute bottom-1 right-1 rounded-md border border-white/10 bg-black/65 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/68 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        {thumbnailUrl ? "Live" : label}
-      </div>
-
-      <div className="absolute left-1 top-1 rounded-md border border-white/10 bg-black/55 px-1 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/50">
-        {blocks.length ? `${blocks.length} FX` : "Clean"}
-      </div>
-    </div>
-  )
-}
-
-
-function SceneTile({
-  scene,
-  index,
-  isActive,
-  isProgramLive,
-  isHotkeyTriggered,
-  onApplyScene,
-  onDoubleClickScene,
-  onDeleteScene,
+function ConsolePanel({
+  title,
+  action,
+  children,
+  className = "",
 }: {
-  scene: SceneSummary
-  index: number
-  isActive: boolean
-  isProgramLive: boolean
-  isHotkeyTriggered: boolean
-  onApplyScene?: (sceneId: string) => void
-  onDoubleClickScene?: (sceneId: string) => void
-  onDeleteScene?: (sceneId: string) => void
-}): JSX.Element {
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [recallFlash, setRecallFlash] = useState(false)
-  const memoryLabel = `M${String(index + 1).padStart(2, "0")}`
-
-  useEffect(() => {
-    if (!isActive && !isHotkeyTriggered) return
-
-    setRecallFlash(true)
-
-    const id = window.setTimeout(() => {
-      setRecallFlash(false)
-    }, 680)
-
-    return () => window.clearTimeout(id)
-  }, [isActive, isHotkeyTriggered, scene.id])
-  return (
-    <button
-      type="button"
-      onClick={() => onApplyScene?.(scene.id)}
-      onDoubleClick={() => onDoubleClickScene?.(scene.id)}
-      className={`group relative min-w-[88px] overflow-hidden rounded-[18px] border p-1.5 text-left transition duration-200 before:pointer-events-none before:absolute before:inset-0 before:rounded-[18px] before:bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_18%,transparent_36%)] before:opacity-0 before:transition-opacity hover:before:opacity-100 ${
-        isHotkeyTriggered
-          ? "-translate-y-0.5 border-amber-200/70 bg-amber-300/14 shadow-[0_0_38px_rgba(251,191,36,0.34),inset_0_1px_0_rgba(255,255,255,0.08)]"
-          : isProgramLive
-            ? "border-red-300/55 bg-red-500/12 shadow-[0_0_34px_rgba(248,113,113,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]"
-            : isActive
-              ? "border-violet-300/60 bg-violet-400/12 shadow-[0_0_28px_rgba(168,85,247,0.24),inset_0_1px_0_rgba(255,255,255,0.06)]"
-              : "border-white/10 bg-white/[0.035] shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
-      } hover:-translate-y-px hover:border-violet-300/30 hover:bg-violet-400/[0.07] hover:shadow-[0_0_16px_rgba(168,85,247,0.12)] active:translate-y-0`}
-    >
-      {isHotkeyTriggered ? (
-        <div className="absolute inset-0 rounded-[16px] border border-amber-200/50 shadow-[inset_0_0_18px_rgba(251,191,36,0.18)]" />
-      ) : null}
-      {recallFlash ? (
-        <div className="pointer-events-none absolute inset-0 z-30 overflow-hidden rounded-[18px] border border-violet-200/45 bg-violet-400/10 shadow-[0_0_32px_rgba(168,85,247,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]">
-          <div className="absolute inset-y-0 left-0 w-1/2 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/22 to-transparent animate-[scene-recall-sweep_680ms_ease-out_1]" />
-          <div className="absolute inset-0 flex items-center justify-center bg-black/18 backdrop-blur-[1px]">
-            <div className="rounded-full border border-white/18 bg-black/58 px-3 py-1 text-[8px] font-black uppercase tracking-[0.2em] text-white/78 shadow-[0_0_22px_rgba(255,255,255,0.16)]">
-              Memory Recall
-            </div>
-          </div>
-        </div>
-      ) : null}
-      {isProgramLive ? (
-        <div className="pointer-events-none absolute inset-0 rounded-[18px] border border-red-300/35 shadow-[inset_0_0_22px_rgba(248,113,113,0.16)]" />
-      ) : null}
-      {isActive ? (
-        <div className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.95)]" />
-      ) : null}
-
-      {isProgramLive ? (
-        <div className="absolute left-1.5 bottom-[42px] z-10 flex items-center gap-1 rounded-md border border-red-300/34 bg-red-500/22 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.1em] text-red-100 shadow-[0_0_16px_rgba(248,113,113,0.22)]">
-          <span className="h-1.5 w-1.5 rounded-full bg-red-300 shadow-[0_0_8px_rgba(248,113,113,0.8)]" />
-          Program
-        </div>
-      ) : null}
-
-      {onDeleteScene ? (
-        <>
-          <span
-            role="button"
-            tabIndex={0}
-            aria-label={`Delete ${scene.name}`}
-            onClick={(event) => {
-              event.stopPropagation()
-              setConfirmDelete(true)
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter" && event.key !== " ") return
-              event.preventDefault()
-              event.stopPropagation()
-              setConfirmDelete(true)
-            }}
-            className="absolute right-1.5 top-1.5 z-20 flex h-5 w-5 items-center justify-center rounded-full border border-red-300/40 bg-red-500/80 text-[11px] font-black leading-none text-white shadow-[0_0_16px_rgba(248,113,113,0.28)] transition hover:bg-red-400"
-          >
-            ×
-          </span>
-
-          {confirmDelete ? (
-            <div
-              className="absolute inset-1 z-30 flex flex-col justify-center rounded-[14px] border border-red-300/30 bg-slate-950/92 p-2 text-center shadow-[0_20px_50px_rgba(0,0,0,0.45)] backdrop-blur"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-red-100/85">
-                Delete scene?
-              </div>
-
-              <div className="mt-2.5 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setConfirmDelete(false)
-                  }}
-                  className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/65 transition hover:bg-white/[0.1]"
-                >
-                  Cancel
-                </button>
-
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onDeleteScene(scene.id)
-                    setConfirmDelete(false)
-                  }}
-                  className="rounded-lg border border-red-300/35 bg-red-500/25 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-red-100 transition hover:bg-red-500/40"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </>
-      ) : null}
-      <div className="absolute left-1.5 top-1.5 rounded-md border border-white/10 bg-black/50 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.1em] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
-        {memoryLabel}
-      </div>
-
-      <div className="absolute bottom-[42px] right-1.5 z-10 rounded-md border border-violet-200/20 bg-black/60 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-violet-100/75 shadow-[0_0_12px_rgba(168,85,247,0.14)]">
-        ⇧{index + 1} TAKE
-      </div>
-      <SceneMiniVisualizer scene={scene} />
-      <div className="mt-1 flex items-center justify-between gap-1 text-[8px] font-black uppercase tracking-[0.16em] text-white/32">
-        <span>{memoryLabel}</span>
-        <span className="rounded border border-white/10 bg-white/[0.045] px-1 py-0.5 text-[7px] tracking-[0.08em] text-white/45">
-          Recall
-        </span>
-      </div>
-      <div
-        className={`mt-0.5 truncate text-[10px] font-semibold group-hover:text-violet-100${
-          isActive ? " text-violet-100" : ""
-        }`}
-      >
-        {scene.name}
-      </div>
-      <div className="mt-1 flex items-center justify-between gap-1 text-[7px] font-black uppercase tracking-[0.1em] text-white/30">
-        <span className="inline-flex items-center gap-1">
-          <Clock3 size={8} />
-          {formatMemoryTime()}
-        </span>
-        <span className={isActive ? "text-violet-100/70" : "text-white/28"}>
-          {isActive ? "Armed" : "Memory"}
-        </span>
-      </div>
-    </button>
-  )
-}
-
-function GraphicTile({ item }: { item: DockAssetRecord }): JSX.Element {
-  return (
-    <button
-      type="button"
-      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-px hover:border-sky-300/28 hover:bg-sky-400/[0.07] hover:shadow-[0_0_14px_rgba(14,165,233,0.10)] active:translate-y-0"
-    >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/18 to-transparent" />
-      <div className="flex aspect-video items-end rounded-lg border border-white/10 bg-[linear-gradient(135deg,rgba(14,165,233,0.18),rgba(15,23,42,0.9))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-sky-200/25">
-        <div className="h-4 w-16 rounded-md bg-white/80" />
-      </div>
-      <div className="mt-1 truncate text-[10px] font-semibold text-white/76">
-        {item.label || "Graphic"}
-      </div>
-    </button>
-  )
-}
-
-function MediaTile({
-  item,
-  index,
-}: {
-  item: DockAssetRecord
-  index: number
+  title: string
+  action?: JSX.Element
+  children: JSX.Element
+  className?: string
 }): JSX.Element {
   return (
-    <button
-      type="button"
-      className="group relative min-w-[88px] overflow-hidden rounded-[16px] border border-white/10 bg-black/20 p-1.5 text-left transition duration-200 hover:-translate-y-px hover:border-emerald-300/28 hover:bg-emerald-400/[0.07] hover:shadow-[0_0_14px_rgba(52,211,153,0.10)] active:translate-y-0"
+    <section
+      className={`relative min-h-0 overflow-hidden rounded-[14px] border border-white/[0.048] bg-[linear-gradient(180deg,rgba(12,18,31,0.76),rgba(5,9,17,0.90))] shadow-[0_8px_20px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.014)] ${className}`}
     >
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(118deg,transparent_0%,rgba(255,255,255,0.08)_20%,transparent_40%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-emerald-200/18 to-transparent" />
-      <div className="relative aspect-video rounded-lg border border-white/10 bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.22),transparent_30%),linear-gradient(135deg,rgba(15,23,42,0.9),rgba(2,6,23,0.95))] shadow-[inset_0_1px_0_rgba(255,255,255,0.055)] transition group-hover:border-emerald-200/25">
-        <div className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[8px] font-black text-white/60">
-          0{index}:15
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
+      <div className="relative z-10 flex h-7 items-center justify-between border-b border-white/[0.035] px-2.5">
+        <div className="text-[9px] font-black uppercase tracking-[0.12em] text-white/62">
+          {title}
         </div>
+        {action}
       </div>
-      <div className="mt-1 truncate text-[10px] font-semibold text-white/76">
-        {item.label || "Media"}
-      </div>
-    </button>
+      <div className="relative z-10 min-h-0 overflow-hidden p-2">{children}</div>
+    </section>
   )
 }
 
-// --- View/List Toggle and List Row Components ---
-type DockViewMode = "icons" | "list"
-
-function ViewToggle({
-  value,
-  onChange,
-}: {
-  value: DockViewMode
-  onChange: (value: DockViewMode) => void
-}): JSX.Element {
-  return (
-    <div className="relative mb-1.5 flex items-center gap-1 overflow-hidden rounded-full border border-white/10 bg-black/25 p-0.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
-      {(["icons", "list"] as DockViewMode[]).map((mode) => (
-        <button
-          key={mode}
-          type="button"
-          onClick={() => onChange(mode)}
-          className={`rounded-full px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] transition ${
-            value === mode
-              ? "bg-white/16 text-white"
-              : "text-white/38 hover:bg-white/[0.06] hover:text-white/65"
-          }`}
-        >
-          {mode}
-        </button>
-      ))}
-    </div>
-  )
-}
-
-function SceneListRow({
-  scene,
-  index,
-  isActive,
-  isProgramLive,
-  isHotkeyTriggered,
-  onApplyScene,
-  onDoubleClickScene,
-  onDeleteScene,
-}: {
-  scene: SceneSummary
-  index: number
-  isActive: boolean
-  isProgramLive: boolean
-  isHotkeyTriggered: boolean
-  onApplyScene?: (sceneId: string) => void
-  onDoubleClickScene?: (sceneId: string) => void
-  onDeleteScene?: (sceneId: string) => void
-}): JSX.Element {
-  const [confirmDelete, setConfirmDelete] = useState(false)
-  const [recallFlash, setRecallFlash] = useState(false)
-  const memoryLabel = `M${String(index + 1).padStart(2, "0")}`
-
-  useEffect(() => {
-    if (!isActive && !isHotkeyTriggered) return
-
-    setRecallFlash(true)
-
-    const id = window.setTimeout(() => {
-      setRecallFlash(false)
-    }, 680)
-
-    return () => window.clearTimeout(id)
-  }, [isActive, isHotkeyTriggered, scene.id])
-
-  return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={() => onApplyScene?.(scene.id)}
-      onDoubleClick={() => onDoubleClickScene?.(scene.id)}
-      onKeyDown={(event) => {
-        if (event.key !== "Enter" && event.key !== " ") return
-        event.preventDefault()
-        onApplyScene?.(scene.id)
-      }}
-      className={`relative flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:bg-violet-400/[0.06] ${
-        isHotkeyTriggered
-          ? "border-amber-200/70 bg-amber-300/14 shadow-[0_0_28px_rgba(251,191,36,0.22)]"
-          : isActive
-            ? "border-violet-300/55 bg-violet-400/12"
-            : "border-white/10 bg-white/[0.035]"
-      }`}
-    >
-      {recallFlash ? (
-        <div className="pointer-events-none absolute inset-0 z-20 overflow-hidden rounded-2xl border border-violet-200/35 bg-violet-400/8 shadow-[0_0_24px_rgba(168,85,247,0.20)]">
-          <div className="absolute inset-y-0 left-0 w-1/3 translate-x-[-120%] bg-gradient-to-r from-transparent via-white/18 to-transparent animate-[scene-recall-sweep_680ms_ease-out_1]" />
-          <div className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full border border-white/12 bg-black/58 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.16em] text-white/66">
-            Recall
-          </div>
-        </div>
-      ) : null}
-      <div className="w-12 shrink-0">
-        <SceneMiniVisualizer scene={scene} />
-      </div>
-      <div className="min-w-0 flex-1">
-        <div className="truncate text-[11px] font-semibold text-white/82">{scene.name}</div>
-        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/35">
-          {memoryLabel}
-          {scene.screenLayoutPreset ? ` · ${scene.screenLayoutPreset}` : ""}
-        </div>
-        <div className="mt-1 flex items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.1em] text-white/35">
-          <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">
-            {memoryLabel} Preview
-          </span>
-          <span className="rounded border border-violet-200/20 bg-violet-400/10 px-1.5 py-0.5 text-violet-100/65">
-            ⇧{index + 1} Take
-          </span>
-          {isProgramLive ? (
-            <span className="rounded border border-red-300/25 bg-red-500/15 px-1.5 py-0.5 text-red-100/75">
-              Program
-            </span>
-          ) : null}
-        </div>
-      </div>
-
-      {onDeleteScene ? (
-        <>
-          <button
-            type="button"
-            onClick={(event) => {
-              event.stopPropagation()
-              setConfirmDelete(true)
-            }}
-            className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-red-300/30 bg-red-500/18 text-[12px] font-black text-red-100 transition hover:bg-red-500/35"
-          >
-            ×
-          </button>
-
-          {confirmDelete ? (
-            <div
-              className="absolute inset-1 z-30 flex items-center justify-between gap-2 rounded-xl border border-red-300/30 bg-slate-950/95 px-2 backdrop-blur"
-              onClick={(event) => event.stopPropagation()}
-            >
-              <span className="text-[9px] font-black uppercase tracking-[0.14em] text-red-100/85">
-                Delete?
-              </span>
-              <div className="flex gap-1">
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    setConfirmDelete(false)
-                  }}
-                  className="rounded-lg border border-white/10 bg-white/[0.06] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/65"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={(event) => {
-                    event.stopPropagation()
-                    onDeleteScene(scene.id)
-                    setConfirmDelete(false)
-                  }}
-                  className="rounded-lg border border-red-300/35 bg-red-500/25 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-red-100"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ) : null}
-        </>
-      ) : null}
-    </div>
-  )
-}
-
-function AssetListRow({
+function ScenePreviewTile({
   label,
-  tone,
-  meta,
+  imageUrl,
+  active,
 }: {
   label: string
-  tone: "sky" | "emerald"
-  meta: string
+  imageUrl?: string | null
+  active?: boolean
 }): JSX.Element {
-  const toneClass =
-    tone === "sky"
-      ? "border-sky-300/18 bg-sky-400/8 text-sky-100/80"
-      : "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/80"
-
   return (
     <button
       type="button"
-      className={`flex w-full items-center gap-2 rounded-2xl border px-2 py-2 text-left transition hover:-translate-y-px ${toneClass}`}
+      className={`group relative overflow-hidden rounded-[12px] border p-1 text-left transition hover:-translate-y-px active:translate-y-0 ${
+        active
+          ? "border-sky-300/34 bg-sky-400/[0.080] shadow-[0_0_18px_rgba(56,189,248,0.12)]"
+          : "border-white/[0.055] bg-white/[0.018] hover:border-white/[0.11] hover:bg-white/[0.030]"
+      }`}
     >
-      <div className="h-7 w-9 shrink-0 rounded-lg border border-white/10 bg-black/35" />
+      <div className="relative aspect-video overflow-hidden rounded-[9px] border border-white/[0.055] bg-[radial-gradient(circle_at_35%_25%,rgba(56,189,248,0.20),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))]">
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt="Scene preview"
+            className="absolute inset-0 h-full w-full object-cover opacity-85"
+          />
+        ) : null}
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),transparent_36%,rgba(0,0,0,0.34))]" />
+      </div>
+      <div className="mt-1 truncate text-[9px] font-semibold tracking-[-0.02em] text-white/68">
+        {label}
+      </div>
+    </button>
+  )
+}
+
+function MediaRow({
+  label,
+  meta,
+  imageUrl,
+}: {
+  label: string
+  meta: string
+  imageUrl?: string | null
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      className="group flex min-w-0 items-center gap-1.5 rounded-[10px] border border-white/[0.040] bg-white/[0.014] p-1 text-left transition hover:border-white/[0.08] hover:bg-white/[0.028]"
+    >
+      <div className="relative h-8 w-12 shrink-0 overflow-hidden rounded-[7px] border border-white/[0.050] bg-[radial-gradient(circle_at_35%_28%,rgba(56,189,248,0.16),transparent_38%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))]">
+        {imageUrl ? (
+          <img src={imageUrl} alt="Media preview" className="absolute inset-0 h-full w-full object-cover opacity-85" />
+        ) : null}
+      </div>
       <div className="min-w-0 flex-1">
-        <div className="truncate text-[11px] font-semibold text-white/82">{label}</div>
-        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/35">
+        <div className="truncate text-[10px] font-semibold text-white/72">{label}</div>
+        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/30">
           {meta}
         </div>
       </div>
@@ -577,295 +117,249 @@ function AssetListRow({
   )
 }
 
-function SlidesPreviewPanel({
-  deckName,
-  slideCount,
-  programSlideLabel,
-  onUploadPdf,
-  onSendToPreview,
-  onTakeSlide,
+function MixerStrip({
+  label,
+  level,
 }: {
-  deckName?: string | null
-  slideCount: number
-  programSlideLabel?: string | null
-  onUploadPdf?: () => void
-  onSendToPreview?: (slideIndex: number) => void
-  onTakeSlide?: (slideIndex: number) => void
+  label: string
+  level: number
 }): JSX.Element {
-  const safeSlideCount = Math.max(1, slideCount)
-  const slides = Array.from({ length: safeSlideCount }, (_, i) => i + 1)
-  const [currentSlide, setCurrentSlide] = useState(1)
-  const [slideFlash, setSlideFlash] = useState<"preview" | "take" | "nav" | null>(null)
-
-  const flashSlideAction = (mode: "preview" | "take" | "nav"): void => {
-    setSlideFlash(mode)
-    window.setTimeout(() => {
-      setSlideFlash((current) => (current === mode ? null : current))
-    }, 420)
-  }
-
-  const goPrevious = (): void => {
-    flashSlideAction("nav")
-    setCurrentSlide((value) => Math.max(1, value - 1))
-  }
-
-  const goNext = (): void => {
-    flashSlideAction("nav")
-    setCurrentSlide((value) => Math.min(safeSlideCount, value + 1))
-  }
-
-  useEffect(() => {
-    setCurrentSlide((value) => Math.min(Math.max(1, value), safeSlideCount))
-  }, [safeSlideCount])
-
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      const tag = (event.target as HTMLElement | null)?.tagName?.toLowerCase()
-      if (tag === "input" || tag === "textarea" || tag === "select") return
-
-      if (event.key === "[") {
-        event.preventDefault()
-        goPrevious()
-        return
-      }
-
-      if (event.key === "]") {
-        event.preventDefault()
-        goNext()
-        return
-      }
-
-      if (event.key.toLowerCase() === "p" && event.shiftKey) {
-        event.preventDefault()
-        flashSlideAction("take")
-        onTakeSlide?.(currentSlide)
-        return
-      }
-
-      if (event.key.toLowerCase() === "p") {
-        event.preventDefault()
-        flashSlideAction("preview")
-        onSendToPreview?.(currentSlide)
-      }
-    }
-
-    window.addEventListener("keydown", onKeyDown)
-    return () => window.removeEventListener("keydown", onKeyDown)
-  }, [currentSlide, onSendToPreview, onTakeSlide])
+  const clampedLevel = Math.max(8, Math.min(96, level))
 
   return (
-    <DockSection title="Slides" count={safeSlideCount}>
-      <div
-        className={`rounded-[20px] border p-2 transition duration-200 ${
-          slideFlash === "take"
-            ? "border-red-300/45 bg-red-500/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(248,113,113,0.18)]"
-            : slideFlash === "preview"
-              ? "border-violet-300/45 bg-violet-400/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(168,85,247,0.18)]"
-              : slideFlash === "nav"
-                ? "border-amber-200/45 bg-amber-300/10 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_28px_rgba(251,191,36,0.14)]"
-                : "border-amber-200/12 bg-[radial-gradient(circle_at_top_left,rgba(251,191,36,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.05),rgba(255,255,255,0.018))] shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_24px_rgba(251,191,36,0.08)]"
-        }`}
-      >
-        <div className="relative aspect-[16/9] min-h-[148px] overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(30,41,59,0.88))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-          <div className="absolute left-2 top-2 h-1.5 w-10 rounded-full bg-amber-200/70" />
-          <div className="absolute left-2 top-5 h-1 w-16 rounded-full bg-white/35" />
-          <div className="absolute left-2 top-8 h-1 w-12 rounded-full bg-white/20" />
-          <div className="absolute bottom-2 right-2 h-9 w-12 rounded-lg border border-amber-200/20 bg-amber-300/10 flex items-center justify-center text-[10px] font-black text-amber-100/70">
-            {currentSlide}
-          </div>
-          <div className="absolute right-2 top-2 rounded-full border border-amber-200/20 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-amber-100/80">
-            {currentSlide}/{safeSlideCount}
-          </div>
-          <div className="absolute bottom-2 left-2 rounded-full border border-white/10 bg-black/45 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.14em] text-amber-100/75">
-            PDF Deck
-          </div>
-          {programSlideLabel ? (
-            <div className="absolute bottom-2 right-2 rounded-full border border-red-300/25 bg-red-500/18 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-red-100/85 shadow-[0_0_12px_rgba(248,113,113,0.18)]">
-              Program
-            </div>
-          ) : null}
+    <div className="flex min-w-0 flex-col items-center gap-1.5 border-r border-white/[0.030] px-1.5 last:border-r-0">
+      <div className="text-[8px] font-semibold text-sky-100/52">{label}</div>
+      <div className="relative h-[78px] w-5 rounded-full border border-white/[0.050] bg-black/24 p-1">
+        <div className="absolute bottom-1 left-1 right-1 overflow-hidden rounded-full bg-white/[0.045]" style={{ height: "66px" }}>
+          <div
+            className="absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-emerald-400 via-lime-300 to-amber-300 shadow-[0_0_10px_rgba(52,211,153,0.16)]"
+            style={{ height: `${clampedLevel}%` }}
+          />
         </div>
-
-        <div className="mt-2.5 flex items-start justify-between gap-3">
-          <div className="min-w-0 flex-1">
-            <div className="truncate text-[11px] font-semibold text-white/82">
-              {deckName ?? "Session Deck v1"}
-            </div>
-            <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/35">
-              Slide {currentSlide} of {safeSlideCount}
-            </div>
-            {programSlideLabel ? (
-              <div className="mt-1 inline-flex rounded-full border border-red-300/25 bg-red-500/14 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-red-100/75">
-                Program: {programSlideLabel}
-              </div>
-            ) : null}
-            <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/45">
-              <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">[</span>
-              <span>Prev</span>
-              <span className="text-white/25">/</span>
-              <span className="rounded border border-white/10 bg-white/[0.045] px-1.5 py-0.5">]</span>
-              <span>Next</span>
-              <span className="text-white/25">/</span>
-              <span className="rounded border border-violet-200/20 bg-violet-400/10 px-1.5 py-0.5 text-violet-100/70">P</span>
-              <span>Preview</span>
-              <span className="text-white/25">/</span>
-              <span className="rounded border border-red-300/25 bg-red-500/15 px-1.5 py-0.5 text-red-100/80">⇧P</span>
-              <span>Take</span>
-            </div>
-          </div>
-
-          <button
-            type="button"
-            onClick={onUploadPdf}
-            className="shrink-0 rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15"
-          >
-            Upload PDF
-          </button>
-        </div>
-
-        <div className="mt-2 flex gap-1.5 overflow-x-auto pb-1">
-          {slides.map((slide) => (
-            <button
-              key={slide}
-              type="button"
-              onClick={() => {
-                flashSlideAction("nav")
-                setCurrentSlide(slide)
-              }}
-              className={`relative h-9 w-14 shrink-0 rounded-xl border text-[8px] font-black transition ${
-                slide === currentSlide
-                  ? "border-amber-200/50 bg-amber-300/20 text-amber-100"
-                  : "border-white/10 bg-black/30 text-white/40 hover:border-amber-200/30 hover:bg-amber-300/10"
-              }`}
-            >
-              <span className="absolute inset-0 flex items-center justify-center">
-                {slide}
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-2.5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={goPrevious}
-            disabled={currentSlide === 1}
-            className="rounded-lg border border-white/10 bg-white/[0.045] px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/55 transition hover:border-amber-200/25 hover:bg-amber-300/10 hover:text-amber-100 disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            Prev
-          </button>
-          <button
-            type="button"
-            onClick={goNext}
-            disabled={currentSlide === safeSlideCount}
-            className="rounded-lg border border-amber-200/20 bg-amber-300/10 px-2 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/80 transition hover:border-amber-200/35 hover:bg-amber-300/15 disabled:cursor-not-allowed disabled:opacity-35"
-          >
-            Next
-          </button>
-        </div>
-
-        <div className="mt-2.5 grid grid-cols-2 gap-2">
-          <button
-            type="button"
-            onClick={() => {
-              flashSlideAction("preview")
-              onSendToPreview?.(currentSlide)
-            }}
-            className="rounded-lg border border-violet-300/25 bg-violet-400/12 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-violet-100/85 transition hover:border-violet-300/40 hover:bg-violet-400/18"
-          >
-            P Preview
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              flashSlideAction("take")
-              onTakeSlide?.(currentSlide)
-            }}
-            className="rounded-lg border border-red-300/25 bg-red-500/14 px-2 py-1.5 text-[10px] font-black uppercase tracking-[0.14em] text-red-100/85 transition hover:border-red-300/40 hover:bg-red-500/20"
-          >
-            ⇧P Take
-          </button>
-        </div>
+        <div
+          className="absolute left-1/2 h-3 w-5 -translate-x-1/2 rounded-[5px] border border-sky-100/20 bg-sky-500 shadow-[0_0_10px_rgba(59,130,246,0.22)]"
+          style={{ bottom: `calc(${clampedLevel}% - 4px)` }}
+        />
       </div>
-    </DockSection>
-  )
-}
-
-function DockSceneLegend(): JSX.Element {
-  return (
-    <div className="hidden items-center gap-1.5 rounded-full border border-white/10 bg-black/24 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-white/38 xl:flex">
-      <span className="inline-flex items-center gap-1">
-        <span className="h-2 w-2 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.7)]" />
-        Preview
-      </span>
-      <span className="text-white/18">/</span>
-      <span className="inline-flex items-center gap-1 text-red-100/62">
-        <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.7)]" />
-        Program
-      </span>
-      <span className="text-white/18">/</span>
-      <span className="inline-flex items-center gap-1 text-amber-100/62">
-        <span className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_8px_rgba(251,191,36,0.7)]" />
-        Hotkey
-      </span>
+      <div className="grid grid-cols-2 gap-1">
+        <button type="button" className="rounded-[6px] border border-white/[0.05] bg-white/[0.020] px-1.5 py-1 text-[8px] font-black text-white/42">
+          S
+        </button>
+        <button type="button" className="rounded-[6px] border border-white/[0.05] bg-white/[0.020] px-1.5 py-1 text-[8px] font-black text-white/42">
+          M
+        </button>
+      </div>
     </div>
   )
 }
 
-function DockBankLabel({
+function CommRow({
+  name,
+  role,
+  active,
+}: {
+  name: string
+  role: string
+  active?: boolean
+}): JSX.Element {
+  return (
+    <div
+      className={`flex items-center gap-1.5 rounded-[10px] border px-2 py-1 ${
+        active
+          ? "border-sky-300/20 bg-sky-500/[0.16]"
+          : "border-white/[0.045] bg-white/[0.018]"
+      }`}
+    >
+      <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-white/[0.050] bg-white/[0.020] text-white/44">
+        <Mic2 size={12} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[10px] font-semibold text-white/72">{name}</div>
+        <div className="mt-px text-[8px] font-medium text-white/32">{role}</div>
+      </div>
+      <div className="flex h-4 w-12 items-end justify-end gap-0.5">
+        {Array.from({ length: 10 }).map((_, index) => (
+          <span
+            key={index}
+            className="w-0.5 rounded-full bg-emerald-300/70"
+            style={{ height: `${3 + ((index * 5) % 12)}px` }}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function UtilityButton({
   icon,
   label,
-  value,
+  meta,
+  danger,
+  onClick,
 }: {
   icon: JSX.Element
   label: string
-  value: string
+  meta: string
+  danger?: boolean
+  onClick?: () => void
 }): JSX.Element {
   return (
-    <div className="group relative hidden items-center gap-2 overflow-hidden rounded-full border border-white/8 bg-black/24 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34 lg:flex">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
-      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/18 to-transparent" />
-      <span className="text-violet-100/55">{icon}</span>
-      <span>{label}</span>
-      <span className="text-white/18">/</span>
-      <span className="text-white/48">{value}</span>
+    <button
+      type="button"
+      onClick={onClick}
+      className={`group flex min-h-[40px] items-center gap-2.5 rounded-[11px] border px-3 text-left transition hover:-translate-y-px active:translate-y-0 ${
+        danger
+          ? "border-red-300/22 bg-[linear-gradient(180deg,rgba(185,28,28,0.76),rgba(127,29,29,0.92))] shadow-[0_0_22px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.050)]"
+          : "border-white/[0.055] bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.016)] hover:border-white/[0.09] hover:bg-white/[0.035]"
+      }`}
+    >
+      <span className={danger ? "text-white/88" : "text-white/52"}>{icon}</span>
+      <span className="min-w-0">
+        <span className="block text-[10px] font-black uppercase tracking-[0.10em] text-white/76">
+          {label}
+        </span>
+        <span className="mt-0.5 block text-[9px] font-medium text-white/36">{meta}</span>
+      </span>
+    </button>
+  )
+}
+
+function UtilityOverlay({
+  activePanel,
+  onClose,
+}: {
+  activePanel: UtilityPanel
+  onClose: () => void
+}): JSX.Element {
+  const panelMeta: Record<UtilityPanel, { title: string; eyebrow: string; description: string }> = {
+    record: {
+      title: "Record Console",
+      eyebrow: "ISO + Program Recording",
+      description: "Configure program capture, isolated camera recordings, naming, destination, and safety checks before recording begins.",
+    },
+    stream: {
+      title: "Stream Destinations",
+      eyebrow: "Outbound Broadcast",
+      description: "Manage destinations, RTMP endpoints, stream keys, platform health, and failover routes.",
+    },
+    overlays: {
+      title: "Overlay Manager",
+      eyebrow: "Graphics + Lower Thirds",
+      description: "Arm lower thirds, audience prompts, sponsor bugs, emergency slates, and show graphics.",
+    },
+    schedule: {
+      title: "Scheduled Event",
+      eyebrow: "Run of Show",
+      description: "Review start time, agenda timing, rehearsal status, and operator notes for the scheduled production.",
+    },
+    shortcuts: {
+      title: "Shortcut Mapper",
+      eyebrow: "Operator Controls",
+      description: "Assign hotkeys for TAKE, scenes, overlays, record, stream, mute, and backstage actions.",
+    },
+    settings: {
+      title: "Workflow Settings",
+      eyebrow: "Production Preferences",
+      description: "Control workspace behavior, confirmations, transition defaults, monitoring, and operator safety rails.",
+    },
+  }
+
+  const meta = panelMeta[activePanel]
+
+  return (
+    <div className="absolute inset-2 z-30 overflow-hidden rounded-[18px] border border-sky-200/14 bg-[radial-gradient(circle_at_20%_0%,rgba(56,189,248,0.12),transparent_32%),linear-gradient(180deg,rgba(8,13,24,0.98),rgba(2,5,11,0.995))] shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_28px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.032)_0px,rgba(255,255,255,0.032)_1px,transparent_1px,transparent_28px)]" />
+      <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/58">
+            {meta.eyebrow}
+          </div>
+          <div className="mt-1 text-[20px] font-semibold tracking-[-0.055em] text-white/92">
+            {meta.title}
+          </div>
+          <div className="mt-1 max-w-2xl text-[12px] leading-relaxed text-white/46">
+            {meta.description}
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-white/[0.08] bg-white/[0.030] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/58 hover:bg-white/[0.055] hover:text-white/82"
+        >
+          Close
+        </button>
+      </div>
+
+      <div className="relative z-10 grid gap-3 p-5 xl:grid-cols-[1.15fr_0.85fr]">
+        <div className="rounded-[16px] border border-white/[0.055] bg-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/42">
+            Primary Controls
+          </div>
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {[
+              "Enable confirmation before live actions",
+              "Use event naming template",
+              "Notify operator on state changes",
+              "Show safety countdown",
+            ].map((label, index) => (
+              <button
+                key={label}
+                type="button"
+                className={`rounded-[12px] border px-3 py-2.5 text-left text-[11px] font-semibold transition ${
+                  index === 0
+                    ? "border-sky-300/16 bg-sky-400/[0.10] text-sky-100/78"
+                    : "border-white/[0.05] bg-white/[0.020] text-white/60 hover:bg-white/[0.035]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="rounded-[16px] border border-white/[0.055] bg-white/[0.020] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.016)]">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/42">
+            Status
+          </div>
+          <div className="mt-3 space-y-2">
+            {[
+              ["System", "Ready"],
+              ["Route", "Program"],
+              ["Health", "Nominal"],
+            ].map(([label, value]) => (
+              <div key={label} className="flex items-center justify-between rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-3 py-2">
+                <span className="text-[10px] font-semibold text-white/42">{label}</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.10em] text-emerald-100/62">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
 
-function ProgramBusTelemetry({ runtimeLabel }: { runtimeLabel: string }): JSX.Element {
-  return (
-    <div className="group hidden min-w-[190px] overflow-hidden rounded-full border border-red-300/18 bg-red-500/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.16em] text-red-100/72 shadow-[0_0_20px_rgba(248,113,113,0.14),inset_0_1px_0_rgba(255,255,255,0.05)] xl:flex">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.08)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 hover:opacity-100" />
-      <div className="flex w-full items-center gap-2">
-        <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.85)] animate-pulse" />
-        <span>Program Bus</span>
-        <span className="text-white/20">/</span>
-        <span className="tabular-nums text-white/56">{runtimeLabel}</span>
-        <span className="relative h-1 flex-1 overflow-hidden rounded-full bg-white/10">
-          <span className="absolute inset-y-0 left-0 w-1/3 translate-x-[-120%] rounded-full bg-red-200/55 shadow-[0_0_10px_rgba(248,113,113,0.45)] animate-[dock-signal-slide_1450ms_ease-in-out_infinite]" />
-        </span>
-      </div>
-    </div>
-  )
+function blockToMediaItem(item: DockAssetRecord, fallbackLabel: string): {
+  label: string
+  meta: string
+  imageUrl?: string | null
+} {
+  return {
+    label: item.label || fallbackLabel,
+    meta: item.category ?? "Media",
+    imageUrl: "src" in item && typeof item.src === "string" ? item.src : null,
+  }
 }
 
 export default function BottomAssetDock({
   scenes,
   selectedSceneId,
   programSceneId,
-  programSlideLabel,
   hotkeySceneId,
   previewBlocks,
-  slideDeckName,
-  slideCount,
+  localMicLevel,
   onAddScene,
-  onUploadPdf,
-  onSendSlideToPreview,
-  onTakeSlide,
-  onApplyScene,
-  onDoubleClickScene,
-  onDeleteScene,
 }: {
   scenes: SceneSummary[]
   selectedSceneId: string | null
@@ -873,6 +367,7 @@ export default function BottomAssetDock({
   programSlideLabel: string | null
   hotkeySceneId: string | null
   previewBlocks: PreviewBlock[]
+  localMicLevel?: number
   slideDeckName?: string | null
   slideCount?: number
   onAddScene?: () => void
@@ -883,326 +378,186 @@ export default function BottomAssetDock({
   onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
-  const graphics = previewBlocks.filter((block) => block.type === "text")
+  const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
+  const rawMicLevel = localMicLevel ?? 0
+  const normalizedMicLevel = rawMicLevel <= 1 ? rawMicLevel * 100 : rawMicLevel
+  const micLevelPercent = Math.round(Math.max(0, Math.min(100, normalizedMicLevel)))
+  const programLevel = Math.max(18, Math.min(96, micLevelPercent + 18))
+  const stageLevel = Math.max(14, Math.min(92, micLevelPercent + 8))
+  const musicLevel = Math.max(12, Math.min(84, Math.round(micLevelPercent * 0.72)))
+  const sfxLevel = Math.max(10, Math.min(72, Math.round(micLevelPercent * 0.58)))
+  const audienceLevel = Math.max(8, Math.min(62, Math.round(micLevelPercent * 0.46)))
   const media = previewBlocks.filter(
     (block) => block.type === "video" || block.type === "image" || block.type === "pdf"
   )
-  const graphicsItems: DockAssetRecord[] = graphics.length
-    ? graphics.map((block) => ({
-        ...block,
-        category: "graphic",
-      }))
-    : FALLBACK_GRAPHICS_ITEMS
+
   const mediaItems: DockAssetRecord[] = media.length
-    ? media.map((block) => ({
-        ...block,
-        category: "media",
-      }))
+    ? media.map((block) => ({ ...block, category: "media" }))
     : FALLBACK_MEDIA_ITEMS
 
-  const [scenesView, setScenesView] = useState<DockViewMode>("icons")
-  const [graphicsView, setGraphicsView] = useState<DockViewMode>("icons")
-  const [mediaView, setMediaView] = useState<DockViewMode>("icons")
+  const activeSceneIds = new Set([selectedSceneId, programSceneId, hotkeySceneId].filter(Boolean))
+  const sceneList = scenes.length
+    ? scenes.slice(0, 5)
+    : [
+        { id: "fallback-1", name: "Worship Set" },
+        { id: "fallback-2", name: "Message" },
+        { id: "fallback-3", name: "Announcement" },
+        { id: "fallback-4", name: "Offering" },
+        { id: "fallback-5", name: "Closing" },
+      ]
 
-  const [runtimeNow, setRuntimeNow] = useState(Date.now())
-  const [dockStartedAt] = useState(() => Date.now())
+  const sceneTiles = scenes.length
+    ? scenes.slice(0, 4)
+    : [
+        { id: "tile-1", name: "Wide Shot", thumbnailUrl: null },
+        { id: "tile-2", name: "Band Close", thumbnailUrl: null },
+        { id: "tile-3", name: "Vocals", thumbnailUrl: null },
+        { id: "tile-4", name: "Drums", thumbnailUrl: null },
+      ]
 
-  useEffect(() => {
-    const id = window.setInterval(() => {
-      setRuntimeNow(Date.now())
-    }, 1000)
-
-    return () => window.clearInterval(id)
-  }, [])
-
-  const runtimeLabel = formatDockRuntime(dockStartedAt)
-  void runtimeNow
+  const mediaRows = [
+    ...mediaItems.slice(0, 5).map((item, index) => blockToMediaItem(item, index === 0 ? "Announcement" : "Media")),
+    { label: "Welcome Slide", meta: "Graphics", imageUrl: null },
+  ].slice(0, 6)
 
   return (
-    <div className="group relative mt-3 overflow-hidden rounded-[28px] border border-white/9 bg-[radial-gradient(circle_at_top_left,rgba(99,102,241,0.095),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(14,165,233,0.06),transparent_32%),linear-gradient(180deg,rgba(12,18,36,0.94),rgba(5,9,19,0.982))] px-2.5 py-2 shadow-[0_22px_72px_rgba(0,0,0,0.40),0_0_20px_rgba(99,102,241,0.045),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition duration-300 hover:border-white/13 hover:shadow-[0_24px_80px_rgba(0,0,0,0.44),0_0_24px_rgba(99,102,241,0.06),inset_0_1px_0_rgba(255,255,255,0.06)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.032] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_14px)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-100/34 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-100 transition-opacity duration-500 hover:opacity-100" />
-      <div className="mb-1.5 flex items-center justify-between gap-2 px-1">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.22em] text-white/38">
-            <Rows3 size={13} className="text-sky-100/62" />
-            Asset Dock
-          </div>
-          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-[11px] text-white/38">
-            <span>Scenes, graphics, media, slides, and transitions.</span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-sky-300/14 bg-sky-400/8 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/55">
-              <MonitorPlay size={10} /> Ready
-            </span>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <span className="hidden 2xl:inline-flex">
-            <ProgramBusTelemetry runtimeLabel={runtimeLabel} />
-          </span>
-          <DockStatusPill label="Dock" value="Ready" tone="sky" />
-          <DockBankLabel icon={<Layers3 size={12} />} label="Scenes" value={String(scenes.length)} />
-          <span className="hidden 2xl:inline-flex">
-            <DockBankLabel icon={<Sparkles size={12} />} label="Memory" value={`${scenes.length} slots`} />
-          </span>
-          <span className="hidden 2xl:inline-flex">
-            <DockStatusPill label="Ingest" value="Ready" tone="green" />
-          </span>
-          <span className="hidden xl:inline-flex">
-            <DockBankLabel icon={<Images size={12} />} label="Graphics" value={String(graphics.length)} />
-          </span>
-          <span className="hidden xl:inline-flex">
-            <DockBankLabel icon={<Film size={12} />} label="Media" value={String(media.length)} />
-          </span>
-          <span className="hidden 2xl:inline-flex">
-            <DockSceneLegend />
-          </span>
-          <KeyboardShortcutsPanel />
-          <TallyIndicators />
-          <span className="hidden items-center gap-2 rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/80 shadow-[0_0_18px_rgba(168,85,247,0.14)] sm:inline-flex">
-            <Radio size={11} />
-            Preview
-          </span>
-        </div>
-      </div>
-
-      <div className="grid gap-2 xl:grid-cols-[1.08fr_0.84fr_0.84fr_1.02fr_0.78fr] 2xl:grid-cols-[1.12fr_0.88fr_0.88fr_1.08fr_0.82fr]">
-        <DockSection title="Scenes" count={scenes.length}>
-          <ViewToggle value={scenesView} onChange={setScenesView} />
-
-          {scenesView === "icons" ? (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {scenes.slice(0, 6).map((scene, index) => (
-                <SceneTile
-                  key={scene.id}
-                  scene={scene}
-                  index={index}
-                  isActive={selectedSceneId === scene.id}
-                  isProgramLive={programSceneId === scene.id}
-                  isHotkeyTriggered={hotkeySceneId === scene.id}
-                  onApplyScene={onApplyScene}
-                  onDoubleClickScene={onDoubleClickScene}
-                  onDeleteScene={onDeleteScene}
-                />
-              ))}
-
-              <button
-                type="button"
-                onClick={onAddScene}
-                className="min-w-[88px] rounded-[16px] border border-dashed border-white/14 bg-black/22 p-1.5 text-center text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:-translate-y-px hover:border-white/20 hover:bg-white/[0.04] active:translate-y-0"
-              >
-                <div className="flex aspect-video items-center justify-center rounded-lg border border-white/10 bg-black/28 text-xl text-white/35">
-                  +
-                </div>
-                <div className="mt-1.5">Add</div>
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {scenes.slice(0, 6).map((scene, index) => (
-                <SceneListRow
-                  key={scene.id}
-                  scene={scene}
-                  index={index}
-                  isActive={selectedSceneId === scene.id}
-                  isProgramLive={programSceneId === scene.id}
-                  isHotkeyTriggered={hotkeySceneId === scene.id}
-                  onApplyScene={onApplyScene}
-                  onDoubleClickScene={onDoubleClickScene}
-                  onDeleteScene={onDeleteScene}
-                />
-              ))}
-              <button
-                type="button"
-                onClick={onAddScene}
-                className="flex w-full items-center justify-center rounded-2xl border border-dashed border-white/14 bg-black/20 px-2 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/35 transition hover:border-white/25 hover:bg-white/[0.04]"
-              >
-                + Add Scene
-              </button>
-            </div>
-          )}
-        </DockSection>
-
-        <DockSection title="Graphics" count={graphics.length}>
-          <ViewToggle value={graphicsView} onChange={setGraphicsView} />
-
-          {graphicsView === "icons" ? (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {graphicsItems.slice(0, 5).map((item) => (
-                <GraphicTile key={item.id} item={item} />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {graphicsItems.slice(0, 5).map((item) => (
-                <AssetListRow
-                  key={item.id}
-                  label={item.label || "Graphic"}
-                  meta="Graphic"
-                  tone="sky"
-                />
-              ))}
-            </div>
-          )}
-        </DockSection>
-
-        <DockSection title="Media" count={media.length}>
-          <ViewToggle value={mediaView} onChange={setMediaView} />
-
-          {mediaView === "icons" ? (
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {mediaItems.slice(0, 5).map((item, index) => (
-                <MediaTile key={item.id} item={item} index={index} />
-              ))}
-            </div>
-          ) : (
-            <div className="space-y-1.5">
-              {mediaItems.slice(0, 5).map((item) => (
-                <AssetListRow
-                  key={item.id}
-                  label={item.label || "Media"}
-                  meta="Media"
-                  tone="emerald"
-                />
-              ))}
-            </div>
-          )}
-        </DockSection>
-
-        <SlidesPreviewPanel
-          deckName={slideDeckName}
-          slideCount={slideCount ?? 8}
-          programSlideLabel={programSlideLabel}
-          onUploadPdf={onUploadPdf}
-          onSendToPreview={onSendSlideToPreview}
-          onTakeSlide={onTakeSlide}
+    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(7,12,22,0.96),rgba(3,6,12,1))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.020)_0px,rgba(255,255,255,0.020)_1px,transparent_1px,transparent_28px)]" />
+      {activeUtilityPanel ? (
+        <UtilityOverlay
+          activePanel={activeUtilityPanel}
+          onClose={() => setActiveUtilityPanel(null)}
         />
-        <DockSection title="Transitions" count={TRANSITION_PRESETS.length}>
-          <div className="mb-1.5 flex items-center justify-between gap-2 rounded-2xl border border-violet-300/12 bg-violet-400/8 px-2 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/55">
-            <span className="inline-flex items-center gap-2">
-              <SlidersHorizontal size={11} />
-              Style
-            </span>
-            <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-black/24 px-1.5 py-0.5 text-[7px] text-white/38">
-              <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_rgba(196,181,253,0.75)] animate-pulse" />
-              <Zap size={8} /> Ready
-            </span>
-          </div>
+      ) : null}
 
-          <div className="space-y-1.5">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[linear-gradient(135deg,rgba(15,23,42,0.96),rgba(2,6,23,0.98))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-              <div className="mb-1 flex items-center justify-between text-[8px] font-black uppercase tracking-[0.16em] text-white/38">
-                <span>Transition Preview</span>
-                <span className="text-violet-100/48">Realtime</span>
-              </div>
+      <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden xl:grid-cols-[1.15fr_0.9fr_0.95fr_0.9fr]">
+        <ConsolePanel
+          title="Scenes"
+          action={
+            <button
+              type="button"
+              onClick={onAddScene}
+              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.055] bg-white/[0.020] text-white/52 hover:bg-white/[0.04]"
+              aria-label="Add scene"
+            >
+              +
+            </button>
+          }
+        >
+          <div className="grid min-h-0 gap-2 md:grid-cols-[0.72fr_1fr]">
+            <div className="space-y-1">
+              {sceneList.map((scene, index) => {
+                const active = index === 0 || activeSceneIds.has(scene.id)
 
-              <div className="relative h-14 overflow-hidden rounded-xl border border-white/10 bg-black/35">
-                <div className="absolute inset-y-0 left-0 w-1/2 bg-[linear-gradient(135deg,rgba(168,85,247,0.28),rgba(15,23,42,0.9))]" />
-                <div className="absolute inset-y-0 right-0 w-1/2 bg-[linear-gradient(135deg,rgba(56,189,248,0.24),rgba(15,23,42,0.92))]" />
-                <div className="absolute inset-y-0 left-1/2 w-[2px] -translate-x-1/2 bg-white/14" />
-                <div className="absolute inset-y-0 left-[-30%] w-[30%] bg-gradient-to-r from-transparent via-white/28 to-transparent animate-[dock-transition-preview_2200ms_linear_infinite]" />
-
-                <div className="absolute left-2 top-2 rounded-full border border-violet-300/18 bg-violet-400/12 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-violet-100/72">
-                  Preview
-                </div>
-
-                <div className="absolute right-2 bottom-2 rounded-full border border-red-300/20 bg-red-500/12 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-red-100/75">
-                  Program
-                </div>
-              </div>
+                return (
+                  <button
+                    key={scene.id}
+                    type="button"
+                    className={`flex w-full items-center gap-2 rounded-[9px] px-2 py-1 text-left text-[9px] font-semibold transition ${
+                      active
+                        ? "bg-sky-500/[0.22] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]"
+                        : "text-white/58 hover:bg-white/[0.026] hover:text-white/78"
+                    }`}
+                  >
+                    <span className="w-4 text-white/46">{index + 1}</span>
+                    <span className="truncate">{scene.name}</span>
+                  </button>
+                )
+              })}
+              <button type="button" onClick={onAddScene} className="mt-1 px-2 text-[10px] font-semibold text-sky-200/70 hover:text-sky-100">
+                Add Scene
+              </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-1.5">
-              {TRANSITION_PRESETS.map((transition) => (
+            <div className="grid grid-cols-2 gap-2">
+              {sceneTiles.slice(0, 4).map((scene, index) => (
+                <ScenePreviewTile
+                  key={scene.id}
+                  label={index === 0 && scene.name === "Worship Set" ? "Wide Shot" : scene.name}
+                  imageUrl={"thumbnailUrl" in scene ? scene.thumbnailUrl : null}
+                  active={index === 0 || activeSceneIds.has(scene.id)}
+                />
+              ))}
+            </div>
+          </div>
+        </ConsolePanel>
+
+        <ConsolePanel title="Media">
+          <div>
+            <div className="mb-1.5 flex items-center gap-1.5">
+              {["All", "Graphics", "Videos", "Audio"].map((tab, index) => (
                 <button
-                  key={transition}
+                  key={tab}
                   type="button"
-                  className={`rounded-xl border px-2 py-1.5 text-[9px] font-black uppercase tracking-[0.15em] transition hover:-translate-y-px active:translate-y-0 ${
-                    transition === "Cut"
-                      ? "border-red-300/30 bg-red-400/12 text-red-100/85 shadow-[0_0_18px_rgba(248,113,113,0.16)] hover:border-red-300/45 hover:bg-red-400/18"
-                      : transition === "Fade"
-                        ? "border-violet-300/24 bg-violet-400/10 text-violet-100/78 shadow-[0_0_16px_rgba(168,85,247,0.12)] hover:border-violet-300/38 hover:bg-violet-400/16"
-                        : "border-white/10 bg-white/[0.04] text-white/65 hover:border-white/20 hover:bg-white/[0.07]"
+                  className={`rounded-[9px] px-2 py-1 text-[9px] font-semibold transition ${
+                    index === 0
+                      ? "bg-sky-400/[0.12] text-sky-100"
+                      : "text-sky-100/52 hover:bg-white/[0.030] hover:text-white/76"
                   }`}
                 >
-                  {transition}
+                  {tab}
                 </button>
               ))}
             </div>
-
-            <div className="rounded-2xl border border-white/10 bg-black/22 p-1.5">
-              <div className="mb-1.5 flex items-center justify-between px-1">
-                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/32">
-                  Duration
-                </span>
-                <span className="text-[8px] font-black uppercase tracking-[0.18em] text-white/42">
-                  Armed
-                </span>
-              </div>
-
-              <div className="grid grid-cols-3 gap-1.5">
-                {TRANSITION_DURATIONS.map((duration) => (
-                  <button
-                    key={duration}
-                    type="button"
-                    className={`rounded-lg border px-1.5 py-1 text-[9px] font-black uppercase tracking-[0.1em] transition ${
-                      duration === "500ms"
-                        ? "border-violet-300/30 bg-violet-400/12 text-violet-100/80 shadow-[0_0_12px_rgba(168,85,247,0.12)]"
-                        : "border-white/10 bg-white/[0.035] text-white/45 hover:border-violet-200/20 hover:bg-violet-400/8 hover:text-violet-100/65"
-                    }`}
-                  >
-                    {duration}
-                  </button>
-                ))}
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              {mediaRows.map((item) => (
+                <MediaRow key={`${item.label}-${item.meta}`} label={item.label} meta={item.meta} imageUrl={item.imageUrl} />
+              ))}
             </div>
+            <button type="button" className="mt-2 text-[10px] font-semibold text-sky-200/70 hover:text-sky-100">
+              Show All →
+            </button>
           </div>
-        </DockSection>
+        </ConsolePanel>
+
+        <ConsolePanel
+          title="Audio Mixer"
+          action={
+            <span className="rounded-full border border-sky-300/10 bg-sky-400/[0.045] px-2 py-0.5 text-[8px] font-black text-sky-100/52">
+              Live Mix
+            </span>
+          }
+        >
+          <div className="grid grid-cols-6 gap-0 overflow-hidden rounded-[13px] border border-white/[0.04] bg-black/12 py-2">
+            {[
+              ["Program", programLevel],
+              ["Stage", stageLevel],
+              ["Music", musicLevel],
+              ["Mics", micLevelPercent],
+              ["SFX", sfxLevel],
+              ["Audience", audienceLevel],
+            ].map(([label, level]) => (
+              <MixerStrip key={label} label={String(label)} level={Number(level)} />
+            ))}
+          </div>
+        </ConsolePanel>
+
+        <ConsolePanel title="Communication">
+          <div className="space-y-1.5">
+            <CommRow name="Stage Manager" role="Ben" />
+            <CommRow name="Camera Ops" role="Trinity" />
+            <CommRow name="Lighting Director" role="Jace" />
+            <CommRow name="Producer" role="You" active />
+            <button
+              type="button"
+              className="mt-1 flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/[0.050] bg-white/[0.024] px-3 py-2 text-[10px] font-semibold text-white/72 hover:bg-white/[0.040]"
+            >
+              <Mic2 size={14} />
+              Push to Talk (All)
+            </button>
+          </div>
+        </ConsolePanel>
       </div>
-      <style>{`
-        @keyframes scene-recall-sweep {
-          0% {
-            transform: translateX(-120%);
-            opacity: 0;
-          }
-          24% {
-            opacity: 0.75;
-          }
-          100% {
-            transform: translateX(320%);
-            opacity: 0;
-          }
-        }
 
-        @keyframes dock-signal-slide {
-          0% {
-            transform: translateX(-120%);
-            opacity: 0;
-          }
-          28% {
-            opacity: 0.8;
-          }
-          100% {
-            transform: translateX(360%);
-            opacity: 0;
-          }
-        }
-
-        @keyframes dock-transition-preview {
-          0% {
-            transform: translateX(0%);
-            opacity: 0;
-          }
-          12% {
-            opacity: 0.85;
-          }
-          100% {
-            transform: translateX(520%);
-            opacity: 0;
-          }
-        }
-      `}</style>
+      <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-[1fr_1fr_1fr_1.4fr_1.15fr_1fr_1fr]">
+        <UtilityButton icon={<CircleDot size={18} />} label="Record" meta="ISO + Main" onClick={() => setActiveUtilityPanel("record")} />
+        <UtilityButton icon={<Radio size={18} />} label="Stream" meta="YouTube + FB" onClick={() => setActiveUtilityPanel("stream")} />
+        <UtilityButton icon={<Layers3 size={18} />} label="Overlays" meta="2 Active" onClick={() => setActiveUtilityPanel("overlays")} />
+        <UtilityButton icon={<MonitorPlay size={18} />} label="End Stream" meta="Live control" danger onClick={() => setActiveUtilityPanel("stream")} />
+        <UtilityButton icon={<CalendarDays size={18} />} label="Scheduled Event" meta="Sunday 9:00 AM" onClick={() => setActiveUtilityPanel("schedule")} />
+        <UtilityButton icon={<Keyboard size={18} />} label="Shortcuts" meta="⌘ K" onClick={() => setActiveUtilityPanel("shortcuts")} />
+        <UtilityButton icon={<Settings size={18} />} label="Settings" meta="Workflow" onClick={() => setActiveUtilityPanel("settings")} />
+      </div>
     </div>
   )
 }

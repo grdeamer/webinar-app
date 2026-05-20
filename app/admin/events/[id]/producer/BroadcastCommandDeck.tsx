@@ -61,8 +61,8 @@ function CommandStatusPill({
           : "border-white/7 bg-white/[0.028] text-white/34"
 
   return (
-    <div className={`rounded-full border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.12em] ${toneClass}`}>
-      <span className="text-white/30">{label}</span>{" "}
+    <div className={`rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] ${toneClass}`}>
+      <span className="text-white/18">{label}</span>{" "}
       <span>{value}</span>
     </div>
   )
@@ -95,16 +95,16 @@ function CommandDeckAtmosphere({
   return (
     <>
       <div
-        className={`pointer-events-none absolute inset-x-0 top-0 h-20 transition-opacity duration-700 ${
+        className={`pointer-events-none absolute inset-x-0 top-0 h-14 transition-opacity duration-700 ${
           isLive
-            ? "bg-gradient-to-b from-red-300/[0.030] via-violet-300/[0.018] to-transparent"
+            ? "bg-gradient-to-b from-red-300/[0.020] via-violet-300/[0.010] to-transparent"
             : armed
-              ? "bg-gradient-to-b from-amber-300/[0.028] via-sky-300/[0.018] to-transparent"
-              : "bg-gradient-to-b from-violet-300/[0.022] via-sky-300/[0.014] to-transparent"
+              ? "bg-gradient-to-b from-amber-300/[0.018] via-sky-300/[0.010] to-transparent"
+              : "bg-gradient-to-b from-violet-300/[0.014] via-sky-300/[0.008] to-transparent"
         }`}
       />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.005)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_24s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_10px)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.003)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_42s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.008] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.010)_0px,rgba(255,255,255,0.010)_1px,transparent_1px,transparent_14px)]" />
       <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-white/7 to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 left-0 w-16 bg-gradient-to-r from-sky-300/[0.018] to-transparent" />
       <div className="pointer-events-none absolute inset-y-0 right-0 w-16 bg-gradient-to-l from-red-300/[0.018] to-transparent" />
@@ -337,18 +337,18 @@ function OperationsStackHeader({
   void recordingSummary
   void commsSummary
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 rounded-[18px] border border-white/[0.055] bg-white/[0.018] px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+    <div className="flex flex-wrap items-center justify-between gap-1.5 rounded-[14px] border border-white/[0.04] bg-white/[0.010] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-1.5">
-          <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/26">
+          <div className="text-[8px] font-black uppercase tracking-[0.09em] text-white/18">
             Operations Stack
           </div>
-          <div className="rounded-full border border-white/7 bg-white/[0.026] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.11em] text-white/34">
+          <div className="rounded-full border border-white/7 bg-white/[0.026] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/34">
             {stackStateLabel}
           </div>
         </div>
-        <div className="mt-0.5 text-[10px] font-semibold text-white/32">
-          Advanced controls stay compact until needed.
+        <div className="mt-0.5 text-[9px] font-semibold text-white/18">
+          Advanced controls collapsed until needed.
         </div>
       </div>
 
@@ -362,7 +362,7 @@ function OperationsStackHeader({
               type="button"
               onClick={() => onSetDensityMode(mode)}
               className={[
-                "rounded-full border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.11em] transition-all duration-200",
+                "rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] transition-all duration-200",
                 active
                   ? "border-violet-300/16 bg-violet-400/[0.08] text-violet-100/70 shadow-[0_0_10px_rgba(168,85,247,0.07)]"
                   : "border-white/7 bg-white/[0.026] text-white/30 hover:border-white/11 hover:bg-white/[0.04] hover:text-white/56",
@@ -377,14 +377,14 @@ function OperationsStackHeader({
         <button
           type="button"
           onClick={onCollapseAll}
-          className="rounded-full border border-white/7 bg-white/[0.026] px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.11em] text-white/30 transition hover:border-white/11 hover:bg-white/[0.04] hover:text-white/56"
+          className="rounded-full border border-white/7 bg-white/[0.026] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/30 transition hover:border-white/11 hover:bg-white/[0.04] hover:text-white/56"
         >
           Compact
         </button>
         <button
           type="button"
           onClick={onOpenAll}
-          className="rounded-full border border-violet-300/10 bg-violet-400/[0.05] px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.11em] text-violet-100/44 transition hover:border-violet-300/16 hover:bg-violet-400/[0.08] hover:text-violet-100/70"
+          className="rounded-full border border-violet-300/10 bg-violet-400/[0.05] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-violet-100/44 transition hover:border-violet-300/16 hover:bg-violet-400/[0.08] hover:text-violet-100/70"
         >
           Open All
         </button>
@@ -397,7 +397,7 @@ function OperationsStackHeader({
               type="button"
               onClick={() => onTogglePanel(panel)}
               className={[
-                "rounded-full border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.11em] transition-all duration-200",
+                "rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] transition-all duration-200",
                 open
                   ? "border-sky-300/16 bg-sky-400/[0.08] text-sky-100/70 shadow-[0_0_10px_rgba(56,189,248,0.07)]"
                   : "border-white/7 bg-white/[0.026] text-white/30 hover:border-white/11 hover:bg-white/[0.04] hover:text-white/56",
@@ -996,11 +996,12 @@ export default function BroadcastCommandDeck({
     : "stable"
 
   const transportRuntimeLabel = TRANSPORT_RUNTIME_STATES[transportRuntimeIndex]
-  const showPresenceStrip = deckDensityMode !== "switcher" || isLive || takeBusy
+  const showCommandTelemetry = deckDensityMode !== "switcher" || takeBusy || showHealthCards
+  const showPresenceStrip = deckDensityMode !== "switcher" || takeBusy
   const showTransitionIntent = deckDensityMode !== "switcher"
 
   return (
-    <div className="relative mb-2 space-y-1.5 overflow-hidden rounded-[24px] border border-white/6 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.018),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.016),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(239,68,68,0.012),transparent_32%),linear-gradient(180deg,rgba(8,12,24,0.88),rgba(3,5,12,0.955))] px-2.5 py-2 shadow-[0_12px_40px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.026)] md:px-3 xl:px-3.5 2xl:px-4">
+    <div className="relative mb-0.5 space-y-0.5 overflow-hidden rounded-[16px] border border-white/[0.035] bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.008),transparent_34%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.008),transparent_28%),linear-gradient(180deg,rgba(8,12,24,0.54),rgba(3,5,12,0.72))] px-1.5 py-1 shadow-[0_5px_16px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.012)] md:px-2 xl:px-2.5 2xl:px-3">
       <CommandDeckAtmosphere
         isLive={isLive}
         armed={previewProgramDifferent}
@@ -1008,18 +1009,20 @@ export default function BroadcastCommandDeck({
       <BroadcastSyncPulseOverlay active={Boolean(takeFlash) || takeBusy} />
       {takeFlash ? <TakeFlashOverlay mode={takeFlash} /> : null}
 
-      <div className="relative z-10">
+      <div className="hidden relative z-10 opacity-58 saturate-[0.70] transition-opacity duration-300 hover:opacity-82 2xl:block">
         <CommandSurfaceHeader isLive={isLive} />
       </div>
 
-      <div className="relative z-10 opacity-62 saturate-[0.78] transition-opacity duration-300 hover:opacity-100">
-        <TelemetryStrip
-          isLive={isLive}
-          audienceCount={audienceCount}
-          onStageCount={onStageCount}
-          runtimeLabel={runtimeLabel}
-        />
-      </div>
+      {showCommandTelemetry ? (
+        <div className="relative z-10 opacity-40 saturate-[0.62] transition-opacity duration-300 hover:opacity-76">
+          <TelemetryStrip
+            isLive={isLive}
+            audienceCount={audienceCount}
+            onStageCount={onStageCount}
+            runtimeLabel={runtimeLabel}
+          />
+        </div>
+      ) : null}
       {showPresenceStrip ? (
         <div className="relative z-10 opacity-68 saturate-[0.82] transition-opacity duration-300 hover:opacity-100">
           <BroadcastPresenceStrip
@@ -1035,20 +1038,19 @@ export default function BroadcastCommandDeck({
         </div>
       ) : null}
 
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-1.5 overflow-hidden rounded-[14px] border border-white/[0.045] bg-white/[0.014] px-2.5 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+      <div className="relative z-10 flex flex-wrap items-center justify-between gap-0.5 overflow-hidden rounded-[8px] border border-white/[0.016] bg-white/[0.004] px-1.5 py-px shadow-[inset_0_1px_0_rgba(255,255,255,0.005)]">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.003)_42%,transparent_64%)] animate-[commandDeckAtmosphereSweep_26s_ease-in-out_infinite]" />
         <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-white/7 to-transparent" />
         <div className="relative z-10">
-          <div className="text-[8px] font-black uppercase tracking-[0.10em] text-white/18">
-            Console State
+          <div className="text-[6px] font-black uppercase tracking-[0.08em] text-white/12">
+            Console
           </div>
-
-          <div className="mt-0.5 text-[11px] font-semibold tracking-tight text-white/56">
+          <div className="text-[8px] font-semibold tracking-tight text-white/24">
             {commandState} · {transportRuntimeLabel}
           </div>
         </div>
 
-        <div className="relative z-10 flex flex-wrap items-center gap-1.5">
+        <div className="relative z-10 flex flex-wrap items-center gap-0.5">
           <CommandStatusPill
             label="Program"
             value={isLive ? "Live" : "Standby"}
@@ -1074,13 +1076,13 @@ export default function BroadcastCommandDeck({
               setDeckDensityMode("custom")
             }}
             className={[
-              "rounded-full border px-2.5 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] transition-all duration-200",
+              "hidden rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] transition-all duration-200 xl:inline-flex",
               showHealthCards
-                ? "border-sky-300/10 bg-sky-400/[0.05] text-sky-100/46 shadow-[0_0_7px_rgba(56,189,248,0.04)]"
-                : "border-white/6 bg-white/[0.018] text-white/24 hover:border-white/10 hover:bg-white/[0.028] hover:text-white/46",
+                ? "border-sky-300/10 bg-sky-400/[0.045] text-sky-100/42 shadow-[0_0_6px_rgba(56,189,248,0.035)]"
+                : "border-white/[0.05] bg-white/[0.014] text-white/20 hover:border-white/10 hover:bg-white/[0.026] hover:text-white/42",
             ].join(" ")}
           >
-            {showHealthCards ? "Hide Diagnostics" : "Show Diagnostics"}
+            {showHealthCards ? "Diagnostics On" : "Diagnostics"}
           </button>
         </div>
       </div>
@@ -1117,7 +1119,7 @@ export default function BroadcastCommandDeck({
         </div>
       ) : null}
 
-      <div className="relative z-10 opacity-78 saturate-[0.9] transition-opacity duration-300 hover:opacity-100">
+      <div className="hidden relative z-10 opacity-38 saturate-[0.50] transition-opacity duration-300 hover:opacity-70 2xl:block">
         <OperationsStackHeader
           openPanels={openOperationsPanels}
           onTogglePanel={toggleOperationsPanel}
@@ -1160,7 +1162,6 @@ export default function BroadcastCommandDeck({
           />
         </div>
       ) : null}
-
       {showTransitionIntent ? (
         <div className="relative z-10">
           <TransitionIntentStrip
@@ -1172,7 +1173,7 @@ export default function BroadcastCommandDeck({
         </div>
       ) : null}
 
-      <div className="relative z-10">
+      <div className="relative z-10 hidden -mt-0.5 2xl:block">
         <LowerCommandGrid
           previewProgramDifferent={previewProgramDifferent}
           takeBusy={takeBusy}
@@ -1221,7 +1222,7 @@ export default function BroadcastCommandDeck({
           }
 
           46% {
-            opacity: 0.09;
+            opacity: 0.035;
           }
 
           100% {
@@ -1232,12 +1233,12 @@ export default function BroadcastCommandDeck({
         @keyframes commandDeckArmedRail {
           0%,
           100% {
-            opacity: 0.16;
+            opacity: 0.10;
             transform: scaleX(0.72);
           }
 
           50% {
-            opacity: 0.22;
+            opacity: 0.14;
             transform: scaleX(1);
           }
         }

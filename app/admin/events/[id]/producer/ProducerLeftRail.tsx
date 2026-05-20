@@ -1,311 +1,49 @@
 import type { JSX } from "react"
 import {
-  Camera,
-  Cpu,
-  Globe2,
-  MonitorUp,
+  AudioLines,
+  FileVideo,
+  LayoutPanelTop,
   Radio,
-  SatelliteDish,
-  ShieldCheck,
 } from "lucide-react"
+
 import type { StageState } from "./producerRoomTypes"
-import AudioMixerPanel from "./AudioMixerPanel"
-import ControlStackPanel from "./ControlStackPanel"
-
-import ProducerMicControls from "./ProducerMicControls"
-
 import type { ScreenLayoutPreset } from "./assetDockTypes"
 
 function LeftRailAtmosphere(): JSX.Element {
   return (
     <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-sky-300/[0.045] via-violet-300/[0.018] to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)] animate-[leftRailSignalSweep_14s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.032] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_8px)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/14 to-transparent" />
-      <div className="pointer-events-none absolute inset-y-0 left-0 w-20 bg-gradient-to-r from-sky-300/[0.05] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-sky-300/[0.020] via-violet-300/[0.008] to-transparent" />
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.006)_42%,transparent_64%)] animate-[leftRailSignalSweep_24s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-0 opacity-[0.012] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.012)_0px,rgba(255,255,255,0.012)_1px,transparent_1px,transparent_18px)]" />
+      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/10 to-transparent" />
     </>
   )
 }
 
-function RailTelemetryChip({
+function ControlNavItem({
   icon,
   label,
-  value,
-  tone = "neutral",
 }: {
   icon: JSX.Element
   label: string
-  value: string
-  tone?: "neutral" | "sky" | "green" | "amber"
 }): JSX.Element {
-  const toneClass =
-    tone === "sky"
-      ? "border-sky-300/10 bg-sky-400/[0.06] text-sky-100/52"
-      : tone === "green"
-        ? "border-emerald-300/10 bg-emerald-400/[0.06] text-emerald-100/52"
-        : tone === "amber"
-          ? "border-amber-300/10 bg-amber-400/[0.06] text-amber-100/52"
-          : "border-white/7 bg-white/[0.035] text-white/34"
-
   return (
-    <div className={`group relative z-10 flex items-center gap-2 overflow-hidden rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] ${toneClass}`}>
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.024)_42%,transparent_64%)] opacity-40 transition-opacity duration-500 group-hover:opacity-70" />
-      <div className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/18 to-transparent" />
-
-      <span className="relative z-10 opacity-80">{icon}</span>
-      <span className="relative z-10 text-white/30">{label}</span>
-      <span className="relative z-10 inline-flex items-center gap-1.5">
-        {tone !== "neutral" ? (
-          <span
-            className={`h-1.5 w-1.5 rounded-full animate-pulse ${
-              tone === "sky"
-                ? "bg-sky-300/75 shadow-[0_0_5px_rgba(125,211,252,0.32)]"
-                : tone === "green"
-                  ? "bg-emerald-300/75 shadow-[0_0_5px_rgba(110,231,183,0.32)]"
-                  : "bg-amber-300/75 shadow-[0_0_5px_rgba(252,211,77,0.28)]"
-            }`}
-          />
-        ) : null}
-
-        {value}
+    <button
+      type="button"
+      className="group/nav flex min-h-[64px] w-full flex-col items-center justify-center gap-2 rounded-[16px] border border-white/[0.04] bg-white/[0.014] px-1.5 py-3 text-center text-[9px] font-semibold leading-tight text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] transition hover:border-sky-200/12 hover:bg-sky-300/[0.035] hover:text-white/78"
+    >
+      <span className="text-white/36 transition group-hover/nav:text-sky-100/58">
+        {icon}
       </span>
-    </div>
+      <span className="max-w-[58px] truncate">{label}</span>
+    </button>
   )
 }
 
-function RailRackHeader(): JSX.Element {
+function SectionLabel({ children }: { children: string }): JSX.Element {
   return (
-    <div className="relative overflow-hidden rounded-[24px] border border-white/7 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.032),transparent_34%),linear-gradient(180deg,rgba(16,22,38,0.82),rgba(7,11,20,0.93))] p-2.5 shadow-[0_14px_40px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.035)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] animate-[leftRailSignalSweep_14s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
-
-      <div className="relative z-10 flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/34">
-            <Radio size={12} />
-            Control Rack
-          </div>
-          <div className="mt-1 text-xs font-semibold tracking-tight text-white/58">
-            Live controls and workstation inputs.
-          </div>
-        </div>
-
-        <div className="relative overflow-hidden inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-300/12 bg-emerald-400/[0.065] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.14em] text-emerald-100/56">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75 shadow-[0_0_6px_rgba(110,231,183,0.34)]" />
-          Ready
-        </div>
-      </div>
-
-      <div className="relative z-10 mt-2.5 grid gap-1.5 sm:grid-cols-3">
-        <RailTelemetryChip
-          icon={<SatelliteDish size={10} />}
-          label="Signal"
-          value="Stable"
-          tone="green"
-        />
-
-        <RailTelemetryChip
-          icon={<Globe2 size={10} />}
-          label="Audience"
-          value="Ready"
-          tone="sky"
-        />
-
-        <RailTelemetryChip
-          icon={<Cpu size={10} />}
-          label="System"
-          value="Normal"
-          tone="neutral"
-        />
-      </div>
-    </div>
-  )
-}
-
-function RackSectionHeader({
-  icon,
-  title,
-  sub,
-}: {
-  icon: JSX.Element
-  title: string
-  sub: string
-}): JSX.Element {
-  return (
-    <div className="relative mb-3 flex items-center justify-between gap-3 overflow-hidden rounded-[18px] border border-white/5 bg-white/[0.018] px-2.5 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)]" />
-      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
-      <div className="relative z-10 flex min-w-0 items-center gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-2xl border border-white/6 bg-white/[0.035] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
-          {icon}
-        </span>
-        <div className="min-w-0">
-          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/30">
-            {title}
-          </div>
-          <div className="mt-0.5 truncate text-[11px] text-white/32">
-            {sub}
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function MonitorSizePanel({
-  monitorHeight,
-  onMonitorHeightChange,
-}: {
-  monitorHeight: number
-  onMonitorHeightChange: (value: number) => void
-}): JSX.Element {
-  return (
-    <div className="group relative overflow-hidden rounded-[26px] border border-sky-300/12 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.075),transparent_38%),linear-gradient(180deg,rgba(13,24,39,0.78),rgba(5,9,18,0.92))] p-4 shadow-[0_16px_44px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.018)_42%,transparent_64%)] animate-[leftRailSignalSweep_13s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-7 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/14 to-transparent" />
-      <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
-        <RackSectionHeader
-          icon={<MonitorUp size={15} />}
-          title="Monitor Trim"
-          sub="Resize Preview and Program together."
-        />
-        <span className="rounded-full border border-sky-300/16 bg-sky-400/8 px-2.5 py-1 text-[10px] font-semibold tabular-nums text-sky-100/70">
-          {monitorHeight}px
-        </span>
-      </div>
-      <input
-        type="range"
-        min="420"
-        max="760"
-        step="20"
-        value={monitorHeight}
-        onChange={(e) => onMonitorHeightChange(Number(e.target.value))}
-        className="h-2 w-full cursor-pointer appearance-none rounded-full bg-white/15 accent-sky-300"
-        style={{ position: "relative", zIndex: 10 }}
-        aria-label="Monitor size"
-      />
-      <div className="relative z-10 mt-2 flex justify-between text-[10px] text-white/35">
-        <span>Compact</span>
-        <span>Large</span>
-      </div>
-    </div>
-  )
-}
-
-
-
-function DeviceSelectorPanel({
-  deviceAccessReady,
-  videoDevices,
-  audioDevices,
-  selectedVideoDeviceId,
-  selectedAudioDeviceId,
-  onSelectVideoDevice,
-  onSelectAudioDevice,
-}: {
-  deviceAccessReady: boolean
-  videoDevices: MediaDeviceInfo[]
-  audioDevices: MediaDeviceInfo[]
-  selectedVideoDeviceId: string
-  selectedAudioDeviceId: string
-  onSelectVideoDevice: (value: string) => void
-  onSelectAudioDevice: (value: string) => void
-}): JSX.Element {
-  return (
-    <div className="group relative overflow-hidden rounded-[24px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.009))] p-3 shadow-[0_12px_34px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.026)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.016)_42%,transparent_64%)] animate-[leftRailSignalSweep_13s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.014)_42%,transparent_64%)] opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-      <div className="relative z-10 mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.18em] text-white/30">
-            <Camera size={13} />
-            Workstation Inputs
-          </div>
-          <div className="mt-1 text-[11px] text-white/32">
-            Camera and microphone selection.
-          </div>
-        </div>
-
-        <span
-          className={`relative overflow-hidden rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] ${
-            deviceAccessReady
-              ? "border-emerald-300/14 bg-emerald-400/[0.07] text-emerald-100/58"
-              : "border-amber-300/14 bg-amber-400/[0.07] text-amber-100/58"
-          }`}
-        >
-          <span className="relative z-10 inline-flex items-center gap-1.5">
-            <span
-              className={`h-1.5 w-1.5 rounded-full animate-pulse ${
-                deviceAccessReady
-                  ? "bg-emerald-300/75 shadow-[0_0_5px_rgba(110,231,183,0.32)]"
-                  : "bg-amber-300/75 shadow-[0_0_5px_rgba(252,211,77,0.28)]"
-              }`}
-            />
-            {deviceAccessReady ? "Ready" : "Needs Access"}
-          </span>
-        </span>
-      </div>
-
-      <div className="relative z-10 grid gap-3 md:grid-cols-2">
-        <div className="space-y-2">
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
-            Camera
-          </label>
-          <select
-            value={selectedVideoDeviceId}
-            onChange={(e) => onSelectVideoDevice(e.target.value)}
-            className="w-full rounded-2xl border border-white/8 bg-white/[0.045] px-3 py-2 text-sm text-white outline-none transition hover:border-white/12 hover:bg-white/[0.055] focus:border-sky-300/28 focus:bg-white/[0.06]"
-          >
-            {videoDevices.length === 0 ? (
-              <option value="">No cameras found</option>
-            ) : (
-              videoDevices.map((device, index) => (
-                <option key={device.deviceId || `video-${index}`} value={device.deviceId}>
-                  {device.label || `Camera ${index + 1}`}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-
-        <div className="space-y-2">
-          <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-white/38">
-            Microphone
-          </label>
-          <select
-            value={selectedAudioDeviceId}
-            onChange={(e) => onSelectAudioDevice(e.target.value)}
-            className="w-full rounded-2xl border border-white/8 bg-white/[0.045] px-3 py-2 text-sm text-white outline-none transition hover:border-white/12 hover:bg-white/[0.055] focus:border-sky-300/28 focus:bg-white/[0.06]"
-          >
-            {audioDevices.length === 0 ? (
-              <option value="">No microphones found</option>
-            ) : (
-              audioDevices.map((device, index) => (
-                <option key={device.deviceId || `audio-${index}`} value={device.deviceId}>
-                  {device.label || `Microphone ${index + 1}`}
-                </option>
-              ))
-            )}
-          </select>
-        </div>
-      </div>
-
-      <div className="relative z-10 mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.14em] text-white/45">
-        <span className="relative overflow-hidden rounded-full border border-white/8 bg-white/[0.035] px-3 py-1">
-          <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
-          <span className="relative z-10">
-            Cameras: {videoDevices.length}
-          </span>
-        </span>
-        <span className="relative overflow-hidden rounded-full border border-white/8 bg-white/[0.035] px-3 py-1">
-          <span className="pointer-events-none absolute inset-x-3 top-0 h-px bg-gradient-to-r from-transparent via-white/14 to-transparent" />
-          <span className="relative z-10">
-            Mics: {audioDevices.length}
-          </span>
-        </span>
-      </div>
+    <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
+      {children}
     </div>
   )
 }
@@ -356,40 +94,20 @@ export default function ProducerLeftRail({
   onSelectAudioDevice: (value: string) => void
 }): JSX.Element {
   return (
-    <div className="group relative overflow-hidden space-y-2.5 rounded-[30px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.026),transparent_34%),linear-gradient(180deg,rgba(16,22,38,0.90),rgba(7,11,20,0.955))] p-2 shadow-[0_18px_60px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.04)] backdrop-blur-xl transition duration-300 hover:border-white/11 hover:shadow-[0_22px_68px_rgba(0,0,0,0.28),0_0_14px_rgba(96,165,250,0.025)] xl:col-start-1">
+    <div className="group relative h-full overflow-hidden rounded-[20px] border border-white/[0.055] bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.012),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.010),transparent_34%),linear-gradient(180deg,rgba(16,23,38,0.82),rgba(6,10,18,0.94))] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.018)] backdrop-blur-2xl transition duration-300 hover:border-white/[0.075] xl:col-start-1">
       <LeftRailAtmosphere />
-      <div className="relative z-10 space-y-2.5">
-        <RailRackHeader />
 
-        <ControlStackPanel
-          takeBusy={takeBusy}
-          previewProgramDifferent={previewProgramDifferent}
-          onTake={onTake}
-          onGoLive={onGoLive}
-          onGoOffAir={onGoOffAir}
-          layout={layout}
-          onSetLayout={onSetLayout}
-          autoDirectorEnabled={autoDirectorEnabled}
-          onToggleAutoDirector={onToggleAutoDirector}
-          screenLayoutPreset={screenLayoutPreset}
-          onSetScreenLayoutPreset={onSetScreenLayoutPreset}
-          monitorHeight={monitorHeight}
-          onMonitorHeightChange={onMonitorHeightChange}
-        />
+      <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden">
+        <div className="shrink-0">
+          <SectionLabel>Controls</SectionLabel>
+        </div>
 
-        <ProducerMicControls />
-
-        <AudioMixerPanel localMicLevel={localMicLevel} />
-
-        <DeviceSelectorPanel
-          deviceAccessReady={deviceAccessReady}
-          videoDevices={videoDevices}
-          audioDevices={audioDevices}
-          selectedVideoDeviceId={selectedVideoDeviceId}
-          selectedAudioDeviceId={selectedAudioDeviceId}
-          onSelectVideoDevice={onSelectVideoDevice}
-          onSelectAudioDevice={onSelectAudioDevice}
-        />
+        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 py-4">
+          <ControlNavItem icon={<Radio size={15} />} label="Live" />
+          <ControlNavItem icon={<FileVideo size={15} />} label="Transition" />
+          <ControlNavItem icon={<AudioLines size={15} />} label="Audio" />
+          <ControlNavItem icon={<LayoutPanelTop size={15} />} label="Layout" />
+        </div>
       </div>
 
       <style jsx global>{`
@@ -401,7 +119,7 @@ export default function ProducerLeftRail({
           }
 
           46% {
-            opacity: 0.24;
+            opacity: 0.10;
           }
 
           100% {
