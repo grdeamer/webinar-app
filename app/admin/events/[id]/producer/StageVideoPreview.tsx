@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, type JSX } from "react"
+import { useMemo, useRef, type JSX } from "react"
 import { useTracks, VideoTrack } from "@livekit/components-react"
 import { Track } from "livekit-client"
 import { isTrackReference } from "@livekit/components-core"
@@ -87,6 +87,36 @@ export default function StageVideoPreview({
     )
   }, [screenTracks, stageIdSet])
 
+  const lastPrimaryCameraRef = useRef<TrackReference | null>(null)
+  const lastSpeakerCameraRef = useRef<TrackReference | null>(null)
+  const lastScreenTrackRef = useRef<TrackReference | null>(null)
+  const lastGridCameraTracksRef = useRef<TrackReference[]>([])
+
+  function isStillRouted(trackRef: TrackReference | null): trackRef is TrackReference {
+    return Boolean(trackRef && stageIdSet.has(trackRef.participant.identity))
+  }
+
+  function rememberStableTrack(
+    ref: React.MutableRefObject<TrackReference | null>,
+    nextTrack: TrackReference | null,
+  ): TrackReference | null {
+    if (nextTrack) {
+      ref.current = nextTrack
+      return nextTrack
+    }
+
+    return isStillRouted(ref.current) ? ref.current : null
+  }
+
+  function rememberStableCameraGrid(nextTracks: TrackReference[]): TrackReference[] {
+    if (nextTracks.length > 0) {
+      lastGridCameraTracksRef.current = nextTracks
+      return nextTracks
+    }
+
+    return lastGridCameraTracksRef.current.filter(isStillRouted)
+  }
+
   function pickPrimaryCamera() {
     if (!stageState || onStageCameraTracks.length === 0) return null
 
@@ -168,7 +198,7 @@ export default function StageVideoPreview({
   }
 
   if (stageState.layout === "solo") {
-    const primary = pickPrimaryCamera()
+    const primary = rememberStableTrack(lastPrimaryCameraRef, pickPrimaryCamera())
 
     if (!primary) {
       return (
@@ -190,8 +220,8 @@ export default function StageVideoPreview({
   }
 
   if (stageState.layout === "screen_speaker") {
-    const screenTrack = pickScreenTrack()
-    const speakerTrack = pickSpeakerForScreenLayout()
+    const screenTrack = rememberStableTrack(lastScreenTrackRef, pickScreenTrack())
+    const speakerTrack = rememberStableTrack(lastSpeakerCameraRef, pickSpeakerForScreenLayout())
 
     if (!screenTrack && !speakerTrack) {
       return (
@@ -358,7 +388,9 @@ export default function StageVideoPreview({
     )
   }
 
-  if (onStageCameraTracks.length === 0) {
+  const stableGridCameraTracks = rememberStableCameraGrid(onStageCameraTracks)
+
+  if (stableGridCameraTracks.length === 0) {
     return (
       <EmptyMonitorState
         title="No Active Cameras"
@@ -370,15 +402,15 @@ export default function StageVideoPreview({
   return (
     <div
       className={`relative grid min-h-[420px] gap-4 ${
-        onStageCameraTracks.length === 1
+        stableGridCameraTracks.length === 1
           ? "grid-cols-1"
-          : onStageCameraTracks.length === 2
+          : stableGridCameraTracks.length === 2
             ? "grid-cols-1 md:grid-cols-2"
             : "grid-cols-1 md:grid-cols-2"
       }`}
     >
       <div className="pointer-events-none absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_24px)]" />
-      {onStageCameraTracks.map((trackRef) => {
+      {stableGridCameraTracks.map((trackRef) => {
         const isPrimary = stageState.primary_participant_id === trackRef.participant.identity
         const isPinned = stageState.pinned_participant_id === trackRef.participant.identity
 

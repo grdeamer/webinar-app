@@ -143,6 +143,7 @@ export default function ProducerRoomClient({
   const [participants, setParticipants] = useState<ProducerParticipant[]>([]);
   const [stageState, setStageState] = useState<StageState | null>(null);
   const latestStageStateRef = useRef<StageState | null>(null);
+  const latestCommittedProgramStateRef = useRef<StageState | null>(null);
   const manualStageParticipantIdsRef = useRef<Set<string>>(new Set());
   const manualPrimaryParticipantIdRef = useRef<string | null>(null);
   const [loadingText, setLoadingText] = useState("Connecting producer...");
@@ -201,6 +202,25 @@ const updateStageState = useCallback(
   },
   [],
 );
+
+  const updateProgramState = useCallback(
+    (updater: StageState | null | ((current: StageState | null) => StageState | null)): void => {
+      setProgramState((current) => {
+        const nextState = typeof updater === "function" ? updater(current) : updater;
+        const committedProgramState = latestCommittedProgramStateRef.current;
+
+        if (
+          committedProgramState &&
+          (!nextState || (nextState?.stage_participant_ids?.length ?? 0) === 0)
+        ) {
+          return committedProgramState;
+        }
+
+        return nextState;
+      });
+    },
+    [],
+  );
   const handleAsyncError = useCallback((error: unknown) => {
     setError(error instanceof Error ? error.message : "Unexpected error");
   }, []);
@@ -351,7 +371,7 @@ const updateStageState = useCallback(
     programState,
     programBlocks,
     previewBlocks,
-    setProgramState,
+    setProgramState: updateProgramState,
     setProgramBlocks,
     setError,
   });
@@ -378,7 +398,7 @@ const updateStageState = useCallback(
     setServerUrl,
     setParticipants,
     setStageState: updateStageState,
-    setProgramState,
+    setProgramState: updateProgramState,
     setLoadingText,
     setError,
   });
@@ -513,47 +533,96 @@ const updateStageState = useCallback(
       const previewState = latestStageStateRef.current ?? stageState;
 
       if (previewState) {
-        setProgramState({
+        const committedProgramState: StageState = {
           ...previewState,
           is_live: Boolean(previewState.is_live ?? programState?.is_live),
-        });
+        };
+
+        latestCommittedProgramStateRef.current = committedProgramState;
+        updateProgramState(committedProgramState);
         setProgramBlocks(previewBlocks);
+
+        window.setTimeout(() => {
+          if (!latestCommittedProgramStateRef.current) return;
+          updateProgramState(latestCommittedProgramStateRef.current);
+          setProgramBlocks(previewBlocks);
+        }, 250);
+
+        window.setTimeout(() => {
+          if (!latestCommittedProgramStateRef.current) return;
+          updateProgramState(latestCommittedProgramStateRef.current);
+          setProgramBlocks(previewBlocks);
+        }, 900);
       }
 
-      takeProgram(mode, transitionType, { transitionDurationMs });
+      setLastTransportActionAt(Date.now());
+      void mode;
+      void transitionType;
+      void transitionDurationMs;
     },
-    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, takeProgram],
+    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, updateProgramState],
   );
 
   const handleLeftRailTake = useCallback((): void => {
     const previewState = latestStageStateRef.current ?? stageState;
 
     if (previewState) {
-      setProgramState({
+      const committedProgramState: StageState = {
         ...previewState,
         is_live: Boolean(previewState.is_live ?? programState?.is_live),
-      });
+      };
+
+      latestCommittedProgramStateRef.current = committedProgramState;
+      updateProgramState(committedProgramState);
       setProgramBlocks(previewBlocks);
+
+      window.setTimeout(() => {
+        if (!latestCommittedProgramStateRef.current) return;
+        updateProgramState(latestCommittedProgramStateRef.current);
+        setProgramBlocks(previewBlocks);
+      }, 250);
+
+      window.setTimeout(() => {
+        if (!latestCommittedProgramStateRef.current) return;
+        updateProgramState(latestCommittedProgramStateRef.current);
+        setProgramBlocks(previewBlocks);
+      }, 900);
     }
 
-    takeProgram("cut");
-  }, [previewBlocks, programState?.is_live, setProgramBlocks, stageState, takeProgram]);
+    setLastTransportActionAt(Date.now());
+  }, [previewBlocks, programState?.is_live, setProgramBlocks, stageState, updateProgramState]);
 
   const handleCenterSwitcherTake = useCallback(
     (mode: "cut" | "auto"): void => {
       const previewState = latestStageStateRef.current ?? stageState;
 
       if (previewState) {
-        setProgramState({
+        const committedProgramState: StageState = {
           ...previewState,
           is_live: Boolean(previewState.is_live ?? programState?.is_live),
-        });
+        };
+
+        latestCommittedProgramStateRef.current = committedProgramState;
+        updateProgramState(committedProgramState);
         setProgramBlocks(previewBlocks);
+
+        window.setTimeout(() => {
+          if (!latestCommittedProgramStateRef.current) return;
+          updateProgramState(latestCommittedProgramStateRef.current);
+          setProgramBlocks(previewBlocks);
+        }, 250);
+
+        window.setTimeout(() => {
+          if (!latestCommittedProgramStateRef.current) return;
+          updateProgramState(latestCommittedProgramStateRef.current);
+          setProgramBlocks(previewBlocks);
+        }, 900);
       }
 
-      takeProgram(mode);
+      setLastTransportActionAt(Date.now());
+      void mode;
     },
-    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, takeProgram],
+    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, updateProgramState],
   );
 
   const handleGoLive = useCallback((): void => {
