@@ -7,6 +7,7 @@ export default function useProducerDevices() {
   const [selectedAudioDeviceId, setSelectedAudioDeviceId] = useState("")
   const [deviceAccessReady, setDeviceAccessReady] = useState(false)
   const [localMicLevel, setLocalMicLevel] = useState(0)
+  const [meterStreamVersion, setMeterStreamVersion] = useState(0)
 
   const localPreviewStreamRef = useRef<MediaStream | null>(null)
 
@@ -15,6 +16,7 @@ export default function useProducerDevices() {
 
     localPreviewStreamRef.current.getTracks().forEach((track) => track.stop())
     localPreviewStreamRef.current = null
+    setLocalMicLevel(0)
   }, [])
 
   const loadMediaDevices = useCallback(async () => {
@@ -93,6 +95,7 @@ export default function useProducerDevices() {
         }
 
         localPreviewStreamRef.current = stream
+        setMeterStreamVersion((version) => version + 1)
       } catch (error) {
         console.error("Preview start failed", error)
       }
@@ -121,7 +124,7 @@ export default function useProducerDevices() {
     let audioContext: AudioContext | null = null
 
     async function startMeter() {
-      await new Promise((resolve) => window.setTimeout(resolve, 250))
+      await new Promise((resolve) => window.setTimeout(resolve, 100))
 
       const stream = localPreviewStreamRef.current
       const audioTrack = stream?.getAudioTracks()[0]
@@ -131,10 +134,17 @@ export default function useProducerDevices() {
         return
       }
 
-      audioContext = new AudioContext()
+      const AudioContextConstructor = window.AudioContext || window.webkitAudioContext
+      audioContext = new AudioContextConstructor()
+
+      if (audioContext.state === "suspended") {
+        await audioContext.resume().catch(() => {})
+      }
+
       const source = audioContext.createMediaStreamSource(stream)
       const analyser = audioContext.createAnalyser()
-      analyser.fftSize = 256
+      analyser.fftSize = 512
+      analyser.smoothingTimeConstant = 0.72
 
       source.connect(analyser)
 
@@ -152,7 +162,7 @@ export default function useProducerDevices() {
         }
 
         const rms = Math.sqrt(sum / data.length)
-        const boosted = Math.min(1, rms * 9)
+        const boosted = Math.min(1, rms * 18)
 
         setLocalMicLevel((previous) => {
           const attack = boosted > previous ? 0.35 : 0.12
@@ -173,7 +183,7 @@ export default function useProducerDevices() {
       void audioContext?.close().catch(() => {})
       setLocalMicLevel(0)
     }
-  }, [deviceAccessReady, selectedAudioDeviceId])
+  }, [deviceAccessReady, selectedAudioDeviceId, meterStreamVersion])
 
   useEffect(() => {
     return () => {
@@ -192,5 +202,11 @@ export default function useProducerDevices() {
     stopLocalPreviewStream,
     setSelectedVideoDeviceId,
     setSelectedAudioDeviceId,
+  }
+}
+
+declare global {
+  interface Window {
+    webkitAudioContext?: typeof AudioContext
   }
 }

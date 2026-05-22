@@ -129,7 +129,7 @@ export function ProducerRoomContentStack({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col overflow-hidden">
+    <div className="relative z-10 flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0">
       {children}
     </div>
   )
@@ -139,11 +139,13 @@ export function ProducerRoomWorkspaceFrame({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(13,19,34,0.98),rgba(5,8,16,1))] px-0 pb-0 pt-0">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.003] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.010)_0px,rgba(255,255,255,0.010)_1px,transparent_1px,transparent_40px)]" />
-      <div className="pointer-events-none absolute inset-x-[12%] top-0 h-px bg-gradient-to-r from-transparent via-white/[0.024] to-transparent" />
-      <div className="pointer-events-none absolute inset-x-[18%] bottom-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.012] to-transparent" />
-      {children}
+    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(4,7,13,0.998),rgba(2,4,9,1))] px-0 pb-0 pt-0">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.004] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_42px)]" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.055] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.022] to-transparent" />
+      <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
+        {children}
+      </div>
     </div>
   )
 }
@@ -152,7 +154,7 @@ export function ProducerRoomGrid({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative flex min-h-0 flex-1 w-full overflow-hidden [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-px [&_button:active]:translate-y-0">
+    <div className="relative flex h-full min-h-0 flex-1 w-full overflow-hidden [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-px [&_button:active]:translate-y-0">
       {children}
     </div>
   )
@@ -162,7 +164,7 @@ export function ProducerRoomCenterColumn({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col justify-stretch overflow-hidden">
+    <div className="flex h-full min-h-0 min-w-0 flex-1 flex-col justify-stretch overflow-hidden">
       {children}
     </div>
   )

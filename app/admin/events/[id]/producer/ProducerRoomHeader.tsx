@@ -1,13 +1,8 @@
 import { useEffect, useMemo, useState, type JSX } from "react"
 import {
   Activity,
-  CircleDot,
   Clock3,
-  Cpu,
-  Globe2,
   Radio,
-  SatelliteDish,
-  ShieldCheck,
   Signal,
   UserCog,
 } from "lucide-react"
@@ -38,13 +33,13 @@ function MissionPill({
 
   return (
     <div
-      className={`flex min-w-0 items-center gap-1 rounded-full border px-1.5 py-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] ${toneClass}`}
+      className={`flex h-7 min-w-0 items-center gap-1.5 rounded-full border px-2.5 py-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)] ${toneClass}`}
     >
       <span className="shrink-0 opacity-58">{icon}</span>
-      <span className="hidden text-[6px] font-black uppercase tracking-[0.08em] text-white/16 2xl:inline">
+      <span className="hidden text-[8px] font-black uppercase tracking-[0.11em] text-white/22 2xl:inline">
         {label}
       </span>
-      <span className="truncate text-[7px] font-semibold tracking-[-0.01em]">
+      <span className="truncate text-[10px] font-semibold tracking-[-0.01em]">
         {value}
       </span>
     </div>
@@ -85,14 +80,14 @@ function MissionClock(): JSX.Element {
 function HeaderTransmissionBadge({ isLive }: { isLive: boolean }): JSX.Element {
   return (
     <div
-      className={`relative overflow-hidden rounded-full border px-1.5 py-0 text-[6px] font-black uppercase tracking-[0.08em] backdrop-blur-md transition-all duration-500 ${
+      className={`relative h-7 overflow-hidden rounded-full border px-2.5 py-0 text-[9px] font-black uppercase tracking-[0.11em] backdrop-blur-md transition-all duration-500 ${
         isLive
           ? "border-red-200/10 bg-red-500/[0.045] text-red-100/44 shadow-[0_0_7px_rgba(248,113,113,0.045)]"
           : "border-sky-200/8 bg-sky-500/[0.035] text-sky-100/40 shadow-[0_0_6px_rgba(56,189,248,0.035)]"
       }`}
     >
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.006)_44%,transparent_62%)] animate-[headerTransmissionSweep_34s_ease-in-out_infinite]" />
-      <div className="relative flex items-center gap-1.5">
+      <div className="relative flex h-full items-center gap-1.5">
         <span
           className={`h-1 w-1 rounded-full ${
             isLive
@@ -127,7 +122,7 @@ export default function ProducerRoomHeader({
     layout === "screen_speaker" ? "Speaker + Screen" : layout === "grid" ? "Grid" : "Solo"
 
   return (
-    <div className="relative overflow-hidden border-b border-white/[0.024] bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.010),transparent_30%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.010),transparent_26%),linear-gradient(180deg,rgba(6,12,26,0.70),rgba(2,6,16,0.62))] px-2 py-0.5 shadow-[0_4px_14px_rgba(0,0,0,0.10)] backdrop-blur-xl md:px-3 xl:px-4 2xl:px-5">
+    <div className="relative overflow-hidden border-b border-white/[0.030] bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.014),transparent_30%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.012),transparent_26%),linear-gradient(180deg,rgba(6,12,26,0.78),rgba(2,6,16,0.68))] px-4 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.12)] backdrop-blur-xl xl:px-5">
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity duration-500 ${
           isLive
@@ -137,30 +132,30 @@ export default function ProducerRoomHeader({
       />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.003)_38%,transparent_62%)] animate-[headerTransmissionSweep_42s_ease-in-out_infinite]" />
 
-      <div className="relative z-10 flex flex-wrap items-center justify-between gap-1">
-        <div className="flex min-w-0 items-center gap-1.5">
-          <div className="relative flex h-5 w-5 shrink-0 items-center justify-center rounded-md border border-sky-300/7 bg-sky-400/[0.022] shadow-[0_0_5px_rgba(56,189,248,0.032)]">
-            <div className="h-[13px] w-[13px] rounded-full border border-sky-200/26 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.58),rgba(56,189,248,0.18)_35%,rgba(79,70,229,0.10)_70%)] shadow-[0_0_5px_rgba(125,211,252,0.10)]" />
-            <div className="absolute h-4 w-6 -rotate-12 rounded-full border border-sky-200/8" />
+      <div className="relative z-10 flex items-center justify-between gap-4">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-300/10 bg-sky-400/[0.035] shadow-[0_0_18px_rgba(56,189,248,0.055)]">
+            <div className="h-[22px] w-[22px] rounded-full border border-sky-200/28 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.62),rgba(56,189,248,0.20)_35%,rgba(79,70,229,0.12)_70%)] shadow-[0_0_10px_rgba(125,211,252,0.14)]" />
+            <div className="absolute h-7 w-10 -rotate-12 rounded-full border border-sky-200/10" />
           </div>
 
           <div className="min-w-0">
-            <div className="hidden flex-wrap items-center gap-1 text-[6px] uppercase tracking-[0.10em] text-white/14 xl:flex">
+            <div className="hidden items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/28 lg:flex">
               <span>Jupiter</span>
-              <span className="text-white/12">•</span>
-              <span>Mission Control</span>
-              <span className="text-white/12">•</span>
+              <span className="text-white/14">/</span>
+              <span>Producer Room</span>
+              <span className="text-white/14">/</span>
               <span>{scopeLabel}</span>
             </div>
 
-            <div className="flex min-w-0 flex-wrap items-center gap-1">
-              <h1 className="truncate text-[13px] font-semibold leading-none tracking-[-0.04em] text-white/62 xl:text-[14px]">
+            <div className="flex min-w-0 items-center gap-2">
+              <h1 className="truncate text-[18px] font-semibold leading-none tracking-[-0.04em] text-white/82 xl:text-[20px]">
                 {headline}
               </h1>
 
               <HeaderTransmissionBadge isLive={isLive} />
 
-              <span className="hidden items-center gap-1 rounded-full border border-white/[0.05] bg-white/[0.012] px-1.5 py-0 text-[7px] font-black uppercase tracking-[0.08em] text-white/22 lg:inline-flex">
+              <span className="hidden h-7 items-center gap-1.5 rounded-full border border-white/[0.065] bg-white/[0.018] px-2.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/34 lg:inline-flex">
                 <Activity size={10} />
                 {layoutLabel}
               </span>
@@ -168,7 +163,7 @@ export default function ProducerRoomHeader({
           </div>
         </div>
 
-        <div className="flex min-w-0 flex-wrap items-center justify-end gap-0.5 opacity-82">
+        <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5 opacity-90">
           <MissionPill
             icon={<Radio size={11} />}
             label="Show"
@@ -189,44 +184,7 @@ export default function ProducerRoomHeader({
             value={`${onStageCount} on stage`}
             tone="neutral"
           />
-
           <div className="hidden xl:block">
-            <MissionPill
-              icon={<ShieldCheck size={11} />}
-              label="Overlays"
-              value={`${overlayCount} overlays`}
-              tone="sky"
-            />
-          </div>
-
-          <div className="hidden 2xl:block">
-            <MissionPill
-              icon={<SatelliteDish size={11} />}
-              label="Edge"
-              value="AWS · us-east-1"
-              tone="green"
-            />
-          </div>
-
-          <div className="hidden 2xl:block">
-            <MissionPill
-              icon={<Globe2 size={11} />}
-              label="CDN"
-              value="Healthy"
-              tone="sky"
-            />
-          </div>
-
-          <div className="hidden xl:block">
-            <MissionPill
-              icon={<Cpu size={11} />}
-              label="GPU"
-              value="62%"
-              tone="warn"
-            />
-          </div>
-
-          <div className="hidden 2xl:block">
             <MissionClock />
           </div>
         </div>

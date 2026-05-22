@@ -1,5 +1,5 @@
 
-import { useState, type JSX } from "react"
+import { useEffect, useState, type JSX } from "react"
 type UtilityPanel = "record" | "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 
 import {
@@ -124,7 +124,8 @@ function MixerStrip({
   label: string
   level: number
 }): JSX.Element {
-  const clampedLevel = Math.max(8, Math.min(96, level))
+  const clampedLevel = Math.max(2, Math.min(96, level))
+  const meterOpacity = clampedLevel > 6 ? "opacity-100" : "opacity-30"
 
   return (
     <div className="flex min-w-0 flex-col items-center gap-1.5 border-r border-white/[0.030] px-1.5 last:border-r-0">
@@ -132,12 +133,12 @@ function MixerStrip({
       <div className="relative h-[78px] w-5 rounded-full border border-white/[0.050] bg-black/24 p-1">
         <div className="absolute bottom-1 left-1 right-1 overflow-hidden rounded-full bg-white/[0.045]" style={{ height: "66px" }}>
           <div
-            className="absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-emerald-400 via-lime-300 to-amber-300 shadow-[0_0_10px_rgba(52,211,153,0.16)]"
+            className={`absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-emerald-400 via-lime-300 to-amber-300 shadow-[0_0_10px_rgba(52,211,153,0.18)] transition-[height,opacity] duration-75 ease-out ${meterOpacity}`}
             style={{ height: `${clampedLevel}%` }}
           />
         </div>
         <div
-          className="absolute left-1/2 h-3 w-5 -translate-x-1/2 rounded-[5px] border border-sky-100/20 bg-sky-500 shadow-[0_0_10px_rgba(59,130,246,0.22)]"
+          className="absolute left-1/2 h-3 w-5 -translate-x-1/2 rounded-[5px] border border-sky-100/20 bg-sky-500 shadow-[0_0_10px_rgba(59,130,246,0.22)] transition-[bottom] duration-75 ease-out"
           style={{ bottom: `calc(${clampedLevel}% - 4px)` }}
         />
       </div>
@@ -379,14 +380,27 @@ export default function BottomAssetDock({
   onDeleteScene?: (sceneId: string) => void
 }): JSX.Element {
   const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
+  const [smoothedMicLevel, setSmoothedMicLevel] = useState(0)
   const rawMicLevel = localMicLevel ?? 0
   const normalizedMicLevel = rawMicLevel <= 1 ? rawMicLevel * 100 : rawMicLevel
-  const micLevelPercent = Math.round(Math.max(0, Math.min(100, normalizedMicLevel)))
-  const programLevel = Math.max(18, Math.min(96, micLevelPercent + 18))
-  const stageLevel = Math.max(14, Math.min(92, micLevelPercent + 8))
-  const musicLevel = Math.max(12, Math.min(84, Math.round(micLevelPercent * 0.72)))
-  const sfxLevel = Math.max(10, Math.min(72, Math.round(micLevelPercent * 0.58)))
-  const audienceLevel = Math.max(8, Math.min(62, Math.round(micLevelPercent * 0.46)))
+  const incomingMicLevel = Math.max(0, Math.min(100, normalizedMicLevel))
+
+  useEffect(() => {
+    setSmoothedMicLevel((current) => {
+      const next = incomingMicLevel > current
+        ? current + (incomingMicLevel - current) * 0.72
+        : current + (incomingMicLevel - current) * 0.28
+
+      return Math.abs(next - current) < 0.4 ? incomingMicLevel : next
+    })
+  }, [incomingMicLevel])
+
+  const micLevelPercent = Math.round(smoothedMicLevel)
+  const programLevel = Math.max(2, Math.min(96, Math.round(micLevelPercent * 0.92 + 4)))
+  const stageLevel = Math.max(2, Math.min(92, Math.round(micLevelPercent * 0.78 + 3)))
+  const musicLevel = Math.max(2, Math.min(84, Math.round(micLevelPercent * 0.46)))
+  const sfxLevel = Math.max(2, Math.min(72, Math.round(micLevelPercent * 0.34)))
+  const audienceLevel = Math.max(2, Math.min(62, Math.round(micLevelPercent * 0.24)))
   const media = previewBlocks.filter(
     (block) => block.type === "video" || block.type === "image" || block.type === "pdf"
   )
@@ -514,7 +528,7 @@ export default function BottomAssetDock({
           title="Audio Mixer"
           action={
             <span className="rounded-full border border-sky-300/10 bg-sky-400/[0.045] px-2 py-0.5 text-[8px] font-black text-sky-100/52">
-              Live Mix
+              Mic {micLevelPercent}%
             </span>
           }
         >

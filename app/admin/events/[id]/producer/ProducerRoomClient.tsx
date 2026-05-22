@@ -148,6 +148,7 @@ export default function ProducerRoomClient({
   const manualPrimaryParticipantIdRef = useRef<string | null>(null);
   const [loadingText, setLoadingText] = useState("Connecting producer...");
   const [error, setError] = useState<string | null>(null);
+  const [syncWarningText, setSyncWarningText] = useState<string | null>(null);
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true);
   const [screenLayoutPreset, setScreenLayoutPreset] =
@@ -240,6 +241,18 @@ const updateStageState = useCallback(
   useEffect(() => {
     latestStageStateRef.current = stageState;
   }, [stageState]);
+
+  useEffect(() => {
+    if (!token || !serverUrl || !error) return;
+
+    setSyncWarningText(error);
+
+    const id = window.setTimeout(() => {
+      setSyncWarningText(null);
+    }, 3200);
+
+    return () => window.clearTimeout(id);
+  }, [error, serverUrl, token]);
 
   const producerScopeLabel = useMemo(() => {
     return sessionId ? `Session ${sessionId.slice(0, 8)}` : "Session";
@@ -1271,21 +1284,75 @@ const updateStageState = useCallback(
 
   const bottomDock = <BottomAssetDock {...bottomAssetDockProps} />;
 
-  if (error) {
-    return <div className="p-8 text-red-400">{error}</div>;
-  }
-
   if (!token || !serverUrl) {
-    return <div className="p-8 text-white">{loadingText}</div>;
+    return (
+      <div className="relative flex h-[100dvh] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_20%_0%,rgba(125,211,252,0.060),transparent_34%),radial-gradient(circle_at_80%_14%,rgba(196,181,253,0.045),transparent_32%),linear-gradient(180deg,#07101f_0%,#050b16_52%,#02050b_100%)] p-8 text-white">
+        <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_18px)]" />
+        <div className="pointer-events-none absolute inset-x-[18%] top-0 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
+
+        <div className="relative w-[min(560px,calc(100vw-48px))] overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(9,14,26,0.88),rgba(3,6,13,0.96))] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-xl">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-sky-200/[0.12] bg-sky-300/[0.045] shadow-[0_0_28px_rgba(56,189,248,0.10)]">
+            <span className="h-2.5 w-2.5 rounded-full bg-sky-300/70 shadow-[0_0_12px_rgba(125,211,252,0.30)]" />
+          </div>
+
+          <div className="mt-5 text-[10px] font-black uppercase tracking-[0.22em] text-sky-100/38">
+            Jupiter Producer Room
+          </div>
+
+          <div className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white/86">
+            {error ? "Connection interrupted" : "Connecting producer console"}
+          </div>
+
+          <div className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/48">
+            {error
+              ? "The production surface could not complete its initial sync. Your route is still intact; retry the connection or return to the session overview."
+              : loadingText}
+          </div>
+
+          {error ? (
+            <div className="mt-4 rounded-[16px] border border-amber-300/12 bg-amber-300/[0.035] px-4 py-3 text-left text-xs font-semibold text-amber-50/62">
+              {error}
+            </div>
+          ) : null}
+
+          <div className="mt-5 flex flex-wrap justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-full border border-sky-200/14 bg-sky-300/[0.070] px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-sky-50/78 transition hover:bg-sky-300/[0.12]"
+            >
+              Retry
+            </button>
+            <a
+              href="../"
+              className="rounded-full border border-white/[0.07] bg-white/[0.030] px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/54 transition hover:bg-white/[0.055] hover:text-white/78"
+            >
+              Exit Producer
+            </a>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
 
-      <div className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(125,211,252,0.070),transparent_35%),radial-gradient(circle_at_82%_16%,rgba(196,181,253,0.050),transparent_33%),radial-gradient(circle_at_48%_96%,rgba(34,211,238,0.030),transparent_40%),linear-gradient(180deg,#172238_0%,#111b2f_46%,#0b1324_100%)] text-white">
+      <div className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_16%_0%,rgba(125,211,252,0.060),transparent_32%),radial-gradient(circle_at_82%_8%,rgba(196,181,253,0.042),transparent_30%),radial-gradient(circle_at_50%_102%,rgba(34,211,238,0.024),transparent_42%),linear-gradient(180deg,#07101f_0%,#050b16_48%,#02050b_100%)] text-white">
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
+
+        {syncWarningText ? (
+          <div className="pointer-events-none absolute left-1/2 top-10 z-[999] w-[min(480px,calc(100vw-32px))] -translate-x-1/2 rounded-[15px] border border-amber-300/14 bg-[linear-gradient(180deg,rgba(35,23,8,0.86),rgba(10,7,4,0.92))] px-3.5 py-2.5 text-center shadow-[0_14px_38px_rgba(0,0,0,0.36),0_0_18px_rgba(251,191,36,0.055)] backdrop-blur-xl">
+            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-amber-100/44">
+              Producer Sync Notice
+            </div>
+            <div className="mt-1 text-[11px] font-semibold text-amber-50/70">
+              {syncWarningText}
+            </div>
+          </div>
+        ) : null}
 
         <ProducerRoomContentStack>
           <ProducerUploadInputs

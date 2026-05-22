@@ -563,7 +563,7 @@ export default function CenterSwitcherColumn({
   }
 
   return (
-    <div className="flex h-full min-h-0 flex-col space-y-1 overflow-hidden px-0 xl:col-start-2">
+    <div className="flex h-full min-h-0 flex-col gap-1 overflow-hidden px-0 xl:col-start-2">
       <LiveProductionStatusPanel
         programState={programState}
         previewProgramDifferent={previewProgramDifferent}
@@ -600,13 +600,13 @@ export default function CenterSwitcherColumn({
 
 <div
   ref={switcherGridRef}
-  className="relative grid h-[clamp(320px,52vh,720px)] min-h-0 items-stretch gap-0"
+  className="relative grid h-[clamp(420px,62vh,980px)] min-h-0 items-stretch gap-0"
   style={{
-    gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 104px minmax(0, ${100 - previewPanePercent}fr)`,
+    gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 92px minmax(0, ${100 - previewPanePercent}fr)`,
   }}
 >
           <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/8 to-transparent" />
-          <div className="relative flex min-w-0 flex-col overflow-hidden rounded-l-[18px] border-y border-l border-sky-300/16 bg-[linear-gradient(180deg,rgba(8,18,32,0.94),rgba(2,7,16,0.985))] p-0 shadow-[0_0_0_1px_rgba(56,189,248,0.035),0_10px_32px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.026)]">
+          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-l-[18px] border-y border-l border-sky-300/16 bg-[linear-gradient(180deg,rgba(8,18,32,0.94),rgba(2,7,16,0.985))] p-0 shadow-[0_0_0_1px_rgba(56,189,248,0.035),0_10px_32px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.026)]">
             <div className="flex h-9 items-center justify-between border-b border-sky-300/16 bg-[linear-gradient(180deg,rgba(56,189,248,0.055),rgba(2,7,16,0.10))] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-sky-200/78">
               <span className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-sky-300/62 shadow-[0_0_6px_rgba(125,211,252,0.18)]" />
@@ -696,7 +696,7 @@ export default function CenterSwitcherColumn({
             </div>
           </div>
           <div
-            className="group relative z-[999] flex min-h-full cursor-col-resize items-stretch justify-center self-stretch select-none overflow-hidden"
+            className="group relative z-[999] flex h-full min-h-full cursor-col-resize items-stretch justify-center self-stretch select-none overflow-hidden"
             onMouseDown={startSplitDrag}
             onDoubleClick={resetSplit}
             role="separator"
@@ -887,7 +887,7 @@ export default function CenterSwitcherColumn({
             </div>
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-7 -translate-x-1/2 rounded-full bg-white/[0.010] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
           </div>
-          <div className="relative flex min-w-0 flex-col overflow-hidden rounded-r-[18px] border-y border-r border-red-300/16 bg-[linear-gradient(180deg,rgba(33,14,18,0.92),rgba(8,3,7,0.985))] p-0 shadow-[0_0_0_1px_rgba(248,113,113,0.035),0_10px_32px_rgba(0,0,0,0.28),0_0_12px_rgba(239,68,68,0.028),inset_0_1px_0_rgba(255,255,255,0.026)]">
+          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-r-[18px] border-y border-r border-red-300/16 bg-[linear-gradient(180deg,rgba(33,14,18,0.92),rgba(8,3,7,0.985))] p-0 shadow-[0_0_0_1px_rgba(248,113,113,0.035),0_10px_32px_rgba(0,0,0,0.28),0_0_12px_rgba(239,68,68,0.028),inset_0_1px_0_rgba(255,255,255,0.026)]">
             <div className="flex h-9 items-center justify-between border-b border-red-300/16 bg-[linear-gradient(180deg,rgba(248,113,113,0.046),rgba(16,4,8,0.10))] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-red-200/82">
               <span className="flex items-center gap-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-red-300/70 shadow-[0_0_6px_rgba(248,113,113,0.20)]" />

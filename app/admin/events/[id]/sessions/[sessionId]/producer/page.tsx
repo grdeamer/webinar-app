@@ -56,29 +56,12 @@ export default async function AdminSessionProducerPage(props: {
   const isMainStage =
     !!session.is_general_session || session.session_kind === "general"
 
+  void eventSlug
+  void isMainStage
+
   return (
-    <div className="min-h-screen bg-slate-950 py-8 text-white">
-      <div className="w-full space-y-6">
-        <div className="px-6">
-          <div className="text-xs uppercase tracking-[0.18em] text-white/40">
-            {isMainStage ? "Main Stage Producer Room" : "Session Producer Room"}
-          </div>
-
-          <h1 className="mt-2 text-3xl font-semibold">{session.title}</h1>
-
-          <p className="mt-2 text-sm text-white/60">
-            {isMainStage
-              ? "Control the main stage session for attendees."
-              : "Choose who appears on stage for this session."}
-          </p>
-
-          <div className="mt-3 text-xs text-white/35">
-            Event: {eventSlug}
-          </div>
-        </div>
-
-        <ProducerRoomClient eventId={eventId} sessionId={session.id} />
-      </div>
+    <div className="fixed inset-0 z-[80] overflow-hidden bg-slate-950 text-white">
+      <ProducerRoomClient eventId={eventId} sessionId={session.id} />
     </div>
   )
 }

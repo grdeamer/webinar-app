@@ -1,4 +1,4 @@
-import type { JSX } from "react"
+import { useState, type JSX } from "react"
 
 import OperationsSyncStrip from "./OperationsSyncStrip"
 import ProducerRoomHeader from "./ProducerRoomHeader"
@@ -38,33 +38,77 @@ function TopChromeTransmissionShell({
   isLive: boolean
   children: JSX.Element
 }): JSX.Element {
+  const [hubOpen, setHubOpen] = useState(false)
+
   return (
-    <div className="group/topchrome relative isolate shrink-0 overflow-hidden border-b border-white/[0.018] bg-[linear-gradient(180deg,rgba(8,12,22,0.06),rgba(8,12,22,0.015),transparent)]">
+    <div className="group/topchrome relative isolate z-[90] shrink-0 overflow-visible border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(3,6,12,0.94),rgba(4,7,14,0.72),rgba(2,4,9,0.36))] shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
       <div
-        className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-4 transition-opacity duration-700 ${
+        className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-8 transition-opacity duration-700 ${
           isLive
-            ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.012),transparent_66%)] opacity-28"
-            : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.010),transparent_66%)] opacity-20"
+            ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.038),transparent_68%)] opacity-55"
+            : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.030),transparent_68%)] opacity-45"
         }`}
       />
 
-      <div className="pointer-events-none absolute inset-x-10 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/[0.014] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
+      <div className="pointer-events-none absolute inset-x-[18%] bottom-0 z-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.035] to-transparent" />
 
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(110deg,transparent,rgba(255,255,255,0.002)_42%,transparent_64%)] animate-[topChromeTransmissionSweep_42s_ease-in-out_infinite]" />
+      <div className="absolute right-4 top-3 z-[120] flex items-center gap-2">
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setHubOpen((current) => !current)}
+            className="relative z-[210] flex h-9 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-sky-300/80 shadow-[0_0_8px_rgba(125,211,252,0.34)]" />
+            Hub
+          </button>
 
-      <div className="pointer-events-none absolute right-5 top-1.5 z-20 hidden items-center gap-1 rounded-full border border-white/[0.04] bg-white/[0.012] px-1.5 py-0 text-[7px] font-black uppercase tracking-[0.08em] text-white/14 backdrop-blur-md 2xl:flex">
-        <span
-          className={`h-1 w-1 rounded-full ${
-            isLive
-              ? "bg-red-300/52 shadow-[0_0_4px_rgba(252,165,165,0.12)]"
-              : "bg-sky-300/48 shadow-[0_0_4px_rgba(125,211,252,0.10)]"
-          }`}
-        />
+          {hubOpen ? (
+            <div className="absolute right-0 top-11 z-[220] w-72 overflow-hidden rounded-[18px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(6,10,18,0.992),rgba(2,4,9,0.998))] p-2 shadow-[0_28px_74px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.036)] backdrop-blur-xl">
+              <div className="px-2 pb-2 pt-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
+                Producer Utilities
+              </div>
 
-        {isLive ? "Live" : "Standby"}
+              <div className="grid gap-1.5">
+                <a href="../" className="rounded-[12px] border border-sky-200/[0.10] bg-sky-300/[0.050] px-3 py-2 text-[12px] font-semibold text-sky-50/76 transition hover:border-sky-200/18 hover:bg-sky-300/[0.085] hover:text-white">
+                  Exit Producer
+                </a>
+                <a href="../../" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                  Session Overview
+                </a>
+                <a href="../../../registrants" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                  Registrants
+                </a>
+                <a href="../../../emails" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                  Emails
+                </a>
+                <a href="../../../" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                  Event Dashboard
+                </a>
+              </div>
+            </div>
+          ) : null}
+        </div>
+
+        <div className="pointer-events-none flex h-9 min-w-[108px] items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-black/38 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md">
+          <span
+            className={`h-1.5 w-1.5 rounded-full ${
+              isLive
+                ? "bg-red-300/78 shadow-[0_0_8px_rgba(252,165,165,0.25)]"
+                : "bg-sky-300/70 shadow-[0_0_8px_rgba(125,211,252,0.18)]"
+            }`}
+          />
+
+          {isLive ? "Live" : "Standby"}
+        </div>
       </div>
 
-      <div className="relative z-10 px-0 pb-0">{children}</div>
+      <div className="relative z-0 flex items-start justify-between gap-4 px-0 pb-0">
+  <div className="min-w-0 flex-1">
+    {children}
+  </div>
+</div>
 
       <style jsx global>{`
         @keyframes topChromeTransmissionSweep {
