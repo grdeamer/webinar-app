@@ -3,7 +3,6 @@ import {
   Activity,
   Clock3,
   Radio,
-  Signal,
   UserCog,
 } from "lucide-react"
 
@@ -166,24 +165,18 @@ export default function ProducerRoomHeader({
         <div className="flex min-w-0 shrink-0 items-center justify-end gap-1.5 opacity-90">
           <MissionPill
             icon={<Radio size={11} />}
-            label="Show"
-            value={previewProgramDifferent ? "Preview Armed" : "In Sync"}
-            tone={previewProgramDifferent ? "warn" : "good"}
-          />
-
-          <MissionPill
-            icon={<Signal size={11} />}
-            label="Uplink"
-            value="99% locked"
-            tone="good"
+            label="Program"
+            value={isLive ? "Live" : "Standby"}
+            tone={isLive ? "live" : "neutral"}
           />
 
           <MissionPill
             icon={<UserCog size={11} />}
             label="Talent"
-            value={`${onStageCount} on stage`}
-            tone="neutral"
+            value={`${onStageCount} ready`}
+            tone={onStageCount > 0 ? "green" : "neutral"}
           />
+
           <div className="hidden xl:block">
             <MissionClock />
           </div>

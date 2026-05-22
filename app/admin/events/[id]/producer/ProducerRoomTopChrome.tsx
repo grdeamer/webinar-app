@@ -58,14 +58,19 @@ function TopChromeTransmissionShell({
           <button
             type="button"
             onClick={() => setHubOpen((current) => !current)}
-            className="relative z-[210] flex h-9 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
+            className="relative z-[210] flex h-9 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition duration-75 active:scale-[0.94] hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-sky-300/80 shadow-[0_0_8px_rgba(125,211,252,0.34)]" />
             Hub
           </button>
 
           {hubOpen ? (
-            <div className="absolute right-0 top-11 z-[220] w-72 overflow-hidden rounded-[18px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(6,10,18,0.992),rgba(2,4,9,0.998))] p-2 shadow-[0_28px_74px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.036)] backdrop-blur-xl">
+            <div
+              className="absolute right-0 top-11 z-[220] w-72 origin-top-right overflow-hidden rounded-[18px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(6,10,18,0.992),rgba(2,4,9,0.998))] p-2 shadow-[0_28px_74px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.036)] backdrop-blur-xl"
+              style={{
+                animation: "producerHubMenuIn 220ms cubic-bezier(0.2, 1.25, 0.32, 1) both",
+              }}
+            >
               <div className="px-2 pb-2 pt-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
                 Producer Utilities
               </div>
@@ -105,10 +110,10 @@ function TopChromeTransmissionShell({
       </div>
 
       <div className="relative z-0 flex items-start justify-between gap-4 px-0 pb-0">
-  <div className="min-w-0 flex-1">
-    {children}
-  </div>
-</div>
+        <div className="min-w-0 flex-1">
+          {children}
+        </div>
+      </div>
 
       <style jsx global>{`
         @keyframes topChromeTransmissionSweep {
@@ -124,6 +129,26 @@ function TopChromeTransmissionShell({
 
           100% {
             transform: translateX(18%);
+          }
+        }
+
+        @keyframes producerHubMenuIn {
+          0% {
+            opacity: 0;
+            transform: translate3d(0, -14px, 0) scale(0.94);
+            filter: blur(8px);
+          }
+
+          58% {
+            opacity: 1;
+            transform: translate3d(0, 2px, 0) scale(1.012);
+            filter: blur(0);
+          }
+
+          100% {
+            opacity: 1;
+            transform: translate3d(0, 0, 0) scale(1);
+            filter: blur(0);
           }
         }
       `}</style>

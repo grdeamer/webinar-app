@@ -41,10 +41,10 @@ function InspectorParticipantRow({
   const screenReady = Boolean(screenTrackSid || participant.screenShareEnabled)
 
   return (
-    <div className="group/participant rounded-[13px] border border-white/[0.035] bg-white/[0.018] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] transition hover:border-white/[0.075] hover:bg-white/[0.028]">
+    <div className="group/participant rounded-[16px] border border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] px-2.5 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.012)] transition hover:border-white/[0.09] hover:bg-white/[0.036]">
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full border text-[9px] font-black text-white/72 shadow-[0_0_10px_rgba(16,185,129,0.10)] ${
+          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[11px] font-black text-white/78 shadow-[0_0_14px_rgba(16,185,129,0.12)] ${
             onStage
               ? "border-emerald-200/14 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.42),rgba(16,185,129,0.24)_38%,rgba(15,23,42,0.80)_80%)]"
               : "border-sky-200/10 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.16)_38%,rgba(15,23,42,0.82)_80%)]"
@@ -53,10 +53,10 @@ function InspectorParticipantRow({
           </div>
 
           <div className="min-w-0">
-            <div className="truncate text-[10px] font-semibold tracking-[-0.02em] text-white/70">
+            <div className="truncate text-[12px] font-semibold tracking-[-0.02em] text-white/82">
               {participant.name || participant.identity}
             </div>
-            <div className="mt-px text-[8px] font-semibold text-white/26">
+            <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-white/34">
               {role}
             </div>
           </div>
@@ -72,7 +72,7 @@ function InspectorParticipantRow({
 
             onAddToStage(participant.identity)
           }}
-          className={`shrink-0 rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+          className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] transition ${
             onStage
               ? "border-red-300/12 bg-red-400/[0.045] text-red-100/54 hover:bg-red-400/[0.08]"
               : "border-emerald-300/12 bg-emerald-400/[0.065] text-emerald-100/62 hover:bg-emerald-400/[0.11]"
@@ -82,13 +82,13 @@ function InspectorParticipantRow({
         </button>
       </div>
 
-      <div className="mt-1.5 grid grid-cols-3 gap-1">
+      <div className="mt-2 grid grid-cols-3 gap-1.5">
         <button
           type="button"
           onClick={() => {
             onAddToStage(participant.identity)
           }}
-          className={`flex items-center justify-center gap-1 rounded-[8px] border px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+          className={`flex items-center justify-center gap-1 rounded-[10px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] transition ${
             cameraOn
               ? "border-emerald-300/10 bg-emerald-400/[0.060] text-emerald-100/62 hover:bg-emerald-400/[0.10]"
               : "border-white/[0.04] bg-white/[0.020] text-white/42 hover:bg-white/[0.035] hover:text-white/62"
@@ -102,7 +102,7 @@ function InspectorParticipantRow({
         <button
           type="button"
           onClick={() => onAddToStage(participant.identity)}
-          className={`flex items-center justify-center gap-1 rounded-[8px] border px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+          className={`flex items-center justify-center gap-1 rounded-[10px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] transition ${
             micOn
               ? "border-emerald-300/10 bg-emerald-400/[0.060] text-emerald-100/62 hover:bg-emerald-400/[0.10]"
               : "border-white/[0.04] bg-white/[0.020] text-white/42 hover:bg-white/[0.035] hover:text-white/62"
@@ -123,7 +123,7 @@ function InspectorParticipantRow({
               }, 120)
             }
           }}
-          className={`flex items-center justify-center gap-1 rounded-[8px] border px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+          className={`flex items-center justify-center gap-1 rounded-[10px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] transition ${
             screenReady
               ? "border-sky-300/10 bg-sky-400/[0.060] text-sky-100/62 hover:bg-sky-400/[0.10]"
               : "border-white/[0.04] bg-white/[0.020] text-white/42 hover:bg-white/[0.035] hover:text-white/62"
@@ -385,18 +385,18 @@ export default function ProducerRightRail({
   const backstageCount = participants.length > 0 ? backstageParticipants.length : 6
   const audienceCount = Math.max(participants.length * 611, 2462)
   return (
-    <div className="group flex h-full min-w-0 flex-col gap-1.5 overflow-hidden border-l border-white/[0.045] bg-[linear-gradient(180deg,rgba(9,14,24,0.86),rgba(4,7,14,0.96))] p-1.5 shadow-[inset_1px_0_0_rgba(255,255,255,0.010)] backdrop-blur-2xl lg:col-start-3">
-      <div className="group relative hidden overflow-hidden rounded-[16px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(255,255,255,0.010),rgba(255,255,255,0.003))] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] 2xl:block">
+    <div className="group flex h-full min-w-0 flex-col gap-2 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(5,9,18,0.94),rgba(2,4,9,0.995))] p-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.018)] backdrop-blur-2xl lg:col-start-3">
+      <div className="group relative overflow-hidden rounded-[18px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.016),rgba(255,255,255,0.004))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.005)_42%,transparent_64%)] opacity-18 transition-opacity duration-500 group-hover:opacity-34" />
         <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/8 to-transparent" />
         <div className="relative z-10 flex items-start justify-between gap-2">
           <div>
-            <div className="flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] text-violet-100/34">
+            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-violet-100/44">
               <Radio size={10} />
               Operations Rack
             </div>
-            <div className="mt-px text-[9px] font-semibold tracking-[-0.02em] text-white/24">
-              Sources and inspector.
+            <div className="mt-0.5 text-[10px] font-semibold tracking-[-0.02em] text-white/34">
+              Talent, sources, and stage health.
             </div>
           </div>
           <div className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.07em] ${sourceBadgeToneClass}`}>
@@ -405,7 +405,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="relative z-10 mt-2 grid grid-cols-2 gap-1.5 text-center 2xl:grid-cols-2">
+        <div className="relative z-10 mt-2 grid grid-cols-2 gap-2 text-center">
           <RightRailMetric
             icon={<Users size={13} />}
             label="On Stage"
@@ -435,7 +435,7 @@ export default function ProducerRightRail({
           />
         </div>
 
-        <div className="relative z-10 mt-2 grid gap-1.5 rounded-[16px] border border-white/5 bg-white/[0.008] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] xl:grid-cols-2">
+        <div className="relative z-10 mt-2 grid gap-1.5 rounded-[16px] border border-white/[0.055] bg-white/[0.012] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
           <div className={`rounded-xl border px-1.5 py-1 ${inspectorToneClass}`}>
             <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
               Inspector Focus
@@ -455,7 +455,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="relative z-10 mt-2 grid grid-cols-1 gap-1.5 xl:grid-cols-1">
+        <div className="relative z-10 mt-2 grid grid-cols-1 gap-1.5">
           <div className="flex items-center gap-1.5 rounded-xl border border-red-300/10 bg-red-400/[0.04] px-1.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-red-100/56 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
             <Archive size={12} />
             ISO Capture Standby
@@ -468,18 +468,17 @@ export default function ProducerRightRail({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-[16px] border border-white/[0.035] bg-[linear-gradient(180deg,rgba(7,12,24,0.54),rgba(3,7,15,0.78))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.008)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-[18px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.64),rgba(3,7,15,0.84))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/48">
-              Inspector
+            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
+              Right Rail
             </div>
-            <div className="mt-1 grid grid-cols-4 gap-0.5 rounded-[10px] border border-white/[0.035] bg-white/[0.012] p-0.5">
+            <div className="mt-1 grid grid-cols-3 gap-0.5 rounded-[10px] border border-white/[0.04] bg-white/[0.014] p-0.5">
               {[
                 "Stage",
-                "Sources",
                 "Talent",
-                "Audio",
+                "Blocks",
               ].map((tab, index) => (
                 <button
                   key={`${tab}-${index}`}
@@ -516,13 +515,13 @@ export default function ProducerRightRail({
           </button>
         </div>
 
-        <div className="mt-4 border-t border-white/[0.045] pt-3">
+        <div className="mt-5 border-t border-white/[0.05] pt-4">
           <div className="flex items-end justify-between gap-2">
             <div>
-              <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
+              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
                 On Stage
               </div>
-              <div className="mt-1 text-[16px] font-semibold tracking-[-0.05em] text-white/86">
+              <div className="mt-1 text-[20px] font-semibold tracking-[-0.05em] text-white/90">
                 {onStageParticipants.length} Ready
               </div>
             </div>
@@ -557,10 +556,10 @@ export default function ProducerRightRail({
         <div className="mt-4 border-t border-white/[0.045] pt-3">
           <div className="flex items-end justify-between gap-2">
             <div>
-              <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
+              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
                 Talent / Backstage
               </div>
-              <div className="mt-1 text-[15px] font-semibold tracking-[-0.05em] text-white/82">
+              <div className="mt-1 text-[19px] font-semibold tracking-[-0.05em] text-white/88">
                 {backstageCount} In backstage
               </div>
             </div>
@@ -622,7 +621,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="hidden mt-4 border-t border-white/[0.045] pt-3 2xl:block">
+        <div className="hidden">
           <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
             Audience
           </div>
@@ -644,7 +643,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="hidden mt-4 border-t border-white/[0.045] pt-3 2xl:block">
+        <div className="hidden">
           <div className="flex items-end justify-between gap-2">
             <div>
               <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
@@ -666,7 +665,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="hidden mt-4 border-t border-white/[0.045] pt-3 2xl:block">
+        <div className="hidden">
           <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
             Quick Actions
           </div>
