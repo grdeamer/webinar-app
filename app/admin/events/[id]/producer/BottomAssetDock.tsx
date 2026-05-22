@@ -803,32 +803,34 @@ export default function BottomAssetDock({
             </button>
           }
         >
-          <div className="grid grid-cols-6 gap-0 overflow-hidden rounded-[13px] border border-white/[0.05] bg-black/16 py-2">
-            {([
-              ["Program", programLevel],
-              ["Stage", stageLevel],
-              ["Music", musicLevel],
-              ["Mics", micLevelPercent],
-              ["SFX", sfxLevel],
-              ["Audience", audienceLevel],
-            ] as Array<[MixerChannelKey, number]>).map(([label, level]) => (
-              <MixerStrip
-                key={label}
-                label={label}
-                level={level}
-                soloActive={soloChannel === label}
-                muted={mutedChannels[label]}
-                onToggleSolo={() => toggleSoloChannel(label)}
-                onToggleMute={() => toggleMutedChannel(label)}
-              />
-            ))}
-          </div>
-          <div className="mt-1 grid grid-cols-4 px-2 text-[7px] font-black tabular-nums text-white/26">
-            <span>-60</span>
-            <span className="text-center text-emerald-100/34">-24</span>
-            <span className="text-center text-amber-100/42">-12</span>
-            <span className="text-right text-red-100/42">0 dBFS</span>
-          </div>
+          <>
+            <div className="grid grid-cols-6 gap-0 overflow-hidden rounded-[13px] border border-white/[0.05] bg-black/16 py-2">
+              {([
+                ["Program", programLevel],
+                ["Stage", stageLevel],
+                ["Music", musicLevel],
+                ["Mics", micLevelPercent],
+                ["SFX", sfxLevel],
+                ["Audience", audienceLevel],
+              ] as Array<[MixerChannelKey, number]>).map(([label, level]) => (
+                <MixerStrip
+                  key={label}
+                  label={label}
+                  level={level}
+                  soloActive={soloChannel === label}
+                  muted={mutedChannels[label]}
+                  onToggleSolo={() => toggleSoloChannel(label)}
+                  onToggleMute={() => toggleMutedChannel(label)}
+                />
+              ))}
+            </div>
+            <div className="mt-1 grid grid-cols-4 px-2 text-[7px] font-black tabular-nums text-white/26">
+              <span>-60</span>
+              <span className="text-center text-emerald-100/34">-24</span>
+              <span className="text-center text-amber-100/42">-12</span>
+              <span className="text-right text-red-100/42">0 dBFS</span>
+            </div>
+          </>
         </ConsolePanel>
 
         <ConsolePanel title="Communication">
