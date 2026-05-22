@@ -1,16 +1,76 @@
-
-
 "use client"
 
-import type { JSX } from "react"
+import { useEffect, useMemo, useState, type JSX } from "react"
 import { AudioLines, Gauge, Mic2 } from "lucide-react"
 
+function normalizeMicLevel(level: number): number {
+  const safeLevel = Number.isFinite(level) ? level : 0
+  return Math.max(0, Math.min(1, safeLevel > 1 ? safeLevel / 100 : safeLevel))
+}
+
+function levelToDb(level: number): number {
+  if (level <= 0.0001) return -60
+  return Math.max(-60, Math.min(6, 20 * Math.log10(level)))
+}
+
+function dbLabelFromLevel(level: number): string {
+  const db = levelToDb(level)
+  if (db <= -59) return "-∞ dB"
+  return `${db > 0 ? "+" : ""}${Math.round(db)} dB`
+}
+
+function meterSegmentClass(index: number, active: boolean, peak = false): string {
+  if (peak) {
+    return "bg-white shadow-[0_0_14px_rgba(255,255,255,0.65)]"
+  }
+
+  if (!active) return "bg-white/10"
+
+  if (index >= 18) return "bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.58)]"
+  if (index >= 14) return "bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.50)]"
+  return "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.48)]"
+}
+
 export function AudioMixerPanel({ localMicLevel }: { localMicLevel: number }): JSX.Element {
-  const hostLevel = Math.max(2, Math.round(localMicLevel * 18))
-  const programLevel = Math.max(3, Math.round(localMicLevel * 18))
-  const masterLevel = Math.max(programLevel, 8)
-  const clipActive = localMicLevel > 0.88
-  const signalActive = localMicLevel > 0.08
+  const incomingMicLevel = normalizeMicLevel(localMicLevel)
+  const [displayMicLevel, setDisplayMicLevel] = useState(0)
+  const [peakMicLevel, setPeakMicLevel] = useState(0)
+
+  useEffect(() => {
+    setDisplayMicLevel((current) => {
+      const attack = 0.74
+      const release = 0.16
+      const coefficient = incomingMicLevel > current ? attack : release
+      return current + (incomingMicLevel - current) * coefficient
+    })
+
+    setPeakMicLevel((current) => {
+      if (incomingMicLevel > current) return incomingMicLevel
+      return Math.max(0, current - 0.035)
+    })
+  }, [incomingMicLevel])
+
+  const meterState = useMemo(() => {
+    const drivenLevel = Math.pow(displayMicLevel, 0.72)
+    const hostLevel = Math.max(1, Math.round(drivenLevel * 18))
+    const programLevel = Math.max(1, Math.round(drivenLevel * 18))
+    const guestLevel = Math.max(1, Math.round(Math.min(1, drivenLevel * 0.34 + 0.08) * 18))
+    const masterLevel = Math.max(2, Math.round(Math.min(1, drivenLevel * 1.05) * 22))
+    const peakSegment = Math.max(0, Math.min(21, Math.round(Math.pow(peakMicLevel, 0.72) * 21)))
+
+    return {
+      hostLevel,
+      guestLevel,
+      programLevel,
+      masterLevel,
+      peakSegment,
+      clipActive: levelToDb(peakMicLevel) >= -1,
+      signalActive: displayMicLevel > 0.035,
+      dbLabel: dbLabelFromLevel(displayMicLevel),
+    }
+  }, [displayMicLevel, peakMicLevel])
+
+  const { hostLevel, guestLevel, programLevel, masterLevel, peakSegment, clipActive, signalActive, dbLabel } = meterState
 
   return (
     <div className="relative overflow-hidden rounded-[30px] border border-emerald-200/20 bg-[radial-gradient(circle_at_top_right,rgba(16,185,129,0.20),transparent_38%),radial-gradient(circle_at_bottom_left,rgba(56,189,248,0.12),transparent_34%),linear-gradient(180deg,rgba(8,31,26,0.86),rgba(2,8,12,0.98))] p-4 shadow-[0_24px_72px_rgba(0,0,0,0.36),0_0_38px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.07)]">
@@ -45,7 +105,7 @@ export function AudioMixerPanel({ localMicLevel }: { localMicLevel: number }): J
       <div className="relative z-10 space-y-3">
         {[
           { label: "Host", level: hostLevel, badge: "IFB", live: signalActive },
-          { label: "Guest", level: 9, badge: "N-1", live: true },
+          { label: "Guest", level: guestLevel, badge: "N-1", live: signalActive },
           { label: "Program", level: programLevel, badge: "PGM", live: signalActive },
         ].map((row) => (
           <div key={row.label} className="rounded-[18px] border border-white/8 bg-black/24 p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
@@ -72,14 +132,8 @@ export function AudioMixerPanel({ localMicLevel }: { localMicLevel: number }): J
                 return (
                   <div
                     key={`${row.label}-${index}`}
-                    className={`h-2 flex-1 rounded-full transition-all duration-300 ease-out ${
-                      active
-                        ? index > 14
-                          ? "bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.55)]"
-                          : index > 11
-                            ? "bg-amber-300 shadow-[0_0_10px_rgba(252,211,77,0.48)]"
-                            : "bg-emerald-400 shadow-[0_0_10px_rgba(52,211,153,0.48)]"
-                        : "bg-white/10"
+                    className={`h-2 flex-1 rounded-full transition-all duration-75 ease-out ${
+                      meterSegmentClass(index, active)
                     }`}
                     style={{
                       transform: active ? `scaleY(${index > 14 ? 1.18 : 1})` : "scaleY(0.82)",
@@ -87,6 +141,11 @@ export function AudioMixerPanel({ localMicLevel }: { localMicLevel: number }): J
                   />
                 )
               })}
+            </div>
+            <div className="mt-1 grid grid-cols-3 px-1 text-[7px] font-black tabular-nums text-white/24">
+              <span>-60</span>
+              <span className="text-center text-amber-100/34">-12</span>
+              <span className="text-right text-red-100/34">0</span>
             </div>
           </div>
         ))}
@@ -111,25 +170,31 @@ export function AudioMixerPanel({ localMicLevel }: { localMicLevel: number }): J
           <div className="flex h-5 items-center gap-1 rounded-full border border-white/8 bg-black/58 px-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
             {Array.from({ length: 22 }).map((_, index) => {
               const active = index < masterLevel
+              const peak = index === peakSegment && signalActive
 
               return (
                 <div
                   key={`master-${index}`}
-                  className={`h-2.5 flex-1 rounded-full transition-all duration-300 ${
-                    active
-                      ? index > 18
-                        ? "bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.55)]"
-                        : index > 14
-                          ? "bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,0.45)]"
-                          : "bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.45)]"
-                      : "bg-white/10"
+                  className={`h-2.5 flex-1 rounded-full transition-all duration-75 ${
+                    meterSegmentClass(index, active, peak)
                   }`}
                 />
               )
             })}
           </div>
           <div className="text-right text-[10px] font-black tabular-nums text-white/52">
-            -{Math.max(6, 24 - masterLevel)} dB
+            {dbLabel}
+          </div>
+          <div className="col-span-2 grid grid-cols-[1fr_auto] items-center gap-3 pt-0.5">
+            <div className="grid grid-cols-4 px-1 text-[8px] font-black tabular-nums text-white/28">
+              <span>-60</span>
+              <span className="text-emerald-100/38">-24</span>
+              <span className="text-amber-100/44">-12</span>
+              <span className="text-right text-red-100/44">0</span>
+            </div>
+            <div className="w-12 text-right text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
+              dBFS
+            </div>
           </div>
         </div>
       </div>
@@ -141,7 +206,10 @@ export function AudioMixerPanel({ localMicLevel }: { localMicLevel: number }): J
           </div>
           <div className="mt-1 text-xs font-semibold text-sky-50/75">Control Room</div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full w-[72%] rounded-full bg-sky-300/70 shadow-[0_0_12px_rgba(125,211,252,0.35)]" />
+            <div
+              className="h-full rounded-full bg-sky-300/70 shadow-[0_0_12px_rgba(125,211,252,0.35)] transition-[width] duration-100 ease-out"
+              style={{ width: `${Math.max(18, Math.round(displayMicLevel * 72))}%` }}
+            />
           </div>
         </div>
         <div className="rounded-[18px] border border-emerald-300/14 bg-emerald-400/8 p-2.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
@@ -150,7 +218,10 @@ export function AudioMixerPanel({ localMicLevel }: { localMicLevel: number }): J
           </div>
           <div className="mt-1 text-xs font-semibold text-emerald-50/75">Clean Feed</div>
           <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white/10">
-            <div className="h-full w-[86%] rounded-full bg-emerald-300/70 shadow-[0_0_12px_rgba(52,211,153,0.35)]" />
+            <div
+              className="h-full rounded-full bg-emerald-300/70 shadow-[0_0_12px_rgba(52,211,153,0.35)] transition-[width] duration-100 ease-out"
+              style={{ width: `${Math.max(22, Math.round(displayMicLevel * 86))}%` }}
+            />
           </div>
         </div>
       </div>

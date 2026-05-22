@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react"
+import { useEffect, useRef, useState, type JSX } from "react"
 
 import OperationsSyncStrip from "./OperationsSyncStrip"
 import ProducerRoomHeader from "./ProducerRoomHeader"
@@ -40,6 +40,32 @@ function TopChromeTransmissionShell({
 }): JSX.Element {
   const [hubOpen, setHubOpen] = useState(false)
 
+  const hubRef = useRef<HTMLDivElement | null>(null)
+
+  useEffect(() => {
+    if (!hubOpen) return
+
+    function handlePointerDown(event: PointerEvent): void {
+      if (!hubRef.current?.contains(event.target as Node)) {
+        setHubOpen(false)
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent): void {
+      if (event.key === "Escape") {
+        setHubOpen(false)
+      }
+    }
+
+    document.addEventListener("pointerdown", handlePointerDown)
+    document.addEventListener("keydown", handleKeyDown)
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown)
+      document.removeEventListener("keydown", handleKeyDown)
+    }
+  }, [hubOpen])
+
   return (
     <div className="group/topchrome relative isolate z-[90] shrink-0 overflow-visible border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(3,6,12,0.94),rgba(4,7,14,0.72),rgba(2,4,9,0.36))] shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
       <div
@@ -53,15 +79,22 @@ function TopChromeTransmissionShell({
       <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
       <div className="pointer-events-none absolute inset-x-[18%] bottom-0 z-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.035] to-transparent" />
 
-      <div className="absolute right-4 top-3 z-[120] flex items-center gap-2">
-        <div className="relative">
+      <div className="absolute right-4 top-2.5 z-[120] flex items-center gap-2">
+        <div ref={hubRef} className="relative">
           <button
             type="button"
             onClick={() => setHubOpen((current) => !current)}
-            className="relative z-[210] flex h-9 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition duration-75 active:scale-[0.94] hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
+            className="relative z-[210] flex h-8 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition duration-75 active:scale-[0.94] hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
           >
             <span className="h-1.5 w-1.5 rounded-full bg-sky-300/80 shadow-[0_0_8px_rgba(125,211,252,0.34)]" />
             Hub
+            <span
+              className={`text-[10px] text-sky-50/54 transition-transform duration-150 ${
+                hubOpen ? "rotate-180" : "rotate-0"
+              }`}
+            >
+              ▾
+            </span>
           </button>
 
           {hubOpen ? (
@@ -96,12 +129,14 @@ function TopChromeTransmissionShell({
           ) : null}
         </div>
 
-        <div className="pointer-events-none flex h-9 min-w-[108px] items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-black/38 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md">
+        <div className="h-5 w-px bg-gradient-to-b from-transparent via-white/[0.10] to-transparent" />
+
+        <div className="pointer-events-none flex h-8 min-w-[108px] items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-black/38 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md">
           <span
             className={`h-1.5 w-1.5 rounded-full ${
               isLive
                 ? "bg-red-300/78 shadow-[0_0_8px_rgba(252,165,165,0.25)]"
-                : "bg-sky-300/70 shadow-[0_0_8px_rgba(125,211,252,0.18)]"
+                : "animate-[producerStandbyPulse_2.6s_ease-in-out_infinite] bg-sky-300/70 shadow-[0_0_8px_rgba(125,211,252,0.18)]"
             }`}
           />
 
@@ -149,6 +184,19 @@ function TopChromeTransmissionShell({
             opacity: 1;
             transform: translate3d(0, 0, 0) scale(1);
             filter: blur(0);
+          }
+        }
+
+        @keyframes producerStandbyPulse {
+          0%,
+          100% {
+            opacity: 0.58;
+            transform: scale(1);
+          }
+
+          50% {
+            opacity: 0.95;
+            transform: scale(1.28);
           }
         }
       `}</style>
