@@ -1,7 +1,29 @@
 
 import { useEffect, useMemo, useState, type JSX } from "react"
-type UtilityPanel = "record" | "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
+type UtilityPanel = "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 type MixerChannelKey = "Program" | "Stage" | "Music" | "Mics" | "SFX" | "Audience"
+
+type RecordingStatus = "idle" | "armed" | "recording" | "stopped"
+
+type RecordingSession = {
+  id: string
+  label: string
+  startedAt: string
+  endedAt: string | null
+  durationSeconds: number
+  source: string
+  destination: string
+  quality: string
+  status: "processing" | "ready"
+}
+
+type RecordingSourceOption = {
+  id: string
+  label: string
+  type: "program" | "preview" | "iso" | "clean" | "return"
+  status: "live" | "ready" | "standby"
+  description: string
+}
 
 import {
   CalendarDays,
@@ -12,6 +34,7 @@ import {
   Layers3,
   Mic2,
   MonitorPlay,
+  Music2,
   Radio,
   Settings,
   SlidersHorizontal,
@@ -46,6 +69,17 @@ function channelIsAudible({
   if (muted) return false
   if (!soloChannel) return true
   return soloChannel === label
+}
+
+function formatRecordingDuration(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds))
+  const hours = Math.floor(safeSeconds / 3600)
+  const minutes = Math.floor((safeSeconds % 3600) / 60)
+  const remainingSeconds = safeSeconds % 60
+
+  return [hours, minutes, remainingSeconds]
+    .map((value) => String(value).padStart(2, "0"))
+    .join(":")
 }
 import {
   FALLBACK_MEDIA_ITEMS,
@@ -140,6 +174,40 @@ function MediaRow({
           {meta}
         </div>
       </div>
+    </button>
+  )
+}
+
+function AudioAssetRow({
+  label,
+  meta,
+  active,
+}: {
+  label: string
+  meta: string
+  active?: boolean
+}): JSX.Element {
+  return (
+    <button
+      type="button"
+      className={`group flex min-w-0 items-center gap-2 rounded-[10px] border p-1.5 text-left transition hover:border-emerald-300/14 hover:bg-emerald-400/[0.035] ${
+        active
+          ? "border-emerald-300/18 bg-emerald-400/[0.070]"
+          : "border-white/[0.040] bg-white/[0.014]"
+      }`}
+    >
+      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-[9px] border border-emerald-300/12 bg-emerald-400/[0.045] text-emerald-100/54">
+        <Music2 size={14} />
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="truncate text-[10px] font-semibold text-white/72">{label}</div>
+        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/30">
+          {meta}
+        </div>
+      </div>
+      <span className="rounded-full border border-white/[0.045] bg-black/22 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white/32">
+        Cue
+      </span>
     </button>
   )
 }
@@ -266,11 +334,12 @@ function ExpandedAudioMixerOverlay({
     ["SFX", sfxLevel, "SFX"],
     ["Audience", audienceLevel, "AUD"],
   ]
+  const [signalMapOpen, setSignalMapOpen] = useState(false)
 
   return (
     <div className="fixed inset-x-6 bottom-6 top-[96px] z-[999] overflow-hidden rounded-[24px] border border-emerald-200/16 bg-[radial-gradient(circle_at_24%_0%,rgba(16,185,129,0.16),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(56,189,248,0.12),transparent_32%),linear-gradient(180deg,rgba(5,13,18,0.985),rgba(2,5,10,0.998))] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.030)_0px,rgba(255,255,255,0.030)_1px,transparent_1px,transparent_32px)]" />
-      <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.065] px-5 py-4">
+      <div className="relative z-[2500] flex items-start justify-between gap-4 border-b border-white/[0.065] px-5 py-4">
         <div>
           <div className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/52">
             Expanded Audio Mixer
@@ -283,13 +352,80 @@ function ExpandedAudioMixerOverlay({
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={onClose}
-          className="rounded-full border border-white/[0.08] bg-white/[0.030] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/58 transition hover:bg-white/[0.055] hover:text-white/82"
-        >
-          Close
-        </button>
+        <div className="relative flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setSignalMapOpen((current) => !current)}
+            className="rounded-full border border-emerald-300/14 bg-emerald-400/[0.055] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.095] hover:text-emerald-50"
+          >
+            Signal Map
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSignalMapOpen(false)
+              onClose()
+            }}
+            className="rounded-full border border-white/[0.08] bg-white/[0.030] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/58 transition hover:bg-white/[0.055] hover:text-white/82"
+          >
+            Close
+          </button>
+
+          {signalMapOpen ? (
+            <div className="fixed right-10 top-[154px] z-[3000] w-[430px] overflow-hidden rounded-[20px] border border-emerald-200/24 bg-[#02060a] p-3 text-left shadow-[0_40px_110px_rgba(0,0,0,0.96),0_0_34px_rgba(16,185,129,0.14),inset_0_1px_0_rgba(255,255,255,0.060)]">
+              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,#061416_0%,#02060a_100%)] opacity-100" />
+              <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.05)_0px,rgba(255,255,255,0.05)_1px,transparent_1px,transparent_18px)]" />
+              <div className="relative z-10">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <div className="text-[8px] font-black uppercase tracking-[0.18em] text-emerald-100/52">
+                      Jupiter Signal Buses
+                    </div>
+                    <div className="mt-1 text-[12px] font-semibold tracking-[-0.02em] text-white/80">
+                      Routing shorthand for the expanded mixer.
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => setSignalMapOpen(false)}
+                    className="shrink-0 rounded-full border border-white/[0.09] bg-white/[0.035] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-white/58 transition hover:bg-white/[0.065] hover:text-white/84"
+                  >
+                    Close Map
+                  </button>
+                </div>
+
+                <div className="mt-3 grid gap-1.5">
+                  {[
+                    ["PGM", "Program", "Final audience / recording output."],
+                    ["STG", "Stage", "Live presenters, hosts, and guests."],
+                    ["MSC", "Music", "Playback beds, countdowns, and ambient loops."],
+                    ["MIC", "Mics", "Operator or presenter microphone inputs."],
+                    ["SFX", "SFX", "Stingers, alerts, and transition effects."],
+                    ["AUD", "Audience", "Audience return, Q&A, or moderated participation."],
+                  ].map(([code, label, description]) => (
+                    <div key={code} className="grid grid-cols-[46px_70px_1fr] items-start gap-2 rounded-[12px] border border-white/[0.085] bg-[#071115] px-2.5 py-2">
+                      <span className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.050] px-2 py-0.5 text-center text-[8px] font-black text-emerald-100/62">
+                        {code}
+                      </span>
+                      <span className="text-[10px] font-black uppercase tracking-[0.10em] text-white/56">
+                        {label}
+                      </span>
+                      <span className="text-[10px] leading-4 text-white/42">
+                        {description}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-3 rounded-[12px] border border-sky-200/18 bg-[#07131a] px-3 py-2 text-[10px] leading-4 text-sky-50/72">
+                  Some buses are currently confidence/simulation layers while routing is being wired to LiveKit tracks, media playback, and future audience participation.
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </div>
       </div>
 
       <div className="relative z-10 grid h-[calc(100%-112px)] min-h-0 gap-4 overflow-hidden p-5 xl:grid-cols-[1fr_280px]">
@@ -489,17 +625,24 @@ function UtilityButton({
 
 function UtilityOverlay({
   activePanel,
+  recordingStatus,
+  recordingElapsedSeconds,
+  recordings,
+  onArmRecording,
+  onStartRecording,
+  onStopRecording,
   onClose,
 }: {
   activePanel: UtilityPanel
+  recordingStatus: RecordingStatus
+  recordingElapsedSeconds: number
+  recordings: RecordingSession[]
+  onArmRecording: () => void
+  onStartRecording: () => void
+  onStopRecording: () => void
   onClose: () => void
 }): JSX.Element {
   const panelMeta: Record<UtilityPanel, { title: string; eyebrow: string; description: string }> = {
-    record: {
-      title: "Record Console",
-      eyebrow: "ISO + Program Recording",
-      description: "Configure program capture, isolated camera recordings, naming, destination, and safety checks before recording begins.",
-    },
     stream: {
       title: "Stream Destinations",
       eyebrow: "Outbound Broadcast",
@@ -528,6 +671,8 @@ function UtilityOverlay({
   }
 
   const meta = panelMeta[activePanel]
+
+
 
   return (
     <div className="absolute inset-2 z-30 overflow-hidden rounded-[18px] border border-sky-200/14 bg-[radial-gradient(circle_at_20%_0%,rgba(56,189,248,0.12),transparent_32%),linear-gradient(180deg,rgba(8,13,24,0.98),rgba(2,5,11,0.995))] shadow-[0_24px_70px_rgba(0,0,0,0.48),0_0_28px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
@@ -643,6 +788,7 @@ export default function BottomAssetDock({
 }): JSX.Element {
   const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
   const [expandedMixerOpen, setExpandedMixerOpen] = useState(false)
+  const [expandedRecordingOpen, setExpandedRecordingOpen] = useState(false)
   const [soloChannel, setSoloChannel] = useState<MixerChannelKey | null>(null)
   const [mutedChannels, setMutedChannels] = useState<Record<MixerChannelKey, boolean>>({
     Program: false,
@@ -653,6 +799,14 @@ export default function BottomAssetDock({
     Audience: false,
   })
 
+  const [recordingStatus, setRecordingStatus] = useState<RecordingStatus>("idle")
+  const [recordingStartedAt, setRecordingStartedAt] = useState<number | null>(null)
+  const [recordingNow, setRecordingNow] = useState(Date.now())
+  const [recordings, setRecordings] = useState<RecordingSession[]>([])
+  const [recordingSource, setRecordingSource] = useState("Program Feed")
+  const [recordingDestination, setRecordingDestination] = useState("Jupiter Cloud")
+  const [recordingQuality, setRecordingQuality] = useState("1080p Standard")
+
   function toggleSoloChannel(channel: MixerChannelKey): void {
     setSoloChannel((current) => (current === channel ? null : channel))
   }
@@ -662,6 +816,68 @@ export default function BottomAssetDock({
       ...current,
       [channel]: !current[channel],
     }))
+  }
+
+  useEffect(() => {
+    if (recordingStatus !== "recording") return
+
+    const id = window.setInterval(() => {
+      setRecordingNow(Date.now())
+    }, 1000)
+
+    return () => window.clearInterval(id)
+  }, [recordingStatus])
+
+  const recordingElapsedSeconds = recordingStartedAt
+    ? Math.floor((recordingNow - recordingStartedAt) / 1000)
+    : 0
+
+  function armRecording(): void {
+    if (recordingStatus === "recording") return
+    setRecordingStatus("armed")
+    setRecordingStartedAt(null)
+  }
+
+  function startRecording(): void {
+    if (recordingStatus !== "armed") return
+    const startedAt = Date.now()
+    setRecordingStartedAt(startedAt)
+    setRecordingNow(startedAt)
+    setRecordingStatus("recording")
+  }
+
+  function stopRecording(): void {
+    if (recordingStatus !== "recording" || !recordingStartedAt) return
+
+    const endedAt = Date.now()
+    const durationSeconds = Math.max(1, Math.floor((endedAt - recordingStartedAt) / 1000))
+    const id = `recording-${endedAt}`
+
+    setRecordings((current) => [
+      {
+        id,
+        label: `Program Recording ${current.length + 1}`,
+        startedAt: new Date(recordingStartedAt).toISOString(),
+        endedAt: new Date(endedAt).toISOString(),
+        durationSeconds,
+        source: recordingSource,
+        destination: recordingDestination,
+        quality: recordingQuality,
+        status: "processing",
+      },
+      ...current,
+    ])
+
+    window.setTimeout(() => {
+      setRecordings((current) =>
+        current.map((recording) =>
+          recording.id === id ? { ...recording, status: "ready" } : recording
+        )
+      )
+    }, 2400)
+
+    setRecordingStatus("stopped")
+    setRecordingStartedAt(null)
   }
   const [smoothedMicLevel, setSmoothedMicLevel] = useState(0)
   const rawMicLevel = localMicLevel ?? 0
@@ -755,6 +971,12 @@ export default function BottomAssetDock({
       {activeUtilityPanel ? (
         <UtilityOverlay
           activePanel={activeUtilityPanel}
+          recordingStatus={recordingStatus}
+          recordingElapsedSeconds={recordingElapsedSeconds}
+          recordings={recordings}
+          onArmRecording={armRecording}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
           onClose={() => setActiveUtilityPanel(null)}
         />
       ) : null}
@@ -772,6 +994,23 @@ export default function BottomAssetDock({
           onToggleSolo={toggleSoloChannel}
           onToggleMute={toggleMutedChannel}
           onClose={() => setExpandedMixerOpen(false)}
+        />
+      ) : null}
+      {expandedRecordingOpen ? (
+        <ExpandedRecordingOverlay
+          recordingStatus={recordingStatus}
+          recordingElapsedSeconds={recordingElapsedSeconds}
+          recordings={recordings}
+          recordingSource={recordingSource}
+          recordingDestination={recordingDestination}
+          recordingQuality={recordingQuality}
+          onRecordingSourceChange={setRecordingSource}
+          onRecordingDestinationChange={setRecordingDestination}
+          onRecordingQualityChange={setRecordingQuality}
+          onArmRecording={armRecording}
+          onStartRecording={startRecording}
+          onStopRecording={stopRecording}
+          onClose={() => setExpandedRecordingOpen(false)}
         />
       ) : null}
 
@@ -845,10 +1084,26 @@ export default function BottomAssetDock({
               ))}
             </div>
             <div className="grid grid-cols-2 gap-2">
-              {mediaRows.map((item) => (
+              {mediaRows.slice(0, 4).map((item) => (
                 <MediaRow key={`${item.label}-${item.meta}`} label={item.label} meta={item.meta} imageUrl={item.imageUrl} />
               ))}
             </div>
+
+            <div className="mt-2 rounded-[12px] border border-emerald-300/10 bg-emerald-400/[0.030] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+              <div className="mb-1 flex items-center justify-between px-1">
+                <div className="text-[8px] font-black uppercase tracking-[0.13em] text-emerald-100/46">
+                  Audio Assets
+                </div>
+                <div className="text-[7px] font-black uppercase tracking-[0.10em] text-white/24">
+                  Music Bus Shell
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-1.5">
+                <AudioAssetRow label="Countdown Bed" meta="Loop · Music" active />
+                <AudioAssetRow label="Intro Theme" meta="Stinger · Music" />
+              </div>
+            </div>
+
             <button type="button" className="mt-2 text-[10px] font-semibold text-sky-200/70 hover:text-sky-100">
               Show All →
             </button>
@@ -917,13 +1172,525 @@ export default function BottomAssetDock({
       </div>
 
       <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-[1fr_1fr_1fr_1.4fr_1.15fr_1fr_1fr]">
-        <UtilityButton icon={<CircleDot size={18} />} label="Record" meta="ISO + Main" onClick={() => setActiveUtilityPanel("record")} />
+        <UtilityButton
+          icon={<CircleDot size={18} />}
+          label={recordingStatus === "recording" ? "Recording" : "Record"}
+          meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "armed" ? "Armed" : "V1 Console"}
+          danger={recordingStatus === "recording"}
+          onClick={() => setExpandedRecordingOpen(true)}
+        />
         <UtilityButton icon={<Radio size={18} />} label="Stream" meta="YouTube + FB" onClick={() => setActiveUtilityPanel("stream")} />
         <UtilityButton icon={<Layers3 size={18} />} label="Overlays" meta="2 Active" onClick={() => setActiveUtilityPanel("overlays")} />
         <UtilityButton icon={<MonitorPlay size={18} />} label="End Stream" meta="Live control" danger onClick={() => setActiveUtilityPanel("stream")} />
         <UtilityButton icon={<CalendarDays size={18} />} label="Scheduled Event" meta="Sunday 9:00 AM" onClick={() => setActiveUtilityPanel("schedule")} />
         <UtilityButton icon={<Keyboard size={18} />} label="Shortcuts" meta="⌘ K" onClick={() => setActiveUtilityPanel("shortcuts")} />
         <UtilityButton icon={<Settings size={18} />} label="Settings" meta="Workflow" onClick={() => setActiveUtilityPanel("settings")} />
+      </div>
+    </div>
+  )
+}
+
+function ExpandedRecordingOverlay({
+  recordingStatus,
+  recordingElapsedSeconds,
+  recordings,
+  recordingSource,
+  recordingDestination,
+  recordingQuality,
+  onRecordingSourceChange,
+  onRecordingDestinationChange,
+  onRecordingQualityChange,
+  onArmRecording,
+  onStartRecording,
+  onStopRecording,
+  onClose,
+}: {
+  recordingStatus: RecordingStatus
+  recordingElapsedSeconds: number
+  recordings: RecordingSession[]
+  recordingSource: string
+  recordingDestination: string
+  recordingQuality: string
+  onRecordingSourceChange: (value: string) => void
+  onRecordingDestinationChange: (value: string) => void
+  onRecordingQualityChange: (value: string) => void
+  onArmRecording: () => void
+  onStartRecording: () => void
+  onStopRecording: () => void
+  onClose: () => void
+}): JSX.Element {
+  const isArmed = recordingStatus === "armed"
+  const isRecording = recordingStatus === "recording"
+  const latestRecording = recordings[0]
+
+  const recordingSourceOptions: RecordingSourceOption[] = [
+    {
+      id: "program-feed",
+      label: "Program Feed",
+      type: "program",
+      status: isRecording ? "live" : "ready",
+      description: "Final audience-facing mix with graphics and program audio.",
+    },
+    {
+      id: "preview-feed",
+      label: "Preview Feed",
+      type: "preview",
+      status: "ready",
+      description: "Next prepared look before TAKE. Useful for rehearsal captures.",
+    },
+    {
+      id: "screen-share",
+      label: "Screen Share",
+      type: "iso",
+      status: "standby",
+      description: "Dedicated screen-share capture path when a presenter is sharing.",
+    },
+    {
+      id: "graphics-clean",
+      label: "Graphics Clean Feed",
+      type: "clean",
+      status: "ready",
+      description: "Program-adjacent capture without audience interaction layers.",
+    },
+    {
+      id: "audience-return",
+      label: "Audience Return",
+      type: "return",
+      status: "standby",
+      description: "Audience Q&A, moderated participation, or future return audio/video.",
+    },
+    {
+      id: "presenter-host",
+      label: "Host ISO",
+      type: "iso",
+      status: "ready",
+      description: "Isolated presenter camera/mic source for post-show editing.",
+    },
+  ]
+
+  const pipelineStage = isRecording
+    ? "Capturing"
+    : recordingStatus === "stopped"
+      ? "Processing"
+      : isArmed
+        ? "Armed"
+        : "Idle"
+
+  const encoderStatus = isRecording
+    ? "LiveKit egress pending"
+    : isArmed
+      ? "Ready to request"
+      : recordingStatus === "stopped"
+        ? "Packaging"
+        : "Standby"
+
+  const estimatedBitrate =
+    recordingQuality === "4K Future"
+      ? "18 Mbps"
+      : recordingQuality === "1080p Standard"
+        ? "6 Mbps"
+        : "2.5 Mbps"
+
+  const estimatedOutput = recordingElapsedSeconds > 0
+    ? `${Math.max(1, Math.round((recordingElapsedSeconds * (recordingQuality === "4K Future" ? 18 : recordingQuality === "1080p Standard" ? 6 : 2.5)) / 8))} MB est.`
+    : "—"
+
+  const preflightChecks = [
+    {
+      label: "Program source ready",
+      status: recordingSource.length > 0,
+      detail: recordingSource,
+    },
+    {
+      label: "Destination selected",
+      status: recordingDestination.length > 0,
+      detail: recordingDestination,
+    },
+    {
+      label: "Quality profile valid",
+      status: recordingQuality !== "",
+      detail: recordingQuality,
+    },
+    {
+      label: "Egress provider",
+      status: false,
+      detail: "Pending LiveKit",
+    },
+    {
+      label: "Storage target",
+      status: false,
+      detail: "Pending backend",
+    },
+  ]
+
+  const passedPreflightChecks = preflightChecks.filter((check) => check.status).length
+  return (
+    <div className="fixed inset-x-6 bottom-6 top-[96px] z-[999] overflow-hidden rounded-[24px] border border-red-200/16 bg-[radial-gradient(circle_at_20%_0%,rgba(248,113,113,0.15),transparent_34%),radial-gradient(circle_at_84%_10%,rgba(251,191,36,0.08),transparent_28%),linear-gradient(180deg,rgba(18,8,10,0.985),rgba(4,5,10,0.998))] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(248,113,113,0.10),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
+      <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.030)_0px,rgba(255,255,255,0.030)_1px,transparent_1px,transparent_32px)]" />
+
+      <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.065] px-5 py-4">
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-[0.18em] text-red-100/58">
+            Program Recording V1
+          </div>
+          <div className="mt-1 text-[24px] font-semibold tracking-[-0.055em] text-white/92">
+            Recording Console
+          </div>
+          <div className="mt-1 max-w-2xl text-[12px] leading-relaxed text-white/46">
+            Prototype recording state, runtime, and saved session tracking. Cloud capture and LiveKit egress wiring can follow in V2.
+          </div>
+        </div>
+
+        <button
+          type="button"
+          onClick={onClose}
+          className="rounded-full border border-white/[0.08] bg-white/[0.030] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/58 transition hover:bg-white/[0.055] hover:text-white/82"
+        >
+          Close
+        </button>
+      </div>
+
+      <div className="relative z-10 grid h-[calc(100%-112px)] min-h-0 gap-4 overflow-hidden p-5 xl:grid-cols-[1.08fr_0.92fr]">
+        <div className="min-h-0 rounded-[18px] border border-white/[0.065] bg-white/[0.024] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/42">
+                Status
+              </div>
+              <div className="mt-2 flex items-center gap-3">
+                <span
+                  className={`h-3.5 w-3.5 rounded-full ${
+                    isRecording
+                      ? "animate-pulse bg-red-400 shadow-[0_0_22px_rgba(248,113,113,0.62)]"
+                      : isArmed
+                        ? "bg-amber-300 shadow-[0_0_18px_rgba(251,191,36,0.42)]"
+                        : "bg-white/22"
+                  }`}
+                />
+                <div className="text-[34px] font-semibold uppercase tracking-[-0.06em] text-white/90">
+                  {isRecording ? "Recording" : isArmed ? "Armed" : recordingStatus === "stopped" ? "Stopped" : "Idle"}
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-[18px] border border-white/[0.060] bg-black/32 px-5 py-4 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+              <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                Runtime
+              </div>
+              <div className="mt-1 font-mono text-[34px] font-semibold tabular-nums text-white/90">
+                {formatRecordingDuration(recordingElapsedSeconds)}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6 grid gap-3 md:grid-cols-3">
+            <button
+              type="button"
+              onClick={onArmRecording}
+              disabled={isRecording}
+              className={`rounded-[16px] border px-4 py-4 text-[11px] font-black uppercase tracking-[0.12em] transition ${
+                isArmed
+                  ? "border-amber-300/24 bg-amber-300/14 text-amber-100/86"
+                  : "border-white/[0.065] bg-white/[0.024] text-white/58 hover:bg-white/[0.045] hover:text-white/82 disabled:opacity-35"
+              }`}
+            >
+              Arm
+            </button>
+
+            <button
+              type="button"
+              onClick={onStartRecording}
+              disabled={!isArmed || isRecording}
+              className="rounded-[16px] border border-red-300/24 bg-red-400/14 px-4 py-4 text-[11px] font-black uppercase tracking-[0.12em] text-red-100/82 shadow-[0_0_20px_rgba(248,113,113,0.12)] transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              Start Recording
+            </button>
+
+            <button
+              type="button"
+              onClick={onStopRecording}
+              disabled={!isRecording}
+              className="rounded-[16px] border border-white/[0.075] bg-white/[0.030] px-4 py-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/64 transition hover:bg-white/[0.055] hover:text-white/86 disabled:cursor-not-allowed disabled:opacity-35"
+            >
+              Stop
+            </button>
+          </div>
+
+          <div className="mt-5 rounded-[16px] border border-sky-200/10 bg-sky-400/[0.035] px-4 py-3 text-[11px] leading-5 text-sky-50/54">
+            V1 creates a local recording session state and simulated processing record. V2 can replace this shell with LiveKit egress, storage, thumbnails, downloads, and ISO track options.
+          </div>
+          <div className="mt-4 rounded-[18px] border border-white/[0.060] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+                  Recording Preflight
+                </div>
+                <div className="mt-1 text-[12px] font-semibold text-white/64">
+                  Validate capture readiness before requesting egress.
+                </div>
+              </div>
+
+              <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${
+                passedPreflightChecks === preflightChecks.length
+                  ? "border-emerald-300/16 bg-emerald-400/[0.080] text-emerald-100/70"
+                  : "border-amber-300/16 bg-amber-300/[0.080] text-amber-100/68"
+              }`}>
+                {passedPreflightChecks}/{preflightChecks.length} Ready
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-2">
+              {preflightChecks.map((check) => (
+                <div
+                  key={check.label}
+                  className="flex items-center justify-between gap-3 rounded-[12px] border border-white/[0.050] bg-white/[0.018] px-3 py-2"
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span
+                      className={`h-2.5 w-2.5 shrink-0 rounded-full ${
+                        check.status
+                          ? "bg-emerald-300 shadow-[0_0_10px_rgba(52,211,153,0.55)]"
+                          : "bg-amber-300 shadow-[0_0_10px_rgba(251,191,36,0.42)]"
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <div className="truncate text-[10px] font-semibold text-white/70">
+                        {check.label}
+                      </div>
+                      <div className="mt-0.5 truncate text-[8px] font-black uppercase tracking-[0.08em] text-white/28">
+                        {check.detail}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`shrink-0 rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] ${
+                      check.status
+                        ? "border-emerald-300/14 bg-emerald-400/[0.070] text-emerald-100/64"
+                        : "border-amber-300/14 bg-amber-300/[0.070] text-amber-100/64"
+                    }`}
+                  >
+                    {check.status ? "Ready" : "Pending"}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+                    <div className="mt-4 rounded-[18px] border border-white/[0.060] bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+                  V2 Capture Model
+                </div>
+                <div className="mt-1 text-[12px] font-semibold text-white/64">
+                  Non-wired controls for the next recording engine pass.
+                </div>
+              </div>
+
+              <div className="rounded-full border border-amber-300/14 bg-amber-300/[0.070] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-amber-100/62">
+                Pending Egress
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 lg:grid-cols-3">
+              <div>
+                <div className="mb-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                  Source
+                </div>
+
+                <div className="grid max-h-[188px] gap-1.5 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                  {recordingSourceOptions.map((option) => {
+                    const active = recordingSource === option.label
+
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => onRecordingSourceChange(option.label)}
+                        className={`rounded-[12px] border px-3 py-2 text-left transition ${
+                          active
+                            ? "border-red-300/22 bg-red-400/[0.105] shadow-[0_0_16px_rgba(248,113,113,0.10)]"
+                            : "border-white/[0.050] bg-white/[0.018] hover:bg-white/[0.035]"
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <div className="min-w-0 truncate text-[10px] font-black uppercase tracking-[0.08em] text-white/72">
+                            {option.label}
+                          </div>
+                          <span
+                            className={`shrink-0 rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] ${
+                              option.status === "live"
+                                ? "border-red-300/22 bg-red-400/[0.12] text-red-100/78"
+                                : option.status === "ready"
+                                  ? "border-emerald-300/14 bg-emerald-400/[0.070] text-emerald-100/58"
+                                  : "border-white/[0.055] bg-white/[0.020] text-white/32"
+                            }`}
+                          >
+                            {option.status}
+                          </span>
+                        </div>
+                        <div className="mt-1 text-[9px] leading-4 text-white/36">
+                          {option.description}
+                        </div>
+                        <div className="mt-1.5 text-[7px] font-black uppercase tracking-[0.12em] text-white/24">
+                          {option.type} source
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                  Destination
+                </div>
+
+                <div className="grid gap-1.5">
+                  {["Jupiter Cloud", "Local Browser", "External Storage"].map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => onRecordingDestinationChange(option)}
+                      className={`rounded-[11px] border px-3 py-2 text-left text-[10px] font-black uppercase tracking-[0.08em] transition ${
+                        recordingDestination === option
+                          ? "border-sky-300/20 bg-sky-400/[0.090] text-sky-100/76"
+                          : "border-white/[0.050] bg-white/[0.018] text-white/42 hover:bg-white/[0.035] hover:text-white/68"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1.5 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
+                  Quality
+                </div>
+
+                <div className="grid gap-1.5">
+                  {["720p Draft", "1080p Standard", "4K Future"].map((option) => (
+                    <button
+                      key={option}
+                      type="button"
+                      onClick={() => onRecordingQualityChange(option)}
+                      className={`rounded-[11px] border px-3 py-2 text-left text-[10px] font-black uppercase tracking-[0.08em] transition ${
+                        recordingQuality === option
+                          ? "border-emerald-300/18 bg-emerald-400/[0.080] text-emerald-100/72"
+                          : "border-white/[0.050] bg-white/[0.018] text-white/42 hover:bg-white/[0.035] hover:text-white/68"
+                      }`}
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.016)]">
+          <div className="flex items-center justify-between">
+            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+              Sessions
+            </div>
+            <div className="rounded-full border border-white/[0.055] bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-white/34">
+              {recordings.length} saved
+            </div>
+          </div>
+
+          <div className="mt-3 max-h-[190px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {recordings.length ? (
+              recordings.slice(0, 8).map((recording) => (
+                <div key={recording.id} className="rounded-[14px] border border-white/[0.050] bg-black/22 px-3 py-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="truncate text-[12px] font-semibold text-white/74">
+                      {recording.label}
+                    </div>
+                    <span className={`rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] ${
+                      recording.status === "ready"
+                        ? "border-emerald-300/14 bg-emerald-400/[0.070] text-emerald-100/62"
+                        : "border-amber-300/14 bg-amber-400/[0.070] text-amber-100/62"
+                    }`}>
+                      {recording.status}
+                    </span>
+                  </div>
+                  <div className="mt-1.5 flex items-center justify-between text-[9px] font-semibold text-white/34">
+                    <span>{new Date(recording.startedAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                    <span>{formatRecordingDuration(recording.durationSeconds)}</span>
+                  </div>
+                  <div className="mt-1 truncate text-[8px] font-black uppercase tracking-[0.08em] text-white/26">
+                    {recording.source} · {recording.quality}
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="rounded-[14px] border border-dashed border-white/[0.070] bg-white/[0.014] px-3 py-10 text-center text-[12px] leading-5 text-white/38">
+                No local recording sessions yet. Arm and start a V1 test recording to create the first entry.
+              </div>
+            )}
+          </div>
+
+          {latestRecording ? (
+            <div className="rounded-[14px] border border-emerald-300/10 bg-emerald-400/[0.045] px-3 py-2 text-[10px] leading-4 text-emerald-50/54">
+              Latest: {latestRecording.label} is marked {latestRecording.status} from {latestRecording.source}.
+            </div>
+          ) : null}
+
+          <div className="rounded-[18px] border border-white/[0.060] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+                  Recording Pipeline
+                </div>
+                <div className="mt-1 text-[12px] font-semibold text-white/64">
+                  Capture, egress, destination, and output readiness.
+                </div>
+              </div>
+              <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${
+                isRecording
+                  ? "border-red-300/20 bg-red-400/[0.12] text-red-100/78"
+                  : recordingStatus === "stopped"
+                    ? "border-amber-300/18 bg-amber-300/[0.080] text-amber-100/68"
+                    : isArmed
+                      ? "border-sky-300/18 bg-sky-400/[0.080] text-sky-100/68"
+                      : "border-white/[0.060] bg-white/[0.020] text-white/40"
+              }`}>
+                {pipelineStage}
+              </div>
+            </div>
+
+            <div className="mt-3 grid gap-2">
+              {[
+                ["Source", recordingSource],
+                ["Destination", recordingDestination],
+                ["Quality", recordingQuality],
+                ["Encoder", encoderStatus],
+                ["Target Bitrate", estimatedBitrate],
+                ["Output", estimatedOutput],
+              ].map(([label, value]) => (
+                <div key={label} className="flex items-center justify-between gap-3 rounded-[12px] border border-white/[0.050] bg-white/[0.018] px-3 py-2">
+                  <span className="text-[10px] font-semibold text-white/42">{label}</span>
+                  <span className="truncate text-right text-[10px] font-black uppercase tracking-[0.08em] text-white/64">{value}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-3 grid grid-cols-3 gap-2">
+              {[
+                ["Health", isRecording ? "Nominal" : "Ready"],
+                ["Drops", "0"],
+                ["Exports", recordingStatus === "stopped" ? "Queued" : "Pending"],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-[12px] border border-white/[0.045] bg-black/22 px-2.5 py-2 text-center">
+                  <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">{label}</div>
+                  <div className="mt-1 text-[11px] font-black uppercase tracking-[0.08em] text-white/62">{value}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )
