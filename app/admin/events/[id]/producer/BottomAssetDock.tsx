@@ -1,5 +1,5 @@
 
-import { useEffect, useState, type JSX } from "react"
+import { useEffect, useMemo, useState, type JSX } from "react"
 type UtilityPanel = "record" | "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 type MixerChannelKey = "Program" | "Stage" | "Music" | "Mics" | "SFX" | "Audience"
 
@@ -32,6 +32,20 @@ function dbLabelFromPercent(level: number): string {
   const db = percentToDb(level)
   if (db <= -59) return "-∞"
   return `${Math.round(db)}`
+}
+
+function channelIsAudible({
+  label,
+  muted,
+  soloChannel,
+}: {
+  label: MixerChannelKey
+  muted: boolean
+  soloChannel: MixerChannelKey | null
+}): boolean {
+  if (muted) return false
+  if (!soloChannel) return true
+  return soloChannel === label
 }
 import {
   FALLBACK_MEDIA_ITEMS,
@@ -135,6 +149,8 @@ function MixerStrip({
   level,
   soloActive,
   muted,
+  audible,
+  peakLevel,
   onToggleSolo,
   onToggleMute,
 }: {
@@ -142,17 +158,20 @@ function MixerStrip({
   level: number
   soloActive: boolean
   muted: boolean
+  audible: boolean
+  peakLevel: number
   onToggleSolo: () => void
   onToggleMute: () => void
 }): JSX.Element {
-  const effectiveLevel = muted ? Math.min(level, 3) : level
+  const effectiveLevel = audible ? level : Math.min(level, 3)
   const clampedLevel = Math.max(2, Math.min(96, effectiveLevel))
+  const clampedPeakLevel = Math.max(2, Math.min(96, audible ? peakLevel : 3))
   const meterOpacity = clampedLevel > 6 ? "opacity-100" : "opacity-30"
   const dbLabel = dbLabelFromPercent(clampedLevel)
   const clipHot = clampedLevel > 92
 
   return (
-    <div className="flex min-w-0 flex-col items-center gap-1.5 border-r border-white/[0.030] px-1.5 last:border-r-0">
+    <div className={`flex min-w-0 flex-col items-center gap-1.5 border-r border-white/[0.030] px-1.5 transition-opacity last:border-r-0 ${audible ? "opacity-100" : "opacity-48"}`}>
       <div className="text-[8px] font-semibold text-sky-100/52">{label}</div>
       <div className="relative h-[82px] w-6 rounded-full border border-white/[0.060] bg-black/28 p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
         <div className="absolute bottom-1 left-1 right-1 overflow-hidden rounded-full bg-white/[0.045]" style={{ height: "70px" }}>
@@ -162,6 +181,10 @@ function MixerStrip({
           <div
             className={`absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-emerald-400 via-emerald-300 via-[66%] via-amber-300 to-red-400 shadow-[0_0_12px_rgba(52,211,153,0.20)] transition-[height,opacity] duration-75 ease-out ${meterOpacity}`}
             style={{ height: `${clampedLevel}%` }}
+          />
+          <div
+            className="absolute left-0 right-0 h-0.5 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.55)] transition-[bottom] duration-150 ease-out"
+            style={{ bottom: `${clampedPeakLevel}%` }}
           />
           <div className="absolute inset-x-0 bottom-[72%] h-px bg-amber-100/24" />
           <div className="absolute inset-x-0 bottom-[90%] h-px bg-red-100/28" />
@@ -217,6 +240,7 @@ function ExpandedAudioMixerOverlay({
   audienceLevel,
   soloChannel,
   mutedChannels,
+  peakLevels,
   onToggleSolo,
   onToggleMute,
   onClose,
@@ -229,6 +253,7 @@ function ExpandedAudioMixerOverlay({
   audienceLevel: number
   soloChannel: MixerChannelKey | null
   mutedChannels: Record<MixerChannelKey, boolean>
+  peakLevels: Record<MixerChannelKey, number>
   onToggleSolo: (channel: MixerChannelKey) => void
   onToggleMute: (channel: MixerChannelKey) => void
   onClose: () => void
@@ -273,13 +298,15 @@ function ExpandedAudioMixerOverlay({
             {channels.map(([label, level, badge]) => {
               const muted = mutedChannels[label]
               const soloActive = soloChannel === label
-              const effectiveLevel = muted ? Math.min(level, 3) : level
+              const audible = channelIsAudible({ label, muted, soloChannel })
+              const peakLevel = Math.max(2, Math.min(96, audible ? peakLevels[label] : 3))
+              const effectiveLevel = audible ? level : Math.min(level, 3)
               const clampedLevel = Math.max(2, Math.min(96, effectiveLevel))
               const dbLabel = dbLabelFromPercent(clampedLevel)
               const clipHot = clampedLevel > 92
 
               return (
-                <div key={label} className="flex min-h-0 flex-col overflow-hidden rounded-[16px] border border-white/[0.055] bg-white/[0.020] p-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.016)]">
+                <div key={label} className={`flex min-h-0 flex-col overflow-hidden rounded-[16px] border p-3 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.016)] transition ${audible ? "border-white/[0.055] bg-white/[0.020] opacity-100" : "border-white/[0.035] bg-black/20 opacity-52"}`}>
                   <div className="text-[10px] font-black uppercase tracking-[0.13em] text-white/52">
                     {label}
                   </div>
@@ -304,6 +331,10 @@ function ExpandedAudioMixerOverlay({
                         <div
                           className="absolute bottom-0 left-0 right-0 rounded-full bg-gradient-to-t from-emerald-400 via-emerald-300 via-[66%] via-amber-300 to-red-400 shadow-[0_0_18px_rgba(52,211,153,0.28)] transition-[height] duration-75 ease-out"
                           style={{ height: `${clampedLevel}%` }}
+                        />
+                        <div
+                          className="absolute left-0 right-0 h-0.5 rounded-full bg-white shadow-[0_0_12px_rgba(255,255,255,0.62)] transition-[bottom] duration-150 ease-out"
+                          style={{ bottom: `${peakLevel}%` }}
                         />
                         <div className="absolute inset-x-0 bottom-[72%] h-px bg-amber-100/28" />
                         <div className="absolute inset-x-0 bottom-[90%] h-px bg-red-100/32" />
@@ -343,7 +374,7 @@ function ExpandedAudioMixerOverlay({
                   </div>
 
                   <div className={`mt-2 rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${clipHot ? "border-red-300/20 bg-red-400/10 text-red-100/70" : "border-emerald-300/12 bg-emerald-400/7 text-emerald-100/52"}`}>
-                    {clipHot ? "Clip Risk" : "Signal Safe"}
+                    {muted ? "Muted" : soloActive ? "Solo Active" : clipHot ? "Clip Risk" : audible ? "Signal Safe" : "Dimmed"}
                   </div>
                 </div>
               )
@@ -686,6 +717,38 @@ export default function BottomAssetDock({
     { label: "Welcome Slide", meta: "Graphics", imageUrl: null },
   ].slice(0, 6)
 
+  const channelLevels = useMemo<Record<MixerChannelKey, number>>(
+    () => ({
+      Program: programLevel,
+      Stage: stageLevel,
+      Music: musicLevel,
+      Mics: micLevelPercent,
+      SFX: sfxLevel,
+      Audience: audienceLevel,
+    }),
+    [audienceLevel, micLevelPercent, musicLevel, programLevel, sfxLevel, stageLevel]
+  )
+
+  const [peakLevels, setPeakLevels] = useState<Record<MixerChannelKey, number>>({
+    Program: 2,
+    Stage: 2,
+    Music: 2,
+    Mics: 2,
+    SFX: 2,
+    Audience: 2,
+  })
+
+  useEffect(() => {
+    setPeakLevels((current) => ({
+      Program: Math.max(channelLevels.Program, current.Program - 1.6),
+      Stage: Math.max(channelLevels.Stage, current.Stage - 1.6),
+      Music: Math.max(channelLevels.Music, current.Music - 1.2),
+      Mics: Math.max(channelLevels.Mics, current.Mics - 1.8),
+      SFX: Math.max(channelLevels.SFX, current.SFX - 1.2),
+      Audience: Math.max(channelLevels.Audience, current.Audience - 1.0),
+    }))
+  }, [channelLevels])
+
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(7,12,22,0.96),rgba(3,6,12,1))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.020)_0px,rgba(255,255,255,0.020)_1px,transparent_1px,transparent_28px)]" />
@@ -705,6 +768,7 @@ export default function BottomAssetDock({
           audienceLevel={audienceLevel}
           soloChannel={soloChannel}
           mutedChannels={mutedChannels}
+          peakLevels={peakLevels}
           onToggleSolo={toggleSoloChannel}
           onToggleMute={toggleMutedChannel}
           onClose={() => setExpandedMixerOpen(false)}
@@ -819,6 +883,8 @@ export default function BottomAssetDock({
                   level={level}
                   soloActive={soloChannel === label}
                   muted={mutedChannels[label]}
+                  audible={channelIsAudible({ label, muted: mutedChannels[label], soloChannel })}
+                  peakLevel={peakLevels[label]}
                   onToggleSolo={() => toggleSoloChannel(label)}
                   onToggleMute={() => toggleMutedChannel(label)}
                 />
