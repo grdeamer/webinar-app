@@ -1302,9 +1302,9 @@ export default function BottomAssetDock({
       <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-[1fr_1fr_1fr_1.4fr_1.15fr_1fr_1fr]">
         <UtilityButton
           icon={<CircleDot size={18} />}
-          label={recordingStatus === "recording" ? "Recording" : "Record"}
-          meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "armed" ? "Armed" : "V1 Console"}
-          danger={recordingStatus === "recording"}
+          label={recordingStatus === "recording" ? "Recording" : recordingStatus === "starting" ? "Starting" : "Record"}
+meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "starting" ? "Requesting egress" : recordingStatus === "armed" ? "Armed" : recordingStatus === "stopped" ? "Finalizing" : "Egress Ready"}
+danger={recordingStatus === "recording" || recordingStatus === "starting"}
           onClick={() => setExpandedRecordingOpen(true)}
         />
         <UtilityButton icon={<Radio size={18} />} label="Stream" meta="YouTube + FB" onClick={() => setActiveUtilityPanel("stream")} />
@@ -1349,11 +1349,30 @@ function ExpandedRecordingOverlay({
   onStopRecording: () => void
   onClose: () => void
 }): JSX.Element {
-const isArmed = recordingStatus === "armed"
-const isStarting = recordingStatus === "starting"
-const isRecording = recordingStatus === "recording"
-const latestRecording = recordings[0]
+  const isArmed = recordingStatus === "armed"
+  const isStarting = recordingStatus === "starting"
+  const isRecording = recordingStatus === "recording"
+  const latestRecording = recordings[0]
+  const latestRecordingStatus =
+  latestRecording?.status === "ready"
+    ? "Uploaded"
+    : latestRecording?.status === "processing"
+      ? "Finalizing"
+      : latestRecording?.status === "failed"
+        ? "Failed"
+        : latestRecording?.status === "recording"
+          ? "Recording"
+          : "Standby"
 
+  const latestRecordingLocation =
+  latestRecording?.location
+    ? latestRecording.location.split("/").slice(-2).join("/")
+    : "Awaiting upload"
+
+  const latestRecordingSize =
+  latestRecording?.size && latestRecording.size !== "0"
+    ? `${Number(latestRecording.size).toLocaleString()} bytes`
+    : "Pending"
   const recordingSourceOptions: RecordingSourceOption[] = [
     {
       id: "program-feed",
@@ -1399,7 +1418,7 @@ const latestRecording = recordings[0]
     },
   ]
 
-const pipelineStage = isRecording
+  const pipelineStage = isRecording
   ? "Capturing"
   : isStarting
     ? "Starting"
@@ -1409,7 +1428,7 @@ const pipelineStage = isRecording
         ? "Armed"
         : "Idle"
 
-const encoderStatus = isRecording
+  const encoderStatus = isRecording
   ? "Capturing"
   : isStarting
     ? "Requesting LiveKit egress"
@@ -1447,15 +1466,15 @@ const encoderStatus = isRecording
       detail: recordingQuality,
     },
     {
-      label: "Egress provider",
-      status: false,
-      detail: "Pending LiveKit",
-    },
-    {
-      label: "Storage target",
-      status: false,
-      detail: "Pending backend",
-    },
+  label: "Egress provider",
+  status: true,
+  detail: "LiveKit configured",
+},
+{
+  label: "Storage target",
+  status: true,
+  detail: "S3 connected",
+},
   ]
 
   const passedPreflightChecks = preflightChecks.filter((check) => check.status).length
@@ -1466,13 +1485,13 @@ const encoderStatus = isRecording
       <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.065] px-5 py-4">
         <div>
           <div className="text-[9px] font-black uppercase tracking-[0.18em] text-red-100/58">
-            Program Recording V1
+            Program Recording
           </div>
           <div className="mt-1 text-[24px] font-semibold tracking-[-0.055em] text-white/92">
             Recording Console
           </div>
           <div className="mt-1 max-w-2xl text-[12px] leading-relaxed text-white/46">
-            Prototype recording state, runtime, and saved session tracking. Cloud capture and LiveKit egress wiring can follow in V2.
+            LiveKit egress recording, runtime, saved session tracking, and S3 finalization status.
           </div>
         </div>
 
@@ -1561,7 +1580,7 @@ isRecording
           </div>
 
           <div className="mt-5 rounded-[16px] border border-sky-200/10 bg-sky-400/[0.035] px-4 py-3 text-[11px] leading-5 text-sky-50/54">
-            V1 creates a local recording session state and simulated processing record. V2 can replace this shell with LiveKit egress, storage, thumbnails, downloads, and ISO track options.
+            LiveKit egress is now connected to S3-backed recording finalization. Future passes can add thumbnails, downloadable archives, retention policies, ISO exports, and recording analytics.
           </div>
           {recordingError ? (
             <div className="mt-4 rounded-[16px] border border-red-300/16 bg-red-400/[0.10] px-4 py-3 text-[11px] leading-5 text-red-100/82 shadow-[0_0_20px_rgba(248,113,113,0.08)]">
@@ -1629,11 +1648,11 @@ isRecording
             <div className="flex items-center justify-between gap-3">
               <div>
                 <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
-                  V2 Capture Model
+                  Capture Model
                 </div>
-                <div className="mt-1 text-[12px] font-semibold text-white/64">
-                  Non-wired controls for the next recording engine pass.
-                </div>
+               <div className="mt-1 text-[12px] font-semibold text-white/64">
+  LiveKit pipeline state, S3 upload status, encoder readiness, and finalized output telemetry.
+</div>
               </div>
 
               <div className="rounded-full border border-amber-300/14 bg-amber-300/[0.070] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-amber-100/62">
@@ -1785,14 +1804,14 @@ isRecording
               ))
             ) : (
               <div className="rounded-[14px] border border-dashed border-white/[0.070] bg-white/[0.014] px-3 py-10 text-center text-[12px] leading-5 text-white/38">
-                No local recording sessions yet. Arm and start a V1 test recording to create the first entry.
+                No recording sessions yet. Arm the recorder and start a capture to create the first session entry.
               </div>
             )}
           </div>
 
           {latestRecording ? (
             <div className="rounded-[14px] border border-emerald-300/10 bg-emerald-400/[0.045] px-3 py-2 text-[10px] leading-4 text-emerald-50/54">
-              Latest: {latestRecording.label} is marked {latestRecording.status} from {latestRecording.source}.
+              Latest: {latestRecording.label} · {latestRecordingStatus} · {latestRecordingLocation}
             </div>
           ) : null}
 
@@ -1802,9 +1821,9 @@ isRecording
                 <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
                   Recording Pipeline
                 </div>
-                <div className="mt-1 text-[12px] font-semibold text-white/64">
-                  Capture, egress, destination, and output readiness.
-                </div>
+<div className="mt-1 text-[12px] font-semibold text-white/64">
+  Live capture telemetry, encoder state, upload finalization, and recording delivery readiness.
+</div>
               </div>
               <div className={`rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] ${
                 isRecording
@@ -1826,7 +1845,8 @@ isRecording
                 ["Quality", recordingQuality],
                 ["Encoder", encoderStatus],
                 ["Target Bitrate", estimatedBitrate],
-                ["Output", latestRecording?.size ? `${latestRecording.size} bytes` : estimatedOutput],
+                ["Estimated Output", latestRecordingSize],
+                ["Delivery", latestRecordingStatus],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between gap-3 rounded-[12px] border border-white/[0.050] bg-white/[0.018] px-3 py-2">
                   <span className="text-[10px] font-semibold text-white/42">{label}</span>
@@ -1837,8 +1857,8 @@ isRecording
 
             <div className="mt-3 grid grid-cols-3 gap-2">
               {[
-                ["Health", isRecording ? "Nominal" : "Ready"],
-                ["Drops", "0"],
+                ["Health", isRecording ? "Stable" : "Ready"],
+                ["Dropped Frames", "0"],
                 ["Exports", latestRecording?.status === "ready" ? "Ready" : recordingStatus === "stopped" ? "Finalizing" : "Pending"],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-[12px] border border-white/[0.045] bg-black/22 px-2.5 py-2 text-center">

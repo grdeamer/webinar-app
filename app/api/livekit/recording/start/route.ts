@@ -102,6 +102,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     )
     const s3Endpoint = process.env.LIVEKIT_EGRESS_S3_ENDPOINT?.trim() || undefined
 
+    const storageDiagnostics = {
+      provider: "s3",
+      configured: hasS3Output,
+      bucket: process.env.LIVEKIT_EGRESS_S3_BUCKET ?? null,
+      region: process.env.LIVEKIT_EGRESS_S3_REGION ?? null,
+      endpoint: s3Endpoint ?? null,
+      filepath,
+    }
 
     if (body.dryRun) {
       return NextResponse.json({
@@ -110,6 +118,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         roomName,
         layout,
         filepath,
+        storage: storageDiagnostics,
         source: body.source ?? "Program Feed",
         destination: body.destination ?? "Jupiter Cloud",
         quality: body.quality ?? "1080p Standard",
@@ -124,17 +133,13 @@ export async function POST(request: Request): Promise<NextResponse> {
           roomName,
           layout,
           filepath,
+          storage: storageDiagnostics,
         },
         { status: 400 }
       )
     }
 
-    console.log("[recording.start] s3 output", {
-      bucket: process.env.LIVEKIT_EGRESS_S3_BUCKET,
-      region: process.env.LIVEKIT_EGRESS_S3_REGION,
-      endpoint: s3Endpoint ?? null,
-      filepath,
-    })
+    console.log("[recording.start] storage output", storageDiagnostics)
     const s3Upload = new S3Upload({
       accessKey: requiredEnv("LIVEKIT_EGRESS_S3_ACCESS_KEY"),
       secret: requiredEnv("LIVEKIT_EGRESS_S3_SECRET"),
@@ -183,6 +188,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       endedAt: egressInfo.endedAt?.toString() ?? null,
       file: egressInfo.fileResults?.[0]?.filename ?? null,
       fileResults: egressInfo.fileResults ?? [],
+      storage: storageDiagnostics,
       streamResults: egressInfo.streamResults ?? [],
       error: (egressInfo as { error?: string }).error ?? null,
       source: body.source ?? "Program Feed",

@@ -1,5 +1,3 @@
-
-
 import { NextResponse } from "next/server"
 import { EgressClient } from "livekit-server-sdk"
 
@@ -9,6 +7,34 @@ export const maxDuration = 60
 
 type RecordingStatusRequest = {
   egressId?: string
+}
+
+function egressStatusLabel(status: number): string {
+  switch (status) {
+    case 0:
+      return "starting"
+    case 1:
+      return "active"
+    case 2:
+      return "ending"
+    case 3:
+      return "complete"
+    case 4:
+      return "failed"
+    case 5:
+      return "aborted"
+    case 6:
+      return "limit_reached"
+    default:
+      return "unknown"
+  }
+}
+
+function hasUsableFile(file: { size?: bigint | number | string | null; location?: string | null } | null): boolean {
+  if (!file) return false
+
+  const sizeValue = typeof file.size === "bigint" ? Number(file.size) : Number(file.size ?? 0)
+  return sizeValue > 0 && Boolean(file.location)
 }
 
 function requiredEnv(name: string, fallbackName?: string): string {
@@ -77,15 +103,27 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const status = Number(egressInfo.status)
     const terminal = status === 3 || status === 4 || status === 5 || status === 6
+    const statusLabel = egressStatusLabel(status)
     const file = egressInfo.fileResults?.[0] ?? null
-
+    const uploaded = hasUsableFile(file)
+    const detailedFileResults =
+      egressInfo.fileResults?.map((result) => ({
+        filename: result.filename,
+        location: result.location,
+        size: result.size?.toString() ?? null,
+        startedAt: result.startedAt?.toString() ?? null,
+        endedAt: result.endedAt?.toString() ?? null,
+        duration: result.duration?.toString() ?? null,
+      })) ?? []
     console.log("[recording.status] result", {
       egressId: egressInfo.egressId,
       status: egressInfo.status,
+      statusLabel,
+      uploaded,
       terminal,
       startedAt: egressInfo.startedAt?.toString() ?? null,
       endedAt: egressInfo.endedAt?.toString() ?? null,
-      fileResults: egressInfo.fileResults ?? [],
+      fileResults: detailedFileResults,
       error: (egressInfo as { error?: string }).error ?? null,
     })
 
@@ -93,14 +131,18 @@ export async function POST(request: Request): Promise<NextResponse> {
       ok: true,
       egressId: egressInfo.egressId,
       status: egressInfo.status,
+      statusLabel,
+      uploaded,
       terminal,
       startedAt: egressInfo.startedAt?.toString() ?? null,
       endedAt: egressInfo.endedAt?.toString() ?? null,
       file: file?.filename ?? null,
       size: file?.size?.toString() ?? null,
       location: file?.location ?? null,
-      fileResults: egressInfo.fileResults ?? [],
-      error: (egressInfo as { error?: string }).error ?? null,
+      fileResults: detailedFileResults,
+      error:
+        (egressInfo as { error?: string }).error ||
+        (terminal && !uploaded ? "Recording finalized without a usable uploaded file" : null),
     })
   } catch (error) {
     console.error("[recording.status] failed", error)
