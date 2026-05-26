@@ -3,7 +3,7 @@ import { useEffect, useMemo, useState, type JSX } from "react"
 type UtilityPanel = "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 type MixerChannelKey = "Program" | "Stage" | "Music" | "Mics" | "SFX" | "Audience"
 
-type RecordingStatus = "idle" | "armed" | "recording" | "stopped"
+type RecordingStatus = "idle" | "armed" | "starting" | "recording" | "stopped"
 
 type RecordingSession = {
   id: string
@@ -14,7 +14,11 @@ type RecordingSession = {
   source: string
   destination: string
   quality: string
-  status: "processing" | "ready"
+  egressId?: string | null
+  file?: string | null
+  location?: string | null
+  size?: string | null
+  status: "processing" | "ready" | "recording" | "failed"
 }
 
 type RecordingSourceOption = {
@@ -767,6 +771,7 @@ export default function BottomAssetDock({
   hotkeySceneId,
   previewBlocks,
   localMicLevel,
+  recordingRoomName,
   onAddScene,
 }: {
   scenes: SceneSummary[]
@@ -776,6 +781,7 @@ export default function BottomAssetDock({
   hotkeySceneId: string | null
   previewBlocks: PreviewBlock[]
   localMicLevel?: number
+  recordingRoomName: string
   slideDeckName?: string | null
   slideCount?: number
   onAddScene?: () => void
@@ -806,6 +812,8 @@ export default function BottomAssetDock({
   const [recordingSource, setRecordingSource] = useState("Program Feed")
   const [recordingDestination, setRecordingDestination] = useState("Jupiter Cloud")
   const [recordingQuality, setRecordingQuality] = useState("1080p Standard")
+  const [activeEgressId, setActiveEgressId] = useState<string | null>(null)
+  const [recordingError, setRecordingError] = useState<string | null>(null)
 
   function toggleSoloChannel(channel: MixerChannelKey): void {
     setSoloChannel((current) => (current === channel ? null : channel))
@@ -833,51 +841,170 @@ export default function BottomAssetDock({
     : 0
 
   function armRecording(): void {
-    if (recordingStatus === "recording") return
+    if (recordingStatus === "recording" || recordingStatus === "starting") return
     setRecordingStatus("armed")
     setRecordingStartedAt(null)
   }
 
-  function startRecording(): void {
+  async function startRecording(): Promise<void> {
     if (recordingStatus !== "armed") return
-    const startedAt = Date.now()
-    setRecordingStartedAt(startedAt)
-    setRecordingNow(startedAt)
-    setRecordingStatus("recording")
+
+    setRecordingError(null)
+    setRecordingStatus("starting")
+
+    try {
+      const response = await fetch("/api/livekit/recording/start", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          roomName: recordingRoomName,
+          source: recordingSource,
+          destination: recordingDestination,
+          quality: recordingQuality,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error ?? "Failed to start recording")
+      }
+
+      const startedAt = Date.now()
+
+      setActiveEgressId(data.egressId ?? null)
+      setRecordingStartedAt(startedAt)
+      setRecordingNow(startedAt)
+      setRecordingStatus("recording")
+
+      setRecordings((current) => [
+        {
+          id: `active-${startedAt}`,
+          label: `Program Recording ${current.length + 1}`,
+          startedAt: new Date(startedAt).toISOString(),
+          endedAt: null,
+          durationSeconds: 0,
+          source: recordingSource,
+          destination: recordingDestination,
+          quality: recordingQuality,
+          egressId: data.egressId ?? null,
+          file: data.file ?? null,
+          location: null,
+          size: null,
+          status: "recording",
+        },
+        ...current,
+      ])
+    } catch (error) {
+      setRecordingError(error instanceof Error ? error.message : "Unknown recording start error")
+      setRecordingStatus("idle")
+    }
   }
 
-  function stopRecording(): void {
+  async function pollRecordingStatus(egressId: string): Promise<void> {
+    const maxAttempts = 20
+
+    for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
+      await new Promise((resolve) => window.setTimeout(resolve, 2000))
+
+      const response = await fetch("/api/livekit/recording/status", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ egressId }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.ok) {
+        throw new Error(data.error ?? "Failed to check recording status")
+      }
+
+      if (!data.terminal) continue
+
+      const finalStatus = Number(data.status)
+      const ready = finalStatus === 3 && data.size !== "0"
+
+      setRecordings((current) =>
+        current.map((recording) => {
+          if (recording.egressId !== egressId) return recording
+
+          return {
+            ...recording,
+            file: data.file ?? recording.file ?? null,
+            location: data.location ?? null,
+            size: data.size ?? null,
+            status: ready ? "ready" : "failed",
+          }
+        })
+      )
+
+      if (!ready) {
+        setRecordingError(data.error ?? "Recording finalized without a usable file")
+      }
+
+      return
+    }
+
+    setRecordingError("Recording is still finalizing. Check S3 or LiveKit egress status again shortly.")
+  }
+
+  async function stopRecording(): Promise<void> {
     if (recordingStatus !== "recording" || !recordingStartedAt) return
 
-    const endedAt = Date.now()
-    const durationSeconds = Math.max(1, Math.floor((endedAt - recordingStartedAt) / 1000))
-    const id = `recording-${endedAt}`
+    setRecordingError(null)
 
-    setRecordings((current) => [
-      {
-        id,
-        label: `Program Recording ${current.length + 1}`,
-        startedAt: new Date(recordingStartedAt).toISOString(),
-        endedAt: new Date(endedAt).toISOString(),
-        durationSeconds,
-        source: recordingSource,
-        destination: recordingDestination,
-        quality: recordingQuality,
-        status: "processing",
-      },
-      ...current,
-    ])
+    try {
+      const stoppedEgressId = activeEgressId
 
-    window.setTimeout(() => {
+      if (stoppedEgressId) {
+        const response = await fetch("/api/livekit/recording/stop", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            egressId: stoppedEgressId,
+          }),
+        })
+
+        const data = await response.json()
+
+        if (!response.ok || !data.ok) {
+          throw new Error(data.error ?? "Failed to stop recording")
+        }
+      }
+
+      const endedAt = Date.now()
+      const durationSeconds = Math.max(1, Math.floor((endedAt - recordingStartedAt) / 1000))
+
       setRecordings((current) =>
-        current.map((recording) =>
-          recording.id === id ? { ...recording, status: "ready" } : recording
-        )
-      )
-    }, 2400)
+        current.map((recording) => {
+          if (recording.status !== "recording") return recording
 
-    setRecordingStatus("stopped")
-    setRecordingStartedAt(null)
+          return {
+            ...recording,
+            endedAt: new Date(endedAt).toISOString(),
+            durationSeconds,
+            status: "processing",
+          }
+        })
+      )
+
+      setRecordingStatus("stopped")
+      setRecordingStartedAt(null)
+      setActiveEgressId(null)
+      if (stoppedEgressId) {
+        void pollRecordingStatus(stoppedEgressId).catch((error) => {
+          setRecordingError(error instanceof Error ? error.message : "Unknown recording finalization error")
+        })
+      }
+    } catch (error) {
+      setRecordingError(error instanceof Error ? error.message : "Unknown recording stop error")
+    }
   }
   const [smoothedMicLevel, setSmoothedMicLevel] = useState(0)
   const rawMicLevel = localMicLevel ?? 0
@@ -1004,6 +1131,7 @@ export default function BottomAssetDock({
           recordingSource={recordingSource}
           recordingDestination={recordingDestination}
           recordingQuality={recordingQuality}
+          recordingError={recordingError}
           onRecordingSourceChange={setRecordingSource}
           onRecordingDestinationChange={setRecordingDestination}
           onRecordingQualityChange={setRecordingQuality}
@@ -1197,6 +1325,7 @@ function ExpandedRecordingOverlay({
   recordingSource,
   recordingDestination,
   recordingQuality,
+  recordingError,
   onRecordingSourceChange,
   onRecordingDestinationChange,
   onRecordingQualityChange,
@@ -1211,6 +1340,7 @@ function ExpandedRecordingOverlay({
   recordingSource: string
   recordingDestination: string
   recordingQuality: string
+  recordingError: string | null
   onRecordingSourceChange: (value: string) => void
   onRecordingDestinationChange: (value: string) => void
   onRecordingQualityChange: (value: string) => void
@@ -1219,16 +1349,17 @@ function ExpandedRecordingOverlay({
   onStopRecording: () => void
   onClose: () => void
 }): JSX.Element {
-  const isArmed = recordingStatus === "armed"
-  const isRecording = recordingStatus === "recording"
-  const latestRecording = recordings[0]
+const isArmed = recordingStatus === "armed"
+const isStarting = recordingStatus === "starting"
+const isRecording = recordingStatus === "recording"
+const latestRecording = recordings[0]
 
   const recordingSourceOptions: RecordingSourceOption[] = [
     {
       id: "program-feed",
       label: "Program Feed",
       type: "program",
-      status: isRecording ? "live" : "ready",
+      status: isRecording || isStarting ? "live" : "ready",
       description: "Final audience-facing mix with graphics and program audio.",
     },
     {
@@ -1268,16 +1399,20 @@ function ExpandedRecordingOverlay({
     },
   ]
 
-  const pipelineStage = isRecording
-    ? "Capturing"
+const pipelineStage = isRecording
+  ? "Capturing"
+  : isStarting
+    ? "Starting"
     : recordingStatus === "stopped"
       ? "Processing"
       : isArmed
         ? "Armed"
         : "Idle"
 
-  const encoderStatus = isRecording
-    ? "LiveKit egress pending"
+const encoderStatus = isRecording
+  ? "Capturing"
+  : isStarting
+    ? "Requesting LiveKit egress"
     : isArmed
       ? "Ready to request"
       : recordingStatus === "stopped"
@@ -1325,7 +1460,7 @@ function ExpandedRecordingOverlay({
 
   const passedPreflightChecks = preflightChecks.filter((check) => check.status).length
   return (
-    <div className="fixed inset-x-6 bottom-6 top-[96px] z-[999] overflow-hidden rounded-[24px] border border-red-200/16 bg-[radial-gradient(circle_at_20%_0%,rgba(248,113,113,0.15),transparent_34%),radial-gradient(circle_at_84%_10%,rgba(251,191,36,0.08),transparent_28%),linear-gradient(180deg,rgba(18,8,10,0.985),rgba(4,5,10,0.998))] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(248,113,113,0.10),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
+    <div className="fixed inset-x-6 bottom-4 top-[86px] z-[999] overflow-y-auto overflow-x-hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden rounded-[24px] border border-red-200/16 bg-[radial-gradient(circle_at_20%_0%,rgba(248,113,113,0.15),transparent_34%),radial-gradient(circle_at_84%_10%,rgba(251,191,36,0.08),transparent_28%),linear-gradient(180deg,rgba(18,8,10,0.985),rgba(4,5,10,0.998))] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(248,113,113,0.10),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.030)_0px,rgba(255,255,255,0.030)_1px,transparent_1px,transparent_32px)]" />
 
       <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.065] px-5 py-4">
@@ -1350,7 +1485,7 @@ function ExpandedRecordingOverlay({
         </button>
       </div>
 
-      <div className="relative z-10 grid h-[calc(100%-112px)] min-h-0 gap-4 overflow-hidden p-5 xl:grid-cols-[1.08fr_0.92fr]">
+      <div className="relative z-10 grid min-h-0 items-start gap-4 p-5 xl:grid-cols-[1.08fr_0.92fr]">
         <div className="min-h-0 rounded-[18px] border border-white/[0.065] bg-white/[0.024] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
           <div className="flex items-start justify-between gap-4">
             <div>
@@ -1360,20 +1495,29 @@ function ExpandedRecordingOverlay({
               <div className="mt-2 flex items-center gap-3">
                 <span
                   className={`h-3.5 w-3.5 rounded-full ${
-                    isRecording
-                      ? "animate-pulse bg-red-400 shadow-[0_0_22px_rgba(248,113,113,0.62)]"
-                      : isArmed
-                        ? "bg-amber-300 shadow-[0_0_18px_rgba(251,191,36,0.42)]"
-                        : "bg-white/22"
+isRecording
+  ? "animate-pulse bg-red-400 shadow-[0_0_22px_rgba(248,113,113,0.62)]"
+  : isStarting
+    ? "animate-pulse bg-sky-300 shadow-[0_0_20px_rgba(56,189,248,0.50)]"
+    : isArmed
+      ? "bg-amber-300 shadow-[0_0_18px_rgba(251,191,36,0.42)]"
+      : "bg-white/22"
                   }`}
                 />
                 <div className="text-[34px] font-semibold uppercase tracking-[-0.06em] text-white/90">
-                  {isRecording ? "Recording" : isArmed ? "Armed" : recordingStatus === "stopped" ? "Stopped" : "Idle"}
-                </div>
+                  {isRecording ? "Recording" : isStarting ? "Starting Recorder" : isArmed ? "Armed" : recordingStatus === "stopped" ? "Stopped" : "Idle"}                </div>
               </div>
             </div>
 
-            <div className="rounded-[18px] border border-white/[0.060] bg-black/32 px-5 py-4 text-right shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+            <div
+              className={`rounded-[18px] border px-5 py-4 text-right transition-all duration-300 ${
+                isRecording
+                  ? "border-red-300/45 bg-red-950/20 shadow-[0_0_0_1px_rgba(248,113,113,0.22),0_0_26px_rgba(248,113,113,0.34),inset_0_1px_0_rgba(255,255,255,0.028)]"
+                  : isStarting
+                    ? "border-sky-300/32 bg-sky-950/18 shadow-[0_0_0_1px_rgba(56,189,248,0.16),0_0_22px_rgba(56,189,248,0.24),inset_0_1px_0_rgba(255,255,255,0.024)]"
+                    : "border-white/[0.060] bg-black/32 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]"
+              }`}
+            >
               <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
                 Runtime
               </div>
@@ -1387,7 +1531,7 @@ function ExpandedRecordingOverlay({
             <button
               type="button"
               onClick={onArmRecording}
-              disabled={isRecording}
+              disabled={isRecording || isStarting}
               className={`rounded-[16px] border px-4 py-4 text-[11px] font-black uppercase tracking-[0.12em] transition ${
                 isArmed
                   ? "border-amber-300/24 bg-amber-300/14 text-amber-100/86"
@@ -1400,16 +1544,16 @@ function ExpandedRecordingOverlay({
             <button
               type="button"
               onClick={onStartRecording}
-              disabled={!isArmed || isRecording}
+              disabled={!isArmed || isRecording || isStarting}
               className="rounded-[16px] border border-red-300/24 bg-red-400/14 px-4 py-4 text-[11px] font-black uppercase tracking-[0.12em] text-red-100/82 shadow-[0_0_20px_rgba(248,113,113,0.12)] transition hover:bg-red-400/20 disabled:cursor-not-allowed disabled:opacity-35"
             >
-              Start Recording
+              {isStarting ? "Starting..." : "Start Recording"}
             </button>
 
             <button
               type="button"
               onClick={onStopRecording}
-              disabled={!isRecording}
+              disabled={!isRecording || isStarting}
               className="rounded-[16px] border border-white/[0.075] bg-white/[0.030] px-4 py-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/64 transition hover:bg-white/[0.055] hover:text-white/86 disabled:cursor-not-allowed disabled:opacity-35"
             >
               Stop
@@ -1419,6 +1563,11 @@ function ExpandedRecordingOverlay({
           <div className="mt-5 rounded-[16px] border border-sky-200/10 bg-sky-400/[0.035] px-4 py-3 text-[11px] leading-5 text-sky-50/54">
             V1 creates a local recording session state and simulated processing record. V2 can replace this shell with LiveKit egress, storage, thumbnails, downloads, and ISO track options.
           </div>
+          {recordingError ? (
+            <div className="mt-4 rounded-[16px] border border-red-300/16 bg-red-400/[0.10] px-4 py-3 text-[11px] leading-5 text-red-100/82 shadow-[0_0_20px_rgba(248,113,113,0.08)]">
+              {recordingError}
+            </div>
+          ) : null}
           <div className="mt-4 rounded-[18px] border border-white/[0.060] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -1498,7 +1647,7 @@ function ExpandedRecordingOverlay({
                   Source
                 </div>
 
-                <div className="grid max-h-[188px] gap-1.5 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                <div className="grid max-h-[260px] gap-1.5 overflow-y-auto pr-1 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                   {recordingSourceOptions.map((option) => {
                     const active = recordingSource === option.label
 
@@ -1590,7 +1739,7 @@ function ExpandedRecordingOverlay({
           </div>
         </div>
 
-        <div className="flex min-h-0 flex-col gap-3 overflow-hidden rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.016)]">
+        <div className="flex min-h-0 flex-col gap-3 rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.016)]">
           <div className="flex items-center justify-between">
             <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
               Sessions
@@ -1600,7 +1749,7 @@ function ExpandedRecordingOverlay({
             </div>
           </div>
 
-          <div className="mt-3 max-h-[190px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="mt-3 max-h-[220px] space-y-2 overflow-y-auto pr-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {recordings.length ? (
               recordings.slice(0, 8).map((recording) => (
                 <div key={recording.id} className="rounded-[14px] border border-white/[0.050] bg-black/22 px-3 py-2.5">
@@ -1611,7 +1760,11 @@ function ExpandedRecordingOverlay({
                     <span className={`rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] ${
                       recording.status === "ready"
                         ? "border-emerald-300/14 bg-emerald-400/[0.070] text-emerald-100/62"
-                        : "border-amber-300/14 bg-amber-400/[0.070] text-amber-100/62"
+                        : recording.status === "recording"
+                          ? "border-red-300/20 bg-red-400/[0.12] text-red-100/78"
+                          : recording.status === "failed"
+                            ? "border-red-300/16 bg-red-400/[0.08] text-red-100/70"
+                            : "border-amber-300/14 bg-amber-400/[0.070] text-amber-100/62"
                     }`}>
                       {recording.status}
                     </span>
@@ -1623,6 +1776,11 @@ function ExpandedRecordingOverlay({
                   <div className="mt-1 truncate text-[8px] font-black uppercase tracking-[0.08em] text-white/26">
                     {recording.source} · {recording.quality}
                   </div>
+                  {recording.size ? (
+                    <div className="mt-1 truncate text-[8px] font-black uppercase tracking-[0.08em] text-emerald-100/34">
+                      {recording.size} bytes · {recording.location ? "Stored" : "No location"}
+                    </div>
+                  ) : null}
                 </div>
               ))
             ) : (
@@ -1668,7 +1826,7 @@ function ExpandedRecordingOverlay({
                 ["Quality", recordingQuality],
                 ["Encoder", encoderStatus],
                 ["Target Bitrate", estimatedBitrate],
-                ["Output", estimatedOutput],
+                ["Output", latestRecording?.size ? `${latestRecording.size} bytes` : estimatedOutput],
               ].map(([label, value]) => (
                 <div key={label} className="flex items-center justify-between gap-3 rounded-[12px] border border-white/[0.050] bg-white/[0.018] px-3 py-2">
                   <span className="text-[10px] font-semibold text-white/42">{label}</span>
@@ -1681,7 +1839,7 @@ function ExpandedRecordingOverlay({
               {[
                 ["Health", isRecording ? "Nominal" : "Ready"],
                 ["Drops", "0"],
-                ["Exports", recordingStatus === "stopped" ? "Queued" : "Pending"],
+                ["Exports", latestRecording?.status === "ready" ? "Ready" : recordingStatus === "stopped" ? "Finalizing" : "Pending"],
               ].map(([label, value]) => (
                 <div key={label} className="rounded-[12px] border border-white/[0.045] bg-black/22 px-2.5 py-2 text-center">
                   <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">{label}</div>

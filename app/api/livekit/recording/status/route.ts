@@ -1,3 +1,5 @@
+
+
 import { NextResponse } from "next/server"
 import { EgressClient } from "livekit-server-sdk"
 
@@ -5,7 +7,7 @@ export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 export const maxDuration = 60
 
-type StopRecordingRequest = {
+type RecordingStatusRequest = {
   egressId?: string
 }
 
@@ -32,15 +34,15 @@ function normalizeEgressId(value: unknown): string | null {
 
 function errorMessage(error: unknown): string {
   if (error instanceof Error) return error.message
-  return "Unknown recording stop error"
+  return "Unknown recording status error"
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
   try {
-    const body = (await request.json()) as StopRecordingRequest
+    const body = (await request.json()) as RecordingStatusRequest
     const egressId = normalizeEgressId(body.egressId)
 
-    console.log("[recording.stop] request", {
+    console.log("[recording.status] request", {
       egressId,
     })
 
@@ -56,75 +58,31 @@ export async function POST(request: Request): Promise<NextResponse> {
     const apiSecret = requiredEnv("LIVEKIT_API_SECRET")
 
     const egressClient = new EgressClient(livekitUrl, apiKey, apiSecret)
-
-    const activeEgresses = await egressClient.listEgress({
+    const egresses = await egressClient.listEgress({
       egressId,
     })
 
-    const existingEgress = activeEgresses[0]
-    console.log("[recording.stop] existing egress", {
-      egressId: existingEgress?.egressId ?? null,
-      status: existingEgress?.status ?? null,
-      startedAt: existingEgress?.startedAt?.toString() ?? null,
-      endedAt: existingEgress?.endedAt?.toString() ?? null,
-      fileResults: existingEgress?.fileResults ?? [],
-      error: (existingEgress as { error?: string } | undefined)?.error ?? null,
-    })
+    const egressInfo = egresses[0]
 
-    if (!existingEgress) {
+    if (!egressInfo) {
       return NextResponse.json(
         {
           ok: false,
-          error: "Recording egress no longer exists or already stopped",
+          error: "Recording egress not found",
           egressId,
         },
         { status: 404 }
       )
     }
 
-const existingStatus = Number(existingEgress.status)
+    const status = Number(egressInfo.status)
+    const terminal = status === 3 || status === 4 || status === 5 || status === 6
+    const file = egressInfo.fileResults?.[0] ?? null
 
-/**
- * LiveKit EgressStatus enum:
- * 0 = EGRESS_STARTING
- * 1 = EGRESS_ACTIVE
- * 2 = EGRESS_ENDING
- * 3 = EGRESS_COMPLETE
- * 4 = EGRESS_FAILED
- * 5 = EGRESS_ABORTED
- * 6 = EGRESS_LIMIT_REACHED
- */
-
-if (
-  existingStatus === 3 ||
-  existingStatus === 4 ||
-  existingStatus === 5 ||
-  existingStatus === 6
-){
-      console.log("[recording.stop] terminal egress", {
-        egressId: existingEgress.egressId,
-        status: existingEgress.status,
-        endedAt: existingEgress.endedAt?.toString() ?? null,
-        fileResults: existingEgress.fileResults ?? [],
-        error: (existingEgress as { error?: string }).error ?? null,
-      })
-      return NextResponse.json({
-        ok: true,
-        terminal: true,
-        egressId: existingEgress.egressId,
-        status: existingEgress.status,
-        endedAt: existingEgress.endedAt?.toString() ?? null,
-        file: existingEgress.fileResults?.[0]?.filename ?? null,
-        error: existingStatus === 4
-  ? "Recording egress already failed before stop was requested"
-  : null,
-      })
-    }
-
-    const egressInfo = await egressClient.stopEgress(egressId)
-    console.log("[recording.stop] stopped egress", {
+    console.log("[recording.status] result", {
       egressId: egressInfo.egressId,
       status: egressInfo.status,
+      terminal,
       startedAt: egressInfo.startedAt?.toString() ?? null,
       endedAt: egressInfo.endedAt?.toString() ?? null,
       fileResults: egressInfo.fileResults ?? [],
@@ -135,13 +93,17 @@ if (
       ok: true,
       egressId: egressInfo.egressId,
       status: egressInfo.status,
+      terminal,
+      startedAt: egressInfo.startedAt?.toString() ?? null,
       endedAt: egressInfo.endedAt?.toString() ?? null,
-      file: egressInfo.fileResults?.[0]?.filename ?? null,
+      file: file?.filename ?? null,
+      size: file?.size?.toString() ?? null,
+      location: file?.location ?? null,
       fileResults: egressInfo.fileResults ?? [],
       error: (egressInfo as { error?: string }).error ?? null,
     })
   } catch (error) {
-    console.error("[recording.stop] failed", error)
+    console.error("[recording.status] failed", error)
     return NextResponse.json(
       {
         ok: false,

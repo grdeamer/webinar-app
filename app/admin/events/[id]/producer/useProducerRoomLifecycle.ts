@@ -1,5 +1,3 @@
-
-
 "use client"
 
 import { useCallback, useEffect } from "react"
@@ -13,6 +11,7 @@ type Params = {
   loadMediaDevices: () => Promise<void>
   setToken: (token: string | null) => void
   setServerUrl: (url: string | null) => void
+  setRoomName: (roomName: string | null) => void
   setParticipants: (participants: ProducerParticipant[]) => void
   setStageState: (state: StageState | null) => void
   setProgramState: (state: StageState | null) => void
@@ -27,6 +26,7 @@ export default function useProducerRoomLifecycle({
   loadMediaDevices,
   setToken,
   setServerUrl,
+  setRoomName,
   setParticipants,
   setStageState,
   setProgramState,
@@ -37,7 +37,8 @@ export default function useProducerRoomLifecycle({
     const data = await api.loadToken()
     setToken(data.token)
     setServerUrl(process.env.NEXT_PUBLIC_LIVEKIT_URL || "")
-  }, [api, setToken, setServerUrl])
+    setRoomName(data.roomName ?? null)
+  }, [api, setToken, setServerUrl, setRoomName])
 
   const loadParticipants = useCallback(async () => {
     const data = await api.loadParticipants()

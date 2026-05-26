@@ -1,5 +1,7 @@
 "use client"
 
+import { useMemo } from "react"
+
 type StageLayout = "solo" | "grid" | "screen_speaker"
 type CinematicTransitionType = "fade" | "warp" | "curtain" | "none"
 
@@ -285,28 +287,31 @@ export default function useProducerRoomApi(
       durationMs: 0,
     })
   }
-  return {
-    loadToken,
-    loadParticipants,
-    loadStageState,
-    loadProgramState,
-    loadScenes,
-    addToStage,
-    removeFromStage,
-    pinParticipant,
-    unpinParticipant,
-    setPrimaryParticipant,
-    clearPrimaryParticipant,
-    goLive,
-    goOffAir,
-    setScreenShare,
-    clearScreenShare,
-    setLayout,
-    setAutoDirector,
-    takeProgram,
-    saveScene,
-    applyScene,
-    setEventTransition,
-    clearEventTransition,
-  }
+  return useMemo(
+    () => ({
+      loadToken,
+      loadParticipants,
+      loadStageState,
+      loadProgramState,
+      loadScenes,
+      addToStage,
+      removeFromStage,
+      pinParticipant,
+      unpinParticipant,
+      setPrimaryParticipant,
+      clearPrimaryParticipant,
+      goLive,
+      goOffAir,
+      setScreenShare,
+      clearScreenShare,
+      setLayout,
+      setAutoDirector,
+      takeProgram,
+      saveScene,
+      applyScene,
+      setEventTransition,
+      clearEventTransition,
+    }),
+    [eventId, sessionId]
+  )
 }

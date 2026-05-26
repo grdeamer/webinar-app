@@ -140,6 +140,7 @@ export default function ProducerRoomClient({
 }): JSX.Element {
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
+  const [roomName, setRoomName] = useState<string | null>(null);
   const [participants, setParticipants] = useState<ProducerParticipant[]>([]);
   const [stageState, setStageState] = useState<StageState | null>(null);
   const latestStageStateRef = useRef<StageState | null>(null);
@@ -409,6 +410,7 @@ const updateStageState = useCallback(
     loadMediaDevices,
     setToken,
     setServerUrl,
+    setRoomName,
     setParticipants,
     setStageState: updateStageState,
     setProgramState: updateProgramState,
@@ -1253,6 +1255,7 @@ const updateStageState = useCallback(
       hotkeySceneId,
       previewBlocks,
       localMicLevel,
+      recordingRoomName: roomName ?? sessionId,
       slideDeckName: localPdfDeck?.name ?? null,
       slideCount: localPdfDeck?.pageCount ?? 8,
       onAddScene: sceneActions.startNewScene,
@@ -1271,6 +1274,8 @@ const updateStageState = useCallback(
       hotkeySceneId,
       previewBlocks,
       localMicLevel,
+      sessionId,
+      roomName,
       localPdfDeck?.name,
       localPdfDeck?.pageCount,
       sceneActions,

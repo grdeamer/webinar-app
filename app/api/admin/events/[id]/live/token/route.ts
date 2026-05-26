@@ -51,7 +51,10 @@ export async function POST(
       },
     })
 
-    return json(token)
+return json({
+  ...token,
+  roomName: room.room_name,
+})
   } catch (err: any) {
     return json({ error: err?.message || "Failed to create token" }, 500)
   }
