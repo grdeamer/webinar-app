@@ -1657,16 +1657,22 @@ export default function BottomAssetDock({
   const [takeFlashActive, setTakeFlashActive] = useState(false)
   const [preloadedAssetLabels, setPreloadedAssetLabels] = useState<string[]>([])
   function handlePreloadAsset(): void {
-  if (!selectedMediaAssetLabel) return
+    if (!selectedMediaAssetLabel) return
 
-  setPreloadedAssetLabels((current) => {
-    if (current.includes(selectedMediaAssetLabel)) {
-      return current
-    }
+    setPreloadedAssetLabels((current) => {
+      if (current.includes(selectedMediaAssetLabel)) {
+        return current
+      }
 
-    return [...current, selectedMediaAssetLabel]
-  })
-}
+      return [...current, selectedMediaAssetLabel]
+    })
+  }
+
+  function handleLockRoute(): void {
+    if (!selectedMediaAssetLabel) return
+
+    setPreviewMediaAssetLabel(selectedMediaAssetLabel)
+  }
   const [soloChannel, setSoloChannel] = useState<MixerChannelKey | null>(null)
   const [mutedChannels, setMutedChannels] = useState<Record<MixerChannelKey, boolean>>({
     Program: false,
@@ -2527,6 +2533,7 @@ window.setTimeout(() => {
 
                 <OrchestrationCommandStrip
   onPreload={handlePreloadAsset}
+  onLockRoute={handleLockRoute}
 />
               </div>
 
