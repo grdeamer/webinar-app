@@ -877,9 +877,11 @@ function MediaRow({
       type="button"
       onClick={onSelect}
       className={`group relative flex min-w-0 items-stretch gap-1.5 overflow-hidden rounded-[11px] border p-1 text-left transition hover:-translate-y-px hover:border-white/[0.085] hover:bg-white/[0.030] active:translate-y-0 ${
-        selected
-          ? "border-sky-300/22 bg-sky-400/[0.060] shadow-[0_0_18px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.018)]"
-          : "border-white/[0.045] bg-white/[0.016]"
+selected
+  ? "border-sky-300/22 bg-sky-400/[0.060] shadow-[0_0_18px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.018)]"
+  : asset.state === "PRELOADED"
+    ? "border-emerald-300/16 bg-emerald-400/[0.045] shadow-[0_0_20px_rgba(16,185,129,0.12)]"
+    : "border-white/[0.045] bg-white/[0.016]"
       }`}
     >
       <div className={`relative h-[54px] w-[72px] shrink-0 overflow-hidden rounded-[8px] border ${typeFrame}`}>
