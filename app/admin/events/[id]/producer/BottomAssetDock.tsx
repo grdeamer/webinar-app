@@ -1655,6 +1655,16 @@ export default function BottomAssetDock({
   const [previewMediaAssetLabel, setPreviewMediaAssetLabel] = useState<string | null>(null)
   const [programMediaAssetLabel, setProgramMediaAssetLabel] = useState<string | null>(null)
   const [takeFlashActive, setTakeFlashActive] = useState(false)
+  function handleTakeAsset(): void {
+  if (!previewMediaAssetLabel) return
+
+  setProgramMediaAssetLabel(previewMediaAssetLabel)
+  setTakeFlashActive(true)
+
+  window.setTimeout(() => {
+    setTakeFlashActive(false)
+  }, 900)
+}
   const [preloadedAssetLabels, setPreloadedAssetLabels] = useState<string[]>([])
   function handlePreloadAsset(): void {
     if (!selectedMediaAssetLabel) return
@@ -1673,6 +1683,26 @@ export default function BottomAssetDock({
 
     setPreviewMediaAssetLabel(selectedMediaAssetLabel)
   }
+  function handleRehearseAsset(): void {
+  if (!selectedMediaAssetLabel) return
+
+  setPreviewMediaAssetLabel(selectedMediaAssetLabel)
+  setPreloadedAssetLabels((current) => {
+    if (current.includes(selectedMediaAssetLabel)) {
+      return current
+    }
+
+    return [...current, selectedMediaAssetLabel]
+  })
+}
+
+function handleResetMediaOrchestration(): void {
+  setSelectedMediaAssetLabel(null)
+  setPreviewMediaAssetLabel(null)
+  setProgramMediaAssetLabel(null)
+  setPreloadedAssetLabels([])
+  setTakeFlashActive(false)
+}
   const [soloChannel, setSoloChannel] = useState<MixerChannelKey | null>(null)
   const [mutedChannels, setMutedChannels] = useState<Record<MixerChannelKey, boolean>>({
     Program: false,
@@ -2262,136 +2292,75 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
 
               <div className="min-h-0 space-y-2.5 overflow-y-auto rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-3 pr-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
               <div className="rounded-[16px] border border-sky-300/12 bg-sky-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-  <div className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/48">
-    Selected Asset
-  </div>
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/48">
+                      Selected Asset
+                    </div>
+                    <div className="mt-1 truncate text-[14px] font-semibold tracking-[-0.035em] text-white/86">
+                      {selectedMediaAsset?.label ?? "Select an asset"}
+                    </div>
+                    <div className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.10em] text-white/28">
+                      {selectedMediaAsset ? `${selectedMediaAsset.type} · ${selectedMediaAsset.meta}` : "Awaiting operator selection"}
+                    </div>
+                  </div>
 
-  <div className="mt-1 truncate text-[14px] font-semibold tracking-[-0.035em] text-white/86">
-    {selectedMediaAssetLabel ?? "Select an asset"}
-  </div>
+                  <AssetStatePill state={selectedMediaAsset?.state ?? "STANDBY"} />
+                </div>
 
-  <div className="mt-1 text-[9px] font-black uppercase tracking-[0.10em] text-white/28">
-    Local orchestration selection
-  </div>
-</div>
-              <div className="rounded-[16px] border border-sky-300/12 bg-sky-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-  <div className="flex items-start justify-between gap-3">
-    <div className="min-w-0">
-      <div className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/48">
-        Selected Asset
-      </div>
-      <div className="mt-1 truncate text-[14px] font-semibold tracking-[-0.035em] text-white/86">
-        {selectedMediaAsset?.label ?? "Select an asset"}
-      </div>
-      <div className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.10em] text-white/28">
-        {selectedMediaAsset ? `${selectedMediaAsset.type} · ${selectedMediaAsset.meta}` : "Awaiting operator selection"}
-      </div>
-    </div>
+                <div className="mt-3 grid grid-cols-3 gap-1.5">
+                  <button
+                    type="button"
+                    disabled={!selectedMediaAsset}
+                    onClick={() => selectedMediaAsset ? setPreviewMediaAssetLabel(selectedMediaAsset.label) : null}
+                    className="rounded-[10px] border border-sky-300/14 bg-sky-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/62 transition hover:bg-sky-400/[0.095] disabled:opacity-35"
+                  >
+                    Send to Preview
+                  </button>
+                  <button
+                    type="button"
+                    disabled={!selectedMediaAsset}
+                    onClick={() => {
+                      if (!selectedMediaAsset) return
 
-    <AssetStatePill state={selectedMediaAsset?.state ?? "STANDBY"} />
-  </div>
+                      setProgramMediaAssetLabel(selectedMediaAsset.label)
+                      setTakeFlashActive(true)
 
-  <div className="mt-3 grid grid-cols-2 gap-1.5">
-    <button
-      type="button"
-      disabled={!selectedMediaAsset}
-      onClick={() => selectedMediaAsset ? setPreviewMediaAssetLabel(selectedMediaAsset.label) : null}
-      className="rounded-[10px] border border-sky-300/14 bg-sky-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/62 transition hover:bg-sky-400/[0.095] disabled:opacity-35"
-    >
-      Send to Preview
-    </button>
+                      const nextPreview =
+                        orchestratedMediaRows.find(
+                          (asset) =>
+                            asset.label !== selectedMediaAsset.label &&
+                            asset.destination !== "PROGRAM"
+                        ) ?? null
 
-    <button
-      type="button"
-      disabled={!selectedMediaAsset}
-      onClick={() => {
-  if (!selectedMediaAsset) return
+                      setPreviewMediaAssetLabel(nextPreview?.label ?? null)
 
-  setProgramMediaAssetLabel(selectedMediaAsset.label)
-  setTakeFlashActive(true)
+                      window.setTimeout(() => {
+                        setTakeFlashActive(false)
+                      }, 900)
+                    }}
+                    className="rounded-[10px] border border-red-300/14 bg-red-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-red-100/62 transition hover:bg-red-400/[0.095] disabled:opacity-35"
+                  >
+                    Send to Program
+                  </button>
+                </div>
+              </div>
 
-window.setTimeout(() => {
-  setTakeFlashActive(false)
-}, 900)
-
-  const nextPreview =
-    orchestratedMediaRows.find(
-      (asset) =>
-        asset.label !== selectedMediaAsset.label &&
-        asset.destination !== "PROGRAM"
-    ) ?? null
-
-  setPreviewMediaAssetLabel(nextPreview?.label ?? null)
-}}
-      className="rounded-[10px] border border-red-300/14 bg-red-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-red-100/62 transition hover:bg-red-400/[0.095] disabled:opacity-35"
-    >
-      Send to Program
-    </button>
-  </div>
-</div>
-
-<div className="rounded-[16px] border border-sky-300/12 bg-sky-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-  <div className="flex items-start justify-between gap-3">
-    <div className="min-w-0">
-      <div className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/48">
-        Selected Asset
-      </div>
-      <div className="mt-1 truncate text-[14px] font-semibold tracking-[-0.035em] text-white/86">
-        {selectedMediaAsset?.label ?? "Select an asset"}
-      </div>
-      <div className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.10em] text-white/28">
-        {selectedMediaAsset ? `${selectedMediaAsset.type} · ${selectedMediaAsset.meta}` : "Awaiting operator selection"}
-      </div>
-    </div>
-
-    <AssetStatePill state={selectedMediaAsset?.state ?? "STANDBY"} />
-  </div>
-
-  <div className="mt-3 grid grid-cols-2 gap-1.5">
-    <button
-      type="button"
-      disabled={!selectedMediaAsset}
-      onClick={() => selectedMediaAsset ? setPreviewMediaAssetLabel(selectedMediaAsset.label) : null}
-      className="rounded-[10px] border border-sky-300/14 bg-sky-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/62 transition hover:bg-sky-400/[0.095] disabled:opacity-35"
-    >
-      Send to Preview
-    </button>
-    <button
-      type="button"
-      disabled={!selectedMediaAsset}
-      onClick={() => {
-  if (!selectedMediaAsset) return
-
-  setProgramMediaAssetLabel(selectedMediaAsset.label)
-  setTakeFlashActive(true)
-
-  const nextPreview =
-    orchestratedMediaRows.find(
-      (asset) =>
-        asset.label !== selectedMediaAsset.label &&
-        asset.destination !== "PROGRAM"
-    ) ?? null
-
-  setPreviewMediaAssetLabel(nextPreview?.label ?? null)
-
-  window.setTimeout(() => {
-    setTakeFlashActive(false)
-  }, 900)
-}}
-      className="rounded-[10px] border border-red-300/14 bg-red-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-red-100/62 transition hover:bg-red-400/[0.095] disabled:opacity-35"
-    >
-      Send to Program
-    </button>
-  </div>
-</div>
-
-<ActiveTakeQueuePanel mediaRows={orchestratedMediaRows} />
+              <ActiveTakeQueuePanel mediaRows={orchestratedMediaRows} />
               <ProductionIntentPanel />
               <OperatorConfidencePanel />
               <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
   <div className="flex items-start justify-between gap-3">
     <div>
       <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+      <button
+  type="button"
+  disabled={!previewMediaAssetLabel}
+  onClick={handleTakeAsset}
+  className="rounded-[10px] border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:bg-emerald-400/[0.095] disabled:opacity-35"
+>
+  TAKE Preview
+</button>
         Narrative Timing
       </div>
 
@@ -2438,85 +2407,6 @@ window.setTimeout(() => {
     ))}
   </div>
 </div>
-              <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-  <div className="flex items-start justify-between gap-3">
-    <div>
-      <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
-        Active TAKE Queue
-      </div>
-
-      <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
-        Ordered narrative execution
-      </div>
-    </div>
-
-    <div className="rounded-full border border-red-300/14 bg-red-400/[0.055] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/56">
-      TAKE Armed
-    </div>
-  </div>
-
-  <div className="mt-3 space-y-1.5">
-    {[
-      ["NEXT", "Opening Roll-In", "Dissolve · 1.5s"],
-      ["AFTER", "Welcome Slide", "Hold · Static"],
-      ["THEN", "Remote Presenter Feed", "Cut · Live"],
-    ].map(([position, asset, transition], index) => (
-      <div
-        key={asset}
-        className={`grid grid-cols-[52px_1fr_auto] items-center gap-2 rounded-[12px] border px-3 py-2 ${
-          index === 0
-            ? "border-sky-300/16 bg-sky-400/[0.055]"
-            : "border-white/[0.045] bg-white/[0.018]"
-        }`}
-      >
-        <div
-          className={`rounded-full px-2 py-1 text-center text-[7px] font-black uppercase tracking-[0.10em] ${
-            index === 0
-              ? "border border-sky-300/16 bg-sky-400/[0.070] text-sky-100/64"
-              : "border border-white/[0.045] bg-black/18 text-white/38"
-          }`}
-        >
-          {position}
-        </div>
-
-        <div className="min-w-0">
-          <div className="truncate text-[10px] font-semibold tracking-[-0.015em] text-white/78">
-            {asset}
-          </div>
-
-          <div className="mt-0.5 truncate text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
-            Transition choreography prepared
-          </div>
-        </div>
-
-        <div className="rounded-full border border-emerald-300/10 bg-emerald-400/[0.045] px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] text-emerald-100/48">
-          {transition}
-        </div>
-      </div>
-    ))}
-  </div>
-
-  <div className="mt-3 grid grid-cols-3 gap-1.5">
-    {[
-      ["Preload", "Ready"],
-      ["Transition", "Prepared"],
-      ["Reset", "Auto"],
-    ].map(([label, value]) => (
-      <div
-        key={label}
-        className="rounded-[10px] border border-white/[0.045] bg-black/20 px-2 py-1.5 text-center"
-      >
-        <div className="text-[6.5px] font-black uppercase tracking-[0.10em] text-white/22">
-          {label}
-        </div>
-
-        <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-white/50">
-          {value}
-        </div>
-      </div>
-    ))}
-  </div>
-</div>
               <div>
                 <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
                   Cue Stack
@@ -2534,6 +2424,8 @@ window.setTimeout(() => {
                 <OrchestrationCommandStrip
   onPreload={handlePreloadAsset}
   onLockRoute={handleLockRoute}
+  onRehearse={handleRehearseAsset}
+  onReset={handleResetMediaOrchestration}
 />
               </div>
 
