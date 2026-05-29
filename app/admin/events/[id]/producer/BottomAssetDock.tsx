@@ -1626,9 +1626,129 @@ function MediaOverviewWorkspace({
 }): JSX.Element {
   return (
     <div className="space-y-2.5">
-      <ActiveTakeQueuePanel mediaRows={mediaRows} />
       <ProductionIntentPanel />
       <OperatorConfidencePanel />
+    </div>
+  )
+}
+
+function MediaAssetsWorkspace({
+  mediaRows,
+  assetTabStats,
+  selectedMediaAsset,
+  onSelectAsset,
+}: {
+  mediaRows: BroadcastAssetTelemetry[]
+  assetTabStats: ReadonlyArray<readonly [string, number]>
+  selectedMediaAsset: BroadcastAssetTelemetry | null
+  onSelectAsset: (label: string) => void
+}): JSX.Element {
+  return (
+    <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <div>
+          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+            Active Asset Inventory
+          </div>
+          <div className="mt-1 text-[12px] font-semibold tracking-[-0.02em] text-white/78">
+            Program-aware playback assets
+          </div>
+        </div>
+
+        <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/54">
+          Orchestration Linked
+        </div>
+      </div>
+
+      <div className="mb-3 flex items-center justify-between gap-2 rounded-[12px] border border-white/[0.045] bg-white/[0.014] p-1">
+        <div className="flex items-center gap-1">
+          {assetTabStats.map(([tab, count], index) => (
+            <button
+              key={tab}
+              type="button"
+              className={`flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] transition ${
+                index === 0
+                  ? "bg-sky-400/[0.12] text-sky-100/76"
+                  : "text-white/34 hover:bg-white/[0.030] hover:text-white/68"
+              }`}
+            >
+              <span>{tab}</span>
+              <span className="rounded-full bg-white/[0.045] px-1.5 py-0.5 text-[6.5px] text-white/42">{count}</span>
+            </button>
+          ))}
+        </div>
+
+        <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/48">
+          Filters Armed
+        </div>
+      </div>
+
+      <div className="grid max-h-[calc(100%-82px)] gap-1.5 overflow-y-auto pr-1 xl:grid-cols-2">
+        {mediaRows.map((asset) => (
+          <MediaRow
+            key={`${asset.label}-${asset.destination}-${asset.state}`}
+            asset={asset}
+            selected={selectedMediaAsset?.label === asset.label}
+            onSelect={() => onSelectAsset(asset.label)}
+          />
+        ))}
+      </div>
+    </div>
+  )
+}
+function MediaTakeWorkspace({
+  mediaRows,
+  onPreload,
+  onLockRoute,
+  onRehearse,
+  onReset,
+}: {
+  mediaRows: BroadcastAssetTelemetry[]
+  onPreload?: () => void
+  onLockRoute?: () => void
+  onRehearse?: () => void
+  onReset?: () => void
+}): JSX.Element {
+  return (
+    <div className="space-y-2.5">
+      <ActiveTakeQueuePanel mediaRows={mediaRows} />
+      <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+              TAKE Controls
+            </div>
+            <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+              Preload, route lock, rehearsal, and reset actions
+            </div>
+          </div>
+
+          <div className="rounded-full border border-red-300/14 bg-red-400/[0.055] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/56">
+            Execution
+          </div>
+        </div>
+
+        <OrchestrationCommandStrip
+          onPreload={onPreload}
+          onLockRoute={onLockRoute}
+          onRehearse={onRehearse}
+          onReset={onReset}
+        />
+      </div>
+    </div>
+  )
+}
+
+function MediaRoutingWorkspace({
+  mediaRows,
+}: {
+  mediaRows: BroadcastAssetTelemetry[]
+}): JSX.Element {
+  return (
+    <div className="space-y-2.5">
+      <TakeSafetyMatrix mediaRows={mediaRows} />
+      <RouteMappingPanel mediaRows={mediaRows} />
+      <TransitionCompatibilityPanel mediaRows={mediaRows} />
     </div>
   )
 }
@@ -2290,60 +2410,7 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
     Workspace Mode
   </div>
 </div>
-{activeMediaOrchestratorTab === "overview" ? (
-            <div className="grid h-[calc(100%-188px)] min-h-0 gap-4 overflow-hidden xl:grid-cols-[1.15fr_0.85fr]">
-              <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
-                    Active Asset Inventory
-                  </div>
-                  <div className="mt-1 text-[12px] font-semibold tracking-[-0.02em] text-white/78">
-                    Program-aware playback assets
-                  </div>
-                </div>
-
-                <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/54">
-                  Orchestration Linked
-                </div>
-              </div>
-
-              <div className="mb-3 flex items-center justify-between gap-2 rounded-[12px] border border-white/[0.045] bg-white/[0.014] p-1">
-                <div className="flex items-center gap-1">
-                  {assetTabStats.map(([tab, count], index) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      className={`flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] transition ${
-                        index === 0
-                          ? "bg-sky-400/[0.12] text-sky-100/76"
-                          : "text-white/34 hover:bg-white/[0.030] hover:text-white/68"
-                      }`}
-                    >
-                      <span>{tab}</span>
-                      <span className="rounded-full bg-white/[0.045] px-1.5 py-0.5 text-[6.5px] text-white/42">{count}</span>
-                    </button>
-                  ))}
-                </div>
-
-                <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/48">
-                  Filters Armed
-                </div>
-              </div>
-
-<div className="grid max-h-[calc(100%-82px)] gap-1.5 overflow-y-auto pr-1 xl:grid-cols-2">
-  {orchestratedMediaRows.map((asset) => (
-    <MediaRow
-      key={`${asset.label}-${asset.destination}-${asset.state}`}
-      asset={asset}
-      selected={selectedMediaAsset?.label === asset.label}
-      onSelect={() => setSelectedMediaAssetLabel(asset.label)}
-    />
-  ))}
-</div>
-            </div>
-
-              <div className="min-h-0 space-y-2.5 overflow-y-auto rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-3 pr-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+            <div className="h-[calc(100%-254px)] min-h-0 overflow-y-auto rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-3 pr-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
               <div className="rounded-[16px] border border-sky-300/12 bg-sky-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -2396,123 +2463,50 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
                   >
                     Send to Program
                   </button>
+                  <button
+                    type="button"
+                    disabled={!previewMediaAssetLabel}
+                    onClick={handleTakeAsset}
+                    className="rounded-[10px] border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:bg-emerald-400/[0.095] disabled:opacity-35"
+                  >
+                    TAKE Preview
+                  </button>
                 </div>
               </div>
-<div className="mb-3 flex items-center gap-1 rounded-[12px] border border-white/[0.055] bg-white/[0.018] p-1">
-  {[
-    ["overview", "Overview"],
-    ["assets", "Assets"],
-    ["routing", "Routing"],
-    ["take", "TAKE"],
-  ].map(([value, label]) => (
-    <button
-      key={value}
-      type="button"
-      onClick={() => setActiveMediaOrchestratorTab(value as MediaOrchestratorTab)}
-      className={`rounded-[9px] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] transition ${
-        activeMediaOrchestratorTab === value
-          ? "bg-sky-400/[0.12] text-sky-100/80"
-          : "text-white/34 hover:bg-white/[0.030] hover:text-white/70"
-      }`}
-    >
-      {label}
-    </button>
-  ))}
-</div>
-{activeMediaOrchestratorTab === "overview" ? (
-  <MediaOverviewWorkspace
-    mediaRows={orchestratedMediaRows}
-  />
-) : null}
-              <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-  <div className="flex items-start justify-between gap-3">
-    <div>
-      <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
-      <button
-  type="button"
-  disabled={!previewMediaAssetLabel}
-  onClick={handleTakeAsset}
-  className="rounded-[10px] border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:bg-emerald-400/[0.095] disabled:opacity-35"
->
-  TAKE Preview
-</button>
-        Narrative Timing
-      </div>
 
-      <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
-        Emotional pacing and transition readiness
-      </div>
-    </div>
-
-    <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.050] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/54">
-      Flow Stable
-    </div>
-  </div>
-
-  <div className="mt-3 grid gap-1.5">
-    {[
-      ["Audience State", "Focused"],
-      ["Presenter", "Ready"],
-      ["Music Bed", "Active"],
-      ["Transition Window", "Open"],
-      ["Scene Cooldown", "Nominal"],
-    ].map(([label, value], index) => (
-      <div
-        key={label}
-        className={`flex items-center justify-between rounded-[11px] border px-3 py-2 ${
-          index === 3
-            ? "border-sky-300/12 bg-sky-400/[0.045]"
-            : "border-white/[0.045] bg-black/20"
-        }`}
-      >
-        <span className="text-[8px] font-black uppercase tracking-[0.11em] text-white/28">
-          {label}
-        </span>
-
-        <span
-          className={`text-[9px] font-semibold tracking-[-0.01em] ${
-            index === 3
-              ? "text-sky-100/62"
-              : "text-white/58"
-          }`}
-        >
-          {value}
-        </span>
-      </div>
-    ))}
-  </div>
-</div>
-              <div>
-                <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
-                  Cue Stack
-                </div>
-
-                <div className="mt-3 grid gap-1.5">
-                  {orchestratedMediaRows.slice(0, 4).map((asset, index) => (
-                    <CueStackRow
-                      key={`${asset.label}-${index}`}
-                      asset={{ ...asset, cueOrder: index + 1 }}
-                    />
-                  ))}
-                </div>
-
-                <OrchestrationCommandStrip
-  onPreload={handlePreloadAsset}
-  onLockRoute={handleLockRoute}
-  onRehearse={handleRehearseAsset}
-  onReset={handleResetMediaOrchestration}
-/>
+              <div className="mt-2.5">
+                {activeMediaOrchestratorTab === "overview" ? (
+                  <MediaOverviewWorkspace
+                    mediaRows={orchestratedMediaRows}
+                  />
+                ) : activeMediaOrchestratorTab === "assets" ? (
+                  <MediaAssetsWorkspace
+                    mediaRows={orchestratedMediaRows}
+                    assetTabStats={assetTabStats}
+                    selectedMediaAsset={selectedMediaAsset}
+                    onSelectAsset={setSelectedMediaAssetLabel}
+                  />
+                ) : activeMediaOrchestratorTab === "routing" ? (
+                  <MediaRoutingWorkspace
+                    mediaRows={orchestratedMediaRows}
+                  />
+                ) : activeMediaOrchestratorTab === "take" ? (
+                  <MediaTakeWorkspace
+                    mediaRows={orchestratedMediaRows}
+                    onPreload={handlePreloadAsset}
+                    onLockRoute={handleLockRoute}
+                    onRehearse={handleRehearseAsset}
+                    onReset={handleResetMediaOrchestration}
+                  />
+                ) : null}
               </div>
 
-            <TakeSafetyMatrix mediaRows={orchestratedMediaRows} />
-            <RouteMappingPanel mediaRows={orchestratedMediaRows} />
-            <TransitionCompatibilityPanel mediaRows={orchestratedMediaRows} />
-              <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
+              <div className="mt-2.5 rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
                 <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/38">
                   Operational Status
                 </div>
 
-                <div className="mt-3 grid gap-2">
+                <div className="mt-3 grid gap-2 md:grid-cols-2">
                   {[
                     ["Preview Confidence", "Stable"],
                     ["Route Validation", "Mapped"],
@@ -2531,9 +2525,7 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
                   ))}
                 </div>
               </div>
-              </div>
             </div>
-            ) : null}
           </div>
         </div>
       ) : null}
