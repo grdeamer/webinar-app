@@ -1625,8 +1625,10 @@ function MediaOverviewWorkspace({
   mediaRows: BroadcastAssetTelemetry[]
 }): JSX.Element {
   return (
-    <div>
-      WORKSPACE PLACEHOLDER
+    <div className="space-y-2.5">
+      <ActiveTakeQueuePanel mediaRows={mediaRows} />
+      <ProductionIntentPanel />
+      <OperatorConfidencePanel />
     </div>
   )
 }
@@ -2396,10 +2398,32 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
                   </button>
                 </div>
               </div>
-
-              <ActiveTakeQueuePanel mediaRows={orchestratedMediaRows} />
-              <ProductionIntentPanel />
-              <OperatorConfidencePanel />
+<div className="mb-3 flex items-center gap-1 rounded-[12px] border border-white/[0.055] bg-white/[0.018] p-1">
+  {[
+    ["overview", "Overview"],
+    ["assets", "Assets"],
+    ["routing", "Routing"],
+    ["take", "TAKE"],
+  ].map(([value, label]) => (
+    <button
+      key={value}
+      type="button"
+      onClick={() => setActiveMediaOrchestratorTab(value as MediaOrchestratorTab)}
+      className={`rounded-[9px] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] transition ${
+        activeMediaOrchestratorTab === value
+          ? "bg-sky-400/[0.12] text-sky-100/80"
+          : "text-white/34 hover:bg-white/[0.030] hover:text-white/70"
+      }`}
+    >
+      {label}
+    </button>
+  ))}
+</div>
+{activeMediaOrchestratorTab === "overview" ? (
+  <MediaOverviewWorkspace
+    mediaRows={orchestratedMediaRows}
+  />
+) : null}
               <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
   <div className="flex items-start justify-between gap-3">
     <div>
