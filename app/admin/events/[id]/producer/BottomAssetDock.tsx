@@ -1619,7 +1619,17 @@ function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, ind
     trigger: index === 0 ? "Next TAKE" : index === 1 ? "Scene Link" : "Operator",
   }
 }
-
+function MediaOverviewWorkspace({
+  mediaRows,
+}: {
+  mediaRows: BroadcastAssetTelemetry[]
+}): JSX.Element {
+  return (
+    <div>
+      WORKSPACE PLACEHOLDER
+    </div>
+  )
+}
 export default function BottomAssetDock({
   scenes,
   selectedSceneId,
@@ -2278,6 +2288,7 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
     Workspace Mode
   </div>
 </div>
+{activeMediaOrchestratorTab === "overview" ? (
             <div className="grid h-[calc(100%-188px)] min-h-0 gap-4 overflow-hidden xl:grid-cols-[1.15fr_0.85fr]">
               <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
               <div className="mb-3 flex items-center justify-between gap-3">
@@ -2498,6 +2509,7 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
               </div>
               </div>
             </div>
+            ) : null}
           </div>
         </div>
       ) : null}
