@@ -354,20 +354,35 @@ function CueStackRow({ asset }: { asset: BroadcastAssetTelemetry }): JSX.Element
   )
 }
 
-function OrchestrationCommandStrip(): JSX.Element {
-  const commands = [
-    ["Preload", "Next asset"],
-    ["Lock Route", "PVW → PGM"],
-    ["Rehearse", "Safe take"],
-    ["Reset", "After TAKE"],
+function OrchestrationCommandStrip({
+  onPreload,
+  onLockRoute,
+  onRehearse,
+  onReset,
+}: {
+  onPreload?: () => void
+  onLockRoute?: () => void
+  onRehearse?: () => void
+  onReset?: () => void
+}): JSX.Element {
+  const commands: Array<{
+    label: string
+    meta: string
+    action?: () => void
+  }> = [
+    { label: "Preload", meta: "Next asset", action: onPreload },
+    { label: "Lock Route", meta: "PVW → PGM", action: onLockRoute },
+    { label: "Rehearse", meta: "Safe take", action: onRehearse },
+    { label: "Reset", meta: "After TAKE", action: onReset },
   ]
 
   return (
     <div className="mt-2 grid grid-cols-4 gap-1">
-      {commands.map(([label, meta], index) => (
+      {commands.map(({ label, meta, action }, index) => (
         <button
           key={label}
           type="button"
+          onClick={action}
           className={`group rounded-[9px] border px-1.5 py-1.5 text-left transition hover:-translate-y-px active:translate-y-0 ${
             index === 0
               ? "border-sky-300/14 bg-sky-400/[0.060] text-sky-100/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]"
@@ -1638,6 +1653,18 @@ export default function BottomAssetDock({
   const [previewMediaAssetLabel, setPreviewMediaAssetLabel] = useState<string | null>(null)
   const [programMediaAssetLabel, setProgramMediaAssetLabel] = useState<string | null>(null)
   const [takeFlashActive, setTakeFlashActive] = useState(false)
+  const [preloadedAssetLabels, setPreloadedAssetLabels] = useState<string[]>([])
+  function handlePreloadAsset(): void {
+  if (!selectedMediaAssetLabel) return
+
+  setPreloadedAssetLabels((current) => {
+    if (current.includes(selectedMediaAssetLabel)) {
+      return current
+    }
+
+    return [...current, selectedMediaAssetLabel]
+  })
+}
   const [soloChannel, setSoloChannel] = useState<MixerChannelKey | null>(null)
   const [mutedChannels, setMutedChannels] = useState<Record<MixerChannelKey, boolean>>({
     Program: false,
@@ -1957,6 +1984,7 @@ export default function BottomAssetDock({
     mediaRows.find((asset) => asset.label === selectedMediaAssetLabel) ?? mediaRows[0] ?? null
 
 const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) => {
+  const isPreloaded = preloadedAssetLabels.includes(asset.label)
   const isProgram = asset.label === programMediaAssetLabel
   const isPreview = asset.label === previewMediaAssetLabel
 
@@ -1988,9 +2016,14 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
   return {
     ...asset,
     destination: "STANDBY" as const,
-    state: asset.state === "LIVE" ? "READY" : asset.state,
+    state: isPreloaded
+  ? "PRELOADED"
+  : asset.state === "LIVE"
+    ? "READY"
+    : asset.state,
     route: "Standby",
     cueOrder: 3,
+    cacheState: isPreloaded ? "HOT" : asset.cacheState,
   }
 }).sort((a, b) => (a.cueOrder ?? 99) - (b.cueOrder ?? 99))
 
@@ -2318,7 +2351,25 @@ window.setTimeout(() => {
     <button
       type="button"
       disabled={!selectedMediaAsset}
-      onClick={() => selectedMediaAsset ? setProgramMediaAssetLabel(selectedMediaAsset.label) : null}
+      onClick={() => {
+  if (!selectedMediaAsset) return
+
+  setProgramMediaAssetLabel(selectedMediaAsset.label)
+  setTakeFlashActive(true)
+
+  const nextPreview =
+    orchestratedMediaRows.find(
+      (asset) =>
+        asset.label !== selectedMediaAsset.label &&
+        asset.destination !== "PROGRAM"
+    ) ?? null
+
+  setPreviewMediaAssetLabel(nextPreview?.label ?? null)
+
+  window.setTimeout(() => {
+    setTakeFlashActive(false)
+  }, 900)
+}}
       className="rounded-[10px] border border-red-300/14 bg-red-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-red-100/62 transition hover:bg-red-400/[0.095] disabled:opacity-35"
     >
       Send to Program
@@ -2472,7 +2523,9 @@ window.setTimeout(() => {
                   ))}
                 </div>
 
-                <OrchestrationCommandStrip />
+                <OrchestrationCommandStrip
+  onPreload={handlePreloadAsset}
+/>
               </div>
 
             <TakeSafetyMatrix mediaRows={orchestratedMediaRows} />
