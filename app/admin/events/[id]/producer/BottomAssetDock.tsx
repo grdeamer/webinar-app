@@ -1,6 +1,7 @@
 
 import { useEffect, useMemo, useState, type JSX } from "react"
 type UtilityPanel = "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
+type MediaOrchestratorTab = "overview" | "assets" | "routing" | "take"
 type MixerChannelKey = "Program" | "Stage" | "Music" | "Mics" | "SFX" | "Audience"
 type BroadcastAssetType = "video" | "graphic" | "audio" | "live"
 type BroadcastAssetState = "READY" | "LIVE" | "LOOPING" | "STANDBY" | "CUED" | "SAFE" | "PRELOADED" | "FAILED"
@@ -1651,6 +1652,7 @@ export default function BottomAssetDock({
   const [expandedMixerOpen, setExpandedMixerOpen] = useState(false)
   const [expandedRecordingOpen, setExpandedRecordingOpen] = useState(false)
   const [expandedMediaOpen, setExpandedMediaOpen] = useState(false)
+  const [activeMediaOrchestratorTab, setActiveMediaOrchestratorTab] = useState<MediaOrchestratorTab>("overview")
   const [selectedMediaAssetLabel, setSelectedMediaAssetLabel] = useState<string | null>(null)
   const [previewMediaAssetLabel, setPreviewMediaAssetLabel] = useState<string | null>(null)
   const [programMediaAssetLabel, setProgramMediaAssetLabel] = useState<string | null>(null)
@@ -2237,7 +2239,45 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
                 </div>
               ))}
             </div>
+<div className="mb-3 flex items-center justify-between gap-3 rounded-[16px] border border-white/[0.055] bg-white/[0.014] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+  <div className="flex items-center gap-1">
+    {[
+      ["overview", "Overview", "Mission control"],
+      ["assets", "Assets", "Inventory"],
+      ["routing", "Routing", "Signal paths"],
+      ["take", "TAKE", "Execution"],
+    ].map(([id, label, meta]) => {
+      const active = activeMediaOrchestratorTab === id
 
+      return (
+        <button
+          key={id}
+          type="button"
+          onClick={() =>
+            setActiveMediaOrchestratorTab(id as MediaOrchestratorTab)
+          }
+          className={`rounded-[12px] border px-3 py-2 text-left transition ${
+            active
+              ? "border-sky-300/18 bg-sky-400/[0.085] text-sky-100/78"
+              : "border-white/[0.040] bg-black/14 text-white/42 hover:border-white/[0.075] hover:bg-white/[0.025] hover:text-white/68"
+          }`}
+        >
+          <div className="text-[9px] font-black uppercase tracking-[0.12em]">
+            {label}
+          </div>
+
+          <div className="mt-0.5 text-[7px] font-black uppercase tracking-[0.10em] opacity-45">
+            {meta}
+          </div>
+        </button>
+      )
+    })}
+  </div>
+
+  <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-3 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-emerald-100/48">
+    Workspace Mode
+  </div>
+</div>
             <div className="grid h-[calc(100%-188px)] min-h-0 gap-4 overflow-hidden xl:grid-cols-[1.15fr_0.85fr]">
               <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
               <div className="mb-3 flex items-center justify-between gap-3">
