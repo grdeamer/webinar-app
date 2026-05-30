@@ -1625,9 +1625,39 @@ function MediaOverviewWorkspace({
   mediaRows: BroadcastAssetTelemetry[]
 }): JSX.Element {
   return (
-    <div className="space-y-2.5">
-      <ProductionIntentPanel />
-      <OperatorConfidencePanel />
+    <div className="grid gap-2.5 xl:grid-cols-[1.1fr_0.9fr]">
+      <div>
+        <ProductionIntentPanel />
+      </div>
+
+      <div className="space-y-2.5">
+        <OperatorConfidencePanel />
+
+        <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
+          <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/38">
+            Operational Status
+          </div>
+
+          <div className="mt-3 grid gap-2 md:grid-cols-2">
+            {[
+              ["Preview Confidence", "Stable"],
+              ["Route Validation", mediaRows.some((asset) => asset.routeLock) ? "Mapped" : "Open"],
+              ["TAKE Preflight", mediaRows.some((asset) => asset.takeSafe === false) ? "Review" : "Green"],
+              ["Timeline Sync", "Linked"],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-center justify-between rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-3 py-2"
+              >
+                <span className="text-[10px] font-semibold text-white/42">{label}</span>
+                <span className="text-[10px] font-black uppercase tracking-[0.10em] text-emerald-100/58">
+                  {value}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1643,55 +1673,183 @@ function MediaAssetsWorkspace({
   selectedMediaAsset: BroadcastAssetTelemetry | null
   onSelectAsset: (label: string) => void
 }): JSX.Element {
+  const inspectedAsset = selectedMediaAsset ?? mediaRows[0] ?? null
+
   return (
-    <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
-            Active Asset Inventory
+    <div className="grid min-h-0 gap-3 xl:grid-cols-[1.05fr_0.95fr]">
+      <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <div>
+            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+              Asset Bank
+            </div>
+            <div className="mt-1 text-[12px] font-semibold tracking-[-0.02em] text-white/78">
+              Program-aware playback inventory
+            </div>
           </div>
-          <div className="mt-1 text-[12px] font-semibold tracking-[-0.02em] text-white/78">
-            Program-aware playback assets
+
+          <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/54">
+            {mediaRows.length} Loaded
           </div>
         </div>
 
-        <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/54">
-          Orchestration Linked
+        <div className="mb-3 flex items-center justify-between gap-2 rounded-[12px] border border-white/[0.045] bg-white/[0.014] p-1">
+          <div className="flex items-center gap-1">
+            {assetTabStats.map(([tab, count], index) => (
+              <button
+                key={tab}
+                type="button"
+                className={`flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] transition ${
+                  index === 0
+                    ? "bg-sky-400/[0.12] text-sky-100/76"
+                    : "text-white/34 hover:bg-white/[0.030] hover:text-white/68"
+                }`}
+              >
+                <span>{tab}</span>
+                <span className="rounded-full bg-white/[0.045] px-1.5 py-0.5 text-[6.5px] text-white/42">{count}</span>
+              </button>
+            ))}
+          </div>
+
+          <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/48">
+            Filters Armed
+          </div>
+        </div>
+
+        <div className="grid max-h-[420px] gap-1.5 overflow-y-auto pr-1">
+          {mediaRows.map((asset) => {
+            const active = inspectedAsset?.label === asset.label
+            const destination = asset.destination ?? "STANDBY"
+
+            return (
+              <button
+                key={`${asset.label}-${asset.destination}-${asset.state}`}
+                type="button"
+                onClick={() => onSelectAsset(asset.label)}
+                className={`grid grid-cols-[34px_1fr_auto] items-center gap-2 rounded-[12px] border px-2.5 py-2 text-left transition hover:-translate-y-px active:translate-y-0 ${
+                  active
+                    ? "border-sky-300/22 bg-sky-400/[0.070] shadow-[0_0_18px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.016)]"
+                    : asset.state === "PRELOADED"
+                      ? "border-emerald-300/14 bg-emerald-400/[0.040]"
+                      : "border-white/[0.045] bg-white/[0.016] hover:border-white/[0.080] hover:bg-white/[0.028]"
+                }`}
+              >
+                <AssetTypeGlyph type={asset.type} />
+
+                <div className="min-w-0">
+                  <div className="flex min-w-0 items-center gap-1.5">
+                    <span className="truncate text-[11px] font-semibold tracking-[-0.025em] text-white/82">
+                      {asset.label}
+                    </span>
+                    <AssetStatePill state={asset.state} />
+                  </div>
+                  <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.11em] text-white/28">
+                    <span className="truncate">{asset.meta}</span>
+                    <span>·</span>
+                    <span className="truncate">{asset.route}</span>
+                    <span>·</span>
+                    <span className="truncate">{asset.linkedScene}</span>
+                  </div>
+                </div>
+
+                <div className={`rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] ${
+                  destination === "PROGRAM"
+                    ? "border-red-300/16 bg-red-400/[0.070] text-red-100/62"
+                    : destination === "PREVIEW"
+                      ? "border-sky-300/16 bg-sky-400/[0.070] text-sky-100/62"
+                      : "border-white/[0.050] bg-black/20 text-white/36"
+                }`}>
+                  {destination}
+                </div>
+              </button>
+            )
+          })}
         </div>
       </div>
 
-      <div className="mb-3 flex items-center justify-between gap-2 rounded-[12px] border border-white/[0.045] bg-white/[0.014] p-1">
-        <div className="flex items-center gap-1">
-          {assetTabStats.map(([tab, count], index) => (
-            <button
-              key={tab}
-              type="button"
-              className={`flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] transition ${
-                index === 0
-                  ? "bg-sky-400/[0.12] text-sky-100/76"
-                  : "text-white/34 hover:bg-white/[0.030] hover:text-white/68"
-              }`}
-            >
-              <span>{tab}</span>
-              <span className="rounded-full bg-white/[0.045] px-1.5 py-0.5 text-[6.5px] text-white/42">{count}</span>
-            </button>
-          ))}
+      <div className="min-h-0 rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+              Asset Inspector
+            </div>
+            <div className="mt-1 truncate text-[18px] font-semibold tracking-[-0.045em] text-white/88">
+              {inspectedAsset?.label ?? "No asset selected"}
+            </div>
+            <div className="mt-1 text-[10px] font-black uppercase tracking-[0.10em] text-white/28">
+              {inspectedAsset ? `${inspectedAsset.type} · ${inspectedAsset.meta}` : "Awaiting operator selection"}
+            </div>
+          </div>
+
+          {inspectedAsset ? <AssetStatePill state={inspectedAsset.state} /> : null}
         </div>
 
-        <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/48">
-          Filters Armed
-        </div>
-      </div>
+        {inspectedAsset ? (
+          <div className="mt-4 grid gap-2">
+            <div className="overflow-hidden rounded-[14px] border border-white/[0.055] bg-black/24 p-2">
+              <div className="relative aspect-video overflow-hidden rounded-[11px] border border-white/[0.055] bg-[radial-gradient(circle_at_35%_25%,rgba(56,189,248,0.16),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))]">
+                {inspectedAsset.imageUrl ? (
+                  <img
+                    src={inspectedAsset.imageUrl}
+                    alt="Selected asset preview"
+                    className="absolute inset-0 h-full w-full object-cover opacity-85"
+                  />
+                ) : null}
+                {inspectedAsset.type === "audio" ? (
+                  <div className="absolute inset-x-8 bottom-8 flex h-16 items-end justify-between gap-1">
+                    {Array.from({ length: 28 }).map((_, index) => (
+                      <span
+                        key={index}
+                        className="w-1 rounded-full bg-emerald-200/44"
+                        style={{ height: `${12 + ((index * 7) % 48)}px` }}
+                      />
+                    ))}
+                  </div>
+                ) : null}
+                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),transparent_34%,rgba(0,0,0,0.42))]" />
+                <div className="absolute bottom-3 left-3 rounded-full border border-white/[0.070] bg-black/42 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-white/62">
+                  {inspectedAsset.duration}
+                </div>
+              </div>
+            </div>
 
-      <div className="grid max-h-[calc(100%-82px)] gap-1.5 overflow-y-auto pr-1 xl:grid-cols-2">
-        {mediaRows.map((asset) => (
-          <MediaRow
-            key={`${asset.label}-${asset.destination}-${asset.state}`}
-            asset={asset}
-            selected={selectedMediaAsset?.label === asset.label}
-            onSelect={() => onSelectAsset(asset.label)}
-          />
-        ))}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                ["Destination", inspectedAsset.destination ?? "STANDBY"],
+                ["Cache", inspectedAsset.cacheState ?? "WARM"],
+                ["Codec", inspectedAsset.codecState ?? "OK"],
+                ["Take", inspectedAsset.takeSafe ? "Ready" : "Check"],
+                ["Last Played", inspectedAsset.lastPlayed],
+                ["Scene", inspectedAsset.linkedScene],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-[11px] border border-white/[0.045] bg-black/20 px-3 py-2">
+                  <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/24">
+                    {label}
+                  </div>
+                  <div className="mt-1 truncate text-[10px] font-semibold tracking-[-0.01em] text-white/62">
+                    {value}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="rounded-[12px] border border-sky-300/10 bg-sky-400/[0.035] p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div>
+                  <div className="text-[8px] font-black uppercase tracking-[0.13em] text-sky-100/44">
+                    Operator Hint
+                  </div>
+                  <div className="mt-1 text-[10px] font-semibold tracking-[-0.01em] text-white/50">
+                    {inspectedAsset.hoverHint ?? "Select routing or preload before taking this asset live."}
+                  </div>
+                </div>
+                <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.050] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-sky-100/50">
+                  {inspectedAsset.takeCompatibility ?? "Clean"}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )
@@ -1710,45 +1868,128 @@ function MediaTakeWorkspace({
   onReset?: () => void
 }): JSX.Element {
   return (
-    <div className="space-y-2.5">
-      <ActiveTakeQueuePanel mediaRows={mediaRows} />
-      <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
-              TAKE Controls
+    <div className="grid gap-2.5 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="space-y-2.5">
+        <ActiveTakeQueuePanel mediaRows={mediaRows} />
+      </div>
+
+      <div className="space-y-2.5">
+        <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+                TAKE Controls
+              </div>
+              <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+                Preload, route lock, rehearsal, and reset actions
+              </div>
             </div>
-            <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
-              Preload, route lock, rehearsal, and reset actions
+
+            <div className="rounded-full border border-red-300/14 bg-red-400/[0.055] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/56">
+              Execution
             </div>
           </div>
 
-          <div className="rounded-full border border-red-300/14 bg-red-400/[0.055] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/56">
-            Execution
+          <OrchestrationCommandStrip
+            onPreload={onPreload}
+            onLockRoute={onLockRoute}
+            onRehearse={onRehearse}
+            onReset={onReset}
+          />
+        </div>
+
+        <div className="rounded-[16px] border border-emerald-300/10 bg-emerald-400/[0.030] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <div className="text-[9px] font-black uppercase tracking-[0.14em] text-emerald-100/42">
+                Fallback Chain
+              </div>
+              <div className="mt-1 text-[10px] font-semibold tracking-[-0.01em] text-white/42">
+                Recovery order if the current TAKE cannot complete.
+              </div>
+            </div>
+
+            <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.050] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/52">
+              Armed
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-3 gap-1.5">
+            {[
+              ["Primary", mediaRows.find((asset) => asset.destination === "PROGRAM")?.label ?? "Program"],
+              ["Backup", mediaRows.find((asset) => asset.destination === "PREVIEW")?.label ?? "Preview"],
+              ["Fallback", mediaRows.find((asset) => asset.destination === "STANDBY")?.label ?? "Standby"],
+            ].map(([label, value]) => (
+              <div
+                key={label}
+                className="rounded-[10px] border border-white/[0.045] bg-black/18 px-2 py-1.5 text-center"
+              >
+                <div className="text-[6px] font-black uppercase tracking-[0.10em] text-white/22">
+                  {label}
+                </div>
+                <div className="mt-0.5 truncate text-[8px] font-black uppercase tracking-[0.08em] text-white/48">
+                  {value}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        <OrchestrationCommandStrip
-          onPreload={onPreload}
-          onLockRoute={onLockRoute}
-          onRehearse={onRehearse}
-          onReset={onReset}
-        />
+        <OperatorConfidencePanel />
       </div>
     </div>
   )
 }
-
 function MediaRoutingWorkspace({
   mediaRows,
 }: {
   mediaRows: BroadcastAssetTelemetry[]
 }): JSX.Element {
   return (
-    <div className="space-y-2.5">
-      <TakeSafetyMatrix mediaRows={mediaRows} />
-      <RouteMappingPanel mediaRows={mediaRows} />
-      <TransitionCompatibilityPanel mediaRows={mediaRows} />
+    <div className="grid gap-2.5 xl:grid-cols-[1.08fr_0.92fr]">
+      <div className="space-y-2.5">
+        <RouteMappingPanel mediaRows={mediaRows} />
+
+        <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+                Signal Path Summary
+              </div>
+              <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+                Current routing relationship between preview, program, standby, and music bus.
+              </div>
+            </div>
+
+            <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.050] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-sky-100/54">
+              Engineering View
+            </div>
+          </div>
+
+          <div className="mt-3 grid grid-cols-4 gap-1.5">
+            {[
+              ["PVW", mediaRows.find((asset) => asset.destination === "PREVIEW")?.label ?? "Idle"],
+              ["PGM", mediaRows.find((asset) => asset.destination === "PROGRAM")?.label ?? "Ready"],
+              ["STBY", mediaRows.find((asset) => asset.destination === "STANDBY")?.label ?? "Clear"],
+              ["MSC", mediaRows.find((asset) => asset.type === "audio")?.label ?? "Music Bus"],
+            ].map(([code, value]) => (
+              <div key={code} className="rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-2 py-2 text-center">
+                <div className="text-[7px] font-black uppercase tracking-[0.12em] text-sky-100/44">
+                  {code}
+                </div>
+                <div className="mt-1 truncate text-[9px] font-semibold tracking-[-0.01em] text-white/56">
+                  {value}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-2.5">
+        <TakeSafetyMatrix mediaRows={mediaRows} />
+        <TransitionCompatibilityPanel mediaRows={mediaRows} />
+      </div>
     </div>
   )
 }
@@ -2499,12 +2740,6 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
                     onReset={handleResetMediaOrchestration}
                   />
                 ) : null}
-              </div>
-
-              <div className="mt-2.5 rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
-                <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/38">
-                  Operational Status
-                </div>
 
                 <div className="mt-3 grid gap-2 md:grid-cols-2">
                   {[
