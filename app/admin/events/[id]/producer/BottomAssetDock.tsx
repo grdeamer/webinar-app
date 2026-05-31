@@ -1,5 +1,5 @@
 
-import { useEffect, useMemo, useState, type JSX } from "react"
+import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from "react"
 type UtilityPanel = "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 type MediaOrchestratorTab = "overview" | "assets" | "routing" | "take"
 type MixerChannelKey = "Program" | "Stage" | "Music" | "Mics" | "SFX" | "Audience"
@@ -133,6 +133,19 @@ function formatRecordingDuration(seconds: number): string {
   return [hours, minutes, remainingSeconds]
     .map((value) => String(value).padStart(2, "0"))
     .join(":")
+}
+function formatFileSize(bytes: number): string {
+  if (bytes <= 0) return "0 KB"
+
+  const units = ["B", "KB", "MB", "GB"]
+  const index = Math.min(
+    Math.floor(Math.log(bytes) / Math.log(1024)),
+    units.length - 1,
+  )
+
+  const value = bytes / 1024 ** index
+
+  return `${value >= 10 || index === 0 ? Math.round(value) : value.toFixed(1)} ${units[index]}`
 }
 import {
   FALLBACK_MEDIA_ITEMS,
@@ -477,7 +490,7 @@ function TakeSafetyMatrix({ mediaRows }: { mediaRows: BroadcastAssetTelemetry[] 
     <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/38">
+          <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
             TAKE Safety Matrix
           </div>
           <div className="mt-1 text-[10px] font-semibold tracking-[-0.01em] text-white/40">
@@ -526,7 +539,7 @@ function RouteMappingPanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetry[]
     <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/38">
+          <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
             Route Map
           </div>
           <div className="mt-1 text-[10px] font-semibold tracking-[-0.01em] text-white/40">
@@ -562,7 +575,7 @@ function TransitionCompatibilityPanel({ mediaRows }: { mediaRows: BroadcastAsset
     <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/38">
+          <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
             Transition Compatibility
           </div>
           <div className="mt-1 text-[10px] font-semibold tracking-[-0.01em] text-white/40">
@@ -615,11 +628,11 @@ function ActiveTakeQueuePanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetr
     <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+          <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/40">
             Active TAKE Queue
           </div>
 
-          <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+          <div className="mt-1 text-[10px] font-medium tracking-[-0.01em] text-white/42">
             Ordered narrative execution
           </div>
         </div>
@@ -771,10 +784,10 @@ function ProductionIntentPanel(): JSX.Element {
     <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+          <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
             Production Intent
           </div>
-          <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+          <div className="mt-1 text-[10px] font-medium tracking-[-0.01em] text-white/42">
             Narrative purpose behind the next media action
           </div>
         </div>
@@ -816,10 +829,10 @@ function OperatorConfidencePanel(): JSX.Element {
     <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+          <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
             Operator Confidence
           </div>
-          <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+          <div className="mt-1 text-[10px] font-medium tracking-[-0.01em] text-white/42">
             Human-readable confidence for the live moment
           </div>
         </div>
@@ -1353,7 +1366,7 @@ function ExpandedAudioMixerOverlay({
 
         <div className="min-h-0 space-y-3 overflow-hidden rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
           <div>
-            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+            <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
               Master Bus
             </div>
             <div className="mt-2 rounded-[16px] border border-emerald-300/12 bg-emerald-400/[0.045] p-3">
@@ -1512,7 +1525,7 @@ function UtilityOverlay({
       <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.032)_0px,rgba(255,255,255,0.032)_1px,transparent_1px,transparent_28px)]" />
       <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.06] px-5 py-4">
         <div>
-          <div className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/58">
+          <div className="text-[8px] font-black uppercase tracking-[0.14em] text-sky-100/58">
             {meta.eyebrow}
           </div>
           <div className="mt-1 text-[20px] font-semibold tracking-[-0.055em] text-white/92">
@@ -1634,7 +1647,7 @@ function MediaOverviewWorkspace({
         <OperatorConfidencePanel />
 
         <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
-          <div className="text-[9px] font-black uppercase tracking-[0.14em] text-white/38">
+          <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
             Operational Status
           </div>
 
@@ -1680,10 +1693,10 @@ function MediaAssetsWorkspace({
       <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
         <div className="mb-3 flex items-center justify-between gap-3">
           <div>
-            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
               Asset Bank
             </div>
-            <div className="mt-1 text-[12px] font-semibold tracking-[-0.02em] text-white/78">
+            <div className="mt-1 text-[13px] font-semibold tracking-[-0.025em] text-white/82">
               Program-aware playback inventory
             </div>
           </div>
@@ -1770,13 +1783,15 @@ function MediaAssetsWorkspace({
       <div className="min-h-0 rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
               Asset Inspector
             </div>
-            <div className="mt-1 truncate text-[18px] font-semibold tracking-[-0.045em] text-white/88">
+
+            <div className="mt-1 truncate text-[20px] font-semibold tracking-[-0.05em] text-white/92">
               {inspectedAsset?.label ?? "No asset selected"}
             </div>
-            <div className="mt-1 text-[10px] font-black uppercase tracking-[0.10em] text-white/28">
+
+            <div className="mt-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/24">
               {inspectedAsset ? `${inspectedAsset.type} · ${inspectedAsset.meta}` : "Awaiting operator selection"}
             </div>
           </div>
@@ -1836,7 +1851,7 @@ function MediaAssetsWorkspace({
             <div className="rounded-[12px] border border-sky-300/10 bg-sky-400/[0.035] p-3">
               <div className="flex items-center justify-between gap-2">
                 <div>
-                  <div className="text-[8px] font-black uppercase tracking-[0.13em] text-sky-100/44">
+                  <div className="text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/38">
                     Operator Hint
                   </div>
                   <div className="mt-1 text-[10px] font-semibold tracking-[-0.01em] text-white/50">
@@ -1877,10 +1892,10 @@ function MediaTakeWorkspace({
         <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+              <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
                 TAKE Controls
               </div>
-              <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+              <div className="mt-1 text-[10px] font-medium tracking-[-0.01em] text-white/42">
                 Preload, route lock, rehearsal, and reset actions
               </div>
             </div>
@@ -1953,10 +1968,10 @@ function MediaRoutingWorkspace({
         <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
           <div className="flex items-start justify-between gap-3">
             <div>
-              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/40">
+              <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
                 Signal Path Summary
               </div>
-              <div className="mt-1 text-[10px] font-semibold tracking-[-0.015em] text-white/46">
+              <div className="mt-1 text-[10px] font-medium tracking-[-0.01em] text-white/42">
                 Current routing relationship between preview, program, standby, and music bus.
               </div>
             </div>
@@ -2025,6 +2040,8 @@ export default function BottomAssetDock({
   const [expandedMixerOpen, setExpandedMixerOpen] = useState(false)
   const [expandedRecordingOpen, setExpandedRecordingOpen] = useState(false)
   const [expandedMediaOpen, setExpandedMediaOpen] = useState(false)
+  const mediaImportInputRef = useRef<HTMLInputElement | null>(null)
+const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
   const [activeMediaOrchestratorTab, setActiveMediaOrchestratorTab] = useState<MediaOrchestratorTab>("overview")
   const [selectedMediaAssetLabel, setSelectedMediaAssetLabel] = useState<string | null>(null)
   const [previewMediaAssetLabel, setPreviewMediaAssetLabel] = useState<string | null>(null)
@@ -2077,6 +2094,127 @@ function handleResetMediaOrchestration(): void {
   setProgramMediaAssetLabel(null)
   setPreloadedAssetLabels([])
   setTakeFlashActive(false)
+}
+function createImportedMediaAsset(
+  file: File,
+  index: number,
+): BroadcastAssetTelemetry {
+  const importedAt = new Date().toLocaleTimeString([], {
+    hour: "numeric",
+    minute: "2-digit",
+  })
+
+  const isImage = file.type.startsWith("image/")
+  const isAudio = file.type.startsWith("audio/")
+  const isVideo = file.type.startsWith("video/")
+  const isPdf =
+    file.type === "application/pdf" ||
+    file.name.toLowerCase().endsWith(".pdf")
+
+  const type: BroadcastAssetType = isAudio
+    ? "audio"
+    : isImage || isPdf
+      ? "graphic"
+      : isVideo
+        ? "video"
+        : "graphic"
+
+  return {
+    label:
+      file.name.replace(/\.[^/.]+$/, "") ||
+      `Imported Asset ${index + 1}`,
+    type,
+    state: "PRELOADED",
+    duration: type === "graphic" ? (isPdf ? "PDF" : "16:9") : "—",
+    meta: `${formatFileSize(file.size)}`,
+    route: "Imported",
+    lastPlayed: "Not Played",
+    linkedScene: "Unassigned",
+    imageUrl: isImage ? URL.createObjectURL(file) : null,
+    audioEmbedded: type === "video",
+    destination: "STANDBY",
+    takeSafe: true,
+    cueOrder: index + 1,
+    progress: 0,
+    scheduledIn: "Imported",
+    resetBehavior: "Manual",
+    cacheState: "HOT",
+    codecState: "OK",
+    routeLock: false,
+    hoverHint: `Imported at ${importedAt}`,
+    takeCompatibility: "Clean",
+    segment: "Imported",
+    trigger: "Manual",
+  }
+}
+
+function handleImportMediaFiles(
+  event: ChangeEvent<HTMLInputElement>,
+): void {
+  const files = Array.from(event.target.files ?? [])
+
+  if (!files.length) return
+
+  setImportedMediaAssets((current) => [
+    ...files.map((file, index) =>
+      createImportedMediaAsset(
+        file,
+        current.length + index,
+      ),
+    ),
+    ...current,
+  ])
+
+  event.target.value = ""
+  setActiveMediaOrchestratorTab("assets")
+  setExpandedMediaOpen(true)
+}
+
+function handleDeleteImportedAsset(label: string): void {
+  setImportedMediaAssets((current) => {
+    const removedAsset = current.find((asset) => asset.label === label)
+
+    if (removedAsset?.imageUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(removedAsset.imageUrl)
+    }
+
+    return current.filter((asset) => asset.label !== label)
+  })
+
+  setPreloadedAssetLabels((current) =>
+    current.filter((assetLabel) => assetLabel !== label)
+  )
+
+  if (selectedMediaAssetLabel === label) setSelectedMediaAssetLabel(null)
+  if (previewMediaAssetLabel === label) setPreviewMediaAssetLabel(null)
+  if (programMediaAssetLabel === label) setProgramMediaAssetLabel(null)
+}
+
+function handleClearImportedAssets(): void {
+  importedMediaAssets.forEach((asset) => {
+    if (asset.imageUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(asset.imageUrl)
+    }
+  })
+
+  const importedLabels = new Set(importedMediaAssets.map((asset) => asset.label))
+
+  setImportedMediaAssets([])
+  setPreloadedAssetLabels((current) =>
+    current.filter((assetLabel) => !importedLabels.has(assetLabel))
+  )
+
+  if (selectedMediaAssetLabel && importedLabels.has(selectedMediaAssetLabel)) {
+    setSelectedMediaAssetLabel(null)
+  }
+
+  if (previewMediaAssetLabel && importedLabels.has(previewMediaAssetLabel)) {
+    setPreviewMediaAssetLabel(null)
+  }
+
+  if (programMediaAssetLabel && importedLabels.has(programMediaAssetLabel)) {
+    setProgramMediaAssetLabel(null)
+  }
 }
   const [soloChannel, setSoloChannel] = useState<MixerChannelKey | null>(null)
   const [mutedChannels, setMutedChannels] = useState<Record<MixerChannelKey, boolean>>({
@@ -2339,7 +2477,8 @@ function handleResetMediaOrchestration(): void {
       ]
 
   const mediaRows: BroadcastAssetTelemetry[] = [
-    ...mediaItems.slice(0, 4).map((item, index) => blockToBroadcastAsset(item, index === 0 ? "Opening Roll-In" : "Media Asset", index)),
+  ...importedMediaAssets,
+  ...mediaItems.slice(0, 4).map((item, index) => blockToBroadcastAsset(item, index === 0 ? "Opening Roll-In" : "Media Asset", index)),
     {
       label: "Welcome Slide",
       type: "graphic" as BroadcastAssetType,
@@ -2655,10 +2794,10 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
               <div className="rounded-[16px] border border-sky-300/12 bg-sky-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="text-[9px] font-black uppercase tracking-[0.16em] text-sky-100/48">
+                    <div className="text-[8px] font-black uppercase tracking-[0.14em] text-sky-100/48">
                       Selected Asset
                     </div>
-                    <div className="mt-1 truncate text-[14px] font-semibold tracking-[-0.035em] text-white/86">
+                    <div className="mt-1 truncate text-[15px] font-semibold tracking-[-0.04em] text-white/88">
                       {selectedMediaAsset?.label ?? "Select an asset"}
                     </div>
                     <div className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.10em] text-white/28">
@@ -2816,16 +2955,35 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
           </div>
         </ConsolePanel>
 
-        <ConsolePanel
+<ConsolePanel
   title="Media"
   action={
-    <button
-      type="button"
-      onClick={() => setExpandedMediaOpen(true)}
-      className="rounded-full border border-sky-300/14 bg-sky-400/[0.055] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-sky-100/58 transition hover:border-sky-300/24 hover:bg-sky-400/[0.090] hover:text-sky-50"
-    >
-      Expand
-    </button>
+    <div className="flex items-center gap-1">
+      <input
+        ref={mediaImportInputRef}
+        type="file"
+        multiple
+        accept="video/*,image/*,audio/*,application/pdf"
+        className="hidden"
+        onChange={handleImportMediaFiles}
+      />
+
+      <button
+        type="button"
+        onClick={() => mediaImportInputRef.current?.click()}
+        className="rounded-full border border-emerald-300/14 bg-emerald-400/[0.050] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-emerald-100/58 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.090] hover:text-emerald-50"
+      >
+        Import
+      </button>
+
+      <button
+        type="button"
+        onClick={() => setExpandedMediaOpen(true)}
+        className="rounded-full border border-sky-300/14 bg-sky-400/[0.055] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-sky-100/58 transition hover:border-sky-300/24 hover:bg-sky-400/[0.090] hover:text-sky-50"
+      >
+        Expand
+      </button>
+    </div>
   }
 >
           <div>
@@ -2858,11 +3016,32 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-2">
-              {mediaRows.slice(0, 2).map((asset) => (
-                <MediaRow key={`${asset.label}-${asset.state}-${asset.type}`} asset={asset} />
-              ))}
-            </div>
+<div className="grid grid-cols-2 gap-2">
+  {mediaRows.slice(0, 2).map((asset) => (
+    <MediaRow
+      key={`${asset.label}-${asset.state}-${asset.type}`}
+      asset={asset}
+    />
+  ))}
+</div>
+
+{importedMediaAssets.length > 0 ? (
+  <div className="mt-2 rounded-[10px] border border-emerald-300/12 bg-emerald-400/[0.040] px-3 py-2">
+    <div className="flex items-center justify-between">
+      <span className="text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/52">
+        Imported Assets
+      </span>
+
+      <span className="text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/52">
+        {importedMediaAssets.length}
+      </span>
+    </div>
+
+    <div className="mt-1 text-[9px] text-white/48">
+      Latest: {importedMediaAssets[0]?.label}
+    </div>
+  </div>
+) : null}
 
             <div className="mt-2 grid grid-cols-3 gap-1.5">
               {[
@@ -2882,7 +3061,7 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
               onClick={() => setExpandedMediaOpen(true)}
               className="mt-2 flex w-full items-center justify-between rounded-[10px] border border-sky-300/10 bg-sky-400/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.09em] text-sky-100/58 transition hover:border-sky-300/18 hover:bg-sky-400/[0.060] hover:text-sky-50/78"
             >
-              <span>Open Asset Orchestrator</span>
+              <span>{importedMediaAssets.length > 0 ? `${importedMediaAssets.length} Imported · Open Orchestrator` : "Open Asset Orchestrator"}</span>
               <span className="text-sky-100/38">⌘ Shift A</span>
             </button>
           </div>
@@ -3240,7 +3419,7 @@ isRecording
           <div className="mt-4 rounded-[18px] border border-white/[0.060] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+                <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
                   Recording Preflight
                 </div>
                 <div className="mt-1 text-[12px] font-semibold text-white/64">
@@ -3297,7 +3476,7 @@ isRecording
                     <div className="mt-4 rounded-[18px] border border-white/[0.060] bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+                <div className="text-[8px] font-black uppercase tracking-[0.14em]text-white/42">
                   Capture Model
                 </div>
                <div className="mt-1 text-[12px] font-semibold text-white/64">
@@ -3410,7 +3589,7 @@ isRecording
 
         <div className="flex min-h-0 flex-col gap-3 rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.016)]">
           <div className="flex items-center justify-between">
-            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+            <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
               Sessions
             </div>
             <div className="rounded-full border border-white/[0.055] bg-black/22 px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-white/34">
@@ -3468,7 +3647,7 @@ isRecording
           <div className="rounded-[18px] border border-white/[0.060] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
             <div className="flex items-center justify-between gap-3">
               <div>
-                <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
+                <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
                   Recording Pipeline
                 </div>
 <div className="mt-1 text-[12px] font-semibold text-white/64">
