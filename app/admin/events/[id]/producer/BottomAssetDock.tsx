@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from "react"
 type UtilityPanel = "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 type MediaOrchestratorTab = "overview" | "assets" | "routing" | "take"
@@ -31,6 +30,17 @@ type BroadcastAssetTelemetry = {
   takeCompatibility?: "Clean" | "Needs Check" | "Live Only"
   segment?: string
   trigger?: string
+}
+type MediaAssetEditDraft = {
+  label: string
+  linkedScene: string
+  segment: string
+  trigger: string
+}
+type MediaAssetRuntimeState = {
+  isPlaying: boolean
+  startedAtMs: number | null
+  elapsedSeconds: number
 }
 function AssetRundownStrip({ asset }: { asset: BroadcastAssetTelemetry }): JSX.Element {
   return (
@@ -147,6 +157,27 @@ function formatFileSize(bytes: number): string {
 
   return `${value >= 10 || index === 0 ? Math.round(value) : value.toFixed(1)} ${units[index]}`
 }
+
+function parseRuntimeDurationSeconds(duration: string): number | null {
+  if (!duration || duration === "—" || duration === "LIVE" || duration === "PDF") return null
+
+  const parts = duration.split(":").map((part) => Number(part))
+
+  if (parts.some((part) => Number.isNaN(part))) return null
+
+  if (parts.length === 2) return parts[0] * 60 + parts[1]
+  if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2]
+
+  return null
+}
+
+function formatRuntimeClock(seconds: number): string {
+  const safeSeconds = Math.max(0, Math.floor(seconds))
+  const minutes = Math.floor(safeSeconds / 60)
+  const remainingSeconds = safeSeconds % 60
+
+  return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
+}
 import {
   FALLBACK_MEDIA_ITEMS,
   type DockAssetRecord,
@@ -236,10 +267,10 @@ function AssetStatePill({ state }: { state: BroadcastAssetState }): JSX.Element 
 
 function AssetTypeGlyph({ type }: { type: BroadcastAssetType }): JSX.Element {
   const icon =
-    type === "video" ? <Video size={13} /> :
-    type === "graphic" ? <FileImage size={13} /> :
-    type === "audio" ? <Waves size={13} /> :
-    <Radio size={13} />
+    type === "video" ? <Video size={12} /> :
+    type === "graphic" ? <FileImage size={12} /> :
+    type === "audio" ? <Waves size={12} /> :
+    <Radio size={12} />
 
   const tone =
     type === "video"
@@ -251,7 +282,7 @@ function AssetTypeGlyph({ type }: { type: BroadcastAssetType }): JSX.Element {
           : "border-red-300/14 bg-red-400/[0.060] text-red-100/62"
 
   return (
-    <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-[8px] border ${tone}`}>
+    <div className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-[7px] border ${tone}`}>
       {icon}
     </div>
   )
@@ -355,7 +386,7 @@ function CueStackRow({ asset }: { asset: BroadcastAssetTelemetry }): JSX.Element
       <div className="mt-1.5 flex items-center gap-2 border-t border-white/[0.035] pt-1.5">
         <div className="h-[3px] flex-1 overflow-hidden rounded-full bg-white/[0.045]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-sky-300/38 via-sky-200/52 to-white/42 transition-[width] duration-300"
+            className="h-full rounded-full bg-gradient-to-r from-sky-300/38 via-sky-200/52 to-white/42 transition-[width,opacity] duration-500 ease-linear"
             style={{ width: `${Math.max(0, Math.min(100, asset.progress ?? 0))}%` }}
           />
         </div>
@@ -459,18 +490,22 @@ function SourceConfidenceStrip({ mediaRows }: { mediaRows: BroadcastAssetTelemet
   ]
 
   return (
-    <div className="mb-2 grid grid-cols-4 gap-1">
+    <div className="mb-2 flex items-center gap-1.5 border-b border-white/[0.035] pb-2">
       {metrics.map(([label, value], index) => (
         <div
           key={label}
-          className={`rounded-[9px] border px-2 py-1.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] ${
+          className={`flex min-w-0 flex-1 items-center justify-between rounded-full border px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] ${
             index === 3 && checkCount > 0
               ? "border-amber-300/13 bg-amber-300/[0.045]"
               : "border-white/[0.040] bg-white/[0.014]"
           }`}
         >
-          <div className="text-[6.5px] font-black uppercase tracking-[0.11em] text-white/22">{label}</div>
-          <div className="mt-0.5 truncate text-[8px] font-black uppercase tracking-[0.08em] text-white/52">{value}</div>
+          <span className="text-[6.5px] font-black uppercase tracking-[0.11em] text-white/22">
+            {label}
+          </span>
+          <span className="truncate text-[7px] font-black uppercase tracking-[0.08em] text-white/52">
+            {value}
+          </span>
         </div>
       ))}
     </div>
@@ -487,7 +522,7 @@ function TakeSafetyMatrix({ mediaRows }: { mediaRows: BroadcastAssetTelemetry[] 
   ]
 
   return (
-    <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
+    <div className="border-b border-white/[0.045] pb-2">
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
@@ -502,14 +537,14 @@ function TakeSafetyMatrix({ mediaRows }: { mediaRows: BroadcastAssetTelemetry[] 
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
+      <div className="mt-2 grid grid-cols-4 gap-1">
         {checks.map(([label, value]) => {
           const caution = value === "Review" || value === "Open" || value === "Idle"
 
           return (
             <div
               key={label}
-              className={`rounded-[11px] border px-3 py-2 ${
+              className={`rounded-[9px] border px-2 py-1.5 ${
                 caution
                   ? "border-amber-300/12 bg-amber-300/[0.040]"
                   : "border-emerald-300/10 bg-emerald-400/[0.035]"
@@ -536,7 +571,7 @@ function RouteMappingPanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetry[]
   ]
 
   return (
-    <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
+    <div className="border-b border-white/[0.045] pb-2">
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
@@ -551,9 +586,9 @@ function RouteMappingPanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetry[]
         </div>
       </div>
 
-      <div className="mt-3 grid gap-1.5">
+      <div className="mt-2 grid grid-cols-2 gap-1">
         {routes.map(([code, label, status]) => (
-          <div key={code} className="grid grid-cols-[42px_1fr_auto] items-center gap-2 rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-2.5 py-2">
+          <div key={code} className="grid grid-cols-[36px_1fr_auto] items-center gap-1 rounded-[9px] border border-white/[0.040] bg-white/[0.014] px-2 py-1.5">
             <span className="rounded-full border border-sky-300/12 bg-sky-400/[0.045] px-2 py-0.5 text-center text-[8px] font-black uppercase tracking-[0.08em] text-sky-100/54">
               {code}
             </span>
@@ -572,7 +607,7 @@ function TransitionCompatibilityPanel({ mediaRows }: { mediaRows: BroadcastAsset
   const caution = compatibility === "Needs Check"
 
   return (
-    <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
+    <div className="border-b border-white/[0.045] pb-2">
       <div className="flex items-center justify-between gap-2">
         <div>
           <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
@@ -587,13 +622,13 @@ function TransitionCompatibilityPanel({ mediaRows }: { mediaRows: BroadcastAsset
         </div>
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-1.5">
+      <div className="mt-2 grid grid-cols-3 gap-1">
         {[
           ["Motion", nextAsset?.type === "video" ? "Timed" : "Static"],
           ["Audio", nextAsset?.audioEmbedded ? "Embedded" : "Clear"],
           ["Reset", nextAsset?.resetBehavior ?? "Manual"],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-[10px] border border-white/[0.045] bg-white/[0.016] px-2 py-1.5 text-center">
+          <div key={label} className="rounded-[9px] border border-white/[0.040] bg-white/[0.014] px-2 py-1 text-center">
             <div className="text-[6.5px] font-black uppercase tracking-[0.10em] text-white/22">{label}</div>
             <div className="mt-0.5 truncate text-[8px] font-black uppercase tracking-[0.08em] text-white/48">{value}</div>
           </div>
@@ -625,7 +660,7 @@ function ActiveTakeQueuePanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetr
   const previewAsset = mediaRows.find((asset) => asset.destination === "PREVIEW") ?? mediaRows[1] ?? mediaRows[0]
   const standbyAsset = mediaRows.find((asset) => asset.destination === "STANDBY") ?? mediaRows[2] ?? mediaRows[0]
   return (
-    <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+    <div className="border-b border-white/[0.045] pb-2">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/40">
@@ -642,7 +677,7 @@ function ActiveTakeQueuePanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetr
         </div>
       </div>
 
-      <div className="mt-3 space-y-1.5">
+      <div className="mt-2 space-y-1">
         <div className="mb-2 grid grid-cols-5 gap-0.5">
   {[
     ["Primary", "Live"],
@@ -715,7 +750,7 @@ function ActiveTakeQueuePanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetr
         ))}
       </div>
 
-      <div className="mt-3 grid grid-cols-3 gap-1.5">
+      <div className="mt-2 grid grid-cols-3 gap-1">
         {[
           ["Preload", "Ready"],
           ["Transition", "Prepared"],
@@ -781,7 +816,7 @@ function ActiveTakeQueuePanel({ mediaRows }: { mediaRows: BroadcastAssetTelemetr
 }
 function ProductionIntentPanel(): JSX.Element {
   return (
-    <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+    <div className="border-b border-white/[0.045] pb-2">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
@@ -797,7 +832,7 @@ function ProductionIntentPanel(): JSX.Element {
         </div>
       </div>
 
-      <div className="mt-3 grid gap-1.5">
+      <div className="mt-2 grid grid-cols-2 gap-1">
         {[
           ["Moment", "Open with motion"],
           ["Audience Effect", "Orient attention"],
@@ -806,7 +841,7 @@ function ProductionIntentPanel(): JSX.Element {
         ].map(([label, value]) => (
           <div
             key={label}
-            className="flex items-center justify-between rounded-[11px] border border-white/[0.045] bg-black/20 px-2.5 py-1.5"
+            className="flex items-center justify-between rounded-[9px] border border-white/[0.040] bg-white/[0.014] px-2 py-1"
           >
             <span className="text-[8px] font-black uppercase tracking-[0.11em] text-white/28">{label}</span>
             <span className="text-[9px] font-semibold tracking-[-0.01em] text-white/58">{value}</span>
@@ -826,7 +861,7 @@ function OperatorConfidencePanel(): JSX.Element {
   ]
 
   return (
-    <div className="rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+    <div className="border-b border-white/[0.045] pb-2">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
@@ -842,14 +877,14 @@ function OperatorConfidencePanel(): JSX.Element {
         </div>
       </div>
 
-      <div className="mt-3 grid gap-1.5">
+      <div className="mt-2 grid grid-cols-2 gap-1">
         {confidenceRows.map(([label, value, tone]) => {
           const isAmber = tone === "amber"
 
           return (
             <div
               key={label}
-              className={`flex items-center justify-between rounded-[11px] border px-2.5 py-1.5 ${
+              className={`flex items-center justify-between rounded-[9px] border px-2 py-1 ${
                 isAmber
                   ? "border-amber-300/12 bg-amber-300/[0.040]"
                   : "border-emerald-300/10 bg-emerald-400/[0.032]"
@@ -890,7 +925,7 @@ function MediaRow({
     <button
       type="button"
       onClick={onSelect}
-      className={`group relative flex min-w-0 items-stretch gap-1.5 overflow-hidden rounded-[11px] border p-1 text-left transition hover:-translate-y-px hover:border-white/[0.085] hover:bg-white/[0.030] active:translate-y-0 ${
+      className={`group relative flex min-w-0 items-stretch gap-1 overflow-hidden rounded-[9px] border p-[3px] text-left transition hover:-translate-y-px hover:border-white/[0.085] hover:bg-white/[0.030] active:translate-y-0 ${
 selected
   ? "border-sky-300/22 bg-sky-400/[0.060] shadow-[0_0_18px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.018)]"
   : asset.state === "PRELOADED"
@@ -898,7 +933,7 @@ selected
     : "border-white/[0.045] bg-white/[0.016]"
       }`}
     >
-      <div className={`relative h-[54px] w-[72px] shrink-0 overflow-hidden rounded-[8px] border ${typeFrame}`}>
+      <div className={`relative h-[46px] w-[64px] shrink-0 overflow-hidden rounded-[7px] border ${typeFrame}`}>
         {asset.imageUrl ? (
           <img src={asset.imageUrl} alt="Media preview" className="absolute inset-0 h-full w-full object-cover opacity-85" />
         ) : null}
@@ -922,7 +957,7 @@ selected
       <div className="flex min-w-0 flex-1 flex-col justify-between py-0.5">
         <div className="flex items-start justify-between gap-1.5">
           <div className="min-w-0">
-            <div className="truncate text-[10px] font-semibold tracking-[-0.025em] text-white/82">{asset.label}</div>
+            <div className="truncate text-[9px] font-semibold tracking-[-0.02em] text-white/80">{asset.label}</div>
             <div className="mt-0.5 flex items-center gap-1.5">
               <AssetTypeGlyph type={asset.type} />
               <div className="min-w-0 text-[6.5px] font-black uppercase tracking-[0.12em] text-white/28">
@@ -933,7 +968,7 @@ selected
           <AssetStatePill state={asset.state} />
         </div>
 
-<div className="mt-1 grid grid-cols-3 gap-1 text-[6.5px] font-black uppercase tracking-[0.11em] text-white/26">
+<div className="mt-0.5 grid grid-cols-3 gap-0.5 text-[6px] font-black uppercase tracking-[0.10em] text-white/24">
   <span className="truncate">{asset.route}</span>
 
   <span className="truncate text-center">
@@ -945,7 +980,7 @@ selected
   </span>
 </div>
 
-<div className="mt-1 flex flex-wrap items-center gap-1">
+<div className="mt-0.5 flex flex-wrap items-center gap-0.5">
   <span
     className={`rounded-full border px-1.5 py-0.5 text-[6.5px] font-black uppercase tracking-[0.08em] ${
       asset.routeLock
@@ -973,9 +1008,9 @@ selected
   ) : null}
 </div>
 
-<div className="mt-1 overflow-hidden rounded-full bg-white/[0.040]">
+<div className="mt-0.5 overflow-hidden rounded-full bg-white/[0.035]">
   <div
-    className={`h-[3px] rounded-full transition-[width] duration-300 ${
+    className={`h-[3px] rounded-full transition-[width,opacity] duration-500 ease-linear ${
       asset.state === "LIVE"
         ? "bg-gradient-to-r from-red-400/70 via-red-300/70 to-white/70"
         : asset.takeSafe
@@ -1185,7 +1220,7 @@ function ExpandedAudioMixerOverlay({
   return (
     <div className="fixed inset-x-6 bottom-6 top-[96px] z-[999] overflow-hidden rounded-[24px] border border-emerald-200/16 bg-[radial-gradient(circle_at_24%_0%,rgba(16,185,129,0.16),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(56,189,248,0.12),transparent_32%),linear-gradient(180deg,rgba(5,13,18,0.985),rgba(2,5,10,0.998))] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.030)_0px,rgba(255,255,255,0.030)_1px,transparent_1px,transparent_32px)]" />
-      <div className="relative z-[2500] flex items-start justify-between gap-4 border-b border-white/[0.065] px-5 py-4">
+      <div className="relative z-[2500] flex items-start justify-between gap-3 border-b border-white/[0.065] px-4 py-3">
         <div>
           <div className="text-[9px] font-black uppercase tracking-[0.18em] text-emerald-100/52">
             Expanded Audio Mixer
@@ -1274,7 +1309,7 @@ function ExpandedAudioMixerOverlay({
         </div>
       </div>
 
-      <div className="relative z-10 grid h-[calc(100%-112px)] min-h-0 gap-4 overflow-hidden p-5 xl:grid-cols-[1fr_280px]">
+      <div className="relative z-10 grid max-h-[calc(52vh-92px)] min-h-0 gap-3 overflow-y-auto p-4 xl:grid-cols-[0.95fr_1.05fr]">
         <div className="min-h-0 rounded-[18px] border border-white/[0.065] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
           <div className="grid h-full min-h-0 grid-cols-6 gap-3">
             {channels.map(([label, level, badge]) => {
@@ -1632,26 +1667,29 @@ function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, ind
     trigger: index === 0 ? "Next TAKE" : index === 1 ? "Scene Link" : "Operator",
   }
 }
+
+
+
 function MediaOverviewWorkspace({
   mediaRows,
 }: {
   mediaRows: BroadcastAssetTelemetry[]
 }): JSX.Element {
   return (
-    <div className="grid gap-2.5 xl:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid gap-2 xl:grid-cols-[1fr_1fr]">
       <div>
         <ProductionIntentPanel />
       </div>
 
-      <div className="space-y-2.5">
+      <div className="space-y-2">
         <OperatorConfidencePanel />
 
-        <div className="rounded-[16px] border border-white/[0.055] bg-black/20 p-3">
+        <div className="border-b border-white/[0.045] pb-2">
           <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
             Operational Status
           </div>
 
-          <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <div className="mt-2 grid grid-cols-2 gap-1">
             {[
               ["Preview Confidence", "Stable"],
               ["Route Validation", mediaRows.some((asset) => asset.routeLock) ? "Mapped" : "Open"],
@@ -1660,7 +1698,7 @@ function MediaOverviewWorkspace({
             ].map(([label, value]) => (
               <div
                 key={label}
-                className="flex items-center justify-between rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-3 py-2"
+                className="flex items-center justify-between rounded-[9px] border border-white/[0.040] bg-white/[0.014] px-2 py-1"
               >
                 <span className="text-[10px] font-semibold text-white/42">{label}</span>
                 <span className="text-[10px] font-black uppercase tracking-[0.10em] text-emerald-100/58">
@@ -1680,195 +1718,319 @@ function MediaAssetsWorkspace({
   assetTabStats,
   selectedMediaAsset,
   onSelectAsset,
+  onEditImportedAsset,
+  onDeleteImportedAsset,
+  isImportedAsset,
+  onRenameImportedAsset,
 }: {
   mediaRows: BroadcastAssetTelemetry[]
   assetTabStats: ReadonlyArray<readonly [string, number]>
   selectedMediaAsset: BroadcastAssetTelemetry | null
   onSelectAsset: (label: string) => void
+  onEditImportedAsset: (label: string) => void
+  onDeleteImportedAsset: (label: string) => void
+  isImportedAsset: (label: string) => boolean
+  onRenameImportedAsset: (oldLabel: string, nextLabel: string) => void
 }): JSX.Element {
   const inspectedAsset = selectedMediaAsset ?? mediaRows[0] ?? null
+  const inspectedIsImported = inspectedAsset ? isImportedAsset(inspectedAsset.label) : false
+  const [renamingAssetLabel, setRenamingAssetLabel] = useState<string | null>(null)
+  const [renameDraft, setRenameDraft] = useState("")
+
+  function beginRenameAsset(asset: BroadcastAssetTelemetry): void {
+    if (!isImportedAsset(asset.label)) return
+
+    setRenamingAssetLabel(asset.label)
+    setRenameDraft(asset.label)
+  }
+
+  function cancelRenameAsset(): void {
+    setRenamingAssetLabel(null)
+    setRenameDraft("")
+  }
+
+  function commitRenameAsset(): void {
+    if (!renamingAssetLabel) return
+
+    const nextLabel = renameDraft.trim()
+
+    if (!nextLabel || nextLabel === renamingAssetLabel) {
+      cancelRenameAsset()
+      return
+    }
+
+    onRenameImportedAsset(renamingAssetLabel, nextLabel)
+    cancelRenameAsset()
+  }
 
   return (
-    <div className="grid min-h-0 gap-3 xl:grid-cols-[1.05fr_0.95fr]">
-      <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
-              Asset Bank
+    <div className="grid h-[236px] min-h-0 gap-2 xl:grid-cols-[360px_1.2fr_210px_260px]">
+      <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.045] bg-white/[0.012] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+        <div className="flex h-[34px] items-center justify-between gap-2 border-b border-white/[0.035] px-2">
+          <div className="min-w-0">
+            <div className="text-[7px] font-black uppercase tracking-[0.16em] text-sky-100/38">
+              Asset Library
             </div>
-            <div className="mt-1 text-[13px] font-semibold tracking-[-0.025em] text-white/82">
-              Program-aware playback inventory
+            <div className="truncate text-[7px] font-semibold tracking-[-0.01em] text-white/30">
+              {assetTabStats.length} sets · {mediaRows.length} loaded
             </div>
           </div>
 
-          <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/54">
-            {mediaRows.length} Loaded
+          <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-2 py-0.5 text-[6.5px] font-black uppercase tracking-[0.10em] text-sky-100/54">
+            Preview Select
           </div>
         </div>
 
-        <div className="mb-3 flex items-center justify-between gap-2 rounded-[12px] border border-white/[0.045] bg-white/[0.014] p-1">
-          <div className="flex items-center gap-1">
-            {assetTabStats.map(([tab, count], index) => (
-              <button
-                key={tab}
-                type="button"
-                className={`flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.08em] transition ${
-                  index === 0
-                    ? "bg-sky-400/[0.12] text-sky-100/76"
-                    : "text-white/34 hover:bg-white/[0.030] hover:text-white/68"
-                }`}
-              >
-                <span>{tab}</span>
-                <span className="rounded-full bg-white/[0.045] px-1.5 py-0.5 text-[6.5px] text-white/42">{count}</span>
-              </button>
-            ))}
-          </div>
+        <div className="h-[202px] overflow-y-auto p-2 pr-1.5">
+          <div className="grid gap-1">
+            {mediaRows.map((asset) => {
+              const active = inspectedAsset?.label === asset.label
+              const destination = asset.destination ?? "STANDBY"
+              const assetIsImported = isImportedAsset(asset.label)
+              const isRenamingAsset = renamingAssetLabel === asset.label
 
-          <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/48">
-            Filters Armed
-          </div>
-        </div>
+              return (
+                <button
+                  key={`${asset.label}-${asset.destination}-${asset.state}`}
+                  type="button"
+                  onClick={() => onSelectAsset(asset.label)}
+                  className={`grid grid-cols-[28px_1fr_42px] items-center gap-1.5 rounded-[9px] border px-2 py-1.5 text-left transition hover:-translate-y-px active:translate-y-0 ${
+                    active
+                      ? "border-sky-300/28 bg-sky-400/[0.085] shadow-[0_0_18px_rgba(56,189,248,0.12),inset_0_1px_0_rgba(255,255,255,0.018)]"
+                      : asset.state === "PRELOADED"
+                        ? "border-emerald-300/14 bg-emerald-400/[0.040]"
+                        : "border-white/[0.045] bg-white/[0.014] hover:border-white/[0.080] hover:bg-white/[0.026]"
+                  }`}
+                >
+                  <AssetTypeGlyph type={asset.type} />
 
-        <div className="grid max-h-[420px] gap-1.5 overflow-y-auto pr-1">
-          {mediaRows.map((asset) => {
-            const active = inspectedAsset?.label === asset.label
-            const destination = asset.destination ?? "STANDBY"
+                  <div className="min-w-0">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      {isRenamingAsset ? (
+                        <input
+                          autoFocus
+                          value={renameDraft}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={(event) => setRenameDraft(event.target.value)}
+                          onBlur={commitRenameAsset}
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") {
+                              event.preventDefault()
+                              commitRenameAsset()
+                            }
 
-            return (
-              <button
-                key={`${asset.label}-${asset.destination}-${asset.state}`}
-                type="button"
-                onClick={() => onSelectAsset(asset.label)}
-                className={`grid grid-cols-[34px_1fr_auto] items-center gap-2 rounded-[12px] border px-2.5 py-2 text-left transition hover:-translate-y-px active:translate-y-0 ${
-                  active
-                    ? "border-sky-300/22 bg-sky-400/[0.070] shadow-[0_0_18px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.016)]"
-                    : asset.state === "PRELOADED"
-                      ? "border-emerald-300/14 bg-emerald-400/[0.040]"
-                      : "border-white/[0.045] bg-white/[0.016] hover:border-white/[0.080] hover:bg-white/[0.028]"
-                }`}
-              >
-                <AssetTypeGlyph type={asset.type} />
+                            if (event.key === "Escape") {
+                              event.preventDefault()
+                              cancelRenameAsset()
+                            }
+                          }}
+                          className="min-w-0 flex-1 rounded-[7px] border border-sky-300/24 bg-black/42 px-2 py-0.5 text-[9px] font-semibold tracking-[-0.02em] text-white/88 outline-none"
+                        />
+                      ) : (
+                        <span
+                          onDoubleClick={(event) => {
+                            event.stopPropagation()
+                            beginRenameAsset(asset)
+                          }}
+                          className={`truncate text-[10px] font-semibold tracking-[-0.02em] text-white/82 ${assetIsImported ? "cursor-text rounded-[6px] px-1 -mx-1 transition hover:bg-sky-300/[0.075] hover:text-white" : ""}`}
+                        >
+                          {asset.label}
+                        </span>
+                      )}
 
-                <div className="min-w-0">
-                  <div className="flex min-w-0 items-center gap-1.5">
-                    <span className="truncate text-[11px] font-semibold tracking-[-0.025em] text-white/82">
-                      {asset.label}
-                    </span>
-                    <AssetStatePill state={asset.state} />
+                      <AssetStatePill state={asset.state} />
+                    </div>
+
+                    <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[6px] font-black uppercase tracking-[0.09em] text-white/24">
+                      <span className="truncate">{asset.meta}</span>
+                      <span>·</span>
+                      <span className="truncate">{asset.route}</span>
+                    </div>
                   </div>
-                  <div className="mt-1 flex min-w-0 items-center gap-1.5 text-[7px] font-black uppercase tracking-[0.11em] text-white/28">
-                    <span className="truncate">{asset.meta}</span>
-                    <span>·</span>
-                    <span className="truncate">{asset.route}</span>
-                    <span>·</span>
-                    <span className="truncate">{asset.linkedScene}</span>
-                  </div>
-                </div>
 
-                <div className={`rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] ${
-                  destination === "PROGRAM"
-                    ? "border-red-300/16 bg-red-400/[0.070] text-red-100/62"
-                    : destination === "PREVIEW"
-                      ? "border-sky-300/16 bg-sky-400/[0.070] text-sky-100/62"
-                      : "border-white/[0.050] bg-black/20 text-white/36"
-                }`}>
-                  {destination}
-                </div>
-              </button>
-            )
-          })}
+                  <div className="flex items-center justify-end gap-1">
+                    <div className={`rounded-full border px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] ${
+                      destination === "PROGRAM"
+                        ? "border-red-300/16 bg-red-400/[0.070] text-red-100/62"
+                        : destination === "PREVIEW"
+                          ? "border-sky-300/16 bg-sky-400/[0.080] text-sky-100/68"
+                          : "border-white/[0.050] bg-black/20 text-white/36"
+                    }`}>
+                      {destination === "PROGRAM" ? "PGM" : destination === "PREVIEW" ? "PVW" : "STBY"}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={!assetIsImported}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        onDeleteImportedAsset(asset.label)
+                      }}
+                      className="flex h-4 w-4 items-center justify-center rounded-full border border-red-300/14 bg-red-400/[0.050] text-[10px] font-black leading-none text-red-100/58 transition hover:border-red-300/26 hover:bg-red-400/[0.11] hover:text-red-50 disabled:cursor-not-allowed disabled:opacity-20"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
         </div>
       </div>
 
-      <div className="min-h-0 rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
-        <div className="flex items-start justify-between gap-3">
+      <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008))] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+        <div className="flex h-[36px] items-center justify-between gap-2 border-b border-white/[0.040] pb-1.5">
           <div className="min-w-0">
-            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
-              Asset Inspector
+            <div className="text-[7px] font-black uppercase tracking-[0.16em] text-sky-100/42">
+              Preview
             </div>
-
-            <div className="mt-1 truncate text-[20px] font-semibold tracking-[-0.05em] text-white/92">
+            <div className="truncate text-[9px] font-semibold tracking-[-0.02em] text-white/72">
               {inspectedAsset?.label ?? "No asset selected"}
             </div>
-
-            <div className="mt-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/24">
-              {inspectedAsset ? `${inspectedAsset.type} · ${inspectedAsset.meta}` : "Awaiting operator selection"}
-            </div>
           </div>
 
-          {inspectedAsset ? <AssetStatePill state={inspectedAsset.state} /> : null}
+          <div className="flex items-center gap-1">
+            <div className="rounded-full border border-sky-300/14 bg-sky-400/[0.060] px-2 py-0.5 text-[6px] font-black uppercase tracking-[0.10em] text-sky-100/56">
+              1080p
+            </div>
+            <div className="rounded-full border border-white/[0.060] bg-black/24 px-2 py-0.5 text-[6px] font-black uppercase tracking-[0.10em] text-white/40">
+              16:9
+            </div>
+          </div>
         </div>
 
-        {inspectedAsset ? (
-          <div className="mt-4 grid gap-2">
-            <div className="overflow-hidden rounded-[14px] border border-white/[0.055] bg-black/24 p-2">
-              <div className="relative aspect-video overflow-hidden rounded-[11px] border border-white/[0.055] bg-[radial-gradient(circle_at_35%_25%,rgba(56,189,248,0.16),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))]">
-                {inspectedAsset.imageUrl ? (
-                  <img
-                    src={inspectedAsset.imageUrl}
-                    alt="Selected asset preview"
-                    className="absolute inset-0 h-full w-full object-cover opacity-85"
-                  />
-                ) : null}
-                {inspectedAsset.type === "audio" ? (
-                  <div className="absolute inset-x-8 bottom-8 flex h-16 items-end justify-between gap-1">
-                    {Array.from({ length: 28 }).map((_, index) => (
-                      <span
-                        key={index}
-                        className="w-1 rounded-full bg-emerald-200/44"
-                        style={{ height: `${12 + ((index * 7) % 48)}px` }}
-                      />
-                    ))}
-                  </div>
-                ) : null}
-                <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.045),transparent_34%,rgba(0,0,0,0.42))]" />
-                <div className="absolute bottom-3 left-3 rounded-full border border-white/[0.070] bg-black/42 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-white/62">
-                  {inspectedAsset.duration}
-                </div>
-              </div>
-            </div>
+        <div className="mt-1 overflow-hidden rounded-[10px] border border-sky-300/12 bg-black/30 p-0.5 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.012)]">
+          <div className="relative aspect-video h-[118px] overflow-hidden rounded-[8px] border border-white/[0.055] bg-[radial-gradient(circle_at_35%_25%,rgba(56,189,248,0.18),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))]">
+            {inspectedAsset?.imageUrl ? (
+              <img
+                src={inspectedAsset.imageUrl}
+                alt="Preview route asset"
+                className="absolute inset-0 h-full w-full object-cover opacity-88"
+              />
+            ) : null}
 
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                ["Destination", inspectedAsset.destination ?? "STANDBY"],
-                ["Cache", inspectedAsset.cacheState ?? "WARM"],
-                ["Codec", inspectedAsset.codecState ?? "OK"],
-                ["Take", inspectedAsset.takeSafe ? "Ready" : "Check"],
-                ["Last Played", inspectedAsset.lastPlayed],
-                ["Scene", inspectedAsset.linkedScene],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-[11px] border border-white/[0.045] bg-black/20 px-3 py-2">
-                  <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/24">
-                    {label}
-                  </div>
-                  <div className="mt-1 truncate text-[10px] font-semibold tracking-[-0.01em] text-white/62">
-                    {value}
-                  </div>
-                </div>
-              ))}
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.055),transparent_32%,rgba(0,0,0,0.48))]" />
+            <div className="pointer-events-none absolute inset-0 opacity-[0.10] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.14)_0px,rgba(255,255,255,0.14)_1px,transparent_1px,transparent_5px)]" />
+            <div className="absolute left-2 top-2 flex items-center gap-1.5 rounded-full border border-sky-300/20 bg-sky-400/[0.095] px-2 py-0.5 text-[6px] font-black uppercase tracking-[0.10em] text-sky-100/72 shadow-[0_0_16px_rgba(56,189,248,0.13)]">
+              <span className="h-1.5 w-1.5 rounded-full bg-sky-300 animate-pulse" />
+              Armed Preview
             </div>
-
-            <div className="rounded-[12px] border border-sky-300/10 bg-sky-400/[0.035] p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <div className="text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/38">
-                    Operator Hint
-                  </div>
-                  <div className="mt-1 text-[10px] font-semibold tracking-[-0.01em] text-white/50">
-                    {inspectedAsset.hoverHint ?? "Select routing or preload before taking this asset live."}
-                  </div>
-                </div>
-                <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.050] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-sky-100/50">
-                  {inspectedAsset.takeCompatibility ?? "Clean"}
-                </div>
-              </div>
+            <div className="absolute bottom-2 left-2 rounded-full border border-white/[0.070] bg-black/46 px-2 py-0.5 text-[6.5px] font-black uppercase tracking-[0.08em] text-white/62">
+              {inspectedAsset?.duration ?? "--:--"}
+            </div>
+            <div className="absolute bottom-2 right-2 rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-2 py-0.5 text-[6.5px] font-black uppercase tracking-[0.08em] text-sky-100/54">
+              Ready
             </div>
           </div>
-        ) : null}
+        </div>
+
+        <div className="mt-1 grid grid-cols-3 gap-1 border-t border-white/[0.030] pt-1">
+          {[
+            ["Duration", inspectedAsset?.duration ?? "--:--"],
+            ["Route", inspectedAsset?.route ?? "PVW"],
+            ["Take", inspectedAsset?.takeSafe ? "Ready" : "Check"],
+          ].map(([label, value]) => (
+            <div key={label} className="rounded-[8px] border border-white/[0.040] bg-white/[0.014] px-2 py-1">
+              <div className="text-[5.5px] font-black uppercase tracking-[0.11em] text-white/20">
+                {label}
+              </div>
+              <div className="mt-0.5 truncate text-[7px] font-black uppercase tracking-[0.08em] text-white/50">
+                {value}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="grid min-h-0 gap-1">
+        <button
+          type="button"
+          disabled={!inspectedAsset}
+          onClick={() => {
+            if (!inspectedAsset) return
+            onSelectAsset(inspectedAsset.label)
+          }}
+          className="rounded-[11px] border border-sky-300/18 bg-sky-400/[0.095] px-2 py-3 text-center text-sky-100/78 shadow-[0_0_18px_rgba(56,189,248,0.10)] transition hover:border-sky-300/30 hover:bg-sky-400/[0.14] disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          <div className="text-[10px] font-black uppercase tracking-[0.10em]">Arm Preview</div>
+          <div className="mt-1 text-[8px] font-semibold text-sky-100/42">Stage to preview</div>
+        </button>
+
+        <button
+          type="button"
+          disabled
+          className="rounded-[11px] border border-red-300/18 bg-red-400/[0.075] px-2 py-3 text-center text-red-100/54 opacity-80"
+        >
+          <div className="text-[10px] font-black uppercase tracking-[0.10em]">Take Live</div>
+          <div className="mt-1 text-[8px] font-semibold text-red-100/34">Use TAKE strip</div>
+        </button>
+
+        <button
+          type="button"
+          disabled={!inspectedIsImported}
+          onClick={() => inspectedAsset ? onEditImportedAsset(inspectedAsset.label) : undefined}
+          className="rounded-[9px] border border-white/[0.050] bg-white/[0.016] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-white/48 transition hover:bg-white/[0.030] disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          Edit
+        </button>
+
+        <button
+          type="button"
+          disabled={!inspectedIsImported}
+          onClick={() => inspectedAsset ? onDeleteImportedAsset(inspectedAsset.label) : undefined}
+          className="rounded-[9px] border border-red-300/14 bg-red-400/[0.055] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/56 transition hover:bg-red-400/[0.095] disabled:cursor-not-allowed disabled:opacity-30"
+        >
+          Delete
+        </button>
+      </div>
+
+      <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.045] bg-white/[0.012] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+        <div className="flex h-[36px] items-center justify-between gap-2 border-b border-white/[0.040] px-2.5">
+          <div className="text-[7px] font-black uppercase tracking-[0.16em] text-white/30">
+            Inspector
+          </div>
+          <AssetStatePill state={inspectedAsset?.state ?? "STANDBY"} />
+        </div>
+
+        <div className="grid gap-1 p-2">
+          {[
+            ["Title", inspectedAsset?.label ?? "No Asset"],
+            ["Type", inspectedAsset?.type ?? "—"],
+            ["Meta", inspectedAsset?.meta ?? "—"],
+            ["Scene", inspectedAsset?.linkedScene ?? "—"],
+            ["Cache", inspectedAsset?.cacheState ?? "—"],
+            ["Codec", inspectedAsset?.codecState ?? "—"],
+            ["Played", inspectedAsset?.lastPlayed ?? "—"],
+          ].map(([label, value]) => (
+            <div key={label} className="grid grid-cols-[54px_1fr] gap-2 border-b border-white/[0.025] pb-1 last:border-b-0">
+              <div className="text-[6px] font-black uppercase tracking-[0.11em] text-white/20">
+                {label}
+              </div>
+              <div className="truncate text-[8px] font-semibold tracking-[-0.01em] text-white/58">
+                {value}
+              </div>
+            </div>
+          ))}
+
+          <div className="mt-1 overflow-hidden rounded-[8px] border border-white/[0.040] bg-black/22">
+            {inspectedAsset?.imageUrl ? (
+              <img
+                src={inspectedAsset.imageUrl}
+                alt="Inspector preview"
+                className="h-[42px] w-full object-cover opacity-76"
+              />
+            ) : (
+              <div className="flex h-[42px] items-center justify-center text-[7px] font-black uppercase tracking-[0.10em] text-white/24">
+                No Thumbnail
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   )
 }
+
 function MediaTakeWorkspace({
   mediaRows,
   onPreload,
@@ -1876,7 +2038,7 @@ function MediaTakeWorkspace({
   onRehearse,
   onReset,
 }: {
-  mediaRows: BroadcastAssetTelemetry[]
+  mediaRows: BroadcastAssetTelemetry[] 
   onPreload?: () => void
   onLockRoute?: () => void
   onRehearse?: () => void
@@ -1929,7 +2091,7 @@ function MediaTakeWorkspace({
             </div>
           </div>
 
-          <div className="mt-3 grid grid-cols-3 gap-1.5">
+          <div className="mt-2 grid grid-cols-3 gap-1">
             {[
               ["Primary", mediaRows.find((asset) => asset.destination === "PROGRAM")?.label ?? "Program"],
               ["Backup", mediaRows.find((asset) => asset.destination === "PREVIEW")?.label ?? "Preview"],
@@ -1988,7 +2150,7 @@ function MediaRoutingWorkspace({
               ["STBY", mediaRows.find((asset) => asset.destination === "STANDBY")?.label ?? "Clear"],
               ["MSC", mediaRows.find((asset) => asset.type === "audio")?.label ?? "Music Bus"],
             ].map(([code, value]) => (
-              <div key={code} className="rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-2 py-2 text-center">
+              <div key={code} className="rounded-[9px] border border-white/[0.045] bg-white/[0.018] px-2 py-2 text-center">
                 <div className="text-[7px] font-black uppercase tracking-[0.12em] text-sky-100/44">
                   {code}
                 </div>
@@ -2046,17 +2208,91 @@ const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTel
   const [selectedMediaAssetLabel, setSelectedMediaAssetLabel] = useState<string | null>(null)
   const [previewMediaAssetLabel, setPreviewMediaAssetLabel] = useState<string | null>(null)
   const [programMediaAssetLabel, setProgramMediaAssetLabel] = useState<string | null>(null)
+  const [mediaRuntimeByLabel, setMediaRuntimeByLabel] = useState<Record<string, MediaAssetRuntimeState>>({})
+  const [runtimePaused, setRuntimePaused] = useState(false)
+const [mediaRuntimeNowMs, setMediaRuntimeNowMs] = useState(Date.now())
+useEffect(() => {
+  if (!programMediaAssetLabel) return
+
+  const interval = window.setInterval(() => {
+    setMediaRuntimeNowMs(Date.now())
+  }, 500)
+
+  return () => window.clearInterval(interval)
+}, [programMediaAssetLabel])
+  const [editingMediaAssetLabel, setEditingMediaAssetLabel] = useState<string | null>(null)
+const [mediaAssetEditDraft, setMediaAssetEditDraft] = useState<MediaAssetEditDraft>({
+  label: "",
+  linkedScene: "",
+  segment: "",
+  trigger: "",
+})
   const [takeFlashActive, setTakeFlashActive] = useState(false)
-  function handleTakeAsset(): void {
-  if (!previewMediaAssetLabel) return
+function handleSendSelectedMediaAssetToPreview(): void {
+  const targetLabel =
+    selectedMediaAsset?.label ??
+    selectedMediaAssetLabel ??
+    orchestratedMediaRows[0]?.label ??
+    mediaRows[0]?.label ??
+    null
 
-  setProgramMediaAssetLabel(previewMediaAssetLabel)
-  setTakeFlashActive(true)
+  if (!targetLabel) return
 
-  window.setTimeout(() => {
-    setTakeFlashActive(false)
-  }, 900)
+  setSelectedMediaAssetLabel(targetLabel)
+  setPreviewMediaAssetLabel(targetLabel)
+
+  if (programMediaAssetLabel === targetLabel) {
+    setProgramMediaAssetLabel(null)
+  }
+
+  setRuntimePaused(false)
 }
+
+function handleSelectMediaAssetForPreview(label: string): void {
+  setSelectedMediaAssetLabel(label)
+  setPreviewMediaAssetLabel(label)
+
+  if (programMediaAssetLabel === label) {
+    setProgramMediaAssetLabel(null)
+  }
+
+  setRuntimePaused(false)
+}
+  function handleTakeAsset(): void {
+    if (!previewMediaAssetLabel) return
+
+    setProgramMediaAssetLabel(previewMediaAssetLabel)
+
+    setMediaRuntimeByLabel((current) => ({
+      ...current,
+      [previewMediaAssetLabel]: {
+        isPlaying: true,
+        startedAtMs: Date.now(),
+        elapsedSeconds: 0,
+      },
+    }))
+
+    setTakeFlashActive(true)
+
+    window.setTimeout(() => {
+      setTakeFlashActive(false)
+    }, 900)
+  }
+
+  function handleResetProgramRuntime(): void {
+    if (!programMediaAssetLabel) return
+
+    setMediaRuntimeByLabel((current) => ({
+      ...current,
+      [programMediaAssetLabel]: {
+        isPlaying: false,
+        startedAtMs: null,
+        elapsedSeconds: 0,
+      },
+    }))
+
+    setRuntimePaused(false)
+  }
   const [preloadedAssetLabels, setPreloadedAssetLabels] = useState<string[]>([])
   function handlePreloadAsset(): void {
     if (!selectedMediaAssetLabel) return
@@ -2094,6 +2330,9 @@ function handleResetMediaOrchestration(): void {
   setProgramMediaAssetLabel(null)
   setPreloadedAssetLabels([])
   setTakeFlashActive(false)
+  setMediaRuntimeByLabel({})
+  setMediaRuntimeByLabel({})
+setRuntimePaused(false)
 }
 function createImportedMediaAsset(
   file: File,
@@ -2189,7 +2428,43 @@ function handleDeleteImportedAsset(label: string): void {
   if (previewMediaAssetLabel === label) setPreviewMediaAssetLabel(null)
   if (programMediaAssetLabel === label) setProgramMediaAssetLabel(null)
 }
+function handleRenameImportedAsset(oldLabel: string, requestedLabel: string): void {
+  const baseLabel = requestedLabel.trim()
 
+  if (!baseLabel || baseLabel === oldLabel) return
+
+  let nextLabel = baseLabel
+  let copyIndex = 2
+
+  while (
+    mediaRows.some(
+      (asset) => asset.label === nextLabel && asset.label !== oldLabel,
+    )
+  ) {
+    nextLabel = `${baseLabel} ${copyIndex}`
+    copyIndex += 1
+  }
+
+  setImportedMediaAssets((current) =>
+    current.map((asset) =>
+      asset.label === oldLabel
+        ? {
+            ...asset,
+            label: nextLabel,
+            hoverHint: `Imported asset renamed from ${oldLabel}`,
+          }
+        : asset,
+    ),
+  )
+
+  setPreloadedAssetLabels((current) =>
+    current.map((label) => (label === oldLabel ? nextLabel : label)),
+  )
+
+  if (selectedMediaAssetLabel === oldLabel) setSelectedMediaAssetLabel(nextLabel)
+  if (previewMediaAssetLabel === oldLabel) setPreviewMediaAssetLabel(nextLabel)
+  if (programMediaAssetLabel === oldLabel) setProgramMediaAssetLabel(nextLabel)
+}
 function handleClearImportedAssets(): void {
   importedMediaAssets.forEach((asset) => {
     if (asset.imageUrl?.startsWith("blob:")) {
@@ -2235,6 +2510,84 @@ function handleClearImportedAssets(): void {
   const [recordingQuality, setRecordingQuality] = useState("1080p Standard")
   const [activeEgressId, setActiveEgressId] = useState<string | null>(null)
   const [recordingError, setRecordingError] = useState<string | null>(null)
+  function isImportedMediaAsset(label: string): boolean {
+  return importedMediaAssets.some((asset) => asset.label === label)
+}
+
+function handleOpenMediaAssetEdit(label: string): void {
+  const asset = importedMediaAssets.find((item) => item.label === label)
+
+  if (!asset) return
+
+  setEditingMediaAssetLabel(label)
+  setMediaAssetEditDraft({
+    label: asset.label,
+    linkedScene: asset.linkedScene,
+    segment: asset.segment ?? "Imported",
+    trigger: asset.trigger ?? "Manual",
+  })
+}
+
+function handleCloseMediaAssetEdit(): void {
+  setEditingMediaAssetLabel(null)
+  setMediaAssetEditDraft({
+    label: "",
+    linkedScene: "",
+    segment: "",
+    trigger: "",
+  })
+}
+
+function handleSaveMediaAssetEdit(): void {
+  if (!editingMediaAssetLabel) return
+
+  const baseLabel = mediaAssetEditDraft.label.trim() || editingMediaAssetLabel
+  let nextLabel = baseLabel
+  let copyIndex = 2
+
+  while (
+    mediaRows.some(
+      (asset) =>
+        asset.label === nextLabel &&
+        asset.label !== editingMediaAssetLabel
+    )
+  ) {
+    nextLabel = `${baseLabel} ${copyIndex}`
+    copyIndex += 1
+  }
+
+  setImportedMediaAssets((current) =>
+    current.map((asset) =>
+      asset.label === editingMediaAssetLabel
+        ? {
+            ...asset,
+            label: nextLabel,
+            linkedScene: mediaAssetEditDraft.linkedScene.trim() || "Unassigned",
+            segment: mediaAssetEditDraft.segment.trim() || "Imported",
+            trigger: mediaAssetEditDraft.trigger.trim() || "Manual",
+            hoverHint: `Imported asset updated for ${mediaAssetEditDraft.trigger.trim() || "manual"} playback`,
+          }
+        : asset
+    )
+  )
+
+  setPreloadedAssetLabels((current) =>
+    current.map((label) => (label === editingMediaAssetLabel ? nextLabel : label))
+  )
+
+  if (selectedMediaAssetLabel === editingMediaAssetLabel) setSelectedMediaAssetLabel(nextLabel)
+  if (previewMediaAssetLabel === editingMediaAssetLabel) setPreviewMediaAssetLabel(nextLabel)
+  if (programMediaAssetLabel === editingMediaAssetLabel) setProgramMediaAssetLabel(nextLabel)
+
+  handleCloseMediaAssetEdit()
+}
+
+function handleDeleteMediaAssetFromEdit(): void {
+  if (!editingMediaAssetLabel) return
+
+  handleDeleteImportedAsset(editingMediaAssetLabel)
+  handleCloseMediaAssetEdit()
+}
 
   function toggleSoloChannel(channel: MixerChannelKey): void {
     setSoloChannel((current) => (current === channel ? null : channel))
@@ -2539,6 +2892,29 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
   const isPreloaded = preloadedAssetLabels.includes(asset.label)
   const isProgram = asset.label === programMediaAssetLabel
   const isPreview = asset.label === previewMediaAssetLabel
+  const runtime = mediaRuntimeByLabel[asset.label]
+
+const runtimeElapsedSeconds =
+  runtime?.isPlaying && runtime.startedAtMs
+    ? runtime.elapsedSeconds +
+      (runtimePaused
+        ? 0
+        : Math.floor((mediaRuntimeNowMs - runtime.startedAtMs) / 1000))
+    : runtime?.elapsedSeconds ?? 0
+    ? runtime.elapsedSeconds +
+      Math.floor((mediaRuntimeNowMs - runtime.startedAtMs) / 1000)
+    : runtime?.elapsedSeconds ?? 0
+
+const runtimeDurationSeconds = parseRuntimeDurationSeconds(asset.duration)
+
+const runtimeProgress = runtimeDurationSeconds
+  ? Math.min(
+      100,
+      Math.round((runtimeElapsedSeconds / runtimeDurationSeconds) * 100),
+    )
+  : asset.type === "live"
+    ? 100
+    : asset.progress ?? 0
 
   if (isProgram) {
     return {
@@ -2546,8 +2922,15 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
       destination: "PROGRAM" as const,
       state: "LIVE" as BroadcastAssetState,
       route: "PGM",
-      progress: 100,
-      scheduledIn: "Live now",
+    progress: runtimeProgress,
+scheduledIn:
+  asset.type === "live"
+    ? "Live now"
+    : `${formatRuntimeClock(runtimeElapsedSeconds)} elapsed`,
+    lastPlayed:
+  runtimeElapsedSeconds > 0
+    ? formatRuntimeClock(runtimeElapsedSeconds)
+    : "Starting",
       routeLock: true,
       cueOrder: 1,
     }
@@ -2560,6 +2943,7 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
       state: "CUED" as BroadcastAssetState,
       route: "PVW",
       scheduledIn: "Next TAKE",
+      progress: 0,
       routeLock: true,
       cueOrder: 2,
     }
@@ -2667,238 +3051,175 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
         />
       ) : null}
       {expandedMediaOpen ? (
-        <div className={`fixed inset-x-6 bottom-6 top-[96px] z-[999] overflow-hidden rounded-[24px] border border-sky-200/16 bg-[radial-gradient(circle_at_18%_0%,rgba(56,189,248,0.16),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(168,85,247,0.10),transparent_32%),linear-gradient(180deg,rgba(5,10,18,0.985),rgba(2,5,10,0.998))] text-white shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(56,189,248,0.12),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl ${takeFlashActive ? 'animate-pulse' : ''}`}>
+        <div className="fixed inset-x-5 bottom-5 z-[999] h-[382px] overflow-hidden rounded-[24px] border border-sky-200/16 bg-[radial-gradient(circle_at_18%_0%,rgba(56,189,248,0.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(14,165,233,0.08),transparent_28%),linear-gradient(180deg,rgba(6,11,22,0.992),rgba(2,5,11,0.998))] shadow-[0_28px_90px_rgba(0,0,0,0.58),0_0_34px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.050)] backdrop-blur-2xl">
           <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.030)_0px,rgba(255,255,255,0.030)_1px,transparent_1px,transparent_32px)]" />
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/24 to-transparent" />
 
-          <div className="relative z-10 flex items-start justify-between gap-4 border-b border-white/[0.065] px-5 py-4">
-            <div>
-              <div className="text-[9px] font-black uppercase tracking-[0.18em] text-sky-100/52">
-                Broadcast Asset Intelligence
+          <div className="relative z-10 flex h-[54px] items-center justify-between gap-3 border-b border-white/[0.055] px-4">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-sky-300/14 bg-sky-400/[0.070] text-[10px] font-black uppercase tracking-[0.08em] text-sky-100/70 shadow-[0_0_18px_rgba(56,189,248,0.10)]">
+                EVS
               </div>
-              <div className="mt-1 text-[22px] font-semibold tracking-[-0.055em] text-white/92">
-                Expanded Media Orchestrator
-              </div>
-              <div className="mt-1 max-w-3xl text-[12px] leading-relaxed text-white/46">
-                Cue-aware asset routing, orchestration telemetry, preview confidence, and rundown-linked playback preparation.
+
+              <div className="min-w-0">
+                <div className="text-[7px] font-black uppercase tracking-[0.18em] text-sky-100/44">
+                  Broadcast Asset Orchestrator
+                </div>
+                <div className="mt-0.5 truncate text-[15px] font-semibold tracking-[-0.045em] text-white/90">
+                  Playback Workstation
+                </div>
               </div>
             </div>
 
-            <button
-              type="button"
-              onClick={() => setExpandedMediaOpen(false)}
-              className="rounded-full border border-white/[0.08] bg-white/[0.030] px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/58 transition hover:bg-white/[0.055] hover:text-white/82"
-            >
-              Close
-            </button>
-          </div>
-
-          <div className="relative z-10 h-[calc(100%-104px)] min-h-0 overflow-hidden p-5">
-            <div className="mb-3 overflow-hidden rounded-[16px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.020),rgba(255,255,255,0.010))] px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
-  <div className="mb-2 flex items-center justify-between">
-    <div>
-      <div className="text-[8px] font-black uppercase tracking-[0.16em] text-sky-100/38">
-        Narrative Timeline
-      </div>
-      <div className="mt-1 text-[11px] font-semibold tracking-[-0.02em] text-white/66">
-        Event choreography awareness
-      </div>
-    </div>
-
-    <div className="rounded-full border border-sky-300/10 bg-sky-400/[0.045] px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-sky-100/44">
-      Timeline Linked
-    </div>
-  </div>
-
-  <div className="flex items-center gap-2 overflow-x-auto pb-1">
-    {[
-      ["Countdown", "USED"],
-      ["Host Intro", "LIVE"],
-      ["Keynote", "NEXT"],
-      ["Break", "STANDBY"],
-      ["Session A", "LINKED"],
-      ["Closing", "SAFE"],
-    ].map(([label, state], index) => (
-      <div key={label} className="flex items-center gap-2">
-        <div className={`min-w-[112px] rounded-[12px] border px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] ${state === "LIVE" ? "border-red-300/16 bg-red-400/[0.045]" : state === "NEXT" ? "border-sky-300/16 bg-sky-400/[0.045]" : "border-white/[0.050] bg-black/22"}`}>
-          <div className="text-[7px] font-black uppercase tracking-[0.10em] text-white/24">
-            Segment {index + 1}
-          </div>
-
-          <div className="mt-1 text-[10px] font-semibold tracking-[-0.025em] text-white/82">
-            {label}
-          </div>
-
-<TimelineStatePill state={state} />
-        </div>
-
-        {index < 5 ? (
-          <div className="h-px w-6 shrink-0 bg-gradient-to-r from-sky-300/24 via-white/10 to-transparent" />
-        ) : null}
-      </div>
-    ))}
-  </div>
-</div>
-            <div className="mb-3 grid grid-cols-4 gap-2">
+            <div className="hidden min-w-0 flex-1 items-center gap-1.5 px-3 xl:flex">
               {[
-["Inventory", `${orchestratedMediaRows.length} Assets`],
-["Cue Safety", `${orchestratedMediaRows.filter((asset) => asset.takeSafe !== false).length} Clear`],
-["Route Locks", `${orchestratedMediaRows.filter((asset) => asset.routeLock).length} Armed`],
-["Live Sources", `${orchestratedMediaRows.filter((asset) => asset.state === "LIVE").length} Active`],
+                ["Inventory", `${orchestratedMediaRows.length}`],
+                ["Preview", previewMediaAssetLabel ?? "Idle"],
+                ["Program", programMediaAssetLabel ?? "Clear"],
+                ["Safe", `${orchestratedMediaRows.filter((asset) => asset.takeSafe !== false).length}`],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-[14px] border border-white/[0.055] bg-white/[0.018] px-3 py-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-                  <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/28">{label}</div>
-                  <div className="mt-1 text-[13px] font-semibold tracking-[-0.025em] text-white/78">{value}</div>
+                <div
+                  key={label}
+                  className="flex min-w-0 flex-1 items-center justify-between rounded-full border border-white/[0.040] bg-white/[0.014] px-2 py-1"
+                >
+                  <span className="text-[6px] font-black uppercase tracking-[0.11em] text-white/22">
+                    {label}
+                  </span>
+                  <span className="truncate text-[7px] font-black uppercase tracking-[0.08em] text-white/54">
+                    {value}
+                  </span>
                 </div>
               ))}
             </div>
-<div className="mb-3 flex items-center justify-between gap-3 rounded-[16px] border border-white/[0.055] bg-white/[0.014] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-  <div className="flex items-center gap-1">
-    {[
-      ["overview", "Overview", "Mission control"],
-      ["assets", "Assets", "Inventory"],
-      ["routing", "Routing", "Signal paths"],
-      ["take", "TAKE", "Execution"],
-    ].map(([id, label, meta]) => {
-      const active = activeMediaOrchestratorTab === id
 
-      return (
-        <button
-          key={id}
-          type="button"
-          onClick={() =>
-            setActiveMediaOrchestratorTab(id as MediaOrchestratorTab)
-          }
-          className={`rounded-[12px] border px-3 py-2 text-left transition ${
-            active
-              ? "border-sky-300/18 bg-sky-400/[0.085] text-sky-100/78"
-              : "border-white/[0.040] bg-black/14 text-white/42 hover:border-white/[0.075] hover:bg-white/[0.025] hover:text-white/68"
-          }`}
-        >
-          <div className="text-[9px] font-black uppercase tracking-[0.12em]">
-            {label}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => mediaImportInputRef.current?.click()}
+                className="rounded-full border border-emerald-300/14 bg-emerald-400/[0.055] px-3 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-emerald-100/62 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.090] hover:text-emerald-50"
+              >
+                Import
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setExpandedMediaOpen(false)}
+                className="rounded-full border border-white/[0.08] bg-white/[0.030] px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-white/58 transition hover:bg-white/[0.055] hover:text-white/82"
+              >
+                Close
+              </button>
+            </div>
           </div>
 
-          <div className="mt-0.5 text-[7px] font-black uppercase tracking-[0.10em] opacity-45">
-            {meta}
-          </div>
-        </button>
-      )
-    })}
-  </div>
+          <div className="relative z-10 flex h-[38px] items-center justify-between gap-3 border-b border-white/[0.040] px-4">
+            <div className="flex items-center gap-1">
+              {[
+  ["assets", "Assets"],
+  ["take", "TAKE"],
+  ["routing", "Routing"],
+  ["overview", "Overview"],
+].map(([id, label]) => {
+                const active = activeMediaOrchestratorTab === id
 
-  <div className="rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-3 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-emerald-100/48">
-    Workspace Mode
-  </div>
-</div>
-            <div className="h-[calc(100%-254px)] min-h-0 overflow-y-auto rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-3 pr-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
-              <div className="rounded-[16px] border border-sky-300/12 bg-sky-400/[0.035] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="text-[8px] font-black uppercase tracking-[0.14em] text-sky-100/48">
-                      Selected Asset
-                    </div>
-                    <div className="mt-1 truncate text-[15px] font-semibold tracking-[-0.04em] text-white/88">
-                      {selectedMediaAsset?.label ?? "Select an asset"}
-                    </div>
-                    <div className="mt-1 truncate text-[9px] font-black uppercase tracking-[0.10em] text-white/28">
-                      {selectedMediaAsset ? `${selectedMediaAsset.type} · ${selectedMediaAsset.meta}` : "Awaiting operator selection"}
-                    </div>
-                  </div>
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => setActiveMediaOrchestratorTab(id as MediaOrchestratorTab)}
+                    className={`rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] transition ${
+                      active
+                        ? "border-sky-300/20 bg-sky-400/[0.095] text-sky-100/80 shadow-[0_0_16px_rgba(56,189,248,0.10)]"
+                        : "border-white/[0.040] bg-black/14 text-white/38 hover:border-white/[0.075] hover:bg-white/[0.025] hover:text-white/68"
+                    }`}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
 
-                  <AssetStatePill state={selectedMediaAsset?.state ?? "STANDBY"} />
+            <div className="flex min-w-0 items-center gap-1.5">
+              {[
+                ["Countdown", "USED"],
+                ["Host Intro", "LIVE"],
+                ["Keynote", "NEXT"],
+                ["Closing", "SAFE"],
+              ].map(([label, state]) => (
+                <div
+                  key={label}
+                  className={`shrink-0 rounded-full border px-2 py-0.5 text-[6.5px] font-black uppercase tracking-[0.08em] ${
+                    state === "LIVE"
+                      ? "border-red-300/16 bg-red-400/[0.055] text-red-100/64"
+                      : state === "NEXT"
+                        ? "border-sky-300/16 bg-sky-400/[0.055] text-sky-100/64"
+                        : state === "SAFE"
+                          ? "border-emerald-300/12 bg-emerald-400/[0.045] text-emerald-100/50"
+                          : "border-white/[0.045] bg-black/20 text-white/34"
+                  }`}
+                >
+                  {label} · {state}
                 </div>
+              ))}
+            </div>
+          </div>
 
-                <div className="mt-3 grid grid-cols-3 gap-1.5">
-                  <button
-                    type="button"
-                    disabled={!selectedMediaAsset}
-                    onClick={() => selectedMediaAsset ? setPreviewMediaAssetLabel(selectedMediaAsset.label) : null}
-                    className="rounded-[10px] border border-sky-300/14 bg-sky-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/62 transition hover:bg-sky-400/[0.095] disabled:opacity-35"
-                  >
-                    Send to Preview
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!selectedMediaAsset}
-                    onClick={() => {
-                      if (!selectedMediaAsset) return
-
-                      setProgramMediaAssetLabel(selectedMediaAsset.label)
-                      setTakeFlashActive(true)
-
-                      const nextPreview =
-                        orchestratedMediaRows.find(
-                          (asset) =>
-                            asset.label !== selectedMediaAsset.label &&
-                            asset.destination !== "PROGRAM"
-                        ) ?? null
-
-                      setPreviewMediaAssetLabel(nextPreview?.label ?? null)
-
-                      window.setTimeout(() => {
-                        setTakeFlashActive(false)
-                      }, 900)
-                    }}
-                    className="rounded-[10px] border border-red-300/14 bg-red-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-red-100/62 transition hover:bg-red-400/[0.095] disabled:opacity-35"
-                  >
-                    Send to Program
-                  </button>
-                  <button
-                    type="button"
-                    disabled={!previewMediaAssetLabel}
-                    onClick={handleTakeAsset}
-                    className="rounded-[10px] border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:bg-emerald-400/[0.095] disabled:opacity-35"
-                  >
-                    TAKE Preview
-                  </button>
+          <div className="relative z-10 h-[290px] overflow-hidden p-3">
+            <div className="mb-2 flex h-[30px] items-center gap-2 rounded-[12px] border border-sky-300/10 bg-sky-400/[0.018] px-2">
+              <div className="min-w-0 pr-2">
+                <div className="text-[6px] font-black uppercase tracking-[0.16em] text-sky-100/30">
+                  Selected Asset
+                </div>
+                <div className="truncate text-[9px] font-semibold tracking-[-0.02em] text-white/72">
+                  {selectedMediaAsset?.label ?? "Select an asset"}
                 </div>
               </div>
 
-              <div className="mt-2.5">
-                {activeMediaOrchestratorTab === "overview" ? (
-                  <MediaOverviewWorkspace
-                    mediaRows={orchestratedMediaRows}
-                  />
-                ) : activeMediaOrchestratorTab === "assets" ? (
-                  <MediaAssetsWorkspace
-                    mediaRows={orchestratedMediaRows}
-                    assetTabStats={assetTabStats}
-                    selectedMediaAsset={selectedMediaAsset}
-                    onSelectAsset={setSelectedMediaAssetLabel}
-                  />
-                ) : activeMediaOrchestratorTab === "routing" ? (
-                  <MediaRoutingWorkspace
-                    mediaRows={orchestratedMediaRows}
-                  />
-                ) : activeMediaOrchestratorTab === "take" ? (
-                  <MediaTakeWorkspace
-                    mediaRows={orchestratedMediaRows}
-                    onPreload={handlePreloadAsset}
-                    onLockRoute={handleLockRoute}
-                    onRehearse={handleRehearseAsset}
-                    onReset={handleResetMediaOrchestration}
-                  />
-                ) : null}
+              <AssetStatePill state={selectedMediaAsset?.state ?? "STANDBY"} />
 
-                <div className="mt-3 grid gap-2 md:grid-cols-2">
-                  {[
-                    ["Preview Confidence", "Stable"],
-                    ["Route Validation", "Mapped"],
-                    ["TAKE Preflight", "Green"],
-                    ["Timeline Sync", "Linked"],
-                  ].map(([label, value]) => (
-                    <div
-                      key={label}
-                      className="flex items-center justify-between rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-3 py-2"
-                    >
-                      <span className="text-[10px] font-semibold text-white/42">{label}</span>
-                      <span className="text-[10px] font-black uppercase tracking-[0.10em] text-emerald-100/58">
-                        {value}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+              <div className="ml-auto grid min-w-[650px] grid-cols-5 gap-1">
+                <button type="button" onClick={handleSendSelectedMediaAssetToPreview} className="rounded-[7px] border border-sky-300/14 bg-sky-400/[0.075] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-sky-100/72">
+                  ARM PVW
+                </button>
+                <button type="button" disabled={!selectedMediaAsset} onClick={() => selectedMediaAsset ? setProgramMediaAssetLabel(selectedMediaAsset.label) : undefined} className="rounded-[7px] border border-red-300/14 bg-red-400/[0.060] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/62 disabled:opacity-35">
+                  PGM DIRECT
+                </button>
+                <button type="button" disabled={!previewMediaAssetLabel} onClick={handleTakeAsset} className="rounded-[7px] border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/62 disabled:opacity-35">
+                  TAKE
+                </button>
+                <button type="button" onClick={() => setRuntimePaused((current) => !current)} disabled={!programMediaAssetLabel} className="rounded-[7px] border border-emerald-300/16 bg-emerald-400/[0.070] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/68 disabled:opacity-35">
+                  {runtimePaused ? "RESUME" : "PAUSE"}
+                </button>
+                <button type="button" onClick={handleResetProgramRuntime} disabled={!programMediaAssetLabel} className="rounded-[7px] border border-red-300/14 bg-red-400/[0.055] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/60 disabled:opacity-35">
+                  RESET
+                </button>
               </div>
+            </div>
+
+            <div className="min-h-0 overflow-hidden">
+              {activeMediaOrchestratorTab === "overview" ? (
+                <MediaOverviewWorkspace mediaRows={orchestratedMediaRows} />
+              ) : activeMediaOrchestratorTab === "assets" ? (
+                <MediaAssetsWorkspace
+                  mediaRows={orchestratedMediaRows}
+                  assetTabStats={assetTabStats}
+                  selectedMediaAsset={selectedMediaAsset}
+                  onSelectAsset={handleSelectMediaAssetForPreview}
+                  onEditImportedAsset={handleOpenMediaAssetEdit}
+                  onDeleteImportedAsset={handleDeleteImportedAsset}
+                  isImportedAsset={isImportedMediaAsset}
+                  onRenameImportedAsset={handleRenameImportedAsset}
+                />
+              ) : activeMediaOrchestratorTab === "routing" ? (
+                <MediaRoutingWorkspace mediaRows={orchestratedMediaRows} />
+              ) : activeMediaOrchestratorTab === "take" ? (
+                <MediaTakeWorkspace
+                  mediaRows={orchestratedMediaRows}
+                  onPreload={handlePreloadAsset}
+                  onLockRoute={handleLockRoute}
+                  onRehearse={handleRehearseAsset}
+                  onReset={handleResetMediaOrchestration}
+                />
+              ) : null}
             </div>
           </div>
         </div>
@@ -2978,7 +3299,10 @@ const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) =
 
       <button
         type="button"
-        onClick={() => setExpandedMediaOpen(true)}
+        onClick={() => {
+  setActiveMediaOrchestratorTab("assets")
+  setExpandedMediaOpen(true)
+}}
         className="rounded-full border border-sky-300/14 bg-sky-400/[0.055] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-sky-100/58 transition hover:border-sky-300/24 hover:bg-sky-400/[0.090] hover:text-sky-50"
       >
         Expand
@@ -3549,7 +3873,7 @@ isRecording
                       key={option}
                       type="button"
                       onClick={() => onRecordingDestinationChange(option)}
-                      className={`rounded-[11px] border px-3 py-2 text-left text-[10px] font-black uppercase tracking-[0.08em] transition ${
+                      className={`rounded-[9px] border px-3 py-2 text-left text-[10px] font-black uppercase tracking-[0.08em] transition ${
                         recordingDestination === option
                           ? "border-sky-300/20 bg-sky-400/[0.090] text-sky-100/76"
                           : "border-white/[0.050] bg-white/[0.018] text-white/42 hover:bg-white/[0.035] hover:text-white/68"
@@ -3572,7 +3896,7 @@ isRecording
                       key={option}
                       type="button"
                       onClick={() => onRecordingQualityChange(option)}
-                      className={`rounded-[11px] border px-3 py-2 text-left text-[10px] font-black uppercase tracking-[0.08em] transition ${
+                      className={`rounded-[9px] border px-2 py-1 text-left text-[10px] font-black uppercase tracking-[0.08em] transition ${
                         recordingQuality === option
                           ? "border-emerald-300/18 bg-emerald-400/[0.080] text-emerald-100/72"
                           : "border-white/[0.050] bg-white/[0.018] text-white/42 hover:bg-white/[0.035] hover:text-white/68"
