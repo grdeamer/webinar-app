@@ -14,6 +14,8 @@ import {
   Sparkles,
   TimerReset,
   Users,
+  Eye,
+  EyeOff,
 } from "lucide-react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import BackstagePanel from "./BackstagePanel"
@@ -231,6 +233,98 @@ function InspectorTelemetryStrip(): JSX.Element {
   )
 }
 
+function LayerStackPanel({
+  blocks,
+  selectedBlockId,
+  onSelectBlock,
+}: {
+  blocks: PreviewBlock[]
+  selectedBlockId: string | null
+  onSelectBlock: (blockId: string) => void
+}): JSX.Element {
+  const sortedBlocks = [...blocks].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
+
+  return (
+    <div className="relative overflow-hidden rounded-[18px] border border-white/[0.055] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.026),transparent_34%),linear-gradient(180deg,rgba(10,14,25,0.84),rgba(4,6,12,0.95))] p-2 shadow-[0_9px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.022)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[rightRailSignalSweep_18s_ease-in-out_infinite]" />
+      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/14 to-transparent" />
+
+      <div className="relative z-10 mb-2 flex items-center justify-between gap-3">
+        <div>
+          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100/42">
+            <Layers3 size={12} />
+            Layer Stack
+          </div>
+          <div className="mt-1 text-xs font-semibold text-white/42">
+            {blocks.length === 0 ? "No composition layers" : `${blocks.length} composition layer${blocks.length === 1 ? "" : "s"}`}
+          </div>
+        </div>
+
+        <div className="rounded-full border border-white/8 bg-white/[0.026] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/34">
+          Z Order
+        </div>
+      </div>
+
+      <div className="relative z-10 space-y-1.5">
+        {sortedBlocks.length === 0 ? (
+          <div className="rounded-[16px] border border-dashed border-white/7 bg-white/[0.018] px-3 py-4 text-center text-xs font-semibold text-white/30">
+            Add a text, image, video, or PDF block to begin layering.
+          </div>
+        ) : (
+          sortedBlocks.map((block, index) => {
+            const isSelected = block.id === selectedBlockId
+
+            return (
+              <button
+                key={block.id}
+                type="button"
+                onClick={() => onSelectBlock(block.id)}
+                className={`group/layer flex w-full items-center justify-between gap-2 rounded-[15px] border px-2.5 py-2 text-left transition-all hover:-translate-y-px ${
+                  isSelected
+                    ? "border-violet-300/18 bg-violet-400/[0.085] shadow-[0_0_18px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.035)]"
+                    : "border-white/[0.055] bg-white/[0.020] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] hover:border-white/10 hover:bg-white/[0.036]"
+                }`}
+              >
+                <div className="flex min-w-0 items-center gap-2.5">
+                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border text-[9px] font-black uppercase tracking-tight ${
+                    isSelected
+                      ? "border-violet-300/18 bg-violet-300/[0.12] text-violet-50/66"
+                      : "border-white/8 bg-black/18 text-white/34"
+                  }`}>
+                    {index + 1}
+                  </div>
+
+                  <div className="min-w-0">
+                    <div className="truncate text-xs font-semibold text-white/70">
+                      {block.label || block.type}
+                    </div>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.11em] text-white/28">
+                      <span>{block.type}</span>
+                      <span>·</span>
+                      <span className="tabular-nums">z {block.zIndex ?? 0}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <span className="rounded-full border border-white/7 bg-black/18 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/26">
+                    {block.hidden ? "Hidden" : "Live"}
+                  </span>
+                  {block.hidden ? (
+                    <EyeOff size={12} className="text-amber-100/42" />
+                  ) : (
+                    <Eye size={12} className="text-emerald-100/42" />
+                  )}
+                </div>
+              </button>
+            )
+          })
+        )}
+      </div>
+    </div>
+  )
+}
+
 function RecordingCenterPanel(): JSX.Element {
   return (
     <div className="relative overflow-hidden rounded-[16px] border border-red-300/[0.06] bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.020),transparent_34%),linear-gradient(180deg,rgba(20,10,12,0.84),rgba(8,5,7,0.95))] p-1.5 shadow-[0_7px_22px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.020)]">
@@ -405,6 +499,9 @@ function RecordingCenterPanel(): JSX.Element {
 
 export default function RightInspectorRail({
   selectedBlock,
+  previewBlocks,
+  selectedBlockId,
+  onSelectBlock,
   onToggleHidden,
   onUpdateOpacity,
   onUpdateScale,
@@ -428,6 +525,9 @@ export default function RightInspectorRail({
   onError,
 }: {
   selectedBlock: PreviewBlock | null
+  previewBlocks: PreviewBlock[]
+  selectedBlockId: string | null
+  onSelectBlock: (blockId: string) => void
   onToggleHidden: () => void
   onUpdateOpacity: (value: string) => void
   onUpdateScale: (value: string) => void
@@ -459,6 +559,11 @@ export default function RightInspectorRail({
           icon={<SlidersHorizontal size={16} />}
           title="Layer Inspector"
           sub="Selected Layer Control Surface"
+        />
+        <LayerStackPanel
+          blocks={previewBlocks}
+          selectedBlockId={selectedBlockId}
+          onSelectBlock={onSelectBlock}
         />
         <SelectedBlockInspector
           selectedBlock={selectedBlock}

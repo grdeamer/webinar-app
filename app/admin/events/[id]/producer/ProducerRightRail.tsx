@@ -314,9 +314,12 @@ function RailDrawer({
 
 export default function ProducerRightRail({
   participants,
-  stageIds,
-  selectedBlock,
-  onToggleHidden,
+stageIds,
+selectedBlock,
+previewBlocks,
+selectedBlockId,
+onSelectBlock,
+onToggleHidden,
   onUpdateOpacity,
   onUpdateScale,
   onUpdateRotation,
@@ -337,9 +340,12 @@ export default function ProducerRightRail({
   onError,
 }: {
   participants: ProducerParticipant[]
-  stageIds: Set<string>
-  selectedBlock: PreviewBlock | null
-  onToggleHidden: () => void
+stageIds: Set<string>
+selectedBlock: PreviewBlock | null
+previewBlocks: PreviewBlock[]
+selectedBlockId: string | null
+onSelectBlock: (blockId: string) => void
+onToggleHidden: () => void
   onUpdateOpacity: (value: string) => void
   onUpdateScale: (value: string) => void
   onUpdateRotation: (value: string) => void
@@ -700,8 +706,11 @@ export default function ProducerRightRail({
             defaultOpen={false}
           >
             <RightInspectorRail
-              selectedBlock={selectedBlock}
-              onToggleHidden={onToggleHidden}
+            selectedBlock={selectedBlock}
+            previewBlocks={previewBlocks}
+            selectedBlockId={selectedBlockId}
+            onSelectBlock={onSelectBlock}
+            onToggleHidden={onToggleHidden}
               onUpdateOpacity={onUpdateOpacity}
               onUpdateScale={onUpdateScale}
               onUpdateRotation={onUpdateRotation}
