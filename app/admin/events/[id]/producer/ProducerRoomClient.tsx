@@ -5,7 +5,7 @@ import type { JSX } from "react";
 import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
 
 import useProducerRoomApi from "./useProducerRoomApi";
-import useProducerBlocks from "./useProducerBlocks";
+import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks";
 import useProducerBlockEditor from "./useProducerBlockEditor";
 import useProducerUploads from "./useProducerUploads";
 import useProducerTransitions from "./useProducerTransitions";
@@ -360,6 +360,8 @@ const updateStageState = useCallback(
     updateSrc: updateSelectedBlockSrc,
     updateSize: updateSelectedBlockSize,
     updateOpacity: updateSelectedBlockOpacity,
+    updateScale: updateSelectedBlockScale,
+    updateRotation: updateSelectedBlockRotation,
     updatePosition: updateSelectedBlockPosition,
     toggleHidden: toggleSelectedBlockHidden,
   } = useProducerBlockEditor({
@@ -860,6 +862,28 @@ const updateStageState = useCallback(
     },
     [sceneActions],
   );
+
+  const handleAddMediaAssetToPreview = useCallback(
+    (block: PreviewBlock): void => {
+      setPreviewBlocks((current) => {
+        const nextZIndex = current.reduce(
+          (highest, currentBlock) => Math.max(highest, currentBlock.zIndex ?? 0),
+          block.zIndex ?? 0,
+        ) + 1;
+
+        const nextBlock: PreviewBlock = {
+          ...block,
+          id: block.id || `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          zIndex: nextZIndex,
+        };
+
+        setSelectedBlockId(nextBlock.id);
+        return [...current, nextBlock];
+      });
+    },
+    [setPreviewBlocks, setSelectedBlockId],
+  );
+
   const {
     startDraggingBlock,
     startResizingBlock,
@@ -1205,6 +1229,8 @@ const updateStageState = useCallback(
       selectedBlock,
       onToggleHidden: toggleSelectedBlockHidden,
       onUpdateOpacity: updateSelectedBlockOpacity,
+      onUpdateScale: updateSelectedBlockScale,
+      onUpdateRotation: updateSelectedBlockRotation,
       onUpdateLabel: updateSelectedBlockLabel,
       onUpdatePosition: updateSelectedBlockPosition,
       onUpdateSize: updateSelectedBlockSize,
@@ -1227,6 +1253,8 @@ const updateStageState = useCallback(
       selectedBlock,
       toggleSelectedBlockHidden,
       updateSelectedBlockOpacity,
+      updateSelectedBlockScale,
+      updateSelectedBlockRotation,
       updateSelectedBlockLabel,
       updateSelectedBlockPosition,
       updateSelectedBlockSize,
@@ -1258,7 +1286,16 @@ const updateStageState = useCallback(
       recordingRoomName: roomName ?? sessionId,
       slideDeckName: localPdfDeck?.name ?? null,
       slideCount: localPdfDeck?.pageCount ?? 8,
-      onAddScene: sceneActions.startNewScene,
+onAddScene: () => {
+  console.log("New Scene")
+  startNewScene()
+},
+
+onSaveScene: () => {
+  console.log("Save Scene")
+  saveScene()
+},
+      onAddMediaAssetToPreview: handleAddMediaAssetToPreview,
       onUploadPdf: handleUploadPdfClick,
       onSendSlideToPreview: transportActions.sendSlideToPreview,
       onTakeSlide: transportActions.takeSlide,
@@ -1279,6 +1316,7 @@ const updateStageState = useCallback(
       localPdfDeck?.name,
       localPdfDeck?.pageCount,
       sceneActions,
+      handleAddMediaAssetToPreview,
       handleUploadPdfClick,
       transportActions,
       handleDockApplyScene,

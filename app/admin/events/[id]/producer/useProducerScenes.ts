@@ -102,7 +102,7 @@ export default function useProducerScenes({
 
   async function saveScene() {
     if (!sceneName.trim() && !selectedSceneId) {
-      return
+      setSceneName(`Scene ${scenes.length + 1}`)
     }
 
     try {
@@ -110,7 +110,10 @@ export default function useProducerScenes({
 
       const targetId = selectedSceneId
 
-      const data = await api.saveScene(sceneName || "Updated Scene")
+      const resolvedSceneName =
+        sceneName.trim() || `Scene ${scenes.length + 1}`
+
+      const data = await api.saveScene(resolvedSceneName)
 
       const savedSceneId = String(targetId ?? data?.scene?.id ?? crypto.randomUUID())
       const thumbnailUrl = captureSceneThumbnail?.() ?? null
@@ -120,7 +123,7 @@ export default function useProducerScenes({
 
         next.push({
           id: savedSceneId,
-          name: sceneName || prev.find((s) => String(s.id) === savedSceneId)?.name || "Scene",
+          name: resolvedSceneName || prev.find((s) => String(s.id) === savedSceneId)?.name || "Scene",
           stageState: stageState ? { ...stageState } : null,
           previewBlocks: previewBlocks.map((b) => ({ ...b })),
           screenLayoutPreset,
@@ -136,7 +139,7 @@ export default function useProducerScenes({
 
         next.push({
           id: savedSceneId,
-          name: sceneName || existing?.name || "Scene",
+          name: resolvedSceneName || existing?.name || "Scene",
           screenLayoutPreset,
           previewBlocks: previewBlocks.map((block) => ({ ...block })),
           thumbnailUrl,
@@ -213,9 +216,37 @@ export default function useProducerScenes({
     }
   }
 
+  function renameScene(sceneId: string, nextName: string) {
+    const trimmedName = nextName.trim()
+
+    if (!trimmedName) return
+
+    setScenes((prev) =>
+      prev.map((scene) =>
+        String(scene.id) === String(sceneId)
+          ? {
+              ...scene,
+              name: trimmedName,
+            }
+          : scene
+      )
+    )
+
+    setLocalSceneSnapshots((prev) =>
+      prev.map((scene) =>
+        String(scene.id) === String(sceneId)
+          ? {
+              ...scene,
+              name: trimmedName,
+            }
+          : scene
+      )
+    )
+  }
+
   function startNewScene() {
     setSelectedSceneId(null)
-    setSceneName("")
+    setSceneName(`Scene ${scenes.length + 1}`)
   }
 
   function flashSceneHotkey(sceneId: string) {
@@ -244,6 +275,7 @@ export default function useProducerScenes({
     saveScene,
     applyScene,
     deleteScene,
+    renameScene,
     startNewScene,
     flashSceneHotkey,
   }

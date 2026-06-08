@@ -91,6 +91,48 @@ export default function useProducerBlockEditor({
     [selectedBlockId, setPreviewBlocks]
   )
 
+  const updateScale = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                scale: Math.max(0.1, Math.min(4, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateRotation = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                rotation: Math.max(-180, Math.min(180, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
   const updatePosition = useCallback(
     (field: "x" | "y", value: string) => {
       if (!selectedBlockId) return
@@ -131,6 +173,8 @@ export default function useProducerBlockEditor({
     updateSrc,
     updateSize,
     updateOpacity,
+    updateScale,
+    updateRotation,
     updatePosition,
     toggleHidden,
   }

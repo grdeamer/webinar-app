@@ -8,6 +8,8 @@ export type SharedBlockStyleOptions = {
   height: number
   zIndex?: number
   opacity?: number
+  scale?: number
+  rotation?: number
 }
 
 export function getSharedBlockStyle({
@@ -17,6 +19,8 @@ export function getSharedBlockStyle({
   height,
   zIndex,
   opacity,
+  scale,
+  rotation,
 }: SharedBlockStyleOptions): React.CSSProperties {
   return {
     position: "absolute",
@@ -26,6 +30,8 @@ export function getSharedBlockStyle({
     height,
     zIndex,
     opacity: opacity ?? 1,
+    transform: `scale(${scale ?? 1}) rotate(${rotation ?? 0}deg)`,
+    transformOrigin: "center center",
   }
 }
 
@@ -107,6 +113,8 @@ export function renderPlacedBlocks({
           height: block.height,
           zIndex: block.zIndex,
           opacity: block.opacity,
+          scale: block.scale,
+          rotation: block.rotation,
         })}
       >
         {opts?.showChrome ? (

@@ -14,6 +14,8 @@ export type PreviewBlock = {
   height: number
   zIndex: number
   opacity?: number
+  scale?: number
+  rotation?: number
   label?: string | null
   src?: string | null
   content?: string | null
@@ -47,6 +49,8 @@ export default function useProducerBlocks() {
         height: 80,
         zIndex: prev.length + 1,
         opacity: 0.7,
+        scale: 1,
+        rotation: 0,
         content: "Preview text block",
         label: "Text",
         hidden: false,
@@ -66,6 +70,8 @@ export default function useProducerBlocks() {
         height: 180,
         zIndex: prev.length + 1,
         opacity: 0.85,
+        scale: 1,
+        rotation: 0,
         label: "Video",
         src: "https://www.w3schools.com/html/mov_bbb.mp4",
         hidden: false,
@@ -85,6 +91,8 @@ export default function useProducerBlocks() {
         height: 220,
         zIndex: prev.length + 1,
         opacity: 1,
+        scale: 1,
+        rotation: 0,
         label: "PDF",
         src: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
         hidden: false,
@@ -104,6 +112,8 @@ export default function useProducerBlocks() {
         height: 100,
         zIndex: prev.length + 1,
         opacity: 1,
+        scale: 1,
+        rotation: 0,
         label: "Logo",
         src: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
         hidden: false,
@@ -128,6 +138,8 @@ export default function useProducerBlocks() {
         height: 260,
         zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
         opacity: 1,
+        scale: 1,
+        rotation: 0,
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded PDF",
         src,
         hidden: false,
@@ -154,6 +166,8 @@ export default function useProducerBlocks() {
         height: 236,
         zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
         opacity: 1,
+        scale: 1,
+        rotation: 0,
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Video",
         src,
         hidden: false,
@@ -180,6 +194,8 @@ export default function useProducerBlocks() {
         height: 140,
         zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
         opacity: 1,
+        scale: 1,
+        rotation: 0,
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Image",
         src,
         hidden: false,
@@ -280,6 +296,42 @@ export default function useProducerBlocks() {
           ? {
               ...block,
               opacity: Math.max(0.1, Math.min(1, numericValue)),
+            }
+          : block
+      )
+    )
+  }
+
+  function updateSelectedBlockScale(value: string) {
+    if (!selectedBlockId) return
+
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              scale: Math.max(0.1, Math.min(4, numericValue)),
+            }
+          : block
+      )
+    )
+  }
+
+  function updateSelectedBlockRotation(value: string) {
+    if (!selectedBlockId) return
+
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              rotation: Math.max(-180, Math.min(180, numericValue)),
             }
           : block
       )
@@ -459,6 +511,8 @@ export default function useProducerBlocks() {
     updateSelectedTextBlockContent,
     updateSelectedBlockSize,
     updateSelectedBlockOpacity,
+    updateSelectedBlockScale,
+    updateSelectedBlockRotation,
     toggleSelectedBlockHidden,
     updateSelectedBlockPosition,
     updateSelectedBlockLabel,

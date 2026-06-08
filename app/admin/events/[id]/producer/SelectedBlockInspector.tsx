@@ -1,13 +1,16 @@
 "use client"
 
+import type { ReactNode } from "react"
 import {
   Eye,
   EyeOff,
   Layers3,
   Move,
+  RotateCw,
   ScanLine,
   Sparkles,
   Type,
+  ZoomIn,
 } from "lucide-react"
 
 import type { PreviewBlock } from "./useProducerBlocks"
@@ -16,6 +19,8 @@ type SelectedBlockInspectorProps = {
   selectedBlock: PreviewBlock | null
   onToggleHidden: () => void
   onUpdateOpacity: (value: string) => void
+  onUpdateScale: (value: string) => void
+  onUpdateRotation: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
@@ -28,7 +33,7 @@ function InspectorField({
   children,
 }: {
   label: string
-  children: React.ReactNode
+  children: ReactNode
 }) {
   return (
     <div className="space-y-1.5">
@@ -50,10 +55,34 @@ function InspectorInput(props: React.InputHTMLAttributes<HTMLInputElement>) {
   )
 }
 
+function InspectorReadout({
+  icon,
+  label,
+  value,
+}: {
+  icon: ReactNode
+  label: string
+  value: string
+}) {
+  return (
+    <div className="rounded-2xl border border-white/6 bg-white/[0.018] px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+      <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.14em] text-white/24">
+        {icon}
+        {label}
+      </div>
+      <div className="mt-1 text-sm font-semibold tabular-nums text-white/62">
+        {value}
+      </div>
+    </div>
+  )
+}
+
 export default function SelectedBlockInspector({
   selectedBlock,
   onToggleHidden,
   onUpdateOpacity,
+  onUpdateScale,
+  onUpdateRotation,
   onUpdateLabel,
   onUpdatePosition,
   onUpdateSize,
@@ -69,11 +98,15 @@ export default function SelectedBlockInspector({
         </div>
 
         <div className="mt-2 text-sm leading-6 text-white/32">
-          Select a layer to adjust layout, visibility, and media settings.
+          Select a layer to adjust layout, visibility, transforms, and media settings.
         </div>
       </div>
     )
   }
+
+  const opacityValue = selectedBlock.opacity ?? 1
+  const scaleValue = selectedBlock.scale ?? 1
+  const rotationValue = selectedBlock.rotation ?? 0
 
   return (
     <div className="mb-5 rounded-[24px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.04),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.01))] p-4 shadow-[0_18px_54px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.03)]">
@@ -89,7 +122,7 @@ export default function SelectedBlockInspector({
           </div>
 
           <div className="mt-1 text-xs text-white/32">
-            Layout and source settings
+            Layout, transform, and source settings
           </div>
         </div>
 
@@ -124,16 +157,71 @@ export default function SelectedBlockInspector({
       </div>
 
       <div className="space-y-4">
-        <InspectorField label="Opacity">
-          <InspectorInput
-            type="number"
-            min={0.1}
-            max={1}
-            step={0.05}
-            value={selectedBlock.opacity ?? 1}
-            onChange={(e) => onUpdateOpacity(e.target.value)}
-          />
-        </InspectorField>
+        <div className="rounded-[22px] border border-white/6 bg-black/14 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/28">
+              <Sparkles size={13} className="text-violet-100/58" />
+              Transform
+            </div>
+
+            <div className="rounded-full border border-white/8 bg-white/[0.022] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
+              Visual
+            </div>
+          </div>
+
+          <div className="mb-3 grid gap-2 md:grid-cols-3">
+            <InspectorReadout
+              icon={<ScanLine size={11} className="text-violet-200/48" />}
+              label="Opacity"
+              value={`${Math.round(opacityValue * 100)}%`}
+            />
+            <InspectorReadout
+              icon={<ZoomIn size={11} className="text-violet-200/48" />}
+              label="Scale"
+              value={`${scaleValue.toFixed(2)}x`}
+            />
+            <InspectorReadout
+              icon={<RotateCw size={11} className="text-violet-200/48" />}
+              label="Rotate"
+              value={`${rotationValue}°`}
+            />
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-3">
+            <InspectorField label="Opacity">
+              <InspectorInput
+                type="number"
+                min={0.1}
+                max={1}
+                step={0.05}
+                value={opacityValue}
+                onChange={(e) => onUpdateOpacity(e.target.value)}
+              />
+            </InspectorField>
+
+            <InspectorField label="Scale">
+              <InspectorInput
+                type="number"
+                min={0.1}
+                max={4}
+                step={0.05}
+                value={scaleValue}
+                onChange={(e) => onUpdateScale(e.target.value)}
+              />
+            </InspectorField>
+
+            <InspectorField label="Rotation">
+              <InspectorInput
+                type="number"
+                min={-180}
+                max={180}
+                step={1}
+                value={rotationValue}
+                onChange={(e) => onUpdateRotation(e.target.value)}
+              />
+            </InspectorField>
+          </div>
+        </div>
 
         <div className="rounded-[22px] border border-white/6 bg-black/14 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
           <div className="mb-3 flex items-center justify-between gap-3">
@@ -148,38 +236,41 @@ export default function SelectedBlockInspector({
           </div>
 
           <div className="grid gap-3 md:grid-cols-2">
-          <InspectorField label="X Position">
-            <InspectorInput
-              type="number"
-              min={0}
-              value={selectedBlock.x}
-              onChange={(e) => onUpdatePosition("x", e.target.value)}
-            />
-          </InspectorField>
-          <InspectorField label="Y Position">
-            <InspectorInput
-              type="number"
-              min={0}
-              value={selectedBlock.y}
-              onChange={(e) => onUpdatePosition("y", e.target.value)}
-            />
-          </InspectorField>
-          <InspectorField label="Width">
-            <InspectorInput
-              type="number"
-              min={80}
-              value={selectedBlock.width}
-              onChange={(e) => onUpdateSize("width", e.target.value)}
-            />
-          </InspectorField>
-          <InspectorField label="Height">
-            <InspectorInput
-              type="number"
-              min={60}
-              value={selectedBlock.height}
-              onChange={(e) => onUpdateSize("height", e.target.value)}
-            />
-          </InspectorField>
+            <InspectorField label="X Position">
+              <InspectorInput
+                type="number"
+                min={0}
+                value={selectedBlock.x}
+                onChange={(e) => onUpdatePosition("x", e.target.value)}
+              />
+            </InspectorField>
+
+            <InspectorField label="Y Position">
+              <InspectorInput
+                type="number"
+                min={0}
+                value={selectedBlock.y}
+                onChange={(e) => onUpdatePosition("y", e.target.value)}
+              />
+            </InspectorField>
+
+            <InspectorField label="Width">
+              <InspectorInput
+                type="number"
+                min={80}
+                value={selectedBlock.width}
+                onChange={(e) => onUpdateSize("width", e.target.value)}
+              />
+            </InspectorField>
+
+            <InspectorField label="Height">
+              <InspectorInput
+                type="number"
+                min={60}
+                value={selectedBlock.height}
+                onChange={(e) => onUpdateSize("height", e.target.value)}
+              />
+            </InspectorField>
           </div>
         </div>
 
@@ -191,6 +282,7 @@ export default function SelectedBlockInspector({
               placeholder="Layer label"
             />
           </InspectorField>
+
           <InspectorField label="Type">
             <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-black/16 px-3 py-2.5 text-sm text-white/56 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
               <Type size={14} className="text-violet-200/60" />

@@ -4,6 +4,10 @@ type MediaOrchestratorTab = "overview" | "assets" | "routing" | "take"
 type MixerChannelKey = "Program" | "Stage" | "Music" | "Mics" | "SFX" | "Audience"
 type BroadcastAssetType = "video" | "graphic" | "audio" | "live"
 type BroadcastAssetState = "READY" | "LIVE" | "LOOPING" | "STANDBY" | "CUED" | "SAFE" | "PRELOADED" | "FAILED"
+import {
+  type DockAssetRecord,
+  type SceneSummary,
+} from "./assetDockTypes"
 
 type BroadcastAssetTelemetry = {
   label: string
@@ -178,11 +182,7 @@ function formatRuntimeClock(seconds: number): string {
 
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
 }
-import {
-  FALLBACK_MEDIA_ITEMS,
-  type DockAssetRecord,
-  type SceneSummary,
-} from "./assetDockTypes"
+
 
 function ConsolePanel({
   title,
@@ -223,7 +223,7 @@ function ScenePreviewTile({
   return (
     <button
       type="button"
-      className={`group relative overflow-hidden rounded-[12px] border p-1 text-left transition hover:-translate-y-px active:translate-y-0 ${
+      className={`group relative overflow-hidden rounded-[12px] border p-1 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
         active
           ? "border-sky-300/34 bg-sky-400/[0.080] shadow-[0_0_18px_rgba(56,189,248,0.12)]"
           : "border-white/[0.055] bg-white/[0.018] hover:border-white/[0.11] hover:bg-white/[0.030]"
@@ -428,7 +428,7 @@ function OrchestrationCommandStrip({
           key={label}
           type="button"
           onClick={action}
-          className={`group rounded-[9px] border px-1.5 py-1.5 text-left transition hover:-translate-y-px active:translate-y-0 ${
+          className={`group rounded-[9px] border px-1.5 py-1.5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
             index === 0
               ? "border-sky-300/14 bg-sky-400/[0.060] text-sky-100/64 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]"
               : "border-white/[0.045] bg-white/[0.014] text-white/44 hover:border-white/[0.075] hover:bg-white/[0.025]"
@@ -1487,7 +1487,7 @@ function UtilityButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex min-h-[40px] items-center gap-2.5 rounded-[11px] border px-3 text-left transition hover:-translate-y-px active:translate-y-0 ${
+      className={`group flex min-h-[40px] items-center gap-2.5 rounded-[11px] border px-3 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
         danger
           ? "border-red-300/22 bg-[linear-gradient(180deg,rgba(185,28,28,0.76),rgba(127,29,29,0.92))] shadow-[0_0_22px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.050)]"
           : "border-white/[0.055] bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.016)] hover:border-white/[0.09] hover:bg-white/[0.035]"
@@ -1717,25 +1717,37 @@ function MediaAssetsWorkspace({
   mediaRows,
   assetTabStats,
   selectedMediaAsset,
+  previewMediaAsset,
   onSelectAsset,
   onEditImportedAsset,
   onDeleteImportedAsset,
   isImportedAsset,
   onRenameImportedAsset,
+  onArmPreviewAsset,
+  takeFlashAssetLabel,
+  takeFlashProgramLabel,
 }: {
   mediaRows: BroadcastAssetTelemetry[]
   assetTabStats: ReadonlyArray<readonly [string, number]>
   selectedMediaAsset: BroadcastAssetTelemetry | null
+  previewMediaAsset: BroadcastAssetTelemetry | null
+  takeFlashAssetLabel: string | null
+  takeFlashProgramLabel: string | null
   onSelectAsset: (label: string) => void
+  onArmPreviewAsset: (label: string) => void
   onEditImportedAsset: (label: string) => void
   onDeleteImportedAsset: (label: string) => void
   isImportedAsset: (label: string) => boolean
   onRenameImportedAsset: (oldLabel: string, nextLabel: string) => void
 }): JSX.Element {
   const inspectedAsset = selectedMediaAsset ?? mediaRows[0] ?? null
+  const armedPreviewAsset = previewMediaAsset
   const inspectedIsImported = inspectedAsset ? isImportedAsset(inspectedAsset.label) : false
   const [renamingAssetLabel, setRenamingAssetLabel] = useState<string | null>(null)
-  const [renameDraft, setRenameDraft] = useState("")
+const [renameDraft, setRenameDraft] = useState("")
+const [hoverPreviewAssetLabel, setHoverPreviewAssetLabel] = useState<string | null>(null)
+const [transitioningAssetLabel, setTransitioningAssetLabel] = useState<string | null>(null)
+const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
 
   function beginRenameAsset(asset: BroadcastAssetTelemetry): void {
     if (!isImportedAsset(asset.label)) return
@@ -1764,7 +1776,7 @@ function MediaAssetsWorkspace({
   }
 
   return (
-    <div className="grid h-[236px] min-h-0 gap-2 xl:grid-cols-[360px_1.2fr_210px_260px]">
+    <div className="grid min-h-0 h-[clamp(218px,25dvh,272px)] gap-2.5 xl:grid-cols-[340px_1.45fr_190px_190px]">
       <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.045] bg-white/[0.012] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
         <div className="flex h-[34px] items-center justify-between gap-2 border-b border-white/[0.035] px-2">
           <div className="min-w-0">
@@ -1781,64 +1793,158 @@ function MediaAssetsWorkspace({
           </div>
         </div>
 
-        <div className="h-[202px] overflow-y-auto p-2 pr-1.5">
+        <div className="h-[calc(100%-34px)] min-h-0 overflow-y-auto p-2 pr-1.5">
           <div className="grid gap-1">
             {mediaRows.map((asset) => {
               const active = inspectedAsset?.label === asset.label
               const destination = asset.destination ?? "STANDBY"
               const assetIsImported = isImportedAsset(asset.label)
               const isRenamingAsset = renamingAssetLabel === asset.label
+              const takeFlashing = takeFlashAssetLabel === asset.label
+              const programFlashing = takeFlashProgramLabel === asset.label
+              const hoverPreviewing = hoverPreviewAssetLabel === asset.label
 
               return (
-                <button
-                  key={`${asset.label}-${asset.destination}-${asset.state}`}
-                  type="button"
-                  onClick={() => onSelectAsset(asset.label)}
-                  className={`grid grid-cols-[28px_1fr_42px] items-center gap-1.5 rounded-[9px] border px-2 py-1.5 text-left transition hover:-translate-y-px active:translate-y-0 ${
-                    active
-                      ? "border-sky-300/28 bg-sky-400/[0.085] shadow-[0_0_18px_rgba(56,189,248,0.12),inset_0_1px_0_rgba(255,255,255,0.018)]"
-                      : asset.state === "PRELOADED"
-                        ? "border-emerald-300/14 bg-emerald-400/[0.040]"
-                        : "border-white/[0.045] bg-white/[0.014] hover:border-white/[0.080] hover:bg-white/[0.026]"
+<button
+  key={`${asset.label}-${asset.destination}-${asset.state}`}
+  type="button"
+  onClick={() => onSelectAsset(asset.label)}
+  onMouseEnter={() => setHoverPreviewAssetLabel(asset.label)}
+  onMouseLeave={() =>
+    setHoverPreviewAssetLabel((current) =>
+      current === asset.label ? null : current
+    )
+  }
+                  className={`relative grid grid-cols-[28px_minmax(0,1fr)_72px] items-center gap-1.5 rounded-[9px] border px-2 py-1.5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
+                    takeFlashing
+  ? "border-sky-200/50 bg-sky-300/[0.22] scale-[1.01] shadow-[0_0_42px_rgba(56,189,248,0.34)]"
+: programFlashing
+  ? "border-red-300/34 bg-red-400/[0.15] shadow-[0_0_38px_rgba(248,113,113,0.26)]"
+: hoverPreviewing
+  ? "border-sky-300/24 bg-sky-400/[0.08] shadow-[0_0_28px_rgba(56,189,248,0.16)]"
+: programPulseLabel === asset.label
+  ? "border-red-300/38 bg-red-400/[0.14] shadow-[0_0_52px_rgba(248,113,113,0.34),0_0_100px_rgba(248,113,113,0.12)] animate-pulse"
+: active
+      ? "border-sky-300/34 bg-sky-400/[0.12] shadow-[0_0_26px_rgba(56,189,248,0.22),0_0_60px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.024)] ring-1 ring-sky-300/16"
+      : asset.state === "PRELOADED"
+        ? "border-emerald-300/14 bg-emerald-400/[0.040]"
+        : "border-white/[0.045] bg-white/[0.014] hover:border-white/[0.080] hover:bg-white/[0.026]"
                   }`}
                 >
-                  <AssetTypeGlyph type={asset.type} />
+                  <div className="relative h-7 w-7 overflow-hidden rounded-[7px] border border-white/[0.05] bg-black/30">
+  {asset.imageUrl ? (
+    <img
+      src={asset.imageUrl}
+      alt=""
+      className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.06]"
+    />
+  ) : (
+    <div className="flex h-full w-full items-center justify-center">
+      <AssetTypeGlyph type={asset.type} />
+    </div>
+  )}
 
-                  <div className="min-w-0">
-                    <div className="flex min-w-0 items-center gap-1.5">
-                      {isRenamingAsset ? (
-                        <input
-                          autoFocus
-                          value={renameDraft}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) => setRenameDraft(event.target.value)}
-                          onBlur={commitRenameAsset}
-                          onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                              event.preventDefault()
-                              commitRenameAsset()
-                            }
+  <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent_40%,rgba(0,0,0,0.34))]" />
+  {hoverPreviewing ? (
+  <div className="pointer-events-none absolute inset-0 border border-sky-300/28 shadow-[inset_0_0_22px_rgba(56,189,248,0.24)]" />
+) : null}
+</div>
+<div
+  className={`absolute inset-y-1 left-0 w-[2px] rounded-full transition-all duration-300 ease-out ${
+    programPulseLabel === asset.label
+      ? "bg-red-300 shadow-[0_0_18px_rgba(248,113,113,0.95)]"
+      : active
+        ? "bg-sky-300 shadow-[0_0_12px_rgba(56,189,248,0.8)]"
+        : "bg-transparent"
+  }`}
+/>
 
-                            if (event.key === "Escape") {
-                              event.preventDefault()
-                              cancelRenameAsset()
-                            }
-                          }}
-                          className="min-w-0 flex-1 rounded-[7px] border border-sky-300/24 bg-black/42 px-2 py-0.5 text-[9px] font-semibold tracking-[-0.02em] text-white/88 outline-none"
-                        />
-                      ) : (
-                        <span
-                          onDoubleClick={(event) => {
-                            event.stopPropagation()
-                            beginRenameAsset(asset)
-                          }}
-                          className={`truncate text-[10px] font-semibold tracking-[-0.02em] text-white/82 ${assetIsImported ? "cursor-text rounded-[6px] px-1 -mx-1 transition hover:bg-sky-300/[0.075] hover:text-white" : ""}`}
-                        >
-                          {asset.label}
-                        </span>
-                      )}
+<div className="flex-1 pr-1">
+  <div className="flex items-center gap-1">
+                      <div className="min-w-0 flex-1">
+                        {isRenamingAsset ? (
+                          <input
+                            autoFocus
+                            value={renameDraft}
+                            onClick={(event) => event.stopPropagation()}
+                            onChange={(event) => setRenameDraft(event.target.value)}
+                            onBlur={commitRenameAsset}
+                            onKeyDown={(event) => {
+                              if (event.key === "Enter") {
+                                event.preventDefault()
+                                commitRenameAsset()
+                              }
 
-                      <AssetStatePill state={asset.state} />
+                              if (event.key === "Escape") {
+                                event.preventDefault()
+                                cancelRenameAsset()
+                              }
+                            }}
+                            className="w-full rounded-[7px] border border-sky-300/24 bg-black/42 px-2 py-1 text-[10px] font-semibold tracking-[-0.02em] text-white/88 outline-none"
+                          />
+                        ) : (
+<button
+  type="button"
+  onClick={(event) => event.stopPropagation()}
+  onDoubleClick={(event) => {
+    event.stopPropagation()
+    beginRenameAsset(asset)
+  }}
+  className={`block w-full min-w-0 overflow-hidden rounded-[7px] px-1.5 py-[2px] text-left transition-all duration-200 ${
+    assetIsImported
+      ? "cursor-text hover:bg-sky-300/[0.075]"
+      : ""
+  }`}
+>
+  <span className="block truncate text-[10px] font-semibold tracking-[-0.02em] text-white/84">
+    {asset.label}
+  </span>
+  {transitioningAssetLabel === asset.label ? (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[9px]">
+    <div className="absolute inset-y-0 left-[-30%] w-[42%] bg-gradient-to-r from-transparent via-sky-300/40 to-transparent blur-[12px] animate-[takeSweep_650ms_ease-out_forwards]" />
+
+    <div className="absolute inset-0 border border-sky-200/42 shadow-[0_0_40px_rgba(56,189,248,0.42)]" />
+
+    <div className="absolute inset-0 bg-sky-300/[0.08] animate-pulse" />
+  </div>
+) : null}
+{transitioningAssetLabel === asset.label ? (
+  <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[9px]">
+    <div className="absolute inset-y-0 left-[-30%] w-[42%] bg-gradient-to-r from-transparent via-sky-300/40 to-transparent blur-[12px] animate-[takeSweep_650ms_ease-out_forwards]" />
+
+    <div className="absolute inset-0 border border-sky-200/42 shadow-[0_0_40px_rgba(56,189,248,0.42)]" />
+
+    <div className="absolute inset-0 bg-sky-300/[0.08] animate-pulse" />
+  </div>
+) : null}
+  {hoverPreviewing && asset.imageUrl ? (
+  <div className="pointer-events-none absolute left-[72px] top-1 z-20 overflow-hidden rounded-[12px] border border-sky-300/22 bg-black/88 shadow-[0_18px_48px_rgba(0,0,0,0.48),0_0_30px_rgba(56,189,248,0.16)] backdrop-blur-xl">
+    <img
+      src={asset.imageUrl}
+      alt=""
+      className="h-[140px] w-[240px] object-cover"
+    />
+
+    <div className="border-t border-white/[0.05] px-3 py-2">
+      <div className="truncate text-[10px] font-semibold tracking-[-0.02em] text-white/84">
+        {asset.label}
+      </div>
+
+      <div className="mt-1 flex items-center gap-1 text-[7px] font-black uppercase tracking-[0.08em] text-white/34">
+        <span>{asset.meta}</span>
+        <span>•</span>
+        <span>{asset.route}</span>
+      </div>
+    </div>
+  </div>
+) : null}
+</button>
+                        )}
+                      </div>
+
+                      <div className="shrink-0">
+                        <AssetStatePill state={asset.state} />
+                      </div>
                     </div>
 
                     <div className="mt-0.5 flex min-w-0 items-center gap-1 text-[6px] font-black uppercase tracking-[0.09em] text-white/24">
@@ -1848,15 +1954,21 @@ function MediaAssetsWorkspace({
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-end gap-1">
-                    <div className={`rounded-full border px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] ${
-                      destination === "PROGRAM"
-                        ? "border-red-300/16 bg-red-400/[0.070] text-red-100/62"
+                  <div className="flex items-center justify-end gap-1 opacity-70 transition-opacity duration-200 group-hover:opacity-100">
+                    <div
+                      className={`rounded-full border px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] ${
+                        destination === "PROGRAM"
+                          ? "border-red-300/16 bg-red-400/[0.070] text-red-100/62"
+                          : destination === "PREVIEW"
+                            ? "border-sky-300/16 bg-sky-400/[0.080] text-sky-100/68"
+                            : "border-white/[0.050] bg-black/20 text-white/36"
+                      }`}
+                    >
+                      {destination === "PROGRAM"
+                        ? "PGM"
                         : destination === "PREVIEW"
-                          ? "border-sky-300/16 bg-sky-400/[0.080] text-sky-100/68"
-                          : "border-white/[0.050] bg-black/20 text-white/36"
-                    }`}>
-                      {destination === "PROGRAM" ? "PGM" : destination === "PREVIEW" ? "PVW" : "STBY"}
+                          ? "PVW"
+                          : "STBY"}
                     </div>
 
                     <button
@@ -1878,14 +1990,14 @@ function MediaAssetsWorkspace({
         </div>
       </div>
 
-      <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.008))] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+      <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.040] bg-[linear-gradient(180deg,rgba(8,12,22,0.96),rgba(2,5,11,0.995))] p-2 shadow-[0_0_32px_rgba(0,0,0,0.36),inset_0_1px_0_rgba(255,255,255,0.020)]">
         <div className="flex h-[36px] items-center justify-between gap-2 border-b border-white/[0.040] pb-1.5">
           <div className="min-w-0">
             <div className="text-[7px] font-black uppercase tracking-[0.16em] text-sky-100/42">
-              Preview
+              Preview Workstation
             </div>
             <div className="truncate text-[9px] font-semibold tracking-[-0.02em] text-white/72">
-              {inspectedAsset?.label ?? "No asset selected"}
+              {armedPreviewAsset?.label ?? "No asset armed"}
             </div>
           </div>
 
@@ -1900,10 +2012,10 @@ function MediaAssetsWorkspace({
         </div>
 
         <div className="mt-1 overflow-hidden rounded-[10px] border border-sky-300/12 bg-black/30 p-0.5 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.012)]">
-          <div className="relative aspect-video h-[118px] overflow-hidden rounded-[8px] border border-white/[0.055] bg-[radial-gradient(circle_at_35%_25%,rgba(56,189,248,0.18),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))]">
-            {inspectedAsset?.imageUrl ? (
-              <img
-                src={inspectedAsset.imageUrl}
+          <div className="relative h-[118px] overflow-hidden rounded-[8px] border border-white/[0.055] bg-[radial-gradient(circle_at_35%_25%,rgba(56,189,248,0.18),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.95),rgba(2,6,23,0.98))]">
+            {armedPreviewAsset?.imageUrl ? (
+  <img
+    src={armedPreviewAsset.imageUrl}
                 alt="Preview route asset"
                 className="absolute inset-0 h-full w-full object-cover opacity-88"
               />
@@ -1916,7 +2028,7 @@ function MediaAssetsWorkspace({
               Armed Preview
             </div>
             <div className="absolute bottom-2 left-2 rounded-full border border-white/[0.070] bg-black/46 px-2 py-0.5 text-[6.5px] font-black uppercase tracking-[0.08em] text-white/62">
-              {inspectedAsset?.duration ?? "--:--"}
+              {armedPreviewAsset?.duration ?? "--:--"}
             </div>
             <div className="absolute bottom-2 right-2 rounded-full border border-sky-300/12 bg-sky-400/[0.055] px-2 py-0.5 text-[6.5px] font-black uppercase tracking-[0.08em] text-sky-100/54">
               Ready
@@ -1925,11 +2037,11 @@ function MediaAssetsWorkspace({
         </div>
 
         <div className="mt-1 grid grid-cols-3 gap-1 border-t border-white/[0.030] pt-1">
-          {[
-            ["Duration", inspectedAsset?.duration ?? "--:--"],
-            ["Route", inspectedAsset?.route ?? "PVW"],
-            ["Take", inspectedAsset?.takeSafe ? "Ready" : "Check"],
-          ].map(([label, value]) => (
+{[
+  ["Duration", armedPreviewAsset?.duration ?? "--:--"],
+  ["Route", armedPreviewAsset?.route ?? "PVW"],
+  ["Take", armedPreviewAsset ? (armedPreviewAsset.takeSafe ? "Ready" : "Check") : "Idle"],
+].map(([label, value]) => (
             <div key={label} className="rounded-[8px] border border-white/[0.040] bg-white/[0.014] px-2 py-1">
               <div className="text-[5.5px] font-black uppercase tracking-[0.11em] text-white/20">
                 {label}
@@ -1942,46 +2054,62 @@ function MediaAssetsWorkspace({
         </div>
       </div>
 
-      <div className="grid min-h-0 gap-1">
-        <button
-          type="button"
-          disabled={!inspectedAsset}
-          onClick={() => {
-            if (!inspectedAsset) return
-            onSelectAsset(inspectedAsset.label)
-          }}
-          className="rounded-[11px] border border-sky-300/18 bg-sky-400/[0.095] px-2 py-3 text-center text-sky-100/78 shadow-[0_0_18px_rgba(56,189,248,0.10)] transition hover:border-sky-300/30 hover:bg-sky-400/[0.14] disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          <div className="text-[10px] font-black uppercase tracking-[0.10em]">Arm Preview</div>
-          <div className="mt-1 text-[8px] font-semibold text-sky-100/42">Stage to preview</div>
-        </button>
+      <div className="grid min-h-0 grid-rows-[1fr_1fr_auto] gap-1">
+<button
+  type="button"
+  disabled={!inspectedAsset}
+  onClick={() => {
+    if (!inspectedAsset) return
+
+    setTransitioningAssetLabel(inspectedAsset.label)
+
+    window.setTimeout(() => {
+      setTransitioningAssetLabel(null)
+      setProgramPulseLabel(inspectedAsset.label)
+    }, 650)
+
+    window.setTimeout(() => {
+      setProgramPulseLabel((current) =>
+        current === inspectedAsset.label ? null : current
+      )
+    }, 2400)
+
+    onArmPreviewAsset(inspectedAsset.label)
+  }}
+  className="rounded-[11px] border border-sky-300/18 bg-sky-400/[0.095] px-2 py-2 text-center text-sky-100/78 shadow-[0_0_18px_rgba(56,189,248,0.10)] transition hover:border-sky-300/30 hover:bg-sky-400/[0.14] disabled:cursor-not-allowed disabled:opacity-30"
+>
+  <div className="text-[9px] font-black uppercase tracking-[0.10em]">Arm Preview</div>
+  <div className="mt-0.5 text-[7px] font-semibold text-sky-100/42">Stage to preview</div>
+</button>
 
         <button
           type="button"
           disabled
-          className="rounded-[11px] border border-red-300/18 bg-red-400/[0.075] px-2 py-3 text-center text-red-100/54 opacity-80"
+          className="rounded-[11px] border border-red-300/18 bg-red-400/[0.075] px-2 py-2 text-center text-red-100/54 opacity-80"
         >
-          <div className="text-[10px] font-black uppercase tracking-[0.10em]">Take Live</div>
-          <div className="mt-1 text-[8px] font-semibold text-red-100/34">Use TAKE strip</div>
+          <div className="text-[9px] font-black uppercase tracking-[0.10em]">Take Live</div>
+          <div className="mt-0.5 text-[7px] font-semibold text-red-100/34">Use TAKE strip</div>
         </button>
 
-        <button
-          type="button"
-          disabled={!inspectedIsImported}
-          onClick={() => inspectedAsset ? onEditImportedAsset(inspectedAsset.label) : undefined}
-          className="rounded-[9px] border border-white/[0.050] bg-white/[0.016] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-white/48 transition hover:bg-white/[0.030] disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          Edit
-        </button>
+        <div className="grid grid-cols-2 gap-1">
+          <button
+            type="button"
+            disabled={!inspectedIsImported}
+            onClick={() => inspectedAsset ? onEditImportedAsset(inspectedAsset.label) : undefined}
+            className="rounded-[9px] border border-white/[0.050] bg-white/[0.016] px-2 py-1.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/48 transition hover:bg-white/[0.030] disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            Edit
+          </button>
 
-        <button
-          type="button"
-          disabled={!inspectedIsImported}
-          onClick={() => inspectedAsset ? onDeleteImportedAsset(inspectedAsset.label) : undefined}
-          className="rounded-[9px] border border-red-300/14 bg-red-400/[0.055] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/56 transition hover:bg-red-400/[0.095] disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          Delete
-        </button>
+          <button
+            type="button"
+            disabled={!inspectedIsImported}
+            onClick={() => inspectedAsset ? onDeleteImportedAsset(inspectedAsset.label) : undefined}
+            className="rounded-[9px] border border-red-300/14 bg-red-400/[0.055] px-2 py-1.5 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/56 transition hover:bg-red-400/[0.095] disabled:cursor-not-allowed disabled:opacity-30"
+          >
+            Delete
+          </button>
+        </div>
       </div>
 
       <div className="min-h-0 overflow-hidden rounded-[16px] border border-white/[0.045] bg-white/[0.012] shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
@@ -1992,7 +2120,7 @@ function MediaAssetsWorkspace({
           <AssetStatePill state={inspectedAsset?.state ?? "STANDBY"} />
         </div>
 
-        <div className="grid gap-1 p-2">
+        <div className="grid gap-0.5 p-2">
           {[
             ["Title", inspectedAsset?.label ?? "No Asset"],
             ["Type", inspectedAsset?.type ?? "—"],
@@ -2002,7 +2130,7 @@ function MediaAssetsWorkspace({
             ["Codec", inspectedAsset?.codecState ?? "—"],
             ["Played", inspectedAsset?.lastPlayed ?? "—"],
           ].map(([label, value]) => (
-            <div key={label} className="grid grid-cols-[54px_1fr] gap-2 border-b border-white/[0.025] pb-1 last:border-b-0">
+            <div key={label} className="grid grid-cols-[48px_1fr] gap-2 border-b border-white/[0.025] pb-0.5 last:border-b-0">
               <div className="text-[6px] font-black uppercase tracking-[0.11em] text-white/20">
                 {label}
               </div>
@@ -2012,15 +2140,15 @@ function MediaAssetsWorkspace({
             </div>
           ))}
 
-          <div className="mt-1 overflow-hidden rounded-[8px] border border-white/[0.040] bg-black/22">
+          <div className="mt-1 h-[34px] overflow-hidden rounded-[8px] border border-white/[0.040] bg-black/22">
             {inspectedAsset?.imageUrl ? (
               <img
                 src={inspectedAsset.imageUrl}
                 alt="Inspector preview"
-                className="h-[42px] w-full object-cover opacity-76"
+                className="h-full w-full object-cover opacity-76"
               />
             ) : (
-              <div className="flex h-[42px] items-center justify-center text-[7px] font-black uppercase tracking-[0.10em] text-white/24">
+              <div className="flex h-full items-center justify-center text-[7px] font-black uppercase tracking-[0.10em] text-white/24">
                 No Thumbnail
               </div>
             )}
@@ -2179,6 +2307,15 @@ export default function BottomAssetDock({
   localMicLevel,
   recordingRoomName,
   onAddScene,
+  onSaveScene,
+  onAddMediaAssetToPreview,
+  onUploadPdf,
+  onSendSlideToPreview,
+  onTakeSlide,
+  onApplyScene,
+  onDoubleClickScene,
+  onDeleteScene,
+  onRenameScene,
 }: {
   scenes: SceneSummary[]
   selectedSceneId: string | null
@@ -2191,26 +2328,33 @@ export default function BottomAssetDock({
   slideDeckName?: string | null
   slideCount?: number
   onAddScene?: () => void
+  onSaveScene?: () => void
+  onAddMediaAssetToPreview?: (block: PreviewBlock) => void
   onUploadPdf?: () => void
   onSendSlideToPreview?: (slideIndex: number) => void
   onTakeSlide?: (slideIndex: number) => void
   onApplyScene?: (sceneId: string) => void
   onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
+  onRenameScene?: (sceneId: string, nextName: string) => void
 }): JSX.Element {
   const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
   const [expandedMixerOpen, setExpandedMixerOpen] = useState(false)
   const [expandedRecordingOpen, setExpandedRecordingOpen] = useState(false)
   const [expandedMediaOpen, setExpandedMediaOpen] = useState(false)
   const mediaImportInputRef = useRef<HTMLInputElement | null>(null)
-const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
+  const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
   const [activeMediaOrchestratorTab, setActiveMediaOrchestratorTab] = useState<MediaOrchestratorTab>("overview")
   const [selectedMediaAssetLabel, setSelectedMediaAssetLabel] = useState<string | null>(null)
+  const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
+  const [sceneNameDraft, setSceneNameDraft] = useState("")
   const [previewMediaAssetLabel, setPreviewMediaAssetLabel] = useState<string | null>(null)
   const [programMediaAssetLabel, setProgramMediaAssetLabel] = useState<string | null>(null)
+  const [takeFlashAssetLabel, setTakeFlashAssetLabel] = useState<string | null>(null)
+  const [takeFlashProgramLabel, setTakeFlashProgramLabel] = useState<string | null>(null)
   const [mediaRuntimeByLabel, setMediaRuntimeByLabel] = useState<Record<string, MediaAssetRuntimeState>>({})
   const [runtimePaused, setRuntimePaused] = useState(false)
-const [mediaRuntimeNowMs, setMediaRuntimeNowMs] = useState(Date.now())
+  const [mediaRuntimeNowMs, setMediaRuntimeNowMs] = useState(Date.now())
 useEffect(() => {
   if (!programMediaAssetLabel) return
 
@@ -2239,60 +2383,82 @@ function handleSendSelectedMediaAssetToPreview(): void {
   if (!targetLabel) return
 
   setSelectedMediaAssetLabel(targetLabel)
-  setPreviewMediaAssetLabel(targetLabel)
+  handleSelectMediaAssetForPreview(targetLabel)
+}
+function handleTakeAsset(): void {
+  if (!previewMediaAssetLabel) return
+setTakeFlashAssetLabel(previewMediaAssetLabel)
+setTakeFlashProgramLabel(previewMediaAssetLabel)
 
-  if (programMediaAssetLabel === targetLabel) {
-    setProgramMediaAssetLabel(null)
-  }
+window.setTimeout(() => {
+  setTakeFlashAssetLabel(null)
+}, 320)
+
+window.setTimeout(() => {
+  setTakeFlashProgramLabel(null)
+}, 650)
+  setProgramMediaAssetLabel(previewMediaAssetLabel)
+  setPreviewMediaAssetLabel(null)
+  setRuntimePaused(false)
+  setMediaRuntimeByLabel((current) => ({
+    ...current,
+    [previewMediaAssetLabel]: {
+      isPlaying: true,
+      startedAtMs: Date.now(),
+      elapsedSeconds: current[previewMediaAssetLabel]?.elapsedSeconds ?? 0,
+    },
+  }))
+}
+function handleResetProgramRuntime(): void {
+  if (!programMediaAssetLabel) return
+
+  const targetLabel = programMediaAssetLabel
 
   setRuntimePaused(false)
+  setMediaRuntimeByLabel((current) => ({
+    ...current,
+    [targetLabel]: {
+      isPlaying: false,
+      startedAtMs: null,
+      elapsedSeconds: 0,
+    },
+  }))
 }
-
 function handleSelectMediaAssetForPreview(label: string): void {
-  setSelectedMediaAssetLabel(label)
+  const targetAsset =
+    orchestratedMediaRows.find((asset) => asset.label === label) ??
+    mediaRows.find((asset) => asset.label === label) ??
+    null
+
   setPreviewMediaAssetLabel(label)
 
   if (programMediaAssetLabel === label) {
     setProgramMediaAssetLabel(null)
   }
 
+  if (targetAsset && onAddMediaAssetToPreview) {
+    const nextZIndex =
+      previewBlocks.reduce((highest, block) => Math.max(highest, block.zIndex ?? 0), 0) + 1
+
+    const blockType: PreviewBlock["type"] =
+      targetAsset.type === "video" ? "video" : "image"
+
+    onAddMediaAssetToPreview({
+      id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: blockType,
+      label: targetAsset.label,
+      src: targetAsset.imageUrl ?? "",
+      x: 12,
+      y: 12,
+      width: 76,
+      height: 42.75,
+      opacity: 1,
+      zIndex: nextZIndex,
+    })
+  }
+
   setRuntimePaused(false)
 }
-  function handleTakeAsset(): void {
-    if (!previewMediaAssetLabel) return
-
-    setProgramMediaAssetLabel(previewMediaAssetLabel)
-
-    setMediaRuntimeByLabel((current) => ({
-      ...current,
-      [previewMediaAssetLabel]: {
-        isPlaying: true,
-        startedAtMs: Date.now(),
-        elapsedSeconds: 0,
-      },
-    }))
-
-    setTakeFlashActive(true)
-
-    window.setTimeout(() => {
-      setTakeFlashActive(false)
-    }, 900)
-  }
-
-  function handleResetProgramRuntime(): void {
-    if (!programMediaAssetLabel) return
-
-    setMediaRuntimeByLabel((current) => ({
-      ...current,
-      [programMediaAssetLabel]: {
-        isPlaying: false,
-        startedAtMs: null,
-        elapsedSeconds: 0,
-      },
-    }))
-
-    setRuntimePaused(false)
-  }
   const [preloadedAssetLabels, setPreloadedAssetLabels] = useState<string[]>([])
   function handlePreloadAsset(): void {
     if (!selectedMediaAssetLabel) return
@@ -2805,88 +2971,21 @@ function handleDeleteMediaAssetFromEdit(): void {
     (block) => block.type === "video" || block.type === "image" || block.type === "pdf"
   )
 
-  const mediaItems: DockAssetRecord[] = media.length
-    ? media.map((block) => ({ ...block, category: "media" }))
-    : FALLBACK_MEDIA_ITEMS
+const mediaItems: DockAssetRecord[] = media.map((block) => ({ ...block, category: "media" }))
 
   const activeSceneIds = new Set([selectedSceneId, programSceneId, hotkeySceneId].filter(Boolean))
-  const sceneList = scenes.length
-    ? scenes.slice(0, 5)
-    : [
-        { id: "fallback-1", name: "Worship Set" },
-        { id: "fallback-2", name: "Message" },
-        { id: "fallback-3", name: "Announcement" },
-        { id: "fallback-4", name: "Offering" },
-        { id: "fallback-5", name: "Closing" },
-      ]
+const sceneList = scenes.slice(0, 8)
 
-  const sceneTiles = scenes.length
-    ? scenes.slice(0, 4)
-    : [
-        { id: "tile-1", name: "Wide Shot", thumbnailUrl: null },
-        { id: "tile-2", name: "Band Close", thumbnailUrl: null },
-        { id: "tile-3", name: "Vocals", thumbnailUrl: null },
-        { id: "tile-4", name: "Drums", thumbnailUrl: null },
-      ]
+  const mediaRows: BroadcastAssetTelemetry[] = importedMediaAssets.length
+  ? importedMediaAssets
+  : mediaItems.map((item, index) =>
+      blockToBroadcastAsset(item, item.label || `Media Asset ${index + 1}`, index),
+    )
 
-  const mediaRows: BroadcastAssetTelemetry[] = [
-  ...importedMediaAssets,
-  ...mediaItems.slice(0, 4).map((item, index) => blockToBroadcastAsset(item, index === 0 ? "Opening Roll-In" : "Media Asset", index)),
-    {
-      label: "Welcome Slide",
-      type: "graphic" as BroadcastAssetType,
-      state: "PRELOADED" as BroadcastAssetState,
-      duration: "16:9",
-      meta: "Graphic · 1920×1080",
-      route: "Preview",
-      lastPlayed: "Not played",
-      linkedScene: "Opening",
-      imageUrl: null,
-      programSafe: true,
-      destination: "PREVIEW" as const,
-      takeSafe: true,
-      cueOrder: 5,
-      progress: 0,
-      scheduledIn: "In 18m",
-      resetBehavior: "Hold",
-      cacheState: "HOT" as const,
-      codecState: "OK" as const,
-      routeLock: true,
-      hoverHint: "Static graphic preloaded",
-      takeCompatibility: "Clean" as const,
-      segment: "Arrival",
-      trigger: "Scheduled",
-    },
-    {
-      label: "Remote Presenter Feed",
-      type: "live" as BroadcastAssetType,
-      state: "LIVE" as BroadcastAssetState,
-      duration: "LIVE",
-      meta: "Live Source · 720p",
-      route: "Stage",
-      lastPlayed: "On air",
-      linkedScene: "Host ISO",
-      imageUrl: null,
-      audioEmbedded: true,
-      programSafe: true,
-      destination: "PROGRAM" as const,
-      takeSafe: true,
-      cueOrder: 6,
-      progress: 100,
-      scheduledIn: "Live now",
-      resetBehavior: "Continuous",
-      cacheState: "HOT" as const,
-      codecState: "LIVE" as const,
-      routeLock: true,
-      hoverHint: "Live source confidence active",
-      takeCompatibility: "Live Only" as const,
-      segment: "Live Host",
-      trigger: "Stage Route",
-    },
-  ].slice(0, 6)
 
   const selectedMediaAsset =
-    mediaRows.find((asset) => asset.label === selectedMediaAssetLabel) ?? mediaRows[0] ?? null
+  mediaRows.find((asset) => asset.label === selectedMediaAssetLabel) ?? mediaRows[0] ?? null
+
 
 const orchestratedMediaRows: BroadcastAssetTelemetry[] = mediaRows.map((asset) => {
   const isPreloaded = preloadedAssetLabels.includes(asset.label)
@@ -2962,6 +3061,9 @@ scheduledIn:
     cacheState: isPreloaded ? "HOT" : asset.cacheState,
   }
 }).sort((a, b) => (a.cueOrder ?? 99) - (b.cueOrder ?? 99))
+const previewMediaAsset =
+  orchestratedMediaRows.find((asset) => asset.label === previewMediaAssetLabel) ?? null
+
 
   const assetTabStats = [
     ["All", mediaRows.length],
@@ -3138,7 +3240,7 @@ scheduledIn:
               })}
             </div>
 
-            <div className="flex min-w-0 items-center gap-1.5">
+            <div className="flex min-w-0 flex-1 items-center gap-1.5">
               {[
                 ["Countdown", "USED"],
                 ["Host Intro", "LIVE"],
@@ -3203,11 +3305,16 @@ scheduledIn:
                   mediaRows={orchestratedMediaRows}
                   assetTabStats={assetTabStats}
                   selectedMediaAsset={selectedMediaAsset}
-                  onSelectAsset={handleSelectMediaAssetForPreview}
+previewMediaAsset={previewMediaAsset}
+onSelectAsset={setSelectedMediaAssetLabel}
+                  onArmPreviewAsset={handleSelectMediaAssetForPreview}
                   onEditImportedAsset={handleOpenMediaAssetEdit}
                   onDeleteImportedAsset={handleDeleteImportedAsset}
                   isImportedAsset={isImportedMediaAsset}
                   onRenameImportedAsset={handleRenameImportedAsset}
+                  takeFlashAssetLabel={takeFlashAssetLabel}
+                  takeFlashProgramLabel={takeFlashProgramLabel}
+                  
                 />
               ) : activeMediaOrchestratorTab === "routing" ? (
                 <MediaRoutingWorkspace mediaRows={orchestratedMediaRows} />
@@ -3224,57 +3331,162 @@ scheduledIn:
           </div>
         </div>
       ) : null}
-      <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden pb-2 xl:grid-cols-[1.15fr_0.9fr_0.95fr_0.9fr]">
-        <ConsolePanel
-          title="Scenes"
-          action={
+      <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden pb-2 xl:grid-cols-[0.72fr_2.85fr_1.05fr]">
+<ConsolePanel
+  title="Scenes"
+  action={
+    <div className="flex items-center gap-1">
+      <button
+        type="button"
+        onClick={onSaveScene}
+        disabled={!onSaveScene}
+        className="rounded-full border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.10] disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        Save
+      </button>
+
+      <button
+        type="button"
+        onClick={onAddScene}
+        disabled={!onAddScene}
+        className="rounded-full border border-white/[0.055] bg-white/[0.020] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-white/46 transition hover:border-white/[0.085] hover:bg-white/[0.035] disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        New
+      </button>
+    </div>
+  }
+>
+  <div className="grid min-h-0 gap-2">
+    {sceneList.length ? (
+      <div className="grid gap-1">
+        {sceneList.map((scene, index) => {
+  const active = activeSceneIds.has(scene.id)
+
+  return (
             <button
+              key={scene.id}
               type="button"
-              onClick={onAddScene}
-              className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.055] bg-white/[0.020] text-white/52 hover:bg-white/[0.04]"
-              aria-label="Add scene"
+              onClick={() => onApplyScene?.(scene.id)}
+              onDoubleClick={() => onDoubleClickScene?.(scene.id)}
+              className={`grid grid-cols-[22px_1fr_auto_20px] items-center gap-2 rounded-[10px] border px-2 py-1.5 text-left transition ${
+                active
+                  ? "border-sky-300/24 bg-sky-400/[0.095] text-white shadow-[0_0_18px_rgba(56,189,248,0.10)]"
+                  : "border-white/[0.045] bg-white/[0.014] text-white/62 hover:border-white/[0.075] hover:bg-white/[0.026]"
+              }`}
             >
-              +
+{editingSceneId === scene.id ? (
+  <input
+    autoFocus
+    value={sceneNameDraft}
+    onClick={(event) => event.stopPropagation()}
+    onChange={(event) => setSceneNameDraft(event.target.value)}
+    onBlur={() => {
+      const trimmed = sceneNameDraft.trim()
+
+      if (trimmed) {
+        onRenameScene?.(scene.id, trimmed)
+      }
+
+      setEditingSceneId(null)
+      setSceneNameDraft("")
+    }}
+    onKeyDown={(event) => {
+      if (event.key === "Escape") {
+        setEditingSceneId(null)
+        setSceneNameDraft("")
+      }
+
+      if (event.key === "Enter") {
+        event.preventDefault()
+
+        const trimmed = sceneNameDraft.trim()
+
+        if (trimmed) {
+          onRenameScene?.(scene.id, trimmed)
+        }
+
+        setEditingSceneId(null)
+        setSceneNameDraft("")
+      }
+    }}
+    className="min-w-0 rounded-[6px] border border-sky-300/18 bg-black/28 px-1.5 py-1 text-[10px] font-semibold tracking-[-0.02em] text-white/88 outline-none"
+  />
+) : (
+  <span
+    onDoubleClick={(event) => {
+      event.stopPropagation()
+      setEditingSceneId(scene.id)
+      setSceneNameDraft(scene.name)
+    }}
+    className="truncate rounded-[6px] px-1 -mx-1 text-[10px] font-semibold tracking-[-0.02em] transition hover:bg-sky-300/[0.08]"
+  >
+    {scene.name}
+  </span>
+)}
+
+              <span className="truncate text-[10px] font-semibold tracking-[-0.02em]">
+                {scene.name}
+              </span>
+
+              {programSceneId === scene.id ? (
+                <span className="rounded-full border border-red-300/14 bg-red-400/[0.070] px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] text-red-100/58">
+                  PGM
+                </span>
+              ) : selectedSceneId === scene.id ? (
+                <span className="rounded-full border border-sky-300/14 bg-sky-400/[0.070] px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] text-sky-100/58">
+                  PVW
+                </span>
+              ) : null}
+              <span
+  role="button"
+  tabIndex={0}
+  aria-label={`Delete scene ${scene.name}`}
+  onClick={(event) => {
+    event.stopPropagation()
+    onDeleteScene?.(scene.id)
+  }}
+  onKeyDown={(event) => {
+    if (event.key !== "Enter" && event.key !== " ") return
+    event.preventDefault()
+    event.stopPropagation()
+    onDeleteScene?.(scene.id)
+  }}
+  className="flex h-5 w-5 items-center justify-center rounded-full border border-red-300/12 bg-red-400/[0.045] text-[11px] font-black leading-none text-red-100/42 opacity-55 transition hover:border-red-300/24 hover:bg-red-400/[0.10] hover:text-red-50 hover:opacity-100"
+>
+  ×
+</span>
             </button>
-          }
-        >
-          <div className="grid min-h-0 gap-2 md:grid-cols-[0.72fr_1fr]">
-            <div className="space-y-1">
-              {sceneList.map((scene, index) => {
-                const active = index === 0 || activeSceneIds.has(scene.id)
+          )
+        })}
+      </div>
+    ) : (
+      <div className="rounded-[12px] border border-white/[0.045] bg-white/[0.014] p-3 text-[10px] leading-relaxed text-white/42">
+        No saved scenes yet. Build the preview canvas, then press{" "}
+        <span className="font-black text-emerald-100/60">Save</span>.
+      </div>
+    )}
 
-                return (
-                  <button
-                    key={scene.id}
-                    type="button"
-                    className={`flex w-full items-center gap-2 rounded-[9px] px-2 py-1 text-left text-[9px] font-semibold transition ${
-                      active
-                        ? "bg-sky-500/[0.22] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]"
-                        : "text-white/58 hover:bg-white/[0.026] hover:text-white/78"
-                    }`}
-                  >
-                    <span className="w-4 text-white/46">{index + 1}</span>
-                    <span className="truncate">{scene.name}</span>
-                  </button>
-                )
-              })}
-              <button type="button" onClick={onAddScene} className="mt-1 px-2 text-[10px] font-semibold text-sky-200/70 hover:text-sky-100">
-                Add Scene
-              </button>
-            </div>
+    <div className="grid grid-cols-2 gap-1">
+      <button
+        type="button"
+        onClick={onSaveScene}
+        disabled={!onSaveScene}
+        className="rounded-[10px] border border-emerald-300/14 bg-emerald-400/[0.055] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.10] disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        Save Current
+      </button>
 
-            <div className="grid grid-cols-2 gap-2">
-              {sceneTiles.slice(0, 4).map((scene, index) => (
-                <ScenePreviewTile
-                  key={scene.id}
-                  label={index === 0 && scene.name === "Worship Set" ? "Wide Shot" : scene.name}
-                  imageUrl={"thumbnailUrl" in scene ? scene.thumbnailUrl : null}
-                  active={index === 0 || activeSceneIds.has(scene.id)}
-                />
-              ))}
-            </div>
-          </div>
-        </ConsolePanel>
+      <button
+        type="button"
+        onClick={onAddScene}
+        disabled={!onAddScene}
+        className="rounded-[10px] border border-sky-300/14 bg-sky-400/[0.055] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/62 transition hover:border-sky-300/24 hover:bg-sky-400/[0.10] disabled:cursor-not-allowed disabled:opacity-35"
+      >
+        New Scene
+      </button>
+    </div>
+  </div>
+</ConsolePanel>
 
 <ConsolePanel
   title="Media"
@@ -3340,8 +3552,8 @@ scheduledIn:
               </div>
             </div>
 
-<div className="grid grid-cols-2 gap-2">
-  {mediaRows.slice(0, 2).map((asset) => (
+<div className="grid grid-cols-3 gap-2 2xl:grid-cols-4">
+  {mediaRows.slice(0, 4).map((asset) => (
     <MediaRow
       key={`${asset.label}-${asset.state}-${asset.type}`}
       asset={asset}
@@ -3435,21 +3647,7 @@ scheduledIn:
           </>
         </ConsolePanel>
 
-        <ConsolePanel title="Communication">
-          <div className="space-y-1.5">
-            <CommRow name="Stage Manager" role="Ben" />
-            <CommRow name="Camera Ops" role="Trinity" />
-            <CommRow name="Lighting Director" role="Jace" />
-            <CommRow name="Producer" role="You" active />
-            <button
-              type="button"
-              className="mt-1 flex w-full items-center justify-center gap-2 rounded-[10px] border border-white/[0.050] bg-white/[0.024] px-3 py-2 text-[10px] font-semibold text-white/72 hover:bg-white/[0.040]"
-            >
-              <Mic2 size={14} />
-              Push to Talk (All)
-            </button>
-          </div>
-        </ConsolePanel>
+
       </div>
 
       <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-[1fr_1fr_1fr_1.4fr_1.15fr_1fr_1fr]">
@@ -4026,3 +4224,20 @@ isRecording
     </div>
   )
 }
+<style jsx global>{`
+  @keyframes takeSweep {
+    0% {
+      transform: translateX(0%);
+      opacity: 0;
+    }
+
+    15% {
+      opacity: 1;
+    }
+
+    100% {
+      transform: translateX(340%);
+      opacity: 0;
+    }
+  }
+`}</style>

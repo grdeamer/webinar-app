@@ -407,6 +407,8 @@ export default function RightInspectorRail({
   selectedBlock,
   onToggleHidden,
   onUpdateOpacity,
+  onUpdateScale,
+  onUpdateRotation,
   onUpdateLabel,
   onUpdatePosition,
   onUpdateSize,
@@ -428,6 +430,8 @@ export default function RightInspectorRail({
   selectedBlock: PreviewBlock | null
   onToggleHidden: () => void
   onUpdateOpacity: (value: string) => void
+  onUpdateScale: (value: string) => void
+  onUpdateRotation: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
@@ -460,6 +464,8 @@ export default function RightInspectorRail({
           selectedBlock={selectedBlock}
           onToggleHidden={onToggleHidden}
           onUpdateOpacity={onUpdateOpacity}
+          onUpdateScale={onUpdateScale}
+          onUpdateRotation={onUpdateRotation}
           onUpdateLabel={onUpdateLabel}
           onUpdatePosition={onUpdatePosition}
           onUpdateSize={onUpdateSize}
