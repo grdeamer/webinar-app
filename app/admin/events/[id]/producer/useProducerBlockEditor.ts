@@ -133,6 +133,84 @@ export default function useProducerBlockEditor({
     [selectedBlockId, setPreviewBlocks]
   )
 
+  const updateBlendMode = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                blendMode: value as React.CSSProperties["mixBlendMode"],
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateGroupId = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                groupId: value.trim() || null,
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateTimelineStart = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                timelineStartMs: Math.max(0, numericValue),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateTimelineDuration = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                timelineDurationMs: Math.max(100, numericValue),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
   const updatePosition = useCallback(
     (field: "x" | "y", value: string) => {
       if (!selectedBlockId) return
@@ -167,6 +245,19 @@ export default function useProducerBlockEditor({
     [selectedBlockId, setPreviewBlocks]
   )
 
+  const toggleLocked = useCallback(
+    () => {
+      if (!selectedBlockId) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId ? { ...block, locked: !block.locked } : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
   return {
     updateTextContent,
     updateLabel,
@@ -175,7 +266,12 @@ export default function useProducerBlockEditor({
     updateOpacity,
     updateScale,
     updateRotation,
+    updateBlendMode,
+    updateGroupId,
+    updateTimelineStart,
+    updateTimelineDuration,
     updatePosition,
     toggleHidden,
+    toggleLocked,
   }
 }

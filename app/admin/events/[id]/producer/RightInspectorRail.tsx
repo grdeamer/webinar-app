@@ -16,6 +16,9 @@ import {
   Users,
   Eye,
   EyeOff,
+  ArrowUp,
+  ArrowDown,
+  GripVertical,
 } from "lucide-react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import BackstagePanel from "./BackstagePanel"
@@ -237,10 +240,16 @@ function LayerStackPanel({
   blocks,
   selectedBlockId,
   onSelectBlock,
+  onToggleLayerHidden,
+  onMoveLayerForward,
+  onMoveLayerBackward,
 }: {
   blocks: PreviewBlock[]
   selectedBlockId: string | null
   onSelectBlock: (blockId: string) => void
+  onToggleLayerHidden: (blockId: string) => void
+  onMoveLayerForward: (blockId: string) => void
+  onMoveLayerBackward: (blockId: string) => void
 }): JSX.Element {
   const sortedBlocks = [...blocks].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
 
@@ -273,6 +282,8 @@ function LayerStackPanel({
         ) : (
           sortedBlocks.map((block, index) => {
             const isSelected = block.id === selectedBlockId
+            const isTopLayer = index === 0
+            const isBottomLayer = index === sortedBlocks.length - 1
 
             return (
               <button
@@ -306,15 +317,56 @@ function LayerStackPanel({
                   </div>
                 </div>
 
-                <div className="flex shrink-0 items-center gap-1.5">
-                  <span className="rounded-full border border-white/7 bg-black/18 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/26">
+                <div className="flex shrink-0 items-center gap-1">
+                  <span className="hidden rounded-full border border-white/7 bg-black/18 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/26 2xl:inline-flex">
                     {block.hidden ? "Hidden" : "Live"}
                   </span>
-                  {block.hidden ? (
-                    <EyeOff size={12} className="text-amber-100/42" />
-                  ) : (
-                    <Eye size={12} className="text-emerald-100/42" />
-                  )}
+
+                  <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/24">
+                    <GripVertical size={12} />
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onMoveLayerForward(block.id)
+                    }}
+                    disabled={isTopLayer}
+                    className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-white/[0.022] text-white/34 transition hover:border-violet-300/16 hover:bg-violet-400/[0.06] hover:text-violet-100/62 disabled:cursor-not-allowed disabled:opacity-25"
+                    title="Move layer forward"
+                  >
+                    <ArrowUp size={12} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onMoveLayerBackward(block.id)
+                    }}
+                    disabled={isBottomLayer}
+                    className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-white/[0.022] text-white/34 transition hover:border-violet-300/16 hover:bg-violet-400/[0.06] hover:text-violet-100/62 disabled:cursor-not-allowed disabled:opacity-25"
+                    title="Move layer backward"
+                  >
+                    <ArrowDown size={12} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      onToggleLayerHidden(block.id)
+                    }}
+                    className={`flex h-7 w-7 items-center justify-center rounded-xl border transition ${
+                      block.hidden
+                        ? "border-amber-300/14 bg-amber-400/[0.07] text-amber-100/58 hover:bg-amber-400/[0.12]"
+                        : "border-emerald-300/14 bg-emerald-400/[0.06] text-emerald-100/58 hover:bg-emerald-400/[0.11]"
+                    }`}
+                    title={block.hidden ? "Show layer" : "Hide layer"}
+                  >
+                    {block.hidden ? <EyeOff size={12} /> : <Eye size={12} />}
+                  </button>
                 </div>
               </button>
             )
@@ -502,11 +554,19 @@ export default function RightInspectorRail({
   previewBlocks,
   selectedBlockId,
   onSelectBlock,
+  onToggleLayerHidden,
+  onMoveLayerForward,
+  onMoveLayerBackward,
   onToggleHidden,
+  onToggleLocked,
   onUpdateOpacity,
   onUpdateScale,
   onUpdateRotation,
   onUpdateLabel,
+  onUpdateBlendMode,
+  onUpdateGroupId,
+  onUpdateTimelineStart,
+  onUpdateTimelineDuration,
   onUpdatePosition,
   onUpdateSize,
   onUpdateSrc,
@@ -528,11 +588,19 @@ export default function RightInspectorRail({
   previewBlocks: PreviewBlock[]
   selectedBlockId: string | null
   onSelectBlock: (blockId: string) => void
+  onToggleLayerHidden: (blockId: string) => void
+  onMoveLayerForward: (blockId: string) => void
+  onMoveLayerBackward: (blockId: string) => void
   onToggleHidden: () => void
+  onToggleLocked: () => void
   onUpdateOpacity: (value: string) => void
   onUpdateScale: (value: string) => void
   onUpdateRotation: (value: string) => void
   onUpdateLabel: (value: string) => void
+  onUpdateBlendMode: (value: string) => void
+  onUpdateGroupId: (value: string) => void
+  onUpdateTimelineStart: (value: string) => void
+  onUpdateTimelineDuration: (value: string) => void
   onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
@@ -564,14 +632,22 @@ export default function RightInspectorRail({
           blocks={previewBlocks}
           selectedBlockId={selectedBlockId}
           onSelectBlock={onSelectBlock}
+          onToggleLayerHidden={onToggleLayerHidden}
+          onMoveLayerForward={onMoveLayerForward}
+          onMoveLayerBackward={onMoveLayerBackward}
         />
         <SelectedBlockInspector
           selectedBlock={selectedBlock}
           onToggleHidden={onToggleHidden}
+          onToggleLocked={onToggleLocked}
           onUpdateOpacity={onUpdateOpacity}
           onUpdateScale={onUpdateScale}
           onUpdateRotation={onUpdateRotation}
           onUpdateLabel={onUpdateLabel}
+          onUpdateBlendMode={onUpdateBlendMode}
+          onUpdateGroupId={onUpdateGroupId}
+          onUpdateTimelineStart={onUpdateTimelineStart}
+          onUpdateTimelineDuration={onUpdateTimelineDuration}
           onUpdatePosition={onUpdatePosition}
           onUpdateSize={onUpdateSize}
           onUpdateSrc={onUpdateSrc}

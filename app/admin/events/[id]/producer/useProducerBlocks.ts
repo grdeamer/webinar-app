@@ -1,6 +1,12 @@
 "use client"
 
-import { useMemo, useState, type ChangeEvent, type MouseEvent } from "react"
+import {
+  useMemo,
+  useState,
+  type CSSProperties,
+  type ChangeEvent,
+  type MouseEvent,
+} from "react"
 
 export const PRODUCER_BLOCK_CANVAS_WIDTH = 640
 export const PRODUCER_BLOCK_CANVAS_HEIGHT = 360
@@ -20,6 +26,11 @@ export type PreviewBlock = {
   src?: string | null
   content?: string | null
   hidden?: boolean
+  locked?: boolean
+  groupId?: string | null
+  blendMode?: CSSProperties["mixBlendMode"]
+  timelineStartMs?: number
+  timelineDurationMs?: number
 }
 
 export default function useProducerBlocks() {
@@ -54,6 +65,11 @@ export default function useProducerBlocks() {
         content: "Preview text block",
         label: "Text",
         hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
       },
     ])
   }
@@ -75,6 +91,11 @@ export default function useProducerBlocks() {
         label: "Video",
         src: "https://www.w3schools.com/html/mov_bbb.mp4",
         hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
       },
     ])
   }
@@ -96,6 +117,11 @@ export default function useProducerBlocks() {
         label: "PDF",
         src: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
         hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
       },
     ])
   }
@@ -117,6 +143,11 @@ export default function useProducerBlocks() {
         label: "Logo",
         src: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
         hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
       },
     ])
   }
@@ -143,6 +174,11 @@ export default function useProducerBlocks() {
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded PDF",
         src,
         hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
       },
     ])
 
@@ -171,6 +207,11 @@ export default function useProducerBlocks() {
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Video",
         src,
         hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
       },
     ])
 
@@ -199,6 +240,11 @@ export default function useProducerBlocks() {
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Image",
         src,
         hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
       },
     ])
 
@@ -229,6 +275,7 @@ export default function useProducerBlocks() {
         y: source.y + 30,
         zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
         label: source.label ? `${source.label} Copy` : "Copy",
+        locked: false,
       }
 
       setSelectedBlockId(copy.id)
@@ -406,7 +453,7 @@ export default function useProducerBlocks() {
     if (!rect) return
 
     const block = previewBlocks.find((b) => b.id === blockId)
-    if (!block) return
+    if (!block || block.locked) return
 
     setPreviewCanvasRect(rect)
     setDraggingBlockId(blockId)
@@ -423,6 +470,10 @@ export default function useProducerBlocks() {
     if (!rect) return
 
     setPreviewCanvasRect(rect)
+
+    const block = previewBlocks.find((b) => b.id === blockId)
+    if (!block || block.locked) return
+
     setResizingBlockId(blockId)
     setSelectedBlockId(blockId)
   }

@@ -362,8 +362,13 @@ const updateStageState = useCallback(
     updateOpacity: updateSelectedBlockOpacity,
     updateScale: updateSelectedBlockScale,
     updateRotation: updateSelectedBlockRotation,
+    updateBlendMode: updateSelectedBlockBlendMode,
+    updateGroupId: updateSelectedBlockGroupId,
+    updateTimelineStart: updateSelectedBlockTimelineStart,
+    updateTimelineDuration: updateSelectedBlockTimelineDuration,
     updatePosition: updateSelectedBlockPosition,
     toggleHidden: toggleSelectedBlockHidden,
+    toggleLocked: toggleSelectedBlockLocked,
   } = useProducerBlockEditor({
     selectedBlockId,
     setPreviewBlocks,
@@ -884,6 +889,96 @@ const updateStageState = useCallback(
     [setPreviewBlocks, setSelectedBlockId],
   );
 
+  const handleToggleLayerHidden = useCallback(
+    (blockId: string): void => {
+      setPreviewBlocks((current) =>
+        current.map((block) =>
+          block.id === blockId
+            ? {
+                ...block,
+                hidden: !block.hidden,
+              }
+            : block,
+        ),
+      );
+    },
+    [setPreviewBlocks],
+  );
+
+  const handleMoveLayerForward = useCallback(
+    (blockId: string): void => {
+      setPreviewBlocks((current) => {
+        const sortedBlocks = [...current].sort(
+          (a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0),
+        );
+        const currentIndex = sortedBlocks.findIndex((block) => block.id === blockId);
+
+        if (currentIndex < 0 || currentIndex === sortedBlocks.length - 1) {
+          return current;
+        }
+
+        const currentBlock = sortedBlocks[currentIndex];
+        const nextBlock = sortedBlocks[currentIndex + 1];
+
+        return current.map((block) => {
+          if (block.id === currentBlock.id) {
+            return {
+              ...block,
+              zIndex: nextBlock.zIndex ?? currentBlock.zIndex,
+            };
+          }
+
+          if (block.id === nextBlock.id) {
+            return {
+              ...block,
+              zIndex: currentBlock.zIndex ?? nextBlock.zIndex,
+            };
+          }
+
+          return block;
+        });
+      });
+    },
+    [setPreviewBlocks],
+  );
+
+  const handleMoveLayerBackward = useCallback(
+    (blockId: string): void => {
+      setPreviewBlocks((current) => {
+        const sortedBlocks = [...current].sort(
+          (a, b) => (a.zIndex ?? 0) - (b.zIndex ?? 0),
+        );
+        const currentIndex = sortedBlocks.findIndex((block) => block.id === blockId);
+
+        if (currentIndex <= 0) {
+          return current;
+        }
+
+        const currentBlock = sortedBlocks[currentIndex];
+        const previousBlock = sortedBlocks[currentIndex - 1];
+
+        return current.map((block) => {
+          if (block.id === currentBlock.id) {
+            return {
+              ...block,
+              zIndex: previousBlock.zIndex ?? currentBlock.zIndex,
+            };
+          }
+
+          if (block.id === previousBlock.id) {
+            return {
+              ...block,
+              zIndex: currentBlock.zIndex ?? previousBlock.zIndex,
+            };
+          }
+
+          return block;
+        });
+      });
+    },
+    [setPreviewBlocks],
+  );
+
   const {
     startDraggingBlock,
     startResizingBlock,
@@ -1230,11 +1325,19 @@ const updateStageState = useCallback(
       previewBlocks,
       selectedBlockId,
       onSelectBlock: setSelectedBlockId,
+      onToggleLayerHidden: handleToggleLayerHidden,
+      onMoveLayerForward: handleMoveLayerForward,
+      onMoveLayerBackward: handleMoveLayerBackward,
       onToggleHidden: toggleSelectedBlockHidden,
+      onToggleLocked: toggleSelectedBlockLocked,
       onUpdateOpacity: updateSelectedBlockOpacity,
       onUpdateScale: updateSelectedBlockScale,
       onUpdateRotation: updateSelectedBlockRotation,
       onUpdateLabel: updateSelectedBlockLabel,
+      onUpdateBlendMode: updateSelectedBlockBlendMode,
+      onUpdateGroupId: updateSelectedBlockGroupId,
+      onUpdateTimelineStart: updateSelectedBlockTimelineStart,
+      onUpdateTimelineDuration: updateSelectedBlockTimelineDuration,
       onUpdatePosition: updateSelectedBlockPosition,
       onUpdateSize: updateSelectedBlockSize,
       onUpdateSrc: updateSelectedBlockSrc,
@@ -1257,11 +1360,19 @@ const updateStageState = useCallback(
       previewBlocks,
       selectedBlockId,
       setSelectedBlockId,
+      handleToggleLayerHidden,
+      handleMoveLayerForward,
+      handleMoveLayerBackward,
       toggleSelectedBlockHidden,
+      toggleSelectedBlockLocked,
       updateSelectedBlockOpacity,
       updateSelectedBlockScale,
       updateSelectedBlockRotation,
       updateSelectedBlockLabel,
+      updateSelectedBlockBlendMode,
+      updateSelectedBlockGroupId,
+      updateSelectedBlockTimelineStart,
+      updateSelectedBlockTimelineDuration,
       updateSelectedBlockPosition,
       updateSelectedBlockSize,
       updateSelectedBlockSrc,

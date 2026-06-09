@@ -10,6 +10,7 @@ export type SharedBlockStyleOptions = {
   opacity?: number
   scale?: number
   rotation?: number
+  blendMode?: React.CSSProperties["mixBlendMode"]
 }
 
 export function getSharedBlockStyle({
@@ -21,6 +22,7 @@ export function getSharedBlockStyle({
   opacity,
   scale,
   rotation,
+  blendMode,
 }: SharedBlockStyleOptions): React.CSSProperties {
   return {
     position: "absolute",
@@ -32,6 +34,8 @@ export function getSharedBlockStyle({
     opacity: opacity ?? 1,
     transform: `scale(${scale ?? 1}) rotate(${rotation ?? 0}deg)`,
     transformOrigin: "center center",
+    mixBlendMode: blendMode ?? "normal",
+    willChange: "transform, opacity",
   }
 }
 
@@ -99,7 +103,7 @@ export function renderPlacedBlocks({
               }
             : undefined
         }
-        className={`absolute overflow-hidden rounded-lg ${
+        className={`absolute overflow-hidden rounded-lg transition-[transform,opacity] duration-150 ${
           opts?.selectable
             ? selectedBlockId === block.id
               ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
@@ -115,6 +119,7 @@ export function renderPlacedBlocks({
           opacity: block.opacity,
           scale: block.scale,
           rotation: block.rotation,
+          blendMode: block.blendMode,
         })}
       >
         {opts?.showChrome ? (
@@ -132,7 +137,27 @@ export function renderPlacedBlocks({
               opts?.selectable ? "cursor-move" : "pointer-events-none"
             }`}
           >
-            <span>{block.label || block.type}</span>
+            <div className="flex items-center gap-2 overflow-hidden">
+              {block.locked ? (
+                <span className="rounded-full border border-amber-300/16 bg-amber-400/[0.10] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-amber-100/70">
+                  Lock
+                </span>
+              ) : null}
+
+              {block.groupId ? (
+                <span className="rounded-full border border-violet-300/16 bg-violet-400/[0.10] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-violet-100/70">
+                  Group
+                </span>
+              ) : null}
+
+              {block.timelineDurationMs ? (
+                <span className="rounded-full border border-cyan-300/14 bg-cyan-400/[0.08] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-cyan-100/70">
+                  Timeline
+                </span>
+              ) : null}
+
+              <span className="truncate">{block.label || block.type}</span>
+            </div>
             <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
           </div>
         ) : null}
@@ -147,7 +172,7 @@ export function renderPlacedBlocks({
           {renderBlockContent(block)}
         </div>
 
-        {opts?.selectable && opts?.showChrome ? (
+        {opts?.selectable && opts?.showChrome && !block.locked ? (
           <div
             onMouseDown={(e) => startResizingBlock(e, block.id)}
             className="absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-white/70"

@@ -314,16 +314,24 @@ function RailDrawer({
 
 export default function ProducerRightRail({
   participants,
-stageIds,
-selectedBlock,
-previewBlocks,
-selectedBlockId,
-onSelectBlock,
-onToggleHidden,
+  stageIds,
+  selectedBlock,
+  previewBlocks,
+  selectedBlockId,
+  onSelectBlock,
+  onToggleLayerHidden,
+  onMoveLayerForward,
+  onMoveLayerBackward,
+  onToggleHidden,
+  onToggleLocked,
   onUpdateOpacity,
   onUpdateScale,
   onUpdateRotation,
   onUpdateLabel,
+  onUpdateBlendMode,
+  onUpdateGroupId,
+  onUpdateTimelineStart,
+  onUpdateTimelineDuration,
   onUpdatePosition,
   onUpdateSize,
   onUpdateSrc,
@@ -340,16 +348,24 @@ onToggleHidden,
   onError,
 }: {
   participants: ProducerParticipant[]
-stageIds: Set<string>
-selectedBlock: PreviewBlock | null
-previewBlocks: PreviewBlock[]
-selectedBlockId: string | null
-onSelectBlock: (blockId: string) => void
-onToggleHidden: () => void
+  stageIds: Set<string>
+  selectedBlock: PreviewBlock | null
+  previewBlocks: PreviewBlock[]
+  selectedBlockId: string | null
+  onSelectBlock: (blockId: string) => void
+  onToggleLayerHidden: (blockId: string) => void
+  onMoveLayerForward: (blockId: string) => void
+  onMoveLayerBackward: (blockId: string) => void
+  onToggleHidden: () => void
+  onToggleLocked: () => void
   onUpdateOpacity: (value: string) => void
   onUpdateScale: (value: string) => void
   onUpdateRotation: (value: string) => void
   onUpdateLabel: (value: string) => void
+  onUpdateBlendMode: (value: string) => void
+  onUpdateGroupId: (value: string) => void
+  onUpdateTimelineStart: (value: string) => void
+  onUpdateTimelineDuration: (value: string) => void
   onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
@@ -706,15 +722,23 @@ onToggleHidden: () => void
             defaultOpen={false}
           >
             <RightInspectorRail
-            selectedBlock={selectedBlock}
-            previewBlocks={previewBlocks}
-            selectedBlockId={selectedBlockId}
-            onSelectBlock={onSelectBlock}
-            onToggleHidden={onToggleHidden}
+              selectedBlock={selectedBlock}
+              previewBlocks={previewBlocks}
+              selectedBlockId={selectedBlockId}
+              onSelectBlock={onSelectBlock}
+              onToggleLayerHidden={onToggleLayerHidden}
+              onMoveLayerForward={onMoveLayerForward}
+              onMoveLayerBackward={onMoveLayerBackward}
+              onToggleHidden={onToggleHidden}
+              onToggleLocked={onToggleLocked}
               onUpdateOpacity={onUpdateOpacity}
               onUpdateScale={onUpdateScale}
               onUpdateRotation={onUpdateRotation}
               onUpdateLabel={onUpdateLabel}
+              onUpdateBlendMode={onUpdateBlendMode}
+              onUpdateGroupId={onUpdateGroupId}
+              onUpdateTimelineStart={onUpdateTimelineStart}
+              onUpdateTimelineDuration={onUpdateTimelineDuration}
               onUpdatePosition={onUpdatePosition}
               onUpdateSize={onUpdateSize}
               onUpdateSrc={onUpdateSrc}
