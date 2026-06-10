@@ -330,8 +330,10 @@ export default function ProducerRightRail({
   onUpdateRotation,
   onUpdateBlur,
   onUpdateGlow,
+  onUpdateGlowColor,
   onUpdateBorderRadius,
   onUpdateShadowIntensity,
+  onUpdateShadowColor,
   onUpdateLabel,
   onUpdateBlendMode,
   onUpdateGroupId,
@@ -371,16 +373,18 @@ export default function ProducerRightRail({
   onUpdateRotation: (value: string) => void
   onUpdateBlur: (value: string) => void
   onUpdateGlow: (value: string) => void
+  onUpdateGlowColor: (value: string) => void
   onUpdateBorderRadius: (value: string) => void
   onUpdateShadowIntensity: (value: string) => void
+  onUpdateShadowColor: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdateBlendMode: (value: string) => void
   onUpdateGroupId: (value: string) => void
-onUpdateTimelineStart: (value: string) => void
-onUpdateTimelineDuration: (value: string) => void
-onUpdateAnimationType: (value: string) => void
-onUpdateAnimationProgress: (value: string) => void
-onUpdatePosition: (field: "x" | "y", value: string) => void
+  onUpdateTimelineStart: (value: string) => void
+  onUpdateTimelineDuration: (value: string) => void
+  onUpdateAnimationType: (value: string) => void
+  onUpdateAnimationProgress: (value: string) => void
+  onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
   onUpdateTextContent: (value: string) => void
@@ -555,8 +559,10 @@ onUpdatePosition: (field: "x" | "y", value: string) => void
               onUpdateRotation={onUpdateRotation}
               onUpdateBlur={onUpdateBlur}
               onUpdateGlow={onUpdateGlow}
+              onUpdateGlowColor={onUpdateGlowColor}
               onUpdateBorderRadius={onUpdateBorderRadius}
               onUpdateShadowIntensity={onUpdateShadowIntensity}
+              onUpdateShadowColor={onUpdateShadowColor}
               onUpdateLabel={onUpdateLabel}
               onUpdateBlendMode={onUpdateBlendMode}
               onUpdateGroupId={onUpdateGroupId}

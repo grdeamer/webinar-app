@@ -175,6 +175,24 @@ export default function useProducerBlockEditor({
     [selectedBlockId, setPreviewBlocks]
   )
 
+  const updateGlowColor = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                glowColor: value || "#7dd3fc",
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
   const updateBorderRadius = useCallback(
     (value: string) => {
       if (!selectedBlockId) return
@@ -209,6 +227,24 @@ export default function useProducerBlockEditor({
             ? {
                 ...block,
                 shadowIntensity: Math.max(0, Math.min(1, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateShadowColor = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                shadowColor: value || "#000000",
               }
             : block
         )
@@ -403,8 +439,10 @@ export default function useProducerBlockEditor({
     updateRotation,
     updateBlur,
     updateGlow,
+    updateGlowColor,
     updateBorderRadius,
     updateShadowIntensity,
+    updateShadowColor,
     updateBlendMode,
     updateGroupId,
     updateTimelineStart,

@@ -12,11 +12,37 @@ export type SharedBlockStyleOptions = {
   rotation?: number
   blur?: number
   glow?: number
+  glowColor?: string
   borderRadius?: number
   shadowIntensity?: number
+  shadowColor?: string
   animationType?: string
   animationProgress?: number
   blendMode?: CSSProperties["mixBlendMode"]
+}
+
+function hexToRgb(hex: string, fallback: [number, number, number]): [number, number, number] {
+  const normalizedHex = hex.trim().replace("#", "")
+
+  if (!/^[0-9a-fA-F]{6}$/.test(normalizedHex)) {
+    return fallback
+  }
+
+  return [
+    Number.parseInt(normalizedHex.slice(0, 2), 16),
+    Number.parseInt(normalizedHex.slice(2, 4), 16),
+    Number.parseInt(normalizedHex.slice(4, 6), 16),
+  ]
+}
+
+function rgbaFromHex(
+  hex: string | undefined,
+  opacity: number,
+  fallback: [number, number, number],
+): string {
+  const [red, green, blue] = hexToRgb(hex ?? "", fallback)
+
+  return `rgba(${red},${green},${blue},${opacity})`
 }
 
 export function getSharedBlockStyle({
@@ -30,8 +56,10 @@ export function getSharedBlockStyle({
   rotation,
   blur,
   glow,
+  glowColor,
   borderRadius,
   shadowIntensity,
+  shadowColor,
   animationType,
   animationProgress,
   blendMode,
@@ -53,6 +81,8 @@ export function getSharedBlockStyle({
   const resolvedShadowIntensity = shadowIntensity ?? 0.35
   const baseShadowOpacity = Math.max(0, Math.min(0.45, resolvedShadowIntensity * 0.34))
   const glowOpacity = Math.max(0, Math.min(0.42, resolvedGlow * 0.34))
+  const resolvedShadowColor = rgbaFromHex(shadowColor, baseShadowOpacity, [0, 0, 0])
+  const resolvedGlowColor = rgbaFromHex(glowColor, glowOpacity, [125, 211, 252])
 
   const resolvedAnimationProgress = animationProgress ?? 1
   const resolvedAnimationType = animationType ?? "none"
@@ -115,10 +145,10 @@ export function getSharedBlockStyle({
     boxShadow:
       [
         resolvedShadowIntensity > 0
-          ? `0 18px 48px rgba(0,0,0,${baseShadowOpacity})`
+          ? `0 18px 48px ${resolvedShadowColor}`
           : null,
         resolvedGlow > 0
-          ? `0 0 ${Math.round(28 + resolvedGlow * 52)}px rgba(125,211,252,${glowOpacity})`
+          ? `0 0 ${Math.round(28 + resolvedGlow * 52)}px ${resolvedGlowColor}`
           : null,
         isBrightBlendMode ? "0 0 34px rgba(255,255,255,0.06)" : null,
       ]
@@ -227,8 +257,10 @@ export function renderPlacedBlocks({
           rotation: block.rotation,
           blur: block.blur,
           glow: block.glow,
+          glowColor: block.glowColor,
           borderRadius: block.borderRadius,
           shadowIntensity: block.shadowIntensity,
+          shadowColor: block.shadowColor,
           animationType: block.animationType,
           animationProgress: block.animationProgress,
           blendMode: block.blendMode,

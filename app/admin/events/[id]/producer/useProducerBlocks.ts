@@ -26,8 +26,10 @@ export type PreviewBlock = {
   rotation?: number
   blur?: number
   glow?: number
+  glowColor?: string
   borderRadius?: number
   shadowIntensity?: number
+  shadowColor?: string
   label?: string | null
   src?: string | null
   content?: string | null
@@ -97,8 +99,10 @@ export default function useProducerBlocks() {
         rotation: 0,
         blur: 0,
         glow: 0,
+        glowColor: "#7dd3fc",
         borderRadius: 18,
         shadowIntensity: 0.35,
+        shadowColor: "#000000",
         content: "Preview text block",
         label: "Text",
         hidden: false,
@@ -129,8 +133,10 @@ export default function useProducerBlocks() {
         rotation: 0,
         blur: 0,
         glow: 0,
+        glowColor: "#7dd3fc",
         borderRadius: 18,
         shadowIntensity: 0.35,
+        shadowColor: "#000000",
         label: "Video",
         src: "https://www.w3schools.com/html/mov_bbb.mp4",
         hidden: false,
@@ -161,8 +167,10 @@ export default function useProducerBlocks() {
         rotation: 0,
         blur: 0,
         glow: 0,
+        glowColor: "#7dd3fc",
         borderRadius: 18,
         shadowIntensity: 0.35,
+        shadowColor: "#000000",
         label: "PDF",
         src: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
         hidden: false,
@@ -193,8 +201,10 @@ export default function useProducerBlocks() {
         rotation: 0,
         blur: 0,
         glow: 0,
+        glowColor: "#7dd3fc",
         borderRadius: 18,
         shadowIntensity: 0.35,
+        shadowColor: "#000000",
         label: "Logo",
         src: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
         hidden: false,
@@ -230,8 +240,10 @@ export default function useProducerBlocks() {
         rotation: 0,
         blur: 0,
         glow: 0,
+        glowColor: "#7dd3fc",
         borderRadius: 18,
         shadowIntensity: 0.35,
+        shadowColor: "#000000",
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded PDF",
         src,
         hidden: false,
@@ -269,8 +281,10 @@ export default function useProducerBlocks() {
         rotation: 0,
         blur: 0,
         glow: 0,
+        glowColor: "#7dd3fc",
         borderRadius: 18,
         shadowIntensity: 0.35,
+        shadowColor: "#000000",
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Video",
         src,
         hidden: false,
@@ -308,8 +322,10 @@ export default function useProducerBlocks() {
         rotation: 0,
         blur: 0,
         glow: 0,
+        glowColor: "#7dd3fc",
         borderRadius: 18,
         shadowIntensity: 0.35,
+        shadowColor: "#000000",
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Image",
         src,
         hidden: false,
@@ -353,8 +369,10 @@ export default function useProducerBlocks() {
         locked: false,
         blur: source.blur ?? 0,
         glow: source.glow ?? 0,
+        glowColor: source.glowColor ?? "#7dd3fc",
         borderRadius: source.borderRadius ?? 18,
         shadowIntensity: source.shadowIntensity ?? 0.35,
+        shadowColor: source.shadowColor ?? "#000000",
         animationType: source.animationType ?? "none",
         animationProgress: source.animationProgress ?? 1,
       }
@@ -502,6 +520,21 @@ export default function useProducerBlocks() {
     )
   }
 
+  function updateSelectedBlockGlowColor(value: string) {
+    if (!selectedBlockId) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              glowColor: value || "#7dd3fc",
+            }
+          : block
+      )
+    )
+  }
+
   function updateSelectedBorderRadius(value: string) {
     if (!selectedBlockId) return
 
@@ -532,6 +565,21 @@ export default function useProducerBlocks() {
           ? {
               ...block,
               shadowIntensity: Math.max(0, Math.min(1, numericValue)),
+            }
+          : block
+      )
+    )
+  }
+
+  function updateSelectedShadowColor(value: string) {
+    if (!selectedBlockId) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              shadowColor: value || "#000000",
             }
           : block
       )
@@ -780,8 +828,10 @@ return {
     updateSelectedBlockRotation,
     updateSelectedBlockBlur,
     updateSelectedBlockGlow,
+    updateSelectedBlockGlowColor,
     updateSelectedBorderRadius,
     updateSelectedShadowIntensity,
+    updateSelectedShadowColor,
     toggleSelectedBlockHidden,
     updateSelectedBlockPosition,
     updateSelectedBlockLabel,

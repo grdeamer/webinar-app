@@ -4,6 +4,7 @@ import type { StageState } from "./producerRoomTypes"
 
 type TakeMode = "cut" | "auto"
 
+
 type ProducerTransitionApi = {
   takeProgram: () => Promise<{ state?: StageState | null } | null | undefined>
   setEventTransition?: (payload: {
@@ -14,6 +15,21 @@ type ProducerTransitionApi = {
     durationMs?: number
   }) => Promise<unknown>
   clearEventTransition?: () => Promise<unknown>
+}
+
+function prepareBlocksForTakeAnimation(blocks: PreviewBlock[]): PreviewBlock[] {
+  return blocks.map((block) => ({
+    ...block,
+    animationProgress:
+      block.animationType && block.animationType !== "none" ? 0 : block.animationProgress ?? 1,
+  }))
+}
+
+function completeBlocksForTakeAnimation(blocks: PreviewBlock[]): PreviewBlock[] {
+  return blocks.map((block) => ({
+    ...block,
+    animationProgress: 1,
+  }))
 }
 
 export default function useProducerTransitions({
@@ -52,7 +68,13 @@ export default function useProducerTransitions({
     setIsTransitioning(true)
 
     setProgramState(data?.state ?? null)
-    setProgramBlocks(previewBlocks.map((block) => ({ ...block })))
+    setProgramBlocks(prepareBlocksForTakeAnimation(previewBlocks))
+
+    window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        setProgramBlocks((current) => completeBlocksForTakeAnimation(current))
+      })
+    })
 
     window.requestAnimationFrame(() => {
       window.requestAnimationFrame(() => {

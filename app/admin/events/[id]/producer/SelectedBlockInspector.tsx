@@ -31,8 +31,10 @@ type SelectedBlockInspectorProps = {
   onUpdateRotation: (value: string) => void
   onUpdateBlur: (value: string) => void
   onUpdateGlow: (value: string) => void
+  onUpdateGlowColor: (value: string) => void
   onUpdateBorderRadius: (value: string) => void
   onUpdateShadowIntensity: (value: string) => void
+  onUpdateShadowColor: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdateBlendMode: (value: string) => void
   onUpdateGroupId: (value: string) => void
@@ -167,6 +169,48 @@ function InspectorSlider({
   )
 }
 
+function InspectorColorPicker({
+  label,
+  value,
+  onChange,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+}) {
+  return (
+    <div className="rounded-[18px] border border-white/6 bg-black/14 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-semibold text-white/62">
+          <span
+            className="h-3 w-3 rounded-full border border-white/18 shadow-[0_0_10px_rgba(255,255,255,0.10)]"
+            style={{ backgroundColor: value }}
+          />
+          {label}
+        </div>
+        <div className="rounded-xl border border-white/8 bg-white/[0.026] px-2 py-1 text-[10px] font-semibold tabular-nums text-white/52">
+          {value}
+        </div>
+      </div>
+
+      <div className="grid grid-cols-[42px_minmax(0,1fr)] items-center gap-2">
+        <input
+          type="color"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-9 w-10 cursor-pointer rounded-xl border border-white/10 bg-transparent p-1"
+        />
+        <input
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          className="min-w-0 rounded-xl border border-white/8 bg-white/[0.026] px-3 py-2 text-xs font-semibold text-white/72 outline-none transition focus:border-violet-300/20 focus:bg-violet-400/[0.045]"
+          placeholder="#7dd3fc"
+        />
+      </div>
+    </div>
+  )
+}
+
 export default function SelectedBlockInspector({
   selectedBlock,
   onToggleHidden,
@@ -176,8 +220,10 @@ export default function SelectedBlockInspector({
   onUpdateRotation,
   onUpdateBlur,
   onUpdateGlow,
+  onUpdateGlowColor,
   onUpdateBorderRadius,
   onUpdateShadowIntensity,
+  onUpdateShadowColor,
   onUpdateLabel,
   onUpdateBlendMode,
   onUpdateGroupId,
@@ -210,8 +256,10 @@ export default function SelectedBlockInspector({
   const rotationValue = selectedBlock.rotation ?? 0
   const blurValue = selectedBlock.blur ?? 0
   const glowValue = selectedBlock.glow ?? 0
+  const glowColorValue = selectedBlock.glowColor ?? "#7dd3fc"
   const borderRadiusValue = selectedBlock.borderRadius ?? 18
   const shadowIntensityValue = selectedBlock.shadowIntensity ?? 0.35
+  const shadowColorValue = selectedBlock.shadowColor ?? "#000000"
   const timelineStartValue = selectedBlock.timelineStartMs ?? 0
   const timelineDurationValue = selectedBlock.timelineDurationMs ?? 4000
   const animationTypeValue = selectedBlock.animationType ?? "none"
@@ -379,6 +427,12 @@ export default function SelectedBlockInspector({
             onChange={onUpdateGlow}
           />
 
+          <InspectorColorPicker
+            label="Glow Color"
+            value={glowColorValue}
+            onChange={onUpdateGlowColor}
+          />
+
           <InspectorSlider
             label="Radius"
             icon={<Layers3 size={14} />}
@@ -399,6 +453,12 @@ export default function SelectedBlockInspector({
             max={1}
             step={0.05}
             onChange={onUpdateShadowIntensity}
+          />
+
+          <InspectorColorPicker
+            label="Shadow Color"
+            value={shadowColorValue}
+            onChange={onUpdateShadowColor}
           />
         </div>
       </SectionCard>

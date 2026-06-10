@@ -421,16 +421,18 @@ export default function RightInspectorRail({
   onUpdateRotation,
   onUpdateBlur,
   onUpdateGlow,
+  onUpdateGlowColor,
   onUpdateBorderRadius,
   onUpdateShadowIntensity,
+  onUpdateShadowColor,
   onUpdateLabel,
   onUpdateBlendMode,
   onUpdateGroupId,
-onUpdateTimelineStart,
-onUpdateTimelineDuration,
-onUpdateAnimationType,
-onUpdateAnimationProgress,
-onUpdatePosition,
+  onUpdateTimelineStart,
+  onUpdateTimelineDuration,
+  onUpdateAnimationType,
+  onUpdateAnimationProgress,
+  onUpdatePosition,
   onUpdateSize,
   onUpdateSrc,
   onUpdateTextContent,
@@ -462,8 +464,10 @@ onUpdatePosition,
   onUpdateRotation: (value: string) => void
   onUpdateBlur: (value: string) => void
   onUpdateGlow: (value: string) => void
+  onUpdateGlowColor: (value: string) => void
   onUpdateBorderRadius: (value: string) => void
   onUpdateShadowIntensity: (value: string) => void
+  onUpdateShadowColor: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdateBlendMode: (value: string) => void
   onUpdateGroupId: (value: string) => void
@@ -516,8 +520,10 @@ onUpdatePosition,
           onUpdateRotation={onUpdateRotation}
           onUpdateBlur={onUpdateBlur}
           onUpdateGlow={onUpdateGlow}
+          onUpdateGlowColor={onUpdateGlowColor}
           onUpdateBorderRadius={onUpdateBorderRadius}
           onUpdateShadowIntensity={onUpdateShadowIntensity}
+          onUpdateShadowColor={onUpdateShadowColor}
           onUpdateLabel={onUpdateLabel}
           onUpdateBlendMode={onUpdateBlendMode}
           onUpdateGroupId={onUpdateGroupId}
