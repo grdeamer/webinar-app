@@ -80,7 +80,7 @@ export default function ProducerRoomWorkspace({
         {centerColumn}
       </div>
 
-      <div className="min-h-0 min-w-0 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(7,11,20,0.985),rgba(2,4,9,1))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
+      <div className="row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(7,11,20,0.985),rgba(2,4,9,1))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
         {rightRail}
       </div>
 
@@ -92,7 +92,7 @@ export default function ProducerRoomWorkspace({
             title="Resize lower dock"
             onMouseDown={beginBottomDockResize}
             onDoubleClick={() => setBottomDockHeight(288)}
-            className="group relative z-20 col-span-2 col-start-2 min-h-0 cursor-row-resize border-y border-white/[0.035] bg-black/20 transition hover:border-sky-300/18 hover:bg-sky-400/[0.035]"
+            className="group relative z-20 col-start-2 min-h-0 cursor-row-resize border-y border-white/[0.035] bg-black/20 transition hover:border-sky-300/18 hover:bg-sky-400/[0.035]"
           >
             <div className="absolute left-1/2 top-1/2 h-px w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 transition group-hover:bg-sky-200/35" />
             <div className="absolute left-1/2 top-1/2 h-[3px] w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.045] transition group-hover:bg-sky-200/20" />
@@ -100,7 +100,7 @@ export default function ProducerRoomWorkspace({
 
           <div
             style={{ height: `${bottomDockHeight}px` }}
-            className="col-span-2 col-start-2 min-h-0 min-w-0 overflow-hidden border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(5,8,15,0.985),rgba(2,4,8,1))] px-0 py-0 shadow-[0_-12px_30px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.022)]"
+            className="col-start-2 min-h-0 min-w-0 overflow-hidden border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(5,8,15,0.985),rgba(2,4,8,1))] px-0 py-0 shadow-[0_-12px_30px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.022)]"
           >
             {bottomDock}
           </div>

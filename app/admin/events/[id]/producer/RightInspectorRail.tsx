@@ -14,16 +14,12 @@ import {
   Sparkles,
   TimerReset,
   Users,
-  Eye,
-  EyeOff,
-  ArrowUp,
-  ArrowDown,
-  GripVertical,
 } from "lucide-react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import BackstagePanel from "./BackstagePanel"
 import ParticipantCard from "./ParticipantCard"
 import SelectedBlockInspector from "./SelectedBlockInspector"
+import LayerStackPanel from "./LayerStackPanel"
 
 type ProducerParticipant = {
   identity: string
@@ -236,146 +232,6 @@ function InspectorTelemetryStrip(): JSX.Element {
   )
 }
 
-function LayerStackPanel({
-  blocks,
-  selectedBlockId,
-  onSelectBlock,
-  onToggleLayerHidden,
-  onMoveLayerForward,
-  onMoveLayerBackward,
-}: {
-  blocks: PreviewBlock[]
-  selectedBlockId: string | null
-  onSelectBlock: (blockId: string) => void
-  onToggleLayerHidden: (blockId: string) => void
-  onMoveLayerForward: (blockId: string) => void
-  onMoveLayerBackward: (blockId: string) => void
-}): JSX.Element {
-  const sortedBlocks = [...blocks].sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
-
-  return (
-    <div className="relative overflow-hidden rounded-[18px] border border-white/[0.055] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.026),transparent_34%),linear-gradient(180deg,rgba(10,14,25,0.84),rgba(4,6,12,0.95))] p-2 shadow-[0_9px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.022)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[rightRailSignalSweep_18s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/14 to-transparent" />
-
-      <div className="relative z-10 mb-2 flex items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-violet-100/42">
-            <Layers3 size={12} />
-            Layer Stack
-          </div>
-          <div className="mt-1 text-xs font-semibold text-white/42">
-            {blocks.length === 0 ? "No composition layers" : `${blocks.length} composition layer${blocks.length === 1 ? "" : "s"}`}
-          </div>
-        </div>
-
-        <div className="rounded-full border border-white/8 bg-white/[0.026] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/34">
-          Z Order
-        </div>
-      </div>
-
-      <div className="relative z-10 space-y-1.5">
-        {sortedBlocks.length === 0 ? (
-          <div className="rounded-[16px] border border-dashed border-white/7 bg-white/[0.018] px-3 py-4 text-center text-xs font-semibold text-white/30">
-            Add a text, image, video, or PDF block to begin layering.
-          </div>
-        ) : (
-          sortedBlocks.map((block, index) => {
-            const isSelected = block.id === selectedBlockId
-            const isTopLayer = index === 0
-            const isBottomLayer = index === sortedBlocks.length - 1
-
-            return (
-              <button
-                key={block.id}
-                type="button"
-                onClick={() => onSelectBlock(block.id)}
-                className={`group/layer flex w-full items-center justify-between gap-2 rounded-[15px] border px-2.5 py-2 text-left transition-all hover:-translate-y-px ${
-                  isSelected
-                    ? "border-violet-300/18 bg-violet-400/[0.085] shadow-[0_0_18px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.035)]"
-                    : "border-white/[0.055] bg-white/[0.020] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] hover:border-white/10 hover:bg-white/[0.036]"
-                }`}
-              >
-                <div className="flex min-w-0 items-center gap-2.5">
-                  <div className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-xl border text-[9px] font-black uppercase tracking-tight ${
-                    isSelected
-                      ? "border-violet-300/18 bg-violet-300/[0.12] text-violet-50/66"
-                      : "border-white/8 bg-black/18 text-white/34"
-                  }`}>
-                    {index + 1}
-                  </div>
-
-                  <div className="min-w-0">
-                    <div className="truncate text-xs font-semibold text-white/70">
-                      {block.label || block.type}
-                    </div>
-                    <div className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.11em] text-white/28">
-                      <span>{block.type}</span>
-                      <span>·</span>
-                      <span className="tabular-nums">z {block.zIndex ?? 0}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex shrink-0 items-center gap-1">
-                  <span className="hidden rounded-full border border-white/7 bg-black/18 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/26 2xl:inline-flex">
-                    {block.hidden ? "Hidden" : "Live"}
-                  </span>
-
-                  <span className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/24">
-                    <GripVertical size={12} />
-                  </span>
-
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onMoveLayerForward(block.id)
-                    }}
-                    disabled={isTopLayer}
-                    className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-white/[0.022] text-white/34 transition hover:border-violet-300/16 hover:bg-violet-400/[0.06] hover:text-violet-100/62 disabled:cursor-not-allowed disabled:opacity-25"
-                    title="Move layer forward"
-                  >
-                    <ArrowUp size={12} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onMoveLayerBackward(block.id)
-                    }}
-                    disabled={isBottomLayer}
-                    className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-white/[0.022] text-white/34 transition hover:border-violet-300/16 hover:bg-violet-400/[0.06] hover:text-violet-100/62 disabled:cursor-not-allowed disabled:opacity-25"
-                    title="Move layer backward"
-                  >
-                    <ArrowDown size={12} />
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={(event) => {
-                      event.stopPropagation()
-                      onToggleLayerHidden(block.id)
-                    }}
-                    className={`flex h-7 w-7 items-center justify-center rounded-xl border transition ${
-                      block.hidden
-                        ? "border-amber-300/14 bg-amber-400/[0.07] text-amber-100/58 hover:bg-amber-400/[0.12]"
-                        : "border-emerald-300/14 bg-emerald-400/[0.06] text-emerald-100/58 hover:bg-emerald-400/[0.11]"
-                    }`}
-                    title={block.hidden ? "Show layer" : "Hide layer"}
-                  >
-                    {block.hidden ? <EyeOff size={12} /> : <Eye size={12} />}
-                  </button>
-                </div>
-              </button>
-            )
-          })
-        )}
-      </div>
-    </div>
-  )
-}
 
 function RecordingCenterPanel(): JSX.Element {
   return (
@@ -557,6 +413,7 @@ export default function RightInspectorRail({
   onToggleLayerHidden,
   onMoveLayerForward,
   onMoveLayerBackward,
+  onReorderLayers,
   onToggleHidden,
   onToggleLocked,
   onUpdateOpacity,
@@ -591,6 +448,7 @@ export default function RightInspectorRail({
   onToggleLayerHidden: (blockId: string) => void
   onMoveLayerForward: (blockId: string) => void
   onMoveLayerBackward: (blockId: string) => void
+  onReorderLayers: (orderedBlockIds: string[]) => void
   onToggleHidden: () => void
   onToggleLocked: () => void
   onUpdateOpacity: (value: string) => void
@@ -635,6 +493,7 @@ export default function RightInspectorRail({
           onToggleLayerHidden={onToggleLayerHidden}
           onMoveLayerForward={onMoveLayerForward}
           onMoveLayerBackward={onMoveLayerBackward}
+          onReorderLayers={onReorderLayers}
         />
         <SelectedBlockInspector
           selectedBlock={selectedBlock}

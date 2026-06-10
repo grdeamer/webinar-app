@@ -1218,7 +1218,7 @@ function ExpandedAudioMixerOverlay({
   const [signalMapOpen, setSignalMapOpen] = useState(false)
 
   return (
-    <div className="fixed inset-x-6 bottom-6 top-[96px] z-[999] overflow-hidden rounded-[24px] border border-emerald-200/16 bg-[radial-gradient(circle_at_24%_0%,rgba(16,185,129,0.16),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(56,189,248,0.12),transparent_32%),linear-gradient(180deg,rgba(5,13,18,0.985),rgba(2,5,10,0.998))] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
+    <div className="fixed left-[96px] top-[118px] z-[999] h-[min(720px,calc(100dvh-160px))] w-[min(980px,calc(100vw-560px))] min-w-[760px] overflow-hidden rounded-[24px] border border-emerald-200/16 bg-[radial-gradient(circle_at_24%_0%,rgba(16,185,129,0.16),transparent_34%),radial-gradient(circle_at_80%_12%,rgba(56,189,248,0.12),transparent_32%),linear-gradient(180deg,rgba(5,13,18,0.985),rgba(2,5,10,0.998))] shadow-[0_34px_110px_rgba(0,0,0,0.72),0_0_42px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.045)] backdrop-blur-2xl">
       <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.030)_0px,rgba(255,255,255,0.030)_1px,transparent_1px,transparent_32px)]" />
       <div className="relative z-[2500] flex items-start justify-between gap-3 border-b border-white/[0.065] px-4 py-3">
         <div>
@@ -1309,9 +1309,9 @@ function ExpandedAudioMixerOverlay({
         </div>
       </div>
 
-      <div className="relative z-10 grid max-h-[calc(52vh-92px)] min-h-0 gap-3 overflow-y-auto p-4 xl:grid-cols-[0.95fr_1.05fr]">
-        <div className="min-h-0 rounded-[18px] border border-white/[0.065] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
-          <div className="grid h-full min-h-0 grid-cols-6 gap-3">
+      <div className="relative z-10 grid h-[calc(100%-92px)] min-h-0 gap-3 overflow-hidden p-4 xl:grid-cols-[1.2fr_0.8fr]">
+        <div className="min-h-0 overflow-hidden rounded-[18px] border border-white/[0.065] bg-black/24 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+          <div className="grid h-full min-h-0 grid-cols-3 gap-3 xl:grid-cols-3 2xl:grid-cols-4">
             {channels.map(([label, level, badge]) => {
               const muted = mutedChannels[label]
               const soloActive = soloChannel === label
@@ -1399,7 +1399,7 @@ function ExpandedAudioMixerOverlay({
           </div>
         </div>
 
-        <div className="min-h-0 space-y-3 overflow-hidden rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+        <div className="min-h-0 space-y-3 overflow-y-auto rounded-[18px] border border-white/[0.065] bg-white/[0.020] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
           <div>
             <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/42">
               Master Bus
@@ -3331,7 +3331,15 @@ onSelectAsset={setSelectedMediaAssetLabel}
           </div>
         </div>
       ) : null}
-      <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden pb-2 xl:grid-cols-[0.72fr_2.85fr_1.05fr]">
+      <button
+        type="button"
+        onClick={() => setExpandedMixerOpen(true)}
+        className="fixed bottom-[168px] left-[104px] z-[998] flex items-center gap-2 rounded-full border border-emerald-300/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.18),rgba(5,13,18,0.92))] px-4 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-emerald-50/78 shadow-[0_18px_44px_rgba(0,0,0,0.42),0_0_22px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl transition hover:-translate-y-px hover:border-emerald-200/28 hover:bg-emerald-400/[0.16]"
+      >
+        <span className="h-2 w-2 rounded-full bg-emerald-300/78 shadow-[0_0_10px_rgba(110,231,183,0.55)]" />
+        Audio Mixer
+      </button>
+      <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden pb-2 xl:grid-cols-[0.72fr_3.9fr]">
 <ConsolePanel
   title="Scenes"
   action={
@@ -3603,49 +3611,6 @@ onSelectAsset={setSelectedMediaAssetLabel}
           </div>
         </ConsolePanel>
 
-        <ConsolePanel
-          title="Audio Mixer"
-          action={
-            <button
-              type="button"
-              onClick={() => setExpandedMixerOpen(true)}
-              className="rounded-full border border-sky-300/12 bg-sky-400/[0.060] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/62 transition hover:border-sky-300/22 hover:bg-sky-400/[0.10] hover:text-sky-50"
-            >
-              Expand Mixer
-            </button>
-          }
-        >
-          <>
-            <div className="grid grid-cols-6 gap-0 overflow-hidden rounded-[13px] border border-white/[0.05] bg-black/16 py-2">
-              {([
-                ["Program", programLevel],
-                ["Stage", stageLevel],
-                ["Music", musicLevel],
-                ["Mics", micLevelPercent],
-                ["SFX", sfxLevel],
-                ["Audience", audienceLevel],
-              ] as Array<[MixerChannelKey, number]>).map(([label, level]) => (
-                <MixerStrip
-                  key={label}
-                  label={label}
-                  level={level}
-                  soloActive={soloChannel === label}
-                  muted={mutedChannels[label]}
-                  audible={channelIsAudible({ label, muted: mutedChannels[label], soloChannel })}
-                  peakLevel={peakLevels[label]}
-                  onToggleSolo={() => toggleSoloChannel(label)}
-                  onToggleMute={() => toggleMutedChannel(label)}
-                />
-              ))}
-            </div>
-            <div className="mt-1 grid grid-cols-4 px-2 text-[7px] font-black tabular-nums text-white/26">
-              <span>-60</span>
-              <span className="text-center text-emerald-100/34">-24</span>
-              <span className="text-center text-amber-100/42">-12</span>
-              <span className="text-right text-red-100/42">0 dBFS</span>
-            </div>
-          </>
-        </ConsolePanel>
 
 
       </div>

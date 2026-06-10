@@ -322,6 +322,7 @@ export default function ProducerRightRail({
   onToggleLayerHidden,
   onMoveLayerForward,
   onMoveLayerBackward,
+  onReorderLayers,
   onToggleHidden,
   onToggleLocked,
   onUpdateOpacity,
@@ -356,6 +357,7 @@ export default function ProducerRightRail({
   onToggleLayerHidden: (blockId: string) => void
   onMoveLayerForward: (blockId: string) => void
   onMoveLayerBackward: (blockId: string) => void
+  onReorderLayers: (orderedBlockIds: string[]) => void
   onToggleHidden: () => void
   onToggleLocked: () => void
   onUpdateOpacity: (value: string) => void
@@ -729,6 +731,7 @@ export default function ProducerRightRail({
               onToggleLayerHidden={onToggleLayerHidden}
               onMoveLayerForward={onMoveLayerForward}
               onMoveLayerBackward={onMoveLayerBackward}
+              onReorderLayers={onReorderLayers}
               onToggleHidden={onToggleHidden}
               onToggleLocked={onToggleLocked}
               onUpdateOpacity={onUpdateOpacity}

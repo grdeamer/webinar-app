@@ -1,4 +1,4 @@
-import type { JSX } from "react"
+import type { CSSProperties, JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 
 export type SharedBlockStyleOptions = {
@@ -10,7 +10,7 @@ export type SharedBlockStyleOptions = {
   opacity?: number
   scale?: number
   rotation?: number
-  blendMode?: React.CSSProperties["mixBlendMode"]
+  blendMode?: CSSProperties["mixBlendMode"]
 }
 
 export function getSharedBlockStyle({
@@ -23,7 +23,19 @@ export function getSharedBlockStyle({
   scale,
   rotation,
   blendMode,
-}: SharedBlockStyleOptions): React.CSSProperties {
+}: SharedBlockStyleOptions): CSSProperties {
+  const resolvedBlendMode = blendMode ?? "normal"
+  const cinematicBlendModes = [
+    "screen",
+    "overlay",
+    "soft-light",
+    "hard-light",
+    "color-dodge",
+    "lighten",
+  ]
+
+  const isBrightBlendMode = cinematicBlendModes.includes(resolvedBlendMode)
+
   return {
     position: "absolute",
     left: x,
@@ -34,8 +46,24 @@ export function getSharedBlockStyle({
     opacity: opacity ?? 1,
     transform: `scale(${scale ?? 1}) rotate(${rotation ?? 0}deg)`,
     transformOrigin: "center center",
-    mixBlendMode: blendMode ?? "normal",
-    willChange: "transform, opacity",
+    mixBlendMode: resolvedBlendMode,
+    isolation: "isolate",
+    willChange: "transform, opacity, filter",
+    filter:
+      resolvedBlendMode === "overlay"
+        ? "contrast(1.06) saturate(1.08)"
+        : resolvedBlendMode === "soft-light"
+          ? "brightness(1.02) saturate(1.04)"
+          : resolvedBlendMode === "hard-light"
+            ? "contrast(1.12) saturate(1.12)"
+            : resolvedBlendMode === "screen"
+              ? "brightness(1.08)"
+              : undefined,
+    boxShadow: isBrightBlendMode
+      ? "0 0 34px rgba(255,255,255,0.06)"
+      : undefined,
+    backfaceVisibility: "hidden",
+    perspective: 1000,
   }
 }
 
@@ -103,7 +131,7 @@ export function renderPlacedBlocks({
               }
             : undefined
         }
-        className={`absolute overflow-hidden rounded-lg transition-[transform,opacity] duration-150 ${
+        className={`absolute overflow-hidden rounded-lg transition-[transform,opacity,filter,box-shadow] duration-150 ${
           opts?.selectable
             ? selectedBlockId === block.id
               ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
@@ -121,6 +149,7 @@ export function renderPlacedBlocks({
           rotation: block.rotation,
           blendMode: block.blendMode,
         })}
+        data-blend-mode={block.blendMode ?? "normal"}
       >
         {opts?.showChrome ? (
           <div
@@ -168,7 +197,13 @@ export function renderPlacedBlocks({
               ? "h-[calc(100%-28px)] overflow-hidden rounded-b-lg"
               : "h-full w-full overflow-hidden"
           }
-        >
+          style={{
+            background:
+              block.blendMode && block.blendMode !== "normal"
+                ? "rgba(255,255,255,0.015)"
+                : undefined,
+          }}
+        > 
           {renderBlockContent(block)}
         </div>
 
@@ -182,3 +217,30 @@ export function renderPlacedBlocks({
       </div>
     ))
 }
+
+/*
+  Blend Mode Notes
+  ----------------
+  The production canvas is now composition-aware.
+
+  Current supported cinematic blend modes:
+  - screen
+  - multiply
+  - overlay
+  - soft-light
+  - hard-light
+  - lighten
+  - darken
+  - color-dodge
+  - color-burn
+  - difference
+  - exclusion
+
+  This establishes the foundation for:
+  - glow passes
+  - cinematic compositing
+  - volumetric overlays
+  - HUD graphics
+  - atmospheric graphics
+  - motion graphics layering
+*/

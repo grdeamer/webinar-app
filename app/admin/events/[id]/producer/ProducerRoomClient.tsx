@@ -979,6 +979,33 @@ const updateStageState = useCallback(
     [setPreviewBlocks],
   );
 
+  const handleReorderLayers = useCallback(
+    (orderedBlockIds: string[]): void => {
+      setPreviewBlocks((current) => {
+        const zIndexById = new Map<string, number>();
+        const highestZIndex = orderedBlockIds.length;
+
+        orderedBlockIds.forEach((blockId, index) => {
+          zIndexById.set(blockId, highestZIndex - index);
+        });
+
+        return current.map((block) => {
+          const nextZIndex = zIndexById.get(block.id);
+
+          if (!nextZIndex) {
+            return block;
+          }
+
+          return {
+            ...block,
+            zIndex: nextZIndex,
+          };
+        });
+      });
+    },
+    [setPreviewBlocks],
+  );
+
   const {
     startDraggingBlock,
     startResizingBlock,
@@ -1328,6 +1355,7 @@ const updateStageState = useCallback(
       onToggleLayerHidden: handleToggleLayerHidden,
       onMoveLayerForward: handleMoveLayerForward,
       onMoveLayerBackward: handleMoveLayerBackward,
+      onReorderLayers: handleReorderLayers,
       onToggleHidden: toggleSelectedBlockHidden,
       onToggleLocked: toggleSelectedBlockLocked,
       onUpdateOpacity: updateSelectedBlockOpacity,
@@ -1363,6 +1391,7 @@ const updateStageState = useCallback(
       handleToggleLayerHidden,
       handleMoveLayerForward,
       handleMoveLayerBackward,
+      handleReorderLayers,
       toggleSelectedBlockHidden,
       toggleSelectedBlockLocked,
       updateSelectedBlockOpacity,
