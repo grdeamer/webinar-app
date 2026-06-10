@@ -133,6 +133,90 @@ export default function useProducerBlockEditor({
     [selectedBlockId, setPreviewBlocks]
   )
 
+  const updateBlur = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                blur: Math.max(0, Math.min(40, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateGlow = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                glow: Math.max(0, Math.min(1, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateBorderRadius = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                borderRadius: Math.max(0, Math.min(120, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateShadowIntensity = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                shadowIntensity: Math.max(0, Math.min(1, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
   const updateBlendMode = useCallback(
     (value: string) => {
       if (!selectedBlockId) return
@@ -211,6 +295,57 @@ export default function useProducerBlockEditor({
     [selectedBlockId, setPreviewBlocks]
   )
 
+  const updateAnimationType = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const allowedAnimationTypes = new Set([
+        "none",
+        "fade",
+        "drift",
+        "push-left",
+        "push-right",
+        "push-up",
+        "push-down",
+      ])
+
+      if (!allowedAnimationTypes.has(value)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                animationType: value as PreviewBlock["animationType"],
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
+  const updateAnimationProgress = useCallback(
+    (value: string) => {
+      if (!selectedBlockId) return
+
+      const numericValue = Number(value)
+      if (!Number.isFinite(numericValue)) return
+
+      setPreviewBlocks((prev) =>
+        prev.map((block) =>
+          block.id === selectedBlockId
+            ? {
+                ...block,
+                animationProgress: Math.max(0, Math.min(1, numericValue)),
+              }
+            : block
+        )
+      )
+    },
+    [selectedBlockId, setPreviewBlocks]
+  )
+
   const updatePosition = useCallback(
     (field: "x" | "y", value: string) => {
       if (!selectedBlockId) return
@@ -266,10 +401,16 @@ export default function useProducerBlockEditor({
     updateOpacity,
     updateScale,
     updateRotation,
+    updateBlur,
+    updateGlow,
+    updateBorderRadius,
+    updateShadowIntensity,
     updateBlendMode,
     updateGroupId,
     updateTimelineStart,
     updateTimelineDuration,
+    updateAnimationType,
+    updateAnimationProgress,
     updatePosition,
     toggleHidden,
     toggleLocked,

@@ -10,9 +10,11 @@ import {
   Lock,
   Move,
   Network,
+  Play,
   RotateCw,
   ScanLine,
   Sparkles,
+  Sun,
   Type,
   Unlock,
   ZoomIn,
@@ -27,11 +29,17 @@ type SelectedBlockInspectorProps = {
   onUpdateOpacity: (value: string) => void
   onUpdateScale: (value: string) => void
   onUpdateRotation: (value: string) => void
+  onUpdateBlur: (value: string) => void
+  onUpdateGlow: (value: string) => void
+  onUpdateBorderRadius: (value: string) => void
+  onUpdateShadowIntensity: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdateBlendMode: (value: string) => void
   onUpdateGroupId: (value: string) => void
   onUpdateTimelineStart: (value: string) => void
   onUpdateTimelineDuration: (value: string) => void
+  onUpdateAnimationType: (value: string) => void
+  onUpdateAnimationProgress: (value: string) => void
   onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
@@ -166,11 +174,17 @@ export default function SelectedBlockInspector({
   onUpdateOpacity,
   onUpdateScale,
   onUpdateRotation,
+  onUpdateBlur,
+  onUpdateGlow,
+  onUpdateBorderRadius,
+  onUpdateShadowIntensity,
   onUpdateLabel,
   onUpdateBlendMode,
   onUpdateGroupId,
   onUpdateTimelineStart,
   onUpdateTimelineDuration,
+  onUpdateAnimationType,
+  onUpdateAnimationProgress,
   onUpdatePosition,
   onUpdateSize,
   onUpdateSrc,
@@ -194,8 +208,14 @@ export default function SelectedBlockInspector({
   const opacityValue = selectedBlock.opacity ?? 1
   const scaleValue = selectedBlock.scale ?? 1
   const rotationValue = selectedBlock.rotation ?? 0
+  const blurValue = selectedBlock.blur ?? 0
+  const glowValue = selectedBlock.glow ?? 0
+  const borderRadiusValue = selectedBlock.borderRadius ?? 18
+  const shadowIntensityValue = selectedBlock.shadowIntensity ?? 0.35
   const timelineStartValue = selectedBlock.timelineStartMs ?? 0
   const timelineDurationValue = selectedBlock.timelineDurationMs ?? 4000
+  const animationTypeValue = selectedBlock.animationType ?? "none"
+  const animationProgressValue = selectedBlock.animationProgress ?? 1
 
   return (
     <div className="mb-5 space-y-3 rounded-[26px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.045),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.026),rgba(255,255,255,0.010))] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
@@ -334,27 +354,106 @@ export default function SelectedBlockInspector({
       </SectionCard>
 
       <SectionCard>
-        <SectionHeader icon={<Clock3 size={13} />} title="Timeline" badge="Animation Ready" />
-        <div className="grid gap-3 xl:grid-cols-2">
-          <InspectorField label="Start MS">
-            <InspectorInput
-              type="number"
-              min={0}
-              step={100}
-              value={timelineStartValue}
-              onChange={(e) => onUpdateTimelineStart(e.target.value)}
-            />
+        <SectionHeader icon={<Sun size={13} />} title="Appearance" badge="Style" />
+
+        <div className="space-y-2">
+          <InspectorSlider
+            label="Blur"
+            icon={<Sparkles size={14} />}
+            value={blurValue}
+            displayValue={`${blurValue}px`}
+            min={0}
+            max={40}
+            step={1}
+            onChange={onUpdateBlur}
+          />
+
+          <InspectorSlider
+            label="Glow"
+            icon={<Sun size={14} />}
+            value={glowValue}
+            displayValue={`${Math.round(glowValue * 100)}%`}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={onUpdateGlow}
+          />
+
+          <InspectorSlider
+            label="Radius"
+            icon={<Layers3 size={14} />}
+            value={borderRadiusValue}
+            displayValue={`${borderRadiusValue}px`}
+            min={0}
+            max={120}
+            step={1}
+            onChange={onUpdateBorderRadius}
+          />
+
+          <InspectorSlider
+            label="Shadow"
+            icon={<ScanLine size={14} />}
+            value={shadowIntensityValue}
+            displayValue={`${Math.round(shadowIntensityValue * 100)}%`}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={onUpdateShadowIntensity}
+          />
+        </div>
+      </SectionCard>
+
+      <SectionCard>
+        <SectionHeader icon={<Play size={13} />} title="Motion" badge="Timeline" />
+
+        <div className="space-y-3">
+          <InspectorField label="Animation Type">
+            <InspectorSelect
+              value={animationTypeValue}
+              onChange={(e) => onUpdateAnimationType(e.target.value)}
+            >
+              <option value="none">None</option>
+              <option value="fade">Fade</option>
+              <option value="drift">Drift</option>
+              <option value="push-left">Push Left</option>
+              <option value="push-right">Push Right</option>
+              <option value="push-up">Push Up</option>
+              <option value="push-down">Push Down</option>
+            </InspectorSelect>
           </InspectorField>
 
-          <InspectorField label="Duration MS">
-            <InspectorInput
-              type="number"
-              min={100}
-              step={100}
-              value={timelineDurationValue}
-              onChange={(e) => onUpdateTimelineDuration(e.target.value)}
-            />
-          </InspectorField>
+          <InspectorSlider
+            label="Progress"
+            icon={<Clock3 size={14} />}
+            value={animationProgressValue}
+            displayValue={`${Math.round(animationProgressValue * 100)}%`}
+            min={0}
+            max={1}
+            step={0.05}
+            onChange={onUpdateAnimationProgress}
+          />
+
+          <div className="grid gap-3 xl:grid-cols-2">
+            <InspectorField label="Start MS">
+              <InspectorInput
+                type="number"
+                min={0}
+                step={100}
+                value={timelineStartValue}
+                onChange={(e) => onUpdateTimelineStart(e.target.value)}
+              />
+            </InspectorField>
+
+            <InspectorField label="Duration MS">
+              <InspectorInput
+                type="number"
+                min={100}
+                step={100}
+                value={timelineDurationValue}
+                onChange={(e) => onUpdateTimelineDuration(e.target.value)}
+              />
+            </InspectorField>
+          </div>
         </div>
       </SectionCard>
 

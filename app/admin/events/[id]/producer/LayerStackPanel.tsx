@@ -138,15 +138,23 @@ export default function LayerStackPanel({
           </div>
         </div>
 
-        <div className="rounded-full border border-white/8 bg-white/[0.026] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/34">
-          Z Order
+        <div className="rounded-full border border-sky-300/10 bg-sky-400/[0.045] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/42">
+          Drag Stack
         </div>
       </div>
 
       <div className="relative z-10 space-y-1.5">
         {sortedBlocks.length === 0 ? (
-          <div className="rounded-[16px] border border-dashed border-white/7 bg-white/[0.018] px-3 py-4 text-center text-xs font-semibold text-white/30">
-            Add a text, image, video, or PDF block to begin layering.
+          <div className="rounded-[16px] border border-dashed border-sky-300/10 bg-sky-400/[0.018] px-3 py-5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+            <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-2xl border border-sky-300/12 bg-sky-400/[0.045] text-sky-100/44">
+              <Layers3 size={15} />
+            </div>
+            <div className="text-xs font-semibold text-white/42">
+              No composition layers yet.
+            </div>
+            <div className="mt-1 text-[10px] font-medium leading-4 text-white/26">
+              Drag media into Preview or add a text/image/video block to begin.
+            </div>
           </div>
         ) : (
           sortedBlocks.map((block, index) => {
@@ -182,8 +190,12 @@ export default function LayerStackPanel({
                 onDragEnd={resetDragState}
                 className={`group/layer relative flex w-full items-center justify-between gap-2 rounded-[15px] border px-2.5 py-2 text-left transition-all hover:-translate-y-px ${
                   isSelected
-                    ? "border-violet-300/18 bg-violet-400/[0.085] shadow-[0_0_18px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.035)]"
-                    : "border-white/[0.055] bg-white/[0.020] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] hover:border-white/10 hover:bg-white/[0.036]"
+                    ? "border-violet-300/22 bg-violet-400/[0.095] shadow-[0_0_20px_rgba(168,85,247,0.09),inset_0_1px_0_rgba(255,255,255,0.04)]"
+                    : block.hidden
+                      ? "border-white/[0.035] bg-white/[0.010] opacity-70 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)] hover:border-white/8 hover:bg-white/[0.022]"
+                      : block.locked
+                        ? "border-amber-300/10 bg-amber-400/[0.025] shadow-[inset_0_1px_0_rgba(255,255,255,0.016)] hover:border-amber-300/16 hover:bg-amber-400/[0.04]"
+                        : "border-white/[0.055] bg-white/[0.020] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] hover:border-white/10 hover:bg-white/[0.036]"
                 } ${
                   draggedBlockId === block.id
                     ? "scale-[0.985] opacity-45 ring-1 ring-emerald-300/24"
@@ -217,13 +229,22 @@ export default function LayerStackPanel({
                   </div>
 
                   <div className="min-w-0">
-                    <div className="truncate text-xs font-semibold text-white/70">
-                      {block.label || block.type}
+                    <div className="flex min-w-0 items-center gap-2">
+                      <div className="truncate text-xs font-semibold text-white/74">
+                        {block.label || block.type}
+                      </div>
+                      {isSelected ? (
+                        <span className="shrink-0 rounded-full border border-violet-300/14 bg-violet-400/[0.09] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.09em] text-violet-100/58">
+                          Active
+                        </span>
+                      ) : null}
                     </div>
                     <div className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.11em] text-white/28">
                       <span>{block.type}</span>
                       <span>·</span>
                       <span className="tabular-nums">z {block.zIndex ?? 0}</span>
+                      <span>·</span>
+                      <span className="tabular-nums">{Math.round((block.opacity ?? 1) * 100)}%</span>
                     </div>
 
                     <div className="mt-1 flex flex-wrap items-center gap-1">
@@ -248,6 +269,18 @@ export default function LayerStackPanel({
                         </span>
                       ) : null}
 
+                      {(block.scale ?? 1) !== 1 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-fuchsia-300/12 bg-fuchsia-400/[0.055] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-fuchsia-100/44">
+                          {Math.round((block.scale ?? 1) * 100)}%
+                        </span>
+                      ) : null}
+
+                      {(block.rotation ?? 0) !== 0 ? (
+                        <span className="inline-flex items-center gap-1 rounded-full border border-indigo-300/12 bg-indigo-400/[0.055] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-indigo-100/44">
+                          {block.rotation}°
+                        </span>
+                      ) : null}
+
                       {block.timelineDurationMs ? (
                         <span className="inline-flex items-center gap-1 rounded-full border border-cyan-300/12 bg-cyan-400/[0.06] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-cyan-100/44">
                           <Clock3 size={8} />
@@ -259,7 +292,13 @@ export default function LayerStackPanel({
                 </div>
 
                 <div className="flex shrink-0 items-center gap-1">
-                  <span className="hidden rounded-full border border-white/7 bg-black/18 px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/26 2xl:inline-flex">
+                  <span
+                    className={`hidden rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] xl:inline-flex ${
+                      block.hidden
+                        ? "border-amber-300/12 bg-amber-400/[0.055] text-amber-100/42"
+                        : "border-emerald-300/12 bg-emerald-400/[0.045] text-emerald-100/42"
+                    }`}
+                  >
                     {block.hidden ? "Hidden" : "Live"}
                   </span>
 
@@ -273,7 +312,7 @@ export default function LayerStackPanel({
                       setDraggedBlockId(block.id)
                     }}
                     onDragEnd={resetDragState}
-                    className="flex h-7 w-7 cursor-grab items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/24 transition hover:border-violet-300/16 hover:bg-violet-400/[0.06] hover:text-violet-100/62 active:cursor-grabbing"
+                    className="flex h-7 w-7 cursor-grab items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/24 transition hover:-translate-y-px hover:border-violet-300/20 hover:bg-violet-400/[0.08] hover:text-violet-100/70 active:cursor-grabbing group-hover/layer:border-white/12 group-hover/layer:text-white/38"
                     title="Drag to reorder layer"
                   >
                     <GripVertical size={12} />
@@ -316,7 +355,7 @@ export default function LayerStackPanel({
                         ? "border-amber-300/14 bg-amber-400/[0.07] text-amber-100/58 hover:bg-amber-400/[0.12]"
                         : "border-emerald-300/14 bg-emerald-400/[0.06] text-emerald-100/58 hover:bg-emerald-400/[0.11]"
                     }`}
-                    title={block.hidden ? "Show layer" : "Hide layer"}
+                    title={block.hidden ? "Show this layer" : "Hide this layer"}
                   >
                     {block.hidden ? <EyeOff size={12} /> : <Eye size={12} />}
                   </button>

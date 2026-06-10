@@ -328,11 +328,17 @@ export default function ProducerRightRail({
   onUpdateOpacity,
   onUpdateScale,
   onUpdateRotation,
+  onUpdateBlur,
+  onUpdateGlow,
+  onUpdateBorderRadius,
+  onUpdateShadowIntensity,
   onUpdateLabel,
   onUpdateBlendMode,
   onUpdateGroupId,
   onUpdateTimelineStart,
   onUpdateTimelineDuration,
+  onUpdateAnimationType,
+  onUpdateAnimationProgress,
   onUpdatePosition,
   onUpdateSize,
   onUpdateSrc,
@@ -363,12 +369,18 @@ export default function ProducerRightRail({
   onUpdateOpacity: (value: string) => void
   onUpdateScale: (value: string) => void
   onUpdateRotation: (value: string) => void
+  onUpdateBlur: (value: string) => void
+  onUpdateGlow: (value: string) => void
+  onUpdateBorderRadius: (value: string) => void
+  onUpdateShadowIntensity: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdateBlendMode: (value: string) => void
   onUpdateGroupId: (value: string) => void
-  onUpdateTimelineStart: (value: string) => void
-  onUpdateTimelineDuration: (value: string) => void
-  onUpdatePosition: (field: "x" | "y", value: string) => void
+onUpdateTimelineStart: (value: string) => void
+onUpdateTimelineDuration: (value: string) => void
+onUpdateAnimationType: (value: string) => void
+onUpdateAnimationProgress: (value: string) => void
+onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
   onUpdateTextContent: (value: string) => void
@@ -411,6 +423,7 @@ export default function ProducerRightRail({
     { name: "Brooklyn Simmons", role: "Guest" },
   ]
   const backstageCount = participants.length > 0 ? backstageParticipants.length : 6
+  const activeRailTab = previewBlocks.length > 0 || selectedBlock ? "Blocks" : "Stage"
   const audienceCount = Math.max(participants.length * 611, 2462)
   return (
     <div className="group flex h-full min-w-0 flex-col gap-2 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(5,9,18,0.94),rgba(2,4,9,0.995))] p-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.018)] backdrop-blur-2xl lg:col-start-3">
@@ -512,8 +525,8 @@ export default function ProducerRightRail({
                   key={`${tab}-${index}`}
                   type="button"
                   className={`rounded-[8px] px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
-                    index === 0
-                      ? "border border-emerald-300/16 bg-emerald-400/[0.12] text-emerald-100 shadow-[0_0_12px_rgba(16,185,129,0.08)]"
+                    tab === activeRailTab
+                      ? "border border-sky-300/16 bg-sky-400/[0.12] text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.08)]"
                       : "border border-white/[0.035] bg-white/[0.018] text-white/40 hover:bg-white/[0.035] hover:text-white/62"
                   }`}
                 >
@@ -523,6 +536,53 @@ export default function ProducerRightRail({
             </div>
           </div>
         </div>
+
+        {selectedBlock || previewBlocks.length > 0 ? (
+          <div className="mt-3 border-t border-sky-300/[0.075] pt-3">
+            <RightInspectorRail
+              selectedBlock={selectedBlock}
+              previewBlocks={previewBlocks}
+              selectedBlockId={selectedBlockId}
+              onSelectBlock={onSelectBlock}
+              onToggleLayerHidden={onToggleLayerHidden}
+              onMoveLayerForward={onMoveLayerForward}
+              onMoveLayerBackward={onMoveLayerBackward}
+              onReorderLayers={onReorderLayers}
+              onToggleHidden={onToggleHidden}
+              onToggleLocked={onToggleLocked}
+              onUpdateOpacity={onUpdateOpacity}
+              onUpdateScale={onUpdateScale}
+              onUpdateRotation={onUpdateRotation}
+              onUpdateBlur={onUpdateBlur}
+              onUpdateGlow={onUpdateGlow}
+              onUpdateBorderRadius={onUpdateBorderRadius}
+              onUpdateShadowIntensity={onUpdateShadowIntensity}
+              onUpdateLabel={onUpdateLabel}
+              onUpdateBlendMode={onUpdateBlendMode}
+              onUpdateGroupId={onUpdateGroupId}
+              onUpdateTimelineStart={onUpdateTimelineStart}
+              onUpdateTimelineDuration={onUpdateTimelineDuration}
+              onUpdateAnimationType={onUpdateAnimationType}
+              onUpdateAnimationProgress={onUpdateAnimationProgress}
+              onUpdatePosition={onUpdatePosition}
+              onUpdateSize={onUpdateSize}
+              onUpdateSrc={onUpdateSrc}
+              onUpdateTextContent={onUpdateTextContent}
+              participants={participants}
+              stageIds={stageIds}
+              stageState={stageState}
+              getScreenTrackSid={getScreenTrackSid}
+              onAddToStage={onAddToStage}
+              onSetScreenShare={onSetScreenShare}
+              onClearPrimary={onClearPrimary}
+              onSetPrimary={onSetPrimary}
+              onUnpin={onUnpin}
+              onPin={onPin}
+              onRemoveFromStage={onRemoveFromStage}
+              onError={onError}
+            />
+          </div>
+        ) : null}
 
         <div className="mt-3 border-t border-white/[0.035] pt-2.5">
           <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
@@ -715,58 +775,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="mt-4 border-t border-white/[0.045] pt-3">
-          {selectedBlock || previewBlocks.length > 0 ? (
-            <RightInspectorRail
-              selectedBlock={selectedBlock}
-              previewBlocks={previewBlocks}
-              selectedBlockId={selectedBlockId}
-              onSelectBlock={onSelectBlock}
-              onToggleLayerHidden={onToggleLayerHidden}
-              onMoveLayerForward={onMoveLayerForward}
-              onMoveLayerBackward={onMoveLayerBackward}
-              onReorderLayers={onReorderLayers}
-              onToggleHidden={onToggleHidden}
-              onToggleLocked={onToggleLocked}
-              onUpdateOpacity={onUpdateOpacity}
-              onUpdateScale={onUpdateScale}
-              onUpdateRotation={onUpdateRotation}
-              onUpdateLabel={onUpdateLabel}
-              onUpdateBlendMode={onUpdateBlendMode}
-              onUpdateGroupId={onUpdateGroupId}
-              onUpdateTimelineStart={onUpdateTimelineStart}
-              onUpdateTimelineDuration={onUpdateTimelineDuration}
-              onUpdatePosition={onUpdatePosition}
-              onUpdateSize={onUpdateSize}
-              onUpdateSrc={onUpdateSrc}
-              onUpdateTextContent={onUpdateTextContent}
-              participants={participants}
-              stageIds={stageIds}
-              stageState={stageState}
-              getScreenTrackSid={getScreenTrackSid}
-              onAddToStage={onAddToStage}
-              onSetScreenShare={onSetScreenShare}
-              onClearPrimary={onClearPrimary}
-              onSetPrimary={onSetPrimary}
-              onUnpin={onUnpin}
-              onPin={onPin}
-              onRemoveFromStage={onRemoveFromStage}
-              onError={onError}
-            />
-          ) : (
-            <RailDrawer
-              title="Block Controls"
-              sub="Select or drop a block to begin editing."
-              icon={<ThumbsUp size={11} />}
-              meta="Source"
-              defaultOpen={false}
-            >
-              <div className="rounded-[14px] border border-dashed border-white/[0.06] bg-white/[0.014] px-3 py-4 text-center text-[10px] font-semibold leading-5 text-white/34">
-                Drop a media asset into Preview or select a block to open composition controls.
-              </div>
-            </RailDrawer>
-          )}
-        </div>
+        {/* Block inspector section removed as per instructions */}
       </div>
     </div>
   )

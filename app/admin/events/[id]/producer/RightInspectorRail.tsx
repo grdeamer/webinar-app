@@ -419,12 +419,18 @@ export default function RightInspectorRail({
   onUpdateOpacity,
   onUpdateScale,
   onUpdateRotation,
+  onUpdateBlur,
+  onUpdateGlow,
+  onUpdateBorderRadius,
+  onUpdateShadowIntensity,
   onUpdateLabel,
   onUpdateBlendMode,
   onUpdateGroupId,
-  onUpdateTimelineStart,
-  onUpdateTimelineDuration,
-  onUpdatePosition,
+onUpdateTimelineStart,
+onUpdateTimelineDuration,
+onUpdateAnimationType,
+onUpdateAnimationProgress,
+onUpdatePosition,
   onUpdateSize,
   onUpdateSrc,
   onUpdateTextContent,
@@ -454,11 +460,17 @@ export default function RightInspectorRail({
   onUpdateOpacity: (value: string) => void
   onUpdateScale: (value: string) => void
   onUpdateRotation: (value: string) => void
+  onUpdateBlur: (value: string) => void
+  onUpdateGlow: (value: string) => void
+  onUpdateBorderRadius: (value: string) => void
+  onUpdateShadowIntensity: (value: string) => void
   onUpdateLabel: (value: string) => void
   onUpdateBlendMode: (value: string) => void
   onUpdateGroupId: (value: string) => void
   onUpdateTimelineStart: (value: string) => void
   onUpdateTimelineDuration: (value: string) => void
+  onUpdateAnimationType: (value: string) => void
+  onUpdateAnimationProgress: (value: string) => void
   onUpdatePosition: (field: "x" | "y", value: string) => void
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
@@ -502,11 +514,17 @@ export default function RightInspectorRail({
           onUpdateOpacity={onUpdateOpacity}
           onUpdateScale={onUpdateScale}
           onUpdateRotation={onUpdateRotation}
+          onUpdateBlur={onUpdateBlur}
+          onUpdateGlow={onUpdateGlow}
+          onUpdateBorderRadius={onUpdateBorderRadius}
+          onUpdateShadowIntensity={onUpdateShadowIntensity}
           onUpdateLabel={onUpdateLabel}
           onUpdateBlendMode={onUpdateBlendMode}
           onUpdateGroupId={onUpdateGroupId}
           onUpdateTimelineStart={onUpdateTimelineStart}
           onUpdateTimelineDuration={onUpdateTimelineDuration}
+          onUpdateAnimationType={onUpdateAnimationType}
+          onUpdateAnimationProgress={onUpdateAnimationProgress}
           onUpdatePosition={onUpdatePosition}
           onUpdateSize={onUpdateSize}
           onUpdateSrc={onUpdateSrc}

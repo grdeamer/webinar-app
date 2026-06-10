@@ -27,12 +27,33 @@ type RawSceneSummary = {
   thumbnailUrl?: string | null
 }
 
+function clonePreviewBlock(block: PreviewBlock): PreviewBlock {
+  return {
+    ...block,
+    opacity: block.opacity ?? 1,
+    scale: block.scale ?? 1,
+    rotation: block.rotation ?? 0,
+    blur: block.blur ?? 0,
+    glow: block.glow ?? 0,
+    borderRadius: block.borderRadius ?? 18,
+    shadowIntensity: block.shadowIntensity ?? 0.35,
+    hidden: block.hidden ?? false,
+    locked: block.locked ?? false,
+    groupId: block.groupId ?? null,
+    blendMode: block.blendMode ?? "normal",
+    timelineStartMs: block.timelineStartMs ?? 0,
+    timelineDurationMs: block.timelineDurationMs ?? 4000,
+  }
+}
+
 function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
   return {
     id: String(scene.id),
     name: scene.name ?? scene.title ?? "Scene",
     screenLayoutPreset: scene.screenLayoutPreset ?? null,
-    previewBlocks: scene.previewBlocks ?? null,
+    previewBlocks: scene.previewBlocks
+      ? scene.previewBlocks.map((block) => clonePreviewBlock(block))
+      : null,
     thumbnailUrl: scene.thumbnailUrl ?? null,
   }
 }
@@ -125,7 +146,7 @@ export default function useProducerScenes({
           id: savedSceneId,
           name: resolvedSceneName || prev.find((s) => String(s.id) === savedSceneId)?.name || "Scene",
           stageState: stageState ? { ...stageState } : null,
-          previewBlocks: previewBlocks.map((b) => ({ ...b })),
+          previewBlocks: previewBlocks.map((b) => clonePreviewBlock(b)),
           screenLayoutPreset,
         })
 
@@ -141,7 +162,7 @@ export default function useProducerScenes({
           id: savedSceneId,
           name: resolvedSceneName || existing?.name || "Scene",
           screenLayoutPreset,
-          previewBlocks: previewBlocks.map((block) => ({ ...block })),
+          previewBlocks: previewBlocks.map((block) => clonePreviewBlock(block)),
           thumbnailUrl,
         })
 
@@ -175,7 +196,7 @@ export default function useProducerScenes({
       if (localSnapshot) {
         const preset = localSnapshot.screenLayoutPreset ?? "classic"
 
-        setPreviewBlocks(localSnapshot.previewBlocks.map((b) => ({ ...b })))
+        setPreviewBlocks(localSnapshot.previewBlocks.map((b) => clonePreviewBlock(b)))
 
         window.setTimeout(() => {
           setSelectedBlockId(null)

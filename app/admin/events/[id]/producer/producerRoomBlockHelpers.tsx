@@ -10,6 +10,12 @@ export type SharedBlockStyleOptions = {
   opacity?: number
   scale?: number
   rotation?: number
+  blur?: number
+  glow?: number
+  borderRadius?: number
+  shadowIntensity?: number
+  animationType?: string
+  animationProgress?: number
   blendMode?: CSSProperties["mixBlendMode"]
 }
 
@@ -22,6 +28,12 @@ export function getSharedBlockStyle({
   opacity,
   scale,
   rotation,
+  blur,
+  glow,
+  borderRadius,
+  shadowIntensity,
+  animationType,
+  animationProgress,
   blendMode,
 }: SharedBlockStyleOptions): CSSProperties {
   const resolvedBlendMode = blendMode ?? "normal"
@@ -35,6 +47,41 @@ export function getSharedBlockStyle({
   ]
 
   const isBrightBlendMode = cinematicBlendModes.includes(resolvedBlendMode)
+  const resolvedBlur = blur ?? 0
+  const resolvedGlow = glow ?? 0
+  const resolvedBorderRadius = borderRadius ?? 18
+  const resolvedShadowIntensity = shadowIntensity ?? 0.35
+  const baseShadowOpacity = Math.max(0, Math.min(0.45, resolvedShadowIntensity * 0.34))
+  const glowOpacity = Math.max(0, Math.min(0.42, resolvedGlow * 0.34))
+
+  const resolvedAnimationProgress = animationProgress ?? 1
+  const resolvedAnimationType = animationType ?? "none"
+
+  const cinematicEase = 1 - Math.pow(1 - resolvedAnimationProgress, 3)
+
+  const driftOffset = (1 - cinematicEase) * 18
+  const pushOffset = (1 - cinematicEase) * 120
+
+  const animatedOpacity =
+    resolvedAnimationType === "fade"
+      ? cinematicEase * (opacity ?? 1)
+      : opacity ?? 1
+
+  const animationTranslateX =
+    resolvedAnimationType === "push-left"
+      ? -pushOffset
+      : resolvedAnimationType === "push-right"
+        ? pushOffset
+        : 0
+
+  const animationTranslateY =
+    resolvedAnimationType === "push-up"
+      ? -pushOffset
+      : resolvedAnimationType === "push-down"
+        ? pushOffset
+        : resolvedAnimationType === "drift"
+          ? driftOffset
+          : 0
 
   return {
     position: "absolute",
@@ -43,25 +90,40 @@ export function getSharedBlockStyle({
     width,
     height,
     zIndex,
-    opacity: opacity ?? 1,
-    transform: `scale(${scale ?? 1}) rotate(${rotation ?? 0}deg)`,
+    opacity: animatedOpacity,
+    transform: `translate3d(${animationTranslateX}px, ${animationTranslateY}px, 0) scale(${scale ?? 1}) rotate(${rotation ?? 0}deg)`,
     transformOrigin: "center center",
     mixBlendMode: resolvedBlendMode,
     isolation: "isolate",
     willChange: "transform, opacity, filter",
     filter:
-      resolvedBlendMode === "overlay"
-        ? "contrast(1.06) saturate(1.08)"
-        : resolvedBlendMode === "soft-light"
-          ? "brightness(1.02) saturate(1.04)"
-          : resolvedBlendMode === "hard-light"
-            ? "contrast(1.12) saturate(1.12)"
-            : resolvedBlendMode === "screen"
-              ? "brightness(1.08)"
-              : undefined,
-    boxShadow: isBrightBlendMode
-      ? "0 0 34px rgba(255,255,255,0.06)"
-      : undefined,
+      [
+        resolvedBlur > 0 ? `blur(${resolvedBlur}px)` : null,
+        resolvedBlendMode === "overlay"
+          ? "contrast(1.06) saturate(1.08)"
+          : resolvedBlendMode === "soft-light"
+            ? "brightness(1.02) saturate(1.04)"
+            : resolvedBlendMode === "hard-light"
+              ? "contrast(1.12) saturate(1.12)"
+              : resolvedBlendMode === "screen"
+                ? "brightness(1.08)"
+                : null,
+      ]
+        .filter(Boolean)
+        .join(" ") || undefined,
+    borderRadius: resolvedBorderRadius,
+    boxShadow:
+      [
+        resolvedShadowIntensity > 0
+          ? `0 18px 48px rgba(0,0,0,${baseShadowOpacity})`
+          : null,
+        resolvedGlow > 0
+          ? `0 0 ${Math.round(28 + resolvedGlow * 52)}px rgba(125,211,252,${glowOpacity})`
+          : null,
+        isBrightBlendMode ? "0 0 34px rgba(255,255,255,0.06)" : null,
+      ]
+        .filter(Boolean)
+        .join(", ") || undefined,
     backfaceVisibility: "hidden",
     perspective: 1000,
   }
@@ -147,7 +209,7 @@ export function renderPlacedBlocks({
               }
             : undefined
         }
-        className={`absolute overflow-hidden rounded-lg transition-[transform,opacity,filter,box-shadow] duration-150 ${
+        className={`absolute overflow-hidden transition-[transform,opacity,filter,box-shadow,border-radius] duration-300 ease-out ${
           opts?.selectable
             ? selectedBlockId === block.id
               ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
@@ -163,6 +225,12 @@ export function renderPlacedBlocks({
           opacity: block.opacity,
           scale: block.scale,
           rotation: block.rotation,
+          blur: block.blur,
+          glow: block.glow,
+          borderRadius: block.borderRadius,
+          shadowIntensity: block.shadowIntensity,
+          animationType: block.animationType,
+          animationProgress: block.animationProgress,
           blendMode: block.blendMode,
         })}
         data-blend-mode={block.blendMode ?? "normal"}
@@ -178,7 +246,7 @@ export function renderPlacedBlocks({
                   }
                 : undefined
             }
-            className={`flex items-center justify-between rounded-t-lg border-b border-white/10 bg-black/40 px-2 py-1 text-[11px] font-semibold text-white/70 ${
+            className={`flex items-center justify-between border-b border-white/10 bg-black/40 px-2 py-1 text-[11px] font-semibold text-white/70 ${
               opts?.selectable ? "cursor-move" : "pointer-events-none"
             }`}
           >
@@ -197,7 +265,9 @@ export function renderPlacedBlocks({
 
               {block.timelineDurationMs ? (
                 <span className="rounded-full border border-cyan-300/14 bg-cyan-400/[0.08] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-cyan-100/70">
-                  Timeline
+                  {block.animationType
+                    ? `${block.animationType} · ${Math.round(block.timelineDurationMs / 100) / 10}s`
+                    : `Timeline · ${Math.round(block.timelineDurationMs / 100) / 10}s`}
                 </span>
               ) : null}
 
@@ -226,16 +296,19 @@ export function renderPlacedBlocks({
           }
           className={
             opts?.showChrome
-              ? "h-[calc(100%-28px)] overflow-hidden rounded-b-lg"
+              ? "h-[calc(100%-28px)] overflow-hidden"
               : "h-full w-full overflow-hidden"
           }
           style={{
+            borderRadius: opts?.showChrome
+              ? `0 0 ${block.borderRadius ?? 18}px ${block.borderRadius ?? 18}px`
+              : block.borderRadius ?? 18,
             background:
               block.blendMode && block.blendMode !== "normal"
                 ? "rgba(255,255,255,0.015)"
                 : undefined,
           }}
-        > 
+        >
           {renderBlockContent(block)}
         </div>
 

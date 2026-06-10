@@ -24,6 +24,10 @@ export type PreviewBlock = {
   opacity?: number
   scale?: number
   rotation?: number
+  blur?: number
+  glow?: number
+  borderRadius?: number
+  shadowIntensity?: number
   label?: string | null
   src?: string | null
   content?: string | null
@@ -33,6 +37,8 @@ export type PreviewBlock = {
   blendMode?: CSSProperties["mixBlendMode"]
   timelineStartMs?: number
   timelineDurationMs?: number
+  animationType?: "none" | "fade" | "drift" | "push-left" | "push-right" | "push-up" | "push-down"
+  animationProgress?: number
 }
 
 function snapValue(value: number, targets: number[], threshold = SNAP_THRESHOLD): number {
@@ -89,6 +95,10 @@ export default function useProducerBlocks() {
         opacity: 0.7,
         scale: 1,
         rotation: 0,
+        blur: 0,
+        glow: 0,
+        borderRadius: 18,
+        shadowIntensity: 0.35,
         content: "Preview text block",
         label: "Text",
         hidden: false,
@@ -97,6 +107,8 @@ export default function useProducerBlocks() {
         blendMode: "normal",
         timelineStartMs: 0,
         timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
       },
     ])
   }
@@ -115,6 +127,10 @@ export default function useProducerBlocks() {
         opacity: 0.85,
         scale: 1,
         rotation: 0,
+        blur: 0,
+        glow: 0,
+        borderRadius: 18,
+        shadowIntensity: 0.35,
         label: "Video",
         src: "https://www.w3schools.com/html/mov_bbb.mp4",
         hidden: false,
@@ -123,6 +139,8 @@ export default function useProducerBlocks() {
         blendMode: "normal",
         timelineStartMs: 0,
         timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
       },
     ])
   }
@@ -141,6 +159,10 @@ export default function useProducerBlocks() {
         opacity: 1,
         scale: 1,
         rotation: 0,
+        blur: 0,
+        glow: 0,
+        borderRadius: 18,
+        shadowIntensity: 0.35,
         label: "PDF",
         src: "https://mozilla.github.io/pdf.js/web/compressed.tracemonkey-pldi-09.pdf",
         hidden: false,
@@ -149,6 +171,8 @@ export default function useProducerBlocks() {
         blendMode: "normal",
         timelineStartMs: 0,
         timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
       },
     ])
   }
@@ -167,6 +191,10 @@ export default function useProducerBlocks() {
         opacity: 1,
         scale: 1,
         rotation: 0,
+        blur: 0,
+        glow: 0,
+        borderRadius: 18,
+        shadowIntensity: 0.35,
         label: "Logo",
         src: "https://upload.wikimedia.org/wikipedia/commons/a/a7/React-icon.svg",
         hidden: false,
@@ -175,6 +203,8 @@ export default function useProducerBlocks() {
         blendMode: "normal",
         timelineStartMs: 0,
         timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
       },
     ])
   }
@@ -198,6 +228,10 @@ export default function useProducerBlocks() {
         opacity: 1,
         scale: 1,
         rotation: 0,
+        blur: 0,
+        glow: 0,
+        borderRadius: 18,
+        shadowIntensity: 0.35,
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded PDF",
         src,
         hidden: false,
@@ -206,6 +240,8 @@ export default function useProducerBlocks() {
         blendMode: "normal",
         timelineStartMs: 0,
         timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
       },
     ])
 
@@ -231,6 +267,10 @@ export default function useProducerBlocks() {
         opacity: 1,
         scale: 1,
         rotation: 0,
+        blur: 0,
+        glow: 0,
+        borderRadius: 18,
+        shadowIntensity: 0.35,
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Video",
         src,
         hidden: false,
@@ -239,6 +279,8 @@ export default function useProducerBlocks() {
         blendMode: "normal",
         timelineStartMs: 0,
         timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
       },
     ])
 
@@ -264,6 +306,10 @@ export default function useProducerBlocks() {
         opacity: 1,
         scale: 1,
         rotation: 0,
+        blur: 0,
+        glow: 0,
+        borderRadius: 18,
+        shadowIntensity: 0.35,
         label: file.name.replace(/\.[^/.]+$/, "") || "Uploaded Image",
         src,
         hidden: false,
@@ -272,6 +318,8 @@ export default function useProducerBlocks() {
         blendMode: "normal",
         timelineStartMs: 0,
         timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
       },
     ])
 
@@ -303,6 +351,12 @@ export default function useProducerBlocks() {
         zIndex: Math.max(...prev.map((b) => b.zIndex), 0) + 1,
         label: source.label ? `${source.label} Copy` : "Copy",
         locked: false,
+        blur: source.blur ?? 0,
+        glow: source.glow ?? 0,
+        borderRadius: source.borderRadius ?? 18,
+        shadowIntensity: source.shadowIntensity ?? 0.35,
+        animationType: source.animationType ?? "none",
+        animationProgress: source.animationProgress ?? 1,
       }
 
       setSelectedBlockId(copy.id)
@@ -406,6 +460,78 @@ export default function useProducerBlocks() {
           ? {
               ...block,
               rotation: Math.max(-180, Math.min(180, numericValue)),
+            }
+          : block
+      )
+    )
+  }
+
+  function updateSelectedBlockBlur(value: string) {
+    if (!selectedBlockId) return
+
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              blur: Math.max(0, Math.min(40, numericValue)),
+            }
+          : block
+      )
+    )
+  }
+
+  function updateSelectedBlockGlow(value: string) {
+    if (!selectedBlockId) return
+
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              glow: Math.max(0, Math.min(1, numericValue)),
+            }
+          : block
+      )
+    )
+  }
+
+  function updateSelectedBorderRadius(value: string) {
+    if (!selectedBlockId) return
+
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              borderRadius: Math.max(0, Math.min(120, numericValue)),
+            }
+          : block
+      )
+    )
+  }
+
+  function updateSelectedShadowIntensity(value: string) {
+    if (!selectedBlockId) return
+
+    const numericValue = Number(value)
+    if (!Number.isFinite(numericValue)) return
+
+    setPreviewBlocks((prev) =>
+      prev.map((block) =>
+        block.id === selectedBlockId
+          ? {
+              ...block,
+              shadowIntensity: Math.max(0, Math.min(1, numericValue)),
             }
           : block
       )
@@ -600,9 +726,11 @@ export default function useProducerBlocks() {
     setSnapGuideY(null)
   }
 
-  return {
-    previewBlocks,
-    setPreviewBlocks,
+return {
+
+  previewBlocks,
+
+  setPreviewBlocks,
 
     programBlocks,
     setProgramBlocks,
@@ -622,10 +750,15 @@ export default function useProducerBlocks() {
     previewCanvasRect,
     setPreviewCanvasRect,
 
-    snapGuideX,
-    snapGuideY,
+  snapGuideX,
 
-    selectedBlock,
+  snapGuideY,
+
+  setSnapGuideX,
+
+  setSnapGuideY,
+
+  selectedBlock,
 
     addTestTextBlock,
     addTestVideoBlock,
@@ -645,6 +778,10 @@ export default function useProducerBlocks() {
     updateSelectedBlockOpacity,
     updateSelectedBlockScale,
     updateSelectedBlockRotation,
+    updateSelectedBlockBlur,
+    updateSelectedBlockGlow,
+    updateSelectedBorderRadius,
+    updateSelectedShadowIntensity,
     toggleSelectedBlockHidden,
     updateSelectedBlockPosition,
     updateSelectedBlockLabel,

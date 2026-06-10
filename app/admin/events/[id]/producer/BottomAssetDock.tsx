@@ -351,7 +351,7 @@ function CueStackRow({ asset }: { asset: BroadcastAssetTelemetry }): JSX.Element
               : "bg-white/12"
         }`}
       />
-      <div className="grid grid-cols-[24px_1fr_auto] items-start gap-2">
+      <div className="grid-cols-[minmax(0,1fr)_auto_auto] items-start gap-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-full border border-white/[0.055] bg-black/28 text-[8px] font-black tabular-nums text-white/52 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)]">
           {asset.cueOrder ?? "—"}
         </div>
@@ -3376,14 +3376,7 @@ onSelectAsset={setSelectedMediaAssetLabel}
           </div>
         </div>
       ) : null}
-      <button
-        type="button"
-        onClick={() => setExpandedMixerOpen(true)}
-        className="fixed bottom-[168px] left-[104px] z-[998] flex items-center gap-2 rounded-full border border-emerald-300/18 bg-[linear-gradient(180deg,rgba(16,185,129,0.18),rgba(5,13,18,0.92))] px-4 py-2 text-[9px] font-black uppercase tracking-[0.13em] text-emerald-50/78 shadow-[0_18px_44px_rgba(0,0,0,0.42),0_0_22px_rgba(16,185,129,0.12),inset_0_1px_0_rgba(255,255,255,0.06)] backdrop-blur-xl transition hover:-translate-y-px hover:border-emerald-200/28 hover:bg-emerald-400/[0.16]"
-      >
-        <span className="h-2 w-2 rounded-full bg-emerald-300/78 shadow-[0_0_10px_rgba(110,231,183,0.55)]" />
-        Audio Mixer
-      </button>
+      
       <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden pb-2 xl:grid-cols-[0.72fr_3.9fr]">
 <ConsolePanel
   title="Scenes"
@@ -3421,37 +3414,21 @@ onSelectAsset={setSelectedMediaAssetLabel}
               type="button"
               onClick={() => onApplyScene?.(scene.id)}
               onDoubleClick={() => onDoubleClickScene?.(scene.id)}
-              className={`grid grid-cols-[22px_1fr_auto_20px] items-center gap-2 rounded-[10px] border px-2 py-1.5 text-left transition ${
+              className={`grid grid-cols-[minmax(0,1fr)_auto_20px] items-center gap-2 rounded-[10px] border px-2 py-1.5 text-left transition ${
                 active
                   ? "border-sky-300/24 bg-sky-400/[0.095] text-white shadow-[0_0_18px_rgba(56,189,248,0.10)]"
                   : "border-white/[0.045] bg-white/[0.014] text-white/62 hover:border-white/[0.075] hover:bg-white/[0.026]"
               }`}
             >
-{editingSceneId === scene.id ? (
-  <input
-    autoFocus
-    value={sceneNameDraft}
-    onClick={(event) => event.stopPropagation()}
-    onChange={(event) => setSceneNameDraft(event.target.value)}
-    onBlur={() => {
-      const trimmed = sceneNameDraft.trim()
-
-      if (trimmed) {
-        onRenameScene?.(scene.id, trimmed)
-      }
-
-      setEditingSceneId(null)
-      setSceneNameDraft("")
-    }}
-    onKeyDown={(event) => {
-      if (event.key === "Escape") {
-        setEditingSceneId(null)
-        setSceneNameDraft("")
-      }
-
-      if (event.key === "Enter") {
-        event.preventDefault()
-
+<div className="min-w-0 flex-1 overflow-hidden pr-2">
+  {editingSceneId === scene.id ? (
+    <input
+      autoFocus
+      value={sceneNameDraft}
+      onClick={(event) => event.stopPropagation()}
+      onDoubleClick={(event) => event.stopPropagation()}
+      onChange={(event) => setSceneNameDraft(event.target.value)}
+      onBlur={() => {
         const trimmed = sceneNameDraft.trim()
 
         if (trimmed) {
@@ -3460,26 +3437,47 @@ onSelectAsset={setSelectedMediaAssetLabel}
 
         setEditingSceneId(null)
         setSceneNameDraft("")
-      }
-    }}
-    className="min-w-0 rounded-[6px] border border-sky-300/18 bg-black/28 px-1.5 py-1 text-[10px] font-semibold tracking-[-0.02em] text-white/88 outline-none"
-  />
-) : (
-  <span
-    onDoubleClick={(event) => {
-      event.stopPropagation()
-      setEditingSceneId(scene.id)
-      setSceneNameDraft(scene.name)
-    }}
-    className="truncate rounded-[6px] px-1 -mx-1 text-[10px] font-semibold tracking-[-0.02em] transition hover:bg-sky-300/[0.08]"
-  >
-    {scene.name}
-  </span>
-)}
+      }}
+      onKeyDown={(event) => {
+        if (event.key === "Escape") {
+          event.preventDefault()
+          event.stopPropagation()
+          setEditingSceneId(null)
+          setSceneNameDraft("")
+        }
 
-              <span className="truncate text-[10px] font-semibold tracking-[-0.02em]">
-                {scene.name}
-              </span>
+        if (event.key === "Enter") {
+          event.preventDefault()
+          event.stopPropagation()
+
+          const trimmed = sceneNameDraft.trim()
+
+          if (trimmed) {
+            onRenameScene?.(scene.id, trimmed)
+          }
+
+          setEditingSceneId(null)
+          setSceneNameDraft("")
+        }
+      }}
+      className="w-full min-w-0 text-left rounded-[6px] border border-sky-300/18 bg-black/28 px-1.5 py-1 text-[10px] font-semibold tracking-[-0.02em] text-white/88 outline-none"
+    />
+  ) : (
+    <span
+      role="button"
+      tabIndex={0}
+      onDoubleClick={(event) => {
+        event.stopPropagation()
+        setEditingSceneId(scene.id)
+        setSceneNameDraft(scene.name || "Untitled Scene")
+      }}
+      className="block w-full min-w-0 truncate text-left rounded-[6px] -mx-1 px-1 text-[10px] font-semibold tracking-[-0.02em] text-white/74 transition hover:bg-sky-300/[0.08] hover:text-white/92"
+      title="Double-click to rename scene"
+    >
+      {scene.name || "Untitled Scene"}
+    </span>
+  )}
+</div>
 
               {programSceneId === scene.id ? (
                 <span className="rounded-full border border-red-300/14 bg-red-400/[0.070] px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.08em] text-red-100/58">
@@ -3668,12 +3666,12 @@ meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsed
 danger={recordingStatus === "recording" || recordingStatus === "starting"}
           onClick={() => setExpandedRecordingOpen(true)}
         />
-        <UtilityButton icon={<Radio size={18} />} label="Stream" meta="YouTube + FB" onClick={() => setActiveUtilityPanel("stream")} />
-        <UtilityButton icon={<Layers3 size={18} />} label="Overlays" meta="2 Active" onClick={() => setActiveUtilityPanel("overlays")} />
-        <UtilityButton icon={<MonitorPlay size={18} />} label="End Stream" meta="Live control" danger onClick={() => setActiveUtilityPanel("stream")} />
-        <UtilityButton icon={<CalendarDays size={18} />} label="Scheduled Event" meta="Sunday 9:00 AM" onClick={() => setActiveUtilityPanel("schedule")} />
-        <UtilityButton icon={<Keyboard size={18} />} label="Shortcuts" meta="⌘ K" onClick={() => setActiveUtilityPanel("shortcuts")} />
-        <UtilityButton icon={<Settings size={18} />} label="Settings" meta="Workflow" onClick={() => setActiveUtilityPanel("settings")} />
+        <UtilityButton icon={<Radio size={30} />} label="Stream" meta="YouTube + FB" onClick={() => setActiveUtilityPanel("stream")} />
+        <UtilityButton icon={<Layers3 size={30} />} label="Overlays" meta="2 Active" onClick={() => setActiveUtilityPanel("overlays")} />
+        <UtilityButton icon={<Volume2 size={30} />} label="Audio" meta="Open mixer" onClick={() => setExpandedMixerOpen(true)} />
+        <UtilityButton icon={<MonitorPlay size={30} />} label="End Stream" meta="Live control" danger onClick={() => setActiveUtilityPanel("stream")} />
+        <UtilityButton icon={<CalendarDays size={30} />} label="Scheduled Event" meta="Sunday 9:00 AM" onClick={() => setActiveUtilityPanel("schedule")} />
+        <UtilityButton icon={<Settings size={30} />} label="Settings" meta="Workflow" onClick={() => setActiveUtilityPanel("settings")} />
       </div>
     </div>
   )
