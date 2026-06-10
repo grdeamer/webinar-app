@@ -1,4 +1,3 @@
-// new file contents below
 "use client"
 
 import type { ReactNode } from "react"
@@ -48,7 +47,7 @@ function SectionCard({
 }) {
   return (
     <div
-      className={`rounded-[22px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.026),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${className}`}
+      className={`rounded-[20px] border border-white/7 bg-[linear-gradient(180deg,rgba(255,255,255,0.026),rgba(255,255,255,0.010))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${className}`}
     >
       {children}
     </div>
@@ -65,14 +64,14 @@ function SectionHeader({
   badge?: string
 }) {
   return (
-    <div className="mb-3 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-white/34">
-        {icon}
-        {title}
+    <div className="mb-3 flex min-w-0 items-center justify-between gap-2">
+      <div className="flex min-w-0 items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.13em] text-white/34">
+        <span className="shrink-0">{icon}</span>
+        <span className="truncate">{title}</span>
       </div>
 
       {badge ? (
-        <div className="rounded-full border border-white/8 bg-white/[0.026] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-white/30">
+        <div className="shrink-0 rounded-full border border-white/8 bg-white/[0.026] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white/30">
           {badge}
         </div>
       ) : null}
@@ -111,7 +110,7 @@ function InspectorSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
   return (
     <select
       {...props}
-      className="w-full rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.016))] px-3 py-2.5 text-sm text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] outline-none transition focus:border-violet-300/20 focus:bg-violet-400/[0.045]"
+      className="w-full rounded-2xl border border-white/8 bg-[linear-gradient(180deg,rgba(255,255,255,0.04),rgba(255,255,255,0.016))] px-3 py-2 text-xs text-white/82 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] outline-none transition focus:border-violet-300/20 focus:bg-violet-400/[0.045]"
     />
   )
 }
@@ -248,22 +247,22 @@ export default function SelectedBlockInspector({
         </button>
       </SectionCard>
 
-      <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3">
         <SectionCard>
           <SectionHeader
             icon={selectedBlock.locked ? <Lock size={13} /> : <Unlock size={13} />}
             title="Layer Lock"
-            badge={selectedBlock.locked ? "Locked" : "Open"}
+            badge={selectedBlock.locked ? "Lock" : "Open"}
           />
 
-          <div className="text-sm font-semibold leading-6 text-white/68">
+          <div className="text-sm font-semibold leading-5 text-white/68">
             {selectedBlock.locked ? "Protected from canvas edits" : "Editable on canvas"}
           </div>
 
           <button
             type="button"
             onClick={onToggleLocked}
-            className={`mt-3 flex h-10 w-full items-center justify-center rounded-[16px] border text-xs font-black uppercase tracking-[0.12em] transition ${
+            className={`mt-3 flex h-9 w-full items-center justify-center rounded-[15px] border text-[10px] font-black uppercase tracking-[0.11em] transition ${
               selectedBlock.locked
                 ? "border-amber-300/20 bg-amber-400/[0.08] text-amber-100/70 hover:bg-amber-400/[0.12]"
                 : "border-emerald-300/18 bg-emerald-400/[0.07] text-emerald-100/68 hover:bg-emerald-400/[0.12]"
@@ -274,7 +273,7 @@ export default function SelectedBlockInspector({
         </SectionCard>
 
         <SectionCard>
-          <SectionHeader icon={<Blend size={13} />} title="Blend Mode" badge="Blend" />
+          <SectionHeader icon={<Blend size={12} />} title="Blend Mode" badge="Blend" />
           <InspectorSelect
             value={selectedBlock.blendMode ?? "normal"}
             onChange={(e) => onUpdateBlendMode(e.target.value)}

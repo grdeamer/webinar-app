@@ -11,6 +11,8 @@ import {
 export const PRODUCER_BLOCK_CANVAS_WIDTH = 640
 export const PRODUCER_BLOCK_CANVAS_HEIGHT = 360
 
+const SNAP_THRESHOLD = 10
+
 export type PreviewBlock = {
   id: string
   type: "pdf" | "video" | "image" | "text"
@@ -33,6 +35,28 @@ export type PreviewBlock = {
   timelineDurationMs?: number
 }
 
+function snapValue(value: number, targets: number[], threshold = SNAP_THRESHOLD): number {
+  for (const target of targets) {
+    if (Math.abs(value - target) <= threshold) {
+      return target
+    }
+  }
+
+  return value
+}
+
+function clampBlockToCanvas(
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+) {
+  return {
+    x: Math.max(0, Math.min(PRODUCER_BLOCK_CANVAS_WIDTH - width, x)),
+    y: Math.max(0, Math.min(PRODUCER_BLOCK_CANVAS_HEIGHT - height, y)),
+  }
+}
+
 export default function useProducerBlocks() {
   const [previewBlocks, setPreviewBlocks] = useState<PreviewBlock[]>([])
   const [programBlocks, setProgramBlocks] = useState<PreviewBlock[]>([])
@@ -43,6 +67,9 @@ export default function useProducerBlocks() {
 
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
   const [previewCanvasRect, setPreviewCanvasRect] = useState<DOMRect | null>(null)
+
+  const [snapGuideX, setSnapGuideX] = useState<number | null>(null)
+  const [snapGuideY, setSnapGuideY] = useState<number | null>(null)
 
   const selectedBlock = useMemo(() => {
     return previewBlocks.find((block) => block.id === selectedBlockId) || null
@@ -501,25 +528,76 @@ export default function useProducerBlocks() {
 
     if (!draggingBlockId) return
 
-    const nextX = e.clientX - previewCanvasRect.left - dragOffset.x
-    const nextY = e.clientY - previewCanvasRect.top - dragOffset.y
+    setPreviewBlocks((prev) => {
+      const activeBlock = prev.find((block) => block.id === draggingBlockId)
+      if (!activeBlock) return prev
 
-    setPreviewBlocks((prev) =>
-      prev.map((block) =>
+      const rawX = e.clientX - previewCanvasRect.left - dragOffset.x
+      const rawY = e.clientY - previewCanvasRect.top - dragOffset.y
+
+      const blockWidth = activeBlock.width
+      const blockHeight = activeBlock.height
+
+      const canvasCenterX = PRODUCER_BLOCK_CANVAS_WIDTH / 2 - blockWidth / 2
+      const canvasCenterY = PRODUCER_BLOCK_CANVAS_HEIGHT / 2 - blockHeight / 2
+
+      const snapTargetsX = [
+        0,
+        canvasCenterX,
+        PRODUCER_BLOCK_CANVAS_WIDTH - blockWidth,
+      ]
+
+      const snapTargetsY = [
+        0,
+        canvasCenterY,
+        PRODUCER_BLOCK_CANVAS_HEIGHT - blockHeight,
+      ]
+
+      prev.forEach((block) => {
+        if (block.id === draggingBlockId) return
+
+        snapTargetsX.push(block.x)
+        snapTargetsX.push(block.x + block.width / 2 - blockWidth / 2)
+        snapTargetsX.push(block.x + block.width - blockWidth)
+
+        snapTargetsY.push(block.y)
+        snapTargetsY.push(block.y + block.height / 2 - blockHeight / 2)
+        snapTargetsY.push(block.y + block.height - blockHeight)
+      })
+
+      const snappedX = snapValue(rawX, snapTargetsX)
+      const snappedY = snapValue(rawY, snapTargetsY)
+
+      const didSnapX = snappedX !== rawX
+      const didSnapY = snappedY !== rawY
+
+      setSnapGuideX(didSnapX ? snappedX + blockWidth / 2 : null)
+      setSnapGuideY(didSnapY ? snappedY + blockHeight / 2 : null)
+
+      const clamped = clampBlockToCanvas(
+        snappedX,
+        snappedY,
+        blockWidth,
+        blockHeight,
+      )
+
+      return prev.map((block) =>
         block.id === draggingBlockId
           ? {
               ...block,
-              x: Math.max(0, nextX),
-              y: Math.max(0, nextY),
+              x: clamped.x,
+              y: clamped.y,
             }
           : block
       )
-    )
+    })
   }
 
   function stopDraggingBlock() {
     setDraggingBlockId(null)
     setResizingBlockId(null)
+    setSnapGuideX(null)
+    setSnapGuideY(null)
   }
 
   return {
@@ -543,6 +621,9 @@ export default function useProducerBlocks() {
 
     previewCanvasRect,
     setPreviewCanvasRect,
+
+    snapGuideX,
+    snapGuideY,
 
     selectedBlock,
 

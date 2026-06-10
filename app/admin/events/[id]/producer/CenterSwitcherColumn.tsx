@@ -279,6 +279,36 @@ function PresenterConfidenceCue({
     </div>
   );
 }
+
+function PreviewCompositionGuides({ visible }: { visible: boolean }): JSX.Element | null {
+  if (!visible) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[55] rounded-b-[18px]">
+      <div className="absolute inset-[6%] rounded-[14px] border border-sky-200/18 shadow-[inset_0_0_18px_rgba(56,189,248,0.035)]" />
+      <div className="absolute inset-[10%] rounded-[12px] border border-violet-200/14 shadow-[inset_0_0_18px_rgba(168,85,247,0.025)]" />
+
+      <div className="absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-sky-200/22 to-transparent" />
+      <div className="absolute left-0 top-1/2 h-px w-full -translate-y-1/2 bg-gradient-to-r from-transparent via-sky-200/22 to-transparent" />
+
+      <div className="absolute left-1/3 top-0 h-full w-px bg-white/[0.035]" />
+      <div className="absolute left-2/3 top-0 h-full w-px bg-white/[0.035]" />
+      <div className="absolute left-0 top-1/3 h-px w-full bg-white/[0.035]" />
+      <div className="absolute left-0 top-2/3 h-px w-full bg-white/[0.035]" />
+
+      <div className="absolute left-[6%] top-[6%] rounded-full border border-sky-200/16 bg-black/34 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-sky-100/48 backdrop-blur-md">
+        Action Safe
+      </div>
+
+      <div className="absolute left-[10%] top-[10%] rounded-full border border-violet-200/14 bg-black/34 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-violet-100/46 backdrop-blur-md">
+        Title Safe
+      </div>
+
+      <div className="absolute left-1/2 top-1/2 h-10 w-10 -translate-x-1/2 -translate-y-1/2 rounded-full border border-sky-200/18 bg-sky-400/[0.035] shadow-[0_0_18px_rgba(56,189,248,0.08)]" />
+      <div className="absolute left-1/2 top-1/2 h-1.5 w-1.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-sky-200/60 shadow-[0_0_10px_rgba(125,211,252,0.35)]" />
+    </div>
+  );
+}
 export default function CenterSwitcherColumn({
   triggerAudienceCue,
   onHideAudienceCue,
@@ -293,6 +323,8 @@ export default function CenterSwitcherColumn({
   onStageParticipants,
   previewBlocks,
   selectedBlockId,
+  snapGuideX,
+  snapGuideY,
   setSelectedBlockId,
   startDraggingBlock,
   startResizingBlock,
@@ -350,6 +382,8 @@ export default function CenterSwitcherColumn({
   onStageParticipants: ProducerParticipant[];
   previewBlocks: PreviewBlock[];
   selectedBlockId: string | null;
+  snapGuideX: number | null;
+  snapGuideY: number | null;
   setSelectedBlockId: (value: string | null) => void;
   startDraggingBlock: (
     e: React.MouseEvent<HTMLDivElement>,
@@ -395,6 +429,39 @@ export default function CenterSwitcherColumn({
   bringSelectedBlockToFront: () => void;
   deleteSelectedBlock: () => void;
 }): JSX.Element {
+function PreviewSnapGuides({
+  snapGuideX,
+  snapGuideY,
+}: {
+  snapGuideX: number | null;
+  snapGuideY: number | null;
+}): JSX.Element | null {
+  if (snapGuideX === null && snapGuideY === null) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[68] rounded-b-[18px]">
+      {snapGuideX !== null ? (
+        <div
+          className="absolute top-0 h-full w-px -translate-x-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
+          style={{ left: snapGuideX }}
+        >
+          <div className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+          <div className="absolute bottom-2 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+        </div>
+      ) : null}
+
+      {snapGuideY !== null ? (
+        <div
+          className="absolute left-0 h-px w-full -translate-y-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
+          style={{ top: snapGuideY }}
+        >
+          <div className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+          <div className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
   const switcherGridRef = useRef<HTMLDivElement | null>(null);
   const isDraggingSplitRef = useRef(false);
   const [previewPanePercent, setPreviewPanePercent] = useState(50);
@@ -405,6 +472,16 @@ export default function CenterSwitcherColumn({
   const [selectedTransitionPreset, setSelectedTransitionPreset] =
     useState<SwitcherTransitionPreset>("smooth");
   const [transitionDuration, setTransitionDuration] = useState(1);
+  const [showCompositionGuides, setShowCompositionGuides] = useState(true);
+  const [previewDropActive, setPreviewDropActive] = useState(false);
+  const [previewDropGhost, setPreviewDropGhost] = useState<{
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+    label: string;
+    type: PreviewBlock["type"];
+  } | null>(null);
   const previewPaneRounded = Math.round(previewPanePercent);
   const programPaneRounded = 100 - previewPaneRounded;
   const selectedTransition =
@@ -571,6 +648,39 @@ export default function CenterSwitcherColumn({
 
     event.preventDefault();
     event.dataTransfer.dropEffect = "copy";
+
+    const rawPayload = event.dataTransfer.getData("application/x-jupiter-preview-block");
+    const rect = event.currentTarget.getBoundingClientRect();
+
+    let ghostWidth = 320;
+    let ghostHeight = 180;
+    let ghostLabel = "Media Asset";
+    let ghostType: PreviewBlock["type"] = "image";
+
+    if (rawPayload) {
+      try {
+        const block = JSON.parse(rawPayload) as PreviewBlock;
+        ghostWidth = block.width ?? ghostWidth;
+        ghostHeight = block.height ?? ghostHeight;
+        ghostLabel = block.label || block.type;
+        ghostType = block.type;
+      } catch {
+        // Ignore malformed drag preview payloads.
+      }
+    }
+
+    const nextX = Math.max(0, event.clientX - rect.left - ghostWidth / 2);
+    const nextY = Math.max(0, event.clientY - rect.top - ghostHeight / 2);
+
+    setPreviewDropActive(true);
+    setPreviewDropGhost({
+      x: Math.round(nextX),
+      y: Math.round(nextY),
+      width: ghostWidth,
+      height: ghostHeight,
+      label: ghostLabel,
+      type: ghostType,
+    });
   }
 
   function handlePreviewCanvasDrop(event: React.DragEvent<HTMLDivElement>) {
@@ -580,6 +690,8 @@ export default function CenterSwitcherColumn({
 
     event.preventDefault();
     event.stopPropagation();
+    setPreviewDropActive(false);
+    setPreviewDropGhost(null);
 
     const rawPayload = event.dataTransfer.getData("application/x-jupiter-preview-block");
     if (!rawPayload) return;
@@ -602,6 +714,13 @@ export default function CenterSwitcherColumn({
       });
     } catch (error) {
       console.error("Failed to drop media asset into preview", error);
+    }
+  }
+
+  function handlePreviewCanvasDragLeave(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      setPreviewDropActive(false);
+      setPreviewDropGhost(null);
     }
   }
 
@@ -632,6 +751,19 @@ export default function CenterSwitcherColumn({
           </div>
 
           <div className="relative z-10 hidden items-center gap-1.5 xl:flex">
+            <button
+              type="button"
+              onClick={() => setShowCompositionGuides((current) => !current)}
+              className={`rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] transition hover:-translate-y-px ${
+                showCompositionGuides
+                  ? "border-sky-300/18 bg-sky-400/[0.06] text-sky-100/58 shadow-[0_0_10px_rgba(56,189,248,0.08)]"
+                  : "border-white/5 bg-white/[0.018] text-white/28 hover:border-white/10 hover:text-white/44"
+              }`}
+              title="Toggle canvas composition guides"
+            >
+              Guides {showCompositionGuides ? "On" : "Off"}
+            </button>
+
             <div className="rounded-full border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
               Edge · AWS us-east-1
             </div>
@@ -681,12 +813,60 @@ export default function CenterSwitcherColumn({
               }`}
               onMouseMove={onPreviewCanvasMouseMove}
               onMouseUp={stopDraggingBlock}
-              onMouseLeave={stopDraggingBlock}
+              onMouseLeave={() => {
+                stopDraggingBlock();
+                setPreviewDropActive(false);
+                setPreviewDropGhost(null);
+              }}
               onDragOver={handlePreviewCanvasDragOver}
+              onDragLeave={handlePreviewCanvasDragLeave}
               onDrop={handlePreviewCanvasDrop}
               onClick={onClearSelectedBlock}
             >
-              <div className="pointer-events-none absolute inset-0 z-[8] rounded-b-[18px] border border-sky-300/0 transition data-[drag-active=true]:border-sky-300/30" />
+              <div
+                className={`pointer-events-none absolute inset-0 z-[8] rounded-b-[18px] border transition-all duration-200 ${
+                  previewDropActive
+                    ? "border-sky-300/34 bg-sky-400/[0.035] shadow-[inset_0_0_44px_rgba(56,189,248,0.12),0_0_34px_rgba(56,189,248,0.08)]"
+                    : "border-sky-300/0"
+                }`}
+              />
+              {previewDropGhost ? (
+                <div
+                  className="pointer-events-none absolute z-[60] overflow-hidden rounded-[16px] border border-sky-200/42 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_38%),linear-gradient(180deg,rgba(8,18,32,0.62),rgba(2,7,16,0.78))] shadow-[0_0_34px_rgba(56,189,248,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm"
+                  style={{
+                    left: previewDropGhost.x,
+                    top: previewDropGhost.y,
+                    width: previewDropGhost.width,
+                    height: previewDropGhost.height,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),transparent_34%,rgba(56,189,248,0.08))]" />
+                  <div className="absolute left-3 top-3 rounded-full border border-sky-100/24 bg-black/40 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-sky-50/78 shadow-[0_0_14px_rgba(56,189,248,0.18)] backdrop-blur-md">
+                    Drop to Preview
+                  </div>
+                  <div className="absolute bottom-3 left-3 right-3 rounded-[12px] border border-white/10 bg-black/44 px-3 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] backdrop-blur-md">
+                    <div className="truncate text-xs font-semibold text-white/80">
+                      {previewDropGhost.label}
+                    </div>
+                    <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/46">
+                      {previewDropGhost.type} · new layer
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+
+              <PreviewCompositionGuides
+                visible={
+                  showCompositionGuides &&
+                  (previewDropActive || Boolean(selectedBlockId))
+                }
+              />
+
+              <PreviewSnapGuides
+                snapGuideX={snapGuideX}
+                snapGuideY={snapGuideY}
+              />
+
               <div className="pointer-events-none absolute inset-0 z-10 rounded-b-[18px] shadow-[inset_0_0_18px_rgba(0,0,0,0.58),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-10 bg-gradient-to-b from-black/22 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/22 to-transparent" />
