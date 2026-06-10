@@ -282,7 +282,40 @@ const updateStageState = useCallback(
     deleteSelectedBlock,
     duplicateSelectedBlock,
     bringSelectedBlockToFront,
+
   } = useProducerBlocks();
+
+
+  useEffect(() => {
+    if (previewBlocks.length === 0) {
+      if (selectedBlockId) {
+        setSelectedBlockId(null);
+      }
+      return;
+    }
+
+    const selectedBlockStillExists = previewBlocks.some(
+      (block) => block.id === selectedBlockId,
+    );
+
+    if (selectedBlockId && selectedBlockStillExists) {
+      return;
+    }
+
+    const topMostBlock = [...previewBlocks].sort(
+      (a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0),
+    )[0];
+
+    if (topMostBlock) {
+      setSelectedBlockId(topMostBlock.id);
+    }
+  }, [previewBlocks, selectedBlockId, setSelectedBlockId]);
+
+  const resolvedSelectedBlock = useMemo(() => {
+    if (!selectedBlockId) return null;
+
+    return previewBlocks.find((block) => block.id === selectedBlockId) ?? null;
+  }, [previewBlocks, selectedBlockId]);
 
   const captureSceneThumbnail = useCallback((): string | null => {
     const layoutLabel = (stageState?.layout ?? screenLayoutPreset ?? "classic")
@@ -870,6 +903,8 @@ const updateStageState = useCallback(
 
   const handleAddMediaAssetToPreview = useCallback(
     (block: PreviewBlock): void => {
+      const nextBlockId = `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
       setPreviewBlocks((current) => {
         const nextZIndex = current.reduce(
           (highest, currentBlock) => Math.max(highest, currentBlock.zIndex ?? 0),
@@ -878,12 +913,15 @@ const updateStageState = useCallback(
 
         const nextBlock: PreviewBlock = {
           ...block,
-          id: block.id || `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          id: nextBlockId,
           zIndex: nextZIndex,
         };
 
-        setSelectedBlockId(nextBlock.id);
         return [...current, nextBlock];
+      });
+
+      window.requestAnimationFrame(() => {
+        setSelectedBlockId(nextBlockId);
       });
     },
     [setPreviewBlocks, setSelectedBlockId],
@@ -1227,6 +1265,7 @@ const updateStageState = useCallback(
       addTestVideoBlock,
       addTestPdfBlock,
       addTestImageBlock,
+      onAddMediaAssetToPreview: handleAddMediaAssetToPreview,
       onUploadPdf: handleUploadPdfClick,
       onUploadVideo: handleUploadVideoClick,
       onUploadImage: handleUploadImageClick,
@@ -1279,6 +1318,7 @@ const updateStageState = useCallback(
       addTestVideoBlock,
       addTestPdfBlock,
       addTestImageBlock,
+      handleAddMediaAssetToPreview,
       handleUploadPdfClick,
       handleUploadVideoClick,
       handleUploadImageClick,
@@ -1348,7 +1388,7 @@ const updateStageState = useCallback(
     () => ({
       participants,
       stageIds,
-      selectedBlock,
+      selectedBlock: resolvedSelectedBlock,
       previewBlocks,
       selectedBlockId,
       onSelectBlock: setSelectedBlockId,
@@ -1384,7 +1424,7 @@ const updateStageState = useCallback(
     [
       participants,
       stageIds,
-      selectedBlock,
+      resolvedSelectedBlock,
       previewBlocks,
       selectedBlockId,
       setSelectedBlockId,

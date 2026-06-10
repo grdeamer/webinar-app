@@ -248,7 +248,7 @@ export default function SelectedBlockInspector({
         </button>
       </SectionCard>
 
-      <div className="grid grid-cols-1 gap-3 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
         <SectionCard>
           <SectionHeader
             icon={selectedBlock.locked ? <Lock size={13} /> : <Unlock size={13} />}
@@ -274,7 +274,7 @@ export default function SelectedBlockInspector({
         </SectionCard>
 
         <SectionCard>
-          <SectionHeader icon={<Blend size={13} />} title="Blend Mode" badge="Composite" />
+          <SectionHeader icon={<Blend size={13} />} title="Blend Mode" badge="Blend" />
           <InspectorSelect
             value={selectedBlock.blendMode ?? "normal"}
             onChange={(e) => onUpdateBlendMode(e.target.value)}

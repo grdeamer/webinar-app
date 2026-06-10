@@ -131,6 +131,22 @@ export function renderPlacedBlocks({
               }
             : undefined
         }
+        onDoubleClick={
+          opts?.selectable
+            ? (e) => {
+                e.stopPropagation()
+                setSelectedBlockId(block.id)
+              }
+            : undefined
+        }
+        onMouseDown={
+          opts?.selectable
+            ? (e) => {
+                e.stopPropagation()
+                setSelectedBlockId(block.id)
+              }
+            : undefined
+        }
         className={`absolute overflow-hidden rounded-lg transition-[transform,opacity,filter,box-shadow] duration-150 ${
           opts?.selectable
             ? selectedBlockId === block.id
@@ -192,6 +208,22 @@ export function renderPlacedBlocks({
         ) : null}
 
         <div
+          onMouseDown={
+            opts?.selectable
+              ? (e) => {
+                  e.stopPropagation()
+                  setSelectedBlockId(block.id)
+                }
+              : undefined
+          }
+          onDoubleClick={
+            opts?.selectable
+              ? (e) => {
+                  e.stopPropagation()
+                  setSelectedBlockId(block.id)
+                }
+              : undefined
+          }
           className={
             opts?.showChrome
               ? "h-[calc(100%-28px)] overflow-hidden rounded-b-lg"
@@ -209,7 +241,11 @@ export function renderPlacedBlocks({
 
         {opts?.selectable && opts?.showChrome && !block.locked ? (
           <div
-            onMouseDown={(e) => startResizingBlock(e, block.id)}
+            onMouseDown={(e) => {
+              e.stopPropagation()
+              setSelectedBlockId(block.id)
+              startResizingBlock(e, block.id)
+            }}
             className="absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-white/70"
             title="Resize block"
           />

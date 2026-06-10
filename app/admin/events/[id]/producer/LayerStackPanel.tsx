@@ -87,10 +87,12 @@ export default function LayerStackPanel({
 
   const [draggedBlockId, setDraggedBlockId] = useState<string | null>(null)
   const [dragOverBlockId, setDragOverBlockId] = useState<string | null>(null)
+  const [dropPlacement, setDropPlacement] = useState<"before" | "after" | null>(null)
 
   function resetDragState(): void {
     setDraggedBlockId(null)
     setDragOverBlockId(null)
+    setDropPlacement(null)
   }
 
   function handleDrop(targetBlockId: string): void {
@@ -101,15 +103,18 @@ export default function LayerStackPanel({
 
     const nextOrder = [...sortedBlocks]
     const fromIndex = nextOrder.findIndex((block) => block.id === draggedBlockId)
-    const toIndex = nextOrder.findIndex((block) => block.id === targetBlockId)
+    const targetIndex = nextOrder.findIndex((block) => block.id === targetBlockId)
 
-    if (fromIndex < 0 || toIndex < 0) {
+    if (fromIndex < 0 || targetIndex < 0) {
       resetDragState()
       return
     }
 
     const [movedBlock] = nextOrder.splice(fromIndex, 1)
-    nextOrder.splice(toIndex, 0, movedBlock)
+    const adjustedTargetIndex = nextOrder.findIndex((block) => block.id === targetBlockId)
+    const insertIndex = dropPlacement === "after" ? adjustedTargetIndex + 1 : adjustedTargetIndex
+
+    nextOrder.splice(insertIndex, 0, movedBlock)
 
     onReorderLayers(nextOrder.map((block) => block.id))
     resetDragState()
@@ -153,21 +158,21 @@ export default function LayerStackPanel({
               <button
                 key={block.id}
                 type="button"
-                draggable
                 onClick={() => onSelectBlock(block.id)}
-                onDragStart={(event: DragEvent<HTMLButtonElement>) => {
-                  event.dataTransfer.effectAllowed = "move"
-                  event.dataTransfer.setData("text/plain", block.id)
-                  setDraggedBlockId(block.id)
-                }}
                 onDragOver={(event: DragEvent<HTMLButtonElement>) => {
                   event.preventDefault()
                   event.dataTransfer.dropEffect = "move"
+
+                  const rect = event.currentTarget.getBoundingClientRect()
+                  const cursorOffset = event.clientY - rect.top
+
                   setDragOverBlockId(block.id)
+                  setDropPlacement(cursorOffset > rect.height / 2 ? "after" : "before")
                 }}
                 onDragLeave={() => {
                   if (dragOverBlockId === block.id) {
                     setDragOverBlockId(null)
+                    setDropPlacement(null)
                   }
                 }}
                 onDrop={(event: DragEvent<HTMLButtonElement>) => {
@@ -175,13 +180,13 @@ export default function LayerStackPanel({
                   handleDrop(block.id)
                 }}
                 onDragEnd={resetDragState}
-                className={`group/layer flex w-full items-center justify-between gap-2 rounded-[15px] border px-2.5 py-2 text-left transition-all hover:-translate-y-px ${
+                className={`group/layer relative flex w-full items-center justify-between gap-2 rounded-[15px] border px-2.5 py-2 text-left transition-all hover:-translate-y-px ${
                   isSelected
                     ? "border-violet-300/18 bg-violet-400/[0.085] shadow-[0_0_18px_rgba(168,85,247,0.07),inset_0_1px_0_rgba(255,255,255,0.035)]"
                     : "border-white/[0.055] bg-white/[0.020] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] hover:border-white/10 hover:bg-white/[0.036]"
                 } ${
                   draggedBlockId === block.id
-                    ? "scale-[0.985] opacity-55"
+                    ? "scale-[0.985] opacity-45 ring-1 ring-emerald-300/24"
                     : ""
                 } ${
                   dragOverBlockId === block.id && draggedBlockId !== block.id
@@ -189,6 +194,14 @@ export default function LayerStackPanel({
                     : ""
                 }`}
               >
+                {dragOverBlockId === block.id && draggedBlockId !== block.id && dropPlacement === "before" ? (
+                  <span className="pointer-events-none absolute -top-1 left-3 right-3 h-0.5 rounded-full bg-violet-200/70 shadow-[0_0_12px_rgba(196,181,253,0.32)]" />
+                ) : null}
+
+                {dragOverBlockId === block.id && draggedBlockId !== block.id && dropPlacement === "after" ? (
+                  <span className="pointer-events-none absolute -bottom-1 left-3 right-3 h-0.5 rounded-full bg-violet-200/70 shadow-[0_0_12px_rgba(196,181,253,0.32)]" />
+                ) : null}
+
                 <div className="flex min-w-0 items-center gap-2.5">
                   <div className="relative shrink-0">
                     <LayerMiniPreview block={block} />
@@ -251,7 +264,16 @@ export default function LayerStackPanel({
                   </span>
 
                   <span
-                    className="flex h-7 w-7 cursor-grab items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/24 active:cursor-grabbing"
+                    draggable
+                    onClick={(event) => event.stopPropagation()}
+                    onDragStart={(event: DragEvent<HTMLSpanElement>) => {
+                      event.stopPropagation()
+                      event.dataTransfer.effectAllowed = "move"
+                      event.dataTransfer.setData("text/plain", block.id)
+                      setDraggedBlockId(block.id)
+                    }}
+                    onDragEnd={resetDragState}
+                    className="flex h-7 w-7 cursor-grab items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/24 transition hover:border-violet-300/16 hover:bg-violet-400/[0.06] hover:text-violet-100/62 active:cursor-grabbing"
                     title="Drag to reorder layer"
                   >
                     <GripVertical size={12} />

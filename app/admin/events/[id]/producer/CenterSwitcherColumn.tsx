@@ -324,6 +324,7 @@ export default function CenterSwitcherColumn({
   addTestVideoBlock,
   addTestPdfBlock,
   addTestImageBlock,
+  onAddMediaAssetToPreview,
   onUploadPdf,
   onUploadVideo,
   onUploadImage,
@@ -386,6 +387,7 @@ export default function CenterSwitcherColumn({
   addTestVideoBlock: () => void;
   addTestPdfBlock: () => void;
   addTestImageBlock: () => void;
+  onAddMediaAssetToPreview: (block: PreviewBlock) => void;
   onUploadPdf: () => void;
   onUploadVideo: () => void;
   onUploadImage: () => void;
@@ -562,6 +564,47 @@ export default function CenterSwitcherColumn({
     }, 760);
   }
 
+  function handlePreviewCanvasDragOver(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes("application/x-jupiter-preview-block")) {
+      return;
+    }
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "copy";
+  }
+
+  function handlePreviewCanvasDrop(event: React.DragEvent<HTMLDivElement>) {
+    if (!event.dataTransfer.types.includes("application/x-jupiter-preview-block")) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    const rawPayload = event.dataTransfer.getData("application/x-jupiter-preview-block");
+    if (!rawPayload) return;
+
+    try {
+      const block = JSON.parse(rawPayload) as PreviewBlock;
+      const rect = event.currentTarget.getBoundingClientRect();
+      const blockWidth = block.width ?? 320;
+      const blockHeight = block.height ?? 180;
+      const nextX = Math.max(0, event.clientX - rect.left - blockWidth / 2);
+      const nextY = Math.max(0, event.clientY - rect.top - blockHeight / 2);
+
+      onAddMediaAssetToPreview({
+        ...block,
+        id: `drop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        x: Math.round(nextX),
+        y: Math.round(nextY),
+        width: blockWidth,
+        height: blockHeight,
+      });
+    } catch (error) {
+      console.error("Failed to drop media asset into preview", error);
+    }
+  }
+
   return (
     <div className="flex h-full min-h-0 flex-col gap-1 overflow-hidden px-0 xl:col-start-2">
       <LiveProductionStatusPanel
@@ -639,8 +682,11 @@ export default function CenterSwitcherColumn({
               onMouseMove={onPreviewCanvasMouseMove}
               onMouseUp={stopDraggingBlock}
               onMouseLeave={stopDraggingBlock}
+              onDragOver={handlePreviewCanvasDragOver}
+              onDrop={handlePreviewCanvasDrop}
               onClick={onClearSelectedBlock}
             >
+              <div className="pointer-events-none absolute inset-0 z-[8] rounded-b-[18px] border border-sky-300/0 transition data-[drag-active=true]:border-sky-300/30" />
               <div className="pointer-events-none absolute inset-0 z-10 rounded-b-[18px] shadow-[inset_0_0_18px_rgba(0,0,0,0.58),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-10 bg-gradient-to-b from-black/22 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/22 to-transparent" />

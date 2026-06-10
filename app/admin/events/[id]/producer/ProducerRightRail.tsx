@@ -716,13 +716,7 @@ export default function ProducerRightRail({
         </div>
 
         <div className="mt-4 border-t border-white/[0.045] pt-3">
-          <RailDrawer
-            title="Block Controls"
-            sub="Selected source and overlay settings."
-            icon={<ThumbsUp size={11} />}
-            meta={selectedBlock ? "Block" : "Source"}
-            defaultOpen={false}
-          >
+          {selectedBlock || previewBlocks.length > 0 ? (
             <RightInspectorRail
               selectedBlock={selectedBlock}
               previewBlocks={previewBlocks}
@@ -759,7 +753,19 @@ export default function ProducerRightRail({
               onRemoveFromStage={onRemoveFromStage}
               onError={onError}
             />
-          </RailDrawer>
+          ) : (
+            <RailDrawer
+              title="Block Controls"
+              sub="Select or drop a block to begin editing."
+              icon={<ThumbsUp size={11} />}
+              meta="Source"
+              defaultOpen={false}
+            >
+              <div className="rounded-[14px] border border-dashed border-white/[0.06] bg-white/[0.014] px-3 py-4 text-center text-[10px] font-semibold leading-5 text-white/34">
+                Drop a media asset into Preview or select a block to open composition controls.
+              </div>
+            </RailDrawer>
+          )}
         </div>
       </div>
     </div>

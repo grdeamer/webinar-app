@@ -1749,6 +1749,33 @@ const [hoverPreviewAssetLabel, setHoverPreviewAssetLabel] = useState<string | nu
 const [transitioningAssetLabel, setTransitioningAssetLabel] = useState<string | null>(null)
 const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
 
+  function buildPreviewBlockFromAsset(asset: BroadcastAssetTelemetry): PreviewBlock {
+    const blockType: PreviewBlock["type"] =
+      asset.type === "graphic" ? "image" : asset.type === "video" ? "video" : "text"
+
+    return {
+      id: `drag-asset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      type: blockType,
+      x: 24,
+      y: 24,
+      width: blockType === "text" ? 320 : 420,
+      height: blockType === "text" ? 120 : 236,
+      zIndex: 1,
+      opacity: 1,
+      scale: 1,
+      rotation: 0,
+      label: asset.label,
+      src: asset.imageUrl ?? null,
+      content: blockType === "text" ? asset.label : null,
+      hidden: false,
+      locked: false,
+      groupId: null,
+      blendMode: "normal",
+      timelineStartMs: 0,
+      timelineDurationMs: 4000,
+    }
+  }
+
   function beginRenameAsset(asset: BroadcastAssetTelemetry): void {
     if (!isImportedAsset(asset.label)) return
 
@@ -1808,14 +1835,24 @@ const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
 <button
   key={`${asset.label}-${asset.destination}-${asset.state}`}
   type="button"
+  draggable={asset.type !== "audio" && asset.type !== "live"}
   onClick={() => onSelectAsset(asset.label)}
+  onDragStart={(event) => {
+    if (asset.type === "audio" || asset.type === "live") return
+
+    const block = buildPreviewBlockFromAsset(asset)
+
+    event.dataTransfer.effectAllowed = "copy"
+    event.dataTransfer.setData("application/x-jupiter-preview-block", JSON.stringify(block))
+    event.dataTransfer.setData("text/plain", asset.label)
+  }}
   onMouseEnter={() => setHoverPreviewAssetLabel(asset.label)}
   onMouseLeave={() =>
     setHoverPreviewAssetLabel((current) =>
       current === asset.label ? null : current
     )
   }
-                  className={`relative grid grid-cols-[28px_minmax(0,1fr)_72px] items-center gap-1.5 rounded-[9px] border px-2 py-1.5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
+                  className={`relative grid grid-cols-[28px_minmax(0,1fr)_72px] items-center gap-1.5 rounded-[9px] border px-2 py-1.5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${asset.type !== "audio" && asset.type !== "live" ? "cursor-grab active:cursor-grabbing" : ""} ${
                     takeFlashing
   ? "border-sky-200/50 bg-sky-300/[0.22] scale-[1.01] shadow-[0_0_42px_rgba(56,189,248,0.34)]"
 : programFlashing
@@ -1845,9 +1882,17 @@ const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
   )}
 
   <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),transparent_40%,rgba(0,0,0,0.34))]" />
+  <div className="absolute bottom-1 left-1 rounded bg-black/45 px-1 py-0.5 text-[7px] font-black tabular-nums text-white/68">
+    {asset.duration}
+  </div>
+  {asset.type !== "audio" && asset.type !== "live" ? (
+    <div className="absolute right-1 top-1 rounded-full border border-sky-200/20 bg-sky-400/[0.16] px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.10em] text-sky-50/70 shadow-[0_0_12px_rgba(56,189,248,0.16)] opacity-0 transition group-hover:opacity-100">
+      Drag
+    </div>
+  ) : null}
   {hoverPreviewing ? (
-  <div className="pointer-events-none absolute inset-0 border border-sky-300/28 shadow-[inset_0_0_22px_rgba(56,189,248,0.24)]" />
-) : null}
+    <div className="pointer-events-none absolute inset-0 border border-sky-300/28 shadow-[inset_0_0_22px_rgba(56,189,248,0.24)]" />
+  ) : null}
 </div>
 <div
   className={`absolute inset-y-1 left-0 w-[2px] rounded-full transition-all duration-300 ease-out ${
