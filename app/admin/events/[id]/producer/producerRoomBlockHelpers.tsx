@@ -93,9 +93,7 @@ export function getSharedBlockStyle({
   const pushOffset = (1 - cinematicEase) * 120
 
   const animatedOpacity =
-    resolvedAnimationType === "fade"
-      ? cinematicEase * (opacity ?? 1)
-      : opacity ?? 1
+    resolvedAnimationType === "fade" ? cinematicEase * (opacity ?? 1) : opacity ?? 1
 
   const animationTranslateX =
     resolvedAnimationType === "push-left"
@@ -119,7 +117,7 @@ export function getSharedBlockStyle({
     top: y,
     width,
     height,
-    zIndex,
+    zIndex: 40 + (zIndex ?? 0),
     opacity: animatedOpacity,
     transform: `translate3d(${animationTranslateX}px, ${animationTranslateY}px, 0) scale(${scale ?? 1}) rotate(${rotation ?? 0}deg)`,
     transformOrigin: "center center",
@@ -144,9 +142,7 @@ export function getSharedBlockStyle({
     borderRadius: resolvedBorderRadius,
     boxShadow:
       [
-        resolvedShadowIntensity > 0
-          ? `0 18px 48px ${resolvedShadowColor}`
-          : null,
+        resolvedShadowIntensity > 0 ? `0 18px 48px ${resolvedShadowColor}` : null,
         resolvedGlow > 0
           ? `0 0 ${Math.round(28 + resolvedGlow * 52)}px ${resolvedGlowColor}`
           : null,
@@ -159,9 +155,70 @@ export function getSharedBlockStyle({
   }
 }
 
-function renderBlockContent(block: PreviewBlock): JSX.Element | null {
+function renderBlockContent(
+  block: PreviewBlock,
+  renderCameraSlotContent?: (block: PreviewBlock) => JSX.Element | null,
+): JSX.Element | null {
   if (block.type === "text") {
     return <div className="p-2 text-sm">{block.content}</div>
+  }
+
+  if (block.type === "camera-slot") {
+    const placeholderEmoji = block.placeholderEmoji || "👤"
+    const placeholderLabel = block.placeholderLabel || block.label || "Camera Slot"
+    const placeholderSubLabel = block.placeholderSubLabel || "Assign presenter or attendee"
+    const isBranded = block.placeholderStyle === "branded"
+
+    const cameraSlotContent = renderCameraSlotContent?.(block)
+
+    if (cameraSlotContent) {
+      return (
+        <div className="relative h-full w-full overflow-hidden bg-black">
+          {cameraSlotContent}
+          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.58))] px-3 pb-2 pt-8">
+            <div className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-white/78">
+              {block.placeholderLabel || block.label || "Camera Slot"}
+            </div>
+            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-emerald-100/54">
+              Assigned Source Live
+            </div>
+          </div>
+        </div>
+      )
+    }
+
+    return (
+      <div
+        className={`relative flex h-full w-full items-center justify-center overflow-hidden backdrop-blur-[34px] ${
+          isBranded
+            ? "bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.20),transparent_38%),linear-gradient(135deg,rgba(8,15,28,0.94),rgba(2,6,18,0.99))]"
+            : "bg-[linear-gradient(135deg,rgba(8,15,28,0.96),rgba(2,6,18,1))]"
+        }`}
+      >
+        <div className="absolute inset-0 bg-black/72 backdrop-blur-[38px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.14),transparent_42%)] opacity-55" />
+        <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.04),transparent_30%,rgba(125,211,252,0.045))] opacity-35" />
+        <div className="absolute inset-[10px] rounded-[inherit] border border-white/10 bg-black/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_0_34px_rgba(0,0,0,0.34)]" />
+
+        <div className="relative z-10 flex flex-col items-center justify-center px-5 text-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-[24px] border border-white/12 bg-white/[0.055] text-4xl shadow-[0_18px_38px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md">
+            {placeholderEmoji}
+          </div>
+
+          <div className="mt-4 max-w-full truncate text-sm font-black uppercase tracking-[0.14em] text-white/78">
+            {placeholderLabel}
+          </div>
+
+          <div className="mt-1 max-w-full truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-100/42">
+            {placeholderSubLabel}
+          </div>
+        </div>
+
+        <div className="absolute bottom-3 left-3 rounded-full border border-sky-200/14 bg-sky-400/[0.08] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/52 backdrop-blur-md">
+          Safe Slot
+        </div>
+      </div>
+    )
   }
 
   if (block.type === "video" && block.src) {
@@ -204,6 +261,7 @@ export function renderPlacedBlocks({
     selectable?: boolean
     showChrome?: boolean
     selectedBlockId?: string | null
+    renderCameraSlotContent?: (block: PreviewBlock) => JSX.Element | null
   }
   selectedBlockId: string | null
   setSelectedBlockId: (value: string | null) => void
@@ -297,13 +355,17 @@ export function renderPlacedBlocks({
 
               {block.timelineDurationMs ? (
                 <span className="rounded-full border border-cyan-300/14 bg-cyan-400/[0.08] px-1.5 py-0.5 text-[8px] font-black uppercase tracking-[0.10em] text-cyan-100/70">
-                  {block.animationType
+                  {block.animationType && block.animationType !== "none"
                     ? `${block.animationType} · ${Math.round(block.timelineDurationMs / 100) / 10}s`
                     : `Timeline · ${Math.round(block.timelineDurationMs / 100) / 10}s`}
                 </span>
               ) : null}
 
-              <span className="truncate">{block.label || block.type}</span>
+              <span className="truncate">
+                {block.type === "camera-slot"
+                  ? block.placeholderLabel || block.label || "Camera Slot"
+                  : block.label || block.type}
+              </span>
             </div>
             <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
           </div>
@@ -341,7 +403,7 @@ export function renderPlacedBlocks({
                 : undefined,
           }}
         >
-          {renderBlockContent(block)}
+          {renderBlockContent(block, opts?.renderCameraSlotContent)}
         </div>
 
         {opts?.selectable && opts?.showChrome && !block.locked ? (

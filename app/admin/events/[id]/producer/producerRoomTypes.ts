@@ -19,6 +19,16 @@ export type ProducerParticipant = {
   }>
 }
 
+export type CameraSlotAssignment = {
+  blockId: string
+  assignedParticipantId: string | null
+  assignedTrackSid?: string | null
+  placeholderEmoji?: string | null
+  placeholderLabel?: string | null
+  placeholderSubLabel?: string | null
+  placeholderStyle?: "dark" | "branded" | "avatar" | "logo"
+}
+
 export type StageState = {
   event_id: string
   room_id: string | null
@@ -42,5 +52,6 @@ export type SceneSnapshot = {
   name: string
   stageState: StageState | null
   previewBlocks: PreviewBlock[]
+  cameraSlotAssignments?: CameraSlotAssignment[]
   screenLayoutPreset?: ScreenLayoutPreset
 }

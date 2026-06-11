@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react"
+import { useRef, useState, type JSX } from "react"
 import {
   Archive,
   Camera,
@@ -345,6 +345,7 @@ export default function ProducerRightRail({
   onUpdateSize,
   onUpdateSrc,
   onUpdateTextContent,
+  onAssignParticipantToCameraSlot,
   stageState,
   getScreenTrackSid,
   onAddToStage,
@@ -388,6 +389,7 @@ export default function ProducerRightRail({
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
   onUpdateTextContent: (value: string) => void
+  onAssignParticipantToCameraSlot: (blockId: string, participantId: string | null) => void
   stageState: StageState | null
   getScreenTrackSid: (participant: ProducerParticipant) => string | null
   onAddToStage: (identity: string) => void
@@ -427,7 +429,27 @@ export default function ProducerRightRail({
     { name: "Brooklyn Simmons", role: "Guest" },
   ]
   const backstageCount = participants.length > 0 ? backstageParticipants.length : 6
-  const activeRailTab = previewBlocks.length > 0 || selectedBlock ? "Blocks" : "Stage"
+  const defaultRailTab = previewBlocks.length > 0 || selectedBlock ? "Blocks" : "Stage"
+  const [activeRailTab, setActiveRailTab] = useState(defaultRailTab)
+  const blocksSectionRef = useRef<HTMLDivElement | null>(null)
+  const stageSectionRef = useRef<HTMLDivElement | null>(null)
+  const talentSectionRef = useRef<HTMLDivElement | null>(null)
+
+  function scrollToRailSection(tab: "Stage" | "Talent" | "Blocks"): void {
+    setActiveRailTab(tab)
+
+    const targetRef =
+      tab === "Blocks"
+        ? blocksSectionRef
+        : tab === "Talent"
+          ? talentSectionRef
+          : stageSectionRef
+
+    targetRef.current?.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    })
+  }
   const audienceCount = Math.max(participants.length * 611, 2462)
   return (
     <div className="group flex h-full min-w-0 flex-col gap-2 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(5,9,18,0.94),rgba(2,4,9,0.995))] p-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.018)] backdrop-blur-2xl lg:col-start-3">
@@ -513,8 +535,8 @@ export default function ProducerRightRail({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-[18px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.64),rgba(3,7,15,0.84))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex items-center justify-between gap-2">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-[18px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.64),rgba(3,7,15,0.84))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)] scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="sticky top-0 z-30 -mx-2.5 -mt-2.5 flex items-center justify-between gap-2 border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.96),rgba(7,12,24,0.86))] px-2.5 pb-2 pt-2.5 backdrop-blur-xl">
           <div>
             <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
               Right Rail
@@ -528,6 +550,7 @@ export default function ProducerRightRail({
                 <button
                   key={`${tab}-${index}`}
                   type="button"
+                  onClick={() => scrollToRailSection(tab as "Stage" | "Talent" | "Blocks")}
                   className={`rounded-[8px] px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
                     tab === activeRailTab
                       ? "border border-sky-300/16 bg-sky-400/[0.12] text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.08)]"
@@ -542,7 +565,7 @@ export default function ProducerRightRail({
         </div>
 
         {selectedBlock || previewBlocks.length > 0 ? (
-          <div className="mt-3 border-t border-sky-300/[0.075] pt-3">
+          <div ref={blocksSectionRef} className="scroll-mt-16 border-t border-sky-300/[0.075] pt-3">
             <RightInspectorRail
               selectedBlock={selectedBlock}
               previewBlocks={previewBlocks}
@@ -574,6 +597,7 @@ export default function ProducerRightRail({
               onUpdateSize={onUpdateSize}
               onUpdateSrc={onUpdateSrc}
               onUpdateTextContent={onUpdateTextContent}
+              onAssignParticipantToCameraSlot={onAssignParticipantToCameraSlot}
               participants={participants}
               stageIds={stageIds}
               stageState={stageState}
@@ -590,7 +614,7 @@ export default function ProducerRightRail({
           </div>
         ) : null}
 
-        <div className="mt-3 border-t border-white/[0.035] pt-2.5">
+        <div ref={stageSectionRef} className="scroll-mt-16 border-t border-white/[0.035] pt-3">
           <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
             Stage Status
           </div>
@@ -647,7 +671,7 @@ export default function ProducerRightRail({
           </div>
         </div>
 
-        <div className="mt-4 border-t border-white/[0.045] pt-3">
+        <div ref={talentSectionRef} className="scroll-mt-16 border-t border-white/[0.045] pt-3">
           <div className="flex items-end justify-between gap-2">
             <div>
               <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">

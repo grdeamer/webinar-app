@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import type { JSX } from "react";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { LiveKitRoom, RoomAudioRenderer, VideoTrack, useTracks } from "@livekit/components-react";
+
+import { Track } from "livekit-client";
 
 import useProducerRoomApi from "./useProducerRoomApi";
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks";
@@ -128,6 +130,27 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
         }
       `}</style>
     </div>
+  );
+}
+
+function CameraSlotLiveContent({ block }: { block: PreviewBlock }): JSX.Element | null {
+  const cameraTracks = useTracks([Track.Source.Camera], {
+    onlySubscribed: false,
+  });
+
+  if (!block.assignedParticipantId) return null;
+
+  const assignedTrack = cameraTracks.find(
+    (trackRef) => trackRef.participant.identity === block.assignedParticipantId,
+  );
+
+  if (!assignedTrack) return null;
+
+  return (
+    <VideoTrack
+      trackRef={assignedTrack}
+      className="h-full w-full object-cover"
+    />
   );
 }
 
@@ -283,6 +306,7 @@ selectedBlock,
     addTestVideoBlock,
     addTestPdfBlock,
     addTestImageBlock,
+    addCameraSlotBlock,
     deleteSelectedBlock,
     duplicateSelectedBlock,
     bringSelectedBlockToFront,
@@ -940,6 +964,36 @@ updateShadowColor: updateSelectedBlockShadowColor,
     [setPreviewBlocks, setSelectedBlockId],
   );
 
+  const handleAssignParticipantToCameraSlot = useCallback(
+    (blockId: string, participantId: string | null): void => {
+      setPreviewBlocks((current) =>
+        current.map((block) => {
+          if (block.id !== blockId || block.type !== "camera-slot") {
+            return block;
+          }
+
+          const assignedParticipant = participants.find(
+            (participant) => participant.identity === participantId,
+          );
+
+          return {
+            ...block,
+            assignedParticipantId: participantId,
+            assignedTrackSid: null,
+            placeholderLabel:
+              assignedParticipant?.name ||
+              assignedParticipant?.identity ||
+              "Camera Slot",
+            placeholderSubLabel: participantId
+              ? "Assigned camera source"
+              : "Assign presenter or attendee",
+          };
+        }),
+      );
+    },
+    [participants, setPreviewBlocks],
+  );
+
   const handleToggleLayerHidden = useCallback(
     (blockId: string): void => {
       setPreviewBlocks((current) =>
@@ -1158,6 +1212,17 @@ updateShadowColor: updateSelectedBlockShadowColor,
     stageState?.screen_share_track_id,
   );
 
+  const renderCameraSlotContent = useCallback(
+    (block: PreviewBlock): JSX.Element | null => {
+      if (block.type !== "camera-slot" || !block.assignedParticipantId) {
+        return null;
+      }
+
+      return <CameraSlotLiveContent block={block} />;
+    },
+    [],
+  );
+
 
   const isProgramLive = Boolean(programState?.is_live);
 
@@ -1256,6 +1321,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       startResizingBlock,
       programState,
       programBlocks,
+      renderCameraSlotContent,
       screenLayoutPreset,
       showAudienceCue,
       audienceCueRegion,
@@ -1282,6 +1348,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       addTestVideoBlock,
       addTestPdfBlock,
       addTestImageBlock,
+      addCameraSlotBlock,
       onAddMediaAssetToPreview: handleAddMediaAssetToPreview,
       onUploadPdf: handleUploadPdfClick,
       onUploadVideo: handleUploadVideoClick,
@@ -1311,6 +1378,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       startResizingBlock,
       programState,
       programBlocks,
+      renderCameraSlotContent,
       screenLayoutPreset,
       showAudienceCue,
       audienceCueRegion,
@@ -1337,6 +1405,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       addTestVideoBlock,
       addTestPdfBlock,
       addTestImageBlock,
+      addCameraSlotBlock,
       handleAddMediaAssetToPreview,
       handleUploadPdfClick,
       handleUploadVideoClick,
@@ -1437,6 +1506,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       onUpdateSize: updateSelectedBlockSize,
       onUpdateSrc: updateSelectedBlockSrc,
       onUpdateTextContent: updateSelectedTextBlockContent,
+      onAssignParticipantToCameraSlot: handleAssignParticipantToCameraSlot,
       stageState,
       getScreenTrackSid,
       onAddToStage: handleAddParticipantToStage,
@@ -1481,6 +1551,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       updateSelectedBlockSize,
       updateSelectedBlockSrc,
       updateSelectedTextBlockContent,
+      handleAssignParticipantToCameraSlot,
       stageState,
       getScreenTrackSid,
       handleAddParticipantToStage,

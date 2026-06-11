@@ -1,18 +1,14 @@
 import type { JSX } from "react"
 import {
   Archive,
-  CircleDot,
   Cpu,
   Globe2,
-  HardDrive,
   Layers3,
   Radar,
   Radio,
   SatelliteDish,
-  ShieldCheck,
   SlidersHorizontal,
   Sparkles,
-  TimerReset,
   Users,
 } from "lucide-react"
 import type { PreviewBlock } from "./useProducerBlocks"
@@ -232,178 +228,68 @@ function InspectorTelemetryStrip(): JSX.Element {
   )
 }
 
+function CameraSlotAssignmentPanel({
+  selectedBlock,
+  participants,
+  onAssignParticipantToCameraSlot,
+}: {
+  selectedBlock: PreviewBlock | null
+  participants: ProducerParticipant[]
+  onAssignParticipantToCameraSlot: (blockId: string, participantId: string | null) => void
+}): JSX.Element | null {
+  if (!selectedBlock || selectedBlock.type !== "camera-slot") return null
 
-function RecordingCenterPanel(): JSX.Element {
+  const assignedParticipant = participants.find(
+    (participant) => participant.identity === selectedBlock.assignedParticipantId,
+  )
+
   return (
-    <div className="relative overflow-hidden rounded-[16px] border border-red-300/[0.06] bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.020),transparent_34%),linear-gradient(180deg,rgba(20,10,12,0.84),rgba(8,5,7,0.95))] p-1.5 shadow-[0_7px_22px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.020)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[rightRailSignalSweep_16s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-red-200/14 to-transparent" />
-      <div className="relative z-10">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-red-100/42">
-              <CircleDot size={12} className="text-red-300/70" />
-              Recording
-            </div>
-
-            <div className="mt-1 text-sm font-semibold tracking-tight text-white/60">
-              Program and ISO capture
-            </div>
+    <div className="relative overflow-hidden rounded-[18px] border border-violet-300/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.055),transparent_34%),linear-gradient(180deg,rgba(20,18,34,0.76),rgba(7,9,16,0.92))] p-2.5 shadow-[0_10px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.028)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.012)_42%,transparent_64%)]" />
+      <div className="relative z-10 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.14em] text-violet-100/48">
+            <Radio size={11} />
+            Camera Slot Source
           </div>
-
-          <div className="rounded-full border border-red-300/12 bg-red-400/[0.07] px-3 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-red-100/46 shadow-[0_0_8px_rgba(248,113,113,0.045)]">
-            Ready
+          <div className="mt-1 truncate text-xs font-semibold text-white/68">
+            {assignedParticipant?.name || assignedParticipant?.identity || "No participant assigned"}
           </div>
         </div>
 
-        <div className="mt-1.5 rounded-[14px] border border-violet-300/[0.055] bg-violet-400/[0.024] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-          <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-violet-100/46">
-                <Radio size={11} />
-                Capture Status
-              </div>
-
-              <div className="mt-1 text-xs font-semibold text-white/78">
-                Program and ISO feeds stable
-              </div>
-            </div>
-
-            <div className="rounded-full border border-violet-300/10 bg-violet-400/[0.06] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-violet-100/46">
-              59.94 fps
-            </div>
-          </div>
-
-          <div className="mt-1.5 flex items-center gap-1">
-            {Array.from({ length: 24 }).map((_, index) => (
-              <div
-                key={index}
-                className={[
-                  "h-4 flex-1 rounded-full",
-                  index > 18
-                    ? "bg-red-300/46"
-                    : index > 13
-                      ? "bg-amber-300/46"
-                      : "bg-emerald-300/46",
-                ].join(" ")}
-              />
-            ))}
-          </div>
+        <div className="rounded-full border border-sky-300/12 bg-sky-400/[0.06] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/48">
+          Safe
         </div>
+      </div>
 
-        <div className="mt-1.5 grid gap-1 sm:grid-cols-2">
-          <div className="rounded-[14px] border border-white/6 bg-white/[0.018] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
-                Program Feed
-              </div>
-              <ShieldCheck size={13} className="text-emerald-200/62" />
-            </div>
+      <label className="relative z-10 mt-3 block text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
+        Assign participant
+      </label>
+      <select
+        value={selectedBlock.assignedParticipantId ?? ""}
+        onChange={(event) => {
+          onAssignParticipantToCameraSlot(
+            selectedBlock.id,
+            event.target.value ? event.target.value : null,
+          )
+        }}
+        className="relative z-10 mt-1 w-full rounded-[12px] border border-white/8 bg-black/38 px-3 py-2 text-xs font-semibold text-white/72 outline-none transition focus:border-violet-300/20 focus:bg-violet-400/[0.045]"
+      >
+        <option value="">Unassigned / Placeholder</option>
+        {participants.map((participant) => (
+          <option key={participant.identity} value={participant.identity}>
+            {participant.name || participant.identity}
+          </option>
+        ))}
+      </select>
 
-            <div className="mt-2 text-lg font-black tracking-tight text-white/84 tabular-nums">
-              01:18:42
-            </div>
-
-            <div className="mt-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-emerald-100/52">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/75 shadow-[0_0_5px_rgba(110,231,183,0.32)]" />
-              Archive Stable
-            </div>
-          </div>
-
-          <div className="rounded-[14px] border border-white/6 bg-white/[0.018] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
-                ISO Feeds
-              </div>
-              <Archive size={13} className="text-amber-100/58" />
-            </div>
-
-            <div className="mt-2 text-lg font-black tracking-tight text-white/84">
-              4 Ready
-            </div>
-
-            <div className="mt-2 flex items-center gap-2 text-[9px] font-black uppercase tracking-[0.12em] text-amber-100/52">
-              <span className="h-1.5 w-1.5 rounded-full bg-amber-300/75 shadow-[0_0_5px_rgba(252,211,77,0.30)]" />
-              ISO Ready
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-3 hidden rounded-[20px] border border-white/7 bg-white/[0.022] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)] 2xl:block">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-            <div className="text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
-                Storage Vault
-              </div>
-
-              <div className="mt-1 text-xs font-semibold text-white/82">
-                2.8 TB Remaining
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.12em] text-white/42">
-              <HardDrive size={11} className="text-sky-100/55" />
-              RAID Synced
-            </div>
-          </div>
-
-          <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/8">
-            <div className="h-full w-[68%] rounded-full bg-[linear-gradient(90deg,rgba(251,191,36,0.88),rgba(239,68,68,0.92))] shadow-[0_0_16px_rgba(248,113,113,0.28)]" />
-          </div>
-
-          <div className="mt-2 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.12em] text-white/30">
-            <span>Vault Usage</span>
-            <span>68%</span>
-          </div>
-        </div>
-
-        <div className="mt-2.5 hidden grid-cols-3 gap-1.5 2xl:grid">
-          {[
-            {
-              label: "Program",
-              sub: "Live",
-              tone:
-                "border-red-300/16 bg-red-400/8 text-red-100/72",
-            },
-            {
-              label: "ISO",
-              sub: "4 feeds",
-              tone:
-                "border-amber-300/16 bg-amber-400/8 text-amber-100/72",
-            },
-            {
-              label: "Backup",
-              sub: "Cloud",
-              tone:
-                "border-sky-300/16 bg-sky-400/8 text-sky-100/72",
-            },
-          ].map((item) => (
-            <div
-              key={item.label}
-              className={`rounded-2xl border px-2 py-2 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.03)] ${item.tone}`}
-            >
-              <div className="text-[8px] font-black uppercase tracking-[0.12em] opacity-70">
-                {item.label}
-              </div>
-              <div className="mt-1 text-xs font-semibold tracking-tight">
-                {item.sub}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="mt-2.5 flex items-center justify-between rounded-[18px] border border-white/7 bg-white/[0.022] px-2.5 py-2 text-[9px] font-black uppercase tracking-[0.12em] text-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
-          <span className="flex items-center gap-2">
-            <TimerReset size={11} className="text-red-200/55" />
-            Continuous Capture
-          </span>
-
-          <span className="text-white/58">No frame drops</span>
-        </div>
+      <div className="relative z-10 mt-2 rounded-[12px] border border-white/[0.055] bg-white/[0.018] px-2.5 py-2 text-[10px] font-semibold leading-4 text-white/36">
+        The camera slot stays in the scene even when the assigned person disconnects. Jupiter falls back to the branded placeholder instead of breaking the layout.
       </div>
     </div>
   )
 }
+
 
 export default function RightInspectorRail({
   selectedBlock,
@@ -436,6 +322,7 @@ export default function RightInspectorRail({
   onUpdateSize,
   onUpdateSrc,
   onUpdateTextContent,
+  onAssignParticipantToCameraSlot,
   participants,
   stageIds,
   stageState,
@@ -479,6 +366,7 @@ export default function RightInspectorRail({
   onUpdateSize: (field: "width" | "height", value: string) => void
   onUpdateSrc: (value: string) => void
   onUpdateTextContent: (value: string) => void
+  onAssignParticipantToCameraSlot: (blockId: string, participantId: string | null) => void
   participants: ProducerParticipant[]
   stageIds: Set<string>
   stageState: StageState | null
@@ -511,6 +399,11 @@ export default function RightInspectorRail({
           onMoveLayerBackward={onMoveLayerBackward}
           onReorderLayers={onReorderLayers}
         />
+        <CameraSlotAssignmentPanel
+          selectedBlock={selectedBlock}
+          participants={participants}
+          onAssignParticipantToCameraSlot={onAssignParticipantToCameraSlot}
+        />
         <SelectedBlockInspector
           selectedBlock={selectedBlock}
           onToggleHidden={onToggleHidden}
@@ -536,13 +429,7 @@ export default function RightInspectorRail({
           onUpdateSrc={onUpdateSrc}
           onUpdateTextContent={onUpdateTextContent}
         />
-        <RailSectionLabel
-          icon={<Archive size={16} />}
-          title="Capture Systems"
-          sub="Program + ISO Capture Routing"
-        />
-
-        <RecordingCenterPanel />
+        {/* Removed Capture Systems and RecordingCenterPanel */}
         <RailSectionLabel
           icon={<Users size={16} />}
           title="Green Room Operations"

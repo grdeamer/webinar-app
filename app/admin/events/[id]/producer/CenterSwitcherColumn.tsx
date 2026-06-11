@@ -330,6 +330,7 @@ export default function CenterSwitcherColumn({
   startResizingBlock,
   programState,
   programBlocks,
+  renderCameraSlotContent,
   screenLayoutPreset,
   showAudienceCue,
   audienceCueRegion,
@@ -356,6 +357,7 @@ export default function CenterSwitcherColumn({
   addTestVideoBlock,
   addTestPdfBlock,
   addTestImageBlock,
+  addCameraSlotBlock,
   onAddMediaAssetToPreview,
   onUploadPdf,
   onUploadVideo,
@@ -395,6 +397,7 @@ export default function CenterSwitcherColumn({
   ) => void;
   programState: StageState | null;
   programBlocks: PreviewBlock[];
+  renderCameraSlotContent?: (block: PreviewBlock) => JSX.Element | null;
   screenLayoutPreset: ScreenLayoutPreset;
   showAudienceCue: boolean;
   audienceCueRegion: string;
@@ -421,6 +424,7 @@ export default function CenterSwitcherColumn({
   addTestVideoBlock: () => void;
   addTestPdfBlock: () => void;
   addTestImageBlock: () => void;
+  addCameraSlotBlock: () => void;
   onAddMediaAssetToPreview: (block: PreviewBlock) => void;
   onUploadPdf: () => void;
   onUploadVideo: () => void;
@@ -764,6 +768,15 @@ function PreviewSnapGuides({
               Guides {showCompositionGuides ? "On" : "Off"}
             </button>
 
+            <button
+              type="button"
+              onClick={addCameraSlotBlock}
+              className="rounded-full border border-violet-300/16 bg-violet-400/[0.07] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-violet-100/58 shadow-[0_0_10px_rgba(168,85,247,0.08)] transition hover:-translate-y-px hover:border-violet-200/24 hover:bg-violet-400/[0.10] hover:text-violet-50/76"
+              title="Add a persistent camera placeholder slot"
+            >
+              + Camera Slot
+            </button>
+
             <div className="rounded-full border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
               Edge · AWS us-east-1
             </div>
@@ -884,6 +897,7 @@ function PreviewSnapGuides({
                   selectable: true,
                   showChrome: true,
                   selectedBlockId,
+                  renderCameraSlotContent,
                 },
                 selectedBlockId,
                 setSelectedBlockId,
@@ -1187,6 +1201,7 @@ function PreviewSnapGuides({
                   opts: {
                     selectable: false,
                     showChrome: false,
+                    renderCameraSlotContent,
                   },
                   selectedBlockId,
                   setSelectedBlockId,
@@ -1224,6 +1239,7 @@ function PreviewSnapGuides({
                     opts: {
                       selectable: false,
                       showChrome: false,
+                      renderCameraSlotContent,
                     },
                     selectedBlockId,
                     setSelectedBlockId,

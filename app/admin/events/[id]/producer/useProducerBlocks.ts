@@ -15,7 +15,7 @@ const SNAP_THRESHOLD = 10
 
 export type PreviewBlock = {
   id: string
-  type: "pdf" | "video" | "image" | "text"
+  type: "pdf" | "video" | "image" | "text" | "camera-slot"
   x: number
   y: number
   width: number
@@ -33,6 +33,12 @@ export type PreviewBlock = {
   label?: string | null
   src?: string | null
   content?: string | null
+  assignedParticipantId?: string | null
+  assignedTrackSid?: string | null
+  placeholderEmoji?: string | null
+  placeholderLabel?: string | null
+  placeholderSubLabel?: string | null
+  placeholderStyle?: "dark" | "branded" | "avatar" | "logo"
   hidden?: boolean
   locked?: boolean
   groupId?: string | null
@@ -219,6 +225,45 @@ export default function useProducerBlocks() {
     ])
   }
 
+  function addCameraSlotBlock() {
+    setPreviewBlocks((prev) => [
+      ...prev,
+      {
+        id: crypto.randomUUID(),
+        type: "camera-slot",
+        x: 96,
+        y: 64,
+        width: 360,
+        height: 220,
+        zIndex: prev.length + 1,
+        opacity: 1,
+        scale: 1,
+        rotation: 0,
+        blur: 0,
+        glow: 0,
+        glowColor: "#7dd3fc",
+        borderRadius: 28,
+        shadowIntensity: 0.45,
+        shadowColor: "#000000",
+        label: "Camera Slot",
+        assignedParticipantId: null,
+        assignedTrackSid: null,
+        placeholderEmoji: "👤",
+        placeholderLabel: "Camera Slot",
+        placeholderSubLabel: "Assign presenter or attendee",
+        placeholderStyle: "branded",
+        hidden: false,
+        locked: false,
+        groupId: null,
+        blendMode: "normal",
+        timelineStartMs: 0,
+        timelineDurationMs: 4000,
+        animationType: "none",
+        animationProgress: 1,
+      },
+    ])
+  }
+
   function handlePdfUpload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
@@ -373,6 +418,12 @@ export default function useProducerBlocks() {
         borderRadius: source.borderRadius ?? 18,
         shadowIntensity: source.shadowIntensity ?? 0.35,
         shadowColor: source.shadowColor ?? "#000000",
+        assignedParticipantId: source.assignedParticipantId ?? null,
+        assignedTrackSid: source.assignedTrackSid ?? null,
+        placeholderEmoji: source.placeholderEmoji ?? "👤",
+        placeholderLabel: source.placeholderLabel ?? null,
+        placeholderSubLabel: source.placeholderSubLabel ?? null,
+        placeholderStyle: source.placeholderStyle ?? "branded",
         animationType: source.animationType ?? "none",
         animationProgress: source.animationProgress ?? 1,
       }
@@ -812,6 +863,7 @@ return {
     addTestVideoBlock,
     addTestPdfBlock,
     addTestImageBlock,
+    addCameraSlotBlock,
 
     handlePdfUpload,
     handleVideoUpload,
