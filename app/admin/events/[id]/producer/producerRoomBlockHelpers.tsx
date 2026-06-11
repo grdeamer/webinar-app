@@ -173,7 +173,7 @@ function renderBlockContent(
 
     if (cameraSlotContent) {
       return (
-        <div className="relative h-full w-full overflow-hidden bg-black">
+        <div className="pointer-events-none relative h-full w-full overflow-hidden bg-black">
           {cameraSlotContent}
           <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.58))] px-3 pb-2 pt-8">
             <div className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-white/78">
@@ -189,7 +189,7 @@ function renderBlockContent(
 
     return (
       <div
-        className={`relative flex h-full w-full items-center justify-center overflow-hidden backdrop-blur-[34px] ${
+        className={`pointer-events-none relative flex h-full w-full items-center justify-center overflow-hidden backdrop-blur-[34px] ${
           isBranded
             ? "bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.20),transparent_38%),linear-gradient(135deg,rgba(8,15,28,0.94),rgba(2,6,18,0.99))]"
             : "bg-[linear-gradient(135deg,rgba(8,15,28,0.96),rgba(2,6,18,1))]"

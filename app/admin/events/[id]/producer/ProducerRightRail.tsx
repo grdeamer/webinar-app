@@ -1,10 +1,7 @@
 import { useRef, useState, type JSX } from "react"
 import {
-  Archive,
   Camera,
-  CircleDot,
   Mic2,
-  Radio,
   ScreenShare,
   ShieldCheck,
   ThumbsUp,
@@ -401,22 +398,7 @@ export default function ProducerRightRail({
   onRemoveFromStage: (identity: string) => void
   onError: (value: string | null) => void
 }): JSX.Element {
-  const cameraCount = participants.filter((p) => p.cameraEnabled).length
-  const micCount = participants.filter((p) => p.micEnabled).length
-  const screenCount = participants.filter((p) => p.screenShareEnabled).length
-  const selectedBlockLabel = selectedBlock?.label || selectedBlock?.type || "No block selected"
-  const sourceHealthLabel = participants.length > 0 ? "Sources online" : "Waiting for sources"
-  const stageReadinessLabel = stageIds.size > 0 ? "Stage populated" : "Stage empty"
-  const sourceBadgeLabel = participants.length > 0 ? `${participants.length} Sources Ready` : "No Sources Yet"
-  const sourceBadgeToneClass = participants.length > 0
-    ? "border-emerald-300/12 bg-emerald-400/[0.075] text-emerald-100/64 shadow-[0_0_10px_rgba(52,211,153,0.055)]"
-    : "border-amber-300/12 bg-amber-400/[0.07] text-amber-100/62 shadow-[0_0_10px_rgba(251,191,36,0.045)]"
-  const sourceBadgeDotClass = participants.length > 0
-    ? "text-emerald-300/78"
-    : "text-amber-300/78"
-  const inspectorToneClass = selectedBlock
-    ? "border-sky-300/10 bg-sky-400/[0.045]"
-    : "border-white/8 bg-black/12"
+  
   const featuredParticipants = participants.slice(0, 4)
   const onStageParticipants = participants.filter((participant) => stageIds.has(participant.identity))
   const backstageParticipants = participants.filter((participant) => !stageIds.has(participant.identity))
@@ -453,89 +435,9 @@ export default function ProducerRightRail({
   const audienceCount = Math.max(participants.length * 611, 2462)
   return (
     <div className="group flex h-full min-w-0 flex-col gap-2 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(5,9,18,0.94),rgba(2,4,9,0.995))] p-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.018)] backdrop-blur-2xl lg:col-start-3">
-      <div className="group relative overflow-hidden rounded-[18px] border border-white/[0.055] bg-[linear-gradient(180deg,rgba(255,255,255,0.016),rgba(255,255,255,0.004))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)]">
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.005)_42%,transparent_64%)] opacity-18 transition-opacity duration-500 group-hover:opacity-34" />
-        <div className="pointer-events-none absolute inset-x-6 top-0 h-px bg-gradient-to-r from-transparent via-violet-200/8 to-transparent" />
-        <div className="relative z-10 flex items-start justify-between gap-2">
-          <div>
-            <div className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-[0.14em] text-violet-100/44">
-              <Radio size={10} />
-              Operations Rack
-            </div>
-            <div className="mt-0.5 text-[10px] font-semibold tracking-[-0.02em] text-white/34">
-              Talent, sources, and stage health.
-            </div>
-          </div>
-          <div className={`flex items-center gap-1 rounded-full border px-1.5 py-0.5 text-[6px] font-black uppercase tracking-[0.07em] ${sourceBadgeToneClass}`}>
-            <CircleDot size={9} className={sourceBadgeDotClass} />
-            {sourceBadgeLabel}
-          </div>
-        </div>
+      
 
-        <div className="relative z-10 mt-2 grid grid-cols-2 gap-2 text-center">
-          <RightRailMetric
-            icon={<Users size={13} />}
-            label="On Stage"
-            value={stageIds.size}
-            tone="sky"
-          />
-
-          <RightRailMetric
-            icon={<Camera size={13} />}
-            label="Cameras"
-            value={cameraCount}
-            tone="neutral"
-          />
-
-          <RightRailMetric
-            icon={<Mic2 size={13} />}
-            label="Audio"
-            value={micCount}
-            tone="green"
-          />
-
-          <RightRailMetric
-            icon={<ScreenShare size={13} />}
-            label="Shares"
-            value={screenCount}
-            tone="violet"
-          />
-        </div>
-
-        <div className="relative z-10 mt-2 grid gap-1.5 rounded-[16px] border border-white/[0.055] bg-white/[0.012] p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-          <div className={`rounded-xl border px-1.5 py-1 ${inspectorToneClass}`}>
-            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
-              Inspector Focus
-            </div>
-            <div className="mt-0.5 truncate text-[10px] font-semibold text-white/56">
-              {selectedBlockLabel}
-            </div>
-          </div>
-
-          <div className="rounded-xl border border-white/7 bg-white/[0.03] px-1.5 py-1">
-            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/24">
-              Source Health
-            </div>
-            <div className="mt-0.5 truncate text-[10px] font-semibold text-white/56">
-              {sourceHealthLabel}
-            </div>
-          </div>
-        </div>
-
-        <div className="relative z-10 mt-2 grid grid-cols-1 gap-1.5">
-          <div className="flex items-center gap-1.5 rounded-xl border border-red-300/10 bg-red-400/[0.04] px-1.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-red-100/56 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
-            <Archive size={12} />
-            ISO Capture Standby
-          </div>
-
-          <div className="flex items-center gap-1.5 rounded-xl border border-emerald-300/10 bg-emerald-400/[0.04] px-1.5 py-1 text-[8px] font-black uppercase tracking-[0.1em] text-emerald-100/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
-            <ShieldCheck size={12} />
-            {stageReadinessLabel}
-          </div>
-        </div>
-      </div>
-
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-[18px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.64),rgba(3,7,15,0.84))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)] scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto rounded-[20px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.72),rgba(3,7,15,0.92))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)] scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="sticky top-0 z-30 -mx-2.5 -mt-2.5 flex items-center justify-between gap-2 border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.96),rgba(7,12,24,0.86))] px-2.5 pb-2 pt-2.5 backdrop-blur-xl">
           <div>
             <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
