@@ -7,6 +7,43 @@ import {
   ThumbsUp,
   Users,
 } from "lucide-react"
+const PARTICIPANT_ACCENT_STYLES = [
+  {
+    id: "violet",
+    ring: "border-violet-300/55",
+    glow: "shadow-[0_0_22px_rgba(168,85,247,0.34)]",
+    card: "border-violet-400/34",
+    cardGlow: "shadow-[0_0_30px_rgba(168,85,247,0.18)]",
+  },
+  {
+    id: "cyan",
+    ring: "border-cyan-300/55",
+    glow: "shadow-[0_0_22px_rgba(34,211,238,0.34)]",
+    card: "border-cyan-400/34",
+    cardGlow: "shadow-[0_0_30px_rgba(34,211,238,0.16)]",
+  },
+  {
+    id: "green",
+    ring: "border-emerald-300/55",
+    glow: "shadow-[0_0_22px_rgba(16,185,129,0.30)]",
+    card: "border-emerald-400/30",
+    cardGlow: "shadow-[0_0_30px_rgba(16,185,129,0.14)]",
+  },
+  {
+    id: "amber",
+    ring: "border-amber-300/55",
+    glow: "shadow-[0_0_22px_rgba(251,191,36,0.30)]",
+    card: "border-amber-400/30",
+    cardGlow: "shadow-[0_0_30px_rgba(251,191,36,0.14)]",
+  },
+  {
+    id: "rose",
+    ring: "border-rose-300/55",
+    glow: "shadow-[0_0_22px_rgba(244,63,94,0.30)]",
+    card: "border-rose-400/30",
+    cardGlow: "shadow-[0_0_30px_rgba(244,63,94,0.14)]",
+  },
+] as const
 function InspectorParticipantRow({
   participant,
   role,
@@ -36,16 +73,20 @@ function InspectorParticipantRow({
   const cameraOn = Boolean(participant.cameraEnabled)
   const micOn = Boolean(participant.micEnabled)
   const screenReady = Boolean(screenTrackSid || participant.screenShareEnabled)
+  const accentStyle =
+    PARTICIPANT_ACCENT_STYLES[
+      Math.abs(participant.identity.length) % PARTICIPANT_ACCENT_STYLES.length
+    ]
 
   return (
-    <div className="group/participant rounded-[16px] border border-white/[0.05] bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] px-2.5 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.012)] transition hover:border-white/[0.09] hover:bg-white/[0.036]">
+    <div
+      className={`group/participant rounded-[16px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] px-2.5 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.012)] transition hover:bg-white/[0.036] ${accentStyle.card} ${accentStyle.cardGlow}`}
+    >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
-          <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border text-[11px] font-black text-white/78 shadow-[0_0_14px_rgba(16,185,129,0.12)] ${
-            onStage
-              ? "border-emerald-200/14 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.42),rgba(16,185,129,0.24)_38%,rgba(15,23,42,0.80)_80%)]"
-              : "border-sky-200/10 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.16)_38%,rgba(15,23,42,0.82)_80%)]"
-          }`}>
+          <div
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.16)_38%,rgba(15,23,42,0.82)_80%)] text-[11px] font-black text-white/78 ${accentStyle.ring} ${accentStyle.glow}`}
+          >
             {initials}
           </div>
 

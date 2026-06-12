@@ -1688,13 +1688,18 @@ function MediaOverviewWorkspace({
       <div className="space-y-2">
         <ProductionIntentPanel />
 
-        <OperationsTelemetryPanel
+        <OperationsRackPanel
+          mediaRows={mediaRows}
           recordingStatus={recordingStatus}
-          recordingElapsedSeconds={recordingElapsedSeconds}
         />
       </div>
 
       <div className="space-y-2">
+        <OperationsTelemetryPanel
+          recordingStatus={recordingStatus}
+          recordingElapsedSeconds={recordingElapsedSeconds}
+        />
+
         <OperatorConfidencePanel />
 
         <div className="border-b border-white/[0.045] pb-2">
@@ -1812,6 +1817,122 @@ function OperationsTelemetryPanel({
             <div className="mt-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white/52">
               {value}
             </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+function OperationsRackPanel({
+  mediaRows,
+  recordingStatus,
+}: {
+  mediaRows: BroadcastAssetTelemetry[]
+  recordingStatus: RecordingStatus
+}): JSX.Element {
+  const recordingActive =
+    recordingStatus === "recording" || recordingStatus === "starting"
+
+  const routedCount = mediaRows.filter((asset) => asset.routeLock).length
+  const safeTakeCount = mediaRows.filter((asset) => asset.takeSafe !== false).length
+  const warningCount = mediaRows.filter((asset) => asset.takeSafe === false).length
+
+  return (
+    <div className="relative overflow-hidden rounded-[16px] border border-violet-300/[0.075] bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.060),transparent_34%),linear-gradient(180deg,rgba(18,16,30,0.78),rgba(6,8,15,0.92))] p-3 shadow-[0_12px_30px_rgba(0,0,0,0.20),inset_0_1px_0_rgba(255,255,255,0.020)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.010)_42%,transparent_64%)]" />
+
+      <div className="relative z-10 flex items-start justify-between gap-3 border-b border-white/[0.045] pb-2">
+        <div>
+          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.14em] text-violet-100/42">
+            <Radio size={11} />
+            Operations Rack
+          </div>
+
+          <div className="mt-1 text-[12px] font-semibold tracking-[-0.02em] text-white/72">
+            Sources, routing, and stage readiness
+          </div>
+        </div>
+
+        <div
+          className={`rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] ${
+            recordingActive
+              ? "border-red-300/18 bg-red-400/[0.080] text-red-100/68"
+              : "border-emerald-300/14 bg-emerald-400/[0.060] text-emerald-100/60"
+          }`}
+        >
+          {recordingActive ? "Live Capture" : "Nominal"}
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-3 grid grid-cols-4 gap-1.5 text-center">
+        {[
+          {
+            label: "Assets",
+            value: mediaRows.length,
+            tone: "text-sky-100/70",
+          },
+          {
+            label: "Routed",
+            value: routedCount,
+            tone: "text-violet-100/70",
+          },
+          {
+            label: "Safe",
+            value: safeTakeCount,
+            tone: "text-emerald-100/70",
+          },
+          {
+            label: "Review",
+            value: warningCount,
+            tone: warningCount > 0
+              ? "text-amber-100/72"
+              : "text-white/44",
+          },
+        ].map((item) => (
+          <div
+            key={item.label}
+            className="rounded-[11px] border border-white/[0.045] bg-white/[0.018] px-2 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]"
+          >
+            <div
+              className={`text-[15px] font-black tracking-[-0.04em] ${item.tone}`}
+            >
+              {item.value}
+            </div>
+
+            <div className="mt-0.5 text-[6px] font-black uppercase tracking-[0.10em] text-white/28">
+              {item.label}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="relative z-10 mt-3 grid gap-1.5 sm:grid-cols-2">
+        {[
+          [
+            "Stage Readiness",
+            warningCount > 0 ? "Review" : "Green",
+          ],
+          [
+            "Route Health",
+            routedCount > 0 ? "Mapped" : "Open",
+          ],
+          [
+            "Capture Link",
+            recordingActive ? "Recording" : "Ready",
+          ],
+          ["Fallback State", "Prepared"],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="flex items-center justify-between rounded-[10px] border border-white/[0.040] bg-black/18 px-2.5 py-1.5"
+          >
+            <span className="text-[9px] font-semibold text-white/38">
+              {label}
+            </span>
+
+            <span className="text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/54">
+              {value}
+            </span>
           </div>
         ))}
       </div>
