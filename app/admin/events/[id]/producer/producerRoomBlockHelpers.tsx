@@ -1,6 +1,65 @@
 import type { CSSProperties, JSX } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 
+type CameraSlotAccentTone = {
+  rgb: string
+  border: string
+  glow: string
+  badge: string
+}
+
+function getCameraSlotAccentTone(accentId?: string | null): CameraSlotAccentTone {
+  switch (accentId) {
+    case "violet":
+      return {
+        rgb: "168,85,247",
+        border: "border-violet-300/34",
+        glow: "shadow-[0_0_42px_rgba(168,85,247,0.24)]",
+        badge: "bg-violet-400/[0.10] text-violet-100/62 border-violet-200/16",
+      }
+
+    case "cyan":
+      return {
+        rgb: "34,211,238",
+        border: "border-cyan-300/34",
+        glow: "shadow-[0_0_42px_rgba(34,211,238,0.22)]",
+        badge: "bg-cyan-400/[0.10] text-cyan-100/62 border-cyan-200/16",
+      }
+
+    case "green":
+      return {
+        rgb: "16,185,129",
+        border: "border-emerald-300/34",
+        glow: "shadow-[0_0_42px_rgba(16,185,129,0.22)]",
+        badge: "bg-emerald-400/[0.10] text-emerald-100/62 border-emerald-200/16",
+      }
+
+    case "amber":
+      return {
+        rgb: "251,191,36",
+        border: "border-amber-300/34",
+        glow: "shadow-[0_0_42px_rgba(251,191,36,0.22)]",
+        badge: "bg-amber-400/[0.10] text-amber-100/62 border-amber-200/16",
+      }
+
+    case "rose":
+      return {
+        rgb: "244,63,94",
+        border: "border-rose-300/34",
+        glow: "shadow-[0_0_42px_rgba(244,63,94,0.22)]",
+        badge: "bg-rose-400/[0.10] text-rose-100/62 border-rose-200/16",
+      }
+
+    default:
+      return {
+        rgb: "125,211,252",
+        border: "border-sky-300/26",
+        glow: "shadow-[0_0_38px_rgba(125,211,252,0.18)]",
+        badge: "bg-sky-400/[0.08] text-sky-100/52 border-sky-200/14",
+      }
+  }
+}
+
 export type SharedBlockStyleOptions = {
   x: number
   y: number
@@ -168,6 +227,7 @@ function renderBlockContent(
     const placeholderLabel = block.placeholderLabel || block.label || "Camera Slot"
     const placeholderSubLabel = block.placeholderSubLabel || "Assign presenter or attendee"
     const isBranded = block.placeholderStyle === "branded"
+    const accentTone = getCameraSlotAccentTone(block.assignedParticipantAccent)
 
     const cameraSlotContent = renderCameraSlotContent?.(block)
 
@@ -175,12 +235,18 @@ function renderBlockContent(
       return (
         <div className="pointer-events-none relative h-full w-full overflow-hidden bg-black">
           {cameraSlotContent}
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.58))] px-3 pb-2 pt-8">
+          <div
+            className={`pointer-events-none absolute inset-x-0 bottom-0 border-t bg-[linear-gradient(180deg,transparent,rgba(0,0,0,0.58))] px-3 pb-2 pt-8 ${accentTone.border}`}
+            style={{
+              boxShadow: `0 -10px 34px rgba(${accentTone.rgb}, 0.14)`,
+            }}
+          >
             <div className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-white/78">
               {block.placeholderLabel || block.label || "Camera Slot"}
             </div>
-            <div className="mt-0.5 text-[8px] font-black uppercase tracking-[0.12em] text-emerald-100/54">
-              Assigned Source Live
+            <div className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] text-emerald-100/58">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80 shadow-[0_0_8px_rgba(110,231,183,0.44)]" />
+              Live Camera Source
             </div>
           </div>
         </div>
@@ -189,23 +255,33 @@ function renderBlockContent(
 
     return (
       <div
-        className={`pointer-events-none relative flex h-full w-full items-center justify-center overflow-hidden backdrop-blur-[34px] ${
+        className={`pointer-events-none relative flex h-full w-full items-center justify-center overflow-hidden border backdrop-blur-[34px] ${accentTone.border} ${accentTone.glow} ${
           isBranded
-            ? "bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.20),transparent_38%),linear-gradient(135deg,rgba(8,15,28,0.94),rgba(2,6,18,0.99))]"
-            : "bg-[linear-gradient(135deg,rgba(8,15,28,0.96),rgba(2,6,18,1))]"
+            ? "bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.16),transparent_38%),linear-gradient(135deg,rgba(8,15,28,0.96),rgba(2,6,18,1))]"
+            : "bg-[linear-gradient(135deg,rgba(8,15,28,0.98),rgba(2,6,18,1))]"
         }`}
       >
         <div className="absolute inset-0 bg-black/72 backdrop-blur-[38px]" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.14),transparent_42%)] opacity-55" />
         <div className="absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.04),transparent_30%,rgba(125,211,252,0.045))] opacity-35" />
-        <div className="absolute inset-[10px] rounded-[inherit] border border-white/10 bg-black/28 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),inset_0_0_34px_rgba(0,0,0,0.34)]" />
+        <div
+          className={`absolute inset-[10px] rounded-[inherit] border bg-black/28 ${accentTone.border}`}
+          style={{
+            boxShadow: `inset 0 1px 0 rgba(255,255,255,0.04), inset 0 0 34px rgba(0,0,0,0.34), 0 0 30px rgba(${accentTone.rgb}, 0.12)`,
+          }}
+        />
 
         <div className="relative z-10 flex flex-col items-center justify-center px-5 text-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-[24px] border border-white/12 bg-white/[0.055] text-4xl shadow-[0_18px_38px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-md">
+          <div
+            className={`flex h-14 w-14 items-center justify-center rounded-[22px] border bg-white/[0.048] text-3xl backdrop-blur-md ${accentTone.border}`}
+            style={{
+              boxShadow: `0 18px 38px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 34px rgba(${accentTone.rgb}, 0.18)`,
+            }}
+          >
             {placeholderEmoji}
           </div>
 
-          <div className="mt-4 max-w-full truncate text-sm font-black uppercase tracking-[0.14em] text-white/78">
+          <div className="mt-3 max-w-full truncate text-[12px] font-black uppercase tracking-[0.14em] text-white/78">
             {placeholderLabel}
           </div>
 
@@ -214,8 +290,10 @@ function renderBlockContent(
           </div>
         </div>
 
-        <div className="absolute bottom-3 left-3 rounded-full border border-sky-200/14 bg-sky-400/[0.08] px-2 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/52 backdrop-blur-md">
-          Safe Slot
+        <div
+          className={`absolute bottom-3 left-3 rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] opacity-90 backdrop-blur-md ${accentTone.badge}`}
+        >
+          Fallback Ready
         </div>
       </div>
     )

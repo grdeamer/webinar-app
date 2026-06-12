@@ -533,6 +533,10 @@ function RailDrawer({
 
 export default function ProducerRightRail({
   participants,
+  participantAppearanceOverrides,
+  onSetParticipantAccentColor,
+  onSetParticipantGlowLevel,
+  onSetParticipantOutlineWeight,
   stageIds,
   selectedBlock,
   previewBlocks,
@@ -577,6 +581,10 @@ export default function ProducerRightRail({
   onError,
 }: {
   participants: ProducerParticipant[]
+  participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>
+  onSetParticipantAccentColor: (identity: string, accentId: ParticipantAccentId) => void
+  onSetParticipantGlowLevel: (identity: string, glowLevel: ParticipantGlowLevel) => void
+  onSetParticipantOutlineWeight: (identity: string, outlineWeight: ParticipantOutlineWeight) => void
   stageIds: Set<string>
   selectedBlock: PreviewBlock | null
   previewBlocks: PreviewBlock[]
@@ -633,47 +641,6 @@ export default function ProducerRightRail({
     { name: "Brooklyn Simmons", role: "Guest" },
   ]
   const backstageCount = participants.length > 0 ? backstageParticipants.length : 6
-  const [participantAppearanceOverrides, setParticipantAppearanceOverrides] =
-    useState<Record<string, ParticipantAppearanceOverride>>({})
-
-  function handleSetParticipantAccentColor(
-    identity: string,
-    accentId: ParticipantAccentId,
-  ): void {
-    setParticipantAppearanceOverrides((current) => ({
-      ...current,
-      [identity]: {
-        ...current[identity],
-        accentId,
-      },
-    }))
-  }
-
-  function handleSetParticipantGlowLevel(
-    identity: string,
-    glowLevel: ParticipantGlowLevel,
-  ): void {
-    setParticipantAppearanceOverrides((current) => ({
-      ...current,
-      [identity]: {
-        ...current[identity],
-        glowLevel,
-      },
-    }))
-  }
-
-  function handleSetParticipantOutlineWeight(
-    identity: string,
-    outlineWeight: ParticipantOutlineWeight,
-  ): void {
-    setParticipantAppearanceOverrides((current) => ({
-      ...current,
-      [identity]: {
-        ...current[identity],
-        outlineWeight,
-      },
-    }))
-  }
   const defaultRailTab = previewBlocks.length > 0 || selectedBlock ? "Blocks" : "Stage"
   const [activeRailTab, setActiveRailTab] = useState(defaultRailTab)
   const blocksSectionRef = useRef<HTMLDivElement | null>(null)
@@ -825,9 +792,9 @@ export default function ProducerRightRail({
                   selectedAccentId={participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null}
                   selectedGlowLevel={participantAppearanceOverrides[participant.identity]?.glowLevel ?? null}
                   selectedOutlineWeight={participantAppearanceOverrides[participant.identity]?.outlineWeight ?? null}
-                  onSetAccentColor={handleSetParticipantAccentColor}
-                  onSetGlowLevel={handleSetParticipantGlowLevel}
-                  onSetOutlineWeight={handleSetParticipantOutlineWeight}
+                  onSetAccentColor={onSetParticipantAccentColor}
+                  onSetGlowLevel={onSetParticipantGlowLevel}
+                  onSetOutlineWeight={onSetParticipantOutlineWeight}
                   onAddToStage={onAddToStage}
                   onRemoveFromStage={onRemoveFromStage}
                   onSetPrimary={onSetPrimary}
@@ -869,9 +836,9 @@ export default function ProducerRightRail({
                   selectedAccentId={participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null}
                   selectedGlowLevel={participantAppearanceOverrides[participant.identity]?.glowLevel ?? null}
                   selectedOutlineWeight={participantAppearanceOverrides[participant.identity]?.outlineWeight ?? null}
-                  onSetAccentColor={handleSetParticipantAccentColor}
-                  onSetGlowLevel={handleSetParticipantGlowLevel}
-                  onSetOutlineWeight={handleSetParticipantOutlineWeight}
+                  onSetAccentColor={onSetParticipantAccentColor}
+                  onSetGlowLevel={onSetParticipantGlowLevel}
+                  onSetOutlineWeight={onSetParticipantOutlineWeight}
                   onAddToStage={onAddToStage}
                   onRemoveFromStage={onRemoveFromStage}
                   onSetPrimary={onSetPrimary}

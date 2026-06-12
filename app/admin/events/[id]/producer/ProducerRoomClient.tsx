@@ -46,6 +46,16 @@ import {
   previewProgramStatesDifferent,
 } from "./producerRoomStatusUtils";
 
+type ParticipantAccentId = "violet" | "cyan" | "green" | "amber" | "rose";
+type ParticipantGlowLevel = "low" | "med" | "high";
+type ParticipantOutlineWeight = "soft" | "standard" | "bold";
+
+type ParticipantAppearanceOverride = {
+  accentId?: ParticipantAccentId;
+  glowLevel?: ParticipantGlowLevel;
+  outlineWeight?: ParticipantOutlineWeight;
+};
+
 function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
@@ -165,6 +175,8 @@ export default function ProducerRoomClient({
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [roomName, setRoomName] = useState<string | null>(null);
   const [participants, setParticipants] = useState<ProducerParticipant[]>([]);
+  const [participantAppearanceOverrides, setParticipantAppearanceOverrides] =
+    useState<Record<string, ParticipantAppearanceOverride>>({});
   const [stageState, setStageState] = useState<StageState | null>(null);
   const latestStageStateRef = useRef<StageState | null>(null);
   const latestCommittedProgramStateRef = useRef<StageState | null>(null);
@@ -751,6 +763,45 @@ updateShadowColor: updateSelectedBlockShadowColor,
   const handleClearSelectedBlock = useCallback((): void => {
     setSelectedBlockId(null);
   }, [setSelectedBlockId]);
+
+  const handleSetParticipantAccentColor = useCallback(
+    (identity: string, accentId: ParticipantAccentId): void => {
+      setParticipantAppearanceOverrides((current) => ({
+        ...current,
+        [identity]: {
+          ...current[identity],
+          accentId,
+        },
+      }));
+    },
+    [],
+  );
+
+  const handleSetParticipantGlowLevel = useCallback(
+    (identity: string, glowLevel: ParticipantGlowLevel): void => {
+      setParticipantAppearanceOverrides((current) => ({
+        ...current,
+        [identity]: {
+          ...current[identity],
+          glowLevel,
+        },
+      }));
+    },
+    [],
+  );
+
+  const handleSetParticipantOutlineWeight = useCallback(
+    (identity: string, outlineWeight: ParticipantOutlineWeight): void => {
+      setParticipantAppearanceOverrides((current) => ({
+        ...current,
+        [identity]: {
+          ...current[identity],
+          outlineWeight,
+        },
+      }));
+    },
+    [],
+  );
 
   const handleApplyScene = useCallback(
     (sceneId: string): void => {
@@ -1475,6 +1526,10 @@ updateShadowColor: updateSelectedBlockShadowColor,
   const rightRailProps = useMemo(
     () => ({
       participants,
+      participantAppearanceOverrides,
+      onSetParticipantAccentColor: handleSetParticipantAccentColor,
+      onSetParticipantGlowLevel: handleSetParticipantGlowLevel,
+      onSetParticipantOutlineWeight: handleSetParticipantOutlineWeight,
       stageIds,
       selectedBlock: resolvedSelectedBlock,
       previewBlocks,
@@ -1520,6 +1575,10 @@ updateShadowColor: updateSelectedBlockShadowColor,
     }),
     [
       participants,
+      participantAppearanceOverrides,
+      handleSetParticipantAccentColor,
+      handleSetParticipantGlowLevel,
+      handleSetParticipantOutlineWeight,
       stageIds,
       resolvedSelectedBlock,
       previewBlocks,

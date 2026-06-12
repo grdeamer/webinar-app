@@ -35,6 +35,7 @@ export type PreviewBlock = {
   content?: string | null
   assignedParticipantId?: string | null
   assignedTrackSid?: string | null
+  assignedParticipantAccent?: string | null
   placeholderEmoji?: string | null
   placeholderLabel?: string | null
   placeholderSubLabel?: string | null
