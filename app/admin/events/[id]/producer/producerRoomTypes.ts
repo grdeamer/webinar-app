@@ -8,6 +8,7 @@ export type ProducerParticipant = {
   state: string | number | null
   isPublisher: boolean
   metadata?: Record<string, unknown>
+  accentColor?: string | null
   cameraEnabled: boolean
   micEnabled: boolean
   screenShareEnabled: boolean

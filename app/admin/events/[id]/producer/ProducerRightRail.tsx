@@ -10,6 +10,8 @@ import {
 const PARTICIPANT_ACCENT_STYLES = [
   {
     id: "violet",
+    rgb: "168,85,247",
+    swatch: "bg-violet-300",
     ring: "border-violet-300/55",
     glow: "shadow-[0_0_22px_rgba(168,85,247,0.34)]",
     card: "border-violet-400/34",
@@ -17,6 +19,8 @@ const PARTICIPANT_ACCENT_STYLES = [
   },
   {
     id: "cyan",
+    rgb: "34,211,238",
+    swatch: "bg-cyan-300",
     ring: "border-cyan-300/55",
     glow: "shadow-[0_0_22px_rgba(34,211,238,0.34)]",
     card: "border-cyan-400/34",
@@ -24,6 +28,8 @@ const PARTICIPANT_ACCENT_STYLES = [
   },
   {
     id: "green",
+    rgb: "16,185,129",
+    swatch: "bg-emerald-300",
     ring: "border-emerald-300/55",
     glow: "shadow-[0_0_22px_rgba(16,185,129,0.30)]",
     card: "border-emerald-400/30",
@@ -31,6 +37,8 @@ const PARTICIPANT_ACCENT_STYLES = [
   },
   {
     id: "amber",
+    rgb: "251,191,36",
+    swatch: "bg-amber-300",
     ring: "border-amber-300/55",
     glow: "shadow-[0_0_22px_rgba(251,191,36,0.30)]",
     card: "border-amber-400/30",
@@ -38,17 +46,69 @@ const PARTICIPANT_ACCENT_STYLES = [
   },
   {
     id: "rose",
+    rgb: "244,63,94",
+    swatch: "bg-rose-300",
     ring: "border-rose-300/55",
     glow: "shadow-[0_0_22px_rgba(244,63,94,0.30)]",
     card: "border-rose-400/30",
     cardGlow: "shadow-[0_0_30px_rgba(244,63,94,0.14)]",
   },
 ] as const
+type ParticipantAccentId = (typeof PARTICIPANT_ACCENT_STYLES)[number]["id"]
+type ParticipantGlowLevel = "low" | "med" | "high"
+type ParticipantOutlineWeight = "soft" | "standard" | "bold"
+type ParticipantAppearanceOverride = {
+  accentId?: ParticipantAccentId
+  glowLevel?: ParticipantGlowLevel
+  outlineWeight?: ParticipantOutlineWeight
+}
+
+const PARTICIPANT_GLOW_LEVELS: Array<{
+  id: ParticipantGlowLevel
+  label: string
+}> = [
+  { id: "low", label: "Low" },
+  { id: "med", label: "Med" },
+  { id: "high", label: "High" },
+]
+
+const PARTICIPANT_OUTLINE_WEIGHTS: Array<{
+  id: ParticipantOutlineWeight
+  label: string
+}> = [
+  { id: "soft", label: "Soft" },
+  { id: "standard", label: "Std" },
+  { id: "bold", label: "Bold" },
+]
+
+const PARTICIPANT_GLOW_OPACITY: Record<ParticipantGlowLevel, number> = {
+  low: 0.18,
+  med: 0.36,
+  high: 0.62,
+}
+
+const PARTICIPANT_CARD_GLOW_OPACITY: Record<ParticipantGlowLevel, number> = {
+  low: 0.10,
+  med: 0.18,
+  high: 0.32,
+}
+
+const PARTICIPANT_OUTLINE_WIDTH: Record<ParticipantOutlineWeight, number> = {
+  soft: 1,
+  standard: 2,
+  bold: 3,
+}
 function InspectorParticipantRow({
   participant,
   role,
   onStage,
   screenTrackSid,
+  selectedAccentId,
+  selectedGlowLevel,
+  selectedOutlineWeight,
+  onSetAccentColor,
+  onSetGlowLevel,
+  onSetOutlineWeight,
   onAddToStage,
   onRemoveFromStage,
   onSetPrimary,
@@ -58,6 +118,12 @@ function InspectorParticipantRow({
   role: string
   onStage: boolean
   screenTrackSid: string | null
+  selectedAccentId?: string | null
+  selectedGlowLevel?: ParticipantGlowLevel | null
+  selectedOutlineWeight?: ParticipantOutlineWeight | null
+  onSetAccentColor: (identity: string, accentId: ParticipantAccentId) => void
+  onSetGlowLevel: (identity: string, glowLevel: ParticipantGlowLevel) => void
+  onSetOutlineWeight: (identity: string, outlineWeight: ParticipantOutlineWeight) => void
   onAddToStage: (identity: string) => void
   onRemoveFromStage: (identity: string) => void
   onSetPrimary: (identity: string) => void
@@ -73,19 +139,38 @@ function InspectorParticipantRow({
   const cameraOn = Boolean(participant.cameraEnabled)
   const micOn = Boolean(participant.micEnabled)
   const screenReady = Boolean(screenTrackSid || participant.screenShareEnabled)
-  const accentStyle =
+  const fallbackAccentStyle =
     PARTICIPANT_ACCENT_STYLES[
       Math.abs(participant.identity.length) % PARTICIPANT_ACCENT_STYLES.length
     ]
+  const accentStyle =
+    PARTICIPANT_ACCENT_STYLES.find((style) => style.id === selectedAccentId) ??
+    fallbackAccentStyle
+  const glowLevel = selectedGlowLevel ?? "med"
+  const outlineWeight = selectedOutlineWeight ?? "standard"
+  const glowOpacity = PARTICIPANT_GLOW_OPACITY[glowLevel]
+  const cardGlowOpacity = PARTICIPANT_CARD_GLOW_OPACITY[glowLevel]
+  const outlineWidth = PARTICIPANT_OUTLINE_WIDTH[outlineWeight]
+  const [visualControlsOpen, setVisualControlsOpen] = useState(false)
 
   return (
     <div
-      className={`group/participant rounded-[16px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] px-2.5 py-2 shadow-[0_6px_18px_rgba(0,0,0,0.12),inset_0_1px_0_rgba(255,255,255,0.012)] transition hover:bg-white/[0.036] ${accentStyle.card} ${accentStyle.cardGlow}`}
+      className={`group/participant rounded-[16px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] px-2.5 py-2 transition hover:bg-white/[0.036] ${accentStyle.card}`}
+      style={{
+        borderColor: `rgba(${accentStyle.rgb}, ${outlineWeight === "soft" ? 0.24 : 0.46})`,
+        borderWidth: outlineWidth,
+        boxShadow: `0 6px 18px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.012), 0 0 ${glowLevel === "high" ? 44 : glowLevel === "med" ? 30 : 18}px rgba(${accentStyle.rgb}, ${cardGlowOpacity})`,
+      }}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.16)_38%,rgba(15,23,42,0.82)_80%)] text-[11px] font-black text-white/78 ${accentStyle.ring} ${accentStyle.glow}`}
+            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.16)_38%,rgba(15,23,42,0.82)_80%)] text-[11px] font-black text-white/78 ${accentStyle.ring}`}
+            style={{
+              borderColor: `rgba(${accentStyle.rgb}, ${outlineWeight === "soft" ? 0.42 : 0.78})`,
+              borderWidth: outlineWidth,
+              boxShadow: `0 0 ${glowLevel === "high" ? 34 : glowLevel === "med" ? 22 : 12}px rgba(${accentStyle.rgb}, ${glowOpacity})`,
+            }}
           >
             {initials}
           </div>
@@ -118,6 +203,102 @@ function InspectorParticipantRow({
         >
           {onStage ? "Remove" : "Stage"}
         </button>
+      </div>
+
+      <div className="mt-2 rounded-[11px] border border-white/[0.040] bg-black/18">
+        <button
+          type="button"
+          onClick={() => setVisualControlsOpen((current) => !current)}
+          className="flex w-full items-center justify-between gap-2 px-2 py-1.5 text-left transition hover:bg-white/[0.025]"
+        >
+          <span className="flex items-center gap-2">
+            <span
+              className={`h-3 w-3 rounded-full border border-white/18 ${accentStyle.swatch}`}
+            />
+            <span className="text-[7px] font-black uppercase tracking-[0.12em] text-white/34">
+              Visual Accent
+            </span>
+          </span>
+
+          <span className="text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
+            {visualControlsOpen ? "Hide" : "Edit"}
+          </span>
+        </button>
+
+        {visualControlsOpen ? (
+          <div className="border-t border-white/[0.040] p-2">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">
+                Accent
+              </span>
+              <div className="flex items-center gap-1">
+                {PARTICIPANT_ACCENT_STYLES.map((style) => {
+                  const isSelected = style.id === accentStyle.id
+
+                  return (
+                    <button
+                      key={style.id}
+                      type="button"
+                      onClick={() => onSetAccentColor(participant.identity, style.id)}
+                      className={`h-4 w-4 rounded-full border transition hover:scale-110 ${style.swatch} ${
+                        isSelected
+                          ? "border-white/80 shadow-[0_0_12px_rgba(255,255,255,0.22)]"
+                          : "border-white/18 opacity-70 hover:opacity-100"
+                      }`}
+                      title={`Set ${style.id} accent`}
+                    />
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
+              <div className="rounded-[11px] border border-white/[0.040] bg-black/18 px-2 py-1.5">
+                <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">
+                  Outline
+                </div>
+                <div className="mt-1 grid grid-cols-3 gap-1">
+                  {PARTICIPANT_OUTLINE_WEIGHTS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onSetOutlineWeight(participant.identity, item.id)}
+                      className={`rounded-md border px-1 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+                        outlineWeight === item.id
+                          ? "border-white/26 bg-white/[0.10] text-white/78"
+                          : "border-white/[0.04] bg-white/[0.018] text-white/32 hover:bg-white/[0.04] hover:text-white/58"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[11px] border border-white/[0.040] bg-black/18 px-2 py-1.5">
+                <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">
+                  Glow
+                </div>
+                <div className="mt-1 grid grid-cols-3 gap-1">
+                  {PARTICIPANT_GLOW_LEVELS.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      onClick={() => onSetGlowLevel(participant.identity, item.id)}
+                      className={`rounded-md border px-1 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+                        glowLevel === item.id
+                          ? "border-white/26 bg-white/[0.10] text-white/78"
+                          : "border-white/[0.04] bg-white/[0.018] text-white/32 hover:bg-white/[0.04] hover:text-white/58"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       <div className="mt-2 grid grid-cols-3 gap-1.5">
@@ -452,6 +633,47 @@ export default function ProducerRightRail({
     { name: "Brooklyn Simmons", role: "Guest" },
   ]
   const backstageCount = participants.length > 0 ? backstageParticipants.length : 6
+  const [participantAppearanceOverrides, setParticipantAppearanceOverrides] =
+    useState<Record<string, ParticipantAppearanceOverride>>({})
+
+  function handleSetParticipantAccentColor(
+    identity: string,
+    accentId: ParticipantAccentId,
+  ): void {
+    setParticipantAppearanceOverrides((current) => ({
+      ...current,
+      [identity]: {
+        ...current[identity],
+        accentId,
+      },
+    }))
+  }
+
+  function handleSetParticipantGlowLevel(
+    identity: string,
+    glowLevel: ParticipantGlowLevel,
+  ): void {
+    setParticipantAppearanceOverrides((current) => ({
+      ...current,
+      [identity]: {
+        ...current[identity],
+        glowLevel,
+      },
+    }))
+  }
+
+  function handleSetParticipantOutlineWeight(
+    identity: string,
+    outlineWeight: ParticipantOutlineWeight,
+  ): void {
+    setParticipantAppearanceOverrides((current) => ({
+      ...current,
+      [identity]: {
+        ...current[identity],
+        outlineWeight,
+      },
+    }))
+  }
   const defaultRailTab = previewBlocks.length > 0 || selectedBlock ? "Blocks" : "Stage"
   const [activeRailTab, setActiveRailTab] = useState(defaultRailTab)
   const blocksSectionRef = useRef<HTMLDivElement | null>(null)
@@ -600,6 +822,12 @@ export default function ProducerRightRail({
                   role={participantRole(index)}
                   onStage
                   screenTrackSid={getScreenTrackSid(participant)}
+                  selectedAccentId={participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null}
+                  selectedGlowLevel={participantAppearanceOverrides[participant.identity]?.glowLevel ?? null}
+                  selectedOutlineWeight={participantAppearanceOverrides[participant.identity]?.outlineWeight ?? null}
+                  onSetAccentColor={handleSetParticipantAccentColor}
+                  onSetGlowLevel={handleSetParticipantGlowLevel}
+                  onSetOutlineWeight={handleSetParticipantOutlineWeight}
                   onAddToStage={onAddToStage}
                   onRemoveFromStage={onRemoveFromStage}
                   onSetPrimary={onSetPrimary}
@@ -638,6 +866,12 @@ export default function ProducerRightRail({
                   role={participantRole(index)}
                   onStage={false}
                   screenTrackSid={getScreenTrackSid(participant)}
+                  selectedAccentId={participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null}
+                  selectedGlowLevel={participantAppearanceOverrides[participant.identity]?.glowLevel ?? null}
+                  selectedOutlineWeight={participantAppearanceOverrides[participant.identity]?.outlineWeight ?? null}
+                  onSetAccentColor={handleSetParticipantAccentColor}
+                  onSetGlowLevel={handleSetParticipantGlowLevel}
+                  onSetOutlineWeight={handleSetParticipantOutlineWeight}
                   onAddToStage={onAddToStage}
                   onRemoveFromStage={onRemoveFromStage}
                   onSetPrimary={onSetPrimary}
