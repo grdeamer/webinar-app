@@ -46,7 +46,7 @@ import {
   previewProgramStatesDifferent,
 } from "./producerRoomStatusUtils";
 
-type ParticipantAccentId = "violet" | "cyan" | "green" | "amber" | "rose";
+type ParticipantAccentId = "none" | "violet" | "cyan" | "green" | "amber" | "rose";
 type ParticipantGlowLevel = "low" | "med" | "high";
 type ParticipantOutlineWeight = "soft" | "standard" | "bold";
 

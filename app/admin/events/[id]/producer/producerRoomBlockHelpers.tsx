@@ -60,6 +60,23 @@ function getCameraSlotAccentTone(accentId?: string | null): CameraSlotAccentTone
   }
 }
 
+function getCameraSlotInitials(label: string): string {
+  const cleanedLabel = label.trim()
+
+  if (!cleanedLabel) return "CS"
+
+  const parts = cleanedLabel
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+
+  if (parts.length === 1) {
+    return parts[0].slice(0, 2).toUpperCase()
+  }
+
+  return parts.map((part) => part[0]).join("").toUpperCase()
+}
+
 export type SharedBlockStyleOptions = {
   x: number
   y: number
@@ -226,6 +243,8 @@ function renderBlockContent(
     const placeholderEmoji = block.placeholderEmoji || "👤"
     const placeholderLabel = block.placeholderLabel || block.label || "Camera Slot"
     const placeholderSubLabel = block.placeholderSubLabel || "Assign presenter or attendee"
+    const placeholderInitials = getCameraSlotInitials(placeholderLabel)
+    const hasAssignedParticipant = Boolean(block.assignedParticipantId)
     const isBranded = block.placeholderStyle === "branded"
     const accentTone = getCameraSlotAccentTone(block.assignedParticipantAccent)
 
@@ -241,12 +260,25 @@ function renderBlockContent(
               boxShadow: `0 -10px 34px rgba(${accentTone.rgb}, 0.14)`,
             }}
           >
-            <div className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-white/78">
-              {block.placeholderLabel || block.label || "Camera Slot"}
-            </div>
-            <div className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] text-emerald-100/58">
-              <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80 shadow-[0_0_8px_rgba(110,231,183,0.44)]" />
-              Live Camera Source
+            <div className="flex items-end justify-between gap-3">
+              <div className="min-w-0">
+                <div className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-white/78">
+                  {placeholderLabel}
+                </div>
+                <div className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] text-emerald-100/58">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/80 shadow-[0_0_8px_rgba(110,231,183,0.44)]" />
+                  Live Camera Source
+                </div>
+              </div>
+
+              <div
+                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] border bg-black/34 text-[9px] font-black tracking-[0.08em] text-white/72 backdrop-blur-md ${accentTone.border}`}
+                style={{
+                  boxShadow: `0 0 18px rgba(${accentTone.rgb}, 0.18)`,
+                }}
+              >
+                {placeholderInitials}
+              </div>
             </div>
           </div>
         </div>
@@ -273,12 +305,18 @@ function renderBlockContent(
 
         <div className="relative z-10 flex flex-col items-center justify-center px-5 text-center">
           <div
-            className={`flex h-14 w-14 items-center justify-center rounded-[22px] border bg-white/[0.048] text-3xl backdrop-blur-md ${accentTone.border}`}
+            className={`flex h-14 w-14 items-center justify-center rounded-[22px] border bg-white/[0.048] backdrop-blur-md ${accentTone.border}`}
             style={{
               boxShadow: `0 18px 38px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 34px rgba(${accentTone.rgb}, 0.18)`,
             }}
           >
-            {placeholderEmoji}
+            {hasAssignedParticipant ? (
+              <span className="text-[18px] font-black tracking-[0.08em] text-white/78">
+                {placeholderInitials}
+              </span>
+            ) : (
+              <span className="text-3xl">{placeholderEmoji}</span>
+            )}
           </div>
 
           <div className="mt-3 max-w-full truncate text-[12px] font-black uppercase tracking-[0.14em] text-white/78">
@@ -286,14 +324,14 @@ function renderBlockContent(
           </div>
 
           <div className="mt-1 max-w-full truncate text-[10px] font-semibold uppercase tracking-[0.12em] text-sky-100/42">
-            {placeholderSubLabel}
+            {hasAssignedParticipant ? "Camera offline / fallback active" : placeholderSubLabel}
           </div>
         </div>
 
         <div
           className={`absolute bottom-3 left-3 rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] opacity-90 backdrop-blur-md ${accentTone.badge}`}
         >
-          Fallback Ready
+          {hasAssignedParticipant ? "Identity Held" : "Fallback Ready"}
         </div>
       </div>
     )

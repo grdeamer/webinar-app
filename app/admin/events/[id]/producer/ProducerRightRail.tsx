@@ -9,6 +9,15 @@ import {
 } from "lucide-react"
 const PARTICIPANT_ACCENT_STYLES = [
   {
+    id: "none",
+    rgb: "148,163,184",
+    swatch: "bg-transparent",
+    ring: "border-white/16",
+    glow: "shadow-none",
+    card: "border-white/[0.07]",
+    cardGlow: "shadow-none",
+  },
+  {
     id: "violet",
     rgb: "168,85,247",
     swatch: "bg-violet-300",
@@ -55,6 +64,9 @@ const PARTICIPANT_ACCENT_STYLES = [
   },
 ] as const
 type ParticipantAccentId = (typeof PARTICIPANT_ACCENT_STYLES)[number]["id"]
+const PARTICIPANT_COLOR_ACCENT_STYLES = PARTICIPANT_ACCENT_STYLES.filter(
+  (style) => style.id !== "none",
+)
 type ParticipantGlowLevel = "low" | "med" | "high"
 type ParticipantOutlineWeight = "soft" | "standard" | "bold"
 type ParticipantAppearanceOverride = {
@@ -140,8 +152,8 @@ function InspectorParticipantRow({
   const micOn = Boolean(participant.micEnabled)
   const screenReady = Boolean(screenTrackSid || participant.screenShareEnabled)
   const fallbackAccentStyle =
-    PARTICIPANT_ACCENT_STYLES[
-      Math.abs(participant.identity.length) % PARTICIPANT_ACCENT_STYLES.length
+    PARTICIPANT_COLOR_ACCENT_STYLES[
+      Math.abs(participant.identity.length) % PARTICIPANT_COLOR_ACCENT_STYLES.length
     ]
   const accentStyle =
     PARTICIPANT_ACCENT_STYLES.find((style) => style.id === selectedAccentId) ??
@@ -226,12 +238,12 @@ function InspectorParticipantRow({
         </button>
 
         {visualControlsOpen ? (
-          <div className="border-t border-white/[0.040] p-2">
+          <div className="border-t border-white/[0.040] p-2.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">
+              <span className="shrink-0 text-[8px] font-black uppercase tracking-[0.14em] text-white/34">
                 Accent
               </span>
-              <div className="flex items-center gap-1">
+              <div className="flex min-w-0 shrink items-center justify-end gap-1">
                 {PARTICIPANT_ACCENT_STYLES.map((style) => {
                   const isSelected = style.id === accentStyle.id
 
@@ -240,33 +252,37 @@ function InspectorParticipantRow({
                       key={style.id}
                       type="button"
                       onClick={() => onSetAccentColor(participant.identity, style.id)}
-                      className={`h-4 w-4 rounded-full border transition hover:scale-110 ${style.swatch} ${
+                      className={`relative h-4 w-4 shrink-0 rounded-full border transition hover:scale-110 ${style.swatch} ${
                         isSelected
                           ? "border-white/80 shadow-[0_0_12px_rgba(255,255,255,0.22)]"
                           : "border-white/18 opacity-70 hover:opacity-100"
                       }`}
-                      title={`Set ${style.id} accent`}
-                    />
+                      title={style.id === "none" ? "Clear accent" : `Set ${style.id} accent`}
+                    >
+                      {style.id === "none" ? (
+                        <span className="absolute left-1/2 top-1/2 h-px w-[145%] -translate-x-1/2 -translate-y-1/2 -rotate-45 rounded-full bg-white/72 shadow-[0_0_6px_rgba(255,255,255,0.22)]" />
+                      ) : null}
+                    </button>
                   )
                 })}
               </div>
             </div>
 
-            <div className="mt-1.5 grid grid-cols-2 gap-1.5">
-              <div className="rounded-[11px] border border-white/[0.040] bg-black/18 px-2 py-1.5">
-                <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">
+            <div className="mt-2 grid gap-2">
+              <div className="rounded-[13px] border border-white/[0.045] bg-black/22 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+                <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
                   Outline
                 </div>
-                <div className="mt-1 grid grid-cols-3 gap-1">
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5 rounded-[10px] border border-white/[0.035] bg-white/[0.018] p-1">
                   {PARTICIPANT_OUTLINE_WEIGHTS.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => onSetOutlineWeight(participant.identity, item.id)}
-                      className={`rounded-md border px-1 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+                      className={`min-w-[3.05rem] rounded-[8px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.08em] transition ${
                         outlineWeight === item.id
-                          ? "border-white/26 bg-white/[0.10] text-white/78"
-                          : "border-white/[0.04] bg-white/[0.018] text-white/32 hover:bg-white/[0.04] hover:text-white/58"
+                          ? "border-white/34 bg-white/[0.14] text-white/86 shadow-[0_0_12px_rgba(255,255,255,0.08)]"
+                          : "border-transparent bg-transparent text-white/34 hover:bg-white/[0.045] hover:text-white/62"
                       }`}
                     >
                       {item.label}
@@ -275,20 +291,20 @@ function InspectorParticipantRow({
                 </div>
               </div>
 
-              <div className="rounded-[11px] border border-white/[0.040] bg-black/18 px-2 py-1.5">
-                <div className="text-[7px] font-black uppercase tracking-[0.12em] text-white/28">
+              <div className="rounded-[13px] border border-white/[0.045] bg-black/22 px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
+                <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/32">
                   Glow
                 </div>
-                <div className="mt-1 grid grid-cols-3 gap-1">
+                <div className="mt-1.5 grid grid-cols-3 gap-1.5 rounded-[10px] border border-white/[0.035] bg-white/[0.018] p-1">
                   {PARTICIPANT_GLOW_LEVELS.map((item) => (
                     <button
                       key={item.id}
                       type="button"
                       onClick={() => onSetGlowLevel(participant.identity, item.id)}
-                      className={`rounded-md border px-1 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
+                      className={`min-w-[3.05rem] rounded-[8px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.08em] transition ${
                         glowLevel === item.id
-                          ? "border-white/26 bg-white/[0.10] text-white/78"
-                          : "border-white/[0.04] bg-white/[0.018] text-white/32 hover:bg-white/[0.04] hover:text-white/58"
+                          ? "border-white/34 bg-white/[0.14] text-white/86 shadow-[0_0_12px_rgba(255,255,255,0.08)]"
+                          : "border-transparent bg-transparent text-white/34 hover:bg-white/[0.045] hover:text-white/62"
                       }`}
                     >
                       {item.label}
