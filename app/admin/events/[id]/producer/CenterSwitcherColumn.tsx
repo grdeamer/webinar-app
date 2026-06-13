@@ -97,7 +97,95 @@ type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen";
 
 type ConfidenceMonitorMode = "standard" | "confidence" | "multiview";
 
+
 type SwitcherTransitionPreset = "smooth" | "fast" | "dip" | "blur" | "warp";
+
+type ParticipantAccentId = "none" | "violet" | "cyan" | "green" | "amber" | "rose";
+type ParticipantGlowLevel = "low" | "med" | "high";
+type ParticipantOutlineWeight = "soft" | "standard" | "bold";
+
+type ParticipantAppearanceOverride = {
+  accentId?: ParticipantAccentId;
+  glowLevel?: ParticipantGlowLevel;
+  outlineWeight?: ParticipantOutlineWeight;
+};
+
+type ParticipantAccentTone = {
+  rgb: string;
+  border: string;
+  text: string;
+  glow: string;
+};
+
+function getParticipantAccentTone(accentId?: string | null): ParticipantAccentTone {
+  switch (accentId) {
+    case "violet":
+      return {
+        rgb: "168,85,247",
+        border: "border-violet-300/34",
+        text: "text-violet-100/68",
+        glow: "shadow-[0_0_24px_rgba(168,85,247,0.16)]",
+      };
+    case "cyan":
+      return {
+        rgb: "34,211,238",
+        border: "border-cyan-300/34",
+        text: "text-cyan-100/68",
+        glow: "shadow-[0_0_24px_rgba(34,211,238,0.14)]",
+      };
+    case "green":
+      return {
+        rgb: "16,185,129",
+        border: "border-emerald-300/34",
+        text: "text-emerald-100/68",
+        glow: "shadow-[0_0_24px_rgba(16,185,129,0.14)]",
+      };
+    case "amber":
+      return {
+        rgb: "251,191,36",
+        border: "border-amber-300/34",
+        text: "text-amber-100/68",
+        glow: "shadow-[0_0_24px_rgba(251,191,36,0.14)]",
+      };
+    case "rose":
+      return {
+        rgb: "244,63,94",
+        border: "border-rose-300/34",
+        text: "text-rose-100/68",
+        glow: "shadow-[0_0_24px_rgba(244,63,94,0.14)]",
+      };
+    default:
+      return {
+        rgb: "148,163,184",
+        border: "border-white/12",
+        text: "text-white/46",
+        glow: "shadow-none",
+      };
+  }
+}
+
+function getParticipantInitials(participant: ProducerParticipant | null): string {
+  if (!participant) return "—";
+
+  const label = participant.name || participant.identity;
+  const parts = label.trim().split(/\s+/).filter(Boolean).slice(0, 2);
+
+  if (parts.length === 0) return "??";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return parts.map((part) => part[0]).join("").toUpperCase();
+}
+
+function getParticipantResolvedAccent(
+  participant: ProducerParticipant | null,
+  participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>,
+): ParticipantAccentTone {
+  if (!participant) return getParticipantAccentTone(null);
+
+  return getParticipantAccentTone(
+    participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null,
+  );
+}
 
 const CONFIDENCE_MONITOR_MODES: Array<{
   value: ConfidenceMonitorMode;
@@ -171,25 +259,74 @@ function SwitcherSurfaceChrome({
   );
 }
 
-function MultiviewOverlay({ label }: { label: string }): JSX.Element {
+function MultiviewOverlay({
+  label,
+  participants,
+  participantAppearanceOverrides,
+}: {
+  label: string;
+  participants: ProducerParticipant[];
+  participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>;
+}): JSX.Element {
+  const multiviewCells = [
+    { label: "Program", participant: participants[0] ?? null },
+    { label: "Preview", participant: participants[1] ?? participants[0] ?? null },
+    { label: "Confidence", participant: participants[2] ?? participants[0] ?? null },
+    { label: "Telemetry", participant: participants[3] ?? null },
+  ];
+
   return (
     <div className="pointer-events-none absolute inset-0 z-40 overflow-hidden rounded-[20px]">
       <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:25%_25%] opacity-28" />
 
       <div className="absolute inset-0 grid grid-cols-2 grid-rows-2 gap-px bg-white/[0.035]">
-        {["Program", "Preview", "Confidence", "Telemetry"].map((cell) => (
-          <div key={cell} className="relative overflow-hidden bg-black/24">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(168,85,247,0.035),transparent_48%)]" />
+        {multiviewCells.map((cell) => {
+          const accentTone = getParticipantResolvedAccent(
+            cell.participant,
+            participantAppearanceOverrides,
+          );
+          const initials = getParticipantInitials(cell.participant);
+          const participantLabel = cell.participant?.name || cell.participant?.identity || "No source assigned";
 
-            <div className="absolute left-2 top-2 rounded-full border border-white/7 bg-black/30 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] text-white/34 backdrop-blur-sm">
-              {cell}
-            </div>
+          return (
+            <div key={cell.label} className="relative overflow-hidden bg-black/24">
+              <div
+                className="absolute inset-0 opacity-75"
+                style={{
+                  background: `radial-gradient(circle at top, rgba(${accentTone.rgb}, 0.075), transparent 48%)`,
+                }}
+              />
 
-            <div className="absolute inset-0 flex items-center justify-center">
-              <div className="h-10 w-16 rounded-lg border border-white/6 bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]" />
+              <div className={`absolute left-2 top-2 rounded-full border bg-black/34 px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.08em] backdrop-blur-sm ${accentTone.border} ${accentTone.text}`}>
+                {cell.label}
+              </div>
+
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div
+                  className={`flex h-10 w-16 items-center justify-center rounded-lg border bg-white/[0.022] text-[10px] font-black tracking-[0.10em] text-white/66 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] ${accentTone.border} ${accentTone.glow}`}
+                  style={{
+                    boxShadow: `inset 0 1px 0 rgba(255,255,255,0.018), 0 0 24px rgba(${accentTone.rgb}, 0.12)`,
+                  }}
+                >
+                  {initials}
+                </div>
+              </div>
+
+              <div className="absolute bottom-2 left-2 right-2 flex items-center justify-between gap-2 rounded-[10px] border border-white/6 bg-black/36 px-2 py-1 backdrop-blur-sm">
+                <span className="truncate text-[7px] font-black uppercase tracking-[0.10em] text-white/44">
+                  {participantLabel}
+                </span>
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{
+                    backgroundColor: `rgba(${accentTone.rgb}, 0.78)`,
+                    boxShadow: `0 0 8px rgba(${accentTone.rgb}, 0.42)`,
+                  }}
+                />
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       <div className="absolute bottom-3 right-3 rounded-full border border-violet-300/12 bg-black/46 px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-violet-100/52 shadow-[0_0_10px_rgba(168,85,247,0.06)] backdrop-blur-md">
@@ -321,6 +458,7 @@ export default function CenterSwitcherColumn({
   onClearSelectedBlock,
   stageState,
   onStageParticipants,
+  participantAppearanceOverrides,
   previewBlocks,
   selectedBlockId,
   snapGuideX,
@@ -382,6 +520,7 @@ export default function CenterSwitcherColumn({
   onClearSelectedBlock: () => void;
   stageState: StageState | null;
   onStageParticipants: ProducerParticipant[];
+  participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>;
   previewBlocks: PreviewBlock[];
   selectedBlockId: string | null;
   snapGuideX: number | null;
@@ -888,6 +1027,7 @@ function PreviewSnapGuides({
 <StageVideoPreview
   stageState={stageState}
   participantIds={stageState?.stage_participant_ids ?? []}
+  participantAppearanceOverrides={participantAppearanceOverrides}
   screenLayoutPreset={screenLayoutPreset}
 />
 
@@ -931,7 +1071,11 @@ function PreviewSnapGuides({
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
-                <MultiviewOverlay label="Multiview" />
+                <MultiviewOverlay
+                  label="Multiview"
+                  participants={onStageParticipants}
+                  participantAppearanceOverrides={participantAppearanceOverrides}
+                />
               ) : null}
             </div>
           </div>
@@ -1275,7 +1419,11 @@ function PreviewSnapGuides({
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
-                <MultiviewOverlay label="Multiview" />
+                <MultiviewOverlay
+                  label="Multiview"
+                  participants={onStageParticipants}
+                  participantAppearanceOverrides={participantAppearanceOverrides}
+                />
               ) : null}
             </div>
           </div>

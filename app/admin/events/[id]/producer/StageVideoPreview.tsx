@@ -12,7 +12,25 @@ import {
   StatusPill,
 } from "./monitorChrome"
 
+
 type ScreenLayoutPreset = "classic" | "brand" | "speaker_focus" | "fullscreen"
+
+type ParticipantAccentId = "none" | "violet" | "cyan" | "green" | "amber" | "rose"
+type ParticipantGlowLevel = "low" | "med" | "high"
+type ParticipantOutlineWeight = "soft" | "standard" | "bold"
+
+type ParticipantAppearanceOverride = {
+  accentId?: ParticipantAccentId
+  glowLevel?: ParticipantGlowLevel
+  outlineWeight?: ParticipantOutlineWeight
+}
+
+type StageIdentityAccentTone = {
+  rgb: string
+  border: string
+  text: string
+  badge: string
+}
 
 
 export type StageState = {
@@ -57,15 +75,155 @@ function SignalAtmosphere({
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </>
   )
+
+}
+
+function getStageIdentityAccentTone(accentId?: string | null): StageIdentityAccentTone {
+  switch (accentId) {
+    case "violet":
+      return {
+        rgb: "168,85,247",
+        border: "border-violet-300/36",
+        text: "text-violet-100/70",
+        badge: "border-violet-200/16 bg-violet-400/[0.10] text-violet-100/62",
+      }
+    case "cyan":
+      return {
+        rgb: "34,211,238",
+        border: "border-cyan-300/36",
+        text: "text-cyan-100/70",
+        badge: "border-cyan-200/16 bg-cyan-400/[0.10] text-cyan-100/62",
+      }
+    case "green":
+      return {
+        rgb: "16,185,129",
+        border: "border-emerald-300/36",
+        text: "text-emerald-100/70",
+        badge: "border-emerald-200/16 bg-emerald-400/[0.10] text-emerald-100/62",
+      }
+    case "amber":
+      return {
+        rgb: "251,191,36",
+        border: "border-amber-300/36",
+        text: "text-amber-100/70",
+        badge: "border-amber-200/16 bg-amber-400/[0.10] text-amber-100/62",
+      }
+    case "rose":
+      return {
+        rgb: "244,63,94",
+        border: "border-rose-300/36",
+        text: "text-rose-100/70",
+        badge: "border-rose-200/16 bg-rose-400/[0.10] text-rose-100/62",
+      }
+    default:
+      return {
+        rgb: "148,163,184",
+        border: "border-white/12",
+        text: "text-white/52",
+        badge: "border-white/10 bg-white/[0.045] text-white/52",
+      }
+  }
+}
+
+function getTrackParticipantLabel(trackRef: TrackReference): string {
+  return trackRef.participant.name || trackRef.participant.identity
+}
+
+function getStageIdentityInitials(trackRef: TrackReference): string {
+  const label = getTrackParticipantLabel(trackRef)
+  const parts = label.trim().split(/\s+/).filter(Boolean).slice(0, 2)
+
+  if (parts.length === 0) return "??"
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+
+  return parts.map((part) => part[0]).join("").toUpperCase()
+}
+
+
+function getTrackAccentTone(
+  trackRef: TrackReference,
+  participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>,
+): StageIdentityAccentTone {
+  return getStageIdentityAccentTone(
+    participantAppearanceOverrides[trackRef.participant.identity]?.accentId ?? null,
+  )
+}
+
+function getTrackIsSpeaking(trackRef: TrackReference): boolean {
+  return Boolean(trackRef.participant.isSpeaking)
+}
+
+function StageIdentityOverlay({
+  trackRef,
+  participantAppearanceOverrides,
+  label = "Live Source",
+}: {
+  trackRef: TrackReference
+  participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>
+  label?: string
+}): JSX.Element {
+  const accentTone = getTrackAccentTone(trackRef, participantAppearanceOverrides)
+  const participantLabel = getTrackParticipantLabel(trackRef)
+  const initials = getStageIdentityInitials(trackRef)
+  const isSpeaking = getTrackIsSpeaking(trackRef)
+
+  return (
+    <div className="pointer-events-none absolute inset-x-3 bottom-3 z-30 flex items-end justify-between gap-3">
+      {isSpeaking ? (
+        <div
+          className="absolute -inset-x-2 -bottom-2 h-24 rounded-[24px] opacity-70 blur-2xl animate-[stageSpeakerEnergy_1.8s_ease-in-out_infinite]"
+          style={{
+            background: `radial-gradient(circle at bottom, rgba(${accentTone.rgb}, 0.24), transparent 62%)`,
+          }}
+        />
+      ) : null}
+      <div
+        className={`min-w-0 rounded-[14px] border bg-black/46 px-3 py-2 backdrop-blur-md ${accentTone.border}`}
+        style={{
+          boxShadow: isSpeaking
+            ? `0 0 38px rgba(${accentTone.rgb}, 0.30), inset 0 1px 0 rgba(255,255,255,0.06)`
+            : `0 0 28px rgba(${accentTone.rgb}, 0.16), inset 0 1px 0 rgba(255,255,255,0.04)`,
+        }}
+      >
+        <div className="truncate text-[10px] font-black uppercase tracking-[0.12em] text-white/78">
+          {participantLabel}
+        </div>
+        <div className={`mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.12em] ${accentTone.text}`}>
+          <span
+            className="h-1.5 w-1.5 rounded-full"
+            style={{
+              backgroundColor: `rgba(${accentTone.rgb}, 0.82)`,
+              boxShadow: `0 0 8px rgba(${accentTone.rgb}, 0.44)`,
+            }}
+          />
+          {isSpeaking ? "Voice Active" : label}
+        </div>
+      </div>
+
+      <div
+        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-[13px] border bg-black/42 text-[10px] font-black tracking-[0.08em] text-white/74 backdrop-blur-md ${accentTone.border}`}
+        style={{
+          boxShadow: isSpeaking
+            ? `0 0 34px rgba(${accentTone.rgb}, 0.34), inset 0 1px 0 rgba(255,255,255,0.07)`
+            : `0 0 24px rgba(${accentTone.rgb}, 0.18), inset 0 1px 0 rgba(255,255,255,0.045)`,
+          transform: isSpeaking ? "scale(1.035)" : undefined,
+        }}
+      >
+        {initials}
+      </div>
+    </div>
+  )
 }
 
 export default function StageVideoPreview({
   stageState,
   participantIds,
+  participantAppearanceOverrides = {},
   screenLayoutPreset = "classic",
 }: {
   stageState: StageState | null
   participantIds: string[]
+  participantAppearanceOverrides?: Record<string, ParticipantAppearanceOverride>
   screenLayoutPreset?: ScreenLayoutPreset
 }) {
   const cameraTracks = useTracks([{ source: Track.Source.Camera, withPlaceholder: false }])
@@ -215,6 +373,11 @@ export default function StageVideoPreview({
     return (
       <RoutedMonitorFrame mode={isPrimary ? "program" : "preview"}>
         <VideoTrack trackRef={primary} className="aspect-video h-full w-full object-cover" />
+        <StageIdentityOverlay
+          trackRef={primary}
+          participantAppearanceOverrides={participantAppearanceOverrides}
+          label={isPinned ? "Pinned Source" : isPrimary ? "Primary Source" : "Live Source"}
+        />
       </RoutedMonitorFrame>
     )
   }
@@ -239,6 +402,11 @@ export default function StageVideoPreview({
       return (
         <RoutedMonitorFrame mode={isPrimary ? "program" : "preview"}>
           <VideoTrack trackRef={speakerTrack} className="aspect-video h-full w-full object-cover" />
+          <StageIdentityOverlay
+            trackRef={speakerTrack}
+            participantAppearanceOverrides={participantAppearanceOverrides}
+            label={isPinned ? "Pinned Source" : isPrimary ? "Primary Source" : "Speaker Source"}
+          />
         </RoutedMonitorFrame>
       )
     }
@@ -311,9 +479,11 @@ export default function StageVideoPreview({
                 trackRef={speakerTrack}
                 className="aspect-video w-full object-cover"
               />
-              <div className="border-t border-white/10 bg-black/80 px-3 py-2 text-xs text-white/80">
-                {speakerTrack.participant.name || speakerTrack.participant.identity}
-              </div>
+              <StageIdentityOverlay
+                trackRef={speakerTrack}
+                participantAppearanceOverrides={participantAppearanceOverrides}
+                label="Speaker Source"
+              />
               {speakerBadges}
             </div>
           ) : null}
@@ -345,9 +515,11 @@ export default function StageVideoPreview({
                 trackRef={speakerTrack}
                 className="aspect-video w-full object-cover"
               />
-              <div className="border-t border-white/10 bg-black/80 px-3 py-2 text-xs text-white/80">
-                {speakerTrack.participant.name || speakerTrack.participant.identity}
-              </div>
+              <StageIdentityOverlay
+                trackRef={speakerTrack}
+                participantAppearanceOverrides={participantAppearanceOverrides}
+                label="Speaker Focus"
+              />
               {speakerBadges}
             </div>
           ) : (
@@ -378,7 +550,14 @@ export default function StageVideoPreview({
           mode={speakerIsPrimary ? "program" : "confidence"}
         >
           {speakerTrack ? (
-            <VideoTrack trackRef={speakerTrack} className="aspect-video h-full w-full object-cover" />
+            <>
+              <VideoTrack trackRef={speakerTrack} className="aspect-video h-full w-full object-cover" />
+              <StageIdentityOverlay
+                trackRef={speakerTrack}
+                participantAppearanceOverrides={participantAppearanceOverrides}
+                label={speakerIsPrimary ? "Primary Source" : "Speaker Source"}
+              />
+            </>
           ) : (
             <CompactEmptySignal label="No speaker camera" />
           )}
@@ -420,6 +599,11 @@ export default function StageVideoPreview({
             mode={isPrimary ? "program" : isPinned ? "confidence" : "preview"}
           >
             <VideoTrack trackRef={trackRef} className="aspect-video h-full w-full object-cover" />
+            <StageIdentityOverlay
+              trackRef={trackRef}
+              participantAppearanceOverrides={participantAppearanceOverrides}
+              label={isPrimary ? "Primary Source" : isPinned ? "Pinned Source" : "Stage Source"}
+            />
             <div className="pointer-events-none absolute left-3 top-3 flex gap-2">
               {isPrimary ? (
                 <StatusPill label="Primary" tone="primary" />
@@ -462,6 +646,19 @@ export default function StageVideoPreview({
 
           100% {
             transform: translateX(220%);
+          }
+        }
+
+        @keyframes stageSpeakerEnergy {
+          0%,
+          100% {
+            opacity: 0.22;
+            transform: scale(0.98);
+          }
+
+          50% {
+            opacity: 0.72;
+            transform: scale(1.04);
           }
         }
       `}</style>
