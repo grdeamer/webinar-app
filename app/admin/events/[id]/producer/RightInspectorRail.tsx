@@ -290,6 +290,70 @@ function CameraSlotAssignmentPanel({
   )
 }
 
+function SelectedLayerSummary({
+  selectedBlock,
+  previewBlocks,
+}: {
+  selectedBlock: PreviewBlock | null
+  previewBlocks: PreviewBlock[]
+}): JSX.Element {
+  const selectedIndex = selectedBlock
+    ? [...previewBlocks]
+        .sort((a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0))
+        .findIndex((block) => block.id === selectedBlock.id)
+    : -1
+
+  const layerPosition =
+    selectedIndex < 0
+      ? "No Layer"
+      : selectedIndex === 0
+        ? "Top Layer"
+        : selectedIndex === previewBlocks.length - 1
+          ? "Base Layer"
+          : `Layer ${selectedIndex + 1}`
+
+  return (
+    <div className="relative overflow-hidden rounded-[16px] border border-sky-300/[0.07] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.050),transparent_34%),linear-gradient(180deg,rgba(8,14,26,0.82),rgba(4,7,14,0.94))] p-2.5 shadow-[0_10px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.022)]">
+      <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/14 to-transparent" />
+      <div className="relative z-10 flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.14em] text-sky-100/42">
+            <Layers3 size={11} />
+            Selected Composition Layer
+          </div>
+          <div className="mt-1 truncate text-xs font-semibold text-white/72">
+            {selectedBlock?.label || selectedBlock?.type || "Select a layer from the stack"}
+          </div>
+        </div>
+
+        <div className="shrink-0 rounded-full border border-sky-300/12 bg-sky-400/[0.065] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-sky-100/54">
+          {layerPosition}
+        </div>
+      </div>
+
+      <div className="relative z-10 mt-2 grid grid-cols-3 gap-1.5">
+        {[
+          ["Blocks", previewBlocks.length.toString()],
+          ["Visible", previewBlocks.filter((block) => !block.hidden).length.toString()],
+          ["Locked", previewBlocks.filter((block) => block.locked).length.toString()],
+        ].map(([label, value]) => (
+          <div
+            key={label}
+            className="rounded-[10px] border border-white/[0.040] bg-white/[0.018] px-2 py-1.5 text-center"
+          >
+            <div className="text-[10px] font-black tracking-[-0.02em] text-white/68">
+              {value}
+            </div>
+            <div className="mt-0.5 text-[6px] font-black uppercase tracking-[0.10em] text-white/28">
+              {label}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 
 export default function RightInspectorRail({
   selectedBlock,
@@ -387,8 +451,12 @@ export default function RightInspectorRail({
         <InspectorTelemetryStrip />
         <RailSectionLabel
           icon={<SlidersHorizontal size={16} />}
-          title="Layer Inspector"
-          sub="Selected Layer Control Surface"
+          title="Composition Inspector"
+          sub="Layer Stack + Selected Layer Controls"
+        />
+        <SelectedLayerSummary
+          selectedBlock={selectedBlock}
+          previewBlocks={previewBlocks}
         />
         <LayerStackPanel
           blocks={previewBlocks}
@@ -429,12 +497,13 @@ export default function RightInspectorRail({
           onUpdateSrc={onUpdateSrc}
           onUpdateTextContent={onUpdateTextContent}
         />
-        {/* Removed Capture Systems and RecordingCenterPanel */}
-        <RailSectionLabel
-          icon={<Users size={16} />}
-          title="Green Room Operations"
-          sub={`${participants.length} Connected Participants`}
-        />
+        <div className="pt-1.5">
+          <RailSectionLabel
+            icon={<Users size={16} />}
+            title="Green Room Operations"
+            sub={`${participants.length} Connected Participants`}
+          />
+        </div>
 
         <BackstagePanel participantCount={participants.length}>
           {participants.length === 0 ? (

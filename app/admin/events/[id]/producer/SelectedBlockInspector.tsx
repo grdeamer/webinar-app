@@ -169,6 +169,7 @@ function InspectorSlider({
   )
 }
 
+
 function InspectorColorPicker({
   label,
   value,
@@ -209,6 +210,33 @@ function InspectorColorPicker({
       </div>
     </div>
   )
+}
+
+function getSelectedBlockTypeLabel(block: PreviewBlock): string {
+  switch (block.type) {
+    case "camera-slot":
+      return "Camera Slot"
+    case "image":
+      return "Image"
+    case "video":
+      return "Video"
+    case "pdf":
+      return "PDF"
+    case "text":
+      return "Text"
+    default:
+      return block.type
+  }
+}
+
+function getSelectedBlockStatusText(block: PreviewBlock): string {
+  const states = [block.hidden ? "Hidden" : "Visible", block.locked ? "Locked" : "Editable"]
+
+  if (block.type === "camera-slot") {
+    states.push(block.assignedParticipantId ? "Assigned" : "Unassigned")
+  }
+
+  return states.join(" · ")
 }
 
 export default function SelectedBlockInspector({
@@ -265,6 +293,9 @@ export default function SelectedBlockInspector({
   const animationTypeValue = selectedBlock.animationType ?? "none"
   const animationProgressValue = selectedBlock.animationProgress ?? 1
 
+  const selectedBlockTypeLabel = getSelectedBlockTypeLabel(selectedBlock)
+  const selectedBlockStatusText = getSelectedBlockStatusText(selectedBlock)
+
   return (
     <div className="mb-5 space-y-3 rounded-[26px] border border-white/8 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.045),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.026),rgba(255,255,255,0.010))] p-3 shadow-[0_18px_54px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.035)]">
       <div className="rounded-[24px] border border-violet-300/10 bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.09),transparent_36%),rgba(255,255,255,0.020)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
@@ -279,91 +310,99 @@ export default function SelectedBlockInspector({
                 Selected Layer
               </div>
               <div className="rounded-full border border-violet-300/10 bg-violet-400/[0.06] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.13em] text-violet-100/48">
-                {selectedBlock.type}
+                {selectedBlockTypeLabel}
               </div>
             </div>
 
             <div className="mt-1 truncate text-lg font-semibold tracking-tight text-white/84">
-              {selectedBlock.label || selectedBlock.type}
+              {selectedBlock.label || selectedBlockTypeLabel}
             </div>
 
             <div className="mt-1 text-sm leading-5 text-white/38">
-              Layout, transform, and source settings
+              {selectedBlockStatusText}
             </div>
           </div>
         </div>
       </div>
 
       <SectionCard>
-        <SectionHeader icon={<ScanLine size={13} />} title="Visibility" />
+        <SectionHeader icon={<ScanLine size={13} />} title="Composition State" badge="Layer" />
 
-        <div className="rounded-[18px] border border-white/6 bg-black/16 px-3 py-3 text-sm text-white/52">
-          {selectedBlock.hidden ? "Layer hidden from output" : "Layer visible in output"}
-        </div>
-
-        <button
-          type="button"
-          onClick={onToggleHidden}
-          className={`mt-3 flex w-full items-center justify-center gap-2 rounded-[18px] border px-4 py-3 text-sm font-semibold transition-all hover:-translate-y-px ${
-            selectedBlock.hidden
-              ? "border-emerald-300/22 bg-emerald-400/[0.08] text-emerald-100/76 shadow-[0_0_14px_rgba(52,211,153,0.06)]"
-              : "border-amber-300/18 bg-amber-400/[0.06] text-amber-100/68 shadow-[0_0_10px_rgba(251,191,36,0.04)]"
-          }`}
-        >
-          {selectedBlock.hidden ? <Eye size={15} /> : <EyeOff size={15} />}
-          {selectedBlock.hidden ? "Show Layer" : "Hide Layer"}
-        </button>
-      </SectionCard>
-
-      <div className="grid grid-cols-1 gap-3">
-        <SectionCard>
-          <SectionHeader
-            icon={selectedBlock.locked ? <Lock size={13} /> : <Unlock size={13} />}
-            title="Layer Lock"
-            badge={selectedBlock.locked ? "Lock" : "Open"}
-          />
-
-          <div className="text-sm font-semibold leading-5 text-white/68">
-            {selectedBlock.locked ? "Protected from canvas edits" : "Editable on canvas"}
-          </div>
+        <div className="grid gap-2 xl:grid-cols-2">
+          <button
+            type="button"
+            onClick={onToggleHidden}
+            className={`flex items-center justify-between rounded-[16px] border px-3 py-2.5 text-left transition hover:-translate-y-px ${
+              selectedBlock.hidden
+                ? "border-amber-300/18 bg-amber-400/[0.060] text-amber-100/70"
+                : "border-emerald-300/16 bg-emerald-400/[0.055] text-emerald-100/68"
+            }`}
+          >
+            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em]">
+              {selectedBlock.hidden ? <EyeOff size={14} /> : <Eye size={14} />}
+              {selectedBlock.hidden ? "Hidden" : "Visible"}
+            </span>
+            <span className="text-[8px] font-black uppercase tracking-[0.10em] text-white/34">
+              Toggle
+            </span>
+          </button>
 
           <button
             type="button"
             onClick={onToggleLocked}
-            className={`mt-3 flex h-9 w-full items-center justify-center rounded-[15px] border text-[10px] font-black uppercase tracking-[0.11em] transition ${
+            className={`flex items-center justify-between rounded-[16px] border px-3 py-2.5 text-left transition hover:-translate-y-px ${
               selectedBlock.locked
-                ? "border-amber-300/20 bg-amber-400/[0.08] text-amber-100/70 hover:bg-amber-400/[0.12]"
-                : "border-emerald-300/18 bg-emerald-400/[0.07] text-emerald-100/68 hover:bg-emerald-400/[0.12]"
+                ? "border-amber-300/18 bg-amber-400/[0.060] text-amber-100/70"
+                : "border-sky-300/14 bg-sky-400/[0.045] text-sky-100/62"
             }`}
           >
-            {selectedBlock.locked ? "Unlock" : "Lock"}
+            <span className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.12em]">
+              {selectedBlock.locked ? <Lock size={14} /> : <Unlock size={14} />}
+              {selectedBlock.locked ? "Locked" : "Editable"}
+            </span>
+            <span className="text-[8px] font-black uppercase tracking-[0.10em] text-white/34">
+              Toggle
+            </span>
           </button>
-        </SectionCard>
+        </div>
 
-        <SectionCard>
-          <SectionHeader icon={<Blend size={12} />} title="Blend Mode" badge="Blend" />
-          <InspectorSelect
-            value={selectedBlock.blendMode ?? "normal"}
-            onChange={(e) => onUpdateBlendMode(e.target.value)}
-          >
-            <option value="normal">Normal</option>
-            <option value="screen">Screen</option>
-            <option value="multiply">Multiply</option>
-            <option value="overlay">Overlay</option>
-            <option value="soft-light">Soft Light</option>
-            <option value="hard-light">Hard Light</option>
-            <option value="color-dodge">Color Dodge</option>
-            <option value="color-burn">Color Burn</option>
-            <option value="lighten">Lighten</option>
-            <option value="darken">Darken</option>
-            <option value="difference">Difference</option>
-            <option value="exclusion">Exclusion</option>
-          </InspectorSelect>
-        </SectionCard>
-      </div>
+        <div className="mt-2 grid gap-2 xl:grid-cols-[1fr_1.35fr]">
+          <div className="rounded-[16px] border border-white/6 bg-black/14 px-3 py-2.5">
+            <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/28">
+              Layer Type
+            </div>
+            <div className="mt-1 text-sm font-semibold text-white/70">
+              {selectedBlockTypeLabel}
+            </div>
+          </div>
+
+          <div className="rounded-[16px] border border-white/6 bg-black/14 px-3 py-2.5">
+            <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/28">
+              Blend Mode
+            </div>
+            <InspectorSelect
+              value={selectedBlock.blendMode ?? "normal"}
+              onChange={(e) => onUpdateBlendMode(e.target.value)}
+            >
+              <option value="normal">Normal</option>
+              <option value="screen">Screen</option>
+              <option value="multiply">Multiply</option>
+              <option value="overlay">Overlay</option>
+              <option value="soft-light">Soft Light</option>
+              <option value="hard-light">Hard Light</option>
+              <option value="color-dodge">Color Dodge</option>
+              <option value="color-burn">Color Burn</option>
+              <option value="lighten">Lighten</option>
+              <option value="darken">Darken</option>
+              <option value="difference">Difference</option>
+              <option value="exclusion">Exclusion</option>
+            </InspectorSelect>
+          </div>
+        </div>
+      </SectionCard>
 
       <SectionCard>
-        <SectionHeader icon={<Sparkles size={13} />} title="Transform" badge="Visual" />
+        <SectionHeader icon={<Sparkles size={13} />} title="Transform" badge="Position" />
 
         <div className="space-y-2">
           <InspectorSlider
@@ -529,7 +568,7 @@ export default function SelectedBlockInspector({
       </SectionCard>
 
       <SectionCard>
-        <SectionHeader icon={<Move size={13} />} title="Layout Controls" badge="Canvas" />
+        <SectionHeader icon={<Move size={13} />} title="Canvas Geometry" badge="Position" />
         <div className="grid gap-3 xl:grid-cols-2">
           <InspectorField label="X Position">
             <InspectorInput
@@ -581,7 +620,7 @@ export default function SelectedBlockInspector({
         <InspectorField label="Type">
           <div className="flex items-center gap-2 rounded-2xl border border-white/8 bg-black/16 px-3 py-2.5 text-sm text-white/56 shadow-[inset_0_1px_0_rgba(255,255,255,0.02)]">
             <Type size={14} className="text-violet-200/60" />
-            {selectedBlock.type}
+            {selectedBlockTypeLabel}
           </div>
         </InspectorField>
       </div>
