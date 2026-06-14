@@ -20,6 +20,21 @@ function LayerMiniPreview({ block }: { block: PreviewBlock }): JSX.Element {
   const baseClass =
     "relative h-9 w-12 shrink-0 overflow-hidden rounded-[10px] border border-white/8 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.10),transparent_36%),linear-gradient(135deg,rgba(15,23,42,0.96),rgba(3,7,18,0.96))] shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
 
+  if (block.type === "camera-slot") {
+    return (
+      <div className={baseClass}>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_35%_25%,rgba(168,85,247,0.28),transparent_34%),linear-gradient(135deg,rgba(30,27,75,0.42),rgba(2,6,23,0.96))]" />
+        <div className="absolute inset-1 rounded-[8px] border border-violet-200/16 bg-black/20 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]" />
+        <div className="absolute inset-0 flex items-center justify-center text-[11px] font-black uppercase tracking-[0.08em] text-violet-100/72">
+          CAM
+        </div>
+        <div className="absolute bottom-1 left-1 right-1 h-1 rounded-full bg-violet-200/16">
+          <div className="h-full w-1/2 rounded-full bg-violet-200/46" />
+        </div>
+      </div>
+    )
+  }
+
   if (block.type === "image" && block.src) {
     return (
       <div className={baseClass}>
@@ -64,6 +79,30 @@ function LayerMiniPreview({ block }: { block: PreviewBlock }): JSX.Element {
       </div>
     </div>
   )
+}
+
+function getLayerTypeLabel(block: PreviewBlock): string {
+  switch (block.type) {
+    case "camera-slot":
+      return "Camera Slot"
+    case "image":
+      return "Image"
+    case "video":
+      return "Video"
+    case "pdf":
+      return "PDF"
+    case "text":
+      return "Text"
+    default:
+      return block.type
+  }
+}
+
+function getLayerStackPositionLabel(index: number, total: number): string {
+  if (total <= 1) return "Only"
+  if (index === 0) return "Top"
+  if (index === total - 1) return "Base"
+  return `L${index + 1}`
 }
 
 export default function LayerStackPanel({
@@ -139,7 +178,7 @@ export default function LayerStackPanel({
         </div>
 
         <div className="rounded-full border border-sky-300/10 bg-sky-400/[0.045] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/42">
-          Drag Stack
+          Top → Base
         </div>
       </div>
 
@@ -161,6 +200,8 @@ export default function LayerStackPanel({
             const isSelected = block.id === selectedBlockId
             const isTopLayer = index === 0
             const isBottomLayer = index === sortedBlocks.length - 1
+            const layerTypeLabel = getLayerTypeLabel(block)
+            const layerPositionLabel = getLayerStackPositionLabel(index, sortedBlocks.length)
 
             return (
               <button
@@ -218,20 +259,20 @@ export default function LayerStackPanel({
                   <div className="relative shrink-0">
                     <LayerMiniPreview block={block} />
                     <div
-                      className={`absolute -left-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border text-[8px] font-black uppercase tracking-tight ${
+                      className={`absolute -left-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full border px-1 text-[7px] font-black uppercase tracking-tight ${
                         isSelected
                           ? "border-violet-300/22 bg-violet-300/[0.22] text-violet-50/78 shadow-[0_0_10px_rgba(168,85,247,0.16)]"
                           : "border-white/10 bg-black/70 text-white/44"
                       }`}
                     >
-                      {index + 1}
+                      {layerPositionLabel}
                     </div>
                   </div>
 
                   <div className="min-w-0">
                     <div className="flex min-w-0 items-center gap-2">
                       <div className="truncate text-xs font-semibold text-white/74">
-                        {block.label || block.type}
+                        {block.label || layerTypeLabel}
                       </div>
                       {isSelected ? (
                         <span className="shrink-0 rounded-full border border-violet-300/14 bg-violet-400/[0.09] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.09em] text-violet-100/58">
@@ -240,7 +281,7 @@ export default function LayerStackPanel({
                       ) : null}
                     </div>
                     <div className="mt-0.5 flex items-center gap-1.5 text-[8px] font-black uppercase tracking-[0.11em] text-white/28">
-                      <span>{block.type}</span>
+                      <span>{layerTypeLabel}</span>
                       <span>·</span>
                       <span className="tabular-nums">z {block.zIndex ?? 0}</span>
                       <span>·</span>
@@ -301,6 +342,11 @@ export default function LayerStackPanel({
                   >
                     {block.hidden ? "Hidden" : "Live"}
                   </span>
+                  {block.locked ? (
+                    <span className="hidden rounded-full border border-amber-300/12 bg-amber-400/[0.055] px-1.5 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-amber-100/42 xl:inline-flex">
+                      Locked
+                    </span>
+                  ) : null}
 
                   <span
                     draggable
@@ -313,7 +359,7 @@ export default function LayerStackPanel({
                     }}
                     onDragEnd={resetDragState}
                     className="flex h-7 w-7 cursor-grab items-center justify-center rounded-xl border border-white/7 bg-black/18 text-white/24 transition hover:-translate-y-px hover:border-violet-300/20 hover:bg-violet-400/[0.08] hover:text-violet-100/70 active:cursor-grabbing group-hover/layer:border-white/12 group-hover/layer:text-white/38"
-                    title="Drag to reorder layer"
+                    title="Drag layer in stack"
                   >
                     <GripVertical size={12} />
                   </span>
