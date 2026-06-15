@@ -51,6 +51,26 @@ export type StageState = {
   updated_at: string
 }
 
+const STAGE_MIN_HEIGHT_CLASS = "min-h-[420px]"
+
+const STAGE_MONITOR_SWEEP_CLASS =
+  "pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[stageMonitorSweep_7s_ease-in-out_infinite]"
+
+const STAGE_MONITOR_GRID_TEXTURE_CLASS =
+  "pointer-events-none absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_24px)]"
+
+const STAGE_BRAND_FRAME_CLASS =
+  "group relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-2xl border border-sky-300/15 bg-[radial-gradient(circle_at_50%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_70%,rgba(168,85,247,0.20),transparent_32%),linear-gradient(135deg,#020617,#0f172a_48%,#111827)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]"
+
+const STAGE_SPEAKER_FOCUS_FRAME_CLASS =
+  "group relative min-h-[420px] overflow-hidden rounded-2xl bg-black p-5"
+
+function getStageGridColumnsClass(trackCount: number): string {
+  if (trackCount <= 1) return "grid-cols-1"
+  if (trackCount === 2) return "grid-cols-1 md:grid-cols-2"
+  return "grid-cols-1 md:grid-cols-2"
+}
+
 function SignalAtmosphere({
   live,
   tone = "neutral",
@@ -434,7 +454,7 @@ export default function StageVideoPreview({
           {screenTrack ? (
             <VideoTrack
               trackRef={screenTrack}
-              className="aspect-video h-full min-h-[420px] w-full object-contain"
+              className={`aspect-video h-full w-full object-contain ${STAGE_MIN_HEIGHT_CLASS}`}
             />
           ) : (
             <CompactEmptySignal label="No screen share" />
@@ -449,7 +469,7 @@ export default function StageVideoPreview({
 
     if (screenLayoutPreset === "brand") {
       return (
-        <div className="group relative flex min-h-[420px] items-center justify-center overflow-hidden rounded-2xl border border-sky-300/15 bg-[radial-gradient(circle_at_50%_18%,rgba(56,189,248,0.24),transparent_30%),radial-gradient(circle_at_82%_70%,rgba(168,85,247,0.20),transparent_32%),linear-gradient(135deg,#020617,#0f172a_48%,#111827)] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+        <div className={STAGE_BRAND_FRAME_CLASS}>
           <SignalAtmosphere live={stageState.is_live} tone="screen" />
 
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.06),transparent_38%,rgba(255,255,255,0.035))]" />
@@ -460,7 +480,7 @@ export default function StageVideoPreview({
           </div>
 
           <div className="relative w-[86%] overflow-hidden rounded-[28px] border border-white/15 bg-black shadow-[0_30px_100px_rgba(56,189,248,0.22)]">
-            <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.045)_42%,transparent_64%)] animate-[stageMonitorSweep_7s_ease-in-out_infinite]" />
+            <div className={STAGE_MONITOR_SWEEP_CLASS} />
             <div className="pointer-events-none absolute inset-x-8 top-0 z-20 h-px bg-gradient-to-r from-transparent via-sky-200/24 to-transparent" />
             {screenTrack ? (
               <VideoTrack
@@ -474,7 +494,7 @@ export default function StageVideoPreview({
 
           {speakerTrack ? (
             <div className="absolute bottom-5 right-5 w-52 max-w-[28%] overflow-hidden rounded-2xl border border-sky-200/20 bg-black shadow-[0_20px_70px_rgba(56,189,248,0.18)]">
-              <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[stageMonitorSweep_8s_ease-in-out_infinite]" />
+              <div className={STAGE_MONITOR_SWEEP_CLASS} />
               <VideoTrack
                 trackRef={speakerTrack}
                 className="aspect-video w-full object-cover"
@@ -493,11 +513,11 @@ export default function StageVideoPreview({
 
     if (screenLayoutPreset === "speaker_focus") {
       return (
-        <div className="group relative min-h-[420px] overflow-hidden rounded-2xl bg-black p-5">
+        <div className={STAGE_SPEAKER_FOCUS_FRAME_CLASS}>
           <SignalAtmosphere live={stageState.is_live} tone="speaker" />
           {screenTrack ? (
             <div className="absolute right-5 top-7 w-[54%] overflow-hidden rounded-[24px] border border-white/10 bg-black opacity-80 shadow-2xl">
-              <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.04)_42%,transparent_64%)] animate-[stageMonitorSweep_7.4s_ease-in-out_infinite]" />
+              <div className={STAGE_MONITOR_SWEEP_CLASS} />
               <VideoTrack
                 trackRef={screenTrack}
                 className="aspect-video h-full w-full object-contain"
@@ -510,7 +530,7 @@ export default function StageVideoPreview({
 
           {speakerTrack ? (
             <div className="absolute bottom-5 left-5 w-[46%] max-w-[460px] overflow-hidden rounded-2xl border border-white/15 bg-black shadow-2xl">
-              <div className="pointer-events-none absolute inset-0 z-20 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.05)_42%,transparent_64%)] animate-[stageMonitorSweep_6.8s_ease-in-out_infinite]" />
+              <div className={STAGE_MONITOR_SWEEP_CLASS} />
               <VideoTrack
                 trackRef={speakerTrack}
                 className="aspect-video w-full object-cover"
@@ -533,7 +553,7 @@ export default function StageVideoPreview({
     }
 
     return (
-      <div className="relative grid min-h-[420px] gap-4 lg:grid-cols-[1.45fr_0.55fr]">
+      <div className={`relative grid gap-4 lg:grid-cols-[1.45fr_0.55fr] ${STAGE_MIN_HEIGHT_CLASS}`}>
         <div className="pointer-events-none absolute inset-y-4 right-[28%] z-20 w-px bg-gradient-to-b from-transparent via-violet-200/20 to-transparent" />
         <RoutedMonitorFrame mode="program">
           {screenTrack ? (
@@ -580,15 +600,11 @@ export default function StageVideoPreview({
 
   return (
     <div
-      className={`relative grid min-h-[420px] gap-4 ${
-        stableGridCameraTracks.length === 1
-          ? "grid-cols-1"
-          : stableGridCameraTracks.length === 2
-            ? "grid-cols-1 md:grid-cols-2"
-            : "grid-cols-1 md:grid-cols-2"
-      }`}
+      className={`relative grid gap-4 ${STAGE_MIN_HEIGHT_CLASS} ${getStageGridColumnsClass(
+        stableGridCameraTracks.length,
+      )}`}
     >
-      <div className="pointer-events-none absolute inset-0 opacity-[0.06] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.022)_0px,rgba(255,255,255,0.022)_1px,transparent_1px,transparent_24px)]" />
+      <div className={STAGE_MONITOR_GRID_TEXTURE_CLASS} />
       {stableGridCameraTracks.map((trackRef) => {
         const isPrimary = stageState.primary_participant_id === trackRef.participant.identity
         const isPinned = stageState.pinned_participant_id === trackRef.participant.identity

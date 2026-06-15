@@ -13,6 +13,21 @@ type ProducerRoomLayoutProps = {
   children: ReactNode
 }
 
+const PRODUCER_FRAME_BACKGROUND_CLASS =
+  "bg-[linear-gradient(180deg,rgba(4,7,13,0.998),rgba(2,4,9,1))]"
+
+const PRODUCER_FRAME_GRID_TEXTURE_CLASS =
+  "pointer-events-none absolute inset-0 opacity-[0.004] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_42px)]"
+
+const PRODUCER_FRAME_TOP_EDGE_CLASS =
+  "pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.055] to-transparent"
+
+const PRODUCER_FRAME_BOTTOM_EDGE_CLASS =
+  "pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.022] to-transparent"
+
+const PRODUCER_BUTTON_MOTION_SCOPE_CLASS =
+  "[&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-px [&_button:active]:translate-y-0"
+
 export function ProducerUploadInputs({
   pdfInputRef,
   videoInputRef,
@@ -139,10 +154,13 @@ export function ProducerRoomWorkspaceFrame({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative flex min-h-0 flex-1 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(4,7,13,0.998),rgba(2,4,9,1))] px-0 pb-0 pt-0">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.004] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_42px)]" />
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.055] to-transparent" />
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.022] to-transparent" />
+    <div
+      className={`relative flex min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 pt-0 ${PRODUCER_FRAME_BACKGROUND_CLASS}`}
+    >
+      <div className={PRODUCER_FRAME_GRID_TEXTURE_CLASS} />
+      <div className={PRODUCER_FRAME_TOP_EDGE_CLASS} />
+      <div className={PRODUCER_FRAME_BOTTOM_EDGE_CLASS} />
+
       <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden">
         {children}
       </div>
@@ -154,7 +172,9 @@ export function ProducerRoomGrid({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative flex h-full min-h-0 flex-1 w-full overflow-hidden [&_button]:transition-all [&_button]:duration-200 [&_button:hover]:-translate-y-px [&_button:active]:translate-y-0">
+    <div
+      className={`relative flex h-full min-h-0 w-full flex-1 overflow-hidden ${PRODUCER_BUTTON_MOTION_SCOPE_CLASS}`}
+    >
       {children}
     </div>
   )

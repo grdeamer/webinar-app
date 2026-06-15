@@ -31,6 +31,30 @@ type ProducerRoomTopChromeProps = {
   ) => void
 }
 
+const TOP_CHROME_SHELL_CLASS =
+  "group/topchrome relative isolate z-[90] shrink-0 overflow-visible border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(3,6,12,0.94),rgba(4,7,14,0.72),rgba(2,4,9,0.36))] shadow-[0_10px_28px_rgba(0,0,0,0.22)]"
+
+const TOP_CHROME_TOP_EDGE_CLASS =
+  "pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent"
+
+const TOP_CHROME_BOTTOM_EDGE_CLASS =
+  "pointer-events-none absolute inset-x-[18%] bottom-0 z-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.035] to-transparent"
+
+const TOP_CHROME_HUB_BUTTON_CLASS =
+  "relative z-[210] flex h-8 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition duration-75 active:scale-[0.94] hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
+
+const TOP_CHROME_HUB_MENU_CLASS =
+  "absolute right-0 top-11 z-[220] w-72 origin-top-right overflow-hidden rounded-[18px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(6,10,18,0.992),rgba(2,4,9,0.998))] p-2 shadow-[0_28px_74px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.036)] backdrop-blur-xl"
+
+const TOP_CHROME_PRIMARY_HUB_LINK_CLASS =
+  "rounded-[12px] border border-sky-200/[0.10] bg-sky-300/[0.050] px-3 py-2 text-[12px] font-semibold text-sky-50/76 transition hover:border-sky-200/18 hover:bg-sky-300/[0.085] hover:text-white"
+
+const TOP_CHROME_HUB_LINK_CLASS =
+  "rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84"
+
+const TOP_CHROME_STATUS_PILL_CLASS =
+  "pointer-events-none flex h-8 min-w-[108px] items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-black/38 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md"
+
 function TopChromeTransmissionShell({
   isLive,
   children,
@@ -67,7 +91,7 @@ function TopChromeTransmissionShell({
   }, [hubOpen])
 
   return (
-    <div className="group/topchrome relative isolate z-[90] shrink-0 overflow-visible border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(3,6,12,0.94),rgba(4,7,14,0.72),rgba(2,4,9,0.36))] shadow-[0_10px_28px_rgba(0,0,0,0.22)]">
+    <div className={TOP_CHROME_SHELL_CLASS}>
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-8 transition-opacity duration-700 ${
           isLive
@@ -76,15 +100,15 @@ function TopChromeTransmissionShell({
         }`}
       />
 
-      <div className="pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
-      <div className="pointer-events-none absolute inset-x-[18%] bottom-0 z-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.035] to-transparent" />
+      <div className={TOP_CHROME_TOP_EDGE_CLASS} />
+      <div className={TOP_CHROME_BOTTOM_EDGE_CLASS} />
 
       <div className="absolute right-4 top-2.5 z-[120] flex items-center gap-2">
         <div ref={hubRef} className="relative">
           <button
             type="button"
             onClick={() => setHubOpen((current) => !current)}
-            className="relative z-[210] flex h-8 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition duration-75 active:scale-[0.94] hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
+            className={TOP_CHROME_HUB_BUTTON_CLASS}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-sky-300/80 shadow-[0_0_8px_rgba(125,211,252,0.34)]" />
             Hub
@@ -99,7 +123,7 @@ function TopChromeTransmissionShell({
 
           {hubOpen ? (
             <div
-              className="absolute right-0 top-11 z-[220] w-72 origin-top-right overflow-hidden rounded-[18px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(6,10,18,0.992),rgba(2,4,9,0.998))] p-2 shadow-[0_28px_74px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.036)] backdrop-blur-xl"
+              className={TOP_CHROME_HUB_MENU_CLASS}
               style={{
                 animation: "producerHubMenuIn 220ms cubic-bezier(0.2, 1.25, 0.32, 1) both",
               }}
@@ -109,19 +133,19 @@ function TopChromeTransmissionShell({
               </div>
 
               <div className="grid gap-1.5">
-                <a href="../" className="rounded-[12px] border border-sky-200/[0.10] bg-sky-300/[0.050] px-3 py-2 text-[12px] font-semibold text-sky-50/76 transition hover:border-sky-200/18 hover:bg-sky-300/[0.085] hover:text-white">
+                <a href="../" className={TOP_CHROME_PRIMARY_HUB_LINK_CLASS}>
                   Exit Producer
                 </a>
-                <a href="../../" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                <a href="../../" className={TOP_CHROME_HUB_LINK_CLASS}>
                   Session Overview
                 </a>
-                <a href="../../../registrants" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                <a href="../../../registrants" className={TOP_CHROME_HUB_LINK_CLASS}>
                   Registrants
                 </a>
-                <a href="../../../emails" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                <a href="../../../emails" className={TOP_CHROME_HUB_LINK_CLASS}>
                   Emails
                 </a>
-                <a href="../../../" className="rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84">
+                <a href="../../../" className={TOP_CHROME_HUB_LINK_CLASS}>
                   Event Dashboard
                 </a>
               </div>
@@ -131,7 +155,7 @@ function TopChromeTransmissionShell({
 
         <div className="h-5 w-px bg-gradient-to-b from-transparent via-white/[0.10] to-transparent" />
 
-        <div className="pointer-events-none flex h-8 min-w-[108px] items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-black/38 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md">
+        <div className={TOP_CHROME_STATUS_PILL_CLASS}>
           <span
             className={`h-1.5 w-1.5 rounded-full ${
               isLive

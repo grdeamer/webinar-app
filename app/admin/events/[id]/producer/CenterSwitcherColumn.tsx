@@ -446,6 +446,41 @@ function PreviewCompositionGuides({ visible }: { visible: boolean }): JSX.Elemen
     </div>
   );
 }
+
+function PreviewSnapGuides({
+  snapGuideX,
+  snapGuideY,
+}: {
+  snapGuideX: number | null;
+  snapGuideY: number | null;
+}): JSX.Element | null {
+  if (snapGuideX === null && snapGuideY === null) return null;
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-[68] rounded-b-[18px]">
+      {snapGuideX !== null ? (
+        <div
+          className="absolute top-0 h-full w-px -translate-x-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
+          style={{ left: snapGuideX }}
+        >
+          <div className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+          <div className="absolute bottom-2 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+        </div>
+      ) : null}
+
+      {snapGuideY !== null ? (
+        <div
+          className="absolute left-0 h-px w-full -translate-y-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
+          style={{ top: snapGuideY }}
+        >
+          <div className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+          <div className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function CenterSwitcherColumn({
   triggerAudienceCue,
   onHideAudienceCue,
@@ -572,39 +607,6 @@ export default function CenterSwitcherColumn({
   bringSelectedBlockToFront: () => void;
   deleteSelectedBlock: () => void;
 }): JSX.Element {
-function PreviewSnapGuides({
-  snapGuideX,
-  snapGuideY,
-}: {
-  snapGuideX: number | null;
-  snapGuideY: number | null;
-}): JSX.Element | null {
-  if (snapGuideX === null && snapGuideY === null) return null;
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-[68] rounded-b-[18px]">
-      {snapGuideX !== null ? (
-        <div
-          className="absolute top-0 h-full w-px -translate-x-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
-          style={{ left: snapGuideX }}
-        >
-          <div className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
-          <div className="absolute bottom-2 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
-        </div>
-      ) : null}
-
-      {snapGuideY !== null ? (
-        <div
-          className="absolute left-0 h-px w-full -translate-y-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
-          style={{ top: snapGuideY }}
-        >
-          <div className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
-          <div className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
-        </div>
-      ) : null}
-    </div>
-  );
-}
   const switcherGridRef = useRef<HTMLDivElement | null>(null);
   const isDraggingSplitRef = useRef(false);
   const [previewPanePercent, setPreviewPanePercent] = useState(50);

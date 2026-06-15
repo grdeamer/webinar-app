@@ -547,10 +547,46 @@ updateShadowColor: updateSelectedBlockShadowColor,
     captureSceneThumbnail,
   });
 
+  const commitPreviewToProgram = useCallback((): void => {
+    const previewState = latestStageStateRef.current ?? stageState;
+
+    if (previewState) {
+      const committedProgramState: StageState = {
+        ...previewState,
+        is_live: Boolean(previewState.is_live ?? programState?.is_live),
+      };
+
+      latestCommittedProgramStateRef.current = committedProgramState;
+      updateProgramState(committedProgramState);
+      setProgramBlocks(previewBlocks);
+
+      window.setTimeout(() => {
+        if (!latestCommittedProgramStateRef.current) return;
+        updateProgramState(latestCommittedProgramStateRef.current);
+        setProgramBlocks(previewBlocks);
+      }, 250);
+
+      window.setTimeout(() => {
+        if (!latestCommittedProgramStateRef.current) return;
+        updateProgramState(latestCommittedProgramStateRef.current);
+        setProgramBlocks(previewBlocks);
+      }, 900);
+    }
+
+    setLastTransportActionAt(Date.now());
+  }, [
+    previewBlocks,
+    programState?.is_live,
+    setProgramBlocks,
+    stageState,
+    updateProgramState,
+  ]);
+
   const { takeProgram } = useProducerTransport({
     runTake,
     sessionId,
     stageState,
+    commitPreviewToProgram,
     previewBlocks,
     selectedSceneId,
     selectedTransitionDurationMs,
@@ -588,6 +624,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       flashSceneHotkey,
     ],
   );
+
   const {
     localPdfDeck,
     handleProducerPdfUpload,
@@ -634,99 +671,20 @@ updateShadowColor: updateSelectedBlockShadowColor,
       transitionType?: CinematicTransitionType,
       transitionDurationMs?: number,
     ): void => {
-      const previewState = latestStageStateRef.current ?? stageState;
-
-      if (previewState) {
-        const committedProgramState: StageState = {
-          ...previewState,
-          is_live: Boolean(previewState.is_live ?? programState?.is_live),
-        };
-
-        latestCommittedProgramStateRef.current = committedProgramState;
-        updateProgramState(committedProgramState);
-        setProgramBlocks(previewBlocks);
-
-        window.setTimeout(() => {
-          if (!latestCommittedProgramStateRef.current) return;
-          updateProgramState(latestCommittedProgramStateRef.current);
-          setProgramBlocks(previewBlocks);
-        }, 250);
-
-        window.setTimeout(() => {
-          if (!latestCommittedProgramStateRef.current) return;
-          updateProgramState(latestCommittedProgramStateRef.current);
-          setProgramBlocks(previewBlocks);
-        }, 900);
-      }
-
-      setLastTransportActionAt(Date.now());
-      void mode;
-      void transitionType;
-      void transitionDurationMs;
+      takeProgram(mode, transitionType, { transitionDurationMs });
     },
-    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, updateProgramState],
+    [takeProgram],
   );
 
   const handleLeftRailTake = useCallback((): void => {
-    const previewState = latestStageStateRef.current ?? stageState;
-
-    if (previewState) {
-      const committedProgramState: StageState = {
-        ...previewState,
-        is_live: Boolean(previewState.is_live ?? programState?.is_live),
-      };
-
-      latestCommittedProgramStateRef.current = committedProgramState;
-      updateProgramState(committedProgramState);
-      setProgramBlocks(previewBlocks);
-
-      window.setTimeout(() => {
-        if (!latestCommittedProgramStateRef.current) return;
-        updateProgramState(latestCommittedProgramStateRef.current);
-        setProgramBlocks(previewBlocks);
-      }, 250);
-
-      window.setTimeout(() => {
-        if (!latestCommittedProgramStateRef.current) return;
-        updateProgramState(latestCommittedProgramStateRef.current);
-        setProgramBlocks(previewBlocks);
-      }, 900);
-    }
-
-    setLastTransportActionAt(Date.now());
-  }, [previewBlocks, programState?.is_live, setProgramBlocks, stageState, updateProgramState]);
+    takeProgram("cut");
+  }, [takeProgram]);
 
   const handleCenterSwitcherTake = useCallback(
     (mode: "cut" | "auto"): void => {
-      const previewState = latestStageStateRef.current ?? stageState;
-
-      if (previewState) {
-        const committedProgramState: StageState = {
-          ...previewState,
-          is_live: Boolean(previewState.is_live ?? programState?.is_live),
-        };
-
-        latestCommittedProgramStateRef.current = committedProgramState;
-        updateProgramState(committedProgramState);
-        setProgramBlocks(previewBlocks);
-
-        window.setTimeout(() => {
-          if (!latestCommittedProgramStateRef.current) return;
-          updateProgramState(latestCommittedProgramStateRef.current);
-          setProgramBlocks(previewBlocks);
-        }, 250);
-
-        window.setTimeout(() => {
-          if (!latestCommittedProgramStateRef.current) return;
-          updateProgramState(latestCommittedProgramStateRef.current);
-          setProgramBlocks(previewBlocks);
-        }, 900);
-      }
-
-      setLastTransportActionAt(Date.now());
-      void mode;
+      takeProgram(mode);
     },
-    [previewBlocks, programState?.is_live, setProgramBlocks, stageState, updateProgramState],
+    [takeProgram],
   );
 
   const handleGoLive = useCallback((): void => {
@@ -1777,3 +1735,4 @@ onSaveScene: () => {
     </LiveKitRoom>
   );
 }
+

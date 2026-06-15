@@ -1,5 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from "react"
 
+const PRODUCER_BOTTOM_DOCK_STORAGE_KEY = "producer-bottom-dock-height"
+const DEFAULT_BOTTOM_DOCK_HEIGHT = 288
+const MIN_BOTTOM_DOCK_HEIGHT = 220
+const MAX_BOTTOM_DOCK_HEIGHT = 560
+const MAX_BOTTOM_DOCK_VIEWPORT_RATIO = 0.68
+
+const PRODUCER_WORKSPACE_GRID_COLUMNS = "82px minmax(0,1fr) 272px"
+
+function clampBottomDockHeight(height: number): number {
+  return Math.min(MAX_BOTTOM_DOCK_HEIGHT, Math.max(MIN_BOTTOM_DOCK_HEIGHT, height))
+}
+
 type ProducerRoomWorkspaceProps = {
   leftRail: ReactNode
   centerColumn: ReactNode
@@ -14,19 +26,24 @@ export default function ProducerRoomWorkspace({
   bottomDock,
 }: ProducerRoomWorkspaceProps): JSX.Element {
   const [bottomDockHeight, setBottomDockHeight] = useState(() => {
-    if (typeof window === "undefined") return 288
+    if (typeof window === "undefined") return DEFAULT_BOTTOM_DOCK_HEIGHT
 
-    const saved = window.localStorage.getItem("producer-bottom-dock-height")
-    const parsed = saved ? Number(saved) : 288
+    const saved = window.localStorage.getItem(PRODUCER_BOTTOM_DOCK_STORAGE_KEY)
+    const parsed = saved ? Number(saved) : DEFAULT_BOTTOM_DOCK_HEIGHT
 
-    return Number.isFinite(parsed) ? Math.min(560, Math.max(220, parsed)) : 288
+    return Number.isFinite(parsed)
+      ? clampBottomDockHeight(parsed)
+      : DEFAULT_BOTTOM_DOCK_HEIGHT
   })
 
   const dockResizeStartYRef = useRef(0)
   const dockResizeStartHeightRef = useRef(bottomDockHeight)
 
   useEffect(() => {
-    window.localStorage.setItem("producer-bottom-dock-height", String(bottomDockHeight))
+    window.localStorage.setItem(
+      PRODUCER_BOTTOM_DOCK_STORAGE_KEY,
+      String(bottomDockHeight),
+    )
   }, [bottomDockHeight])
 
   const beginBottomDockResize = useCallback(
@@ -38,10 +55,13 @@ export default function ProducerRoomWorkspace({
 
       function handleMouseMove(moveEvent: MouseEvent): void {
         const delta = dockResizeStartYRef.current - moveEvent.clientY
-        const maxHeight = Math.min(window.innerHeight * 0.68, 560)
+        const viewportConstrainedMaxHeight = Math.min(
+          window.innerHeight * MAX_BOTTOM_DOCK_VIEWPORT_RATIO,
+          MAX_BOTTOM_DOCK_HEIGHT,
+        )
         const nextHeight = Math.min(
-          maxHeight,
-          Math.max(220, dockResizeStartHeightRef.current + delta),
+          viewportConstrainedMaxHeight,
+          Math.max(MIN_BOTTOM_DOCK_HEIGHT, dockResizeStartHeightRef.current + delta),
         )
 
         setBottomDockHeight(nextHeight)
@@ -62,17 +82,28 @@ export default function ProducerRoomWorkspace({
     [bottomDockHeight],
   )
 
+  const resetBottomDockHeight = useCallback((): void => {
+    setBottomDockHeight(DEFAULT_BOTTOM_DOCK_HEIGHT)
+  }, [])
+
+  const gridTemplateRows = bottomDock
+    ? `minmax(0,1fr) 8px ${bottomDockHeight}px`
+    : "minmax(0,1fr)"
+
+  const railChromeClassName =
+    "min-h-0 overflow-hidden border-white/[0.055] bg-[linear-gradient(180deg,rgba(6,10,18,0.985),rgba(2,4,9,1))]"
+
   return (
     <div
       className="grid h-full min-h-0 w-full min-w-0 gap-0 overflow-hidden px-0 pb-0 pt-0"
       style={{
-        gridTemplateColumns: "82px minmax(0,1fr) 272px",
-        gridTemplateRows: bottomDock
-          ? `minmax(0,1fr) 8px ${bottomDockHeight}px`
-          : "minmax(0,1fr)",
+        gridTemplateColumns: PRODUCER_WORKSPACE_GRID_COLUMNS,
+        gridTemplateRows,
       }}
     >
-      <div className={bottomDock ? "row-span-3 min-h-0 border-r border-white/[0.055] bg-[linear-gradient(180deg,rgba(6,10,18,0.985),rgba(2,4,9,1))] shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]" : "min-h-0 border-r border-white/[0.055] bg-[linear-gradient(180deg,rgba(6,10,18,0.985),rgba(2,4,9,1))] shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]"}>
+      <div
+        className={`${bottomDock ? "row-span-3" : ""} ${railChromeClassName} border-r shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
+      >
         {leftRail}
       </div>
 
@@ -91,7 +122,7 @@ export default function ProducerRoomWorkspace({
             aria-orientation="horizontal"
             title="Resize lower dock"
             onMouseDown={beginBottomDockResize}
-            onDoubleClick={() => setBottomDockHeight(288)}
+            onDoubleClick={resetBottomDockHeight}
             className="group relative z-20 col-start-2 min-h-0 cursor-row-resize border-y border-white/[0.035] bg-black/20 transition hover:border-sky-300/18 hover:bg-sky-400/[0.035]"
           >
             <div className="absolute left-1/2 top-1/2 h-px w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 transition group-hover:bg-sky-200/35" />

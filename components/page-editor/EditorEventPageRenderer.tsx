@@ -27,6 +27,80 @@ type EditorElement = {
 
 type SystemComponentsMap = Partial<Record<SystemComponentKey, ReactNode>>
 
+const RENDERER_ROOT_CLASS =
+  "relative overflow-hidden rounded-[30px] border text-white shadow-[0_24px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.040)]"
+
+const RENDERER_TEXTURE_CLASS =
+  "pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_18px)]"
+
+const RENDERER_TOP_GLOW_CLASS =
+  "pointer-events-none absolute inset-x-[10%] top-0 h-px bg-gradient-to-r from-transparent via-violet-100/[0.12] to-transparent"
+
+const SECTION_BASE_CLASS =
+  "group/section relative overflow-hidden px-8 transition-all duration-300"
+
+const SECTION_SELECTED_CLASS =
+  "ring-2 ring-sky-300/80 ring-inset shadow-[inset_0_0_0_1px_rgba(125,211,252,0.24),0_0_38px_rgba(56,189,248,0.12)]"
+
+const SECTION_EDITABLE_CLASS =
+  "hover:bg-white/[0.018] hover:shadow-[inset_0_0_0_1px_rgba(255,255,255,0.035)]"
+
+const SECTION_SELECTION_BADGE_CLASS =
+  "pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-sky-200/20 bg-sky-300/[0.105] px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-sky-50/70 shadow-[0_0_18px_rgba(56,189,248,0.12)] backdrop-blur-md"
+
+const SECTION_HOVER_EDGE_CLASS =
+  "pointer-events-none absolute inset-x-[12%] top-0 z-20 h-px bg-gradient-to-r from-transparent via-sky-100/[0.11] to-transparent opacity-0 transition group-hover/section:opacity-100"
+
+const SECTION_SELECTED_GLOW_CLASS =
+  "pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.065),transparent_34%)]"
+
+const SECTION_TOP_EDGE_CLASS =
+  "pointer-events-none absolute inset-x-[8%] top-0 h-px bg-gradient-to-r from-transparent via-white/[0.070] to-transparent"
+
+const SECTION_BOTTOM_EDGE_CLASS =
+  "pointer-events-none absolute inset-x-[8%] bottom-0 h-px bg-gradient-to-r from-transparent via-white/[0.050] to-transparent"
+
+const HERO_KICKER_CLASS =
+  "inline-flex items-center rounded-full border border-violet-200/[0.14] bg-violet-300/[0.075] px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] text-violet-50/66 shadow-[0_0_18px_rgba(168,85,247,0.08)]"
+
+const HERO_TITLE_CLASS =
+  "mt-4 text-5xl font-semibold tracking-[-0.055em] leading-[0.95] md:text-6xl"
+
+const HERO_BODY_CLASS =
+  "mt-5 whitespace-pre-wrap text-base leading-8 text-white/62"
+
+const SECTION_TITLE_CLASS =
+  "text-3xl font-semibold tracking-[-0.04em] text-white md:text-4xl"
+
+const SECTION_BODY_CLASS =
+  "mt-4 whitespace-pre-wrap text-sm leading-7 text-white/58 md:text-[15px]"
+
+const RICH_TEXT_TITLE_CLASS =
+  "text-2xl font-semibold tracking-[-0.03em] text-white"
+
+const RICH_TEXT_BODY_CLASS =
+  "whitespace-pre-wrap text-sm leading-7 text-white/62 md:text-[15px]"
+
+const ELEMENT_BASE_CLASS =
+  "absolute overflow-hidden rounded-[18px] border border-white/[0.08] shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.030)]"
+
+const ELEMENT_SELECTION_CHROME_CLASS =
+  "pointer-events-none absolute inset-0 rounded-[18px] border border-sky-200/38 shadow-[0_0_20px_rgba(56,189,248,0.14)]"
+
+const SECTION_BLOCK_STACK_CLASS = "relative z-10 space-y-6"
+const SECTION_BLOCK_STACK_WITH_HEADER_CLASS = "relative z-10 mt-8 space-y-6"
+
+const SYSTEM_COMPONENT_CONTENT_CLASS = "relative z-10"
+
+const ELEMENT_BUTTON_CLASS =
+  "rounded-[14px] border border-blue-200/20 bg-blue-600 px-5 py-3 text-sm font-semibold text-white no-underline shadow-[0_12px_34px_rgba(37,99,235,0.24)] transition hover:bg-blue-500"
+
+const EMPTY_VIDEO_BLOCK_CLASS =
+  "flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_40%),#020617] text-sm font-semibold uppercase tracking-[0.16em] text-white/42"
+
+const SPACER_BLOCK_CLASS =
+  "flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-[0.18em] text-white/34"
+
 function getWidthClass(width?: EventPageSection["config"]["contentWidth"]) {
   switch (width) {
     case "md":
@@ -53,8 +127,17 @@ function getPaddingYClass(paddingY?: EventPageSection["config"]["paddingY"]) {
   }
 }
 
-function getTextAlignClass(textAlign?: EventPageSection["config"]["textAlign"]) {
-  return textAlign === "center" ? "text-center" : "text-left"
+function getSectionMinHeightClass(
+  sectionType?: EventPageSection["type"],
+  paddingY?: EventPageSection["config"]["paddingY"]
+) {
+  if (sectionType === "hero") return "min-h-[420px]"
+  if (paddingY === "lg") return "min-h-[300px]"
+  return "min-h-[220px]"
+}
+
+function getHeaderAlignmentClass(textAlign?: EventPageSection["config"]["textAlign"]) {
+  return textAlign === "center" ? "mx-auto max-w-4xl text-center" : "max-w-4xl text-left"
 }
 
 function getOuterBg(
@@ -66,18 +149,18 @@ function getOuterBg(
       case "transparent":
         return "bg-transparent"
       case "panel":
-        return "bg-white/10"
+        return "bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.14),transparent_36%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.020))]"
       case "subtle":
       default:
-        return "bg-white/5"
+        return "bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.10),transparent_32%),radial-gradient(circle_at_82%_20%,rgba(168,85,247,0.12),transparent_30%)]"
     }
   }
 
   switch (backgroundStyle) {
     case "subtle":
-      return "bg-white/[0.02]"
+      return "bg-white/[0.018]"
     case "panel":
-      return "bg-white/[0.03]"
+      return "bg-[linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))]"
     case "transparent":
     default:
       return "bg-transparent"
@@ -89,10 +172,10 @@ function getCardClass(style?: "none" | "panel" | "subtle") {
     case "none":
       return ""
     case "subtle":
-      return "rounded-3xl border border-white/10 bg-white/[0.03] p-6"
+      return "relative overflow-hidden rounded-[24px] border border-white/[0.07] bg-white/[0.025] p-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
     case "panel":
     default:
-      return "rounded-3xl border border-white/10 bg-white/[0.05] p-6 shadow-xl shadow-black/20"
+      return "relative overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.020))] p-6 shadow-[0_18px_58px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.035)]"
   }
 }
 
@@ -115,15 +198,13 @@ function renderBlock(
         className={block.props.align === "center" ? "text-center" : "text-left"}
       >
         {block.props.title ? (
-          <h3 className="text-2xl font-semibold text-white">{block.props.title}</h3>
+          <h3 className={RICH_TEXT_TITLE_CLASS}>{block.props.title}</h3>
         ) : null}
 
         {block.props.body ? (
           <div
             className={
-              block.props.title
-                ? "mt-4 whitespace-pre-wrap text-white/70"
-                : "whitespace-pre-wrap text-white/70"
+              block.props.title ? `mt-4 ${RICH_TEXT_BODY_CLASS}` : RICH_TEXT_BODY_CLASS
             }
           >
             {block.props.body}
@@ -141,24 +222,29 @@ function renderBlock(
 
     return (
       <div key={block.id} className={cardClass || undefined}>
-        {block.props.title ? (
-          <h3 className="text-lg font-semibold text-white">{block.props.title}</h3>
+        {cardClass ? (
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
         ) : null}
+        <div className={SYSTEM_COMPONENT_CONTENT_CLASS}>
+          {block.props.title ? (
+            <h3 className="text-xl font-semibold tracking-[-0.03em] text-white">{block.props.title}</h3>
+          ) : null}
 
-        {block.props.body ? (
-          <p
-            className={
-              block.props.title
-                ? "mt-2 text-sm text-white/60"
-                : "text-sm text-white/60"
-            }
-          >
-            {block.props.body}
-          </p>
-        ) : null}
+          {block.props.body ? (
+            <p
+              className={
+                block.props.title
+                  ? "mt-2 text-sm leading-7 text-white/56"
+                  : "text-sm leading-7 text-white/56"
+              }
+            >
+              {block.props.body}
+            </p>
+          ) : null}
 
-        <div className={block.props.title || block.props.body ? "mt-4" : ""}>
-          {node}
+          <div className={block.props.title || block.props.body ? "mt-4" : ""}>
+            {node}
+          </div>
         </div>
       </div>
     )
@@ -275,13 +361,15 @@ export default function EditorEventPageRenderer({
 
   return (
     <div
-      className="relative overflow-hidden rounded-3xl border text-white"
+      className={RENDERER_ROOT_CLASS}
       style={{
         backgroundColor: resolvedEventTheme.pageBackgroundColor,
         borderColor: resolvedEventTheme.panelBorderColor,
         color: resolvedEventTheme.textColor,
       }}
     >
+      <div className={RENDERER_TEXTURE_CLASS} />
+      <div className={RENDERER_TOP_GLOW_CLASS} />
       {resolvedSections.map((section, index) => {
         const config = section.config ?? {}
 
@@ -309,10 +397,17 @@ export default function EditorEventPageRenderer({
                   e.stopPropagation()
                   onSelectSection?.(section.id)
                 }}
-                className={`${isEditing ? "cursor-pointer" : ""} ${
-                  selectedSectionId === section.id ? "ring-2 ring-sky-400 ring-inset" : ""
-                }`}
+                className={`group/section relative overflow-hidden transition-all duration-300 ${
+                  isEditing ? `cursor-pointer ${SECTION_EDITABLE_CLASS}` : ""
+                } ${selectedSectionId === section.id ? SECTION_SELECTED_CLASS : ""}`}
               >
+                {isEditing ? <div className={SECTION_HOVER_EDGE_CLASS} /> : null}
+                {selectedSectionId === section.id ? (
+                  <>
+                    <div className={SECTION_SELECTED_GLOW_CLASS} />
+                    <div className={SECTION_SELECTION_BADGE_CLASS}>Selected Section</div>
+                  </>
+                ) : null}
                 {node}
               </div>
             )
@@ -388,7 +483,8 @@ export default function EditorEventPageRenderer({
 
         const widthClass = getWidthClass(config.contentWidth)
         const paddingYClass = getPaddingYClass(config.paddingY)
-        const textAlignClass = getTextAlignClass(config.textAlign)
+        const sectionMinHeightClass = getSectionMinHeightClass(section.type, config.paddingY)
+        const headerAlignmentClass = getHeaderAlignmentClass(config.textAlign)
         const showTopDivider = hasTopDivider(config.divider)
         const showBottomDivider = hasBottomDivider(config.divider)
         const hasHeader = Boolean(config.title || config.body)
@@ -409,13 +505,13 @@ export default function EditorEventPageRenderer({
               e.stopPropagation()
               onSelectSection?.(section.id)
             }}
-            className={`px-8 ${paddingYClass} ${getOuterBg(
+            className={`${SECTION_BASE_CLASS} ${sectionMinHeightClass} ${paddingYClass} ${getOuterBg(
               config.backgroundStyle,
               section.type
-            )} ${showTopDivider ? "border-t border-white/10" : ""} ${
-              showBottomDivider ? "border-b border-white/10" : ""
-            } ${isEditing ? "cursor-pointer" : ""} ${
-              isSelected ? "ring-2 ring-sky-400 ring-inset" : ""
+            )} ${showTopDivider ? "border-t border-white/[0.075]" : ""} ${
+              showBottomDivider ? "border-b border-white/[0.055]" : ""
+            } ${isEditing ? `cursor-pointer ${SECTION_EDITABLE_CLASS}` : ""} ${
+              isSelected ? SECTION_SELECTED_CLASS : ""
             }`}
             style={{
               backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
@@ -424,16 +520,25 @@ export default function EditorEventPageRenderer({
               color: sectionTextColor,
             }}
           >
-            <div className={`mx-auto ${widthClass}`}>
+            {isEditing ? <div className={SECTION_HOVER_EDGE_CLASS} /> : null}
+            {isSelected ? (
+              <>
+                <div className={SECTION_SELECTED_GLOW_CLASS} />
+                <div className={SECTION_SELECTION_BADGE_CLASS}>Selected Section</div>
+              </>
+            ) : null}
+            {showTopDivider ? <div className={SECTION_TOP_EDGE_CLASS} /> : null}
+            {showBottomDivider ? <div className={SECTION_BOTTOM_EDGE_CLASS} /> : null}
+            <div className={`relative z-20 mx-auto ${widthClass}`}>
               {section.type === "hero" && hasHeader ? (
-                <div className={textAlignClass}>
-                  <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-                    Event Page
+                <div className={headerAlignmentClass}>
+                  <div className={HERO_KICKER_CLASS}>
+                    Jupiter Experience
                   </div>
 
                   {config.title ? (
                     <h1
-                      className="mt-3 text-4xl font-bold"
+                      className={HERO_TITLE_CLASS}
                       style={{ color: sectionTextColor }}
                     >
                       {config.title}
@@ -442,7 +547,7 @@ export default function EditorEventPageRenderer({
 
                   {config.body ? (
                     <p
-                      className={`mt-4 whitespace-pre-wrap ${
+                      className={`${HERO_BODY_CLASS} ${
                         config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
                       }`}
                       style={{ color: sectionTextColor }}
@@ -452,10 +557,10 @@ export default function EditorEventPageRenderer({
                   ) : null}
                 </div>
               ) : hasHeader ? (
-                <div className={textAlignClass}>
+                <div className={headerAlignmentClass}>
                   {config.title ? (
                     <h2
-                      className="text-2xl font-semibold"
+                      className={SECTION_TITLE_CLASS}
                       style={{ color: sectionTextColor }}
                     >
                       {config.title}
@@ -465,7 +570,7 @@ export default function EditorEventPageRenderer({
                   {config.body ? (
                     <p
                       className={
-                        config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"
+                        config.title ? SECTION_BODY_CLASS : SECTION_BODY_CLASS.replace("mt-4 ", "")
                       }
                       style={{ color: sectionTextColor }}
                     >
@@ -476,7 +581,7 @@ export default function EditorEventPageRenderer({
               ) : null}
 
               {section.blocks?.length ? (
-                <div className={hasHeader ? "mt-6 space-y-6" : "space-y-6"}>
+                <div className={hasHeader ? SECTION_BLOCK_STACK_WITH_HEADER_CLASS : SECTION_BLOCK_STACK_CLASS}>
                   {section.blocks.map((block) => renderBlock(block, systemComponents))}
                 </div>
               ) : null}
@@ -489,18 +594,18 @@ export default function EditorEventPageRenderer({
         ? elements.map((el) => (
             <div
               key={el.id}
-              className={`absolute overflow-hidden rounded-xl shadow-lg ${
+              className={`${ELEMENT_BASE_CLASS} ${
                 el.element_type === "image"
-                  ? "bg-white"
+                  ? "bg-white/90"
                   : el.element_type === "video"
-                    ? "bg-black"
+                    ? "bg-black/90"
                     : el.element_type === "pdf"
-                      ? "bg-red-950/90 text-white"
+                      ? "bg-red-950/80 text-white"
                       : el.element_type === "button"
                         ? "bg-transparent"
                         : el.element_type === "spacer"
-                          ? "border border-dashed border-white/20 bg-white/5"
-                          : "bg-amber-400 text-black"
+                          ? "border-dashed border-white/20 bg-white/5"
+                          : "bg-amber-300 text-black"
               }`}
               style={{
                 left: el.x,
@@ -510,6 +615,7 @@ export default function EditorEventPageRenderer({
                 height: el.height ?? "auto",
               }}
             >
+              {isEditing ? <div className={ELEMENT_SELECTION_CHROME_CLASS} /> : null}
               {el.element_type === "image" ? (
                 <img
                   src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
@@ -526,7 +632,7 @@ export default function EditorEventPageRenderer({
                     draggable={false}
                   />
                 ) : (
-                  <div className="flex h-full w-full items-center justify-center text-sm text-white/50">
+                  <div className={EMPTY_VIDEO_BLOCK_CLASS}>
                     Video block
                   </div>
                 )
@@ -544,13 +650,13 @@ export default function EditorEventPageRenderer({
                 <div className="flex h-full w-full items-center justify-center">
                   <a
                     href={String(el.props?.href ?? "#")}
-                    className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white no-underline"
+                    className={ELEMENT_BUTTON_CLASS}
                   >
                     {el.content || "Button"}
                   </a>
                 </div>
               ) : el.element_type === "spacer" ? (
-                <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
+                <div className={SPACER_BLOCK_CLASS}>
                   Spacer
                 </div>
               ) : (

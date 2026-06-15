@@ -3,6 +3,7 @@
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
+import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import {
   SECTION_TEMPLATE_OPTIONS,
@@ -40,6 +41,45 @@ export type EventPageSection = {
 type AddableElementType = "text" | "image" | "pdf" | "video" | "button" | "spacer"
 
 const GRID_SIZE = 8
+
+const EXPERIENCE_EDITOR_ROOT_CLASS =
+  "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.07),transparent_28%),radial-gradient(circle_at_82%_14%,rgba(168,85,247,0.075),transparent_30%),linear-gradient(180deg,#050816_0%,#040712_44%,#02040a_100%)] text-white"
+
+const EXPERIENCE_EDITOR_TOPBAR_CLASS =
+  "border-b border-white/[0.07] bg-[linear-gradient(180deg,rgba(6,10,18,0.92),rgba(3,6,13,0.78))] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl"
+
+const EXPERIENCE_EDITOR_CANVAS_SHELL_CLASS =
+  "rounded-[30px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-5 shadow-[0_22px_72px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.040)]"
+
+const EXPERIENCE_EDITOR_CANVAS_FRAME_CLASS =
+  "mt-6 min-h-[900px] rounded-[26px] border border-white/[0.08] bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_58px_rgba(0,0,0,0.28)]"
+
+const EXPERIENCE_EDITOR_RAIL_CLASS =
+  "shrink-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.965),rgba(2,4,9,0.992))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
+
+const EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS =
+  "rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_12px_34px_rgba(255,255,255,0.08)] transition hover:bg-white/90"
+
+const EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS =
+  "rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/10 hover:text-white"
+
+const EXPERIENCE_EDITOR_SELECT_CLASS =
+  "rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/78 outline-none transition hover:border-white/16 focus:border-violet-200/28"
+
+const EXPERIENCE_EDITOR_RAIL_HEADER_CLASS =
+  "rounded-[22px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.13),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.016))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+
+const EXPERIENCE_EDITOR_RAIL_CARD_CLASS =
+  "rounded-[22px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]"
+
+const EXPERIENCE_EDITOR_SAVE_TEMPLATE_BUTTON_CLASS =
+  "mt-6 w-full rounded-[16px] border border-indigo-200/16 bg-indigo-500/18 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-indigo-50/86 shadow-[0_0_24px_rgba(99,102,241,0.10)] transition hover:bg-indigo-500/26"
+
+const EXPERIENCE_EDITOR_SAVE_BUTTON_CLASS =
+  "mt-4 w-full rounded-[16px] border border-emerald-200/16 bg-emerald-500/18 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-emerald-50/86 shadow-[0_0_24px_rgba(16,185,129,0.10)] transition hover:bg-emerald-500/26"
+
+const EXPERIENCE_EDITOR_SAVE_MESSAGE_CLASS =
+  "mt-3 rounded-[14px] border border-white/[0.065] bg-black/22 px-3 py-2 text-sm font-semibold text-white/66"
 
 const FONT_FAMILY_OPTIONS = [
   { label: "Inter", value: "Inter, sans-serif" },
@@ -502,26 +542,14 @@ const isEmbedded =
   const [isEditing, setIsEditing] = useState(isEmbedded)
   const [loading, setLoading] = useState(true)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
-  const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const [selectedSectionId, setSelectedSectionId] = useState<string | null>(null)
-  const [selectedBlockId, setSelectedBlockId] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
-  const [editingElementId, setEditingElementId] = useState<string | null>(null)
   const [isMobilePreview, setIsMobilePreview] = useState(false)
-  const [selectedPageKey, setSelectedPageKey] = useState<string>("event_home")
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
   const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
-
-  const [elements, setElements] = useState<EditorElement[]>([])
-  const [sections, setSections] = useState<EventPageSection[]>(
-  getDefaultSections(selectedPageKey, eventInfo)
-)
   const [templates, setTemplates] = useState<any[]>([])
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
   const [generalSession, setGeneralSession] = useState<{
     title?: string | null
     sourceType?: string | null
@@ -530,14 +558,50 @@ const isEmbedded =
     playbackUrl?: string | null
   } | null>(null)
 
-  const [eventTheme, setEventTheme] = useState<EventTheme>({
-    pageBackgroundColor: "#020617",
-    panelBackgroundColor: "#0f172a",
-    panelBorderColor: "rgba(255,255,255,0.10)",
-    textColor: "#ffffff",
-    gradientColorA: "#0f172a",
-    gradientColorB: "#1d4ed8",
-    gradientAngle: "135deg",
+  const {
+    elements,
+    setElements,
+    sections,
+    setSections,
+    eventTheme,
+    setEventTheme,
+    selectedId,
+    setSelectedId,
+    selectedIds,
+    setSelectedIds,
+    selectedElement,
+    selectedSectionId,
+    setSelectedSectionId,
+    selectedSection,
+    selectedBlockId,
+    setSelectedBlockId,
+    selectedBlock,
+    editingElementId,
+    setEditingElementId,
+    selectedPageKey,
+    setSelectedPageKey,
+    switchPageState,
+    hasUnsavedChanges,
+    setHasUnsavedChanges,
+    canUndo,
+    canRedo,
+    createHistorySnapshot,
+    restoreHistorySnapshot,
+    updateElement,
+    updateElementProps,
+    updateSectionConfig,
+    addSectionPreset,
+    deleteSelectedSection,
+    duplicateSelectedSection,
+    moveSelectedSection,
+    selectBlock,
+    updateBlock,
+    updateBlockProps,
+    removeBlockFromSection,
+    addBlockToSection: addBlockToSectionState,
+  } = usePageEditorState({
+    initialPageKey: "event_home",
+    eventInfo,
   })
 
   const [selectionBox, setSelectionBox] = useState<{
@@ -883,6 +947,10 @@ const res = await fetch(
     setSaveMessage(isAutoSave ? "Auto-saved" : "Saved")
     setHasUnsavedChanges(false)
 
+    if (!isAutoSave) {
+      createHistorySnapshot()
+    }
+
     if (isAutoSave) {
       window.setTimeout(() => {
         setSaveMessage((current) => (current === "Auto-saved" ? null : current))
@@ -890,44 +958,6 @@ const res = await fetch(
     }
   }
 
-  function updateSectionConfig(id: string, patch: Partial<SectionConfig>) {
-    setHasUnsavedChanges(true)
-    setSections((prev) =>
-      prev.map((section) =>
-        section.id === id
-          ? {
-              ...section,
-              config: {
-                ...section.config,
-                ...patch,
-              },
-            }
-          : section
-      )
-    )
-  }
-
-  function updateElement(id: string, patch: Partial<EditorElement>) {
-    setHasUnsavedChanges(true)
-    setElements((prev) => prev.map((el) => (el.id === id ? { ...el, ...patch } : el)))
-  }
-
-  function updateElementProps(id: string, patch: Record<string, unknown>) {
-    setHasUnsavedChanges(true)
-    setElements((prev) =>
-      prev.map((el) =>
-        el.id === id
-          ? {
-              ...el,
-              props: {
-                ...(el.props ?? {}),
-                ...patch,
-              },
-            }
-          : el
-      )
-    )
-  }
 
   function commitInlineElementEdit(id: string, value: string) {
     updateElement(id, { content: value })
@@ -988,18 +1018,7 @@ const res = await fetch(
   }
 
   function addBlockToSection(sectionId: string, block: SectionBlock) {
-    setHasUnsavedChanges(true)
-    setSections((prev) =>
-      prev.map((section) =>
-        section.id === sectionId
-          ? {
-              ...section,
-              blocks: [...(section.blocks ?? []), block],
-            }
-          : section
-      )
-    )
-
+    addBlockToSectionState(sectionId, block)
     setSelectedSectionId(sectionId)
     setSelectedBlockId(block.id)
     setSelectedId(null)
@@ -1007,56 +1026,18 @@ const res = await fetch(
     setEditingElementId(null)
   }
 
-  function selectBlock(sectionId: string, blockId: string) {
-    setSelectedSectionId(sectionId)
-    setSelectedBlockId(blockId)
-    setSelectedId(null)
-    setSelectedIds([])
-    setEditingElementId(null)
-  }
 
   function updateSelectedBlock(nextBlock: SectionBlock) {
     if (!selectedSectionId || !selectedBlockId) return
-
-    setHasUnsavedChanges(true)
-    setSections((prev) =>
-      prev.map((section) =>
-        section.id === selectedSectionId
-          ? {
-              ...section,
-              blocks: (section.blocks ?? []).map((block) =>
-                block.id === selectedBlockId ? nextBlock : block
-              ),
-            }
-          : section
-      )
-    )
+    updateBlock(selectedSectionId, selectedBlockId, nextBlock)
   }
 
   function updateSelectedBlockProps(
     nextProps: Partial<Extract<SectionBlock, { type: "rich_text" }>["props"]> |
       Partial<Extract<SectionBlock, { type: "system_component" }>["props"]>
   ) {
-    if (!selectedBlock) return
-
-    if (selectedBlock.type === "rich_text") {
-      updateSelectedBlock({
-        ...selectedBlock,
-        props: {
-          ...selectedBlock.props,
-          ...nextProps,
-        },
-      })
-      return
-    }
-
-    updateSelectedBlock({
-      ...selectedBlock,
-      props: {
-        ...selectedBlock.props,
-        ...nextProps,
-      },
-    })
+    if (!selectedSectionId || !selectedBlockId) return
+    updateBlockProps(selectedSectionId, selectedBlockId, nextProps)
   }
 
   function moveSelectedBlock(direction: "up" | "down") {
@@ -1088,28 +1069,16 @@ const res = await fetch(
   function deleteSelectedBlock() {
     if (!selectedSectionId || !selectedBlockId) return
 
-    setHasUnsavedChanges(true)
+    const currentBlocks = selectedSection?.blocks ?? []
+    const currentIndex = currentBlocks.findIndex((block) => block.id === selectedBlockId)
+    const nextSelectedBlockId =
+      currentIndex === -1
+        ? null
+        : currentBlocks[Math.max(0, currentIndex - 1)]?.id ??
+          currentBlocks[currentIndex + 1]?.id ??
+          null
 
-    let nextSelectedBlockId: string | null = null
-
-    setSections((prev) =>
-      prev.map((section) => {
-        if (section.id !== selectedSectionId) return section
-
-        const blocks = [...(section.blocks ?? [])]
-        const index = blocks.findIndex((block) => block.id === selectedBlockId)
-        if (index === -1) return section
-
-        blocks.splice(index, 1)
-        nextSelectedBlockId = blocks[Math.max(0, index - 1)]?.id ?? blocks[0]?.id ?? null
-
-        return {
-          ...section,
-          blocks,
-        }
-      })
-    )
-
+    removeBlockFromSection(selectedSectionId, selectedBlockId)
     setSelectedBlockId(nextSelectedBlockId)
   }
 
@@ -1118,44 +1087,6 @@ const res = await fetch(
     addBlockToSection(selectedSectionId, createSystemBlock(componentKey))
   }
 
-  function addSectionPreset(type: SectionType) {
-    if (type === "hero") {
-      const existingHero = sections.find((section) => section.type === "hero")
-      if (existingHero) {
-        setSelectedSectionId(existingHero.id)
-        setSelectedId(null)
-        return
-      }
-    }
-
-    const nextId =
-      type === "hero"
-        ? "hero"
-        : normalizeSectionIds([
-            ...sections,
-            {
-              id: "temp",
-              type,
-              config: getSafeDefaultSectionConfig(type),
-              blocks: [],
-            },
-          ]).at(-1)?.id ?? getNextContentId()
-
-    setHasUnsavedChanges(true)
-    setSections((prev) => [
-      ...prev,
-      {
-        id: nextId,
-        type,
-        config: getSafeDefaultSectionConfig(type),
-        blocks: [],
-      },
-    ])
-
-    setSelectedSectionId(nextId)
-    setSelectedBlockId(null)
-    setSelectedId(null)
-  }
 
   function addElement(elementType: AddableElementType) {
     const id = createElementId()
@@ -1303,81 +1234,8 @@ const res = await fetch(
     }
   }
 
-  function moveSelectedSection(direction: "up" | "down") {
-    if (!selectedSectionId) return
 
-    setHasUnsavedChanges(true)
-    setSections((prev) => {
-      const heroSections = prev.filter((section) => section.type === "hero")
-      const contentSections = prev.filter((section) => section.type !== "hero")
 
-      const contentIndex = contentSections.findIndex((section) => section.id === selectedSectionId)
-      if (contentIndex === -1) return prev
-
-      const targetIndex = direction === "up" ? contentIndex - 1 : contentIndex + 1
-      if (targetIndex < 0 || targetIndex >= contentSections.length) return prev
-
-      const reordered = [...contentSections]
-      const [moved] = reordered.splice(contentIndex, 1)
-      reordered.splice(targetIndex, 0, moved)
-
-      return normalizeSectionIds([...heroSections, ...reordered])
-    })
-  }
-
-  function deleteSelectedSection() {
-    if (!selectedSectionId) return
-
-    const selected = sections.find((section) => section.id === selectedSectionId)
-    if (!selected || selected.type === "hero") return
-
-    const remainingSections = sections.filter((section) => section.id !== selectedSectionId)
-    const remainingContent = remainingSections.filter((section) => section.type !== "hero")
-
-    setHasUnsavedChanges(true)
-    setSections(normalizeSectionIds(remainingSections))
-    setSelectedSectionId(remainingContent[0]?.id ?? null)
-    setSelectedBlockId(null)
-    setSelectedId(null)
-  }
-
-  function duplicateSelectedSection() {
-    if (!selectedSectionId) return
-
-    const selected = sections.find((section) => section.id === selectedSectionId)
-    if (!selected || selected.type === "hero") return
-
-    const selectedIndex = sections.findIndex((section) => section.id === selectedSectionId)
-    if (selectedIndex === -1) return
-
-    const nextId = getNextContentId()
-
-    const duplicatedSection: EventPageSection = {
-      ...selected,
-      id: nextId,
-      config: {
-        ...selected.config,
-        adminLabel: selected.config.adminLabel
-          ? `${selected.config.adminLabel} Copy`
-          : "Content Copy",
-        title: selected.config.title
-          ? `${selected.config.title} Copy`
-          : "Content Section Copy",
-      },
-      blocks: Array.isArray(selected.blocks) ? [...selected.blocks] : [],
-    }
-
-    setHasUnsavedChanges(true)
-    setSections((prev) => {
-      const next = [...prev]
-      next.splice(selectedIndex + 1, 0, duplicatedSection)
-      return normalizeSectionIds(next)
-    })
-
-    setSelectedSectionId(nextId)
-    setSelectedBlockId(null)
-    setSelectedId(null)
-  }
 
   function deleteSelectedElement() {
     const idsToDelete = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
@@ -1485,10 +1343,7 @@ const res = await fetch(
     setDragOverSectionId(null)
   }
 
-  const selectedSection = sections.find((section) => section.id === selectedSectionId) ?? null
-  const selectedElement = elements.find((element) => element.id === selectedId) ?? null
-  const selectedBlock =
-    selectedSection?.blocks?.find((block) => block.id === selectedBlockId) ?? null
+  // removed local selectedSection, selectedElement, selectedBlock (now from state)
 
   const contentSections = sections.filter((section) => section.type !== "hero")
   const selectedContentIndex =
@@ -1525,9 +1380,9 @@ const res = await fetch(
   const registryItem = selectedSection ? getSafeSectionRegistryItem(selectedSection.type) : null
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
+    <div className={EXPERIENCE_EDITOR_ROOT_CLASS}>
       {!isEmbedded && (
-        <div className="border-b border-white/10 bg-slate-950/80 backdrop-blur">
+        <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
           <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
             <div className="flex items-center gap-4">
               <div>
@@ -1542,17 +1397,12 @@ const res = await fetch(
 
 <div className="flex items-center gap-3">
   <select
-    value={selectedPageKey}
+  value={selectedPageKey}
   onChange={(e) => {
-  setSelectedPageKey(e.target.value)
-  setSelectedId(null)
-  setSelectedIds([])
-  setSelectedSectionId(null)
-  setSelectedBlockId(null)
-  setEditingElementId(null)
-}}
-    className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
-  >
+    switchPageState(e.target.value)
+  }}
+  className={EXPERIENCE_EDITOR_SELECT_CLASS}
+>
     {PAGE_OPTIONS.map((page) => (
       <option key={page.value} value={page.value}>
         {page.label}
@@ -1571,7 +1421,7 @@ const res = await fetch(
       setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
       setHasUnsavedChanges(true)
     }}
-    className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-sm"
+    className={EXPERIENCE_EDITOR_SELECT_CLASS}
   >
     <option value="">Apply Template</option>
 
@@ -1582,16 +1432,43 @@ const res = await fetch(
     ))}
   </select>
 
+  <div className="flex items-center gap-2">
+    <button
+      type="button"
+      onClick={() => restoreHistorySnapshot("undo")}
+      disabled={!canUndo}
+      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+        canUndo
+          ? "border-white/10 bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
+          : "cursor-not-allowed border-white/5 bg-white/[0.025] text-white/28"
+      }`}
+    >
+      Undo
+    </button>
+
+    <button
+      type="button"
+      onClick={() => restoreHistorySnapshot("redo")}
+      disabled={!canRedo}
+      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
+        canRedo
+          ? "border-white/10 bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
+          : "cursor-not-allowed border-white/5 bg-white/[0.025] text-white/28"
+      }`}
+    >
+      Redo
+    </button>
+  </div>
   <button
     onClick={() => setIsMobilePreview((v) => !v)}
-    className="rounded-xl border border-white/10 px-4 py-2 text-sm"
+    className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}
   >
     {isMobilePreview ? "Mobile" : "Desktop"}
   </button>
 
   <button
     onClick={() => setIsEditing((v) => !v)}
-    className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black"
+    className={EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS}
   >
     {isEditing ? "Close Editor" : "Edit Page"}
   </button>
@@ -1607,7 +1484,7 @@ const res = await fetch(
               className={
                 isEmbedded
                   ? "min-h-screen border-0 bg-transparent p-0"
-                  : "rounded-3xl border border-white/10 bg-white/5 p-10"
+                  : EXPERIENCE_EDITOR_CANVAS_SHELL_CLASS
               }
             >
               {loading ? (
@@ -1621,7 +1498,7 @@ const res = await fetch(
                     className={`relative overflow-hidden bg-black ${
   isEmbedded
     ? "min-h-screen rounded-none border-0 mt-0"
-    : "mt-8 min-h-[900px] rounded-2xl border border-white/10"
+    : EXPERIENCE_EDITOR_CANVAS_FRAME_CLASS
 }`}
                     onPointerDown={(e) => {
                       if (!isEditing) return
@@ -2236,7 +2113,7 @@ const res = await fetch(
         </div>
 
 <aside
-  className={`shrink-0 border-l border-white/10 bg-slate-950/95 backdrop-blur-xl ${
+  className={`${EXPERIENCE_EDITOR_RAIL_CLASS} ${
     isEmbedded
       ? "w-[320px] opacity-100 overflow-visible"
       : `transition-[width,opacity] duration-300 ${
@@ -2245,10 +2122,10 @@ const res = await fetch(
   }`}
 >
   <div className={`h-full ${isEmbedded ? "w-[320px] p-4" : "w-[380px] p-6"}`}>
-            <div>
-              <div className="text-xs uppercase tracking-[0.22em] text-white/40">Editor</div>
+            <div className={EXPERIENCE_EDITOR_RAIL_HEADER_CLASS}>
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">Experience Composer</div>
 
-              <h3 className="text-lg font-semibold">
+              <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
                 {selectedElement
                   ? "Element Settings"
                   : selectedSection
@@ -2256,7 +2133,7 @@ const res = await fetch(
                   : "Page Editor"}
               </h3>
 
-              <div className="mt-2 text-xs text-white/50">
+              <div className="mt-2 text-sm leading-6 text-white/52">
                 {selectedElement
                   ? "Editing element"
                   : selectedSection
@@ -2264,8 +2141,8 @@ const res = await fetch(
                   : "Select something to edit"}
               </div>
 
-              <div className="mt-3 text-xs text-white/45">
-                Preview mode: {isMobilePreview ? "Mobile" : "Desktop"}
+              <div className="mt-4 inline-flex rounded-full border border-white/[0.07] bg-black/22 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
+                Preview · {isMobilePreview ? "Mobile" : "Desktop"}
               </div>
             </div>
 
@@ -2288,21 +2165,21 @@ const res = await fetch(
 
                 alert("Template saved")
               }}
-              className="mt-6 w-full rounded-xl bg-indigo-600 px-4 py-3 font-semibold hover:bg-indigo-500"
+              className={EXPERIENCE_EDITOR_SAVE_TEMPLATE_BUTTON_CLASS}
             >
               Save Template
             </button>
 
             <button
               onClick={() => void saveLayout(false)}
-              className="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-3 font-semibold hover:bg-emerald-500"
+              className={EXPERIENCE_EDITOR_SAVE_BUTTON_CLASS}
             >
               Save
             </button>
 
-            {saveMessage && <div className="mt-3 text-sm text-white/70">{saveMessage}</div>}
+            {saveMessage && <div className={EXPERIENCE_EDITOR_SAVE_MESSAGE_CLASS}>{saveMessage}</div>}
 
-            <div className="mt-4 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>
               <SectionPanelHeader
                 title={
                   selectedElement
@@ -2319,7 +2196,7 @@ const res = await fetch(
                 <div className="mt-4">
                   {!selectedElement && !selectedSection && (
   <div className="space-y-4">
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+    <div className="rounded-[20px] border border-white/[0.075] bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
       <div className="text-xs uppercase tracking-[0.18em] text-white/40">
         Event Theme
       </div>
@@ -2410,7 +2287,55 @@ const res = await fetch(
                       ? `${getSafeSectionLabel(selectedSection.type)} section`
                       : "Select a section or canvas element"}
                   </div>
+{selectedElement ? (
+  <div className="rounded-[20px] border border-white/[0.075] bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+    <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
+      Element Telemetry
+    </div>
 
+    <div className="mt-4 grid grid-cols-2 gap-3">
+      <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.026] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-white/35">
+          Position
+        </div>
+
+        <div className="mt-2 text-sm font-semibold text-white">
+          {selectedElement.x}px / {selectedElement.y}px
+        </div>
+      </div>
+
+      <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.026] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-white/35">
+          Dimensions
+        </div>
+
+        <div className="mt-2 text-sm font-semibold text-white">
+          {(selectedElement.width ?? 0)} × {(selectedElement.height ?? 0)}
+        </div>
+      </div>
+
+      <div className="rounded-[16px] border border-white/[0.07] bg-white/[0.026] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-white/35">
+          Layer
+        </div>
+
+        <div className="mt-2 text-sm font-semibold text-white">
+          Z-{selectedElement.z_index ?? 1}
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-3">
+        <div className="text-[10px] uppercase tracking-[0.18em] text-white/35">
+          Type
+        </div>
+
+        <div className="mt-2 text-sm font-semibold capitalize text-white">
+          {selectedElement.element_type ?? "text"}
+        </div>
+      </div>
+    </div>
+  </div>
+) : null}
                   {selectedElement ? (
                     <div className="mt-4 space-y-4">
                       <div className="grid grid-cols-2 gap-3">

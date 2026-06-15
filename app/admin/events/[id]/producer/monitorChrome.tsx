@@ -16,22 +16,116 @@ type MonitorBadgeProps = {
   tone?: MonitorBadgeTone
 }
 
+const BADGE_BASE_CLASS =
+  "rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] backdrop-blur-md"
+
+const STATUS_PILL_BASE_CLASS =
+  "inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] backdrop-blur-md"
+
+const ROUTED_MONITOR_FRAME_BASE_CLASS =
+  "group relative overflow-hidden rounded-[24px] border border-white/8 bg-[#020308] opacity-0 shadow-[0_22px_72px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-18px_40px_rgba(0,0,0,0.58)] ring-1 transition-all duration-700 animate-[monitorBoot_700ms_ease-out_forwards]"
+
+const MONITOR_FLASH_CLASS =
+  "pointer-events-none absolute inset-0 z-30 bg-white/10 opacity-0 animate-[monitorFlash_900ms_ease-out]"
+
+const MONITOR_REFLECTION_CLASS =
+  "pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.035),transparent_18%,transparent_56%,rgba(255,255,255,0.014)_72%,transparent_88%)] opacity-28 mix-blend-screen"
+
+const MONITOR_SCANLINE_CLASS =
+  "pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.025)_0px,rgba(255,255,255,0.025)_1px,transparent_1px,transparent_7px)] opacity-[0.06]"
+
+const MONITOR_INNER_RING_CLASS =
+  "pointer-events-none absolute inset-0 rounded-[24px] border border-white/6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.022),inset_0_0_18px_rgba(255,255,255,0.018)]"
+
+function getMonitorBadgeToneClass(tone: MonitorBadgeTone): string {
+  if (tone === "live") {
+    return "border-red-300/16 bg-red-500/[0.08] text-red-100/62 shadow-[0_0_10px_rgba(248,113,113,0.08)]"
+  }
+
+  if (tone === "preview") {
+    return "border-sky-300/16 bg-sky-500/[0.08] text-sky-100/62 shadow-[0_0_10px_rgba(56,189,248,0.07)]"
+  }
+
+  if (tone === "confidence") {
+    return "border-violet-300/16 bg-violet-500/[0.08] text-violet-100/62 shadow-[0_0_10px_rgba(167,139,250,0.07)]"
+  }
+
+  return "border-white/8 bg-black/22 text-white/38"
+}
+
+function getStatusPillToneClass(tone: StatusPillTone): string {
+  if (tone === "live") {
+    return "border-red-300/16 bg-red-500/[0.08] text-red-100/62 shadow-[0_0_8px_rgba(248,113,113,0.06)]"
+  }
+
+  if (tone === "preview") {
+    return "border-sky-300/16 bg-sky-500/[0.08] text-sky-100/62 shadow-[0_0_8px_rgba(56,189,248,0.06)]"
+  }
+
+  if (tone === "confidence") {
+    return "border-violet-300/16 bg-violet-500/[0.08] text-violet-100/62 shadow-[0_0_8px_rgba(167,139,250,0.06)]"
+  }
+
+  if (tone === "primary") {
+    return "border-emerald-300/16 bg-emerald-500/[0.08] text-emerald-100/62 shadow-[0_0_8px_rgba(110,231,183,0.06)]"
+  }
+
+  if (tone === "pinned") {
+    return "border-amber-300/16 bg-amber-500/[0.08] text-amber-100/62 shadow-[0_0_8px_rgba(251,191,36,0.06)]"
+  }
+
+  if (tone === "screen") {
+    return "border-cyan-300/16 bg-cyan-500/[0.08] text-cyan-100/62 shadow-[0_0_8px_rgba(103,232,249,0.06)]"
+  }
+
+  return "border-white/8 bg-black/22 text-white/40"
+}
+
+function getMonitorModeClasses(mode: "program" | "preview" | "confidence"): {
+  ringClass: string
+  glowClass: string
+  pulseClass: string
+  edgePulseClass: string
+  tallyToneClass: string
+} {
+  if (mode === "program") {
+    return {
+      ringClass: "ring-red-400/22",
+      glowClass: "from-red-400/10 via-red-300/3",
+      pulseClass: "shadow-red-500/10",
+      edgePulseClass: "border-red-300/14 shadow-[0_0_18px_rgba(248,113,113,0.08)]",
+      tallyToneClass: "bg-red-400/75 shadow-[0_0_6px_rgba(248,113,113,0.28)]",
+    }
+  }
+
+  if (mode === "preview") {
+    return {
+      ringClass: "ring-sky-400/22",
+      glowClass: "from-sky-400/10 via-sky-300/3",
+      pulseClass: "shadow-sky-500/8",
+      edgePulseClass: "border-sky-300/12 shadow-[0_0_16px_rgba(56,189,248,0.06)]",
+      tallyToneClass: "bg-sky-300/75 shadow-[0_0_6px_rgba(56,189,248,0.24)]",
+    }
+  }
+
+  return {
+    ringClass: "ring-violet-400/22",
+    glowClass: "from-violet-400/10 via-violet-300/3",
+    pulseClass: "shadow-violet-500/8",
+    edgePulseClass: "border-violet-300/12 shadow-[0_0_16px_rgba(167,139,250,0.06)]",
+    tallyToneClass: "bg-violet-300/75 shadow-[0_0_6px_rgba(167,139,250,0.24)]",
+  }
+}
+
 export function MonitorBadge({
   label,
   tone = "default",
 }: MonitorBadgeProps): JSX.Element {
-  const toneClass =
-    tone === "live"
-      ? "border-red-300/16 bg-red-500/[0.08] text-red-100/62 shadow-[0_0_10px_rgba(248,113,113,0.08)]"
-      : tone === "preview"
-        ? "border-sky-300/16 bg-sky-500/[0.08] text-sky-100/62 shadow-[0_0_10px_rgba(56,189,248,0.07)]"
-        : tone === "confidence"
-          ? "border-violet-300/16 bg-violet-500/[0.08] text-violet-100/62 shadow-[0_0_10px_rgba(167,139,250,0.07)]"
-          : "border-white/8 bg-black/22 text-white/38"
+  const toneClass = getMonitorBadgeToneClass(tone)
 
   return (
     <span
-      className={`rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] backdrop-blur-md ${toneClass}`}
+      className={`${BADGE_BASE_CLASS} ${toneClass}`}
     >
       {label}
     </span>
@@ -47,24 +141,11 @@ export function StatusPill({
   label,
   tone = "default",
 }: StatusPillProps): JSX.Element {
-  const toneClass =
-    tone === "live"
-      ? "border-red-300/16 bg-red-500/[0.08] text-red-100/62 shadow-[0_0_8px_rgba(248,113,113,0.06)]"
-      : tone === "preview"
-        ? "border-sky-300/16 bg-sky-500/[0.08] text-sky-100/62 shadow-[0_0_8px_rgba(56,189,248,0.06)]"
-        : tone === "confidence"
-          ? "border-violet-300/16 bg-violet-500/[0.08] text-violet-100/62 shadow-[0_0_8px_rgba(167,139,250,0.06)]"
-          : tone === "primary"
-            ? "border-emerald-300/16 bg-emerald-500/[0.08] text-emerald-100/62 shadow-[0_0_8px_rgba(110,231,183,0.06)]"
-            : tone === "pinned"
-              ? "border-amber-300/16 bg-amber-500/[0.08] text-amber-100/62 shadow-[0_0_8px_rgba(251,191,36,0.06)]"
-              : tone === "screen"
-                ? "border-cyan-300/16 bg-cyan-500/[0.08] text-cyan-100/62 shadow-[0_0_8px_rgba(103,232,249,0.06)]"
-                : "border-white/8 bg-black/22 text-white/40"
+  const toneClass = getStatusPillToneClass(tone)
 
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] backdrop-blur-md ${toneClass}`}
+      className={`${STATUS_PILL_BASE_CLASS} ${toneClass}`}
     >
       {label}
     </span>
@@ -93,46 +174,19 @@ export function RoutedMonitorFrame({
   children,
   mode = "program",
 }: RoutedMonitorFrameProps): JSX.Element {
-  const ringClass =
-    mode === "program"
-      ? "ring-red-400/22"
-      : mode === "preview"
-        ? "ring-sky-400/22"
-        : "ring-violet-400/22"
-
-  const glowClass =
-    mode === "program"
-      ? "from-red-400/10 via-red-300/3"
-      : mode === "preview"
-        ? "from-sky-400/10 via-sky-300/3"
-        : "from-violet-400/10 via-violet-300/3"
-
-  const pulseClass =
-    mode === "program"
-      ? "shadow-red-500/10"
-      : mode === "preview"
-        ? "shadow-sky-500/8"
-        : "shadow-violet-500/8"
-
-  const edgePulseClass =
-    mode === "program"
-      ? "border-red-300/14 shadow-[0_0_18px_rgba(248,113,113,0.08)]"
-      : mode === "preview"
-        ? "border-sky-300/12 shadow-[0_0_16px_rgba(56,189,248,0.06)]"
-        : "border-violet-300/12 shadow-[0_0_16px_rgba(167,139,250,0.06)]"
-
-  const tallyToneClass =
-    mode === "program"
-      ? "bg-red-400/75 shadow-[0_0_6px_rgba(248,113,113,0.28)]"
-      : mode === "preview"
-        ? "bg-sky-300/75 shadow-[0_0_6px_rgba(56,189,248,0.24)]"
-        : "bg-violet-300/75 shadow-[0_0_6px_rgba(167,139,250,0.24)]"
+  const {
+    ringClass,
+    glowClass,
+    pulseClass,
+    edgePulseClass,
+    tallyToneClass,
+  } = getMonitorModeClasses(mode)
 
   return (
     <div
-      className={`group relative overflow-hidden rounded-[24px] border border-white/8 bg-[#020308] opacity-0 shadow-[0_22px_72px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-18px_40px_rgba(0,0,0,0.58)] ring-1 transition-all duration-700 animate-[monitorBoot_700ms_ease-out_forwards] ${ringClass} ${pulseClass}`}
+      className={`${ROUTED_MONITOR_FRAME_BASE_CLASS} ${ringClass} ${pulseClass}`}
     >
-      <div className="pointer-events-none absolute inset-0 z-30 bg-white/10 opacity-0 animate-[monitorFlash_900ms_ease-out]" />
+      <div className={MONITOR_FLASH_CLASS} />
       <div
         className={`pointer-events-none absolute inset-0 z-10 rounded-[28px] border opacity-70 ${edgePulseClass} ${mode === "program" ? "animate-pulse" : ""}`}
       />
@@ -140,9 +194,9 @@ export function RoutedMonitorFrame({
         className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glowClass} to-transparent`}
       />
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.075),transparent_34%),radial-gradient(circle_at_50%_105%,rgba(0,0,0,0.78),transparent_44%)]" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.035),transparent_18%,transparent_56%,rgba(255,255,255,0.014)_72%,transparent_88%)] opacity-28 mix-blend-screen" />
-      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.025)_0px,rgba(255,255,255,0.025)_1px,transparent_1px,transparent_7px)] opacity-[0.06]" />
-      <div className="pointer-events-none absolute inset-0 rounded-[24px] border border-white/6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.022),inset_0_0_18px_rgba(255,255,255,0.018)]" />
+      <div className={MONITOR_REFLECTION_CLASS} />
+      <div className={MONITOR_SCANLINE_CLASS} />
+      <div className={MONITOR_INNER_RING_CLASS} />
 
       <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_48%,rgba(0,0,0,0.22)_100%)]" />
 

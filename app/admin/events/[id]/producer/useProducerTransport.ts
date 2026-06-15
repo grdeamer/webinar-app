@@ -11,6 +11,7 @@ type Params = {
   selectedSceneId: string | null
   previewBlocks: PreviewBlock[]
   stageState: StageState | null
+  commitPreviewToProgram?: () => void
   runTake: (
     mode: "cut" | "auto",
     transitionType?: CinematicTransitionType
@@ -23,6 +24,7 @@ export default function useProducerTransport({
   selectedSceneId,
   previewBlocks,
   stageState,
+  commitPreviewToProgram,
   runTake,
 }: Params) {
   const [lastTransportActionAt, setLastTransportActionAt] = useState<number | null>(null)
@@ -42,6 +44,7 @@ export default function useProducerTransport({
       options?.transitionDurationMs ?? selectedTransitionDurationMs
 
     setLastTransportActionAt(Date.now())
+    commitPreviewToProgram?.()
 
     void runTake(mode, transitionType)
 
