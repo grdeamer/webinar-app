@@ -17,6 +17,7 @@ import type {
   SectionBlock,
   SystemComponentKey,
   EventTheme,
+  ExperienceNode,
 } from "@/lib/page-editor/sectionTypes"
 
 export type EditorElement = {
@@ -38,8 +39,12 @@ export type EventPageSection = {
   blocks?: SectionBlock[]
 }
 
-type AddableElementType = "text" | "image" | "pdf" | "video" | "button" | "spacer"
+type EditorExperienceNode = ExperienceNode & {
+  sourceType: "section" | "element"
+}
 
+type AddableElementType = "text" | "image" | "pdf" | "video" | "button" | "spacer"
+type RightRailTab = "inspect" | "layers" | "insert" | "page"
 const GRID_SIZE = 8
 
 const EXPERIENCE_EDITOR_ROOT_CLASS =
@@ -341,6 +346,79 @@ function getTextElementStyle(el: EditorElement) {
   }
 }
 
+function sectionToEditorExperienceNode(
+  section: EventPageSection,
+  index: number
+): EditorExperienceNode {
+  return {
+    id: section.id,
+    nodeType: "section",
+    sourceType: "section",
+    parentId: null,
+    position: {
+      x: 0,
+      y: index,
+    },
+    zIndex: index,
+    visible: section.config?.visible !== false,
+    locked: false,
+    props: {
+      sectionType: section.type,
+      adminLabel: section.config?.adminLabel,
+      contentWidth: section.config?.contentWidth,
+      paddingY: section.config?.paddingY,
+    },
+    children: section.blocks?.map((block, blockIndex) => ({
+      id: block.id,
+      nodeType: "block",
+      parentId: section.id,
+      position: {
+        x: 0,
+        y: blockIndex,
+      },
+      zIndex: blockIndex,
+      visible: true,
+      locked: false,
+      props: {
+        blockType: block.type,
+        ...block.props,
+      },
+    })),
+  }
+}
+
+function elementToEditorExperienceNode(element: EditorElement): EditorExperienceNode {
+  return {
+    id: element.id,
+    nodeType:
+      element.element_type === "image" ||
+      element.element_type === "video" ||
+      element.element_type === "pdf"
+        ? "media"
+        : element.element_type === "button" || element.element_type === "spacer"
+          ? "graphic"
+          : "overlay",
+    sourceType: "element",
+    parentId: null,
+    position: {
+      x: element.x,
+      y: element.y,
+    },
+    size: {
+      width: element.width ?? 0,
+      height: element.height ?? 0,
+    },
+    zIndex: element.z_index ?? 1,
+    visible: true,
+    locked: false,
+    props: {
+      elementType: element.element_type,
+      content: element.content,
+      ...element.props,
+    },
+  }
+}
+
 function SectionPanelHeader({
   title,
   open,
@@ -545,6 +623,9 @@ const isEmbedded =
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
   const [isMobilePreview, setIsMobilePreview] = useState(false)
+  const [canvasZoom, setCanvasZoom] = useState(1)
+  const [rightRailTab, setRightRailTab] = useState<RightRailTab>("inspect")
+  const [hoveredExperienceNodeId, setHoveredExperienceNodeId] = useState<string | null>(null)
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
@@ -1352,6 +1433,16 @@ const res = await fetch(
       : -1
 
   const normalizedElements = normalizeZIndexes(elements)
+  const experienceNodes: EditorExperienceNode[] = [
+    ...sections.map((section, index) => sectionToEditorExperienceNode(section, index)),
+    ...normalizedElements.map((element) => elementToEditorExperienceNode(element)),
+  ]
+  const selectedExperienceNode = experienceNodes.find(
+    (node) =>
+      node.id === selectedId ||
+      node.id === selectedSectionId ||
+      node.children?.some((child) => child.id === selectedBlockId)
+  )
   const selectedElementIndex = normalizedElements.findIndex((el) => el.id === selectedId)
 
   const canMoveUp = selectedSection?.type !== "hero" && selectedContentIndex > 0
@@ -1371,12 +1462,16 @@ const res = await fetch(
     selectedElementIndex > -1 && selectedElementIndex < normalizedElements.length - 1
   const canSendBackward = selectedElementIndex > 0
 
- const canvasWrapClass =
-  isEmbedded
+  const canvasWrapClass = isEmbedded
     ? "w-full"
     : isMobilePreview
-    ? "mx-auto w-[390px] max-w-full"
-    : "w-full"
+      ? "mx-auto w-[390px] max-w-full"
+      : "w-full"
+
+  const canvasScale = isMobilePreview ? 1 : canvasZoom
+  const canvasViewportClass = isEmbedded
+    ? "w-full overflow-auto"
+    : "w-full overflow-auto rounded-[26px]"
   const registryItem = selectedSection ? getSafeSectionRegistryItem(selectedSection.type) : null
 
   return (
@@ -1459,6 +1554,39 @@ const res = await fetch(
       Redo
     </button>
   </div>
+  <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1">
+    {[0.5, 0.75, 1, 1.25, 1.5].map((zoom) => (
+      <button
+        key={zoom}
+        type="button"
+        onClick={() => setCanvasZoom(zoom)}
+        disabled={isMobilePreview}
+        className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
+          canvasZoom === zoom && !isMobilePreview
+            ? "bg-white text-black"
+            : isMobilePreview
+              ? "cursor-not-allowed text-white/22"
+              : "text-white/56 hover:bg-white/10 hover:text-white"
+        }`}
+      >
+        {Math.round(zoom * 100)}%
+      </button>
+    ))}
+
+    <button
+      type="button"
+      onClick={() => setCanvasZoom(1)}
+      disabled={isMobilePreview}
+      className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
+        isMobilePreview
+          ? "cursor-not-allowed text-white/22"
+          : "text-white/56 hover:bg-white/10 hover:text-white"
+      }`}
+    >
+      Fit
+    </button>
+  </div>
+
   <button
     onClick={() => setIsMobilePreview((v) => !v)}
     className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}
@@ -1492,10 +1620,43 @@ const res = await fetch(
                   Loading editor elements...
                 </div>
               ) : (
-                <div className={canvasWrapClass}>
+                <div className={canvasViewportClass}>
+                  {!isEmbedded && (
+                    <div className="pointer-events-none sticky top-3 z-30 mx-3 mb-3 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/50 shadow-2xl backdrop-blur-xl">
+                      <div className="flex items-center gap-3">
+                        <span>Canvas · {Math.round(canvasScale * 100)}%</span>
+                        <span className="h-1 w-1 rounded-full bg-white/25" />
+                        <span>{experienceNodes.length} nodes · {normalizedElements.length} layers</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <div className="relative h-10 w-20 overflow-hidden rounded-lg border border-white/10 bg-white/[0.035]">
+                          <div className="absolute inset-x-2 top-1 h-2 rounded-sm bg-violet-300/25" />
+                          <div className="absolute inset-x-3 top-4 h-2 rounded-sm bg-sky-300/20" />
+                          <div className="absolute bottom-1 left-5 h-2 w-8 rounded-sm bg-amber-300/25" />
+                          <div
+                            className="absolute rounded-md border border-white/45 bg-white/10"
+                            style={{
+                              inset: canvasScale > 1 ? "10px 18px" : canvasScale < 1 ? "5px 8px" : "7px 12px",
+                            }}
+                          />
+                        </div>
+                        <span>Minimap</span>
+                      </div>
+                    </div>
+                  )}
+
                   <div
-                    ref={canvasRef}
-                    className={`relative overflow-hidden bg-black ${
+                    className={canvasWrapClass}
+                    style={{
+                      transform: `scale(${canvasScale})`,
+                      transformOrigin: "top center",
+                      width: canvasScale === 1 ? undefined : `${100 / canvasScale}%`,
+                    }}
+                  >
+                    <div
+                      ref={canvasRef}
+                      className={`relative overflow-hidden bg-black ${
   isEmbedded
     ? "min-h-screen rounded-none border-0 mt-0"
     : EXPERIENCE_EDITOR_CANVAS_FRAME_CLASS
@@ -2105,6 +2266,7 @@ const res = await fetch(
                           </div>
                         )
                       })}
+                    </div>
                   </div>
                 </div>
               )}
@@ -2125,25 +2287,208 @@ const res = await fetch(
             <div className={EXPERIENCE_EDITOR_RAIL_HEADER_CLASS}>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">Experience Composer</div>
 
-              <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
-                {selectedElement
-                  ? "Element Settings"
-                  : selectedSection
-                  ? "Section Settings"
-                  : "Page Editor"}
-              </h3>
+<h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
+  {rightRailTab === "inspect"
+    ? selectedElement
+      ? "Element Settings"
+      : selectedSection
+        ? "Section Settings"
+        : "Inspector"
+    : rightRailTab === "layers"
+      ? "Scene Layers"
+      : rightRailTab === "insert"
+        ? "Insert"
+        : "Page Settings"}
+</h3>
 
-              <div className="mt-2 text-sm leading-6 text-white/52">
-                {selectedElement
-                  ? "Editing element"
-                  : selectedSection
-                  ? "Editing section"
-                  : "Select something to edit"}
-              </div>
+<div className="mt-2 text-sm leading-6 text-white/52">
+  {rightRailTab === "inspect"
+    ? selectedElement
+      ? "Editing element"
+      : selectedSection
+        ? "Editing section"
+        : "Select something to edit"
+    : rightRailTab === "layers"
+      ? "Composition stack, visibility, locks, and z-order."
+      : rightRailTab === "insert"
+        ? "Add sections, components, and canvas elements."
+        : "Global theme and experience settings."}
+</div>
+
+<div className="mt-4 grid grid-cols-4 gap-1 rounded-2xl border border-white/[0.08] bg-black/24 p-1">
+  {([
+    ["inspect", "Inspect"],
+    ["layers", "Layers"],
+    ["insert", "Insert"],
+    ["page", "Page"],
+  ] as const).map(([tab, label]) => (
+    <button
+      key={tab}
+      type="button"
+      onClick={() => setRightRailTab(tab)}
+      className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+        rightRailTab === tab
+          ? "bg-white text-black"
+          : "text-white/42 hover:bg-white/[0.06] hover:text-white/72"
+      }`}
+    >
+      {label}
+    </button>
+  ))}
+</div>
 
               <div className="mt-4 inline-flex rounded-full border border-white/[0.07] bg-black/22 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
-                Preview · {isMobilePreview ? "Mobile" : "Desktop"}
+                Preview · {isMobilePreview ? "Mobile" : "Desktop"} · {Math.round(canvasScale * 100)}%
               </div>
+
+<div className="mt-3 rounded-2xl border border-white/[0.07] bg-black/22 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/36">
+  {experienceNodes.length} nodes · {sections.length} sections · {normalizedElements.length} layers
+</div>
+              </div>
+
+              <div className="mt-3 space-y-3">
+                  <div className="rounded-2xl border border-violet-200/10 bg-violet-500/10 px-3 py-2 text-[11px] font-semibold text-violet-50/70">
+                    {selectedExperienceNode
+                      ? `Selected node · ${selectedExperienceNode.nodeType}`
+                      : "No node selected"}
+                  </div>
+
+                  <div className="rounded-[24px] border border-white/[0.07] bg-black/22 p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/34">
+                          Scene Layers
+                        </div>
+
+                        <div className="mt-1 text-xs text-white/42">
+                          Active composition stack
+                        </div>
+                      </div>
+
+                      <div className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/36">
+                        {experienceNodes.length}
+                      </div>
+                    </div>
+
+                    <div className="mt-3 max-h-[220px] space-y-2 overflow-auto pr-1">
+                      {experienceNodes.map((node) => {
+                        const isSelected = node.id === selectedExperienceNode?.id
+
+                        return (
+                          <button
+                            key={node.id}
+                            type="button"
+                            onClick={() => {
+                              if (node.sourceType === "section") {
+                                setSelectedSectionId(node.id)
+                                setSelectedId(null)
+                              } else {
+                                setSelectedId(node.id)
+                                setSelectedSectionId(null)
+                              }
+                            }}
+                            className={`flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-left transition ${
+                              isSelected
+                                ? "border-sky-400/50 bg-sky-400/12 shadow-[0_0_0_1px_rgba(56,189,248,0.25)]"
+                                : "border-white/[0.06] bg-white/[0.03] hover:border-white/12 hover:bg-white/[0.05]"
+                            }`}
+                          >
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <div
+                                  className={`h-2 w-2 rounded-full ${
+                                    node.nodeType === "section"
+                                      ? "bg-violet-300"
+                                      : node.nodeType === "media"
+                                        ? "bg-cyan-300"
+                                        : node.nodeType === "graphic"
+                                          ? "bg-amber-300"
+                                          : "bg-white/40"
+                                  }`}
+                                />
+
+                                <div className="truncate text-sm font-semibold text-white/82">
+                                  {String(
+                                    node.props?.adminLabel ??
+                                      node.props?.elementType ??
+                                      node.props?.sectionType ??
+                                      node.nodeType
+                                  )}
+                                </div>
+                              </div>
+
+                              <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+                                <span>{node.nodeType}</span>
+                                <span className="h-1 w-1 rounded-full bg-white/20" />
+                                <span>Z-{node.zIndex ?? 0}</span>
+
+                                {node.sourceType === "element" && (
+                                  <>
+                                    <span className="h-1 w-1 rounded-full bg-white/20" />
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setSelectedId(node.id)
+                                        setSelectedSectionId(null)
+                                        bringSelectedElementForward()
+                                      }}
+                                      className="pointer-events-auto rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] text-white/55 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+                                    >
+                                      +
+                                    </button>
+
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        setSelectedId(node.id)
+                                        setSelectedSectionId(null)
+                                        sendSelectedElementBackward()
+                                      }}
+                                      className="pointer-events-auto rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] text-white/55 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
+                                    >
+                                      −
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="ml-3 flex items-center gap-2">
+                              <span
+                                title={node.visible === false ? "Hidden" : "Visible"}
+                                className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black ${
+                                  node.visible === false
+                                    ? "border-red-300/20 bg-red-500/10 text-red-100/45"
+                                    : "border-emerald-300/20 bg-emerald-500/10 text-emerald-100/55"
+                                }`}
+                              >
+                                {node.visible === false ? "×" : "●"}
+                              </span>
+
+                              <span
+                                title={node.locked ? "Locked" : "Unlocked"}
+                                className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black ${
+                                  node.locked
+                                    ? "border-amber-300/20 bg-amber-500/10 text-amber-100/55"
+                                    : "border-white/10 bg-black/20 text-white/30"
+                                }`}
+                              >
+                                {node.locked ? "L" : "U"}
+                              </span>
+
+                              <div className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+                                {node.sourceType}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                </div>
             </div>
 
             <button
@@ -2177,7 +2522,7 @@ const res = await fetch(
               Save
             </button>
 
-            {saveMessage && <div className={EXPERIENCE_EDITOR_SAVE_MESSAGE_CLASS}>{saveMessage}</div>}
+            {saveMessage && <div className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>{saveMessage}</div>}
 
             <div className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>
               <SectionPanelHeader
@@ -3773,9 +4118,8 @@ const res = await fetch(
                 </>
               )}
             </div>
-          </div>
-        </aside>
-      </div>
+      </aside>
     </div>
+  </div>
   )
 }

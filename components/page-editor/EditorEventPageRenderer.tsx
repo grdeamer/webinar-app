@@ -6,6 +6,7 @@ import type {
   SectionBlock,
   SystemComponentKey,
   EventTheme,
+  ExperienceNode,
 } from "@/lib/page-editor/sectionTypes"
 
 type EventLike = {
@@ -25,7 +26,82 @@ type EditorElement = {
   props?: Record<string, unknown>
 }
 
+type RendererExperienceNode = ExperienceNode & {
+  sourceType: "section" | "element"
+}
+
 type SystemComponentsMap = Partial<Record<SystemComponentKey, ReactNode>>
+
+function sectionToExperienceNode(
+  section: EventPageSection,
+  index: number
+): RendererExperienceNode {
+  return {
+    id: section.id,
+    nodeType: "section",
+    sourceType: "section",
+    parentId: null,
+    position: {
+      x: 0,
+      y: index,
+    },
+    zIndex: index,
+    visible: section.config?.visible !== false,
+    locked: false,
+    props: {
+      sectionType: section.type,
+      adminLabel: section.config?.adminLabel,
+      contentWidth: section.config?.contentWidth,
+      paddingY: section.config?.paddingY,
+    },
+    children: section.blocks?.map((block, blockIndex) => ({
+      id: block.id,
+      nodeType: "block",
+      parentId: section.id,
+      position: {
+        x: 0,
+        y: blockIndex,
+      },
+      zIndex: blockIndex,
+      visible: true,
+      locked: false,
+      props: {
+        blockType: block.type,
+        ...block.props,
+      },
+    })),
+  }
+}
+
+function elementToExperienceNode(element: EditorElement): RendererExperienceNode {
+  return {
+    id: element.id,
+    nodeType:
+      element.element_type === "image" || element.element_type === "video" || element.element_type === "pdf"
+        ? "media"
+        : element.element_type === "button" || element.element_type === "spacer"
+          ? "graphic"
+          : "overlay",
+    sourceType: "element",
+    parentId: null,
+    position: {
+      x: element.x,
+      y: element.y,
+    },
+    size: {
+      width: element.width ?? 0,
+      height: element.height ?? 0,
+    },
+    zIndex: element.z_index ?? 1,
+    visible: true,
+    locked: false,
+    props: {
+      elementType: element.element_type,
+      content: element.content,
+      ...element.props,
+    },
+  }
+}
 
 const RENDERER_ROOT_CLASS =
   "relative overflow-hidden rounded-[30px] border text-white shadow-[0_24px_90px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.040)]"
@@ -349,6 +425,11 @@ export default function EditorEventPageRenderer({
   const resolvedSections =
     sections && sections.length > 0 ? sections : getFallbackSections(event)
 
+  const experienceNodes: RendererExperienceNode[] = [
+    ...resolvedSections.map((section, index) => sectionToExperienceNode(section, index)),
+    ...elements.map((element) => elementToExperienceNode(element)),
+  ]
+
   const resolvedEventTheme: EventTheme = {
     pageBackgroundColor: eventTheme?.pageBackgroundColor || "#020617",
     panelBackgroundColor: eventTheme?.panelBackgroundColor || "#0f172a",
@@ -367,6 +448,7 @@ export default function EditorEventPageRenderer({
         borderColor: resolvedEventTheme.panelBorderColor,
         color: resolvedEventTheme.textColor,
       }}
+      data-experience-node-count={experienceNodes.length}
     >
       <div className={RENDERER_TEXTURE_CLASS} />
       <div className={RENDERER_TOP_GLOW_CLASS} />

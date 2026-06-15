@@ -49,7 +49,56 @@ export type SectionBlock =
         containerStyle?: "none" | "panel" | "subtle"
       }
     }
+export type ExperienceNode = {
+  id: string
 
+  nodeType:
+    | "section"
+    | "block"
+    | "graphic"
+    | "media"
+    | "overlay"
+
+  parentId?: string | null
+
+  position?: {
+    x: number
+    y: number
+  }
+
+  size?: {
+    width: number
+    height: number
+  }
+
+  zIndex?: number
+
+  visible?: boolean
+  locked?: boolean
+
+  responsive?: {
+    mobile?: Partial<ExperienceNode>
+    tablet?: Partial<ExperienceNode>
+    desktop?: Partial<ExperienceNode>
+    stage?: Partial<ExperienceNode>
+  }
+
+  motion?: {
+    preset?: string
+    durationMs?: number
+    delayMs?: number
+  }
+
+  styles?: {
+    opacity?: number
+    blur?: number
+    borderRadius?: number
+  }
+
+  props?: Record<string, unknown>
+
+  children?: ExperienceNode[]
+}
 export type EventTheme = {
   pageBackgroundColor?: string
   panelBackgroundColor?: string
