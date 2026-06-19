@@ -622,6 +622,8 @@ const isEmbedded =
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
+  const [draggingLayerNodeId, setDraggingLayerNodeId] = useState<string | null>(null)
+  const [dragOverLayerNodeId, setDragOverLayerNodeId] = useState<string | null>(null)
   const [isMobilePreview, setIsMobilePreview] = useState(false)
   const [canvasZoom, setCanvasZoom] = useState(1)
   const [rightRailTab, setRightRailTab] = useState<RightRailTab>("inspect")
@@ -1097,7 +1099,99 @@ const res = await fetch(
       return normalizeZIndexes(next)
     })
   }
+function handleLayerDragStart(node: EditorExperienceNode) {
+  if (node.sourceType !== "element") return
 
+  setDraggingLayerNodeId(node.id)
+  setDragOverLayerNodeId(null)
+  setSelectedId(node.id)
+  setSelectedSectionId(null)
+  setSelectedBlockId(null)
+}
+
+function handleLayerDragOver(
+  e: React.DragEvent<HTMLButtonElement>,
+  node: EditorExperienceNode
+) {
+  if (node.sourceType !== "element") return
+  if (!draggingLayerNodeId || draggingLayerNodeId === node.id) return
+
+  e.preventDefault()
+  e.stopPropagation()
+  e.dataTransfer.dropEffect = "move"
+
+  setDragOverLayerNodeId(node.id)
+}
+
+function handleLayerDrop(
+  e: React.DragEvent<HTMLButtonElement>,
+  node: EditorExperienceNode
+) {
+  e.preventDefault()
+  e.stopPropagation()
+
+  if (node.sourceType !== "element") {
+    setDraggingLayerNodeId(null)
+    setDragOverLayerNodeId(null)
+    return
+  }
+
+  const droppedId =
+    e.dataTransfer.getData("text/plain") || draggingLayerNodeId
+
+  if (!droppedId || droppedId === node.id) {
+    setDraggingLayerNodeId(null)
+    setDragOverLayerNodeId(null)
+    return
+  }
+
+  setHasUnsavedChanges(true)
+
+  setElements((prev) => {
+    const normalized = normalizeZIndexes(prev)
+
+    const bottomFirst = [...normalized].sort(
+      (a, b) => (a.z_index ?? 0) - (b.z_index ?? 0)
+    )
+
+    const topFirst = [...bottomFirst].reverse()
+
+    const fromIndex = topFirst.findIndex(
+      (element) => element.id === droppedId
+    )
+
+    const toIndex = topFirst.findIndex(
+      (element) => element.id === node.id
+    )
+
+    if (fromIndex === -1 || toIndex === -1) return prev
+
+    const reorderedTopFirst = [...topFirst]
+
+    const [moved] = reorderedTopFirst.splice(fromIndex, 1)
+
+    reorderedTopFirst.splice(toIndex, 0, moved)
+
+    const nextBottomFirst = [...reorderedTopFirst].reverse()
+
+    return nextBottomFirst.map((element, index) => ({
+      ...element,
+      z_index: index + 1,
+    }))
+  })
+
+  setSelectedId(droppedId)
+  setSelectedSectionId(null)
+  setSelectedBlockId(null)
+
+  setDraggingLayerNodeId(null)
+  setDragOverLayerNodeId(null)
+}
+
+function handleLayerDragEnd() {
+  setDraggingLayerNodeId(null)
+  setDragOverLayerNodeId(null)
+}
   function addBlockToSection(sectionId: string, block: SectionBlock) {
     addBlockToSectionState(sectionId, block)
     setSelectedSectionId(sectionId)
@@ -1433,11 +1527,14 @@ const res = await fetch(
       : -1
 
   const normalizedElements = normalizeZIndexes(elements)
-  const experienceNodes: EditorExperienceNode[] = [
-    ...sections.map((section, index) => sectionToEditorExperienceNode(section, index)),
-    ...normalizedElements.map((element) => elementToEditorExperienceNode(element)),
-  ]
-  const selectedExperienceNode = experienceNodes.find(
+const experienceNodes: EditorExperienceNode[] = [
+  ...sections.map((section, index) => sectionToEditorExperienceNode(section, index)),
+  ...normalizedElements.map((element) => elementToEditorExperienceNode(element)),
+]
+const orderedExperienceNodes = [...experienceNodes].sort(
+  (a, b) => (b.zIndex ?? 0) - (a.zIndex ?? 0)
+)
+const selectedExperienceNode = experienceNodes.find(
     (node) =>
       node.id === selectedId ||
       node.id === selectedSectionId ||
@@ -1916,6 +2013,7 @@ const res = await fetch(
                       .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
                       .map((el) => {
                         const isInlineEditing = editingElementId === el.id
+                        const isLayerHovered = hoveredExperienceNodeId === el.id
                         const showInlineEditor =
                           isInlineEditing &&
                           (el.element_type === "text" ||
@@ -1946,6 +2044,8 @@ const res = await fetch(
                           <div
                             data-editor-element="true"
                             key={el.id}
+                            onMouseEnter={() => setHoveredExperienceNodeId(el.id)}
+                            onMouseLeave={() => setHoveredExperienceNodeId(null)}
                             onPointerDown={(e) => {
                               e.stopPropagation()
                               if (!isEditing) return
@@ -2034,6 +2134,10 @@ const res = await fetch(
                                 ? "shadow-[0_0_0_1px_rgba(56,189,248,0.7),0_0_24px_rgba(56,189,248,0.25)]"
                                 : ""
                             } ${
+                              isLayerHovered && !selectedIds.includes(el.id) && selectedId !== el.id
+                                ? "ring-2 ring-violet-300/70 shadow-[0_0_0_1px_rgba(196,181,253,0.55),0_0_30px_rgba(167,139,250,0.24)]"
+                                : ""
+                            } ${
                               el.element_type === "image"
                                 ? "bg-white"
                                 : el.element_type === "video"
@@ -2092,6 +2196,7 @@ const res = await fetch(
                                   />
                                 )}
                               </div>
+                              
                             ) : el.element_type === "image" ? (
                               <img
                                 src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
@@ -2371,13 +2476,28 @@ const res = await fetch(
                     </div>
 
                     <div className="mt-3 max-h-[220px] space-y-2 overflow-auto pr-1">
-                      {experienceNodes.map((node) => {
-                        const isSelected = node.id === selectedExperienceNode?.id
-
+                      {orderedExperienceNodes.map((node) => {
+                       const isSelected = node.id === selectedExperienceNode?.id
+                        const isHovered = node.id === hoveredExperienceNodeId
+                        const isLayerDragging = draggingLayerNodeId === node.id
+                        const isLayerDragOver = dragOverLayerNodeId === node.id
+                        const canDragLayer = node.sourceType === "element"
                         return (
                           <button
+                          onMouseEnter={() => setHoveredExperienceNodeId(node.id)}
+                          onMouseLeave={() => setHoveredExperienceNodeId(null)}
                             key={node.id}
                             type="button"
+                            draggable={canDragLayer}
+onDragStart={(e) => {
+  if (!canDragLayer) return
+  e.dataTransfer.effectAllowed = "move"
+  e.dataTransfer.setData("text/plain", node.id)
+  handleLayerDragStart(node)
+}}
+onDragOver={(e) => handleLayerDragOver(e, node)}
+onDrop={(e) => handleLayerDrop(e, node)}
+onDragEnd={handleLayerDragEnd}
                             onClick={() => {
                               if (node.sourceType === "section") {
                                 setSelectedSectionId(node.id)
@@ -2389,8 +2509,10 @@ const res = await fetch(
                             }}
                             className={`flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-left transition ${
                               isSelected
-                                ? "border-sky-400/50 bg-sky-400/12 shadow-[0_0_0_1px_rgba(56,189,248,0.25)]"
-                                : "border-white/[0.06] bg-white/[0.03] hover:border-white/12 hover:bg-white/[0.05]"
+  ? "border-sky-400/50 bg-sky-400/12 shadow-[0_0_0_1px_rgba(56,189,248,0.25)]"
+  : isHovered
+    ? "border-violet-300/45 bg-violet-400/10 shadow-[0_0_0_1px_rgba(196,181,253,0.18)]"
+    : "border-white/[0.06] bg-white/[0.03] hover:border-white/12 hover:bg-white/[0.05]"
                             }`}
                           >
                             <div className="min-w-0 flex-1">
