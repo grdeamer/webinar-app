@@ -29,6 +29,7 @@ export type EditorElement = {
   width?: number | null
   height?: number | null
   z_index?: number
+  visible?: boolean
   props?: Record<string, unknown>
 }
 
@@ -409,7 +410,7 @@ function elementToEditorExperienceNode(element: EditorElement): EditorExperience
       height: element.height ?? 0,
     },
     zIndex: element.z_index ?? 1,
-    visible: true,
+    visible: element.visible !== false,
     locked: false,
     props: {
       elementType: element.element_type,
@@ -760,6 +761,7 @@ const res = await fetch(
             width: el.width == null ? 224 : Number(el.width),
             height: el.height == null ? 56 : Number(el.height),
             z_index: Number(el.z_index ?? 1),
+            visible: el.visible === false ? false : true,
             props: el.props && typeof el.props === "object" ? el.props : {},
           }))
         )
@@ -1004,6 +1006,7 @@ const res = await fetch(
         width: el.width == null ? null : snapToGrid(el.width),
         height: el.height == null ? null : snapToGrid(el.height),
         z_index: el.z_index ?? idx + 1,
+        visible: (el as EditorElement).visible === false ? false : true,
         props: el.props ?? {},
       }))
 
@@ -2009,9 +2012,10 @@ const selectedExperienceNode = experienceNodes.find(
                       </>
                     )}
 
-                    {normalizedElements
-                      .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
-                      .map((el) => {
+                                {normalizedElements
+                    .filter((el) => el.visible !== false)
+                    .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
+                    .map((el) => {
                         const isInlineEditing = editingElementId === el.id
                         const isLayerHovered = hoveredExperienceNodeId === el.id
                         const showInlineEditor =
@@ -2579,16 +2583,33 @@ onDragEnd={handleLayerDragEnd}
                             </div>
 
                             <div className="ml-3 flex items-center gap-2">
-                              <span
-                                title={node.visible === false ? "Hidden" : "Visible"}
-                                className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black ${
-                                  node.visible === false
-                                    ? "border-red-300/20 bg-red-500/10 text-red-100/45"
-                                    : "border-emerald-300/20 bg-emerald-500/10 text-emerald-100/55"
-                                }`}
-                              >
-                                {node.visible === false ? "×" : "●"}
-                              </span>
+         <button
+  type="button"
+  title={node.visible === false ? "Hidden" : "Visible"}
+  onClick={(e) => {
+    e.stopPropagation()
+
+    if (node.sourceType === "element") {
+      setElements((prev) =>
+  prev.map((element) =>
+    element.id === node.id
+      ? {
+          ...element,
+          visible: node.visible === false ? true : false,
+        }
+      : element
+  )
+)
+    }
+  }}
+  className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black transition ${
+    node.visible === false
+      ? "border-red-300/20 bg-red-500/10 text-red-100/45 hover:bg-red-500/20"
+      : "border-emerald-300/20 bg-emerald-500/10 text-emerald-100/55 hover:bg-emerald-500/20"
+  }`}
+>
+  {node.visible === false ? "×" : "●"}
+</button>
 
                               <span
                                 title={node.locked ? "Locked" : "Unlocked"}
