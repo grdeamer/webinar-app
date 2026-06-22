@@ -30,6 +30,7 @@ export type EditorElement = {
   height?: number | null
   z_index?: number
   visible?: boolean
+  locked?: boolean
   props?: Record<string, unknown>
 }
 
@@ -411,7 +412,7 @@ function elementToEditorExperienceNode(element: EditorElement): EditorExperience
     },
     zIndex: element.z_index ?? 1,
     visible: element.visible !== false,
-    locked: false,
+    locked: element.locked === true,
     props: {
       elementType: element.element_type,
       content: element.content,
@@ -762,6 +763,7 @@ const res = await fetch(
             height: el.height == null ? 56 : Number(el.height),
             z_index: Number(el.z_index ?? 1),
             visible: el.visible === false ? false : true,
+            locked: el.locked === true,
             props: el.props && typeof el.props === "object" ? el.props : {},
           }))
         )
@@ -865,6 +867,8 @@ const res = await fetch(
     y: number
   ) {
     if (!isEditing) return
+    const targetElement = elements.find((el) => el.id === id) as EditorElement | undefined
+    if (targetElement?.locked) return
     if (editingElementId === id) return
     if ((e.target as HTMLElement).dataset.resizeHandle === "true") return
     if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
@@ -883,6 +887,8 @@ const res = await fetch(
     height: number | null | undefined
   ) {
     if (!isEditing) return
+    const targetElement = elements.find((el) => el.id === id) as EditorElement | undefined
+    if (targetElement?.locked) return
     if (editingElementId === id) return
     e.stopPropagation()
 
@@ -1007,6 +1013,7 @@ const res = await fetch(
         height: el.height == null ? null : snapToGrid(el.height),
         z_index: el.z_index ?? idx + 1,
         visible: (el as EditorElement).visible === false ? false : true,
+        locked: (el as EditorElement).locked === true,
         props: el.props ?? {},
       }))
 
@@ -1104,6 +1111,7 @@ const res = await fetch(
   }
 function handleLayerDragStart(node: EditorExperienceNode) {
   if (node.sourceType !== "element") return
+  if (node.locked) return
 
   setDraggingLayerNodeId(node.id)
   setDragOverLayerNodeId(null)
@@ -2018,6 +2026,7 @@ const selectedExperienceNode = experienceNodes.find(
                     .map((el) => {
                         const isInlineEditing = editingElementId === el.id
                         const isLayerHovered = hoveredExperienceNodeId === el.id
+                        const isLocked = el.locked === true
                         const showInlineEditor =
                           isInlineEditing &&
                           (el.element_type === "text" ||
@@ -2125,7 +2134,11 @@ const selectedExperienceNode = experienceNodes.find(
                               setSelectedSectionId(null)
                             }}
                             className={`absolute overflow-hidden rounded-xl shadow-lg ${
-                              isEditing ? "cursor-grab active:cursor-grabbing" : "cursor-default"
+                              isEditing
+                              ? isLocked
+                                ? "cursor-default"
+                                : "cursor-grab active:cursor-grabbing"
+                              : "cursor-default"
                             } ${
                               selectedIds.includes(el.id)
                                 ? "border border-sky-300/70 ring-2 ring-sky-400"
@@ -2140,6 +2153,10 @@ const selectedExperienceNode = experienceNodes.find(
                             } ${
                               isLayerHovered && !selectedIds.includes(el.id) && selectedId !== el.id
                                 ? "ring-2 ring-violet-300/70 shadow-[0_0_0_1px_rgba(196,181,253,0.55),0_0_30px_rgba(167,139,250,0.24)]"
+                                : ""
+                            } ${
+                              isLocked
+                                ? "before:pointer-events-none before:absolute before:inset-0 before:z-20 before:rounded-[inherit] before:border before:border-amber-300/45 before:shadow-[inset_0_0_0_1px_rgba(251,191,36,0.24),0_0_22px_rgba(251,191,36,0.12)]"
                                 : ""
                             } ${
                               el.element_type === "image"
@@ -2162,6 +2179,11 @@ const selectedExperienceNode = experienceNodes.find(
                               height: el.height ?? "auto",
                             }}
                           >
+                                                        {isLocked && (
+                              <div className="pointer-events-none absolute right-2 top-2 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-amber-300/30 bg-amber-500/12 text-[10px] font-black text-amber-100/70 shadow-[0_0_18px_rgba(251,191,36,0.18)] backdrop-blur-sm">
+                                L
+                              </div>
+                            )}
                             {showInlineEditor ? (
                               <div className="h-full w-full p-2">
                                 {el.element_type === "text" ? (
@@ -2485,7 +2507,7 @@ const selectedExperienceNode = experienceNodes.find(
                         const isHovered = node.id === hoveredExperienceNodeId
                         const isLayerDragging = draggingLayerNodeId === node.id
                         const isLayerDragOver = dragOverLayerNodeId === node.id
-                        const canDragLayer = node.sourceType === "element"
+                        const canDragLayer = node.sourceType === "element" && !node.locked
                         return (
                           <button
                           onMouseEnter={() => setHoveredExperienceNodeId(node.id)}
@@ -2582,50 +2604,69 @@ onDragEnd={handleLayerDragEnd}
                               </div>
                             </div>
 
-                            <div className="ml-3 flex items-center gap-2">
-         <button
-  type="button"
-  title={node.visible === false ? "Hidden" : "Visible"}
-  onClick={(e) => {
-    e.stopPropagation()
+                                                        <div className="ml-3 flex items-center gap-2">
+                              <button
+                                type="button"
+                                title={node.visible === false ? "Hidden" : "Visible"}
+                                onClick={(e) => {
+                                  e.stopPropagation()
 
-    if (node.sourceType === "element") {
-      setElements((prev) =>
-  prev.map((element) =>
-    element.id === node.id
-      ? {
-          ...element,
-          visible: node.visible === false ? true : false,
-        }
-      : element
-  )
-)
-    }
-  }}
-  className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black transition ${
-    node.visible === false
-      ? "border-red-300/20 bg-red-500/10 text-red-100/45 hover:bg-red-500/20"
-      : "border-emerald-300/20 bg-emerald-500/10 text-emerald-100/55 hover:bg-emerald-500/20"
-  }`}
->
-  {node.visible === false ? "×" : "●"}
-</button>
+                                  if (node.sourceType !== "element") return
 
-                              <span
+                                  setHasUnsavedChanges(true)
+                                  setElements((prev) =>
+                                    prev.map((element) =>
+                                      element.id === node.id
+                                        ? {
+                                            ...element,
+                                            visible: node.visible === false ? true : false,
+                                          }
+                                        : element
+                                    )
+                                  )
+                                }}
+                                className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black transition ${
+                                  node.visible === false
+                                    ? "border-red-300/20 bg-red-500/10 text-red-100/45 hover:bg-red-500/20"
+                                    : "border-emerald-300/20 bg-emerald-500/10 text-emerald-100/55 hover:bg-emerald-500/20"
+                                }`}
+                              >
+                                {node.visible === false ? "×" : "●"}
+                              </button>
+
+                              <button
+                                type="button"
                                 title={node.locked ? "Locked" : "Unlocked"}
-                                className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black ${
+                                onClick={(e) => {
+                                  e.stopPropagation()
+
+                                  if (node.sourceType !== "element") return
+
+                                  setHasUnsavedChanges(true)
+                                  setElements((prev) =>
+                                    prev.map((element) =>
+                                      element.id === node.id
+                                        ? {
+                                            ...element,
+                                            locked: node.locked ? false : true,
+                                          }
+                                        : element
+                                    )
+                                  )
+                                }}
+                                className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black transition ${
                                   node.locked
-                                    ? "border-amber-300/20 bg-amber-500/10 text-amber-100/55"
-                                    : "border-white/10 bg-black/20 text-white/30"
+                                    ? "border-amber-300/20 bg-amber-500/10 text-amber-100/55 hover:bg-amber-500/20"
+                                    : "border-white/10 bg-black/20 text-white/30 hover:bg-white/[0.06] hover:text-white/50"
                                 }`}
                               >
                                 {node.locked ? "L" : "U"}
-                              </span>
+                              </button>
 
                               <div className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
                                 {node.sourceType}
                               </div>
-                            </div>
+                                  </div>
                           </button>
                         )
                       })}
