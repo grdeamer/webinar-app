@@ -421,6 +421,119 @@ function elementToEditorExperienceNode(element: EditorElement): EditorExperience
   }
 }
 
+function getLayerLabel(node: EditorExperienceNode) {
+  return String(
+    node.props?.adminLabel ??
+      node.props?.elementType ??
+      node.props?.sectionType ??
+      node.nodeType
+  )
+}
+
+function getLayerTypeAccentClass(node: EditorExperienceNode) {
+  if (node.nodeType === "section") {
+    return "border-violet-300/25 bg-violet-400/12 text-violet-50/70"
+  }
+
+  if (node.nodeType === "media") {
+    return "border-cyan-300/25 bg-cyan-400/12 text-cyan-50/70"
+  }
+
+  if (node.nodeType === "graphic") {
+    return "border-amber-300/25 bg-amber-400/12 text-amber-50/70"
+  }
+
+  return "border-white/10 bg-white/[0.04] text-white/52"
+}
+
+function getLayerDotClass(node: EditorExperienceNode) {
+  if (node.nodeType === "section") return "bg-violet-300"
+  if (node.nodeType === "media") return "bg-cyan-300"
+  if (node.nodeType === "graphic") return "bg-amber-300"
+  return "bg-white/40"
+}
+
+function getLayerThumbnailStyle(node: EditorExperienceNode) {
+  const backgroundColor =
+    typeof node.props?.backgroundColor === "string" && node.props.backgroundColor.trim().length > 0
+      ? node.props.backgroundColor
+      : node.nodeType === "section"
+        ? "rgba(167,139,250,0.16)"
+        : node.nodeType === "media"
+          ? "rgba(34,211,238,0.14)"
+          : node.nodeType === "graphic"
+            ? "rgba(251,191,36,0.14)"
+            : "rgba(255,255,255,0.06)"
+
+  return { backgroundColor }
+}
+
+function renderLayerThumbnail(node: EditorExperienceNode) {
+  const elementType = String(node.props?.elementType ?? "")
+  const label = getLayerLabel(node)
+
+  if (elementType === "image" && typeof node.props?.src === "string" && node.props.src.length > 0) {
+    return (
+      <img
+        src={node.props.src}
+        alt={label}
+        className="h-full w-full object-cover"
+        draggable={false}
+      />
+    )
+  }
+
+  if (elementType === "video") {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-black text-[10px] font-black text-white/60">
+        ▶
+      </div>
+    )
+  }
+
+  if (elementType === "pdf") {
+    return (
+      <div className="flex h-full w-full items-center justify-center bg-red-950/80 text-[9px] font-black uppercase tracking-[0.12em] text-red-50/70">
+        PDF
+      </div>
+    )
+  }
+
+  if (elementType === "button") {
+    return (
+      <div className="mx-1 flex h-4 items-center justify-center rounded-full bg-white/18 text-[7px] font-black uppercase tracking-[0.12em] text-white/60">
+        CTA
+      </div>
+    )
+  }
+
+  if (elementType === "spacer") {
+    return <div className="mx-2 h-1 rounded-full bg-white/30" />
+  }
+
+  if (elementType === "text") {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-[13px] font-black text-white/56">
+        T
+      </div>
+    )
+  }
+
+  if (node.nodeType === "section") {
+    return (
+      <div className="flex h-full w-full items-center justify-center text-[10px] font-black uppercase tracking-[0.12em] text-violet-50/56">
+        SEC
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex h-full w-full items-center justify-center text-[10px] font-black text-white/42">
+      •
+    </div>
+  )
+}
+
 function SectionPanelHeader({
   title,
   open,
@@ -1871,6 +1984,12 @@ const selectedExperienceNode = experienceNodes.find(
   sections={sections}
   isEditing={isEditing}
   selectedSectionId={selectedSectionId}
+  draggingSectionId={draggingSectionId}
+  dragOverSectionId={dragOverSectionId}
+  onSectionDragStart={handleSectionDragStart}
+  onSectionDragOver={handleSectionDragOver}
+  onSectionDrop={handleSectionDrop}
+  onSectionDragEnd={handleSectionDragEnd}
   onSelectSection={(id: string | null) => {
     const nextSection = sections.find((section) => section.id === id) ?? null
 
@@ -2492,7 +2611,7 @@ const selectedExperienceNode = experienceNodes.find(
                         </div>
 
                         <div className="mt-1 text-xs text-white/42">
-                          Active composition stack
+                          Visual stack · drag element rows to reorder
                         </div>
                       </div>
 
@@ -2533,7 +2652,7 @@ onDragEnd={handleLayerDragEnd}
                                 setSelectedSectionId(null)
                               }
                             }}
-                            className={`flex w-full items-center justify-between rounded-2xl border px-3 py-2 text-left transition ${
+                            className={`group flex w-full items-center justify-between rounded-2xl border px-3 py-3.5 text-left transition ${
                               isSelected
   ? "border-sky-400/50 bg-sky-400/12 shadow-[0_0_0_1px_rgba(56,189,248,0.25)]"
   : isHovered
@@ -2541,31 +2660,49 @@ onDragEnd={handleLayerDragEnd}
     : "border-white/[0.06] bg-white/[0.03] hover:border-white/12 hover:bg-white/[0.05]"
                             }`}
                           >
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-2">
-                                <div
-                                  className={`h-2 w-2 rounded-full ${
-                                    node.nodeType === "section"
-                                      ? "bg-violet-300"
-                                      : node.nodeType === "media"
-                                        ? "bg-cyan-300"
-                                        : node.nodeType === "graphic"
-                                          ? "bg-amber-300"
-                                          : "bg-white/40"
-                                  }`}
-                                />
+                            <div className="flex min-w-0 flex-1 items-center gap-3">
+  <div
+    className={`relative flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-white/8 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${getLayerTypeAccentClass(node)}`}
+    style={getLayerThumbnailStyle(node)}
+  >
+    {renderLayerThumbnail(node)}
 
-                                <div className="truncate text-sm font-semibold text-white/82">
-                                  {String(
-                                    node.props?.adminLabel ??
-                                      node.props?.elementType ??
-                                      node.props?.sectionType ??
-                                      node.nodeType
-                                  )}
-                                </div>
-                              </div>
+    {node.visible === false && (
+      <div className="absolute inset-0 flex items-center justify-center bg-black/62 text-[10px] font-black text-white/60">
+        ×
+      </div>
+    )}
 
-                              <div className="mt-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+    {node.locked && (
+      <div className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full border border-amber-200/25 bg-amber-500/20 text-[8px] font-black text-amber-50/70">
+        L
+      </div>
+    )}
+  </div>
+
+  <div className="min-w-0 flex-1">
+    <div className="flex items-center gap-2">
+      {node.sourceType === "element" && (
+        <span
+          className={`text-sm font-black leading-none transition ${
+            node.locked
+              ? "text-amber-200/28"
+              : "text-white/14 group-hover:text-white/28"
+          }`}
+          title={node.locked ? "Locked layers cannot be dragged" : "Drag to reorder"}
+        >
+          {node.locked ? "◆" : "⋮⋮"}
+        </span>
+      )}
+
+      <div className={`h-2 w-2 shrink-0 rounded-full ${getLayerDotClass(node)}`} />
+
+      <div className="truncate text-sm font-semibold text-white/84">
+        {getLayerLabel(node)}
+      </div>
+    </div>
+
+    <div className="mt-1 flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-white/24">
                                 <span>{node.nodeType}</span>
                                 <span className="h-1 w-1 rounded-full bg-white/20" />
                                 <span>Z-{node.zIndex ?? 0}</span>
@@ -2602,6 +2739,7 @@ onDragEnd={handleLayerDragEnd}
                                   </>
                                 )}
                               </div>
+                            </div>
                             </div>
 
                                                         <div className="ml-3 flex items-center gap-2">
@@ -2662,10 +2800,6 @@ onDragEnd={handleLayerDragEnd}
                               >
                                 {node.locked ? "L" : "U"}
                               </button>
-
-                              <div className="rounded-full border border-white/10 bg-black/20 px-2 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
-                                {node.sourceType}
-                              </div>
                                   </div>
                           </button>
                         )

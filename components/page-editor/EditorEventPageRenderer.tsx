@@ -1,6 +1,6 @@
 "use client"
 
-import type { ReactNode } from "react"
+import type { DragEvent, ReactNode } from "react"
 import type {
   EventPageSection,
   SectionBlock,
@@ -123,6 +123,19 @@ const SECTION_EDITABLE_CLASS =
 
 const SECTION_SELECTION_BADGE_CLASS =
   "pointer-events-none absolute left-4 top-4 z-30 rounded-full border border-sky-200/20 bg-sky-300/[0.105] px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-sky-50/70 shadow-[0_0_18px_rgba(56,189,248,0.12)] backdrop-blur-md"
+
+
+const SECTION_WORKSPACE_DRAG_BADGE_CLASS =
+  "absolute right-4 top-4 z-30 rounded-full border border-white/10 bg-black/35 px-3 py-1 text-[9px] font-black uppercase tracking-[0.18em] text-white/42 shadow-[0_0_18px_rgba(0,0,0,0.18)] backdrop-blur-md transition group-hover/section:text-white/70"
+
+const SECTION_ACTION_HUD_CLASS =
+  "pointer-events-none absolute bottom-4 left-4 z-30 flex items-center gap-2 rounded-2xl border border-white/10 bg-black/42 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/44 opacity-0 shadow-[0_18px_42px_rgba(0,0,0,0.24)] backdrop-blur-xl transition group-hover/section:opacity-100"
+
+const SECTION_ACTION_HUD_ACTIVE_CLASS =
+  "opacity-100 border-sky-200/18 bg-sky-400/[0.105] text-sky-50/66"
+
+const SECTION_ACTION_DOT_CLASS =
+  "h-1.5 w-1.5 rounded-full bg-white/24"
 
 const SECTION_HOVER_EDGE_CLASS =
   "pointer-events-none absolute inset-x-[12%] top-0 z-20 h-px bg-gradient-to-r from-transparent via-sky-100/[0.11] to-transparent opacity-0 transition group-hover/section:opacity-100"
@@ -409,7 +422,13 @@ export default function EditorEventPageRenderer({
   sections,
   isEditing = false,
   selectedSectionId = null,
+  draggingSectionId = null,
+  dragOverSectionId = null,
   onSelectSection,
+  onSectionDragStart,
+  onSectionDragOver,
+  onSectionDrop,
+  onSectionDragEnd,
   systemComponents,
   eventTheme,
 }: {
@@ -418,7 +437,13 @@ export default function EditorEventPageRenderer({
   sections?: EventPageSection[]
   isEditing?: boolean
   selectedSectionId?: string | null
+  draggingSectionId?: string | null
+  dragOverSectionId?: string | null
   onSelectSection?: (id: string | null) => void
+  onSectionDragStart?: (id: string) => void
+  onSectionDragOver?: (event: DragEvent<HTMLElement>, id: string) => void
+  onSectionDrop?: (event: DragEvent<HTMLElement>, id: string) => void
+  onSectionDragEnd?: () => void
   systemComponents: SystemComponentsMap
   eventTheme?: EventTheme
 }) {
@@ -458,6 +483,11 @@ export default function EditorEventPageRenderer({
         if (config.visible === false) return null
         if (config.hideOnMobile) return null
 
+        const isHeroSection = section.type === "hero"
+        const isSectionDragging = draggingSectionId === section.id
+        const isSectionDragOver = dragOverSectionId === section.id
+        const canDragSection = isEditing && !isHeroSection
+
         const explicitSystemComponent = (config as { systemComponent?: SystemComponentKey })
           .systemComponent
 
@@ -468,6 +498,16 @@ export default function EditorEventPageRenderer({
               <div
                 key={`${section.id}-${index}`}
                 data-editor-section="true"
+                draggable={canDragSection}
+                onDragStart={(e) => {
+                  if (!canDragSection) return
+                  e.dataTransfer.effectAllowed = "move"
+                  e.dataTransfer.setData("text/plain", section.id)
+                  onSectionDragStart?.(section.id)
+                }}
+                onDragOver={(e) => onSectionDragOver?.(e, section.id)}
+                onDrop={(e) => onSectionDrop?.(e, section.id)}
+                onDragEnd={onSectionDragEnd}
                 onPointerDown={(e) => {
                   if (!isEditing) return
                   e.stopPropagation()
@@ -480,16 +520,41 @@ export default function EditorEventPageRenderer({
                   onSelectSection?.(section.id)
                 }}
                 className={`group/section relative overflow-hidden transition-all duration-300 ${
-                  isEditing ? `cursor-pointer ${SECTION_EDITABLE_CLASS}` : ""
-                } ${selectedSectionId === section.id ? SECTION_SELECTED_CLASS : ""}`}
+                  canDragSection ? `cursor-grab active:cursor-grabbing ${SECTION_EDITABLE_CLASS}` : isEditing ? `cursor-pointer ${SECTION_EDITABLE_CLASS}` : ""
+                } ${selectedSectionId === section.id ? SECTION_SELECTED_CLASS : ""} ${
+                  isSectionDragging ? "scale-[0.995] opacity-55" : ""
+                } ${isSectionDragOver ? "ring-2 ring-emerald-300/70 ring-inset" : ""}`}
               >
                 {isEditing ? <div className={SECTION_HOVER_EDGE_CLASS} /> : null}
+                {isEditing ? (
+                  <div className={SECTION_WORKSPACE_DRAG_BADGE_CLASS}>
+                    {isHeroSection ? "Pinned" : "Drag Section"}
+                  </div>
+                ) : null}
+                {isSectionDragOver && !isSectionDragging ? (
+                  <div className="pointer-events-none absolute inset-x-6 top-0 z-40 h-1 rounded-full bg-emerald-300 shadow-[0_0_22px_rgba(110,231,183,0.45)]" />
+                ) : null}
                 {selectedSectionId === section.id ? (
                   <>
                     <div className={SECTION_SELECTED_GLOW_CLASS} />
                     <div className={SECTION_SELECTION_BADGE_CLASS}>Selected Section</div>
                   </>
                 ) : null}
+
+                {isEditing ? (
+                  <div
+                    className={`${SECTION_ACTION_HUD_CLASS} ${
+                      selectedSectionId === section.id ? SECTION_ACTION_HUD_ACTIVE_CLASS : ""
+                    }`}
+                  >
+                    <span>{config.adminLabel || section.type}</span>
+                    <span className={SECTION_ACTION_DOT_CLASS} />
+                    <span>{isHeroSection ? "Pinned" : "Move"}</span>
+                    <span className={SECTION_ACTION_DOT_CLASS} />
+                    <span>{section.blocks?.length ?? 0} blocks</span>
+                  </div>
+                ) : null}
+
                 {node}
               </div>
             )
@@ -576,6 +641,16 @@ export default function EditorEventPageRenderer({
           <section
             key={`${section.id}-${index}`}
             data-editor-section="true"
+            draggable={canDragSection}
+            onDragStart={(e) => {
+              if (!canDragSection) return
+              e.dataTransfer.effectAllowed = "move"
+              e.dataTransfer.setData("text/plain", section.id)
+              onSectionDragStart?.(section.id)
+            }}
+            onDragOver={(e) => onSectionDragOver?.(e, section.id)}
+            onDrop={(e) => onSectionDrop?.(e, section.id)}
+            onDragEnd={onSectionDragEnd}
             onPointerDown={(e) => {
               if (!isEditing) return
               e.stopPropagation()
@@ -592,8 +667,10 @@ export default function EditorEventPageRenderer({
               section.type
             )} ${showTopDivider ? "border-t border-white/[0.075]" : ""} ${
               showBottomDivider ? "border-b border-white/[0.055]" : ""
-            } ${isEditing ? `cursor-pointer ${SECTION_EDITABLE_CLASS}` : ""} ${
+            } ${canDragSection ? `cursor-grab active:cursor-grabbing ${SECTION_EDITABLE_CLASS}` : isEditing ? `cursor-pointer ${SECTION_EDITABLE_CLASS}` : ""} ${
               isSelected ? SECTION_SELECTED_CLASS : ""
+            } ${isSectionDragging ? "scale-[0.995] opacity-55" : ""} ${
+              isSectionDragOver ? "ring-2 ring-emerald-300/70 ring-inset" : ""
             }`}
             style={{
               backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
@@ -603,12 +680,35 @@ export default function EditorEventPageRenderer({
             }}
           >
             {isEditing ? <div className={SECTION_HOVER_EDGE_CLASS} /> : null}
+            {isEditing ? (
+              <div className={SECTION_WORKSPACE_DRAG_BADGE_CLASS}>
+                {isHeroSection ? "Pinned" : "Drag Section"}
+              </div>
+            ) : null}
+            {isSectionDragOver && !isSectionDragging ? (
+              <div className="pointer-events-none absolute inset-x-6 top-0 z-40 h-1 rounded-full bg-emerald-300 shadow-[0_0_22px_rgba(110,231,183,0.45)]" />
+            ) : null}
             {isSelected ? (
               <>
                 <div className={SECTION_SELECTED_GLOW_CLASS} />
                 <div className={SECTION_SELECTION_BADGE_CLASS}>Selected Section</div>
               </>
             ) : null}
+
+            {isEditing ? (
+              <div
+                className={`${SECTION_ACTION_HUD_CLASS} ${
+                  isSelected ? SECTION_ACTION_HUD_ACTIVE_CLASS : ""
+                }`}
+              >
+                <span>{config.adminLabel || section.type}</span>
+                <span className={SECTION_ACTION_DOT_CLASS} />
+                <span>{isHeroSection ? "Pinned" : "Move"}</span>
+                <span className={SECTION_ACTION_DOT_CLASS} />
+                <span>{section.blocks?.length ?? 0} blocks</span>
+              </div>
+            ) : null}
+
             {showTopDivider ? <div className={SECTION_TOP_EDGE_CLASS} /> : null}
             {showBottomDivider ? <div className={SECTION_BOTTOM_EDGE_CLASS} /> : null}
             <div className={`relative z-20 mx-auto ${widthClass}`}>
