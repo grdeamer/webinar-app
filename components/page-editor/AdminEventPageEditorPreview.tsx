@@ -56,10 +56,10 @@ const EXPERIENCE_EDITOR_TOPBAR_CLASS =
   "border-b border-white/[0.07] bg-[linear-gradient(180deg,rgba(6,10,18,0.92),rgba(3,6,13,0.78))] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl"
 
 const EXPERIENCE_EDITOR_CANVAS_SHELL_CLASS =
-  "rounded-[30px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-5 shadow-[0_22px_72px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.040)]"
+  "rounded-[28px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.038),rgba(255,255,255,0.014))] p-4 shadow-[0_22px_72px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.035)]"
 
 const EXPERIENCE_EDITOR_CANVAS_FRAME_CLASS =
-  "mt-6 min-h-[900px] rounded-[26px] border border-white/[0.08] bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_58px_rgba(0,0,0,0.28)]"
+  "mt-4 min-h-[900px] rounded-[24px] border border-white/[0.08] bg-black shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_58px_rgba(0,0,0,0.28)]"
 
 const EXPERIENCE_EDITOR_RAIL_CLASS =
   "shrink-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.965),rgba(2,4,9,0.992))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
@@ -74,10 +74,10 @@ const EXPERIENCE_EDITOR_SELECT_CLASS =
   "rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/78 outline-none transition hover:border-white/16 focus:border-violet-200/28"
 
 const EXPERIENCE_EDITOR_RAIL_HEADER_CLASS =
-  "rounded-[22px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.13),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.016))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+  "rounded-[18px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.032)]"
 
 const EXPERIENCE_EDITOR_RAIL_CARD_CLASS =
-  "rounded-[22px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]"
+  "rounded-[18px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.034),rgba(255,255,255,0.012))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.024)]"
 
 const EXPERIENCE_EDITOR_SAVE_TEMPLATE_BUTTON_CLASS =
   "mt-6 w-full rounded-[16px] border border-indigo-200/16 bg-indigo-500/18 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-indigo-50/86 shadow-[0_0_24px_rgba(99,102,241,0.10)] transition hover:bg-indigo-500/26"
@@ -1828,7 +1828,7 @@ const selectedExperienceNode = experienceNodes.find(
 
             <div className={`relative flex ${isEmbedded ? "min-h-screen" : "min-h-[calc(100vh-81px)]"}`}>
                 <div className="flex-1 overflow-auto">
-          <div className={isEmbedded ? "w-full px-0 py-0" : "mx-auto max-w-6xl px-6 py-10"}>
+          <div className={isEmbedded ? "w-full px-0 py-0" : "mx-auto max-w-7xl px-5 py-6"}>
             <div
               className={
                 isEmbedded
@@ -1843,7 +1843,7 @@ const selectedExperienceNode = experienceNodes.find(
               ) : (
                 <div className={canvasViewportClass}>
                   {!isEmbedded && (
-                    <div className="pointer-events-none sticky top-3 z-30 mx-3 mb-3 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/50 shadow-2xl backdrop-blur-xl">
+                    <div className="pointer-events-none sticky top-3 z-30 mx-2 mb-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/50 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-3">
                         <span>Canvas · {Math.round(canvasScale * 100)}%</span>
                         <span className="h-1 w-1 rounded-full bg-white/25" />
@@ -2527,9 +2527,9 @@ const selectedExperienceNode = experienceNodes.find(
 <aside
   className={`${EXPERIENCE_EDITOR_RAIL_CLASS} ${
     isEmbedded
-      ? "w-[320px] opacity-100 overflow-visible"
+      ? "w-[300px] opacity-100 overflow-visible"
       : `transition-[width,opacity] duration-300 ${
-          isEditing ? "w-[380px] opacity-100" : "w-0 opacity-0"
+          isEditing ? "w-[340px] opacity-100" : "w-0 opacity-0"
         } ${!isEditing ? "pointer-events-none overflow-hidden" : "overflow-visible"}`
   }`}
 >
