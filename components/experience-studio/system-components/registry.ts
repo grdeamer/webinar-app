@@ -33,7 +33,36 @@ export const SYSTEM_COMPONENTS: SystemComponentDefinition[] = [
     category: "content",
     description: "Displays agenda and session schedule.",
   },
-
+  {
+    key: "registration_form",
+    label: "Registration Form",
+    category: "registration",
+    description: "Primary attendee registration experience.",
+  },
+  {
+  key: "registration_status",
+  label: "Registration Status",
+  category: "registration",
+  description: "Displays attendee registration state.",
+},
+{
+  key: "approval_gate",
+  label: "Approval Gate",
+  category: "registration",
+  description: "Controls approval-only access.",
+},
+{
+  key: "waitlist_status",
+  label: "Waitlist Status",
+  category: "registration",
+  description: "Displays attendee waitlist state.",
+},
+{
+  key: "attendee_badge",
+  label: "Attendee Badge",
+  category: "engagement",
+  description: "Displays attendee identity and status.",
+},
   {
     key: "join_button",
     label: "Join Button",

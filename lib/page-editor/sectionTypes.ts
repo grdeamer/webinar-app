@@ -16,6 +16,11 @@ export type SystemComponentKey =
   | "sponsors"
   | "breakouts"
   | "featured_breakouts"
+  | "registration_form"
+  | "registration_status"
+  | "approval_gate"
+  | "waitlist_status"
+  | "attendee_badge"
 
 export type SectionFieldDefinition = {
   key: string
