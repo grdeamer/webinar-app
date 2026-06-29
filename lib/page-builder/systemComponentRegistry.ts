@@ -1,21 +1,8 @@
-import type { SystemComponentKey } from "@/lib/page-editor/sectionTypes"
+import {
+  SYSTEM_COMPONENTS as EXPERIENCE_SYSTEM_COMPONENTS,
+  type SystemComponentDefinition,
+} from "@/components/experience-studio"
 
-export type SystemComponentDefinition = {
-  key: SystemComponentKey
-  label: string
-  description?: string
-}
+export { EXPERIENCE_SYSTEM_COMPONENTS as SYSTEM_COMPONENTS }
 
-export const SYSTEM_COMPONENTS: SystemComponentDefinition[] = [
-  { key: "access_gate", label: "Access Gate" },
-  { key: "stage_player", label: "Stage Player" },
-  { key: "live_state", label: "Live Status" },
-  { key: "countdown", label: "Countdown" },
-  { key: "speaker_spotlight", label: "Speaker Spotlight" },
-  { key: "speaker_cards", label: "Speaker Grid" },
-  { key: "schedule_rail", label: "Schedule Rail" },
-  { key: "sessions_list", label: "Sessions List" },
-  { key: "featured_breakouts", label: "Featured Breakouts" },
-  { key: "chat", label: "Chat" },
-  { key: "qa", label: "Q&A" },
-] 
+export type { SystemComponentDefinition }

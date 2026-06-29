@@ -1,3 +1,4 @@
+import type { SystemComponentKey } from "@/lib/page-editor/sectionTypes"
 export type SystemComponentCategory =
   | "live"
   | "registration"
@@ -7,7 +8,7 @@ export type SystemComponentCategory =
   | "layout";
 
 export interface SystemComponentDefinition {
-  key: string;
+  key: SystemComponentKey;
   label: string;
   category: SystemComponentCategory;
   description?: string;
@@ -32,12 +33,7 @@ export const SYSTEM_COMPONENTS: SystemComponentDefinition[] = [
     category: "content",
     description: "Displays agenda and session schedule.",
   },
-  {
-    key: "registration_form",
-    label: "Registration Form",
-    category: "registration",
-    description: "Primary attendee registration experience.",
-  },
+
   {
     key: "join_button",
     label: "Join Button",
