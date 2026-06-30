@@ -8,6 +8,13 @@ import type {
   SystemComponentKey,
   EventTheme,
 } from "@/lib/page-editor/sectionTypes"
+import {
+  RegistrationFormRenderer,
+  RegistrationStatusRenderer,
+  ApprovalGateRenderer,
+  WaitlistStatusRenderer,
+  AttendeeBadgeRenderer,
+} from "./system-components"
 
 type EventLike = {
   title: string
@@ -219,6 +226,20 @@ function getSystemComponentPlaceholderLabel(componentKey: SystemComponentKey) {
       return "Agenda"
     case "countdown":
       return "Countdown"
+   case "registration_form":
+  return "Registration Form"
+
+    case "registration_status":
+      return "Registration Status"
+
+    case "approval_gate":
+      return "Approval Gate"
+
+    case "waitlist_status":
+      return "Waitlist Status"
+
+    case "attendee_badge":
+      return "Attendee Badge"   
     case "speaker_cards":
       return "Speaker Cards"
     case "speaker_spotlight":
@@ -442,7 +463,20 @@ function renderSystemComponentLive(
 
     case "qa":
       return <div className="text-sm text-white/60">Q&amp;A module</div>
+case "registration_form":
+  return <RegistrationFormRenderer />
 
+case "registration_status":
+  return <RegistrationStatusRenderer />
+
+case "approval_gate":
+  return <ApprovalGateRenderer />
+
+case "waitlist_status":
+  return <WaitlistStatusRenderer />
+
+case "attendee_badge":
+  return <AttendeeBadgeRenderer />
     case "join_button":
       return (
         <button className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
