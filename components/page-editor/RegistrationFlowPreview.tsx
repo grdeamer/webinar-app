@@ -15,8 +15,43 @@ export default function RegistrationFlowPreview() {
     setStep((current) => Math.min(current + 1, steps.length - 1))
   }
 
-  const selectedSessionLabel = selectedSessionId === "limited" ? "Limited Breakout" : "General Session"
-  const selectedCapacityState = selectedSessionId === "limited" ? "Waitlist Requested" : "Confirmed Seat"
+  const registrationRuntime = {
+    attendee: {
+      firstName: "Gary",
+      lastName: "Deamer",
+      email: "gary@example.com",
+      organization: "Jupiter.events",
+    },
+    sessions: [
+      {
+        id: "general",
+        title: "General Session",
+        reserved: 26,
+        capacity: 500,
+        status: "available",
+        statusLabel: "Available",
+      },
+      {
+        id: "limited",
+        title: "Limited Breakout",
+        reserved: 30,
+        capacity: 30,
+        status: "waitlist",
+        statusLabel: "Waitlist",
+      },
+    ],
+    approvalMode: "automatic",
+    registrationStatus: selectedSessionId === "limited" ? "waitlisted" : "confirmed",
+  }
+
+  const selectedSession =
+    registrationRuntime.sessions.find((session) => session.id === selectedSessionId) ??
+    registrationRuntime.sessions[0]
+
+  const attendeeDisplayName = `${registrationRuntime.attendee.firstName} ${registrationRuntime.attendee.lastName}`
+  const selectedSessionLabel = selectedSession.title
+  const selectedCapacityState =
+    selectedSession.status === "waitlist" ? "Waitlist Requested" : "Confirmed Seat"
 
   function handleBack() {
     setStep((current) => Math.max(current - 1, 0))
@@ -113,7 +148,7 @@ export default function RegistrationFlowPreview() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-white">General Session</div>
-                  <div className="mt-1 text-xs text-white/45">26 of 500 seats reserved</div>
+                  <div className="mt-1 text-xs text-white/45">{registrationRuntime.sessions[0].reserved} of {registrationRuntime.sessions[0].capacity} seats reserved</div>
                 </div>
 
                 <div className="rounded-full border border-emerald-200/18 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/70">
@@ -134,7 +169,7 @@ export default function RegistrationFlowPreview() {
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <div className="text-sm font-semibold text-white">Limited Breakout</div>
-                  <div className="mt-1 text-xs text-white/45">30 of 30 seats reserved</div>
+                  <div className="mt-1 text-xs text-white/45">{registrationRuntime.sessions[1].reserved} of {registrationRuntime.sessions[1].capacity} seats reserved</div>
                 </div>
 
                 <div className="rounded-full border border-amber-200/18 bg-amber-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
@@ -155,7 +190,7 @@ export default function RegistrationFlowPreview() {
           <div className="mt-4 grid gap-3">
             <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
               <span className="text-sm text-white/48">Attendee</span>
-              <span className="text-sm font-semibold text-white">Gary Deamer</span>
+              <span className="text-sm font-semibold text-white">{attendeeDisplayName}</span>
             </div>
 
             <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
@@ -186,7 +221,7 @@ export default function RegistrationFlowPreview() {
           </div>
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
-            The attendee record is created, session capacity is reserved, and confirmation state is ready to drive email, access, reporting, changes, and cancellation.
+            The attendee record is created, {selectedSessionLabel.toLowerCase()} is assigned, and registration status is now {registrationRuntime.registrationStatus} for email, access, reporting, changes, and cancellation.
           </p>
         </div>
       ) : null}
