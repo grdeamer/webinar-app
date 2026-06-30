@@ -21,6 +21,7 @@ export type SystemComponentKey =
   | "approval_gate"
   | "waitlist_status"
   | "attendee_badge"
+  | "registration_form"
 
 export type SectionFieldDefinition = {
   key: string

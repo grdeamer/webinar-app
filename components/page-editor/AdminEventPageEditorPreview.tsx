@@ -2001,100 +2001,206 @@ const selectedExperienceNode = experienceNodes.find(
     setEditorDetailsOpen(true)
   }}
   eventTheme={eventTheme}
-  systemComponents={{
-    live_state: (
-                          <div className="flex items-center gap-2 text-sm">
-                            <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
-                            <span className="text-white/80">Live status preview</span>
-                          </div>
-                        ),
-                        stage_player: (
-                          <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
-                            <div className="flex h-[220px] items-center justify-center text-sm text-white/45">
-                              Stage player preview
-                            </div>
-                          </div>
-                        ),
-                        countdown: (
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                            <div className="text-xs uppercase tracking-[0.18em] text-white/40">
-                              Countdown
-                            </div>
-                            <div className="mt-3 text-lg font-semibold text-white">
-                              Next session begins soon
-                            </div>
-                            <div className="mt-2 text-sm text-white/60">00d 00h 00m 00s</div>
-                          </div>
-                        ),
-                        agenda: (
-                          <div className="space-y-3">
-                            <div className="text-sm font-semibold text-white">Event Agenda</div>
-                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                              <div className="text-sm text-white">9:00 AM — Welcome</div>
-                              <div className="mt-2 text-sm text-white/70">
-                                10:00 AM — Main Session
-                              </div>
-                              <div className="mt-2 text-sm text-white/70">
-                                11:00 AM — Breakouts
-                              </div>
-                            </div>
-                          </div>
-                        ),
-                        sessions_list: (
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                              <div className="text-sm font-semibold text-white">Session One</div>
-                              <div className="mt-2 text-sm text-white/60">
-                                Session card preview
-                              </div>
-                            </div>
-                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-                              <div className="text-sm font-semibold text-white">Session Two</div>
-                              <div className="mt-2 text-sm text-white/60">
-                                Session card preview
-                              </div>
-                            </div>
-                          </div>
-                        ),
-                        speaker_cards: (
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-                              Speaker card preview
-                            </div>
-                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-                              Speaker card preview
-                            </div>
-                          </div>
-                        ),
-                        speaker_spotlight: (
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                            <div className="text-sm font-semibold text-white">
-                              Featured Speaker
-                            </div>
-                            <div className="mt-2 text-sm text-white/60">
-                              Spotlight component preview
-                            </div>
-                          </div>
-                        ),
-                        access_gate: (
-                          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-                            <div className="text-sm font-semibold text-white">Access Gate</div>
-                            <div className="mt-2 text-sm text-white/60">
-                              Email/login preview block
-                            </div>
-                          </div>
-                        ),
-                        featured_breakouts: (
-                          <div className="grid gap-3 md:grid-cols-2">
-                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-                              Breakout preview
-                            </div>
-                            <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-                              Breakout preview
-                            </div>
-                          </div>
-                        ),
-                      }}
+systemComponents={{
+  live_state: (
+    <div className="flex items-center gap-2 text-sm">
+      <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
+      <span className="text-white/80">Live status preview</span>
+    </div>
+  ),
+
+  stage_player: (
+    <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
+      <div className="flex h-[220px] items-center justify-center text-sm text-white/45">
+        Stage player preview
+      </div>
+    </div>
+  ),
+
+  countdown: (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="text-xs uppercase tracking-[0.18em] text-white/40">
+        Countdown
+      </div>
+      <div className="mt-3 text-lg font-semibold text-white">
+        Next session begins soon
+      </div>
+      <div className="mt-2 text-sm text-white/60">00d 00h 00m 00s</div>
+    </div>
+  ),
+
+  agenda: (
+    <div className="space-y-3">
+      <div className="text-sm font-semibold text-white">Event Agenda</div>
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="text-sm text-white">9:00 AM — Welcome</div>
+
+        <div className="mt-2 text-sm text-white/70">
+          10:00 AM — Main Session
+        </div>
+
+        <div className="mt-2 text-sm text-white/70">
+          11:00 AM — Breakouts
+        </div>
+      </div>
+    </div>
+  ),
+
+  sessions_list: (
+    <div className="grid gap-3 md:grid-cols-2">
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="text-sm font-semibold text-white">Session One</div>
+
+        <div className="mt-2 text-sm text-white/60">
+          Session card preview
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
+        <div className="text-sm font-semibold text-white">Session Two</div>
+
+        <div className="mt-2 text-sm text-white/60">
+          Session card preview
+        </div>
+      </div>
+    </div>
+  ),
+
+  registration_form: (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="text-sm font-semibold text-white">
+        Registration Form
+      </div>
+
+      <div className="mt-4 space-y-3">
+        <div className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-white/40">
+          First Name
+        </div>
+
+        <div className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-white/40">
+          Email Address
+        </div>
+
+        <button className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
+          Register
+        </button>
+      </div>
+    </div>
+  ),
+
+  registration_status: (
+    <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-5">
+      <div className="text-xs uppercase tracking-[0.18em] text-emerald-100/50">
+        Registration Status
+      </div>
+
+      <div className="mt-2 text-lg font-semibold text-emerald-50">
+        Registered
+      </div>
+
+      <div className="mt-2 text-sm text-emerald-100/60">
+        Confirmation email sent successfully.
+      </div>
+    </div>
+  ),
+
+  approval_gate: (
+    <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-5">
+      <div className="text-xs uppercase tracking-[0.18em] text-amber-100/50">
+        Approval Required
+      </div>
+
+      <div className="mt-2 text-lg font-semibold text-amber-50">
+        Pending Approval
+      </div>
+
+      <div className="mt-2 text-sm text-amber-100/60">
+        Your registration is awaiting organizer review.
+      </div>
+    </div>
+  ),
+
+  waitlist_status: (
+    <div className="rounded-2xl border border-violet-300/20 bg-violet-500/10 p-5">
+      <div className="text-xs uppercase tracking-[0.18em] text-violet-100/50">
+        Waitlist
+      </div>
+
+      <div className="mt-2 text-lg font-semibold text-violet-50">
+        You’re on the waitlist
+      </div>
+
+      <div className="mt-2 text-sm text-violet-100/60">
+        We’ll notify you if space becomes available.
+      </div>
+    </div>
+  ),
+
+  attendee_badge: (
+    <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+      <div className="flex h-12 w-12 items-center justify-center rounded-full bg-sky-400/20 text-sm font-black text-sky-100">
+        GD
+      </div>
+
+      <div>
+        <div className="text-sm font-semibold text-white">
+          Attendee Badge
+        </div>
+
+        <div className="text-xs text-white/50">
+          VIP • Registered
+        </div>
+      </div>
+    </div>
+  ),
+
+  speaker_cards: (
+    <div className="grid gap-3 md:grid-cols-2">
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+        Speaker card preview
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+        Speaker card preview
+      </div>
+    </div>
+  ),
+
+  speaker_spotlight: (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="text-sm font-semibold text-white">
+        Featured Speaker
+      </div>
+
+      <div className="mt-2 text-sm text-white/60">
+        Spotlight component preview
+      </div>
+    </div>
+  ),
+
+  access_gate: (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+      <div className="text-sm font-semibold text-white">Access Gate</div>
+
+      <div className="mt-2 text-sm text-white/60">
+        Email/login preview block
+      </div>
+    </div>
+  ),
+
+  featured_breakouts: (
+    <div className="grid gap-3 md:grid-cols-2">
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+        Breakout preview
+      </div>
+
+      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
+        Breakout preview
+      </div>
+    </div>
+  ),
+}}
                     />
 
                     {isMarqueeSelecting && selectionBox && (

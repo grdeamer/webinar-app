@@ -205,6 +205,16 @@ function getSystemComponentPlaceholderLabel(componentKey: SystemComponentKey) {
       return "Stage Player"
     case "sessions_list":
       return "Sessions List"
+    case "registration_form":
+      return "Registration Form"
+    case "registration_status":
+      return "Registration Status"
+    case "approval_gate":
+      return "Approval Gate"
+    case "waitlist_status":
+      return "Waitlist Status"
+    case "attendee_badge":
+      return "Attendee Badge"
     case "agenda":
       return "Agenda"
     case "countdown":
@@ -285,25 +295,119 @@ function renderSystemComponentLive(
         </div>
       )
 
-case "agenda":
-  return (
-    <div className="space-y-3">
-      <div className="text-sm font-semibold text-white">Event Agenda</div>
-      <div className="text-sm text-white/60">
-        Agenda will render from your injected event page data.
-      </div>
-    </div>
-  )
+    case "agenda":
+      return (
+        <div className="space-y-3">
+          <div className="text-sm font-semibold text-white">Event Agenda</div>
+          <div className="text-sm text-white/60">
+            Agenda will render from your injected event page data.
+          </div>
+        </div>
+      )
 
-case "sessions_list":
-  return (
-    <div className="space-y-3">
-      <div className="text-sm font-semibold text-white">Sessions</div>
-      <div className="text-sm text-white/60">
-        Sessions list will render from your injected event page data.
-      </div>
-    </div>
-  )
+    case "sessions_list":
+      return (
+        <div className="space-y-3">
+          <div className="text-sm font-semibold text-white">Sessions</div>
+          <div className="text-sm text-white/60">
+            Sessions list will render from your injected event page data.
+          </div>
+        </div>
+      )
+
+    case "registration_form":
+      return (
+        <div className="space-y-5">
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.22em] text-sky-100/45">
+              Registration
+            </div>
+            <div className="mt-2 text-2xl font-semibold tracking-[-0.04em] text-white">
+              Reserve your place
+            </div>
+            <div className="mt-2 max-w-2xl text-sm leading-7 text-white/58">
+              A native Jupiter registration experience will capture attendee identity, session choices,
+              capacity rules, and confirmation state without outside form glue.
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">
+              First name
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">
+              Last name
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42 md:col-span-2">
+              Email address
+            </div>
+          </div>
+
+          <button className="w-full rounded-2xl border border-sky-200/20 bg-sky-500/90 px-5 py-3 text-sm font-black uppercase tracking-[0.14em] text-white shadow-[0_18px_48px_rgba(14,165,233,0.22)] transition hover:bg-sky-400">
+            Continue Registration
+          </button>
+        </div>
+      )
+
+    case "registration_status":
+      return (
+        <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-5">
+          <div className="text-xs font-black uppercase tracking-[0.22em] text-emerald-100/52">
+            Registration Status
+          </div>
+          <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-emerald-50">
+            Registered
+          </div>
+          <div className="mt-2 text-sm leading-7 text-emerald-100/62">
+            Confirmation is saved in Jupiter and can drive email, access, cancellation, and reporting.
+          </div>
+        </div>
+      )
+
+    case "approval_gate":
+      return (
+        <div className="rounded-2xl border border-amber-300/20 bg-amber-500/10 p-5">
+          <div className="text-xs font-black uppercase tracking-[0.22em] text-amber-100/52">
+            Approval Gate
+          </div>
+          <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-amber-50">
+            Approval Required
+          </div>
+          <div className="mt-2 text-sm leading-7 text-amber-100/62">
+            This experience can hold attendees in review before access is granted.
+          </div>
+        </div>
+      )
+
+    case "waitlist_status":
+      return (
+        <div className="rounded-2xl border border-violet-300/20 bg-violet-500/10 p-5">
+          <div className="text-xs font-black uppercase tracking-[0.22em] text-violet-100/52">
+            Waitlist Status
+          </div>
+          <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-violet-50">
+            Waitlist Ready
+          </div>
+          <div className="mt-2 text-sm leading-7 text-violet-100/62">
+            Capacity-aware sessions can move attendees from waitlist to confirmed without Zapier matching.
+          </div>
+        </div>
+      )
+
+    case "attendee_badge":
+      return (
+        <div className="flex items-center gap-4 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+          <div className="flex h-12 w-12 items-center justify-center rounded-full border border-sky-200/20 bg-sky-400/14 text-sm font-black text-sky-50">
+            JP
+          </div>
+          <div>
+            <div className="text-sm font-semibold text-white">Attendee Badge</div>
+            <div className="mt-1 text-xs font-semibold uppercase tracking-[0.16em] text-white/40">
+              Registered · Verified
+            </div>
+          </div>
+        </div>
+      )
 
     case "speaker_spotlight":
       return (
@@ -347,11 +451,11 @@ case "sessions_list":
       )
 
     case "access_gate":
-  return (
-    <div className="text-sm text-white/60">
-      Access gate will render from your injected event page data.
-    </div>
-  )
+      return (
+        <div className="text-sm text-white/60">
+          Access gate will render from your injected event page data.
+        </div>
+      )
     case "schedule_rail":
       return <div className="text-sm text-white/60">Schedule rail will render here</div>
 
