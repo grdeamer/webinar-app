@@ -5,6 +5,9 @@ import { useMemo, useState } from "react"
 export default function RegistrationFlowPreview() {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState("general")
+  const [registrationMode, setRegistrationMode] = useState<
+    "automatic" | "approval_required" | "invite_only" | "closed"
+  >("automatic")
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
 
@@ -40,8 +43,17 @@ export default function RegistrationFlowPreview() {
         statusLabel: "Waitlist",
       },
     ],
-    approvalMode: "automatic",
-    registrationStatus: selectedSessionId === "limited" ? "waitlisted" : "confirmed",
+    approvalMode: registrationMode,
+    registrationStatus:
+      registrationMode === "closed"
+        ? "closed"
+        : registrationMode === "invite_only"
+          ? "invite_required"
+          : registrationMode === "approval_required"
+            ? "pending_approval"
+            : selectedSessionId === "limited"
+              ? "waitlisted"
+              : "confirmed",
   }
 
   const selectedSession =
@@ -52,6 +64,43 @@ export default function RegistrationFlowPreview() {
   const selectedSessionLabel = selectedSession.title
   const selectedCapacityState =
     selectedSession.status === "waitlist" ? "Waitlist Requested" : "Confirmed Seat"
+
+  const registrationModeMeta = {
+    automatic: {
+      label: "Automatic",
+      title: "Open registration",
+      body: "Attendees can register immediately and receive confirmation based on session availability.",
+      className: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50/72",
+    },
+    approval_required: {
+      label: "Approval Required",
+      title: "Review before access",
+      body: "Submissions are captured first, then approved by the event team before access is granted.",
+      className: "border-amber-300/20 bg-amber-500/10 text-amber-50/72",
+    },
+    invite_only: {
+      label: "Invite Only",
+      title: "Private experience",
+      body: "Only attendees with a valid invitation or access token can complete registration.",
+      className: "border-violet-300/20 bg-violet-500/10 text-violet-50/72",
+    },
+    closed: {
+      label: "Closed",
+      title: "Registration closed",
+      body: "The experience can remain visible while registration intake is paused or closed.",
+      className: "border-red-300/20 bg-red-500/10 text-red-50/72",
+    },
+  }[registrationMode]
+
+  const canContinue = registrationMode !== "closed" && registrationMode !== "invite_only"
+  const continueLabel =
+    registrationMode === "closed"
+      ? "Registration Closed"
+      : registrationMode === "invite_only"
+        ? "Invite Required"
+        : isLastStep
+          ? "Complete"
+          : "Continue"
 
   function handleBack() {
     setStep((current) => Math.max(current - 1, 0))
@@ -85,6 +134,46 @@ export default function RegistrationFlowPreview() {
             </div>
           )
         })}
+      </div>
+
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">
+              Registration Mode
+            </div>
+            <div className="mt-2 text-sm font-semibold text-white/78">
+              {registrationModeMeta.title}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+            {([
+              ["automatic", "Auto"],
+              ["approval_required", "Approval"],
+              ["invite_only", "Invite"],
+              ["closed", "Closed"],
+            ] as const).map(([mode, label]) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setRegistrationMode(mode)}
+                className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+                  registrationMode === mode
+                    ? registrationModeMeta.className
+                    : "border-white/10 bg-white/[0.03] text-white/38 hover:bg-white/[0.06] hover:text-white/60"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm leading-6 ${registrationModeMeta.className}`}>
+          <span className="font-semibold">{registrationModeMeta.label}:</span>{" "}
+          {registrationModeMeta.body}
+        </div>
       </div>
 
       <div>
@@ -208,6 +297,11 @@ export default function RegistrationFlowPreview() {
                 {selectedCapacityState}
               </span>
             </div>
+
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+              <span className="text-sm text-white/48">Registration Mode</span>
+              <span className="text-sm font-semibold text-white">{registrationModeMeta.label}</span>
+            </div>
           </div>
         </div>
       ) : null}
@@ -239,10 +333,10 @@ export default function RegistrationFlowPreview() {
         <button
           type="button"
           onClick={handleNext}
-          disabled={isLastStep}
+          disabled={isLastStep || !canContinue}
           className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {isLastStep ? "Complete" : "Continue"}
+          {continueLabel}
         </button>
       </div>
     </div>
