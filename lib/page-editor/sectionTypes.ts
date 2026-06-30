@@ -1,3 +1,5 @@
+import type { RegistrationExperienceState } from "@/lib/page-editor/types/registration"
+
 export type SectionType = "hero" | "content" | "system" | "grid"
 
 export type SystemComponentKey =
@@ -21,7 +23,6 @@ export type SystemComponentKey =
   | "approval_gate"
   | "waitlist_status"
   | "attendee_badge"
-  | "registration_form"
 
 export type SectionFieldDefinition = {
   key: string
@@ -53,6 +54,7 @@ export type SectionBlock =
         title?: string
         body?: string | null
         containerStyle?: "none" | "panel" | "subtle"
+        registrationState?: RegistrationExperienceState
       }
     }
 export type ExperienceNode = {
@@ -128,6 +130,7 @@ export type SectionConfig = {
   divider?: "none" | "top" | "bottom" | "both"
   hideOnMobile?: boolean
   columns?: 1 | 2
+  registrationState?: RegistrationExperienceState
 
   sectionBackgroundFillType?: "solid" | "linear-gradient" | "radial-gradient"
   sectionBackgroundColor?: string
