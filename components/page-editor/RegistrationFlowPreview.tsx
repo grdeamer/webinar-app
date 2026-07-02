@@ -201,7 +201,85 @@ function RegistrationSessionSelector({
     </div>
   )
 }
+function RegistrationReviewSummary({
+  attendeeDisplayName,
+  selectedSessionLabel,
+  selectedCapacityState,
+  selectedSessionId,
+  registrationModeLabel,
+  approvalStatus,
+  waitlistStatus,
+}: {
+  attendeeDisplayName: string
+  selectedSessionLabel: string
+  selectedCapacityState: string
+  selectedSessionId: string
+  registrationModeLabel: string
+  approvalStatus?: string | null
+  waitlistStatus?: string | null
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
+      <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+        Review
+      </div>
 
+      <div className="mt-4 grid gap-3">
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span className="text-sm text-white/48">Attendee</span>
+          <span className="text-sm font-semibold text-white">
+            {attendeeDisplayName}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span className="text-sm text-white/48">Session</span>
+          <span className="text-sm font-semibold text-white">
+            {selectedSessionLabel}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span className="text-sm text-white/48">Capacity State</span>
+
+          <span
+            className={`text-sm font-semibold ${
+              selectedSessionId === "limited"
+                ? "text-amber-100"
+                : "text-emerald-100"
+            }`}
+          >
+            {selectedCapacityState}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span className="text-sm text-white/48">Registration Mode</span>
+
+          <span className="text-sm font-semibold text-white">
+            {registrationModeLabel}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span className="text-sm text-white/48">Approval</span>
+
+          <span className="text-sm font-semibold text-white">
+            {approvalStatus}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <span className="text-sm text-white/48">Waitlist</span>
+
+          <span className="text-sm font-semibold text-white">
+            {waitlistStatus}
+          </span>
+        </div>
+      </div>
+    </div>
+  )
+}
 export default function RegistrationFlowPreview() {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState("general")
@@ -377,212 +455,104 @@ export default function RegistrationFlowPreview() {
     setStep((current) => Math.max(current - 1, 0))
   }
 
-  return (
-    <div className="space-y-6 rounded-[28px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <RegistrationStepRail steps={steps} step={step} />
+return (
+  <div className="space-y-6 rounded-[28px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <RegistrationStepRail steps={steps} step={step} />
 
-      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">
-              Registration Mode
-            </div>
-            <div className="mt-2 text-sm font-semibold text-white/78">
-              {registrationModeMeta.title}
-            </div>
-          </div>
+    <RegistrationModePanel
+      registrationMode={registrationMode}
+      registrationModeMeta={registrationModeMeta}
+      registrationRuntime={registrationRuntime}
+      onChangeMode={setRegistrationMode}
+    />
 
-          <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
-            {([
-              ["open", "Open"],
-              ["approval_required", "Approval"],
-              ["invite_only", "Invite"],
-              ["closed", "Closed"],
-            ] as const).map(([mode, label]) => (
-              <button
-                key={mode}
-                type="button"
-                onClick={() => setRegistrationMode(mode)}
-                className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
-                  registrationMode === mode
-                    ? registrationModeMeta.className
-                    : "border-white/10 bg-white/[0.03] text-white/38 hover:bg-white/[0.06] hover:text-white/60"
-                }`}
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm leading-6 ${registrationModeMeta.className}`}>
-          <span className="font-semibold">{registrationModeMeta.label}:</span>{" "}
-          {registrationModeMeta.body}
-        </div>
-
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
-              Intake
-            </div>
-            <div className="mt-1 text-sm font-semibold text-white/72">
-              {registrationRuntime.registrationOpen ? "Accepting" : "Paused"}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
-              Registered
-            </div>
-            <div className="mt-1 text-sm font-semibold text-white/72">
-              {registrationRuntime.capacity.currentRegistered ?? 0} / {registrationRuntime.capacity.maxAttendees ?? "∞"}
-            </div>
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
-              Waitlist
-            </div>
-            <div className="mt-1 text-sm font-semibold text-white/72">
-              {registrationRuntime.capacity.currentWaitlisted ?? 0} active
-            </div>
-          </div>
-        </div>
+    <div>
+      <div className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/50">
+        Jupiter Registration
       </div>
 
-      <div>
-        <div className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/50">
-          Jupiter Registration
-        </div>
+      <h3 className="mt-3 text-3xl font-semibold tracking-[-0.055em] text-white">
+        {step === 0
+          ? "Reserve your place"
+          : step === 1
+            ? "Choose your sessions"
+            : step === 2
+              ? "Review your registration"
+              : finalTitle}
+      </h3>
 
-        <h3 className="mt-3 text-3xl font-semibold tracking-[-0.055em] text-white">
-          {step === 0
-            ? "Reserve your place"
-            : step === 1
-              ? "Choose your sessions"
-              : step === 2
-                ? "Review your registration"
-                : finalTitle}
-        </h3>
+      <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
+        {step === 0
+          ? "A native registration experience for identity, session choice, capacity, approval, waitlist, confirmation, cancellation, and reporting."
+          : step === 1
+            ? "Capacity-aware session selection replaces brittle form widgets, manual caps, and downstream spreadsheet matching."
+            : step === 2
+              ? "Jupiter keeps attendee identity, session selections, approval status, and confirmation state in one durable record."
+              : "Confirmation is now part of the event experience, not a disconnected email or automation step."}
+      </p>
+    </div>
+
+    {step === 0 ? (
+      <div className="grid gap-3 md:grid-cols-2">
+        <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">First name</div>
+        <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">Last name</div>
+        <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42 md:col-span-2">Email address</div>
+      </div>
+    ) : null}
+
+    {step === 1 ? (
+      <RegistrationSessionSelector
+        sessions={registrationRuntime.sessions}
+        selectedSessionId={selectedSessionId}
+        onSelectSession={setSelectedSessionId}
+      />
+    ) : null}
+
+    {step === 2 ? (
+      <RegistrationReviewSummary
+        attendeeDisplayName={attendeeDisplayName}
+        selectedSessionLabel={selectedSessionLabel}
+        selectedCapacityState={selectedCapacityState}
+        selectedSessionId={selectedSessionId}
+        registrationModeLabel={registrationModeMeta.label}
+        approvalStatus={registrationRuntime.attendee?.approvalStatus}
+        waitlistStatus={registrationRuntime.attendee?.waitlistStatus}
+      />
+    ) : null}
+
+    {step === 3 ? (
+      <div className="rounded-2xl border border-emerald-300/18 bg-emerald-500/10 p-6">
+        <div className="h-3 w-3 rounded-full bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.72)]" />
+
+        <div className="mt-5 text-3xl font-semibold tracking-[-0.055em] text-white">
+          {finalTitle}
+        </div>
 
         <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
-          {step === 0
-            ? "A native registration experience for identity, session choice, capacity, approval, waitlist, confirmation, cancellation, and reporting."
-            : step === 1
-              ? "Capacity-aware session selection replaces brittle form widgets, manual caps, and downstream spreadsheet matching."
-              : step === 2
-                ? "Jupiter keeps attendee identity, session selections, approval status, and confirmation state in one durable record."
-                : "Confirmation is now part of the event experience, not a disconnected email or automation step."}
+          {finalBody}
         </p>
       </div>
+    ) : null}
 
-      {step === 0 ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">
-            First name
-          </div>
+    <div className="flex items-center justify-between pt-2">
+      <button
+        type="button"
+        onClick={handleBack}
+        disabled={isFirstStep}
+        className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
+      >
+        Back
+      </button>
 
-          <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">
-            Last name
-          </div>
-
-          <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42 md:col-span-2">
-            Email address
-          </div>
-        </div>
-      ) : null}
-
-      {step === 1 ? (
-        <RegistrationSessionSelector
-          sessions={registrationRuntime.sessions}
-          selectedSessionId={selectedSessionId}
-          onSelectSession={setSelectedSessionId}
-        />
-      ) : null}
-
-      {step === 2 ? (
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
-            Review
-          </div>
-
-          <div className="mt-4 grid gap-3">
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="text-sm text-white/48">Attendee</span>
-              <span className="text-sm font-semibold text-white">{attendeeDisplayName}</span>
-            </div>
-
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="text-sm text-white/48">Session</span>
-              <span className="text-sm font-semibold text-white">{selectedSessionLabel}</span>
-            </div>
-
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="text-sm text-white/48">Capacity State</span>
-              <span
-                className={`text-sm font-semibold ${
-                  selectedSessionId === "limited" ? "text-amber-100" : "text-emerald-100"
-                }`}
-              >
-                {selectedCapacityState}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="text-sm text-white/48">Registration Mode</span>
-              <span className="text-sm font-semibold text-white">{registrationModeMeta.label}</span>
-            </div>
-
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="text-sm text-white/48">Approval</span>
-              <span className="text-sm font-semibold text-white">
-                {registrationRuntime.attendee?.approvalStatus}
-              </span>
-            </div>
-
-            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-              <span className="text-sm text-white/48">Waitlist</span>
-              <span className="text-sm font-semibold text-white">
-                {registrationRuntime.attendee?.waitlistStatus}
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : null}
-
-      {step === 3 ? (
-        <div className="rounded-2xl border border-emerald-300/18 bg-emerald-500/10 p-6">
-          <div className="h-3 w-3 rounded-full bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.72)]" />
-
-          <div className="mt-5 text-3xl font-semibold tracking-[-0.055em] text-white">
-            {finalTitle}
-          </div>
-
-          <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
-            {finalBody}
-          </p>
-        </div>
-      ) : null}
-
-      <div className="flex items-center justify-between pt-2">
-        <button
-          type="button"
-          onClick={handleBack}
-          disabled={isFirstStep}
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-5 py-3 text-sm font-semibold text-white transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-30"
-        >
-          Back
-        </button>
-
-        <button
-          type="button"
-          onClick={handleNext}
-          disabled={isLastStep || (!canContinue && step === 0)}
-          className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          {continueLabel}
-        </button>
-      </div>
+      <button
+        type="button"
+        onClick={handleNext}
+        disabled={isLastStep || (!canContinue && step === 0)}
+        className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
+      >
+        {continueLabel}
+      </button>
     </div>
-  )
+  </div>
+)
 }
