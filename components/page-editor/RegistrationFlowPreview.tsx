@@ -2,8 +2,6 @@
 
 import { useMemo, useState } from "react"
 import type {
-  RegistrationAccessSettings,
-  RegistrationCapacity,
   RegistrationExperienceState,
   RegistrationMode,
   RegistrationRecord,
@@ -24,6 +22,126 @@ type RegistrationModeMeta = {
   title: string
   body: string
   className: string
+}
+
+function createPreviewSessions(): RegistrationPreviewSession[] {
+  return [
+    {
+      id: "general",
+      title: "General Session",
+      reserved: 26,
+      capacity: 500,
+      status: "available",
+      statusLabel: "Available",
+      description: "Main event access with immediate confirmation.",
+    },
+    {
+      id: "limited",
+      title: "Limited Breakout",
+      reserved: 30,
+      capacity: 30,
+      status: "waitlist",
+      statusLabel: "Waitlist",
+      description: "Capacity-limited session with automatic waitlist handling.",
+    },
+  ]
+}
+
+function getRegistrationModeMeta(): Record<RegistrationMode, RegistrationModeMeta> {
+  return {
+    open: {
+      label: "Open",
+      title: "Open registration",
+      body: "Attendees can register immediately and receive confirmation based on session availability.",
+      className: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50/72",
+    },
+    approval_required: {
+      label: "Approval Required",
+      title: "Review before access",
+      body: "Submissions are captured first, then approved by the event team before access is granted.",
+      className: "border-amber-300/20 bg-amber-500/10 text-amber-50/72",
+    },
+    invite_only: {
+      label: "Invite Only",
+      title: "Private experience",
+      body: "Only attendees with a valid invitation or access token can complete registration.",
+      className: "border-violet-300/20 bg-violet-500/10 text-violet-50/72",
+    },
+    closed: {
+      label: "Closed",
+      title: "Registration closed",
+      body: "The experience can remain visible while registration intake is paused or closed.",
+      className: "border-red-300/20 bg-red-500/10 text-red-50/72",
+    },
+  }
+}
+
+function createRegistrationRuntime({
+  registrationMode,
+  selectedSessionId,
+  sessions,
+}: {
+  registrationMode: RegistrationMode
+  selectedSessionId: "general" | "limited"
+  sessions: RegistrationPreviewSession[]
+}): RegistrationExperienceState & { sessions: RegistrationPreviewSession[] } {
+  const attendee: RegistrationRecord = {
+    id: "preview-registration-1",
+    attendeeId: "preview-attendee-1",
+    firstName: "Gary",
+    lastName: "Deamer",
+    email: "gary@example.com",
+    registrationStatus:
+      registrationMode === "closed" || registrationMode === "invite_only"
+        ? "not_registered"
+        : registrationMode === "approval_required"
+          ? "pending_approval"
+          : selectedSessionId === "limited"
+            ? "waitlisted"
+            : "registered",
+    approvalStatus: registrationMode === "approval_required" ? "pending" : "approved",
+    waitlistStatus: selectedSessionId === "limited" ? "active" : "none",
+    registeredAt: "2026-07-02T12:00:00.000Z",
+    approvedAt: registrationMode === "open" ? "2026-07-02T12:00:00.000Z" : null,
+    cancelledAt: null,
+    checkedInAt: null,
+    inviteTokenId: null,
+    notes: "Preview registration record for Experience Studio.",
+    sessionReservations: [
+      {
+        sessionId: selectedSessionId,
+        sessionTitle: selectedSessionId === "limited" ? "Limited Breakout" : "General Session",
+        reservedAt: "2026-07-02T12:00:00.000Z",
+        releasedAt: null,
+      },
+    ],
+  }
+
+  return {
+    access: {
+      mode: registrationMode,
+      requiresInviteToken: registrationMode === "invite_only",
+      requiresApproval: registrationMode === "approval_required",
+      registrationStartAt: null,
+      registrationEndAt: null,
+    },
+    capacity: {
+      enabled: true,
+      maxAttendees: 500,
+      currentRegistered: selectedSessionId === "limited" ? 30 : 26,
+      currentWaitlisted: selectedSessionId === "limited" ? 12 : 0,
+      allowWaitlist: true,
+    },
+    registrationOpen: registrationMode !== "closed" && registrationMode !== "invite_only",
+    registrationClosedReason:
+      registrationMode === "closed"
+        ? "Registration is currently closed."
+        : registrationMode === "invite_only"
+          ? "Registration requires a valid invitation."
+          : null,
+    attendee,
+    sessions,
+  }
 }
 
 function RegistrationStepRail({ steps, step }: { steps: string[]; step: number }) {
@@ -110,14 +228,18 @@ function RegistrationModePanel({
 
       <div className="mt-3 grid gap-3 md:grid-cols-3">
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">Intake</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+            Intake
+          </div>
           <div className="mt-1 text-sm font-semibold text-white/72">
             {registrationRuntime.registrationOpen ? "Accepting" : "Paused"}
           </div>
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">Registered</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+            Registered
+          </div>
           <div className="mt-1 text-sm font-semibold text-white/72">
             {registrationRuntime.capacity.currentRegistered ?? 0} /{" "}
             {registrationRuntime.capacity.maxAttendees ?? "∞"}
@@ -125,7 +247,9 @@ function RegistrationModePanel({
         </div>
 
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
-          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">Waitlist</div>
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+            Waitlist
+          </div>
           <div className="mt-1 text-sm font-semibold text-white/72">
             {registrationRuntime.capacity.currentWaitlisted ?? 0} active
           </div>
@@ -218,7 +342,9 @@ function RegistrationReviewSummary({
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-5">
-      <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">Review</div>
+      <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+        Review
+      </div>
 
       <div className="mt-4 grid gap-3">
         {[
@@ -262,11 +388,9 @@ function RegistrationConfirmationState({
   return (
     <div className="rounded-2xl border border-emerald-300/18 bg-emerald-500/10 p-6">
       <div className="h-3 w-3 rounded-full bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.72)]" />
-
       <div className="mt-5 text-3xl font-semibold tracking-[-0.055em] text-white">
         {finalTitle}
       </div>
-
       <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
         {finalBody}
       </p>
@@ -280,153 +404,32 @@ export default function RegistrationFlowPreview() {
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>("open")
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
+  const previewSessions = useMemo(() => createPreviewSessions(), [])
+  const registrationModeMeta = useMemo(() => getRegistrationModeMeta(), [])
 
-  const previewSessions = useMemo<RegistrationPreviewSession[]>(
-    () => [
-      {
-        id: "general",
-        title: "General Session",
-        reserved: 26,
-        capacity: 500,
-        status: "available",
-        statusLabel: "Available",
-        description: "Main event access with immediate confirmation.",
-      },
-      {
-        id: "limited",
-        title: "Limited Breakout",
-        reserved: 30,
-        capacity: 30,
-        status: "waitlist",
-        statusLabel: "Waitlist",
-        description: "Capacity-limited session with automatic waitlist handling.",
-      },
-    ],
-    []
+  const registrationRuntime = useMemo(
+    () =>
+      createRegistrationRuntime({
+        registrationMode,
+        selectedSessionId,
+        sessions: previewSessions,
+      }),
+    [registrationMode, selectedSessionId, previewSessions]
   )
-
-  const isFirstStep = step === 0
-  const isLastStep = step === steps.length - 1
-
-  const registrationAccess: RegistrationAccessSettings = {
-    mode: registrationMode,
-    requiresInviteToken: registrationMode === "invite_only",
-    requiresApproval: registrationMode === "approval_required",
-    registrationStartAt: null,
-    registrationEndAt: null,
-  }
-
-  const registrationCapacity: RegistrationCapacity = {
-    enabled: true,
-    maxAttendees: 500,
-    currentRegistered: selectedSessionId === "limited" ? 30 : 26,
-    currentWaitlisted: selectedSessionId === "limited" ? 12 : 0,
-    allowWaitlist: true,
-  }
-
-  const attendeeRecord: RegistrationRecord = {
-    id: "preview-registration-1",
-    attendeeId: "preview-attendee-1",
-    firstName: "Gary",
-    lastName: "Deamer",
-    email: "gary@example.com",
-    registrationStatus:
-      registrationMode === "closed" || registrationMode === "invite_only"
-        ? "not_registered"
-        : registrationMode === "approval_required"
-          ? "pending_approval"
-          : selectedSessionId === "limited"
-            ? "waitlisted"
-            : "registered",
-    approvalStatus:
-      registrationMode === "approval_required"
-        ? "pending"
-        : registrationMode === "closed" || registrationMode === "invite_only"
-          ? "not_required"
-          : "approved",
-    waitlistStatus: selectedSessionId === "limited" ? "active" : "none",
-    registeredAt: "2026-07-02T12:00:00.000Z",
-    approvedAt: registrationMode === "open" ? "2026-07-02T12:00:00.000Z" : null,
-    cancelledAt: null,
-    checkedInAt: null,
-    inviteTokenId: null,
-    notes: "Preview registration record for Experience Studio.",
-    sessionReservations: [
-      {
-        sessionId: selectedSessionId,
-        sessionTitle: selectedSessionId === "limited" ? "Limited Breakout" : "General Session",
-        reservedAt: "2026-07-02T12:00:00.000Z",
-        releasedAt: null,
-      },
-    ],
-  }
-
-  const registrationRuntime: RegistrationExperienceState & {
-    sessions: RegistrationPreviewSession[]
-  } = {
-    access: registrationAccess,
-    capacity: registrationCapacity,
-    registrationOpen: registrationMode !== "closed" && registrationMode !== "invite_only",
-    registrationClosedReason:
-      registrationMode === "closed"
-        ? "Registration is currently closed."
-        : registrationMode === "invite_only"
-          ? "Registration requires a valid invitation."
-          : null,
-    attendee: attendeeRecord,
-    sessions: previewSessions,
-  }
 
   const selectedSession =
     registrationRuntime.sessions.find((session) => session.id === selectedSessionId) ??
     registrationRuntime.sessions[0]
 
+  const isFirstStep = step === 0
+  const isLastStep = step === steps.length - 1
+  const currentModeMeta = registrationModeMeta[registrationMode]
   const attendeeDisplayName = `${registrationRuntime.attendee?.firstName ?? ""} ${
     registrationRuntime.attendee?.lastName ?? ""
   }`.trim()
-
   const selectedSessionLabel = selectedSession.title
   const selectedCapacityState =
     selectedSession.status === "waitlist" ? "Waitlist Requested" : "Confirmed Seat"
-
-  const registrationModeMeta = {
-    open: {
-      label: "Open",
-      title: "Open registration",
-      body: "Attendees can register immediately and receive confirmation based on session availability.",
-      className: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50/72",
-    },
-    approval_required: {
-      label: "Approval Required",
-      title: "Review before access",
-      body: "Submissions are captured first, then approved by the event team before access is granted.",
-      className: "border-amber-300/20 bg-amber-500/10 text-amber-50/72",
-    },
-    invite_only: {
-      label: "Invite Only",
-      title: "Private experience",
-      body: "Only attendees with a valid invitation or access token can complete registration.",
-      className: "border-violet-300/20 bg-violet-500/10 text-violet-50/72",
-    },
-    closed: {
-      label: "Closed",
-      title: "Registration closed",
-      body: "The experience can remain visible while registration intake is paused or closed.",
-      className: "border-red-300/20 bg-red-500/10 text-red-50/72",
-    },
-  } satisfies Record<RegistrationMode, RegistrationModeMeta>
-
-  const currentModeMeta = registrationModeMeta[registrationMode]
-
-  const canContinue = registrationRuntime.registrationOpen
-  const continueLabel =
-    registrationMode === "closed"
-      ? "Registration Closed"
-      : registrationMode === "invite_only"
-        ? "Invite Required"
-        : isLastStep
-          ? "Complete"
-          : "Continue"
 
   const finalTitle =
     registrationRuntime.attendee?.registrationStatus === "pending_approval"
@@ -441,6 +444,16 @@ export default function RegistrationFlowPreview() {
       : registrationRuntime.attendee?.registrationStatus === "waitlisted"
         ? `The attendee record is created and ${selectedSessionLabel.toLowerCase()} is tracking as an active waitlist request.`
         : `The attendee record is created, ${selectedSessionLabel.toLowerCase()} is assigned, and registration status is now ${registrationRuntime.attendee?.registrationStatus} for email, access, reporting, changes, and cancellation.`
+
+  const canContinue = registrationRuntime.registrationOpen
+  const continueLabel =
+    registrationMode === "closed"
+      ? "Registration Closed"
+      : registrationMode === "invite_only"
+        ? "Invite Required"
+        : isLastStep
+          ? "Complete"
+          : "Continue"
 
   function handleNext() {
     setStep((current) => Math.min(current + 1, steps.length - 1))

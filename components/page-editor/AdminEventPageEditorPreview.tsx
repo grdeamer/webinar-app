@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
+import RegistrationFlowPreview from "./RegistrationFlowPreview"
 import {
   SECTION_TEMPLATE_OPTIONS,
   createDefaultEventHomeSections,
@@ -2067,27 +2068,7 @@ systemComponents={{
     </div>
   ),
 
-  registration_form: (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-      <div className="text-sm font-semibold text-white">
-        Registration Form
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <div className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-white/40">
-          First Name
-        </div>
-
-        <div className="rounded-lg border border-white/10 bg-black/30 px-4 py-3 text-sm text-white/40">
-          Email Address
-        </div>
-
-        <button className="w-full rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold text-white">
-          Register
-        </button>
-      </div>
-    </div>
-  ),
+  registration_form: <RegistrationFlowPreview />,
 
   registration_status: (
     <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-5">
@@ -2202,6 +2183,7 @@ systemComponents={{
   ),
 }}
                     />
+
 
                     {isMarqueeSelecting && selectionBox && (
                       <div
