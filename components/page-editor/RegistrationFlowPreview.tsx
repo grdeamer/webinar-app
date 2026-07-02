@@ -137,6 +137,71 @@ function RegistrationModePanel({
     </div>
   )
 }
+
+function RegistrationSessionSelector({
+  sessions,
+  selectedSessionId,
+  onSelectSession,
+}: {
+  sessions: RegistrationPreviewSession[]
+  selectedSessionId: string
+  onSelectSession: (sessionId: string) => void
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+        Session Selection
+      </div>
+
+      <div className="mt-3 grid gap-3">
+        {sessions.map((session) => {
+          const isSelected = selectedSessionId === session.id
+          const isWaitlist = session.status === "waitlist"
+
+          return (
+            <button
+              key={session.id}
+              type="button"
+              onClick={() => onSelectSession(session.id)}
+              className={`rounded-2xl border p-4 text-left transition ${
+                isSelected
+                  ? isWaitlist
+                    ? "border-amber-300/34 bg-amber-500/14 shadow-[0_0_0_1px_rgba(252,211,77,0.14),0_18px_44px_rgba(251,191,36,0.08)]"
+                    : "border-emerald-300/34 bg-emerald-500/14 shadow-[0_0_0_1px_rgba(110,231,183,0.14),0_18px_44px_rgba(16,185,129,0.08)]"
+                  : isWaitlist
+                    ? "border-amber-300/18 bg-amber-500/10 hover:border-amber-300/28 hover:bg-amber-500/14"
+                    : "border-emerald-300/18 bg-emerald-500/10 hover:border-emerald-300/28 hover:bg-emerald-500/14"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-white">{session.title}</div>
+                  <div className="mt-1 text-xs text-white/45">
+                    {session.reserved} of {session.capacity} seats reserved
+                  </div>
+                  <div className="mt-2 text-xs leading-5 text-white/38">
+                    {session.description}
+                  </div>
+                </div>
+
+                <div
+                  className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+                    isWaitlist
+                      ? "border-amber-200/18 bg-amber-400/10 text-amber-100/70"
+                      : "border-emerald-200/18 bg-emerald-400/10 text-emerald-100/70"
+                  }`}
+                >
+                  {session.statusLabel}
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 export default function RegistrationFlowPreview() {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState("general")
@@ -428,57 +493,11 @@ export default function RegistrationFlowPreview() {
       ) : null}
 
       {step === 1 ? (
-        <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
-            Session Selection
-          </div>
-
-          <div className="mt-3 grid gap-3">
-            {registrationRuntime.sessions.map((session) => {
-              const isSelected = selectedSessionId === session.id
-              const isWaitlist = session.status === "waitlist"
-
-              return (
-                <button
-                  key={session.id}
-                  type="button"
-                  onClick={() => setSelectedSessionId(session.id)}
-                  className={`rounded-2xl border p-4 text-left transition ${
-                    isSelected
-                      ? isWaitlist
-                        ? "border-amber-300/34 bg-amber-500/14 shadow-[0_0_0_1px_rgba(252,211,77,0.14),0_18px_44px_rgba(251,191,36,0.08)]"
-                        : "border-emerald-300/34 bg-emerald-500/14 shadow-[0_0_0_1px_rgba(110,231,183,0.14),0_18px_44px_rgba(16,185,129,0.08)]"
-                      : isWaitlist
-                        ? "border-amber-300/18 bg-amber-500/10 hover:border-amber-300/28 hover:bg-amber-500/14"
-                        : "border-emerald-300/18 bg-emerald-500/10 hover:border-emerald-300/28 hover:bg-emerald-500/14"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-semibold text-white">{session.title}</div>
-                      <div className="mt-1 text-xs text-white/45">
-                        {session.reserved} of {session.capacity} seats reserved
-                      </div>
-                      <div className="mt-2 text-xs leading-5 text-white/38">
-                        {session.description}
-                      </div>
-                    </div>
-
-                    <div
-                      className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
-                        isWaitlist
-                          ? "border-amber-200/18 bg-amber-400/10 text-amber-100/70"
-                          : "border-emerald-200/18 bg-emerald-400/10 text-emerald-100/70"
-                      }`}
-                    >
-                      {session.statusLabel}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </div>
+        <RegistrationSessionSelector
+          sessions={registrationRuntime.sessions}
+          selectedSessionId={selectedSessionId}
+          onSelectSession={setSelectedSessionId}
+        />
       ) : null}
 
       {step === 2 ? (
