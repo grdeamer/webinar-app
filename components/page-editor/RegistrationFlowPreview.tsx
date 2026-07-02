@@ -1,31 +1,33 @@
 "use client"
 
 import { useMemo, useState } from "react"
+import type {
+  RegistrationAccessSettings,
+  RegistrationCapacity,
+  RegistrationExperienceState,
+  RegistrationMode,
+  RegistrationRecord,
+} from "@/lib/page-editor/types/registration"
+
+type RegistrationPreviewSession = {
+  id: "general" | "limited"
+  title: string
+  reserved: number
+  capacity: number
+  status: "available" | "waitlist"
+  statusLabel: string
+  description: string
+}
 
 export default function RegistrationFlowPreview() {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState("general")
-  const [registrationMode, setRegistrationMode] = useState<
-    "automatic" | "approval_required" | "invite_only" | "closed"
-  >("automatic")
+  const [registrationMode, setRegistrationMode] = useState<RegistrationMode>("open")
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
 
-  const isFirstStep = step === 0
-  const isLastStep = step === steps.length - 1
-
-  function handleNext() {
-    setStep((current) => Math.min(current + 1, steps.length - 1))
-  }
-
-  const registrationRuntime = {
-    attendee: {
-      firstName: "Gary",
-      lastName: "Deamer",
-      email: "gary@example.com",
-      organization: "Jupiter.events",
-    },
-    sessions: [
+  const previewSessions = useMemo<RegistrationPreviewSession[]>(
+    () => [
       {
         id: "general",
         title: "General Session",
@@ -33,6 +35,7 @@ export default function RegistrationFlowPreview() {
         capacity: 500,
         status: "available",
         statusLabel: "Available",
+        description: "Main event access with immediate confirmation.",
       },
       {
         id: "limited",
@@ -41,33 +44,104 @@ export default function RegistrationFlowPreview() {
         capacity: 30,
         status: "waitlist",
         statusLabel: "Waitlist",
+        description: "Capacity-limited session with automatic waitlist handling.",
       },
     ],
-    approvalMode: registrationMode,
+    []
+  )
+
+  const isFirstStep = step === 0
+  const isLastStep = step === steps.length - 1
+
+  function handleNext() {
+    setStep((current) => Math.min(current + 1, steps.length - 1))
+  }
+
+  const registrationAccess: RegistrationAccessSettings = {
+    mode: registrationMode,
+    requiresInviteToken: registrationMode === "invite_only",
+    requiresApproval: registrationMode === "approval_required",
+    registrationStartAt: null,
+    registrationEndAt: null,
+  }
+
+  const registrationCapacity: RegistrationCapacity = {
+    enabled: true,
+    maxAttendees: 500,
+    currentRegistered: selectedSessionId === "limited" ? 30 : 26,
+    currentWaitlisted: selectedSessionId === "limited" ? 12 : 0,
+    allowWaitlist: true,
+  }
+
+  const attendeeRecord: RegistrationRecord = {
+    id: "preview-registration-1",
+    attendeeId: "preview-attendee-1",
+    firstName: "Gary",
+    lastName: "Deamer",
+    email: "gary@example.com",
     registrationStatus:
       registrationMode === "closed"
-        ? "closed"
+        ? "not_registered"
         : registrationMode === "invite_only"
-          ? "invite_required"
+          ? "not_registered"
           : registrationMode === "approval_required"
             ? "pending_approval"
             : selectedSessionId === "limited"
               ? "waitlisted"
-              : "confirmed",
+              : "registered",
+    approvalStatus:
+      registrationMode === "approval_required"
+        ? "pending"
+        : registrationMode === "closed" || registrationMode === "invite_only"
+          ? "not_required"
+          : "approved",
+    waitlistStatus: selectedSessionId === "limited" ? "active" : "none",
+    registeredAt: "2026-07-02T12:00:00.000Z",
+    approvedAt: registrationMode === "open" ? "2026-07-02T12:00:00.000Z" : null,
+    cancelledAt: null,
+    checkedInAt: null,
+    inviteTokenId: null,
+    notes: "Preview registration record for Experience Studio.",
+    sessionReservations: [
+      {
+        sessionId: selectedSessionId,
+        sessionTitle: selectedSessionId === "limited" ? "Limited Breakout" : "General Session",
+        reservedAt: "2026-07-02T12:00:00.000Z",
+        releasedAt: null,
+      },
+    ],
+  }
+
+  const registrationRuntime: RegistrationExperienceState & {
+    sessions: RegistrationPreviewSession[]
+  } = {
+    access: registrationAccess,
+    capacity: registrationCapacity,
+    registrationOpen: registrationMode !== "closed" && registrationMode !== "invite_only",
+    registrationClosedReason:
+      registrationMode === "closed"
+        ? "Registration is currently closed."
+        : registrationMode === "invite_only"
+          ? "Registration requires a valid invitation."
+          : null,
+    attendee: attendeeRecord,
+    sessions: previewSessions,
   }
 
   const selectedSession =
     registrationRuntime.sessions.find((session) => session.id === selectedSessionId) ??
     registrationRuntime.sessions[0]
 
-  const attendeeDisplayName = `${registrationRuntime.attendee.firstName} ${registrationRuntime.attendee.lastName}`
+  const attendeeDisplayName = `${registrationRuntime.attendee?.firstName ?? ""} ${
+    registrationRuntime.attendee?.lastName ?? ""
+  }`.trim()
   const selectedSessionLabel = selectedSession.title
   const selectedCapacityState =
     selectedSession.status === "waitlist" ? "Waitlist Requested" : "Confirmed Seat"
 
   const registrationModeMeta = {
-    automatic: {
-      label: "Automatic",
+    open: {
+      label: "Open",
       title: "Open registration",
       body: "Attendees can register immediately and receive confirmation based on session availability.",
       className: "border-emerald-300/20 bg-emerald-500/10 text-emerald-50/72",
@@ -92,7 +166,7 @@ export default function RegistrationFlowPreview() {
     },
   }[registrationMode]
 
-  const canContinue = registrationMode !== "closed" && registrationMode !== "invite_only"
+  const canContinue = registrationRuntime.registrationOpen
   const continueLabel =
     registrationMode === "closed"
       ? "Registration Closed"
@@ -101,6 +175,20 @@ export default function RegistrationFlowPreview() {
         : isLastStep
           ? "Complete"
           : "Continue"
+
+  const finalTitle =
+    registrationRuntime.attendee?.registrationStatus === "pending_approval"
+      ? "Registration submitted"
+      : registrationRuntime.attendee?.registrationStatus === "waitlisted"
+        ? "Waitlist request received"
+        : "Registration confirmed"
+
+  const finalBody =
+    registrationRuntime.attendee?.registrationStatus === "pending_approval"
+      ? "The attendee record is captured and waiting for organizer approval before access is granted."
+      : registrationRuntime.attendee?.registrationStatus === "waitlisted"
+        ? `The attendee record is created and ${selectedSessionLabel.toLowerCase()} is tracking as an active waitlist request.`
+        : `The attendee record is created, ${selectedSessionLabel.toLowerCase()} is assigned, and registration status is now ${registrationRuntime.attendee?.registrationStatus} for email, access, reporting, changes, and cancellation.`
 
   function handleBack() {
     setStep((current) => Math.max(current - 1, 0))
@@ -149,7 +237,7 @@ export default function RegistrationFlowPreview() {
 
           <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
             {([
-              ["automatic", "Auto"],
+              ["open", "Open"],
               ["approval_required", "Approval"],
               ["invite_only", "Invite"],
               ["closed", "Closed"],
@@ -174,6 +262,35 @@ export default function RegistrationFlowPreview() {
           <span className="font-semibold">{registrationModeMeta.label}:</span>{" "}
           {registrationModeMeta.body}
         </div>
+
+        <div className="mt-3 grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+              Intake
+            </div>
+            <div className="mt-1 text-sm font-semibold text-white/72">
+              {registrationRuntime.registrationOpen ? "Accepting" : "Paused"}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+              Registered
+            </div>
+            <div className="mt-1 text-sm font-semibold text-white/72">
+              {registrationRuntime.capacity.currentRegistered ?? 0} / {registrationRuntime.capacity.maxAttendees ?? "∞"}
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+              Waitlist
+            </div>
+            <div className="mt-1 text-sm font-semibold text-white/72">
+              {registrationRuntime.capacity.currentWaitlisted ?? 0} active
+            </div>
+          </div>
+        </div>
       </div>
 
       <div>
@@ -188,7 +305,7 @@ export default function RegistrationFlowPreview() {
               ? "Choose your sessions"
               : step === 2
                 ? "Review your registration"
-                : "You are confirmed"}
+                : finalTitle}
         </h3>
 
         <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
@@ -225,47 +342,49 @@ export default function RegistrationFlowPreview() {
           </div>
 
           <div className="mt-3 grid gap-3">
-            <button
-              type="button"
-              onClick={() => setSelectedSessionId("general")}
-              className={`rounded-2xl border p-4 text-left transition ${
-                selectedSessionId === "general"
-                  ? "border-emerald-300/34 bg-emerald-500/14 shadow-[0_0_0_1px_rgba(110,231,183,0.14),0_18px_44px_rgba(16,185,129,0.08)]"
-                  : "border-emerald-300/18 bg-emerald-500/10 hover:border-emerald-300/28 hover:bg-emerald-500/14"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-white">General Session</div>
-                  <div className="mt-1 text-xs text-white/45">{registrationRuntime.sessions[0].reserved} of {registrationRuntime.sessions[0].capacity} seats reserved</div>
-                </div>
+            {registrationRuntime.sessions.map((session) => {
+              const isSelected = selectedSessionId === session.id
+              const isWaitlist = session.status === "waitlist"
 
-                <div className="rounded-full border border-emerald-200/18 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-100/70">
-                  Available
-                </div>
-              </div>
-            </button>
+              return (
+                <button
+                  key={session.id}
+                  type="button"
+                  onClick={() => setSelectedSessionId(session.id)}
+                  className={`rounded-2xl border p-4 text-left transition ${
+                    isSelected
+                      ? isWaitlist
+                        ? "border-amber-300/34 bg-amber-500/14 shadow-[0_0_0_1px_rgba(252,211,77,0.14),0_18px_44px_rgba(251,191,36,0.08)]"
+                        : "border-emerald-300/34 bg-emerald-500/14 shadow-[0_0_0_1px_rgba(110,231,183,0.14),0_18px_44px_rgba(16,185,129,0.08)]"
+                      : isWaitlist
+                        ? "border-amber-300/18 bg-amber-500/10 hover:border-amber-300/28 hover:bg-amber-500/14"
+                        : "border-emerald-300/18 bg-emerald-500/10 hover:border-emerald-300/28 hover:bg-emerald-500/14"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold text-white">{session.title}</div>
+                      <div className="mt-1 text-xs text-white/45">
+                        {session.reserved} of {session.capacity} seats reserved
+                      </div>
+                      <div className="mt-2 text-xs leading-5 text-white/38">
+                        {session.description}
+                      </div>
+                    </div>
 
-            <button
-              type="button"
-              onClick={() => setSelectedSessionId("limited")}
-              className={`rounded-2xl border p-4 text-left transition ${
-                selectedSessionId === "limited"
-                  ? "border-amber-300/34 bg-amber-500/14 shadow-[0_0_0_1px_rgba(252,211,77,0.14),0_18px_44px_rgba(251,191,36,0.08)]"
-                  : "border-amber-300/18 bg-amber-500/10 hover:border-amber-300/28 hover:bg-amber-500/14"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-white">Limited Breakout</div>
-                  <div className="mt-1 text-xs text-white/45">{registrationRuntime.sessions[1].reserved} of {registrationRuntime.sessions[1].capacity} seats reserved</div>
-                </div>
-
-                <div className="rounded-full border border-amber-200/18 bg-amber-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-amber-100/70">
-                  Waitlist
-                </div>
-              </div>
-            </button>
+                    <div
+                      className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
+                        isWaitlist
+                          ? "border-amber-200/18 bg-amber-400/10 text-amber-100/70"
+                          : "border-emerald-200/18 bg-emerald-400/10 text-emerald-100/70"
+                      }`}
+                    >
+                      {session.statusLabel}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
           </div>
         </div>
       ) : null}
@@ -302,6 +421,20 @@ export default function RegistrationFlowPreview() {
               <span className="text-sm text-white/48">Registration Mode</span>
               <span className="text-sm font-semibold text-white">{registrationModeMeta.label}</span>
             </div>
+
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+              <span className="text-sm text-white/48">Approval</span>
+              <span className="text-sm font-semibold text-white">
+                {registrationRuntime.attendee?.approvalStatus}
+              </span>
+            </div>
+
+            <div className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+              <span className="text-sm text-white/48">Waitlist</span>
+              <span className="text-sm font-semibold text-white">
+                {registrationRuntime.attendee?.waitlistStatus}
+              </span>
+            </div>
           </div>
         </div>
       ) : null}
@@ -311,11 +444,11 @@ export default function RegistrationFlowPreview() {
           <div className="h-3 w-3 rounded-full bg-emerald-300 shadow-[0_0_24px_rgba(110,231,183,0.72)]" />
 
           <div className="mt-5 text-3xl font-semibold tracking-[-0.055em] text-white">
-            Registration confirmed
+            {finalTitle}
           </div>
 
           <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
-            The attendee record is created, {selectedSessionLabel.toLowerCase()} is assigned, and registration status is now {registrationRuntime.registrationStatus} for email, access, reporting, changes, and cancellation.
+            {finalBody}
           </p>
         </div>
       ) : null}
@@ -333,7 +466,7 @@ export default function RegistrationFlowPreview() {
         <button
           type="button"
           onClick={handleNext}
-          disabled={isLastStep || !canContinue}
+          disabled={isLastStep || (!canContinue && step === 0)}
           className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
           {continueLabel}
