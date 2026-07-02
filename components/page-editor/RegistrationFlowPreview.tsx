@@ -19,6 +19,38 @@ type RegistrationPreviewSession = {
   description: string
 }
 
+function RegistrationStepRail({ steps, step }: { steps: string[]; step: number }) {
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      {steps.map((label, index) => {
+        const active = index === step
+        const complete = index < step
+
+        return (
+          <div
+            key={label}
+            className={`flex items-center gap-3 rounded-full border px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${
+              active
+                ? "border-sky-300/40 bg-sky-400/15 text-sky-50"
+                : complete
+                  ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-50/80"
+                  : "border-white/10 bg-white/[0.03] text-white/40"
+            }`}
+          >
+            <div
+              className={`h-2 w-2 rounded-full ${
+                active ? "bg-sky-300" : complete ? "bg-emerald-300" : "bg-white/20"
+              }`}
+            />
+
+            {label}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function RegistrationFlowPreview() {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState("general")
@@ -196,33 +228,7 @@ export default function RegistrationFlowPreview() {
 
   return (
     <div className="space-y-6 rounded-[28px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <div className="flex flex-wrap items-center gap-3">
-        {steps.map((label, index) => {
-          const active = index === step
-          const complete = index < step
-
-          return (
-            <div
-              key={label}
-              className={`flex items-center gap-3 rounded-full border px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] transition ${
-                active
-                  ? "border-sky-300/40 bg-sky-400/15 text-sky-50"
-                  : complete
-                    ? "border-emerald-300/30 bg-emerald-400/10 text-emerald-50/80"
-                    : "border-white/10 bg-white/[0.03] text-white/40"
-              }`}
-            >
-              <div
-                className={`h-2 w-2 rounded-full ${
-                  active ? "bg-sky-300" : complete ? "bg-emerald-300" : "bg-white/20"
-                }`}
-              />
-
-              {label}
-            </div>
-          )
-        })}
-      </div>
+      <RegistrationStepRail steps={steps} step={step} />
 
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
