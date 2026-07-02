@@ -18,7 +18,12 @@ type RegistrationPreviewSession = {
   statusLabel: string
   description: string
 }
-
+type RegistrationModeMeta = {
+  label: string
+  title: string
+  body: string
+  className: string
+}
 function RegistrationStepRail({ steps, step }: { steps: string[]; step: number }) {
   return (
     <div className="flex flex-wrap items-center gap-3">
@@ -50,7 +55,88 @@ function RegistrationStepRail({ steps, step }: { steps: string[]; step: number }
     </div>
   )
 }
+function RegistrationModePanel({
+  registrationMode,
+  registrationModeMeta,
+  registrationRuntime,
+  onChangeMode,
+}: {
+  registrationMode: RegistrationMode
+  registrationModeMeta: RegistrationModeMeta
+  registrationRuntime: RegistrationExperienceState
+  onChangeMode: (mode: RegistrationMode) => void
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-white/34">
+            Registration Mode
+          </div>
+          <div className="mt-2 text-sm font-semibold text-white/78">
+            {registrationModeMeta.title}
+          </div>
+        </div>
 
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4">
+          {([
+            ["open", "Open"],
+            ["approval_required", "Approval"],
+            ["invite_only", "Invite"],
+            ["closed", "Closed"],
+          ] as const).map(([mode, label]) => (
+            <button
+              key={mode}
+              type="button"
+              onClick={() => onChangeMode(mode)}
+              className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+                registrationMode === mode
+                  ? registrationModeMeta.className
+                  : "border-white/10 bg-white/[0.03] text-white/38 hover:bg-white/[0.06] hover:text-white/60"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className={`mt-4 rounded-2xl border px-4 py-3 text-sm leading-6 ${registrationModeMeta.className}`}>
+        <span className="font-semibold">{registrationModeMeta.label}:</span>{" "}
+        {registrationModeMeta.body}
+      </div>
+
+      <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+            Intake
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {registrationRuntime.registrationOpen ? "Accepting" : "Paused"}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+            Registered
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {registrationRuntime.capacity.currentRegistered ?? 0} / {registrationRuntime.capacity.maxAttendees ?? "∞"}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/32">
+            Waitlist
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {registrationRuntime.capacity.currentWaitlisted ?? 0} active
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 export default function RegistrationFlowPreview() {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState("general")
