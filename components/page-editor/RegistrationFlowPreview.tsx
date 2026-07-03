@@ -24,6 +24,16 @@ type RegistrationModeMeta = {
   className: string
 }
 
+type RegistrationFieldDefinition = {
+  id: "firstName" | "lastName" | "email" | "organization"
+  label: string
+  placeholder: string
+  fieldType: "text" | "email"
+  required: boolean
+  width: "half" | "full"
+  helperText?: string
+}
+
 function createPreviewSessions(): RegistrationPreviewSession[] {
   return [
     {
@@ -43,6 +53,45 @@ function createPreviewSessions(): RegistrationPreviewSession[] {
       status: "waitlist",
       statusLabel: "Waitlist",
       description: "Capacity-limited session with automatic waitlist handling.",
+    },
+  ]
+}
+
+function createRegistrationFields(): RegistrationFieldDefinition[] {
+  return [
+    {
+      id: "firstName",
+      label: "First name",
+      placeholder: "Gary",
+      fieldType: "text",
+      required: true,
+      width: "half",
+    },
+    {
+      id: "lastName",
+      label: "Last name",
+      placeholder: "Deamer",
+      fieldType: "text",
+      required: true,
+      width: "half",
+    },
+    {
+      id: "email",
+      label: "Email address",
+      placeholder: "gary@example.com",
+      fieldType: "email",
+      required: true,
+      width: "full",
+      helperText: "Used for confirmation, access, changes, and cancellation.",
+    },
+    {
+      id: "organization",
+      label: "Organization",
+      placeholder: "Jupiter.events",
+      fieldType: "text",
+      required: false,
+      width: "full",
+      helperText: "Optional field previewing future builder-controlled registration fields.",
     },
   ]
 }
@@ -259,6 +308,65 @@ function RegistrationModePanel({
   )
 }
 
+
+function RegistrationIdentityStep({ fields }: { fields: RegistrationFieldDefinition[] }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+            Identity Fields
+          </div>
+          <div className="mt-2 text-sm leading-6 text-white/48">
+            Field-definition driven. Next pass turns this into editable builder controls.
+          </div>
+        </div>
+
+        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
+          {fields.length} fields
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        {fields.map((field) => (
+          <div
+            key={field.id}
+            className={`rounded-2xl border border-white/10 bg-black/28 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${
+              field.width === "full" ? "md:col-span-2" : ""
+            }`}
+          >
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+                {field.label}
+              </div>
+
+              {field.required ? (
+                <div className="rounded-full border border-sky-200/16 bg-sky-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-sky-50/60">
+                  Required
+                </div>
+              ) : (
+                <div className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/30">
+                  Optional
+                </div>
+              )}
+            </div>
+
+            <div className="mt-3 text-sm font-semibold text-white/68">
+              {field.placeholder}
+            </div>
+
+            {field.helperText ? (
+              <div className="mt-2 text-xs leading-5 text-white/34">
+                {field.helperText}
+              </div>
+            ) : null}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function RegistrationSessionSelector({
   sessions,
   selectedSessionId,
@@ -405,6 +513,7 @@ export default function RegistrationFlowPreview() {
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
   const previewSessions = useMemo(() => createPreviewSessions(), [])
+  const registrationFields = useMemo(() => createRegistrationFields(), [])
   const registrationModeMeta = useMemo(() => getRegistrationModeMeta(), [])
 
   const registrationRuntime = useMemo(
@@ -500,19 +609,7 @@ export default function RegistrationFlowPreview() {
         </p>
       </div>
 
-      {step === 0 ? (
-        <div className="grid gap-3 md:grid-cols-2">
-          <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">
-            First name
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42">
-            Last name
-          </div>
-          <div className="rounded-2xl border border-white/10 bg-black/28 px-4 py-3 text-sm text-white/42 md:col-span-2">
-            Email address
-          </div>
-        </div>
-      ) : null}
+      {step === 0 ? <RegistrationIdentityStep fields={registrationFields} /> : null}
 
       {step === 1 ? (
         <RegistrationSessionSelector
