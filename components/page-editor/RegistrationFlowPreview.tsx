@@ -45,6 +45,20 @@ type RegistrationConditionalSection = {
   accent: "amber" | "violet" | "sky"
 }
 
+type RegistrationBuilderSnapshot = {
+  version: 1
+  fieldCount: number
+  visibleFieldCount: number
+  requiredFieldCount: number
+  fieldOrder: RegistrationFieldDefinition["id"][]
+  visibleFields: RegistrationFieldDefinition["id"][]
+  requiredFields: RegistrationFieldDefinition["id"][]
+  conditionalSections: Array<{
+    id: RegistrationConditionalSection["id"]
+    active: boolean
+  }>
+}
+
 function createPreviewSessions(): RegistrationPreviewSession[] {
   return [
     {
@@ -175,6 +189,7 @@ function createFieldFromTemplate(
   }
 }
 
+
 function createConditionalSections({
   registrationMode,
   selectedSessionId,
@@ -208,6 +223,28 @@ function createConditionalSections({
       accent: "sky",
     },
   ]
+}
+
+function createBuilderSnapshot({
+  fields,
+  conditionalSections,
+}: {
+  fields: RegistrationFieldDefinition[]
+  conditionalSections: RegistrationConditionalSection[]
+}): RegistrationBuilderSnapshot {
+  return {
+    version: 1,
+    fieldCount: fields.length,
+    visibleFieldCount: fields.filter((field) => field.visible).length,
+    requiredFieldCount: fields.filter((field) => field.required).length,
+    fieldOrder: fields.map((field) => field.id),
+    visibleFields: fields.filter((field) => field.visible).map((field) => field.id),
+    requiredFields: fields.filter((field) => field.required).map((field) => field.id),
+    conditionalSections: conditionalSections.map((section) => ({
+      id: section.id,
+      active: section.active,
+    })),
+  }
 }
 
 function getRegistrationModeMeta(): Record<RegistrationMode, RegistrationModeMeta> {
@@ -646,6 +683,7 @@ function RegistrationIdentityStep({
 }
 
 
+
 function RegistrationConditionalSections({
   sections,
 }: {
@@ -712,6 +750,64 @@ function RegistrationConditionalSections({
           )
         })}
       </div>
+    </div>
+  )
+}
+
+function RegistrationBuilderSnapshotPanel({
+  snapshot,
+}: {
+  snapshot: RegistrationBuilderSnapshot
+}) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+            Builder Serialization Preview
+          </div>
+          <div className="mt-2 text-sm leading-6 text-white/48">
+            This is the shape Jupiter can persist when the registration builder saves.
+          </div>
+        </div>
+
+        <div className="rounded-full border border-emerald-200/14 bg-emerald-400/10 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-emerald-50/52">
+          v{snapshot.version}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/32">
+            Fields
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {snapshot.visibleFieldCount} visible / {snapshot.fieldCount} total
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/32">
+            Required
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {snapshot.requiredFieldCount} required
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/32">
+            Active Rules
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {snapshot.conditionalSections.filter((section) => section.active).length} active
+          </div>
+        </div>
+      </div>
+
+      <pre className="mt-4 max-h-64 overflow-auto rounded-2xl border border-white/10 bg-black/40 p-4 text-[11px] leading-5 text-sky-50/56">
+        {JSON.stringify(snapshot, null, 2)}
+      </pre>
     </div>
   )
 }
@@ -870,6 +966,15 @@ export default function RegistrationFlowPreview() {
     [registrationMode, selectedSessionId]
   )
 
+  const builderSnapshot = useMemo(
+    () =>
+      createBuilderSnapshot({
+        fields: registrationFields,
+        conditionalSections,
+      }),
+    [registrationFields, conditionalSections]
+  )
+
   const registrationRuntime = useMemo(
     () =>
       createRegistrationRuntime({
@@ -971,6 +1076,8 @@ export default function RegistrationFlowPreview() {
       ) : null}
 
       {step === 0 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
+
+      {step === 0 ? <RegistrationBuilderSnapshotPanel snapshot={builderSnapshot} /> : null}
 
       {step === 1 ? (
         <RegistrationSessionSelector
