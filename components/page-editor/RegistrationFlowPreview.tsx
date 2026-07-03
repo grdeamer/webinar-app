@@ -25,7 +25,7 @@ type RegistrationModeMeta = {
 }
 
 type RegistrationFieldDefinition = {
-  id: "firstName" | "lastName" | "email" | "organization"
+  id: "firstName" | "lastName" | "email" | "organization" | "jobTitle" | "phone" | "dietaryNeeds"
   label: string
   placeholder: string
   fieldType: "text" | "email"
@@ -105,6 +105,7 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
   ]
 }
 
+
 function moveRegistrationField(
   fields: RegistrationFieldDefinition[],
   fieldId: RegistrationFieldDefinition["id"],
@@ -121,6 +122,47 @@ function moveRegistrationField(
   next.splice(targetIndex, 0, moved)
 
   return next
+}
+
+function createFieldFromTemplate(
+  templateId: "jobTitle" | "phone" | "dietaryNeeds"
+): RegistrationFieldDefinition {
+  switch (templateId) {
+    case "phone":
+      return {
+        id: "phone",
+        label: "Phone number",
+        placeholder: "(555) 123-4567",
+        fieldType: "text",
+        required: false,
+        visible: true,
+        width: "half",
+        helperText: "Useful for onsite, VIP, or high-touch event workflows.",
+      }
+    case "dietaryNeeds":
+      return {
+        id: "dietaryNeeds",
+        label: "Dietary needs",
+        placeholder: "Vegetarian, gluten-free, allergies, etc.",
+        fieldType: "text",
+        required: false,
+        visible: true,
+        width: "full",
+        helperText: "Preview of custom attendee questions for hybrid or in-person programs.",
+      }
+    case "jobTitle":
+    default:
+      return {
+        id: "jobTitle",
+        label: "Job title",
+        placeholder: "Executive Producer",
+        fieldType: "text",
+        required: false,
+        visible: true,
+        width: "half",
+        helperText: "Optional professional profile field for attendee segmentation.",
+      }
+  }
 }
 
 function getRegistrationModeMeta(): Record<RegistrationMode, RegistrationModeMeta> {
@@ -344,6 +386,9 @@ function RegistrationIdentityStep({
   setFields: Dispatch<SetStateAction<RegistrationFieldDefinition[]>>
 }) {
   const visibleFields = fields.filter((field) => field.visible)
+  const addableTemplates = (["jobTitle", "phone", "dietaryNeeds"] as const).filter(
+    (templateId) => !fields.some((field) => field.id === templateId)
+  )
 
   return (
     <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
@@ -402,14 +447,41 @@ function RegistrationIdentityStep({
       </div>
 
       <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           <div>
             <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
               Builder Controls
             </div>
             <div className="mt-2 text-sm leading-6 text-white/48">
-              Preview field ordering, visibility, required state, and layout width.
+              Preview field ordering, visibility, required state, layout width, and custom field insertion.
             </div>
+          </div>
+        </div>
+
+        <div className="mt-4 rounded-2xl border border-sky-200/12 bg-sky-400/[0.045] p-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-50/44">
+            Add Field
+          </div>
+
+          <div className="mt-3 grid gap-2 sm:grid-cols-3">
+            {addableTemplates.length > 0 ? (
+              addableTemplates.map((templateId) => (
+                <button
+                  key={templateId}
+                  type="button"
+                  onClick={() =>
+                    setFields((current) => [...current, createFieldFromTemplate(templateId)])
+                  }
+                  className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/50 transition hover:bg-white/[0.06] hover:text-white/72"
+                >
+                  + {templateId === "jobTitle" ? "Job" : templateId === "phone" ? "Phone" : "Diet"}
+                </button>
+              ))
+            ) : (
+              <div className="rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/32 sm:col-span-3">
+                All preview fields added
+              </div>
+            )}
           </div>
         </div>
 
@@ -508,6 +580,18 @@ function RegistrationIdentityStep({
                   {field.width}
                 </button>
               </div>
+
+              {!field.locked ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFields((current) => current.filter((item) => item.id !== field.id))
+                  }
+                  className="mt-2 w-full rounded-xl border border-red-200/14 bg-red-400/8 px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-red-50/46 transition hover:bg-red-400/12 hover:text-red-50/70"
+                >
+                  Remove Field
+                </button>
+              ) : null}
             </div>
           ))}
         </div>
