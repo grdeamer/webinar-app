@@ -39,6 +39,8 @@ type RegistrationFieldDefinition = {
   locked?: boolean
   width: "half" | "full"
   helperText?: string
+  systemRole: "identity" | "contact" | "profile" | "logistics"
+  
 }
 
 type RegistrationConditionalSection = {
@@ -66,10 +68,24 @@ type RegistrationBuilderSnapshot = {
     waitlistEnabled: boolean
     status: RegistrationPreviewSession["status"]
   }>
+  reservationState: RegistrationSeatReservationState
   conditionalSections: Array<{
     id: RegistrationConditionalSection["id"]
     active: boolean
   }>
+}
+
+type RegistrationSeatReservationState = "reserved" | "confirmed" | "waitlisted" | "expired" | "approval_pending" | "closed"
+
+type RegistrationSeatReservationPreview = {
+  sessionId: RegistrationPreviewSession["id"]
+  sessionTitle: string
+  state: RegistrationSeatReservationState
+  stateLabel: string
+  expiresInLabel: string | null
+  remainingSeats: number | null
+  waitlistPosition: number | null
+  capacityLabel: string
 }
 
 function getPreviewSessionStatus(session: Omit<RegistrationPreviewSession, "status" | "statusLabel">): {
@@ -146,6 +162,8 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       visible: true,
       locked: true,
       width: "half",
+      systemRole: "identity",
+      
     },
     {
       id: "lastName",
@@ -156,6 +174,7 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       visible: true,
       locked: true,
       width: "half",
+      systemRole: "identity",
     },
     {
       id: "email",
@@ -167,6 +186,7 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       locked: true,
       width: "full",
       helperText: "Used for confirmation, access, changes, and cancellation.",
+      systemRole: "contact",
     },
     {
       id: "organization",
@@ -177,10 +197,10 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       visible: true,
       width: "full",
       helperText: "Optional field previewing future builder-controlled registration fields.",
+      systemRole: "profile",
     },
   ]
 }
-
 
 function moveRegistrationField(
   fields: RegistrationFieldDefinition[],
@@ -200,7 +220,6 @@ function moveRegistrationField(
   return next
 }
 
-
 function createFieldFromTemplate(
   templateId: "jobTitle" | "phone" | "dietaryNeeds"
 ): RegistrationFieldDefinition {
@@ -215,7 +234,9 @@ function createFieldFromTemplate(
         visible: true,
         width: "half",
         helperText: "Useful for onsite, VIP, or high-touch event workflows.",
+        systemRole: "contact",
       }
+
     case "dietaryNeeds":
       return {
         id: "dietaryNeeds",
@@ -225,8 +246,11 @@ function createFieldFromTemplate(
         required: false,
         visible: true,
         width: "full",
-        helperText: "Preview of custom attendee questions for hybrid or in-person programs.",
+        helperText:
+          "Preview of custom attendee questions for hybrid or in-person programs.",
+        systemRole: "logistics",
       }
+
     case "jobTitle":
     default:
       return {
@@ -237,7 +261,9 @@ function createFieldFromTemplate(
         required: false,
         visible: true,
         width: "half",
-        helperText: "Optional professional profile field for attendee segmentation.",
+        helperText:
+          "Optional professional profile field for attendee segmentation.",
+        systemRole: "profile",
       }
   }
 }
@@ -290,10 +316,12 @@ function createBuilderSnapshot({
   fields,
   conditionalSections,
   sessions,
+  reservationPreview,
 }: {
   fields: RegistrationFieldDefinition[]
   conditionalSections: RegistrationConditionalSection[]
   sessions: RegistrationPreviewSession[]
+  reservationPreview: RegistrationSeatReservationPreview
 }): RegistrationBuilderSnapshot {
   return {
     version: 1,
@@ -311,10 +339,58 @@ function createBuilderSnapshot({
       waitlistEnabled: session.waitlistEnabled,
       status: session.status,
     })),
+    reservationState: reservationPreview.state,
     conditionalSections: conditionalSections.map((section) => ({
       id: section.id,
       active: section.active,
     })),
+  }
+}
+
+function createSeatReservationPreview({
+  registrationMode,
+  selectedSession,
+}: {
+  registrationMode: RegistrationMode
+  selectedSession: RegistrationPreviewSession
+}): RegistrationSeatReservationPreview {
+  const remainingSeats =
+    selectedSession.capacity === null
+      ? null
+      : Math.max(selectedSession.capacity - selectedSession.reserved, 0)
+
+  const waitlistPosition = selectedSession.status === "waitlist" ? 12 : null
+
+  const state: RegistrationSeatReservationState =
+    registrationMode === "closed" || selectedSession.status === "closed"
+      ? "closed"
+      : registrationMode === "approval_required"
+        ? "approval_pending"
+        : selectedSession.status === "waitlist"
+          ? "waitlisted"
+          : "reserved"
+
+  const stateLabel =
+    state === "closed"
+      ? "Registration Closed"
+      : state === "approval_pending"
+        ? "Approval Pending"
+        : state === "waitlisted"
+          ? "Waitlist Hold"
+          : "Seat Reserved"
+
+  return {
+    sessionId: selectedSession.id,
+    sessionTitle: selectedSession.title,
+    state,
+    stateLabel,
+    expiresInLabel: state === "reserved" ? "09:42" : state === "waitlisted" ? "No expiration" : null,
+    remainingSeats,
+    waitlistPosition,
+    capacityLabel:
+      selectedSession.capacityMode === "unlimited"
+        ? "Unlimited capacity"
+        : `${selectedSession.reserved} / ${selectedSession.capacity} reserved`,
   }
 }
 
@@ -826,6 +902,83 @@ function RegistrationConditionalSections({
   )
 }
 
+
+function RegistrationSeatReservationPanel({
+  reservation,
+}: {
+  reservation: RegistrationSeatReservationPreview
+}) {
+  const stateClass =
+    reservation.state === "closed" || reservation.state === "expired"
+      ? "border-red-200/18 bg-red-400/10 text-red-50/68"
+      : reservation.state === "approval_pending"
+        ? "border-violet-200/18 bg-violet-400/10 text-violet-50/68"
+        : reservation.state === "waitlisted"
+          ? "border-amber-200/18 bg-amber-400/10 text-amber-50/68"
+          : "border-emerald-200/18 bg-emerald-400/10 text-emerald-50/68"
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+            Seat Reservation Engine
+          </div>
+          <div className="mt-2 text-sm leading-6 text-white/48">
+            Previewing temporary holds, waitlist routing, remaining capacity, and fulfillment state.
+          </div>
+        </div>
+
+        <div className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${stateClass}`}>
+          {reservation.stateLabel}
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-5">
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 md:col-span-2">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/32">
+            Session
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {reservation.sessionTitle}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/32">
+            Expires
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {reservation.expiresInLabel ?? "—"}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/32">
+            Remaining
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {reservation.remainingSeats === null ? "∞" : reservation.remainingSeats}
+          </div>
+        </div>
+
+        <div className="rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3">
+          <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/32">
+            Waitlist
+          </div>
+          <div className="mt-1 text-sm font-semibold text-white/72">
+            {reservation.waitlistPosition ? `#${reservation.waitlistPosition}` : "—"}
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-white/10 bg-black/24 px-4 py-3 text-xs leading-5 text-white/42">
+        Capacity state: <span className="font-semibold text-white/62">{reservation.capacityLabel}</span>
+      </div>
+    </div>
+  )
+}
+
 function RegistrationBuilderSnapshotPanel({
   snapshot,
 }: {
@@ -1048,14 +1201,20 @@ export default function RegistrationFlowPreview() {
     [registrationMode, selectedSession]
   )
 
+  const reservationPreview = useMemo(
+    () => createSeatReservationPreview({ registrationMode, selectedSession }),
+    [registrationMode, selectedSession]
+  )
+
   const builderSnapshot = useMemo(
     () =>
       createBuilderSnapshot({
         fields: registrationFields,
         conditionalSections,
         sessions: previewSessions,
+        reservationPreview,
       }),
-    [registrationFields, conditionalSections, previewSessions]
+    [registrationFields, conditionalSections, previewSessions, reservationPreview]
   )
 
   const registrationRuntime = useMemo(
@@ -1170,6 +1329,8 @@ export default function RegistrationFlowPreview() {
         />
       ) : null}
 
+      {step === 1 ? <RegistrationSeatReservationPanel reservation={reservationPreview} /> : null}
+
       {step === 1 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
 
       {step === 2 ? (
@@ -1183,6 +1344,8 @@ export default function RegistrationFlowPreview() {
           waitlistStatus={registrationRuntime.attendee?.waitlistStatus}
         />
       ) : null}
+
+      {step === 2 ? <RegistrationSeatReservationPanel reservation={reservationPreview} /> : null}
 
       {step === 3 ? (
         <RegistrationConfirmationState
