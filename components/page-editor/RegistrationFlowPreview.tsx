@@ -36,6 +36,15 @@ type RegistrationFieldDefinition = {
   helperText?: string
 }
 
+type RegistrationConditionalSection = {
+  id: "approvalNotes" | "waitlistPreferences" | "inviteCode"
+  title: string
+  body: string
+  conditionLabel: string
+  active: boolean
+  accent: "amber" | "violet" | "sky"
+}
+
 function createPreviewSessions(): RegistrationPreviewSession[] {
   return [
     {
@@ -124,6 +133,7 @@ function moveRegistrationField(
   return next
 }
 
+
 function createFieldFromTemplate(
   templateId: "jobTitle" | "phone" | "dietaryNeeds"
 ): RegistrationFieldDefinition {
@@ -163,6 +173,41 @@ function createFieldFromTemplate(
         helperText: "Optional professional profile field for attendee segmentation.",
       }
   }
+}
+
+function createConditionalSections({
+  registrationMode,
+  selectedSessionId,
+}: {
+  registrationMode: RegistrationMode
+  selectedSessionId: "general" | "limited"
+}): RegistrationConditionalSection[] {
+  return [
+    {
+      id: "approvalNotes",
+      title: "Approval notes",
+      body: "Collect context for organizer review before access is granted.",
+      conditionLabel: "Shows when mode is Approval Required",
+      active: registrationMode === "approval_required",
+      accent: "amber",
+    },
+    {
+      id: "inviteCode",
+      title: "Invite code",
+      body: "Require a valid invitation token before the registration flow can continue.",
+      conditionLabel: "Shows when mode is Invite Only",
+      active: registrationMode === "invite_only",
+      accent: "violet",
+    },
+    {
+      id: "waitlistPreferences",
+      title: "Waitlist preferences",
+      body: "Capture backup choices and attendee priority signals when a session is full.",
+      conditionLabel: "Shows when selected session is waitlisted",
+      active: selectedSessionId === "limited",
+      accent: "sky",
+    },
+  ]
 }
 
 function getRegistrationModeMeta(): Record<RegistrationMode, RegistrationModeMeta> {
@@ -600,6 +645,77 @@ function RegistrationIdentityStep({
   )
 }
 
+
+function RegistrationConditionalSections({
+  sections,
+}: {
+  sections: RegistrationConditionalSection[]
+}) {
+  const activeSections = sections.filter((section) => section.active)
+
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+            Conditional Sections
+          </div>
+          <div className="mt-2 text-sm leading-6 text-white/48">
+            Preview rules that reveal extra registration sections based on mode and session state.
+          </div>
+        </div>
+
+        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
+          {activeSections.length} active
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-3 md:grid-cols-3">
+        {sections.map((section) => {
+          const accentClass =
+            section.accent === "amber"
+              ? "border-amber-200/18 bg-amber-400/10 text-amber-50/68"
+              : section.accent === "violet"
+                ? "border-violet-200/18 bg-violet-400/10 text-violet-50/68"
+                : "border-sky-200/18 bg-sky-400/10 text-sky-50/68"
+
+          return (
+            <div
+              key={section.id}
+              className={`rounded-2xl border p-4 transition ${
+                section.active
+                  ? `${accentClass} shadow-[0_18px_44px_rgba(0,0,0,0.16)]`
+                  : "border-white/10 bg-white/[0.025] text-white/34 opacity-55"
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-white/78">{section.title}</div>
+                <div
+                  className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${
+                    section.active
+                      ? "border-white/12 bg-white/[0.05] text-white/58"
+                      : "border-white/10 bg-black/20 text-white/26"
+                  }`}
+                >
+                  {section.active ? "Live" : "Hidden"}
+                </div>
+              </div>
+
+              <div className="mt-2 text-xs leading-5 text-white/44">
+                {section.body}
+              </div>
+
+              <div className="mt-3 rounded-xl border border-white/10 bg-black/20 px-3 py-2 text-[10px] font-black uppercase tracking-[0.13em] text-white/32">
+                {section.conditionLabel}
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
 function RegistrationSessionSelector({
   sessions,
   selectedSessionId,
@@ -749,6 +865,11 @@ export default function RegistrationFlowPreview() {
   const [registrationFields, setRegistrationFields] = useState(() => createRegistrationFields())
   const registrationModeMeta = useMemo(() => getRegistrationModeMeta(), [])
 
+  const conditionalSections = useMemo(
+    () => createConditionalSections({ registrationMode, selectedSessionId }),
+    [registrationMode, selectedSessionId]
+  )
+
   const registrationRuntime = useMemo(
     () =>
       createRegistrationRuntime({
@@ -849,6 +970,8 @@ export default function RegistrationFlowPreview() {
         />
       ) : null}
 
+      {step === 0 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
+
       {step === 1 ? (
         <RegistrationSessionSelector
           sessions={registrationRuntime.sessions}
@@ -856,6 +979,8 @@ export default function RegistrationFlowPreview() {
           onSelectSession={setSelectedSessionId}
         />
       ) : null}
+
+      {step === 1 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
 
       {step === 2 ? (
         <RegistrationReviewSummary
