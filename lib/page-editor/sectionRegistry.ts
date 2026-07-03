@@ -276,6 +276,11 @@ export const SECTION_TEMPLATE_OPTIONS = [
     title: "System",
     body: "Section intended to hold injected system components.",
   },
+  {
+    key: "system" as SectionType,
+    title: "Registration Form",
+    body: "Native Jupiter registration flow with field builder, session binding, waitlist, and reservation state.",
+  },
 ]
 
 export function getSectionRegistryItem(type: SectionType) {
@@ -303,6 +308,23 @@ export function createDefaultEventHomeSections(event: {
           "Join the live experience, explore the agenda, and access your event areas.",
       },
       blocks: [],
+    },
+    {
+      id: "registration",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Registration",
+        title: "Reserve Your Place",
+        body: "Native registration flow preview.",
+      },
+      blocks: [
+        makeSystemBlock("registration_form", {
+          title: "Reserve Your Place",
+          body: "Native registration flow preview.",
+          containerStyle: "panel",
+        }),
+      ],
     },
 
     {
