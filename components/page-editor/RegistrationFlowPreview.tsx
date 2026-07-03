@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, type Dispatch, type SetStateAction } from "react"
 import type {
   RegistrationExperienceState,
   RegistrationMode,
@@ -30,6 +30,8 @@ type RegistrationFieldDefinition = {
   placeholder: string
   fieldType: "text" | "email"
   required: boolean
+  visible: boolean
+  locked?: boolean
   width: "half" | "full"
   helperText?: string
 }
@@ -65,6 +67,8 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       placeholder: "Gary",
       fieldType: "text",
       required: true,
+      visible: true,
+      locked: true,
       width: "half",
     },
     {
@@ -73,6 +77,8 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       placeholder: "Deamer",
       fieldType: "text",
       required: true,
+      visible: true,
+      locked: true,
       width: "half",
     },
     {
@@ -81,6 +87,8 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       placeholder: "gary@example.com",
       fieldType: "email",
       required: true,
+      visible: true,
+      locked: true,
       width: "full",
       helperText: "Used for confirmation, access, changes, and cancellation.",
     },
@@ -90,10 +98,29 @@ function createRegistrationFields(): RegistrationFieldDefinition[] {
       placeholder: "Jupiter.events",
       fieldType: "text",
       required: false,
+      visible: true,
       width: "full",
       helperText: "Optional field previewing future builder-controlled registration fields.",
     },
   ]
+}
+
+function moveRegistrationField(
+  fields: RegistrationFieldDefinition[],
+  fieldId: RegistrationFieldDefinition["id"],
+  direction: "up" | "down"
+) {
+  const index = fields.findIndex((field) => field.id === fieldId)
+  if (index === -1) return fields
+
+  const targetIndex = direction === "up" ? index - 1 : index + 1
+  if (targetIndex < 0 || targetIndex >= fields.length) return fields
+
+  const next = [...fields]
+  const [moved] = next.splice(index, 1)
+  next.splice(targetIndex, 0, moved)
+
+  return next
 }
 
 function getRegistrationModeMeta(): Record<RegistrationMode, RegistrationModeMeta> {
@@ -309,59 +336,181 @@ function RegistrationModePanel({
 }
 
 
-function RegistrationIdentityStep({ fields }: { fields: RegistrationFieldDefinition[] }) {
+function RegistrationIdentityStep({
+  fields,
+  setFields,
+}: {
+  fields: RegistrationFieldDefinition[]
+  setFields: Dispatch<SetStateAction<RegistrationFieldDefinition[]>>
+}) {
+  const visibleFields = fields.filter((field) => field.visible)
+
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
-            Identity Fields
+    <div className="grid gap-4 lg:grid-cols-[1.15fr_0.85fr]">
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+              Identity Fields
+            </div>
+            <div className="mt-2 text-sm leading-6 text-white/48">
+              Field-definition driven. Builder controls now update the preview state.
+            </div>
           </div>
-          <div className="mt-2 text-sm leading-6 text-white/48">
-            Field-definition driven. Next pass turns this into editable builder controls.
+
+          <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
+            {visibleFields.length} visible
           </div>
         </div>
 
-        <div className="rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/38">
-          {fields.length} fields
+        <div className="mt-4 grid gap-3 md:grid-cols-2">
+          {visibleFields.map((field) => (
+            <div
+              key={field.id}
+              className={`rounded-2xl border border-white/10 bg-black/28 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${
+                field.width === "full" ? "md:col-span-2" : ""
+              }`}
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+                  {field.label}
+                </div>
+
+                {field.required ? (
+                  <div className="rounded-full border border-sky-200/16 bg-sky-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-sky-50/60">
+                    Required
+                  </div>
+                ) : (
+                  <div className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/30">
+                    Optional
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 text-sm font-semibold text-white/68">
+                {field.placeholder}
+              </div>
+
+              {field.helperText ? (
+                <div className="mt-2 text-xs leading-5 text-white/34">
+                  {field.helperText}
+                </div>
+              ) : null}
+            </div>
+          ))}
         </div>
       </div>
 
-      <div className="mt-4 grid gap-3 md:grid-cols-2">
-        {fields.map((field) => (
-          <div
-            key={field.id}
-            className={`rounded-2xl border border-white/10 bg-black/28 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)] ${
-              field.width === "full" ? "md:col-span-2" : ""
-            }`}
-          >
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
-                {field.label}
-              </div>
-
-              {field.required ? (
-                <div className="rounded-full border border-sky-200/16 bg-sky-400/10 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-sky-50/60">
-                  Required
-                </div>
-              ) : (
-                <div className="rounded-full border border-white/10 bg-white/[0.03] px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/30">
-                  Optional
-                </div>
-              )}
+      <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-white/38">
+              Builder Controls
             </div>
-
-            <div className="mt-3 text-sm font-semibold text-white/68">
-              {field.placeholder}
+            <div className="mt-2 text-sm leading-6 text-white/48">
+              Preview field ordering, visibility, required state, and layout width.
             </div>
-
-            {field.helperText ? (
-              <div className="mt-2 text-xs leading-5 text-white/34">
-                {field.helperText}
-              </div>
-            ) : null}
           </div>
-        ))}
+        </div>
+
+        <div className="mt-4 space-y-3">
+          {fields.map((field, index) => (
+            <div
+              key={field.id}
+              className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm font-semibold text-white/78">{field.label}</div>
+                  <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
+                    {field.fieldType} · {field.width}
+                    {field.locked ? " · locked" : ""}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFields((current) => moveRegistrationField(current, field.id, "up"))
+                    }
+                    disabled={index === 0}
+                    className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
+                  >
+                    ↑
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFields((current) => moveRegistrationField(current, field.id, "down"))
+                    }
+                    disabled={index === fields.length - 1}
+                    className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
+                  >
+                    ↓
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFields((current) =>
+                      current.map((item) =>
+                        item.id === field.id ? { ...item, visible: !item.visible } : item
+                      )
+                    )
+                  }
+                  disabled={field.locked}
+                  className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
+                    field.visible
+                      ? "border-emerald-200/18 bg-emerald-400/10 text-emerald-50/60"
+                      : "border-red-200/18 bg-red-400/10 text-red-50/60"
+                  } ${field.locked ? "cursor-not-allowed opacity-45" : "hover:bg-white/[0.06]"}`}
+                >
+                  {field.visible ? "Shown" : "Hidden"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFields((current) =>
+                      current.map((item) =>
+                        item.id === field.id ? { ...item, required: !item.required } : item
+                      )
+                    )
+                  }
+                  disabled={field.locked}
+                  className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
+                    field.required
+                      ? "border-sky-200/18 bg-sky-400/10 text-sky-50/60"
+                      : "border-white/10 bg-white/[0.03] text-white/36"
+                  } ${field.locked ? "cursor-not-allowed opacity-45" : "hover:bg-white/[0.06]"}`}
+                >
+                  {field.required ? "Req" : "Opt"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    setFields((current) =>
+                      current.map((item) =>
+                        item.id === field.id
+                          ? { ...item, width: item.width === "full" ? "half" : "full" }
+                          : item
+                      )
+                    )
+                  }
+                  className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/42 transition hover:bg-white/[0.06]"
+                >
+                  {field.width}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
@@ -513,7 +662,7 @@ export default function RegistrationFlowPreview() {
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
   const previewSessions = useMemo(() => createPreviewSessions(), [])
-  const registrationFields = useMemo(() => createRegistrationFields(), [])
+  const [registrationFields, setRegistrationFields] = useState(() => createRegistrationFields())
   const registrationModeMeta = useMemo(() => getRegistrationModeMeta(), [])
 
   const registrationRuntime = useMemo(
@@ -609,7 +758,12 @@ export default function RegistrationFlowPreview() {
         </p>
       </div>
 
-      {step === 0 ? <RegistrationIdentityStep fields={registrationFields} /> : null}
+      {step === 0 ? (
+        <RegistrationIdentityStep
+          fields={registrationFields}
+          setFields={setRegistrationFields}
+        />
+      ) : null}
 
       {step === 1 ? (
         <RegistrationSessionSelector
