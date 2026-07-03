@@ -8,11 +8,16 @@ import type {
 } from "@/lib/page-editor/types/registration"
 
 type RegistrationPreviewSession = {
-  id: "general" | "limited"
+  id: "general" | "limited" | "workshop"
+  code: string
   title: string
+  sessionKind: "main_stage" | "breakout" | "workshop"
+  capacityMode: "unlimited" | "limited"
+  registrationEnabled: boolean
+  waitlistEnabled: boolean
   reserved: number
-  capacity: number
-  status: "available" | "waitlist"
+  capacity: number | null
+  status: "available" | "waitlist" | "closed"
   statusLabel: string
   description: string
 }
@@ -37,7 +42,7 @@ type RegistrationFieldDefinition = {
 }
 
 type RegistrationConditionalSection = {
-  id: "approvalNotes" | "waitlistPreferences" | "inviteCode"
+  id: "approvalNotes" | "waitlistPreferences" | "inviteCode" | "sessionCapacityNotice"
   title: string
   body: string
   conditionLabel: string
@@ -53,33 +58,81 @@ type RegistrationBuilderSnapshot = {
   fieldOrder: RegistrationFieldDefinition["id"][]
   visibleFields: RegistrationFieldDefinition["id"][]
   requiredFields: RegistrationFieldDefinition["id"][]
+  sessionBindings: Array<{
+    id: RegistrationPreviewSession["id"]
+    code: string
+    capacityMode: RegistrationPreviewSession["capacityMode"]
+    registrationEnabled: boolean
+    waitlistEnabled: boolean
+    status: RegistrationPreviewSession["status"]
+  }>
   conditionalSections: Array<{
     id: RegistrationConditionalSection["id"]
     active: boolean
   }>
 }
 
+function getPreviewSessionStatus(session: Omit<RegistrationPreviewSession, "status" | "statusLabel">): {
+  status: RegistrationPreviewSession["status"]
+  statusLabel: string
+} {
+  if (!session.registrationEnabled) {
+    return { status: "closed", statusLabel: "Closed" }
+  }
+
+  if (session.capacityMode === "limited" && session.capacity !== null && session.reserved >= session.capacity) {
+    return session.waitlistEnabled
+      ? { status: "waitlist", statusLabel: "Waitlist" }
+      : { status: "closed", statusLabel: "Full" }
+  }
+
+  return { status: "available", statusLabel: "Available" }
+}
+
 function createPreviewSessions(): RegistrationPreviewSession[] {
-  return [
+  const baseSessions: Array<Omit<RegistrationPreviewSession, "status" | "statusLabel">> = [
     {
       id: "general",
+      code: "GENERAL",
       title: "General Session",
+      sessionKind: "main_stage",
+      capacityMode: "unlimited",
+      registrationEnabled: true,
+      waitlistEnabled: false,
       reserved: 26,
-      capacity: 500,
-      status: "available",
-      statusLabel: "Available",
+      capacity: null,
       description: "Main event access with immediate confirmation.",
     },
     {
       id: "limited",
+      code: "BREAKOUT-A",
       title: "Limited Breakout",
+      sessionKind: "breakout",
+      capacityMode: "limited",
+      registrationEnabled: true,
+      waitlistEnabled: true,
       reserved: 30,
       capacity: 30,
-      status: "waitlist",
-      statusLabel: "Waitlist",
       description: "Capacity-limited session with automatic waitlist handling.",
     },
+    {
+      id: "workshop",
+      code: "WORKSHOP-1",
+      title: "Producer Workshop",
+      sessionKind: "workshop",
+      capacityMode: "limited",
+      registrationEnabled: false,
+      waitlistEnabled: false,
+      reserved: 12,
+      capacity: 20,
+      description: "Example of a session that exists but is not currently available for registration.",
+    },
   ]
+
+  return baseSessions.map((session) => ({
+    ...session,
+    ...getPreviewSessionStatus(session),
+  }))
 }
 
 function createRegistrationFields(): RegistrationFieldDefinition[] {
@@ -192,10 +245,10 @@ function createFieldFromTemplate(
 
 function createConditionalSections({
   registrationMode,
-  selectedSessionId,
+  selectedSession,
 }: {
   registrationMode: RegistrationMode
-  selectedSessionId: "general" | "limited"
+  selectedSession: RegistrationPreviewSession
 }): RegistrationConditionalSection[] {
   return [
     {
@@ -219,7 +272,15 @@ function createConditionalSections({
       title: "Waitlist preferences",
       body: "Capture backup choices and attendee priority signals when a session is full.",
       conditionLabel: "Shows when selected session is waitlisted",
-      active: selectedSessionId === "limited",
+      active: selectedSession.status === "waitlist",
+      accent: "sky",
+    },
+    {
+      id: "sessionCapacityNotice",
+      title: "Session capacity notice",
+      body: "Surface session-specific capacity, availability, and registration constraints before checkout.",
+      conditionLabel: "Shows when session uses limited capacity or is closed",
+      active: selectedSession.capacityMode === "limited" || selectedSession.status === "closed",
       accent: "sky",
     },
   ]
@@ -228,9 +289,11 @@ function createConditionalSections({
 function createBuilderSnapshot({
   fields,
   conditionalSections,
+  sessions,
 }: {
   fields: RegistrationFieldDefinition[]
   conditionalSections: RegistrationConditionalSection[]
+  sessions: RegistrationPreviewSession[]
 }): RegistrationBuilderSnapshot {
   return {
     version: 1,
@@ -240,6 +303,14 @@ function createBuilderSnapshot({
     fieldOrder: fields.map((field) => field.id),
     visibleFields: fields.filter((field) => field.visible).map((field) => field.id),
     requiredFields: fields.filter((field) => field.required).map((field) => field.id),
+    sessionBindings: sessions.map((session) => ({
+      id: session.id,
+      code: session.code,
+      capacityMode: session.capacityMode,
+      registrationEnabled: session.registrationEnabled,
+      waitlistEnabled: session.waitlistEnabled,
+      status: session.status,
+    })),
     conditionalSections: conditionalSections.map((section) => ({
       id: section.id,
       active: section.active,
@@ -282,9 +353,10 @@ function createRegistrationRuntime({
   sessions,
 }: {
   registrationMode: RegistrationMode
-  selectedSessionId: "general" | "limited"
+  selectedSessionId: RegistrationPreviewSession["id"]
   sessions: RegistrationPreviewSession[]
 }): RegistrationExperienceState & { sessions: RegistrationPreviewSession[] } {
+  const selectedSession = sessions.find((session) => session.id === selectedSessionId) ?? sessions[0]
   const attendee: RegistrationRecord = {
     id: "preview-registration-1",
     attendeeId: "preview-attendee-1",
@@ -296,11 +368,11 @@ function createRegistrationRuntime({
         ? "not_registered"
         : registrationMode === "approval_required"
           ? "pending_approval"
-          : selectedSessionId === "limited"
+          : selectedSession.status === "waitlist"
             ? "waitlisted"
             : "registered",
     approvalStatus: registrationMode === "approval_required" ? "pending" : "approved",
-    waitlistStatus: selectedSessionId === "limited" ? "active" : "none",
+    waitlistStatus: selectedSession.status === "waitlist" ? "active" : "none",
     registeredAt: "2026-07-02T12:00:00.000Z",
     approvedAt: registrationMode === "open" ? "2026-07-02T12:00:00.000Z" : null,
     cancelledAt: null,
@@ -310,7 +382,7 @@ function createRegistrationRuntime({
     sessionReservations: [
       {
         sessionId: selectedSessionId,
-        sessionTitle: selectedSessionId === "limited" ? "Limited Breakout" : "General Session",
+        sessionTitle: selectedSession.title,
         reservedAt: "2026-07-02T12:00:00.000Z",
         releasedAt: null,
       },
@@ -328,8 +400,8 @@ function createRegistrationRuntime({
     capacity: {
       enabled: true,
       maxAttendees: 500,
-      currentRegistered: selectedSessionId === "limited" ? 30 : 26,
-      currentWaitlisted: selectedSessionId === "limited" ? 12 : 0,
+      currentRegistered: selectedSession.reserved,
+      currentWaitlisted: selectedSession.status === "waitlist" ? 12 : 0,
       allowWaitlist: true,
     },
     registrationOpen: registrationMode !== "closed" && registrationMode !== "invite_only",
@@ -819,7 +891,7 @@ function RegistrationSessionSelector({
 }: {
   sessions: RegistrationPreviewSession[]
   selectedSessionId: string
-  onSelectSession: (sessionId: "general" | "limited") => void
+  onSelectSession: (sessionId: RegistrationPreviewSession["id"]) => void
 }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -851,7 +923,12 @@ function RegistrationSessionSelector({
                 <div>
                   <div className="text-sm font-semibold text-white">{session.title}</div>
                   <div className="mt-1 text-xs text-white/45">
-                    {session.reserved} of {session.capacity} seats reserved
+                    {session.capacityMode === "unlimited"
+                      ? `${session.reserved} reserved · unlimited capacity`
+                      : `${session.reserved} of ${session.capacity} seats reserved`}
+                  </div>
+                  <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
+                    {session.code} · {session.sessionKind.replace("_", " ")}
                   </div>
                   <div className="mt-2 text-xs leading-5 text-white/38">
                     {session.description}
@@ -860,9 +937,11 @@ function RegistrationSessionSelector({
 
                 <div
                   className={`rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${
-                    isWaitlist
-                      ? "border-amber-200/18 bg-amber-400/10 text-amber-100/70"
-                      : "border-emerald-200/18 bg-emerald-400/10 text-emerald-100/70"
+                    session.status === "closed"
+                      ? "border-red-200/18 bg-red-400/10 text-red-100/70"
+                      : isWaitlist
+                        ? "border-amber-200/18 bg-amber-400/10 text-amber-100/70"
+                        : "border-emerald-200/18 bg-emerald-400/10 text-emerald-100/70"
                   }`}
                 >
                   {session.statusLabel}
@@ -953,7 +1032,7 @@ function RegistrationConfirmationState({
 
 export default function RegistrationFlowPreview() {
   const [step, setStep] = useState(0)
-  const [selectedSessionId, setSelectedSessionId] = useState<"general" | "limited">("general")
+  const [selectedSessionId, setSelectedSessionId] = useState<RegistrationPreviewSession["id"]>("general")
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>("open")
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
@@ -961,9 +1040,12 @@ export default function RegistrationFlowPreview() {
   const [registrationFields, setRegistrationFields] = useState(() => createRegistrationFields())
   const registrationModeMeta = useMemo(() => getRegistrationModeMeta(), [])
 
+  const selectedSession =
+    previewSessions.find((session) => session.id === selectedSessionId) ?? previewSessions[0]
+
   const conditionalSections = useMemo(
-    () => createConditionalSections({ registrationMode, selectedSessionId }),
-    [registrationMode, selectedSessionId]
+    () => createConditionalSections({ registrationMode, selectedSession }),
+    [registrationMode, selectedSession]
   )
 
   const builderSnapshot = useMemo(
@@ -971,8 +1053,9 @@ export default function RegistrationFlowPreview() {
       createBuilderSnapshot({
         fields: registrationFields,
         conditionalSections,
+        sessions: previewSessions,
       }),
-    [registrationFields, conditionalSections]
+    [registrationFields, conditionalSections, previewSessions]
   )
 
   const registrationRuntime = useMemo(
@@ -985,10 +1068,6 @@ export default function RegistrationFlowPreview() {
     [registrationMode, selectedSessionId, previewSessions]
   )
 
-  const selectedSession =
-    registrationRuntime.sessions.find((session) => session.id === selectedSessionId) ??
-    registrationRuntime.sessions[0]
-
   const isFirstStep = step === 0
   const isLastStep = step === steps.length - 1
   const currentModeMeta = registrationModeMeta[registrationMode]
@@ -997,7 +1076,11 @@ export default function RegistrationFlowPreview() {
   }`.trim()
   const selectedSessionLabel = selectedSession.title
   const selectedCapacityState =
-    selectedSession.status === "waitlist" ? "Waitlist Requested" : "Confirmed Seat"
+    selectedSession.status === "waitlist"
+      ? "Waitlist Requested"
+      : selectedSession.status === "closed"
+        ? "Registration Closed"
+        : "Confirmed Seat"
 
   const finalTitle =
     registrationRuntime.attendee?.registrationStatus === "pending_approval"
