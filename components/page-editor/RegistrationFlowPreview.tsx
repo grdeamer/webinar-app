@@ -1183,7 +1183,21 @@ function RegistrationConfirmationState({
   )
 }
 
-export default function RegistrationFlowPreview() {
+type RegistrationFlowPreviewProps = {
+  title?: string
+  body?: string
+  ctaLabel?: string
+  confirmationTitle?: string
+  confirmationBody?: string
+}
+
+export default function RegistrationFlowPreview({
+  title,
+  body,
+  ctaLabel,
+  confirmationTitle,
+  confirmationBody,
+}: RegistrationFlowPreviewProps) {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState<RegistrationPreviewSession["id"]>("general")
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>("open")
@@ -1291,22 +1305,24 @@ export default function RegistrationFlowPreview() {
 
         <h3 className="mt-3 text-3xl font-semibold tracking-[-0.055em] text-white">
           {step === 0
-            ? "Reserve your place"
+            ? title ?? "Reserve your place"
             : step === 1
               ? "Choose your sessions"
               : step === 2
                 ? "Review your registration"
-                : finalTitle}
+                : confirmationTitle ?? finalTitle}
         </h3>
 
         <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
           {step === 0
-            ? "A native registration experience for identity, session choice, capacity, approval, waitlist, confirmation, cancellation, and reporting."
+            ? body ??
+              "A native registration experience for identity, session choice, capacity, approval, waitlist, confirmation, cancellation, and reporting."
             : step === 1
               ? "Capacity-aware session selection replaces brittle form widgets, manual caps, and downstream spreadsheet matching."
               : step === 2
                 ? "Jupiter keeps attendee identity, session selections, approval status, and confirmation state in one durable record."
-                : "Confirmation is now part of the event experience, not a disconnected email or automation step."}
+                : confirmationBody ??
+                  "Confirmation is now part of the event experience, not a disconnected email or automation step."}
         </p>
       </div>
 
@@ -1370,7 +1386,7 @@ export default function RegistrationFlowPreview() {
           disabled={isLastStep || (!canContinue && step === 0)}
           className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {continueLabel}
+          {step === 0 ? ctaLabel ?? continueLabel : continueLabel}
         </button>
       </div>
     </div>

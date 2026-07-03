@@ -1386,7 +1386,32 @@ function handleLayerDragEnd() {
     if (!selectedSectionId) return
     addBlockToSection(selectedSectionId, createSystemBlock(componentKey))
   }
+function addRegistrationFormSection() {
+  const block = createSystemBlock("registration_form")
+  const sectionId = `registration-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
 
+  const nextSection: EventPageSection = {
+    id: sectionId,
+    type: "system",
+    config: {
+      ...getSafeDefaultSectionConfig("system"),
+      adminLabel: "Registration Form",
+      title: "Reserve Your Place",
+      body: "Native Jupiter registration flow with field builder, session binding, waitlist, and reservation state.",
+    },
+    blocks: [block],
+  }
+
+  setHasUnsavedChanges(true)
+  setSections((prev) => normalizeSectionIds([...prev, nextSection]))
+  setSelectedSectionId(sectionId)
+  setSelectedBlockId(block.id)
+  setSelectedId(null)
+  setSelectedIds([])
+  setEditingElementId(null)
+  setEditorDetailsOpen(true)
+  setRightRailTab("inspect")
+}
 
   function addElement(elementType: AddableElementType) {
     const id = createElementId()
@@ -4282,16 +4307,28 @@ onDragEnd={handleLayerDragEnd}
 
               {sectionTemplatesOpen && (
                 <div className="mt-3 grid grid-cols-1 gap-3">
-                  {SECTION_TEMPLATE_OPTIONS.map((preset) => (
-                    <button
-                      key={preset.key}
-                      onClick={() => addSectionPreset(preset.key)}
-                      className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-left hover:bg-white/5"
-                    >
-                      <div className="text-sm font-semibold text-white">{preset.title}</div>
-                      <div className="mt-1 text-xs text-white/50">{preset.body}</div>
-                    </button>
-                  ))}
+{SECTION_TEMPLATE_OPTIONS.map((preset) => {
+  const isRegistrationTemplate = preset.title === "Registration Form"
+
+  return (
+    <button
+      key={`${preset.key}-${preset.title}`}
+      onClick={() =>
+        isRegistrationTemplate
+          ? addRegistrationFormSection()
+          : addSectionPreset(preset.key)
+      }
+      className={`rounded-xl border px-4 py-3 text-left transition ${
+        isRegistrationTemplate
+          ? "border-sky-300/22 bg-sky-400/10 hover:bg-sky-400/16"
+          : "border-white/10 bg-black/20 hover:bg-white/5"
+      }`}
+    >
+      <div className="text-sm font-semibold text-white">{preset.title}</div>
+      <div className="mt-1 text-xs text-white/50">{preset.body}</div>
+    </button>
+  )
+})}
                 </div>
               )}
             </div>
