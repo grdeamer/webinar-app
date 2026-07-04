@@ -8,6 +8,7 @@ import type {
   EventTheme,
   ExperienceNode,
 } from "@/lib/page-editor/sectionTypes"
+import RegistrationFlowPreview from "./RegistrationFlowPreview"
 
 type EventLike = {
   title: string
@@ -304,7 +305,24 @@ function renderBlock(
   }
 
   if (block.type === "system_component") {
-    const node = systemComponents[block.props.componentKey]
+    const componentKey = block.props.componentKey
+    const registrationProps = block.props as typeof block.props & {
+      ctaLabel?: unknown
+      confirmationTitle?: unknown
+      confirmationBody?: unknown
+    }
+    const node =
+      componentKey === "registration_form" ? (
+        <RegistrationFlowPreview
+          title={typeof block.props.title === "string" ? block.props.title : undefined}
+          body={typeof block.props.body === "string" ? block.props.body : undefined}
+          ctaLabel={typeof registrationProps.ctaLabel === "string" ? registrationProps.ctaLabel : undefined}
+          confirmationTitle={typeof registrationProps.confirmationTitle === "string" ? registrationProps.confirmationTitle : undefined}
+          confirmationBody={typeof registrationProps.confirmationBody === "string" ? registrationProps.confirmationBody : undefined}
+        />
+      ) : (
+        systemComponents[componentKey]
+      )
     if (!node) return null
 
     const cardClass = getCardClass(block.props.containerStyle ?? "panel")

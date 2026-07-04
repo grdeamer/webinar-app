@@ -122,12 +122,24 @@ function createElementId() {
 }
 
 function createSystemBlock(componentKey: SystemComponentKey): SectionBlock {
+  const registrationPreviewProps =
+    componentKey === "registration_form"
+      ? {
+          title: "Reserve Your Place",
+          body: "Native Jupiter registration flow with field builder, session binding, waitlist, and reservation state.",
+          ctaLabel: "Start Registration",
+          confirmationTitle: "Registration Confirmed",
+          confirmationBody: "Your registration is part of the live Jupiter event experience now.",
+        }
+      : {}
+
   return {
     id: `block-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
     type: "system_component",
     props: {
       componentKey,
       containerStyle: "panel",
+      ...registrationPreviewProps,
     },
   }
 }
@@ -2093,7 +2105,15 @@ systemComponents={{
     </div>
   ),
 
-  registration_form: <RegistrationFlowPreview />,
+  registration_form: (
+    <RegistrationFlowPreview
+      title="Reserve Your Place"
+      body="Native Jupiter registration flow with field builder, session binding, waitlist, and reservation state."
+      ctaLabel="Start Registration"
+      confirmationTitle="Registration Confirmed"
+      confirmationBody="Your registration is part of the live Jupiter event experience now."
+    />
+  ),
 
   registration_status: (
     <div className="rounded-2xl border border-emerald-300/20 bg-emerald-500/10 p-5">
