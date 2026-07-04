@@ -1351,7 +1351,12 @@ function handleLayerDragEnd() {
     if (!selectedSectionId || !selectedBlockId) return
     updateBlockProps(selectedSectionId, selectedBlockId, nextProps)
   }
-
+function updateRegistrationBlockCopyProp(
+  key: "title" | "body" | "ctaLabel" | "confirmationTitle" | "confirmationBody",
+  value: string
+) {
+  updateSelectedBlockProps({ [key]: value } as any)
+}
   function moveSelectedBlock(direction: "up" | "down") {
     if (!selectedSectionId || !selectedBlockId) return
 
@@ -4252,6 +4257,65 @@ onDragEnd={handleLayerDragEnd}
                                   <option value="panel">Panel</option>
                                 </select>
                               </div>
+                              {selectedBlock.props.componentKey === "registration_form" ? (
+  <div className="rounded-2xl border border-sky-200/12 bg-sky-400/[0.045] p-3">
+    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-50/44">
+      Registration Copy
+    </div>
+
+    <div className="mt-3 space-y-3">
+      {([
+        ["title", "Title", "Reserve Your Place"],
+        [
+          "body",
+          "Body",
+          "Native Jupiter registration flow with field builder, session binding, waitlist, and reservation state.",
+        ],
+        ["ctaLabel", "CTA Label", "Start Registration"],
+        ["confirmationTitle", "Confirmation Title", "Registration Confirmed"],
+        [
+          "confirmationBody",
+          "Confirmation Body",
+          "Your registration is part of the live Jupiter event experience now.",
+        ],
+      ] as const).map(([key, label, placeholder]) => (
+        <label key={key} className="block">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/32">
+            {label}
+          </div>
+
+          {key === "body" || key === "confirmationBody" ? (
+            <textarea
+              value={
+                typeof (selectedBlock.props as any)[key] === "string"
+                  ? String((selectedBlock.props as any)[key])
+                  : ""
+              }
+              onChange={(event) =>
+                updateRegistrationBlockCopyProp(key, event.target.value)
+              }
+              placeholder={placeholder}
+              className="mt-2 min-h-20 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
+            />
+          ) : (
+            <input
+              value={
+                typeof (selectedBlock.props as any)[key] === "string"
+                  ? String((selectedBlock.props as any)[key])
+                  : ""
+              }
+              onChange={(event) =>
+                updateRegistrationBlockCopyProp(key, event.target.value)
+              }
+              placeholder={placeholder}
+              className="mt-2 w-full rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
+            />
+          )}
+        </label>
+      ))}
+    </div>
+  </div>
+) : null}
                             </>
                           )}
 
