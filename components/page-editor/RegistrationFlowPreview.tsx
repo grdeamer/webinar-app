@@ -60,6 +60,7 @@ type RegistrationBuilderSnapshot = {
   fieldOrder: RegistrationFieldDefinition["id"][]
   visibleFields: RegistrationFieldDefinition["id"][]
   requiredFields: RegistrationFieldDefinition["id"][]
+  fieldRoles: Record<RegistrationFieldDefinition["id"], RegistrationFieldDefinition["systemRole"]>
   sessionBindings: Array<{
     id: RegistrationPreviewSession["id"]
     code: string
@@ -331,6 +332,9 @@ function createBuilderSnapshot({
     fieldOrder: fields.map((field) => field.id),
     visibleFields: fields.filter((field) => field.visible).map((field) => field.id),
     requiredFields: fields.filter((field) => field.required).map((field) => field.id),
+    fieldRoles: Object.fromEntries(
+      fields.map((field) => [field.id, field.systemRole])
+    ) as Record<RegistrationFieldDefinition["id"], RegistrationFieldDefinition["systemRole"]>,
     sessionBindings: sessions.map((session) => ({
       id: session.id,
       code: session.code,
@@ -647,8 +651,13 @@ function RegistrationIdentityStep({
               }`}
             >
               <div className="flex items-center justify-between gap-3">
-                <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
-                  {field.label}
+                <div>
+                  <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+                    {field.label}
+                  </div>
+                  <div className="mt-1 text-[9px] font-black uppercase tracking-[0.14em] text-white/22">
+                    {field.systemRole}
+                  </div>
                 </div>
 
                 {field.required ? (
@@ -722,11 +731,22 @@ function RegistrationIdentityStep({
               className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
             >
               <div className="flex items-center justify-between gap-3">
-                <div>
-                  <div className="text-sm font-semibold text-white/78">{field.label}</div>
-                  <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
-                    {field.fieldType} · {field.width}
-                    {field.locked ? " · locked" : ""}
+                <div className="flex items-center gap-3">
+                  <div className="flex h-9 w-7 items-center justify-center rounded-xl border border-white/10 bg-black/24 text-sm font-black text-white/28">
+                    ⋮⋮
+                  </div>
+
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <div className="text-sm font-semibold text-white/78">{field.label}</div>
+                      <div className="rounded-full border border-white/10 bg-black/20 px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] text-white/30">
+                        {field.systemRole}
+                      </div>
+                    </div>
+                    <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
+                      {field.fieldType} · {field.width}
+                      {field.locked ? " · locked" : ""}
+                    </div>
                   </div>
                 </div>
 
@@ -1189,6 +1209,7 @@ type RegistrationFlowPreviewProps = {
   ctaLabel?: string
   confirmationTitle?: string
   confirmationBody?: string
+  initialFields?: RegistrationFieldDefinition[]
 }
 
 export default function RegistrationFlowPreview({
@@ -1197,6 +1218,7 @@ export default function RegistrationFlowPreview({
   ctaLabel,
   confirmationTitle,
   confirmationBody,
+  initialFields,
 }: RegistrationFlowPreviewProps) {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState<RegistrationPreviewSession["id"]>("general")
@@ -1204,7 +1226,29 @@ export default function RegistrationFlowPreview({
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
   const previewSessions = useMemo(() => createPreviewSessions(), [])
-  const [registrationFields, setRegistrationFields] = useState(() => createRegistrationFields())
+const [registrationFields, setRegistrationFields] = useState(() => {
+  const defaultFields = createRegistrationFields()
+
+  if (!initialFields || initialFields.length === 0) {
+    return defaultFields
+  }
+
+  const mergedFields = initialFields.map((field) => {
+    const defaultField = defaultFields.find((item) => item.id === field.id)
+
+    return {
+      ...defaultField,
+      ...field,
+    }
+  })
+
+  const missingDefaults = defaultFields.filter(
+    (defaultField) =>
+      !mergedFields.some((field) => field.id === defaultField.id)
+  )
+
+  return [...mergedFields, ...missingDefaults]
+})
   const registrationModeMeta = useMemo(() => getRegistrationModeMeta(), [])
 
   const selectedSession =

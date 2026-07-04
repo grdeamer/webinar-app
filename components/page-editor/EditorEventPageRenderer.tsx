@@ -310,6 +310,7 @@ function renderBlock(
       ctaLabel?: unknown
       confirmationTitle?: unknown
       confirmationBody?: unknown
+      registrationFields?: unknown
     }
     const node =
       componentKey === "registration_form" ? (
@@ -319,6 +320,7 @@ function renderBlock(
           ctaLabel={typeof registrationProps.ctaLabel === "string" ? registrationProps.ctaLabel : undefined}
           confirmationTitle={typeof registrationProps.confirmationTitle === "string" ? registrationProps.confirmationTitle : undefined}
           confirmationBody={typeof registrationProps.confirmationBody === "string" ? registrationProps.confirmationBody : undefined}
+          initialFields={Array.isArray(registrationProps.registrationFields) ? registrationProps.registrationFields : undefined}
         />
       ) : (
         systemComponents[componentKey]
