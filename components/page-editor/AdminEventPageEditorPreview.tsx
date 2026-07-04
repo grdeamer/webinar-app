@@ -1358,6 +1358,102 @@ function updateRegistrationBlockCopyProp(
 ) {
   updateSelectedBlockProps({ [key]: value } as any)
 }
+function createDefaultRegistrationFieldDefinitions() {
+  return [
+    {
+      id: "firstName",
+      label: "First name",
+      placeholder: "Gary",
+      fieldType: "text",
+      required: true,
+      visible: true,
+      locked: true,
+      width: "half",
+      systemRole: "identity",
+    },
+    {
+      id: "lastName",
+      label: "Last name",
+      placeholder: "Deamer",
+      fieldType: "text",
+      required: true,
+      visible: true,
+      locked: true,
+      width: "half",
+      systemRole: "identity",
+    },
+    {
+      id: "email",
+      label: "Email address",
+      placeholder: "gary@example.com",
+      fieldType: "email",
+      required: true,
+      visible: true,
+      locked: true,
+      width: "full",
+      helperText: "Used for confirmation, access, changes, and cancellation.",
+      systemRole: "contact",
+    },
+    {
+      id: "organization",
+      label: "Organization",
+      placeholder: "Jupiter.events",
+      fieldType: "text",
+      required: false,
+      visible: true,
+      width: "full",
+      helperText: "Optional field previewing future builder-controlled registration fields.",
+      systemRole: "profile",
+    },
+  ]
+}
+
+function getSelectedRegistrationFields() {
+  if (!selectedBlock || selectedBlock.type !== "system_component") {
+    return createDefaultRegistrationFieldDefinitions()
+  }
+
+  const fields = (selectedBlock.props as any).registrationFields
+
+  return Array.isArray(fields) && fields.length > 0
+    ? fields
+    : createDefaultRegistrationFieldDefinitions()
+}
+
+function updateRegistrationFields(nextFields: any[]) {
+  updateSelectedBlockProps({ registrationFields: nextFields } as any)
+}
+
+function updateRegistrationField(
+  fieldId: string,
+  nextFieldProps: Record<string, unknown>
+) {
+  const fields = getSelectedRegistrationFields()
+
+  updateRegistrationFields(
+    fields.map((field: any) =>
+      field.id === fieldId ? { ...field, ...nextFieldProps } : field
+    )
+  )
+}
+
+function moveRegistrationFieldInSelectedBlock(
+  fieldId: string,
+  direction: "up" | "down"
+) {
+  const fields = getSelectedRegistrationFields()
+  const index = fields.findIndex((field: any) => field.id === fieldId)
+  if (index === -1) return
+
+  const targetIndex = direction === "up" ? index - 1 : index + 1
+  if (targetIndex < 0 || targetIndex >= fields.length) return
+
+  const next = [...fields]
+  const [moved] = next.splice(index, 1)
+  next.splice(targetIndex, 0, moved)
+
+  updateRegistrationFields(next)
+}
   function moveSelectedBlock(direction: "up" | "down") {
     if (!selectedSectionId || !selectedBlockId) return
 
@@ -4263,7 +4359,147 @@ onDragEnd={handleLayerDragEnd}
     <div className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-50/44">
       Registration Copy
     </div>
+<div className="mt-3 space-y-3">
+  {getSelectedRegistrationFields().map((field: any, index: number) => (
+    <div
+      key={field.id}
+      className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
+    >
+      <div className="flex items-center justify-between gap-3">
+        <div>
+          <div className="text-sm font-semibold text-white/72">
+            {field.label}
+          </div>
 
+          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
+            {field.systemRole} · {field.fieldType} · {field.width}
+            {field.locked ? " · locked" : ""}
+          </div>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() =>
+              moveRegistrationFieldInSelectedBlock(field.id, "up")
+            }
+            disabled={index === 0}
+            className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
+          >
+            ↑
+          </button>
+
+          <button
+            type="button"
+            onClick={() =>
+              moveRegistrationFieldInSelectedBlock(field.id, "down")
+            }
+            disabled={
+              index === getSelectedRegistrationFields().length - 1
+            }
+            className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
+          >
+            ↓
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <label className="block">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
+            Label
+          </div>
+
+          <input
+            value={typeof field.label === "string" ? field.label : ""}
+            onChange={(event) =>
+              updateRegistrationField(field.id, {
+                label: event.target.value,
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
+          />
+        </label>
+
+        <label className="block">
+          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
+            Placeholder
+          </div>
+
+          <input
+            value={
+              typeof field.placeholder === "string"
+                ? field.placeholder
+                : ""
+            }
+            onChange={(event) =>
+              updateRegistrationField(field.id, {
+                placeholder: event.target.value,
+              })
+            }
+            className="mt-2 w-full rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
+          />
+        </label>
+      </div>
+
+      <div className="mt-3 grid grid-cols-3 gap-2">
+        <button
+          type="button"
+          onClick={() =>
+            updateRegistrationField(field.id, {
+              visible: !field.visible,
+            })
+          }
+          disabled={field.locked}
+          className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
+            field.visible
+              ? "border-emerald-200/18 bg-emerald-400/10 text-emerald-50/60"
+              : "border-red-200/18 bg-red-400/10 text-red-50/60"
+          } ${
+            field.locked
+              ? "cursor-not-allowed opacity-45"
+              : "hover:bg-white/[0.06]"
+          }`}
+        >
+          {field.visible ? "Shown" : "Hidden"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            updateRegistrationField(field.id, {
+              required: !field.required,
+            })
+          }
+          disabled={field.locked}
+          className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
+            field.required
+              ? "border-sky-200/18 bg-sky-400/10 text-sky-50/60"
+              : "border-white/10 bg-white/[0.03] text-white/36"
+          } ${
+            field.locked
+              ? "cursor-not-allowed opacity-45"
+              : "hover:bg-white/[0.06]"
+          }`}
+        >
+          {field.required ? "Req" : "Opt"}
+        </button>
+
+        <button
+          type="button"
+          onClick={() =>
+            updateRegistrationField(field.id, {
+              width: field.width === "full" ? "half" : "full",
+            })
+          }
+          className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/42 transition hover:bg-white/[0.06]"
+        >
+          {field.width}
+        </button>
+      </div>
+    </div>
+  ))}
+</div>
     <div className="mt-3 space-y-3">
       {([
         ["title", "Title", "Reserve Your Place"],
