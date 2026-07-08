@@ -4417,6 +4417,40 @@ onDragEnd={handleLayerDragEnd}
                               </div>
                               {selectedBlock.props.componentKey === "registration_form" ? (
   <>
+    {/* Preview State Selector */}
+    <div className="mb-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+        Preview State
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {[
+          ["open", "Registration Open"],
+          ["waitlist", "Waitlist"],
+          ["closed", "Closed"],
+          ["registered", "Already Registered"],
+          ["success", "Success"],
+        ].map(([value, label]) => (
+          <button
+            key={value}
+            type="button"
+            onClick={() =>
+updateSelectedBlockProps({
+  previewRegistrationState: value,
+} as any)
+            }
+            className={`rounded-xl border px-3 py-2 text-left text-[10px] font-black uppercase tracking-[0.12em] transition ${
+              ((selectedBlock.props as any).previewRegistrationState ?? "open") === value
+                ? "border-sky-300/30 bg-sky-400/10 text-sky-100"
+                : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]"
+            }`}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+    </div>
+    {/* Registration Copy Card */}
     <div className="rounded-2xl border border-sky-200/12 bg-sky-400/[0.045] p-3">
     <div className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-50/44">
       Registration Copy
