@@ -1454,6 +1454,67 @@ function moveRegistrationFieldInSelectedBlock(
 
   updateRegistrationFields(next)
 }
+
+function createRegistrationFieldFromTemplate(
+  template: "jobTitle" | "phone" | "dietaryNeeds"
+) {
+  switch (template) {
+    case "phone":
+      return {
+        id: `phone-${Date.now()}`,
+        label: "Phone Number",
+        placeholder: "(555) 123-4567",
+        fieldType: "text",
+        required: false,
+        visible: true,
+        locked: false,
+        width: "half",
+        systemRole: "profile",
+      }
+
+    case "dietaryNeeds":
+      return {
+        id: `dietary-${Date.now()}`,
+        label: "Dietary Needs",
+        placeholder: "Vegetarian, allergies, etc.",
+        fieldType: "text",
+        required: false,
+        visible: true,
+        locked: false,
+        width: "full",
+        systemRole: "profile",
+      }
+
+    case "jobTitle":
+    default:
+      return {
+        id: `jobTitle-${Date.now()}`,
+        label: "Job Title",
+        placeholder: "Executive Producer",
+        fieldType: "text",
+        required: false,
+        visible: true,
+        locked: false,
+        width: "half",
+        systemRole: "profile",
+      }
+  }
+}
+
+function addRegistrationFieldFromTemplate(
+  template: "jobTitle" | "phone" | "dietaryNeeds"
+) {
+  updateRegistrationFields([
+    ...getSelectedRegistrationFields(),
+    createRegistrationFieldFromTemplate(template),
+  ])
+}
+
+function removeRegistrationField(fieldId: string) {
+  updateRegistrationFields(
+    getSelectedRegistrationFields().filter((field: any) => field.id !== fieldId)
+  )
+}
   function moveSelectedBlock(direction: "up" | "down") {
     if (!selectedSectionId || !selectedBlockId) return
 
