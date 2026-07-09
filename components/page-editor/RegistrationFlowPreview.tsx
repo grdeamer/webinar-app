@@ -1210,6 +1210,7 @@ type RegistrationFlowPreviewProps = {
   confirmationTitle?: string
   confirmationBody?: string
   initialFields?: RegistrationFieldDefinition[]
+  previewState?: "open" | "waitlist" | "closed" | "registered" | "success"
 }
 
 export default function RegistrationFlowPreview({
@@ -1219,10 +1220,19 @@ export default function RegistrationFlowPreview({
   confirmationTitle,
   confirmationBody,
   initialFields,
+  previewState,
 }: RegistrationFlowPreviewProps) {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState<RegistrationPreviewSession["id"]>("general")
   const [registrationMode, setRegistrationMode] = useState<RegistrationMode>("open")
+  const effectiveStep: number =
+    previewState === "success"
+      ? 3
+      : previewState === "registered"
+        ? 2
+        : previewState === "waitlist"
+          ? 1
+          : 0
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
   const previewSessions = useMemo(() => createPreviewSessions(), [])
@@ -1285,8 +1295,8 @@ const [registrationFields, setRegistrationFields] = useState(() => {
     [registrationMode, selectedSessionId, previewSessions]
   )
 
-  const isFirstStep = step === 0
-  const isLastStep = step === steps.length - 1
+  const isFirstStep = effectiveStep === 0
+  const isLastStep = effectiveStep === steps.length - 1
   const currentModeMeta = registrationModeMeta[registrationMode]
   const attendeeDisplayName = `${registrationRuntime.attendee?.firstName ?? ""} ${
     registrationRuntime.attendee?.lastName ?? ""
@@ -1333,7 +1343,7 @@ const [registrationFields, setRegistrationFields] = useState(() => {
 
   return (
     <div className="space-y-6 rounded-[28px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
-      <RegistrationStepRail steps={steps} step={step} />
+      <RegistrationStepRail steps={steps} step={effectiveStep} />
 
       <RegistrationModePanel
         registrationMode={registrationMode}
@@ -1348,40 +1358,40 @@ const [registrationFields, setRegistrationFields] = useState(() => {
         </div>
 
         <h3 className="mt-3 text-3xl font-semibold tracking-[-0.055em] text-white">
-          {step === 0
+          {effectiveStep === 0
             ? title ?? "Reserve your place"
-            : step === 1
+            : effectiveStep === 1
               ? "Choose your sessions"
-              : step === 2
+              : effectiveStep === 2
                 ? "Review your registration"
                 : confirmationTitle ?? finalTitle}
         </h3>
 
         <p className="mt-3 max-w-2xl text-sm leading-7 text-white/58">
-          {step === 0
+          {effectiveStep === 0
             ? body ??
               "A native registration experience for identity, session choice, capacity, approval, waitlist, confirmation, cancellation, and reporting."
-            : step === 1
+            : effectiveStep === 1
               ? "Capacity-aware session selection replaces brittle form widgets, manual caps, and downstream spreadsheet matching."
-              : step === 2
+              : effectiveStep === 2
                 ? "Jupiter keeps attendee identity, session selections, approval status, and confirmation state in one durable record."
                 : confirmationBody ??
                   "Confirmation is now part of the event experience, not a disconnected email or automation step."}
         </p>
       </div>
 
-      {step === 0 ? (
+      {effectiveStep === 0 ? (
         <RegistrationIdentityStep
           fields={registrationFields}
           setFields={setRegistrationFields}
         />
       ) : null}
 
-      {step === 0 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
+      {effectiveStep === 0 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
 
-      {step === 0 ? <RegistrationBuilderSnapshotPanel snapshot={builderSnapshot} /> : null}
+      {effectiveStep === 0 ? <RegistrationBuilderSnapshotPanel snapshot={builderSnapshot} /> : null}
 
-      {step === 1 ? (
+      {effectiveStep === 1 ? (
         <RegistrationSessionSelector
           sessions={registrationRuntime.sessions}
           selectedSessionId={selectedSessionId}
@@ -1389,11 +1399,11 @@ const [registrationFields, setRegistrationFields] = useState(() => {
         />
       ) : null}
 
-      {step === 1 ? <RegistrationSeatReservationPanel reservation={reservationPreview} /> : null}
+      {effectiveStep === 1 ? <RegistrationSeatReservationPanel reservation={reservationPreview} /> : null}
 
-      {step === 1 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
+      {effectiveStep === 1 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
 
-      {step === 2 ? (
+      {effectiveStep === 2 ? (
         <RegistrationReviewSummary
           attendeeDisplayName={attendeeDisplayName}
           selectedSessionLabel={selectedSessionLabel}
@@ -1405,9 +1415,9 @@ const [registrationFields, setRegistrationFields] = useState(() => {
         />
       ) : null}
 
-      {step === 2 ? <RegistrationSeatReservationPanel reservation={reservationPreview} /> : null}
+      {effectiveStep === 2 ? <RegistrationSeatReservationPanel reservation={reservationPreview} /> : null}
 
-      {step === 3 ? (
+      {effectiveStep === 3 ? (
         <RegistrationConfirmationState
           finalTitle={finalTitle}
           finalBody={finalBody}
@@ -1427,10 +1437,10 @@ const [registrationFields, setRegistrationFields] = useState(() => {
         <button
           type="button"
           onClick={handleNext}
-          disabled={isLastStep || (!canContinue && step === 0)}
+          disabled={isLastStep || (!canContinue && effectiveStep === 0)}
           className="rounded-xl bg-sky-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-400 disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {step === 0 ? ctaLabel ?? continueLabel : continueLabel}
+          {effectiveStep === 0 ? ctaLabel ?? continueLabel : continueLabel}
         </button>
       </div>
     </div>
