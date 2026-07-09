@@ -311,6 +311,7 @@ function renderBlock(
       confirmationTitle?: unknown
       confirmationBody?: unknown
       registrationFields?: unknown
+      previewRegistrationState?: unknown
     }
     const node =
       componentKey === "registration_form" ? (
@@ -321,6 +322,11 @@ function renderBlock(
           confirmationTitle={typeof registrationProps.confirmationTitle === "string" ? registrationProps.confirmationTitle : undefined}
           confirmationBody={typeof registrationProps.confirmationBody === "string" ? registrationProps.confirmationBody : undefined}
           initialFields={Array.isArray(registrationProps.registrationFields) ? registrationProps.registrationFields : undefined}
+          previewState={
+            typeof registrationProps.previewRegistrationState === "string"
+              ? (registrationProps.previewRegistrationState as "open" | "waitlist" | "closed" | "registered" | "success")
+              : "open"
+          }
         />
       ) : (
         systemComponents[componentKey]
