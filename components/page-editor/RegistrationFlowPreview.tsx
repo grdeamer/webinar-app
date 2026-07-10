@@ -1344,8 +1344,13 @@ const [registrationFields, setRegistrationFields] = useState(() => {
     setStep((current) => Math.max(current - 1, 0))
   }
 
+  const containerClass =
+    resolvedVariant === "minimal"
+      ? "space-y-4 rounded-2xl border border-white/10 bg-black/20 p-5"
+      : "space-y-6 rounded-[28px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]"
+
   return (
-    <div className="space-y-6 rounded-[28px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.14),transparent_34%),linear-gradient(180deg,rgba(255,255,255,0.055),rgba(255,255,255,0.018))] p-6 shadow-[0_24px_80px_rgba(0,0,0,0.34),inset_0_1px_0_rgba(255,255,255,0.04)]">
+    <div className={containerClass}>
       <RegistrationStepRail steps={steps} step={effectiveStep} />
 
       <RegistrationModePanel
