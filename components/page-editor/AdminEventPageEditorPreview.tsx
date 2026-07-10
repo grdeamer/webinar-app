@@ -4420,6 +4420,35 @@ onDragEnd={handleLayerDragEnd}
     {/* Preview State Selector */}
     <div className="mb-4 rounded-2xl border border-white/10 bg-black/20 p-3">
       <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+      <div className="mb-4 rounded-2xl border border-white/10 bg-black/20 p-3">
+  <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+    Variant
+  </div>
+
+  <div className="mt-3 grid grid-cols-2 gap-2">
+    {[
+      ["editorial", "Editorial"],
+      ["minimal", "Minimal"],
+    ].map(([value, label]) => (
+      <button
+        key={value}
+        type="button"
+        onClick={() =>
+          updateSelectedBlockProps({
+            variant: value,
+          })
+        }
+        className={`rounded-xl border px-3 py-2 text-left text-[10px] font-black uppercase tracking-[0.12em] transition ${
+          (selectedBlock.props.variant ?? "editorial") === value
+            ? "border-violet-300/30 bg-violet-400/10 text-violet-100"
+            : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]"
+        }`}
+      >
+        {label}
+      </button>
+    ))}
+  </div>
+</div>
         Preview State
       </div>
 
