@@ -1,50 +1,82 @@
 "use client"
 
+type RegistrationPreviewState =
+  | "open"
+  | "waitlist"
+  | "closed"
+  | "registered"
+  | "success"
+
 type Props = {
-  sectionTemplatesOpen: boolean
-  setSectionTemplatesOpen: React.Dispatch<React.SetStateAction<boolean>>
-  addSectionPreset: (type: any) => void
-  SectionPanelHeader: React.ComponentType<{
-    title: string
-    open: boolean
-    onToggle: () => void
-  }>
-  SECTION_TEMPLATE_OPTIONS: Array<{
-    key: string
-    title: string
-    body: string
-  }>
+  value: RegistrationPreviewState
+  onChange: (value: RegistrationPreviewState) => void
 }
 
-export default function SectionTemplatesCard({
-  sectionTemplatesOpen,
-  setSectionTemplatesOpen,
-  addSectionPreset,
-  SectionPanelHeader,
-  SECTION_TEMPLATE_OPTIONS,
-}: Props) {
-  return (
-    <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
-      <SectionPanelHeader
-        title="Section Templates"
-        open={sectionTemplatesOpen}
-        onToggle={() => setSectionTemplatesOpen((v) => !v)}
-      />
+const PREVIEW_STATE_OPTIONS: ReadonlyArray<{
+  value: RegistrationPreviewState
+  label: string
+  description: string
+}> = [
+  {
+    value: "open",
+    label: "Registration Open",
+    description: "Standard attendee registration experience.",
+  },
+  {
+    value: "waitlist",
+    label: "Waitlist",
+    description: "Capacity reached with waitlist handling enabled.",
+  },
+  {
+    value: "closed",
+    label: "Closed",
+    description: "Registration intake is paused or unavailable.",
+  },
+  {
+    value: "registered",
+    label: "Already Registered",
+    description: "Returning attendee with an existing registration.",
+  },
+  {
+    value: "success",
+    label: "Success",
+    description: "Confirmation state after registration completes.",
+  },
+]
 
-      {sectionTemplatesOpen && (
-        <div className="mt-3 grid grid-cols-1 gap-3">
-          {SECTION_TEMPLATE_OPTIONS.map((preset) => (
+export default function SectionTemplatesCard({ value, onChange }: Props) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
+      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
+        Preview State
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {PREVIEW_STATE_OPTIONS.map((option) => {
+          const active = value === option.value
+
+          return (
             <button
-              key={preset.key}
-              onClick={() => addSectionPreset(preset.key)}
-              className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-left hover:bg-white/5"
+              key={option.value}
+              type="button"
+              onClick={() => onChange(option.value)}
+              className={`rounded-xl border px-3 py-3 text-left transition ${
+                active
+                  ? "border-sky-300/30 bg-sky-400/10 text-sky-100"
+                  : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]"
+              }`}
             >
-              <div className="text-sm font-semibold text-white">{preset.title}</div>
-              <div className="mt-1 text-xs text-white/50">{preset.body}</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.12em]">
+                {option.label}
+              </div>
+
+              <div className={`mt-1 text-[11px] leading-4 ${active ? "text-sky-100/58" : "text-white/30"}`}>
+                {option.description}
+              </div>
             </button>
-          ))}
-        </div>
-      )}
+          )
+        })}
+      </div>
     </div>
   )
 }
