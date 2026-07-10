@@ -4481,203 +4481,37 @@ updateSelectedBlockProps({
       </div>
     </div>
     {/* Registration Copy Card */}
-    <div className="rounded-2xl border border-sky-200/12 bg-sky-400/[0.045] p-3">
-    <div className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-50/44">
-      Registration Copy
-    </div>
-<div className="mt-3 space-y-3">
-  {getSelectedRegistrationFields().map((field: any, index: number) => (
-    <div
-      key={field.id}
-      className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
-    >
-      <div className="flex items-center justify-between gap-3">
-        <div>
-          <div className="text-sm font-semibold text-white/72">
-            {field.label}
-          </div>
 
-          <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
-            {field.systemRole} · {field.fieldType} · {field.width}
-            {field.locked ? " · locked" : ""}
-          </div>
-        </div>
 
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() =>
-              moveRegistrationFieldInSelectedBlock(field.id, "up")
-            }
-            disabled={index === 0}
-            className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
-          >
-            ↑
-          </button>
+<SelectedEditorCard
+  values={{
+    title:
+      typeof selectedBlock.props.title === "string"
+        ? selectedBlock.props.title
+        : "",
 
-          <button
-            type="button"
-            onClick={() =>
-              moveRegistrationFieldInSelectedBlock(field.id, "down")
-            }
-            disabled={
-              index === getSelectedRegistrationFields().length - 1
-            }
-            className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
-          >
-            ↓
-          </button>
-        </div>
-      </div>
+    body:
+      typeof selectedBlock.props.body === "string"
+        ? selectedBlock.props.body
+        : "",
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <label className="block">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
-            Label
-          </div>
+    ctaLabel:
+      typeof (selectedBlock.props as any).ctaLabel === "string"
+        ? (selectedBlock.props as any).ctaLabel
+        : "",
 
-          <input
-            value={typeof field.label === "string" ? field.label : ""}
-            onChange={(event) =>
-              updateRegistrationField(field.id, {
-                label: event.target.value,
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
-          />
-        </label>
+    confirmationTitle:
+      typeof (selectedBlock.props as any).confirmationTitle === "string"
+        ? (selectedBlock.props as any).confirmationTitle
+        : "",
 
-        <label className="block">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
-            Placeholder
-          </div>
-
-          <input
-            value={
-              typeof field.placeholder === "string"
-                ? field.placeholder
-                : ""
-            }
-            onChange={(event) =>
-              updateRegistrationField(field.id, {
-                placeholder: event.target.value,
-              })
-            }
-            className="mt-2 w-full rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
-          />
-        </label>
-      </div>
-
-      <div className="mt-3 grid grid-cols-3 gap-2">
-        <button
-          type="button"
-          onClick={() =>
-            updateRegistrationField(field.id, {
-              visible: !field.visible,
-            })
-          }
-          disabled={field.locked}
-          className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
-            field.visible
-              ? "border-emerald-200/18 bg-emerald-400/10 text-emerald-50/60"
-              : "border-red-200/18 bg-red-400/10 text-red-50/60"
-          } ${
-            field.locked
-              ? "cursor-not-allowed opacity-45"
-              : "hover:bg-white/[0.06]"
-          }`}
-        >
-          {field.visible ? "Shown" : "Hidden"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            updateRegistrationField(field.id, {
-              required: !field.required,
-            })
-          }
-          disabled={field.locked}
-          className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
-            field.required
-              ? "border-sky-200/18 bg-sky-400/10 text-sky-50/60"
-              : "border-white/10 bg-white/[0.03] text-white/36"
-          } ${
-            field.locked
-              ? "cursor-not-allowed opacity-45"
-              : "hover:bg-white/[0.06]"
-          }`}
-        >
-          {field.required ? "Req" : "Opt"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() =>
-            updateRegistrationField(field.id, {
-              width: field.width === "full" ? "half" : "full",
-            })
-          }
-          className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/42 transition hover:bg-white/[0.06]"
-        >
-          {field.width}
-        </button>
-      </div>
-    </div>
-  ))}
-</div>
-    <div className="mt-3 space-y-3">
-      {([
-        ["title", "Title", "Reserve Your Place"],
-        [
-          "body",
-          "Body",
-          "Native Jupiter registration flow with field builder, session binding, waitlist, and reservation state.",
-        ],
-        ["ctaLabel", "CTA Label", "Start Registration"],
-        ["confirmationTitle", "Confirmation Title", "Registration Confirmed"],
-        [
-          "confirmationBody",
-          "Confirmation Body",
-          "Your registration is part of the live Jupiter event experience now.",
-        ],
-      ] as const).map(([key, label, placeholder]) => (
-        <label key={key} className="block">
-          <div className="text-[10px] font-black uppercase tracking-[0.14em] text-white/32">
-            {label}
-          </div>
-
-          {key === "body" || key === "confirmationBody" ? (
-            <textarea
-              value={
-                typeof (selectedBlock.props as any)[key] === "string"
-                  ? String((selectedBlock.props as any)[key])
-                  : ""
-              }
-              onChange={(event) =>
-                updateRegistrationBlockCopyProp(key, event.target.value)
-              }
-              placeholder={placeholder}
-              className="mt-2 min-h-20 w-full resize-none rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
-            />
-          ) : (
-            <input
-              value={
-                typeof (selectedBlock.props as any)[key] === "string"
-                  ? String((selectedBlock.props as any)[key])
-                  : ""
-              }
-              onChange={(event) =>
-                updateRegistrationBlockCopyProp(key, event.target.value)
-              }
-              placeholder={placeholder}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/72 outline-none transition placeholder:text-white/24 focus:border-sky-200/28"
-            />
-          )}
-        </label>
-      ))}
-    </div>
-  </div>
+    confirmationBody:
+      typeof (selectedBlock.props as any).confirmationBody === "string"
+        ? (selectedBlock.props as any).confirmationBody
+        : "",
+  }}
+  onChange={updateRegistrationBlockCopyProp}
+/>
 <div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
   <div className="flex items-center justify-between gap-3">
     <div>
