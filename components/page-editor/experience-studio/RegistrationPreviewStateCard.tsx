@@ -44,7 +44,7 @@ const PREVIEW_STATE_OPTIONS: ReadonlyArray<{
   },
 ]
 
-export default function SectionTemplatesCard({ value, onChange }: Props) {
+export default function RegistrationPreviewStateCard({ value, onChange }: Props) {
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
       <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">

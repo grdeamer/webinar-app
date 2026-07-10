@@ -1353,12 +1353,14 @@ const [registrationFields, setRegistrationFields] = useState(() => {
     <div className={containerClass}>
       <RegistrationStepRail steps={steps} step={effectiveStep} />
 
-      <RegistrationModePanel
-        registrationMode={registrationMode}
-        registrationModeMeta={currentModeMeta}
-        registrationRuntime={registrationRuntime}
-        onChangeMode={setRegistrationMode}
-      />
+      {resolvedVariant === "editorial" ? (
+        <RegistrationModePanel
+          registrationMode={registrationMode}
+          registrationModeMeta={currentModeMeta}
+          registrationRuntime={registrationRuntime}
+          onChangeMode={setRegistrationMode}
+        />
+      ) : null}
 
       <div>
         <div className="text-[10px] font-black uppercase tracking-[0.24em] text-sky-100/50">
@@ -1397,7 +1399,9 @@ const [registrationFields, setRegistrationFields] = useState(() => {
 
       {effectiveStep === 0 ? <RegistrationConditionalSections sections={conditionalSections} /> : null}
 
-      {effectiveStep === 0 ? <RegistrationBuilderSnapshotPanel snapshot={builderSnapshot} /> : null}
+      {resolvedVariant === "editorial" && effectiveStep === 0 ? (
+        <RegistrationBuilderSnapshotPanel snapshot={builderSnapshot} />
+      ) : null}
 
       {effectiveStep === 1 ? (
         <RegistrationSessionSelector

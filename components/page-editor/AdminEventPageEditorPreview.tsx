@@ -6,7 +6,7 @@ import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRen
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
-import SelectedEditorCard from "@/components/page-editor/SelectedEditorCard"
+import RegistrationCopyCard from "@/components/page-editor/experience-studio/RegistrationCopyCard"
 import {
   SECTION_TEMPLATE_OPTIONS,
   createDefaultEventHomeSections,
@@ -4483,7 +4483,7 @@ updateSelectedBlockProps({
     {/* Registration Copy Card */}
 
 
-<SelectedEditorCard
+<RegistrationCopyCard
   values={{
     title:
       typeof selectedBlock.props.title === "string"

@@ -49,7 +49,7 @@ const COPY_FIELDS: ReadonlyArray<{
   },
 ]
 
-export default function SelectedEditorCard({ values, onChange }: Props) {
+export default function RegistrationCopyCard({ values, onChange }: Props) {
   return (
     <div className="rounded-2xl border border-sky-200/12 bg-sky-400/[0.045] p-3">
       <div className="text-[10px] font-black uppercase tracking-[0.16em] text-sky-50/44">
