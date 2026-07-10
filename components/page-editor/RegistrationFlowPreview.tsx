@@ -1211,6 +1211,7 @@ type RegistrationFlowPreviewProps = {
   confirmationBody?: string
   initialFields?: RegistrationFieldDefinition[]
   previewState?: "open" | "waitlist" | "closed" | "registered" | "success"
+  variant?: "editorial" | "minimal"
 }
 
 export default function RegistrationFlowPreview({
@@ -1221,6 +1222,7 @@ export default function RegistrationFlowPreview({
   confirmationBody,
   initialFields,
   previewState,
+  variant,
 }: RegistrationFlowPreviewProps) {
   const [step, setStep] = useState(0)
   const [selectedSessionId, setSelectedSessionId] = useState<RegistrationPreviewSession["id"]>("general")
@@ -1235,6 +1237,7 @@ export default function RegistrationFlowPreview({
           : 0
 
   const steps = useMemo(() => ["Identity", "Sessions", "Review", "Confirmed"], [])
+  const resolvedVariant = variant ?? "editorial"
   const previewSessions = useMemo(() => createPreviewSessions(), [])
 const [registrationFields, setRegistrationFields] = useState(() => {
   const defaultFields = createRegistrationFields()
