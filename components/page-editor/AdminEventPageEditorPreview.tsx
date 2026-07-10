@@ -6,6 +6,7 @@ import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRen
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
+import SelectedEditorCard from "@/components/page-editor/SelectedEditorCard"
 import {
   SECTION_TEMPLATE_OPTIONS,
   createDefaultEventHomeSections,
@@ -2260,7 +2261,7 @@ systemComponents={{
 
       <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
         <div className="text-sm font-semibold text-white">Session Two</div>
-
+c1x
         <div className="mt-2 text-sm text-white/60">
           Session card preview
         </div>
