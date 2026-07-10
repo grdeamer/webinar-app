@@ -1,159 +1,132 @@
 "use client"
 
-import EditorActionsCard from "@/components/page-editor/EditorActionsCard"
-import SelectedEditorCard from "@/components/page-editor/SelectedEditorCard"
-import SectionTemplatesCard from "@/components/page-editor/SectionTemplatesCard"
-import AddElementCard from "@/components/page-editor/AddElementCard"
-import SectionsListCard from "@/components/page-editor/SectionsListCard"
+import type { ReactNode } from "react"
+
+type ExperienceStudioInspectorTab = "inspect" | "layers" | "insert" | "page"
 
 type Props = {
   isEditing: boolean
+  isEmbedded: boolean
   isMobilePreview: boolean
-  gridSize: number
-  saveMessage: string | null
-  onSaveTemplate: () => void
-  onSave: () => void
-
-  selectedElement: any
-  selectedSection: any
-  editorDetailsOpen: boolean
-  setEditorDetailsOpen: React.Dispatch<React.SetStateAction<boolean>>
-
-  canDuplicateElement: boolean
-  canDeleteElement: boolean
-  canSendBackward: boolean
-  canBringForward: boolean
-  canMoveUp: boolean
-  canMoveDown: boolean
-  canDuplicateSection: boolean
-  canDeleteSection: boolean
-
-  duplicateSelectedElement: () => void
-  deleteSelectedElement: () => void
-  sendSelectedElementBackward: () => void
-  bringSelectedElementForward: () => void
-  moveSelectedSection: (direction: "up" | "down") => void
-  duplicateSelectedSection: () => void
-  deleteSelectedSection: () => void
-  updateElement: (id: string, patch: any) => void
-  updateElementProps: (id: string, patch: Record<string, unknown>) => void
-  updateSectionConfig: (id: string, patch: any) => void
-  SectionPanelHeader: any
-  registryItem: any
-
-  sectionTemplatesOpen: boolean
-  setSectionTemplatesOpen: React.Dispatch<React.SetStateAction<boolean>>
-  addSectionPreset: (type: any) => void
-  SECTION_TEMPLATE_OPTIONS: Array<{
-    key: string
-    title: string
-    body: string
-  }>
-
-  addElementOpen: boolean
-  setAddElementOpen: React.Dispatch<React.SetStateAction<boolean>>
-  addElement: (type: any) => void
-
-  sections: any[]
-  sectionsListOpen: boolean
-  setSectionsListOpen: React.Dispatch<React.SetStateAction<boolean>>
-  selectedSectionId: string | null
-  draggingSectionId: string | null
-  dragOverSectionId: string | null
-  handleSectionDragStart: (sectionId: string) => void
-  handleSectionDragOver: (e: React.DragEvent<HTMLButtonElement>, sectionId: string) => void
-  handleSectionDrop: (sectionId: string) => void
-  handleSectionDragEnd: () => void
-  setSelectedSectionId: React.Dispatch<React.SetStateAction<string | null>>
-  setSelectedId: React.Dispatch<React.SetStateAction<string | null>>
-  setSelectedIds: React.Dispatch<React.SetStateAction<string[]>>
-  setEditingElementId: React.Dispatch<React.SetStateAction<string | null>>
+  canvasScale: number
+  nodeCount: number
+  sectionCount: number
+  layerCount: number
+  selectedKind: "element" | "section" | "none"
+  rightRailTab: ExperienceStudioInspectorTab
+  onChangeTab: (tab: ExperienceStudioInspectorTab) => void
+  children: ReactNode
 }
 
-export default function EditorSidebar(props: Props) {
-  const {
-    isEditing,
-    isMobilePreview,
-    gridSize,
-    saveMessage,
-    onSaveTemplate,
-    onSave,
-  } = props
+const TAB_OPTIONS: Array<{
+  value: ExperienceStudioInspectorTab
+  label: string
+}> = [
+  { value: "inspect", label: "Inspect" },
+  { value: "layers", label: "Layers" },
+  { value: "insert", label: "Insert" },
+  { value: "page", label: "Page" },
+]
 
+function getInspectorTitle({
+  rightRailTab,
+  selectedKind,
+}: Pick<Props, "rightRailTab" | "selectedKind">) {
+  if (rightRailTab === "layers") return "Scene Layers"
+  if (rightRailTab === "insert") return "Insert"
+  if (rightRailTab === "page") return "Page Settings"
+  if (selectedKind === "element") return "Element Settings"
+  if (selectedKind === "section") return "Section Settings"
+  return "Inspector"
+}
+
+function getInspectorDescription({
+  rightRailTab,
+  selectedKind,
+}: Pick<Props, "rightRailTab" | "selectedKind">) {
+  if (rightRailTab === "layers") {
+    return "Composition stack, visibility, locks, and z-order."
+  }
+
+  if (rightRailTab === "insert") {
+    return "Add sections, components, and canvas elements."
+  }
+
+  if (rightRailTab === "page") {
+    return "Global theme and experience settings."
+  }
+
+  if (selectedKind === "element") return "Editing element"
+  if (selectedKind === "section") return "Editing section"
+  return "Select something to edit"
+}
+
+export default function EditorSidebar({
+  isEditing,
+  isEmbedded,
+  isMobilePreview,
+  canvasScale,
+  nodeCount,
+  sectionCount,
+  layerCount,
+  selectedKind,
+  rightRailTab,
+  onChangeTab,
+  children,
+}: Props) {
   return (
     <aside
-      className={`border-l border-white/10 bg-slate-950/95 backdrop-blur-xl transition-all duration-300 ${
-        isEditing ? "w-[380px] opacity-100" : "w-0 overflow-hidden opacity-0"
+      className={`relative shrink-0 border-l border-white/[0.07] bg-[#080b14]/95 backdrop-blur-2xl ${
+        isEmbedded
+          ? "w-[320px] opacity-100"
+          : `transition-[width,opacity] duration-300 ${
+              isEditing ? "w-[380px] opacity-100" : "pointer-events-none w-0 overflow-hidden opacity-0"
+            }`
       }`}
     >
-      <div className="w-[380px] p-6">
-        <EditorActionsCard
-          isMobilePreview={isMobilePreview}
-          gridSize={gridSize}
-          saveMessage={saveMessage}
-          onSaveTemplate={onSaveTemplate}
-          onSave={onSave}
-        />
+      <div className={`h-full ${isEmbedded ? "w-[320px] p-4" : "w-[380px] p-6"}`}>
+        <div className="rounded-[24px] border border-white/[0.07] bg-white/[0.025] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+          <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">
+            Experience Studio
+          </div>
 
-        <SelectedEditorCard
-          selectedElement={props.selectedElement}
-          selectedSection={props.selectedSection}
-          editorDetailsOpen={props.editorDetailsOpen}
-          setEditorDetailsOpen={props.setEditorDetailsOpen}
-          canDuplicateElement={props.canDuplicateElement}
-          canDeleteElement={props.canDeleteElement}
-          canSendBackward={props.canSendBackward}
-          canBringForward={props.canBringForward}
-          canMoveUp={props.canMoveUp}
-          canMoveDown={props.canMoveDown}
-          canDuplicateSection={props.canDuplicateSection}
-          canDeleteSection={props.canDeleteSection}
-          duplicateSelectedElement={props.duplicateSelectedElement}
-          deleteSelectedElement={props.deleteSelectedElement}
-          sendSelectedElementBackward={props.sendSelectedElementBackward}
-          bringSelectedElementForward={props.bringSelectedElementForward}
-          moveSelectedSection={props.moveSelectedSection}
-          duplicateSelectedSection={props.duplicateSelectedSection}
-          deleteSelectedSection={props.deleteSelectedSection}
-          updateElement={props.updateElement}
-          updateElementProps={props.updateElementProps}
-          updateSectionConfig={props.updateSectionConfig}
-          SectionPanelHeader={props.SectionPanelHeader}
-          registryItem={props.registryItem}
-        />
+          <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
+            {getInspectorTitle({ rightRailTab, selectedKind })}
+          </h3>
 
-        <AddElementCard
-          addElementOpen={props.addElementOpen}
-          setAddElementOpen={props.setAddElementOpen}
-          addElement={props.addElement}
-          SectionPanelHeader={props.SectionPanelHeader}
-        />
+          <div className="mt-2 text-sm leading-6 text-white/52">
+            {getInspectorDescription({ rightRailTab, selectedKind })}
+          </div>
 
-        <SectionTemplatesCard
-          sectionTemplatesOpen={props.sectionTemplatesOpen}
-          setSectionTemplatesOpen={props.setSectionTemplatesOpen}
-          addSectionPreset={props.addSectionPreset}
-          SectionPanelHeader={props.SectionPanelHeader}
-          SECTION_TEMPLATE_OPTIONS={props.SECTION_TEMPLATE_OPTIONS}
-        />
+          <div className="mt-4 grid grid-cols-4 gap-1 rounded-2xl border border-white/[0.08] bg-black/24 p-1">
+            {TAB_OPTIONS.map((tab) => (
+              <button
+                key={tab.value}
+                type="button"
+                onClick={() => onChangeTab(tab.value)}
+                className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+                  rightRailTab === tab.value
+                    ? "bg-white text-black"
+                    : "text-white/42 hover:bg-white/[0.06] hover:text-white/72"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
 
-        <SectionsListCard
-          sections={props.sections}
-          sectionsListOpen={props.sectionsListOpen}
-          setSectionsListOpen={props.setSectionsListOpen}
-          selectedSectionId={props.selectedSectionId}
-          draggingSectionId={props.draggingSectionId}
-          dragOverSectionId={props.dragOverSectionId}
-          handleSectionDragStart={props.handleSectionDragStart}
-          handleSectionDragOver={props.handleSectionDragOver}
-          handleSectionDrop={props.handleSectionDrop}
-          handleSectionDragEnd={props.handleSectionDragEnd}
-          setSelectedSectionId={props.setSelectedSectionId}
-          setSelectedId={props.setSelectedId}
-          setSelectedIds={props.setSelectedIds}
-          setEditingElementId={props.setEditingElementId}
-          SectionPanelHeader={props.SectionPanelHeader}
-        />
+          <div className="mt-4 flex flex-wrap gap-2">
+            <div className="inline-flex rounded-full border border-white/[0.07] bg-black/22 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
+              Preview · {isMobilePreview ? "Mobile" : "Desktop"} · {Math.round(canvasScale * 100)}%
+            </div>
+
+            <div className="inline-flex rounded-full border border-white/[0.07] bg-black/22 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/36">
+              {nodeCount} nodes · {sectionCount} sections · {layerCount} layers
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-4 min-h-0">{children}</div>
       </div>
     </aside>
   )
