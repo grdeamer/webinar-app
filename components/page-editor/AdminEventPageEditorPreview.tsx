@@ -10,6 +10,9 @@ import RegistrationCopyCard from "@/components/page-editor/experience-studio/Reg
 import RegistrationPreviewStateCard, {
   type RegistrationPreviewState,
 } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
+import RegistrationVariantCard, {
+  type RegistrationVariant,
+} from "@/components/page-editor/experience-studio/RegistrationVariantCard"
 import {
   SECTION_TEMPLATE_OPTIONS,
   createDefaultEventHomeSections,
@@ -4432,7 +4435,17 @@ onDragEnd={handleLayerDragEnd}
     } as any)
   }
 />
-
+<RegistrationVariantCard
+  value={
+    (((selectedBlock.props as any).variant ??
+      "editorial") as RegistrationVariant)
+  }
+  onChange={(value) =>
+    updateSelectedBlockProps({
+      variant: value,
+    })
+  }
+/>
 
 <RegistrationCopyCard
   values={{
