@@ -8,6 +8,9 @@ import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
 import RegistrationInspector from "@/components/page-editor/experience-studio/RegistrationInspector"
 import SystemComponentInspector from "@/components/page-editor/experience-studio/SystemComponentInspector"
+import AgendaInspector, {
+  type AgendaDisplayMode,
+} from "@/components/page-editor/experience-studio/AgendaInspector"
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
 import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
 import type { RegistrationInspectorField } from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
@@ -4486,6 +4489,61 @@ onDragEnd={handleLayerDragEnd}
   }
   onAddFieldTemplate={addRegistrationFieldFromTemplate}
   onRemoveField={removeRegistrationField}
+    />
+  </SystemComponentInspector>
+) : null}
+{selectedBlock.props.componentKey === "agenda" ? (
+  <SystemComponentInspector
+    componentKey={selectedBlock.props.componentKey}
+    title={
+      typeof selectedBlock.props.title === "string"
+        ? selectedBlock.props.title
+        : undefined
+    }
+    body={
+      typeof selectedBlock.props.body === "string"
+        ? selectedBlock.props.body
+        : undefined
+    }
+  >
+    <AgendaInspector
+      title={
+        typeof selectedBlock.props.title === "string"
+          ? selectedBlock.props.title
+          : "Event Agenda"
+      }
+      description={
+        typeof selectedBlock.props.body === "string"
+          ? selectedBlock.props.body
+          : "Browse the event schedule."
+      }
+      displayMode={
+        (((selectedBlock.props as any).displayMode ??
+          "list") as AgendaDisplayMode)
+      }
+      showTime={
+        typeof (selectedBlock.props as any).showTime === "boolean"
+          ? (selectedBlock.props as any).showTime
+          : true
+      }
+      showDescriptions={
+        typeof (selectedBlock.props as any).showDescriptions === "boolean"
+          ? (selectedBlock.props as any).showDescriptions
+          : true
+      }
+      groupByDay={
+        typeof (selectedBlock.props as any).groupByDay === "boolean"
+          ? (selectedBlock.props as any).groupByDay
+          : true
+      }
+      emptyStateText={
+        typeof (selectedBlock.props as any).emptyStateText === "string"
+          ? (selectedBlock.props as any).emptyStateText
+          : "No agenda items are available yet."
+      }
+      onChange={(patch) =>
+        updateSelectedBlockProps(patch as any)
+      }
     />
   </SystemComponentInspector>
 ) : null}
