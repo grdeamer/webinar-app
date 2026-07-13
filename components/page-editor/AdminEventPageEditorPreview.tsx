@@ -7,6 +7,7 @@ import usePageEditorState from "@/components/page-editor/hooks/usePageEditorStat
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
 import RegistrationInspector from "@/components/page-editor/experience-studio/RegistrationInspector"
+import SystemComponentInspector from "@/components/page-editor/experience-studio/SystemComponentInspector"
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
 import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
 import type { RegistrationInspectorField } from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
@@ -4420,8 +4421,20 @@ onDragEnd={handleLayerDragEnd}
                                 </select>
                               </div>
                               {selectedBlock.props.componentKey === "registration_form" ? (
-  <>
-<RegistrationInspector
+  <SystemComponentInspector
+    componentKey={selectedBlock.props.componentKey}
+    title={
+      typeof selectedBlock.props.title === "string"
+        ? selectedBlock.props.title
+        : undefined
+    }
+    body={
+      typeof selectedBlock.props.body === "string"
+        ? selectedBlock.props.body
+        : undefined
+    }
+  >
+    <RegistrationInspector
   previewState={
     (((selectedBlock.props as any).previewRegistrationState ??
       "open") as RegistrationPreviewState)
@@ -4473,8 +4486,8 @@ onDragEnd={handleLayerDragEnd}
   }
   onAddFieldTemplate={addRegistrationFieldFromTemplate}
   onRemoveField={removeRegistrationField}
-/>
-</>
+    />
+  </SystemComponentInspector>
 ) : null}
                             </>
                           )}
