@@ -13,6 +13,9 @@ import RegistrationPreviewStateCard, {
 import RegistrationVariantCard, {
   type RegistrationVariant,
 } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
+import RegistrationFieldsCard, {
+  type RegistrationInspectorField,
+} from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
 import {
   SECTION_TEMPLATE_OPTIONS,
   createDefaultEventHomeSections,
@@ -4476,77 +4479,18 @@ onDragEnd={handleLayerDragEnd}
   }}
   onChange={updateRegistrationBlockCopyProp}
 />
-<div className="mt-4 rounded-2xl border border-white/10 bg-black/20 p-3">
-  <div className="flex items-center justify-between gap-3">
-    <div>
-      <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
-        Registration Fields
-      </div>
-
-      <div className="mt-1 text-xs leading-5 text-white/38">
-        Persisted registration schema preview.
-      </div>
-    </div>
-
-    <button
-      type="button"
-      onClick={() =>
-        updateRegistrationFields(createDefaultRegistrationFieldDefinitions())
-      }
-      className="rounded-xl border border-white/10 bg-white/[0.03] px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/46 transition hover:bg-white/[0.06]"
-    >
-      Reset
-    </button>
-  </div>
-
-  <div className="mt-3 space-y-3">
-    {getSelectedRegistrationFields().map((field: any, index: number) => (
-      <div
-        key={field.id}
-        className="rounded-2xl border border-white/10 bg-white/[0.03] p-3"
-      >
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <div className="text-sm font-semibold text-white/72">
-              {field.label}
-            </div>
-
-            <div className="mt-1 text-[10px] font-black uppercase tracking-[0.14em] text-white/28">
-              {field.systemRole} · {field.fieldType} · {field.width}
-              {field.locked ? " · locked" : ""}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() =>
-                moveRegistrationFieldInSelectedBlock(field.id, "up")
-              }
-              disabled={index === 0}
-              className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              ↑
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                moveRegistrationFieldInSelectedBlock(field.id, "down")
-              }
-              disabled={
-                index === getSelectedRegistrationFields().length - 1
-              }
-              className="rounded-lg border border-white/10 bg-black/20 px-2 py-1 text-xs font-black text-white/50 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-25"
-            >
-              ↓
-            </button>
-          </div>
-        </div>
-      </div>
-    ))}
-  </div>
-</div> 
+<RegistrationFieldsCard
+  fields={getSelectedRegistrationFields() as RegistrationInspectorField[]}
+  onReset={() =>
+    updateRegistrationFields(createDefaultRegistrationFieldDefinitions())
+  }
+  onMove={moveRegistrationFieldInSelectedBlock}
+  onUpdate={(fieldId, patch) =>
+    updateRegistrationField(fieldId, patch)
+  }
+  onAddTemplate={addRegistrationFieldFromTemplate}
+  onRemove={removeRegistrationField}
+/>
 </>
 ) : null}
                             </>
