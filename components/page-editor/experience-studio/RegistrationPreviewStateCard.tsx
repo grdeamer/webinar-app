@@ -1,6 +1,6 @@
 "use client"
 
-type RegistrationPreviewState =
+export type RegistrationPreviewState =
   | "open"
   | "waitlist"
   | "closed"
