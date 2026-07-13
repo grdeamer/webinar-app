@@ -6,16 +6,10 @@ import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRen
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
-import RegistrationCopyCard from "@/components/page-editor/experience-studio/RegistrationCopyCard"
-import RegistrationPreviewStateCard, {
-  type RegistrationPreviewState,
-} from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
-import RegistrationVariantCard, {
-  type RegistrationVariant,
-} from "@/components/page-editor/experience-studio/RegistrationVariantCard"
-import RegistrationFieldsCard, {
-  type RegistrationInspectorField,
-} from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
+import RegistrationInspector from "@/components/page-editor/experience-studio/RegistrationInspector"
+import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
+import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
+import type { RegistrationInspectorField } from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
 import {
   SECTION_TEMPLATE_OPTIONS,
   createDefaultEventHomeSections,
@@ -4427,69 +4421,58 @@ onDragEnd={handleLayerDragEnd}
                               </div>
                               {selectedBlock.props.componentKey === "registration_form" ? (
   <>
-<RegistrationPreviewStateCard
-  value={
+<RegistrationInspector
+  previewState={
     (((selectedBlock.props as any).previewRegistrationState ??
       "open") as RegistrationPreviewState)
   }
-  onChange={(value) =>
-    updateSelectedBlockProps({
-      previewRegistrationState: value,
-    } as any)
-  }
-/>
-<RegistrationVariantCard
-  value={
+  variant={
     (((selectedBlock.props as any).variant ??
       "editorial") as RegistrationVariant)
   }
-  onChange={(value) =>
-    updateSelectedBlockProps({
-      variant: value,
-    })
-  }
-/>
-
-<RegistrationCopyCard
-  values={{
+  copyValues={{
     title:
       typeof selectedBlock.props.title === "string"
         ? selectedBlock.props.title
         : "",
-
     body:
       typeof selectedBlock.props.body === "string"
         ? selectedBlock.props.body
         : "",
-
     ctaLabel:
       typeof (selectedBlock.props as any).ctaLabel === "string"
         ? (selectedBlock.props as any).ctaLabel
         : "",
-
     confirmationTitle:
       typeof (selectedBlock.props as any).confirmationTitle === "string"
         ? (selectedBlock.props as any).confirmationTitle
         : "",
-
     confirmationBody:
       typeof (selectedBlock.props as any).confirmationBody === "string"
         ? (selectedBlock.props as any).confirmationBody
         : "",
   }}
-  onChange={updateRegistrationBlockCopyProp}
-/>
-<RegistrationFieldsCard
   fields={getSelectedRegistrationFields() as RegistrationInspectorField[]}
-  onReset={() =>
+  onChangePreviewState={(value) =>
+    updateSelectedBlockProps({
+      previewRegistrationState: value,
+    } as any)
+  }
+  onChangeVariant={(value) =>
+    updateSelectedBlockProps({
+      variant: value,
+    })
+  }
+  onChangeCopy={updateRegistrationBlockCopyProp}
+  onResetFields={() =>
     updateRegistrationFields(createDefaultRegistrationFieldDefinitions())
   }
-  onMove={moveRegistrationFieldInSelectedBlock}
-  onUpdate={(fieldId, patch) =>
+  onMoveField={moveRegistrationFieldInSelectedBlock}
+  onUpdateField={(fieldId, patch) =>
     updateRegistrationField(fieldId, patch)
   }
-  onAddTemplate={addRegistrationFieldFromTemplate}
-  onRemove={removeRegistrationField}
+  onAddFieldTemplate={addRegistrationFieldFromTemplate}
+  onRemoveField={removeRegistrationField}
 />
 </>
 ) : null}
