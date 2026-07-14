@@ -2238,23 +2238,110 @@ systemComponents={{
     </div>
   ),
 
-  agenda: (
-    <div className="space-y-3">
-      <div className="text-sm font-semibold text-white">Event Agenda</div>
+  agenda: (() => {
+    const agendaBlock = sections
+      .flatMap((section) => section.blocks ?? [])
+      .find(
+        (block) =>
+          block.type === "system_component" &&
+          block.props.componentKey === "agenda"
+      )
 
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <div className="text-sm text-white">9:00 AM — Welcome</div>
+    const agendaProps: Record<string, unknown> =
+      agendaBlock?.type === "system_component"
+        ? (agendaBlock.props as Record<string, unknown>)
+        : {}
 
-        <div className="mt-2 text-sm text-white/70">
-          10:00 AM — Main Session
+    const title =
+      typeof agendaProps.title === "string"
+        ? agendaProps.title
+        : "Event Agenda"
+
+    const description =
+      typeof agendaProps.body === "string"
+        ? agendaProps.body
+        : "Browse the event schedule."
+
+    const displayMode =
+      typeof (agendaProps as any).displayMode === "string"
+        ? (agendaProps as any).displayMode
+        : "list"
+
+    const showTime =
+      typeof (agendaProps as any).showTime === "boolean"
+        ? (agendaProps as any).showTime
+        : true
+
+    const showDescriptions =
+      typeof (agendaProps as any).showDescriptions === "boolean"
+        ? (agendaProps as any).showDescriptions
+        : true
+
+    const agendaItems = [
+      {
+        time: "9:00 AM",
+        title: "Welcome",
+        description: "Opening remarks and event orientation.",
+      },
+      {
+        time: "10:00 AM",
+        title: "Main Session",
+        description: "Featured content from the main stage.",
+      },
+      {
+        time: "11:00 AM",
+        title: "Breakouts",
+        description: "Continue into focused breakout experiences.",
+      },
+    ]
+
+    return (
+      <div className="space-y-3">
+        <div>
+          <div className="text-sm font-semibold text-white">{title}</div>
+          {description ? (
+            <div className="mt-1 text-sm text-white/55">{description}</div>
+          ) : null}
         </div>
 
-        <div className="mt-2 text-sm text-white/70">
-          11:00 AM — Breakouts
+        <div
+          className={
+            displayMode === "cards"
+              ? "grid gap-3 md:grid-cols-3"
+              : "space-y-3"
+          }
+        >
+          {agendaItems.map((item, index) => (
+            <div
+              key={`${item.time}-${item.title}`}
+              className={`rounded-xl border border-white/10 bg-white/[0.03] p-4 ${
+                displayMode === "timeline" ? "relative pl-8" : ""
+              }`}
+            >
+              {displayMode === "timeline" ? (
+                <span className="absolute left-3 top-5 h-2 w-2 rounded-full bg-sky-300" />
+              ) : null}
+
+              <div className="text-sm text-white">
+                {showTime ? `${item.time} — ` : ""}
+                {item.title}
+              </div>
+
+              {showDescriptions ? (
+                <div className="mt-2 text-sm text-white/55">
+                  {item.description}
+                </div>
+              ) : null}
+
+              {displayMode === "timeline" && index < agendaItems.length - 1 ? (
+                <span className="absolute bottom-[-13px] left-[15px] top-7 w-px bg-white/10" />
+              ) : null}
+            </div>
+          ))}
         </div>
       </div>
-    </div>
-  ),
+    )
+  })(),
 
   sessions_list: (
     <div className="grid gap-3 md:grid-cols-2">
