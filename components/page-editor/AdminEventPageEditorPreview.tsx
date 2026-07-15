@@ -11,6 +11,9 @@ import SystemComponentInspector from "@/components/page-editor/experience-studio
 import AgendaInspector, {
   type AgendaDisplayMode,
 } from "@/components/page-editor/experience-studio/AgendaInspector"
+import SessionsInspector, {
+  type SessionsDisplayMode,
+} from "@/components/page-editor/experience-studio/SessionsInspector"
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
 import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
 import type { RegistrationInspectorField } from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
@@ -4627,6 +4630,66 @@ onDragEnd={handleLayerDragEnd}
         typeof (selectedBlock.props as any).emptyStateText === "string"
           ? (selectedBlock.props as any).emptyStateText
           : "No agenda items are available yet."
+      }
+      onChange={(patch) =>
+        updateSelectedBlockProps(patch as any)
+      }
+    />
+  </SystemComponentInspector>
+) : null}
+{selectedBlock.props.componentKey === "sessions_list" ? (
+  <SystemComponentInspector
+    componentKey={selectedBlock.props.componentKey}
+    title={
+      typeof selectedBlock.props.title === "string"
+        ? selectedBlock.props.title
+        : undefined
+    }
+    body={
+      typeof selectedBlock.props.body === "string"
+        ? selectedBlock.props.body
+        : undefined
+    }
+  >
+    <SessionsInspector
+      title={
+        typeof selectedBlock.props.title === "string"
+          ? selectedBlock.props.title
+          : "My Sessions"
+      }
+      description={
+        typeof selectedBlock.props.body === "string"
+          ? selectedBlock.props.body
+          : "Browse the sessions available for this event."
+      }
+      displayMode={
+        (((selectedBlock.props as any).displayMode ??
+          "cards") as SessionsDisplayMode)
+      }
+      showTime={
+        typeof (selectedBlock.props as any).showTime === "boolean"
+          ? (selectedBlock.props as any).showTime
+          : true
+      }
+      showDescriptions={
+        typeof (selectedBlock.props as any).showDescriptions === "boolean"
+          ? (selectedBlock.props as any).showDescriptions
+          : true
+      }
+      showPresenter={
+        typeof (selectedBlock.props as any).showPresenter === "boolean"
+          ? (selectedBlock.props as any).showPresenter
+          : true
+      }
+      showJoinAction={
+        typeof (selectedBlock.props as any).showJoinAction === "boolean"
+          ? (selectedBlock.props as any).showJoinAction
+          : true
+      }
+      emptyStateText={
+        typeof (selectedBlock.props as any).emptyStateText === "string"
+          ? (selectedBlock.props as any).emptyStateText
+          : "No sessions are available yet."
       }
       onChange={(patch) =>
         updateSelectedBlockProps(patch as any)
