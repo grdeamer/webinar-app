@@ -2346,25 +2346,133 @@ systemComponents={{
     )
   })(),
 
-  sessions_list: (
-    <div className="grid gap-3 md:grid-cols-2">
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <div className="text-sm font-semibold text-white">Session One</div>
+  sessions_list: (() => {
+    const sessionsBlock = sections
+      .flatMap((section) => section.blocks ?? [])
+      .find(
+        (block) =>
+          block.type === "system_component" &&
+          block.props.componentKey === "sessions_list"
+      )
 
-        <div className="mt-2 text-sm text-white/60">
-          Session card preview
+    const sessionsProps: Record<string, unknown> =
+      sessionsBlock?.type === "system_component"
+        ? (sessionsBlock.props as Record<string, unknown>)
+        : {}
+
+    const title =
+      typeof sessionsProps.title === "string"
+        ? sessionsProps.title
+        : "Featured Sessions"
+
+    const description =
+      typeof sessionsProps.body === "string"
+        ? sessionsProps.body
+        : "Browse the sessions available for this event."
+
+    const showDescriptions =
+      typeof sessionsProps.showDescriptions === "boolean"
+        ? sessionsProps.showDescriptions
+        : true
+
+    const displayMode =
+      typeof sessionsProps.displayMode === "string"
+        ? sessionsProps.displayMode
+        : "cards"
+
+    const showTime =
+      typeof sessionsProps.showTime === "boolean"
+        ? sessionsProps.showTime
+        : true
+
+    const showPresenter =
+      typeof sessionsProps.showPresenter === "boolean"
+        ? sessionsProps.showPresenter
+        : true
+
+    const showJoinAction =
+      typeof sessionsProps.showJoinAction === "boolean"
+        ? sessionsProps.showJoinAction
+        : true
+
+    const sessionItems = [
+      {
+        title: "Session One",
+        time: "9:00 AM",
+        presenter: "Alex Morgan",
+        description: "Session card preview",
+      },
+      {
+        title: "Session Two",
+        time: "10:30 AM",
+        presenter: "Jordan Lee",
+        description: "Session card preview",
+      },
+    ]
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <div className="text-sm font-semibold text-white">{title}</div>
+          {description ? (
+            <div className="mt-1 text-sm text-white/55">{description}</div>
+          ) : null}
+        </div>
+
+        <div
+          className={
+            displayMode === "list"
+              ? "space-y-3"
+              : displayMode === "featured"
+                ? "grid gap-3 md:grid-cols-[1.35fr_1fr]"
+                : "grid gap-3 md:grid-cols-2"
+          }
+        >
+          {sessionItems.map((session, index) => (
+            <div
+              key={session.title}
+              className={`rounded-xl border border-white/10 bg-white/[0.03] p-4 ${
+                displayMode === "featured" && index === 0
+                  ? "md:row-span-2 md:p-6"
+                  : ""
+              }`}
+            >
+              {showTime ? (
+                <div className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-sky-200/60">
+                  {session.time}
+                </div>
+              ) : null}
+
+              <div className="text-sm font-semibold text-white">
+                {session.title}
+              </div>
+
+              {showPresenter ? (
+                <div className="mt-1 text-xs text-white/45">
+                  Presented by {session.presenter}
+                </div>
+              ) : null}
+
+              {showDescriptions ? (
+                <div className="mt-2 text-sm text-white/60">
+                  {session.description}
+                </div>
+              ) : null}
+
+              {showJoinAction ? (
+                <button
+                  type="button"
+                  className="mt-4 rounded-lg border border-white/10 bg-white/[0.06] px-3 py-2 text-xs font-semibold text-white/75"
+                >
+                  Join Session
+                </button>
+              ) : null}
+            </div>
+          ))}
         </div>
       </div>
-
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4">
-        <div className="text-sm font-semibold text-white">Session Two</div>
-c1x
-        <div className="mt-2 text-sm text-white/60">
-          Session card preview
-        </div>
-      </div>
-    </div>
-  ),
+    )
+  })(),
 
   registration_form: (
     <RegistrationFlowPreview
