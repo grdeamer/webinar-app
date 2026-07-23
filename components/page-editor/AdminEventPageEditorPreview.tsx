@@ -5,16 +5,15 @@ import { useEffect, useRef, useState } from "react"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
+import AgendaInspectorPanel from "./AgendaInspectorPanel"
+import RegistrationInspectorPanel from "./RegistrationInspectorPanel"
 import SectionPanelHeader from "./SectionPanelHeader"
 import SessionsInspectorPanel from "./SessionsInspectorPanel"
 import SpeakerCardsInspector from "./SpeakerCardsInspector"
 import { createSystemComponentPreviewRegistry } from "./SystemComponentPreviewRegistry"
 
-import RegistrationInspector from "@/components/page-editor/experience-studio/RegistrationInspector"
 import SystemComponentInspector from "@/components/page-editor/experience-studio/SystemComponentInspector"
-import AgendaInspector, {
-  type AgendaDisplayMode,
-} from "@/components/page-editor/experience-studio/AgendaInspector"
+import type { AgendaDisplayMode } from "@/components/page-editor/experience-studio/AgendaInspector"
 import type { SessionsDisplayMode } from "@/components/page-editor/experience-studio/SessionsInspector"
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
 import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
@@ -4222,7 +4221,7 @@ onDragEnd={handleLayerDragEnd}
                                 </select>
                               </div>
                               {selectedBlock.props.componentKey === "registration_form" ? (
-  <SystemComponentInspector
+  <RegistrationInspectorPanel
     componentKey={selectedBlock.props.componentKey}
     title={
       typeof selectedBlock.props.title === "string"
@@ -4234,116 +4233,100 @@ onDragEnd={handleLayerDragEnd}
         ? selectedBlock.props.body
         : undefined
     }
-  >
-    <RegistrationInspector
-  previewState={
-    (((selectedBlock.props as any).previewRegistrationState ??
-      "open") as RegistrationPreviewState)
-  }
-  variant={
-    (((selectedBlock.props as any).variant ??
-      "editorial") as RegistrationVariant)
-  }
-  copyValues={{
-    title:
-      typeof selectedBlock.props.title === "string"
-        ? selectedBlock.props.title
-        : "",
-    body:
-      typeof selectedBlock.props.body === "string"
-        ? selectedBlock.props.body
-        : "",
-    ctaLabel:
-      typeof (selectedBlock.props as any).ctaLabel === "string"
-        ? (selectedBlock.props as any).ctaLabel
-        : "",
-    confirmationTitle:
-      typeof (selectedBlock.props as any).confirmationTitle === "string"
-        ? (selectedBlock.props as any).confirmationTitle
-        : "",
-    confirmationBody:
-      typeof (selectedBlock.props as any).confirmationBody === "string"
-        ? (selectedBlock.props as any).confirmationBody
-        : "",
-  }}
-  fields={getSelectedRegistrationFields() as RegistrationInspectorField[]}
-  onChangePreviewState={(value) =>
-    updateSelectedBlockProps({
-      previewRegistrationState: value,
-    } as any)
-  }
-  onChangeVariant={(value) =>
-    updateSelectedBlockProps({
-      variant: value,
-    })
-  }
-  onChangeCopy={updateRegistrationBlockCopyProp}
-  onResetFields={() =>
-    updateRegistrationFields(createDefaultRegistrationFieldDefinitions())
-  }
-  onMoveField={moveRegistrationFieldInSelectedBlock}
-  onUpdateField={(fieldId, patch) =>
-    updateRegistrationField(fieldId, patch)
-  }
-  onAddFieldTemplate={addRegistrationFieldFromTemplate}
-  onRemoveField={removeRegistrationField}
-    />
-  </SystemComponentInspector>
-) : null}
-{selectedBlock.props.componentKey === "agenda" ? (
-  <SystemComponentInspector
-    componentKey={selectedBlock.props.componentKey}
-    title={
-      typeof selectedBlock.props.title === "string"
-        ? selectedBlock.props.title
-        : undefined
+    previewState={
+      (((selectedBlock.props as any).previewRegistrationState ??
+        "open") as RegistrationPreviewState)
     }
-    body={
-      typeof selectedBlock.props.body === "string"
-        ? selectedBlock.props.body
-        : undefined
+    variant={
+      (((selectedBlock.props as any).variant ??
+        "editorial") as RegistrationVariant)
     }
-  >
-    <AgendaInspector
-      title={
+    copyValues={{
+      title:
         typeof selectedBlock.props.title === "string"
           ? selectedBlock.props.title
-          : "Event Agenda"
-      }
-      description={
+          : "",
+      body:
         typeof selectedBlock.props.body === "string"
           ? selectedBlock.props.body
-          : "Browse the event schedule."
-      }
-      displayMode={
-        (((selectedBlock.props as any).displayMode ??
-          "list") as AgendaDisplayMode)
-      }
-      showTime={
-        typeof (selectedBlock.props as any).showTime === "boolean"
-          ? (selectedBlock.props as any).showTime
-          : true
-      }
-      showDescriptions={
-        typeof (selectedBlock.props as any).showDescriptions === "boolean"
-          ? (selectedBlock.props as any).showDescriptions
-          : true
-      }
-      groupByDay={
-        typeof (selectedBlock.props as any).groupByDay === "boolean"
-          ? (selectedBlock.props as any).groupByDay
-          : true
-      }
-      emptyStateText={
-        typeof (selectedBlock.props as any).emptyStateText === "string"
-          ? (selectedBlock.props as any).emptyStateText
-          : "No agenda items are available yet."
-      }
-      onChange={(patch) =>
-        updateSelectedBlockProps(patch as any)
-      }
-    />
-  </SystemComponentInspector>
+          : "",
+      ctaLabel:
+        typeof (selectedBlock.props as any).ctaLabel === "string"
+          ? (selectedBlock.props as any).ctaLabel
+          : "",
+      confirmationTitle:
+        typeof (selectedBlock.props as any).confirmationTitle === "string"
+          ? (selectedBlock.props as any).confirmationTitle
+          : "",
+      confirmationBody:
+        typeof (selectedBlock.props as any).confirmationBody === "string"
+          ? (selectedBlock.props as any).confirmationBody
+          : "",
+    }}
+    fields={getSelectedRegistrationFields() as RegistrationInspectorField[]}
+    onChangePreviewState={(value) =>
+      updateSelectedBlockProps({
+        previewRegistrationState: value,
+      } as any)
+    }
+    onChangeVariant={(value) =>
+      updateSelectedBlockProps({
+        variant: value,
+      })
+    }
+    onChangeCopy={updateRegistrationBlockCopyProp}
+    onResetFields={() =>
+      updateRegistrationFields(createDefaultRegistrationFieldDefinitions())
+    }
+    onMoveField={moveRegistrationFieldInSelectedBlock}
+    onUpdateField={(fieldId, patch) =>
+      updateRegistrationField(fieldId, patch)
+    }
+    onAddFieldTemplate={addRegistrationFieldFromTemplate}
+    onRemoveField={removeRegistrationField}
+  />
+) : null}
+{selectedBlock.props.componentKey === "agenda" ? (
+  <AgendaInspectorPanel
+    componentKey={selectedBlock.props.componentKey}
+    title={
+      typeof selectedBlock.props.title === "string"
+        ? selectedBlock.props.title
+        : undefined
+    }
+    body={
+      typeof selectedBlock.props.body === "string"
+        ? selectedBlock.props.body
+        : undefined
+    }
+    displayMode={
+      (((selectedBlock.props as any).displayMode ??
+        "list") as AgendaDisplayMode)
+    }
+    showTime={
+      typeof (selectedBlock.props as any).showTime === "boolean"
+        ? (selectedBlock.props as any).showTime
+        : true
+    }
+    showDescriptions={
+      typeof (selectedBlock.props as any).showDescriptions === "boolean"
+        ? (selectedBlock.props as any).showDescriptions
+        : true
+    }
+    groupByDay={
+      typeof (selectedBlock.props as any).groupByDay === "boolean"
+        ? (selectedBlock.props as any).groupByDay
+        : true
+    }
+    emptyStateText={
+      typeof (selectedBlock.props as any).emptyStateText === "string"
+        ? (selectedBlock.props as any).emptyStateText
+        : "No agenda items are available yet."
+    }
+    onChange={(patch) =>
+      updateSelectedBlockProps(patch as any)
+    }
+  />
 ) : null}
 {selectedBlock.props.componentKey === "sessions_list" ? (
   <SessionsInspectorPanel
