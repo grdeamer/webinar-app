@@ -1,5 +1,6 @@
 "use client"
 
+import type { Dispatch, DragEvent, SetStateAction } from "react"
 import type { AgendaDisplayMode } from "@/components/page-editor/experience-studio/AgendaInspector"
 import type { RegistrationInspectorField } from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
@@ -13,9 +14,11 @@ import {
 } from "@/lib/page-editor/sectionRegistry"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import type {
+  EventTheme,
   EventPageSection,
   ExperienceNode,
   SectionBlock,
+  SectionConfig,
   SectionType,
   SystemComponentKey,
 } from "@/lib/page-editor/sectionTypes"
@@ -43,11 +46,117 @@ type EditorExperienceNode = ExperienceNode & {
   sourceType: "section" | "element"
 }
 
-type ExperienceInspectorRailProps = Record<string, any> & {
-  experienceNodes: EditorExperienceNode[]
-  normalizedElements: EditorElement[]
+type AddableElementType = "text" | "image" | "pdf" | "video" | "button" | "spacer"
+type RightRailTab = "inspect" | "layers" | "insert" | "page"
+type RegistrationFieldTemplate = "jobTitle" | "phone" | "dietaryNeeds"
+type RegistrationCopyKey =
+  | "title"
+  | "body"
+  | "ctaLabel"
+  | "confirmationTitle"
+  | "confirmationBody"
+type SelectedBlockPropsPatch =
+  | Partial<Extract<SectionBlock, { type: "rich_text" }>["props"]>
+  | Partial<Extract<SectionBlock, { type: "system_component" }>["props"]>
+
+interface ExperienceInspectorRailProps {
+  addElement: (elementType: AddableElementType) => void
+  addElementOpen: boolean
+  addRegistrationFieldFromTemplate: (template: RegistrationFieldTemplate) => void
+  addSectionTemplate: (key: SectionType, title: string) => void
+  addSystemBlockToSelectedSection: (componentKey: SystemComponentKey) => void
+  bringLayerForward: (node: EditorExperienceNode) => void
+  bringSelectedElementForward: () => void
+  canBringForward: boolean
+  canDeleteElement: boolean
+  canDeleteSection: boolean
+  canDuplicateElement: boolean
+  canDuplicateSection: boolean
+  canMoveDown: boolean
+  canMoveUp: boolean
+  canSendBackward: boolean
+  canvasScale: number
+  deleteSelectedBlock: () => void
+  deleteSelectedElement: () => void
+  deleteSelectedSection: () => void
+  draggingLayerNodeId: string | null
+  draggingSectionId: string | null
+  dragOverLayerNodeId: string | null
+  dragOverSectionId: string | null
+  duplicateSelectedElement: () => void
+  duplicateSelectedSection: () => void
+  editorDetailsOpen: boolean
+  eventTheme: EventTheme
+  getSelectedRegistrationFields: () => RegistrationInspectorField[]
+  handleLayerDragEnd: () => void
+  handleLayerDragOver: (
+    event: DragEvent<HTMLButtonElement>,
+    node: EditorExperienceNode
+  ) => void
+  handleLayerDragStart: (node: EditorExperienceNode) => void
+  handleLayerDrop: (
+    event: DragEvent<HTMLButtonElement>,
+    node: EditorExperienceNode
+  ) => void
+  handleSectionDragEnd: () => void
+  handleSectionDragOver: (event: DragEvent<HTMLElement>, sectionId: string) => void
+  handleSectionDragStart: (sectionId: string) => void
+  handleSectionDrop: (event: DragEvent<HTMLElement>, sectionId: string) => void
+  hoveredExperienceNodeId: string | null
+  isEditing: boolean
+  isEmbedded: boolean
+  isMobilePreview: boolean
+  moveRegistrationFieldInSelectedBlock: (
+    fieldId: string,
+    direction: "up" | "down"
+  ) => void
+  moveSelectedBlock: (direction: "up" | "down") => void
+  moveSelectedSection: (direction: "up" | "down") => void
   orderedExperienceNodes: EditorExperienceNode[]
+  removeRegistrationField: (fieldId: string) => void
+  resetRegistrationFields: () => void
+  rightRailTab: RightRailTab
+  saveCurrentTemplate: () => Promise<void>
+  saveLayout: (isAutoSave?: boolean) => Promise<void>
+  saveMessage: string | null
   sections: EventPageSection[]
+  sectionsListOpen: boolean
+  sectionTemplatesOpen: boolean
+  selectBlock: (sectionId: string, blockId: string) => void
+  selectedBlock: SectionBlock | null
+  selectedElement: EditorElement | null
+  selectedExperienceNode: EditorExperienceNode | undefined
+  selectedIds: string[]
+  selectedSection: EventPageSection | null
+  selectExperienceNode: (node: EditorExperienceNode) => void
+  selectSectionFromList: (section: EventPageSection) => void
+  sendLayerBackward: (node: EditorExperienceNode) => void
+  sendSelectedElementBackward: () => void
+  setAddElementOpen: Dispatch<SetStateAction<boolean>>
+  setEditorDetailsOpen: Dispatch<SetStateAction<boolean>>
+  setHoveredExperienceNodeId: Dispatch<SetStateAction<string | null>>
+  setRightRailTab: Dispatch<SetStateAction<RightRailTab>>
+  setSectionsListOpen: Dispatch<SetStateAction<boolean>>
+  setSectionTemplatesOpen: Dispatch<SetStateAction<boolean>>
+  toggleLayerLock: (node: EditorExperienceNode) => void
+  toggleLayerVisibility: (node: EditorExperienceNode) => void
+  updateElement: (id: string, patch: Partial<EditorElement>) => void
+  updateElementProps: (id: string, patch: Record<string, unknown>) => void
+  updateEventTheme: (nextTheme: Partial<EventTheme>) => void
+  updateRegistrationBlockCopyProp: (
+    key: RegistrationCopyKey,
+    value: string
+  ) => void
+  updateRegistrationField: (
+    fieldId: string,
+    nextFieldProps: Record<string, unknown>
+  ) => void
+  updateSectionConfig: (id: string, patch: Partial<SectionConfig>) => void
+  updateSelectedBlockProps: (nextProps: SelectedBlockPropsPatch) => void
+  uploadSelectedImage: (file: File) => Promise<void>
+  uploadSelectedPdf: (file: File) => Promise<void>
+  uploadSelectedPoster: (file: File) => Promise<void>
+  uploadSelectedVideo: (file: File) => Promise<void>
 }
 
 const EXPERIENCE_EDITOR_RAIL_CLASS =
@@ -251,7 +360,6 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     duplicateSelectedSection,
     editorDetailsOpen,
     eventTheme,
-    experienceNodes,
     getSelectedRegistrationFields,
     handleLayerDragEnd,
     handleLayerDragOver,
@@ -268,7 +376,6 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     moveRegistrationFieldInSelectedBlock,
     moveSelectedBlock,
     moveSelectedSection,
-    normalizedElements,
     orderedExperienceNodes,
     removeRegistrationField,
     resetRegistrationFields,
@@ -281,12 +388,10 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     sectionTemplatesOpen,
     selectBlock,
     selectedBlock,
-    selectedBlockId,
     selectedElement,
     selectedExperienceNode,
     selectedIds,
     selectedSection,
-    selectedSectionId,
     selectExperienceNode,
     selectSectionFromList,
     sendLayerBackward,
@@ -315,6 +420,10 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
   const registryItem = selectedSection
     ? getSafeSectionRegistryItem(selectedSection.type)
     : null
+  const experienceNodeCount = orderedExperienceNodes.length
+  const elementLayerCount = orderedExperienceNodes.filter(
+    (node) => node.sourceType === "element"
+  ).length
 
   return (
 <aside
@@ -385,7 +494,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
               </div>
 
 <div className="mt-3 rounded-2xl border border-white/[0.07] bg-black/22 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/36">
-  {experienceNodes.length} nodes · {sections.length} sections · {normalizedElements.length} layers
+  {experienceNodeCount} nodes · {sections.length} sections · {elementLayerCount} layers
 </div>
               </div>
 
@@ -409,7 +518,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
                       </div>
 
                       <div className="rounded-full border border-white/10 bg-white/[0.04] px-2 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/36">
-                        {experienceNodes.length}
+                        {experienceNodeCount}
                       </div>
                     </div>
 
@@ -1640,7 +1749,7 @@ onDragEnd={handleLayerDragEnd}
                         <div className="mt-3 space-y-2">
                           {(selectedSection.blocks ?? []).length > 0 ? (
                             (selectedSection.blocks ?? []).map((block: SectionBlock, index: number) => {
-                              const isActive = selectedBlockId === block.id
+                              const isActive = selectedBlock?.id === block.id
                               const label =
                                 block.type === "system_component"
                                   ? getSystemComponentLabel(block.props.componentKey)
@@ -2168,7 +2277,7 @@ onDragEnd={handleLayerDragEnd}
                 <>
                   <div className="mt-3 space-y-2">
 {sections.map((section, index) => {
-  const isActive = selectedSectionId === section.id
+  const isActive = selectedSection?.id === section.id
   const isDragging = draggingSectionId === section.id
   const isDragOver = dragOverSectionId === section.id
   const isHero = section.type === "hero"
