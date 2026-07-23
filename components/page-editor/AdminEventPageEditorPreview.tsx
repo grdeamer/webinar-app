@@ -6,6 +6,7 @@ import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRen
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import AgendaInspectorPanel from "./AgendaInspectorPanel"
+import PageEditorToolbar from "./PageEditorToolbar"
 import RegistrationInspectorPanel from "./RegistrationInspectorPanel"
 import SectionPanelHeader from "./SectionPanelHeader"
 import SessionsInspectorPanel from "./SessionsInspectorPanel"
@@ -65,9 +66,6 @@ const GRID_SIZE = 8
 const EXPERIENCE_EDITOR_ROOT_CLASS =
   "min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.07),transparent_28%),radial-gradient(circle_at_82%_14%,rgba(168,85,247,0.075),transparent_30%),linear-gradient(180deg,#050816_0%,#040712_44%,#02040a_100%)] text-white"
 
-const EXPERIENCE_EDITOR_TOPBAR_CLASS =
-  "border-b border-white/[0.07] bg-[linear-gradient(180deg,rgba(6,10,18,0.92),rgba(3,6,13,0.78))] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl"
-
 const EXPERIENCE_EDITOR_CANVAS_SHELL_CLASS =
   "rounded-[28px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.038),rgba(255,255,255,0.014))] p-4 shadow-[0_22px_72px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.035)]"
 
@@ -76,15 +74,6 @@ const EXPERIENCE_EDITOR_CANVAS_FRAME_CLASS =
 
 const EXPERIENCE_EDITOR_RAIL_CLASS =
   "shrink-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.965),rgba(2,4,9,0.992))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
-
-const EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS =
-  "rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_12px_34px_rgba(255,255,255,0.08)] transition hover:bg-white/90"
-
-const EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS =
-  "rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/10 hover:text-white"
-
-const EXPERIENCE_EDITOR_SELECT_CLASS =
-  "rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/78 outline-none transition hover:border-white/16 focus:border-violet-200/28"
 
 const EXPERIENCE_EDITOR_RAIL_HEADER_CLASS =
   "rounded-[18px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.032)]"
@@ -112,18 +101,6 @@ const FONT_FAMILY_OPTIONS = [
   { label: "Courier New", value: "'Courier New', monospace" },
   { label: "Monospace", value: "monospace" },
 ]
-
-const PAGE_OPTIONS = [
-  { label: "Home", value: "event_home" },
-  { label: "Lobby", value: "lobby" },
-  { label: "Agenda", value: "agenda" },
-  { label: "Sessions", value: "sessions" },
-  { label: "Breakouts", value: "breakouts" },
-  { label: "Sponsors", value: "sponsors" },
-  { label: "Engage", value: "chat" },
-  { label: "Networking", value: "networking" },
-  { label: "On-Demand", value: "on_demand" },
-] as const
 
 function snapToGrid(value: number) {
   return Math.round(value / GRID_SIZE) * GRID_SIZE
@@ -1891,132 +1868,37 @@ const selectedExperienceNode = experienceNodes.find(
   return (
     <div className={EXPERIENCE_EDITOR_ROOT_CLASS}>
       {!isEmbedded && (
-        <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
-            <div className="flex items-center gap-4">
-              <div>
-<div className="text-xs uppercase tracking-[0.22em] text-white/40">
-  {isEmbedded ? "Experience Builder" : "Page Editor Preview"}
-</div>
-<h1 className="text-xl font-semibold capitalize">
-  {isEmbedded ? "Experience Builder" : eventInfo.title}
-</h1>
-              </div>
-            </div>
+        <PageEditorToolbar
+          isEmbedded={isEmbedded}
+          eventTitle={eventInfo.title}
+          selectedPageKey={selectedPageKey}
+          templates={templates}
+          canUndo={canUndo}
+          canRedo={canRedo}
+          canvasZoom={canvasZoom}
+          isMobilePreview={isMobilePreview}
+          isEditing={isEditing}
+          onSelectPage={switchPageState}
+          onSelectTemplate={(templateId) => {
+            const template = templates.find((item) => item.id === templateId)
+            if (!template) return
 
-<div className="flex items-center gap-3">
-  <select
-  value={selectedPageKey}
-  onChange={(e) => {
-    switchPageState(e.target.value)
-  }}
-  className={EXPERIENCE_EDITOR_SELECT_CLASS}
->
-    {PAGE_OPTIONS.map((page) => (
-      <option key={page.value} value={page.value}>
-        {page.label}
-      </option>
-    ))}
-  </select>
-
-  <select
-    onChange={(e) => {
-      const tpl = templates.find((t) => t.id === e.target.value)
-      if (!tpl) return
-
-      setSections(
-        normalizeSections(Array.isArray(tpl.sections_json) ? tpl.sections_json : [])
-      )
-      setElements(Array.isArray(tpl.elements_json) ? tpl.elements_json : [])
-      setHasUnsavedChanges(true)
-    }}
-    className={EXPERIENCE_EDITOR_SELECT_CLASS}
-  >
-    <option value="">Apply Template</option>
-
-    {templates.map((tpl) => (
-      <option key={tpl.id} value={tpl.id}>
-        {tpl.name}
-      </option>
-    ))}
-  </select>
-
-  <div className="flex items-center gap-2">
-    <button
-      type="button"
-      onClick={() => restoreHistorySnapshot("undo")}
-      disabled={!canUndo}
-      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-        canUndo
-          ? "border-white/10 bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
-          : "cursor-not-allowed border-white/5 bg-white/[0.025] text-white/28"
-      }`}
-    >
-      Undo
-    </button>
-
-    <button
-      type="button"
-      onClick={() => restoreHistorySnapshot("redo")}
-      disabled={!canRedo}
-      className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-        canRedo
-          ? "border-white/10 bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
-          : "cursor-not-allowed border-white/5 bg-white/[0.025] text-white/28"
-      }`}
-    >
-      Redo
-    </button>
-  </div>
-  <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1">
-    {[0.5, 0.75, 1, 1.25, 1.5].map((zoom) => (
-      <button
-        key={zoom}
-        type="button"
-        onClick={() => setCanvasZoom(zoom)}
-        disabled={isMobilePreview}
-        className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
-          canvasZoom === zoom && !isMobilePreview
-            ? "bg-white text-black"
-            : isMobilePreview
-              ? "cursor-not-allowed text-white/22"
-              : "text-white/56 hover:bg-white/10 hover:text-white"
-        }`}
-      >
-        {Math.round(zoom * 100)}%
-      </button>
-    ))}
-
-    <button
-      type="button"
-      onClick={() => setCanvasZoom(1)}
-      disabled={isMobilePreview}
-      className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
-        isMobilePreview
-          ? "cursor-not-allowed text-white/22"
-          : "text-white/56 hover:bg-white/10 hover:text-white"
-      }`}
-    >
-      Fit
-    </button>
-  </div>
-
-  <button
-    onClick={() => setIsMobilePreview((v) => !v)}
-    className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}
-  >
-    {isMobilePreview ? "Mobile" : "Desktop"}
-  </button>
-
-  <button
-    onClick={() => setIsEditing((v) => !v)}
-    className={EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS}
-  >
-    {isEditing ? "Close Editor" : "Edit Page"}
-  </button>
-</div>
-          </div>
-        </div>
+            setSections(
+              normalizeSections(
+                Array.isArray(template.sections_json) ? template.sections_json : []
+              )
+            )
+            setElements(
+              Array.isArray(template.elements_json) ? template.elements_json : []
+            )
+            setHasUnsavedChanges(true)
+          }}
+          onUndo={() => restoreHistorySnapshot("undo")}
+          onRedo={() => restoreHistorySnapshot("redo")}
+          onChangeZoom={setCanvasZoom}
+          onToggleMobilePreview={() => setIsMobilePreview((value) => !value)}
+          onToggleEditing={() => setIsEditing((value) => !value)}
+        />
       )}
 
             <div className={`relative flex ${isEmbedded ? "min-h-screen" : "min-h-[calc(100vh-81px)]"}`}>
