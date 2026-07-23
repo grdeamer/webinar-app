@@ -1,31 +1,18 @@
-import React from "react";
-import type { ReactNode } from "react";
+type Props = {
+  title: string
+  open: boolean
+  onToggle: () => void
+}
 
-const systemComponents = {
-  // other components
-  sessions_list: (() => {
-    const sessionsBlock = "sessions_list";
-    const sessionsProps: Record<string, unknown> = {
-      someProp: true,
-    };
-
-    const sampleSessions = [
-      { id: 1, title: "Session 1", speaker: "Speaker A" },
-      { id: 2, title: "Session 2", speaker: "Speaker B" },
-    ];
-
-    return (
-      <div>
-        <h2>Sessions</h2>
-        <ul>
-          {sampleSessions.map((session) => (
-            <li key={session.id}>
-              {session.title} - {session.speaker}
-            </li>
-          ))}
-        </ul>
-      </div>
-    );
-  })(),
-  // other components
-};
+export default function SectionPanelHeader({ title, open, onToggle }: Props) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      className="flex w-full items-center justify-between text-left"
+    >
+      <span className="text-sm font-semibold">{title}</span>
+      <span className="text-xs text-white/45">{open ? "−" : "+"}</span>
+    </button>
+  )
+}

@@ -6,14 +6,16 @@ import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRen
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
+import SectionPanelHeader from "./SectionPanelHeader"
+import SessionsInspectorPanel from "./SessionsInspectorPanel"
+import SpeakerCardsInspector from "./SpeakerCardsInspector"
+
 import RegistrationInspector from "@/components/page-editor/experience-studio/RegistrationInspector"
 import SystemComponentInspector from "@/components/page-editor/experience-studio/SystemComponentInspector"
 import AgendaInspector, {
   type AgendaDisplayMode,
 } from "@/components/page-editor/experience-studio/AgendaInspector"
-import SessionsInspector, {
-  type SessionsDisplayMode,
-} from "@/components/page-editor/experience-studio/SessionsInspector"
+import type { SessionsDisplayMode } from "@/components/page-editor/experience-studio/SessionsInspector"
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
 import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
 import type { RegistrationInspectorField } from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
@@ -556,27 +558,6 @@ function renderLayerThumbnail(node: EditorExperienceNode) {
     <div className="flex h-full w-full items-center justify-center text-[10px] font-black text-white/42">
       •
     </div>
-  )
-}
-
-function SectionPanelHeader({
-  title,
-  open,
-  onToggle,
-}: {
-  title: string
-  open: boolean
-  onToggle: () => void
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onToggle}
-      className="flex w-full items-center justify-between text-left"
-    >
-      <span className="text-sm font-semibold">{title}</span>
-      <span className="text-xs text-white/45">{open ? "−" : "+"}</span>
-    </button>
   )
 }
 
@@ -2346,6 +2327,133 @@ systemComponents={{
     )
   })(),
 
+  speaker_cards: (() => {
+    const speakerBlock = sections
+      .flatMap((section) => section.blocks ?? [])
+      .find(
+        (block) =>
+          block.type === "system_component" &&
+          block.props.componentKey === "speaker_cards"
+      )
+
+    const speakerProps: Record<string, unknown> =
+      speakerBlock?.type === "system_component"
+        ? (speakerBlock.props as Record<string, unknown>)
+        : {}
+
+    const title =
+      typeof speakerProps.title === "string"
+        ? speakerProps.title
+        : "Featured Speakers"
+
+    const description =
+      typeof speakerProps.body === "string"
+        ? speakerProps.body
+        : "Meet the voices guiding this experience."
+
+    const displayMode =
+      typeof speakerProps.displayMode === "string"
+        ? speakerProps.displayMode
+        : "grid"
+
+    const showRole =
+      typeof speakerProps.showRole === "boolean" ? speakerProps.showRole : true
+
+    const showCompany =
+      typeof speakerProps.showCompany === "boolean"
+        ? speakerProps.showCompany
+        : true
+
+    const showBio =
+      typeof speakerProps.showBio === "boolean" ? speakerProps.showBio : true
+
+    const speakers = [
+      {
+        initials: "AM",
+        name: "Alex Morgan",
+        role: "Executive Producer",
+        company: "Jupiter Studios",
+        bio: "Designing live moments that feel intentional, cinematic, and human.",
+      },
+      {
+        initials: "JL",
+        name: "Jordan Lee",
+        role: "Creative Director",
+        company: "Northstar Collective",
+        bio: "Building visual systems that help audiences feel the story, not just watch it.",
+      },
+      {
+        initials: "SK",
+        name: "Sam Kim",
+        role: "Experience Strategist",
+        company: "Signal House",
+        bio: "Connecting programming, community, and production into one cohesive experience.",
+      },
+    ]
+
+    const visibleSpeakers = displayMode === "spotlight" ? speakers.slice(0, 1) : speakers
+
+    return (
+      <div className="space-y-4">
+        <div>
+          <div className="text-sm font-semibold text-white">{title}</div>
+          {description ? (
+            <div className="mt-1 text-sm text-white/55">{description}</div>
+          ) : null}
+        </div>
+
+        <div
+          className={
+            displayMode === "list"
+              ? "space-y-3"
+              : displayMode === "spotlight"
+                ? "max-w-2xl"
+                : "grid gap-3 md:grid-cols-3"
+          }
+        >
+          {visibleSpeakers.map((speaker) => (
+            <div
+              key={speaker.name}
+              className={`rounded-2xl border border-white/10 bg-white/[0.03] ${
+                displayMode === "list"
+                  ? "flex items-center gap-4 p-4"
+                  : displayMode === "spotlight"
+                    ? "grid gap-5 p-6 md:grid-cols-[96px_1fr] md:items-center"
+                    : "p-4"
+              }`}
+            >
+              <div
+                className={`flex shrink-0 items-center justify-center rounded-full border border-violet-200/15 bg-violet-400/12 font-black text-violet-50/75 ${
+                  displayMode === "spotlight" ? "h-24 w-24 text-xl" : "h-14 w-14 text-sm"
+                }`}
+              >
+                {speaker.initials}
+              </div>
+
+              <div className={displayMode === "grid" ? "mt-4" : "min-w-0"}>
+                <div className="text-sm font-semibold text-white">{speaker.name}</div>
+
+                {showRole ? (
+                  <div className="mt-1 text-xs text-white/55">{speaker.role}</div>
+                ) : null}
+
+                {showCompany ? (
+                  <div className="mt-1 text-xs font-semibold text-violet-100/55">
+                    {speaker.company}
+                  </div>
+                ) : null}
+
+                {showBio ? (
+                  <div className="mt-3 text-sm leading-6 text-white/52">{speaker.bio}</div>
+                ) : null}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  })(),
+
   sessions_list: (() => {
     const sessionsBlock = sections
       .flatMap((section) => section.blocks ?? [])
@@ -2546,18 +2654,6 @@ systemComponents={{
         <div className="text-xs text-white/50">
           VIP • Registered
         </div>
-      </div>
-    </div>
-  ),
-
-  speaker_cards: (
-    <div className="grid gap-3 md:grid-cols-2">
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-        Speaker card preview
-      </div>
-
-      <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-        Speaker card preview
       </div>
     </div>
   ),
@@ -4746,6 +4842,53 @@ onDragEnd={handleLayerDragEnd}
   </SystemComponentInspector>
 ) : null}
 {selectedBlock.props.componentKey === "sessions_list" ? (
+  <SessionsInspectorPanel
+    componentKey={selectedBlock.props.componentKey}
+    title={
+      typeof selectedBlock.props.title === "string"
+        ? selectedBlock.props.title
+        : undefined
+    }
+    body={
+      typeof selectedBlock.props.body === "string"
+        ? selectedBlock.props.body
+        : undefined
+    }
+    displayMode={
+      (((selectedBlock.props as any).displayMode ??
+        "cards") as SessionsDisplayMode)
+    }
+    showTime={
+      typeof (selectedBlock.props as any).showTime === "boolean"
+        ? (selectedBlock.props as any).showTime
+        : true
+    }
+    showDescriptions={
+      typeof (selectedBlock.props as any).showDescriptions === "boolean"
+        ? (selectedBlock.props as any).showDescriptions
+        : true
+    }
+    showPresenter={
+      typeof (selectedBlock.props as any).showPresenter === "boolean"
+        ? (selectedBlock.props as any).showPresenter
+        : true
+    }
+    showJoinAction={
+      typeof (selectedBlock.props as any).showJoinAction === "boolean"
+        ? (selectedBlock.props as any).showJoinAction
+        : true
+    }
+    emptyStateText={
+      typeof (selectedBlock.props as any).emptyStateText === "string"
+        ? (selectedBlock.props as any).emptyStateText
+        : "No sessions are available yet."
+    }
+    onChange={(patch) =>
+      updateSelectedBlockProps(patch as any)
+    }
+  />
+) : null}
+{selectedBlock.props.componentKey === "speaker_cards" ? (
   <SystemComponentInspector
     componentKey={selectedBlock.props.componentKey}
     title={
@@ -4759,45 +4902,35 @@ onDragEnd={handleLayerDragEnd}
         : undefined
     }
   >
-    <SessionsInspector
+    <SpeakerCardsInspector
       title={
         typeof selectedBlock.props.title === "string"
           ? selectedBlock.props.title
-          : "My Sessions"
+          : "Featured Speakers"
       }
       description={
         typeof selectedBlock.props.body === "string"
           ? selectedBlock.props.body
-          : "Browse the sessions available for this event."
+          : "Meet the voices guiding this experience."
       }
       displayMode={
         (((selectedBlock.props as any).displayMode ??
-          "cards") as SessionsDisplayMode)
+          "grid") as "grid" | "list" | "spotlight")
       }
-      showTime={
-        typeof (selectedBlock.props as any).showTime === "boolean"
-          ? (selectedBlock.props as any).showTime
+      showRole={
+        typeof (selectedBlock.props as any).showRole === "boolean"
+          ? (selectedBlock.props as any).showRole
           : true
       }
-      showDescriptions={
-        typeof (selectedBlock.props as any).showDescriptions === "boolean"
-          ? (selectedBlock.props as any).showDescriptions
+      showCompany={
+        typeof (selectedBlock.props as any).showCompany === "boolean"
+          ? (selectedBlock.props as any).showCompany
           : true
       }
-      showPresenter={
-        typeof (selectedBlock.props as any).showPresenter === "boolean"
-          ? (selectedBlock.props as any).showPresenter
+      showBio={
+        typeof (selectedBlock.props as any).showBio === "boolean"
+          ? (selectedBlock.props as any).showBio
           : true
-      }
-      showJoinAction={
-        typeof (selectedBlock.props as any).showJoinAction === "boolean"
-          ? (selectedBlock.props as any).showJoinAction
-          : true
-      }
-      emptyStateText={
-        typeof (selectedBlock.props as any).emptyStateText === "string"
-          ? (selectedBlock.props as any).emptyStateText
-          : "No sessions are available yet."
       }
       onChange={(patch) =>
         updateSelectedBlockProps(patch as any)
