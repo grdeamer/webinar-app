@@ -1,5 +1,7 @@
 import Link from "next/link"
+import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { getEventBySlug } from "@/lib/events"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -9,9 +11,11 @@ export default async function EventOnDemandPage(props: {
 }) {
   const { slug } = await props.params
   const event = await getEventBySlug(slug)
+  const pageDocument = await loadEventPageDocument(event.id, "on_demand")
 
   return (
-    <main className="min-h-screen bg-[#050816] text-white">
+    <main className="relative min-h-screen bg-[#050816] text-white">
+      <PersistedPageElementLayer elements={pageDocument.elements} />
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-6 flex items-center justify-between gap-4">
           <div>

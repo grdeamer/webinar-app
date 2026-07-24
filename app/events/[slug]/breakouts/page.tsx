@@ -4,8 +4,10 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import RemoteRefreshListener from "@/components/RemoteRefreshListener"
 import EventBreakoutMagnifyList from "@/components/EventBreakoutMagnifyList"
 import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
+import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import EventEmailGate from "../EventEmailGate"
 import { getEventUserOrNull } from "@/lib/eventAuth"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import {
   getBreakoutRuntimeStatus,
   getEventLiveDestination,
@@ -225,15 +227,10 @@ export default async function EventBreakoutsPage(props: {
     return <EventEmailGate slug={slug} eventTitle={event.title} />
   }
 
-  const [{ data: eventRow }, { data: pageRow }, { data, error }, liveState] = await Promise.all([
+  const [{ data: eventRow }, pageDocument, { data, error }, liveState] = await Promise.all([
     supabaseAdmin.from("events").select("event_theme").eq("id", event.id).maybeSingle(),
 
-    supabaseAdmin
-      .from("event_page_sections")
-      .select("sections")
-      .eq("event_id", event.id)
-      .eq("page_key", "breakouts")
-      .maybeSingle(),
+    loadEventPageDocument(event.id, "breakouts"),
 
     supabaseAdmin
       .from("event_breakouts")
@@ -251,7 +248,7 @@ export default async function EventBreakoutsPage(props: {
 
   const items = (data || []) as BreakoutRow[]
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const storedSections = normalizeSections(pageRow?.sections)
+  const storedSections = normalizeSections(pageDocument.sections)
 
   const destination = getEventLiveDestination({
     slug,
@@ -265,7 +262,8 @@ export default async function EventBreakoutsPage(props: {
 
   if (storedSections.length === 0) {
     return (
-      <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+        <PersistedPageElementLayer elements={pageDocument.elements} />
         <RemoteRefreshListener scopeType="event" scopeId={event.id} hardReload />
 
         <div className="mx-auto max-w-5xl px-6 py-10">
@@ -316,7 +314,8 @@ export default async function EventBreakoutsPage(props: {
   }
 
   return (
-    <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+    <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <PersistedPageElementLayer elements={pageDocument.elements} />
       <RemoteRefreshListener scopeType="event" scopeId={event.id} hardReload />
 
       <div className="mx-auto max-w-6xl px-6 py-10">

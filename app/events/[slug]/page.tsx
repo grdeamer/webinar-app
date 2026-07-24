@@ -17,7 +17,7 @@ import { getEventUserOrNull } from "@/lib/eventAuth"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { parseSpeakerCards } from "@/lib/eventExperience"
 import { createDefaultEventHomeSections } from "@/lib/page-editor/sectionRegistry"
-import { normalizeEventPageElements } from "@/lib/page-editor/elements"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDestination"
 import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
@@ -351,7 +351,7 @@ export default async function EventHomePage(props: {
     { data: agendaRows },
     { data: webinarRows },
     { data: breakoutRows },
-    { data: pageRow },
+    pageDocument,
     { data: themeRow },
   ] = await Promise.all([
     supabaseAdmin
@@ -376,12 +376,7 @@ export default async function EventHomePage(props: {
       .order("start_at", { ascending: true, nullsFirst: false })
       .limit(3),
 
-    supabaseAdmin
-      .from("event_page_sections")
-      .select("sections, elements")
-      .eq("event_id", event.id)
-      .eq("page_key", "event_home")
-      .maybeSingle(),
+    loadEventPageDocument(event.id, "event_home"),
 
     supabaseAdmin
       .from("events")
@@ -393,8 +388,8 @@ export default async function EventHomePage(props: {
   const agenda = normalizeAgendaRows(agendaRows)
   const sessions = normalizeSessionRows(webinarRows)
   const breakouts = normalizeBreakoutRows(breakoutRows)
-  const savedSections = normalizeSections(pageRow?.sections)
-  const savedElements = normalizeEventPageElements(pageRow?.elements)
+  const savedSections = normalizeSections(pageDocument.sections)
+  const savedElements = pageDocument.elements
   const eventTheme = normalizeTheme(themeRow?.event_theme)
 
   const liveDestination = await getEventLiveDestination(slug, event.id, viewer)

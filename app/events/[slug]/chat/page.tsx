@@ -1,6 +1,8 @@
 import Link from "next/link"
 import EventChatRoom from "@/components/EventChatRoom"
+import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { getEventBySlug } from "@/lib/events"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -10,9 +12,11 @@ export default async function EventChatPage(props: {
 }) {
   const { slug } = await props.params
   const event = await getEventBySlug(slug)
+  const pageDocument = await loadEventPageDocument(event.id, "chat")
 
   return (
-    <main className="min-h-screen bg-[#050816] text-white">
+    <main className="relative min-h-screen bg-[#050816] text-white">
+      <PersistedPageElementLayer elements={pageDocument.elements} />
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="mb-6">
           <div className="text-xs uppercase tracking-[0.28em] text-white/45">

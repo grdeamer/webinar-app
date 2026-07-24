@@ -6,6 +6,8 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { canViewerAccessSession } from "@/lib/domain/access"
 import { listEventSessions } from "@/lib/repos/sessionsRepo"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
+import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import type { EventTheme, SectionBlock } from "@/lib/page-editor/sectionTypes"
 
 export const runtime = "nodejs"
@@ -271,21 +273,17 @@ export default async function EventSessionsPage(props: {
     .eq("id", event.id)
     .maybeSingle()
 
-  const { data: pageRow } = await supabaseAdmin
-    .from("event_page_sections")
-    .select("sections")
-    .eq("event_id", event.id)
-    .eq("page_key", "sessions")
-    .maybeSingle()
+  const pageDocument = await loadEventPageDocument(event.id, "sessions")
 
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const sections = normalizeSections(pageRow?.sections)
+  const sections = normalizeSections(pageDocument.sections)
 
   const hasSavedSections = sections.length > 0
 
   if (!hasSavedSections) {
     return (
-      <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+        <PersistedPageElementLayer elements={pageDocument.elements} />
         <div className="relative mx-auto max-w-6xl px-6 py-12">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -305,7 +303,8 @@ export default async function EventSessionsPage(props: {
   }
 
   return (
-    <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+    <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <PersistedPageElementLayer elements={pageDocument.elements} />
       <div className="relative mx-auto max-w-6xl px-6 py-12">
         <div className="space-y-8">
           {sections

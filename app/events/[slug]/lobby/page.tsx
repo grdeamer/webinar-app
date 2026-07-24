@@ -5,7 +5,9 @@ import { getEventUserOrNull } from "@/lib/eventAuth"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import EventEmailGate from "../EventEmailGate"
 import EventSpeakerCards from "@/components/EventSpeakerCards"
+import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { getPlaybackSource, parseSpeakerCards } from "@/lib/eventExperience"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import RemoteRefreshListener from "@/components/RemoteRefreshListener"
 import { getEventLiveDestination, getEventLiveState } from "@/lib/app/liveState"
 import type { EventAssignedWebinar, EventBreakout, EventWebinarAssignmentRow } from "@/lib/types"
@@ -538,7 +540,7 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
 
   const { user } = authed
 
-  const [{ data: rows }, { data: breakoutRows }, liveState, { data: eventRow }, { data: pageRow }] =
+  const [{ data: rows }, { data: breakoutRows }, liveState, { data: eventRow }, pageDocument] =
     await Promise.all([
       supabaseAdmin
         .from("event_user_webinars")
@@ -555,12 +557,7 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
         .eq("event_id", event.id),
       getEventLiveState(event.id),
       supabaseAdmin.from("events").select("event_theme").eq("id", event.id).maybeSingle(),
-      supabaseAdmin
-        .from("event_page_sections")
-        .select("sections")
-        .eq("event_id", event.id)
-        .eq("page_key", "lobby")
-        .maybeSingle(),
+      loadEventPageDocument(event.id, "lobby"),
     ])
 
   const assignments = (rows ?? []) as unknown as EventWebinarAssignmentRow[]
@@ -584,7 +581,7 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
   ).slice(0, 6)
 
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const sections = normalizeSections(pageRow?.sections)
+  const sections = normalizeSections(pageDocument.sections)
   const hasSavedSections = sections.length > 0
 
   const blockArgs = {
@@ -599,7 +596,8 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
 
   if (!hasSavedSections) {
     return (
-      <div className="space-y-6">
+      <div className="relative space-y-6">
+        <PersistedPageElementLayer elements={pageDocument.elements} />
         <RemoteRefreshListener scopeType="event" scopeId={event.id} />
 
         {renderLiveRoutingBlock({
@@ -629,7 +627,8 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
   }
 
   return (
-    <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+    <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <PersistedPageElementLayer elements={pageDocument.elements} />
       <RemoteRefreshListener scopeType="event" scopeId={event.id} />
 
       <div className="relative mx-auto max-w-6xl px-6 py-12">

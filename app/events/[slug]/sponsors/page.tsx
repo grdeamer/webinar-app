@@ -2,8 +2,10 @@ import Link from "next/link"
 import { getEventBySlug } from "@/lib/events"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
+import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import EventEmailGate from "../EventEmailGate"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import type { EventPageSection, EventTheme, SectionBlock } from "@/lib/page-editor/sectionTypes"
 
 export const dynamic = "force-dynamic"
@@ -235,19 +237,14 @@ export default async function SponsorsPage(props: {
     return <EventEmailGate slug={slug} eventTitle={event.title} />
   }
 
-  const [{ data: eventRow }, { data: pageRow }, { data, error }] = await Promise.all([
+  const [{ data: eventRow }, pageDocument, { data, error }] = await Promise.all([
     supabaseAdmin
       .from("events")
       .select("event_theme")
       .eq("id", event.id)
       .maybeSingle(),
 
-    supabaseAdmin
-      .from("event_page_sections")
-      .select("sections")
-      .eq("event_id", event.id)
-      .eq("page_key", "sponsors")
-      .maybeSingle(),
+    loadEventPageDocument(event.id, "sponsors"),
 
     supabaseAdmin
       .from("event_sponsors")
@@ -260,11 +257,12 @@ export default async function SponsorsPage(props: {
 
   const sponsors = (data || []) as Sponsor[]
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const storedSections = normalizeSections(pageRow?.sections)
+  const storedSections = normalizeSections(pageDocument.sections)
 
   if (storedSections.length === 0) {
     return (
-      <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+        <PersistedPageElementLayer elements={pageDocument.elements} />
         <div className="mx-auto max-w-6xl px-6 py-10">
           <h1 className="mb-2 text-4xl font-semibold">{event.title} Sponsors</h1>
           <p className="mb-6 text-white/60">Thanks to the teams who make this possible.</p>
@@ -283,7 +281,8 @@ export default async function SponsorsPage(props: {
   }
 
   return (
-    <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+    <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <PersistedPageElementLayer elements={pageDocument.elements} />
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="space-y-8">
           {storedSections

@@ -4,6 +4,8 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import EventScheduleRail from "@/components/EventScheduleRail"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import EventEmailGate from "../EventEmailGate"
+import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
+import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import type { EventPageSection, EventTheme, SectionBlock } from "@/lib/page-editor/sectionTypes"
 
 export const dynamic = "force-dynamic"
@@ -181,19 +183,14 @@ export default async function EventAgendaPage(props: {
     return <EventEmailGate slug={slug} eventTitle={event.title} />
   }
 
-  const [{ data: eventRow }, { data: pageRow }, { data: agendaRows }] = await Promise.all([
+  const [{ data: eventRow }, pageDocument, { data: agendaRows }] = await Promise.all([
     supabaseAdmin
       .from("events")
       .select("event_theme")
       .eq("id", event.id)
       .maybeSingle(),
 
-    supabaseAdmin
-      .from("event_page_sections")
-      .select("sections")
-      .eq("event_id", event.id)
-      .eq("page_key", "agenda")
-      .maybeSingle(),
+    loadEventPageDocument(event.id, "agenda"),
 
     supabaseAdmin
       .from("event_agenda_items")
@@ -203,7 +200,7 @@ export default async function EventAgendaPage(props: {
   ])
 
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const storedSections = normalizeSections(pageRow?.sections)
+  const storedSections = normalizeSections(pageDocument.sections)
   const agenda = (agendaRows ?? []) as Array<{
     id: string
     title?: string | null
@@ -216,7 +213,8 @@ export default async function EventAgendaPage(props: {
 
   if (storedSections.length === 0) {
     return (
-      <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+        <PersistedPageElementLayer elements={pageDocument.elements} />
         <div className="mx-auto max-w-6xl px-6 py-10">
           <h1 className="mb-6 text-4xl font-semibold">{event.title} Agenda</h1>
 
@@ -234,7 +232,8 @@ export default async function EventAgendaPage(props: {
   }
 
   return (
-    <main className="min-h-screen text-white" style={getPageStyle(eventTheme)}>
+    <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
+      <PersistedPageElementLayer elements={pageDocument.elements} />
       <div className="mx-auto max-w-6xl px-6 py-10">
         <div className="space-y-8">
           {storedSections
