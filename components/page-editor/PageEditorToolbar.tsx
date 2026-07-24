@@ -1,5 +1,7 @@
 "use client"
 
+import type { ElementAlignmentCommand } from "./elementAlignmentCommands"
+
 type TemplateOption = {
   id: string
   name: string
@@ -15,6 +17,9 @@ type Props = {
   canvasZoom: number
   isMobilePreview: boolean
   isEditing: boolean
+  selectedElementCount: number
+  canGroupElements: boolean
+  canUngroupElements: boolean
   onSelectPage: (pageKey: string) => void
   onSelectTemplate: (templateId: string) => void
   onUndo: () => void
@@ -22,6 +27,9 @@ type Props = {
   onChangeZoom: (zoom: number) => void
   onToggleMobilePreview: () => void
   onToggleEditing: () => void
+  onAlignElements: (command: ElementAlignmentCommand) => void
+  onGroupElements: () => void
+  onUngroupElements: () => void
 }
 
 const EXPERIENCE_EDITOR_TOPBAR_CLASS =
@@ -49,6 +57,31 @@ const PAGE_OPTIONS = [
 ] as const
 
 const ZOOM_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5] as const
+const ALIGNMENT_ACTIONS: Array<{
+  label: string
+  command: ElementAlignmentCommand
+}> = [
+  { label: "Left", command: "align-left" },
+  { label: "H Center", command: "align-horizontal-center" },
+  { label: "Right", command: "align-right" },
+  { label: "Top", command: "align-top" },
+  { label: "V Center", command: "align-vertical-center" },
+  { label: "Bottom", command: "align-bottom" },
+]
+const SINGLE_ELEMENT_ALIGNMENT_ACTIONS: Array<{
+  label: string
+  command: ElementAlignmentCommand
+}> = [
+  { label: "Center in Section", command: "center-in-section" },
+  { label: "Center on Page", command: "center-on-page" },
+]
+const DISTRIBUTION_ACTIONS: Array<{
+  label: string
+  command: ElementAlignmentCommand
+}> = [
+  { label: "Distribute H", command: "distribute-horizontally" },
+  { label: "Distribute V", command: "distribute-vertically" },
+]
 
 export default function PageEditorToolbar({
   isEmbedded,
@@ -60,6 +93,9 @@ export default function PageEditorToolbar({
   canvasZoom,
   isMobilePreview,
   isEditing,
+  selectedElementCount,
+  canGroupElements,
+  canUngroupElements,
   onSelectPage,
   onSelectTemplate,
   onUndo,
@@ -67,6 +103,9 @@ export default function PageEditorToolbar({
   onChangeZoom,
   onToggleMobilePreview,
   onToggleEditing,
+  onAlignElements,
+  onGroupElements,
+  onUngroupElements,
 }: Props) {
   return (
     <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
@@ -184,6 +223,68 @@ export default function PageEditorToolbar({
           </button>
         </div>
       </div>
+
+      {isEditing && selectedElementCount > 0 ? (
+        <div className="border-t border-white/[0.06] bg-black/15">
+          <div className="mx-auto flex max-w-7xl items-center gap-2 px-6 py-2">
+            <span className="mr-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/38">
+              Align{selectedElementCount > 1 ? ` · ${selectedElementCount}` : ""}
+            </span>
+            {ALIGNMENT_ACTIONS.map((action) => (
+              <button
+                key={action.command}
+                type="button"
+                onClick={() => onAlignElements(action.command)}
+                className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-[10px] font-bold text-white/62 transition hover:bg-white/10 hover:text-white"
+              >
+                {action.label}
+              </button>
+            ))}
+            {selectedElementCount === 1
+              ? SINGLE_ELEMENT_ALIGNMENT_ACTIONS.map((action) => (
+                  <button
+                    key={action.command}
+                    type="button"
+                    onClick={() => onAlignElements(action.command)}
+                    className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-[10px] font-bold text-white/62 transition hover:bg-white/10 hover:text-white"
+                  >
+                    {action.label}
+                  </button>
+                ))
+              : null}
+            {selectedElementCount >= 3
+              ? DISTRIBUTION_ACTIONS.map((action) => (
+                  <button
+                    key={action.command}
+                    type="button"
+                    onClick={() => onAlignElements(action.command)}
+                    className="rounded-lg border border-fuchsia-300/15 bg-fuchsia-400/10 px-2.5 py-1.5 text-[10px] font-bold text-fuchsia-50/70 transition hover:bg-fuchsia-400/20 hover:text-white"
+                  >
+                    {action.label}
+                  </button>
+                ))
+              : null}
+            {canGroupElements ? (
+              <button
+                type="button"
+                onClick={onGroupElements}
+                className="ml-1 rounded-lg border border-emerald-300/15 bg-emerald-400/10 px-2.5 py-1.5 text-[10px] font-bold text-emerald-50/70 transition hover:bg-emerald-400/20 hover:text-white"
+              >
+                Group
+              </button>
+            ) : null}
+            {canUngroupElements ? (
+              <button
+                type="button"
+                onClick={onUngroupElements}
+                className="ml-1 rounded-lg border border-amber-300/15 bg-amber-400/10 px-2.5 py-1.5 text-[10px] font-bold text-amber-50/70 transition hover:bg-amber-400/20 hover:text-white"
+              >
+                Ungroup
+              </button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

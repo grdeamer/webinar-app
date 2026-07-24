@@ -27,6 +27,13 @@ import RegistrationInspectorPanel from "./RegistrationInspectorPanel"
 import SectionPanelHeader from "./SectionPanelHeader"
 import SessionsInspectorPanel from "./SessionsInspectorPanel"
 import SpeakerCardsInspector from "./SpeakerCardsInspector"
+import {
+  ELEMENT_ANIMATION_EASING_OPTIONS,
+  ELEMENT_ANIMATION_EFFECT_OPTIONS,
+  getElementAnimationConfig,
+  type ElementAnimationEasing,
+  type ElementAnimationEffect,
+} from "./elementAnimation"
 
 type EditorElement = {
   id: string
@@ -424,6 +431,9 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
   const elementLayerCount = orderedExperienceNodes.filter(
     (node) => node.sourceType === "element"
   ).length
+  const selectedElementAnimation = getElementAnimationConfig(
+    selectedElement?.props
+  )
 
   return (
 <aside
@@ -1382,6 +1392,133 @@ onDragEnd={handleLayerDragEnd}
                           </div>
                         </>
                       )}
+
+                      <div className="rounded-[18px] border border-violet-300/12 bg-violet-400/[0.055] p-4">
+                        <div className="text-[10px] font-black uppercase tracking-[0.18em] text-violet-100/48">
+                          Animation
+                        </div>
+
+                        <div className="mt-4 grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="mb-2 text-xs text-white/50">Intro</div>
+                            <select
+                              value={selectedElementAnimation.intro}
+                              onChange={(event) =>
+                                updateElementProps(selectedElement.id, {
+                                  animation: {
+                                    ...selectedElementAnimation,
+                                    intro: event.target
+                                      .value as ElementAnimationEffect,
+                                  },
+                                })
+                              }
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            >
+                              {ELEMENT_ANIMATION_EFFECT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <div className="mb-2 text-xs text-white/50">Outro</div>
+                            <select
+                              value={selectedElementAnimation.outro}
+                              onChange={(event) =>
+                                updateElementProps(selectedElement.id, {
+                                  animation: {
+                                    ...selectedElementAnimation,
+                                    outro: event.target
+                                      .value as ElementAnimationEffect,
+                                  },
+                                })
+                              }
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            >
+                              {ELEMENT_ANIMATION_EFFECT_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+
+                        <div className="mt-3 grid grid-cols-2 gap-3">
+                          <div>
+                            <div className="mb-2 text-xs text-white/50">
+                              Delay (ms)
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="50"
+                              value={selectedElementAnimation.delay}
+                              onChange={(event) =>
+                                updateElementProps(selectedElement.id, {
+                                  animation: {
+                                    ...selectedElementAnimation,
+                                    delay: Math.max(
+                                      0,
+                                      Number(event.target.value || 0)
+                                    ),
+                                  },
+                                })
+                              }
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            />
+                          </div>
+
+                          <div>
+                            <div className="mb-2 text-xs text-white/50">
+                              Duration (ms)
+                            </div>
+                            <input
+                              type="number"
+                              min="0"
+                              step="50"
+                              value={selectedElementAnimation.duration}
+                              onChange={(event) =>
+                                updateElementProps(selectedElement.id, {
+                                  animation: {
+                                    ...selectedElementAnimation,
+                                    duration: Math.max(
+                                      0,
+                                      Number(event.target.value || 0)
+                                    ),
+                                  },
+                                })
+                              }
+                              className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                            />
+                          </div>
+                        </div>
+
+                        <div className="mt-3">
+                          <div className="mb-2 text-xs text-white/50">Easing</div>
+                          <select
+                            value={selectedElementAnimation.easing}
+                            onChange={(event) =>
+                              updateElementProps(selectedElement.id, {
+                                animation: {
+                                  ...selectedElementAnimation,
+                                  easing: event.target
+                                    .value as ElementAnimationEasing,
+                                },
+                              })
+                            }
+                            className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
+                          >
+                            {ELEMENT_ANIMATION_EASING_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
                     </div>
                   ) : selectedSection ? (
                 

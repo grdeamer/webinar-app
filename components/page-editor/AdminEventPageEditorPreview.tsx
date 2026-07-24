@@ -7,6 +7,20 @@ import {
   getCanvasAndSectionAlignmentTargets,
   type AlignmentGuides,
 } from "./alignmentGuides"
+import {
+  findClosestReferenceBounds,
+  getElementAlignmentUpdates,
+  type ElementAlignmentCommand,
+} from "./elementAlignmentCommands"
+import {
+  createElementGroupId,
+  getElementGroupId,
+  getElementGroupMemberIds,
+  getGroupResizeSnapshot,
+  getGroupResizeUpdates,
+  type GroupResizeSnapshot,
+} from "./elementGrouping"
+import { DEFAULT_ELEMENT_ANIMATION } from "./elementAnimation"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
@@ -582,6 +596,7 @@ const isEmbedded =
     switchPageState,
     hasUnsavedChanges,
     setHasUnsavedChanges,
+    clearSelection,
     canUndo,
     canRedo,
     createHistorySnapshot,
@@ -612,6 +627,7 @@ const isEmbedded =
   const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuides>({
     vertical: [],
     horizontal: [],
+    distances: [],
   })
 
   const [isMarqueeSelecting, setIsMarqueeSelecting] = useState(false)
@@ -638,6 +654,7 @@ const isEmbedded =
     startY: number
     startWidth: number
     startHeight: number
+    groupSnapshot?: GroupResizeSnapshot | null
   } | null>(null)
 
   useEffect(() => {
@@ -766,17 +783,73 @@ const res = await fetch(
       if (isTyping) return
       if (!isEditing) return
 
+      const commandKey = e.metaKey || e.ctrlKey
+      const key = e.key.toLowerCase()
+
+      if (commandKey && key === "d") {
+        e.preventDefault()
+        duplicateSelectedElement()
+        return
+      }
+
+      if (commandKey && key === "g") {
+        e.preventDefault()
+        if (e.shiftKey) {
+          ungroupSelectedElements()
+        } else {
+          groupSelectedElements()
+        }
+        return
+      }
+
+      if (commandKey && key === "a") {
+        e.preventDefault()
+        const allIds = elements.map((element) => element.id)
+        setSelectedIds(allIds)
+        setSelectedId(allIds[allIds.length - 1] ?? null)
+        setSelectedSectionId(null)
+        setSelectedBlockId(null)
+        setEditingElementId(null)
+        return
+      }
+
+      if (e.key === "Escape") {
+        e.preventDefault()
+        clearSelection()
+        return
+      }
+
       if (e.key === "Backspace" || e.key === "Delete") {
         if (selectedId || selectedIds.length > 0) {
           e.preventDefault()
           deleteSelectedElement()
         }
+        return
+      }
+
+      const arrowOffsets: Partial<
+        Record<KeyboardEvent["key"], { x: number; y: number }>
+      > = {
+        ArrowLeft: { x: -1, y: 0 },
+        ArrowRight: { x: 1, y: 0 },
+        ArrowUp: { x: 0, y: -1 },
+        ArrowDown: { x: 0, y: 1 },
+      }
+      const arrowOffset = arrowOffsets[e.key]
+
+      if (arrowOffset) {
+        e.preventDefault()
+        const distance = e.shiftKey ? 10 : 1
+        moveSelectedElementsBy(
+          arrowOffset.x * distance,
+          arrowOffset.y * distance
+        )
       }
     }
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [isEditing, selectedId, selectedIds])
+  }, [clearSelection, elements, isEditing, selectedId, selectedIds])
 
   function startDrag(
     e: React.PointerEvent<HTMLDivElement>,
@@ -791,7 +864,7 @@ const res = await fetch(
     if ((e.target as HTMLElement).dataset.resizeHandle === "true") return
     if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
 
-    setAlignmentGuides({ vertical: [], horizontal: [] })
+    setAlignmentGuides({ vertical: [], horizontal: [], distances: [] })
     dragRef.current = {
       id,
       offsetX: e.clientX - x,
@@ -811,16 +884,35 @@ const res = await fetch(
     if (editingElementId === id) return
     e.stopPropagation()
 
-    setAlignmentGuides({ vertical: [], horizontal: [] })
+    const groupId = targetElement ? getElementGroupId(targetElement) : null
+    const groupMembers = groupId
+      ? elements.filter((element) => getElementGroupId(element) === groupId)
+      : []
+    const groupSnapshot = getGroupResizeSnapshot(
+      groupMembers.map((element) => ({
+        id: element.id,
+        x: element.x,
+        y: element.y,
+        width: element.width ?? 0,
+        height: element.height ?? 0,
+        props: element.props,
+      }))
+    )
+
+    setAlignmentGuides({ vertical: [], horizontal: [], distances: [] })
     resizeRef.current = {
       id,
       startX: e.clientX,
       startY: e.clientY,
-      startWidth: width ?? 224,
-      startHeight: height ?? 56,
+      startWidth: groupSnapshot?.bounds.width ?? width ?? 224,
+      startHeight: groupSnapshot?.bounds.height ?? height ?? 56,
+      groupSnapshot,
     }
 
     setSelectedId(id)
+    if (groupSnapshot) {
+      setSelectedIds(groupSnapshot.elements.map((element) => element.id))
+    }
     setSelectedSectionId(null)
   }
 
@@ -856,12 +948,36 @@ const res = await fetch(
     }
 
     if (resizeRef.current) {
-      const { id, startX, startY, startWidth, startHeight } = resizeRef.current
+      const {
+        id,
+        startX,
+        startY,
+        startWidth,
+        startHeight,
+        groupSnapshot,
+      } = resizeRef.current
 
       const nextWidth = snapToGrid(Math.max(96, startWidth + (e.clientX - startX)))
       const nextHeight = snapToGrid(Math.max(32, startHeight + (e.clientY - startY)))
 
       setHasUnsavedChanges(true)
+      if (groupSnapshot) {
+        const updates = getGroupResizeUpdates({
+          snapshot: groupSnapshot,
+          width: nextWidth,
+          height: nextHeight,
+        })
+        const updatesById = new Map(updates.map((update) => [update.id, update]))
+
+        setElements((prev) =>
+          prev.map((element) => {
+            const update = updatesById.get(element.id)
+            return update ? { ...element, ...update } : element
+          })
+        )
+        return
+      }
+
       setElements((prev) =>
         prev.map((el) => (el.id === id ? { ...el, width: nextWidth, height: nextHeight } : el))
       )
@@ -926,11 +1042,73 @@ const res = await fetch(
     dragRef.current = null
     groupDragRef.current = null
     resizeRef.current = null
-    setAlignmentGuides({ vertical: [], horizontal: [] })
+    setAlignmentGuides({ vertical: [], horizontal: [], distances: [] })
 
     setTimeout(() => {
       isDraggingRef.current = false
     }, 50)
+  }
+
+  function executeElementAlignmentCommand(command: ElementAlignmentCommand) {
+    const activeIds =
+      selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+    if (activeIds.length === 0) return
+
+    const selected = elements.find((element) => element.id === activeIds[0])
+    if (!selected) return
+
+    const isDistributionCommand =
+      command === "distribute-horizontally" ||
+      command === "distribute-vertically"
+    const isSingleElementReferenceCommand =
+      command === "center-in-section" || command === "center-on-page"
+    if (activeIds.length > 1 && isSingleElementReferenceCommand) return
+
+    let referenceBounds = null
+
+    if (activeIds.length === 1 && !isDistributionCommand) {
+      if (!canvasRef.current) return
+
+      const [pageBounds, ...sectionBounds] =
+        getCanvasAndSectionAlignmentTargets(canvasRef.current)
+      referenceBounds =
+        command === "center-in-section"
+          ? findClosestReferenceBounds(
+              {
+                id: selected.id,
+                x: selected.x,
+                y: selected.y,
+                width: selected.width ?? 0,
+                height: selected.height ?? 0,
+              },
+              sectionBounds
+            )
+          : pageBounds
+    }
+
+    if (activeIds.length === 1 && !isDistributionCommand && !referenceBounds) return
+
+    const updates = getElementAlignmentUpdates({
+      elements: elements.map((element) => ({
+        id: element.id,
+        x: element.x,
+        y: element.y,
+        width: element.width ?? 0,
+        height: element.height ?? 0,
+      })),
+      selectedIds: activeIds,
+      command,
+      referenceBounds,
+    })
+    const updatesById = new Map(updates.map((update) => [update.id, update]))
+
+    setHasUnsavedChanges(true)
+    setElements((current) =>
+      current.map((element) => {
+        const update = updatesById.get(element.id)
+        return update ? { ...element, ...update } : element
+      })
+    )
   }
 
   async function uploadMediaFile(file: File) {
@@ -1548,6 +1726,14 @@ function addRegistrationFormSection() {
         break
     }
 
+    nextElement = {
+      ...nextElement,
+      props: {
+        ...(nextElement.props ?? {}),
+        animation: { ...DEFAULT_ELEMENT_ANIMATION },
+      },
+    }
+
     setHasUnsavedChanges(true)
     setElements((prev) => normalizeZIndexes([...prev, nextElement]))
     setSelectedId(id)
@@ -1562,8 +1748,27 @@ function addRegistrationFormSection() {
 
 
 
+  function getActiveSelectedElementIds() {
+    const selected =
+      selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+    const selectedGroupIds = new Set(
+      elements
+        .filter((element) => selected.includes(element.id))
+        .map((element) => getElementGroupId(element))
+        .filter((groupId): groupId is string => Boolean(groupId))
+    )
+
+    return elements
+      .filter(
+        (element) =>
+          selected.includes(element.id) ||
+          selectedGroupIds.has(getElementGroupId(element) ?? "")
+      )
+      .map((element) => element.id)
+  }
+
   function deleteSelectedElement() {
-    const idsToDelete = selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+    const idsToDelete = getActiveSelectedElementIds()
 
     if (idsToDelete.length === 0) return
 
@@ -1576,28 +1781,126 @@ function addRegistrationFormSection() {
   }
 
   function duplicateSelectedElement() {
-    if (!selectedId) return
+    const activeIds = getActiveSelectedElementIds()
+    const selectedElements = elements.filter((element) =>
+      activeIds.includes(element.id)
+    )
+    if (selectedElements.length === 0) return
 
-    const selected = elements.find((el) => el.id === selectedId)
-    if (!selected) return
-
-    const nextId = createElementId()
     const highestZ = elements.reduce((max, el) => Math.max(max, el.z_index ?? 0), 0)
+    const duplicatedGroupIds = new Map<string, string>()
+    const duplicated = selectedElements.map((selected, index): EditorElement => {
+      const nextId = createElementId()
+      const currentGroupId = getElementGroupId(selected)
+      let nextGroupId: string | null = null
 
-    const duplicated: EditorElement = {
-      ...selected,
-      id: nextId,
-      x: snapToGrid(selected.x + 24),
-      y: snapToGrid(selected.y + 24),
-      z_index: highestZ + 1,
-      props: { ...(selected.props ?? {}) },
-    }
+      if (currentGroupId) {
+        nextGroupId =
+          duplicatedGroupIds.get(currentGroupId) ?? createElementGroupId()
+        duplicatedGroupIds.set(currentGroupId, nextGroupId)
+      }
+
+      return {
+        ...selected,
+        id: nextId,
+        x: snapToGrid(selected.x + 24),
+        y: snapToGrid(selected.y + 24),
+        z_index: highestZ + index + 1,
+        props: {
+          ...(selected.props ?? {}),
+          ...(nextGroupId ? { groupId: nextGroupId } : {}),
+        },
+      }
+    })
+    const duplicatedIds = duplicated.map((element) => element.id)
 
     setHasUnsavedChanges(true)
-    setElements((prev) => normalizeZIndexes([...prev, duplicated]))
-    setSelectedId(nextId)
+    setElements((prev) => normalizeZIndexes([...prev, ...duplicated]))
+    setSelectedIds(duplicatedIds)
+    setSelectedId(duplicatedIds[duplicatedIds.length - 1] ?? null)
     setSelectedSectionId(null)
     setSelectedBlockId(null)
+  }
+
+  function moveSelectedElementsBy(deltaX: number, deltaY: number) {
+    const activeIds = getActiveSelectedElementIds()
+    if (activeIds.length === 0) return
+
+    setHasUnsavedChanges(true)
+    setElements((current) =>
+      current.map((element) =>
+        activeIds.includes(element.id) &&
+        !(element as EditorElement).locked
+          ? {
+              ...element,
+              x: Math.max(0, element.x + deltaX),
+              y: Math.max(0, element.y + deltaY),
+            }
+          : element
+      )
+    )
+  }
+
+  function groupSelectedElements() {
+    const activeIds =
+      selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+    const selectedElements = elements.filter((element) =>
+      activeIds.includes(element.id)
+    )
+
+    if (
+      selectedElements.length < 2 ||
+      selectedElements.some((element) => getElementGroupId(element))
+    ) {
+      return
+    }
+
+    const groupId = createElementGroupId()
+
+    setHasUnsavedChanges(true)
+    setElements((current) =>
+      current.map((element) =>
+        activeIds.includes(element.id)
+          ? {
+              ...element,
+              props: {
+                ...(element.props ?? {}),
+                groupId,
+              },
+            }
+          : element
+      )
+    )
+    setSelectedIds(activeIds)
+    setSelectedId(activeIds[activeIds.length - 1] ?? null)
+  }
+
+  function ungroupSelectedElements() {
+    const activeIds =
+      selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+    const groupIds = new Set(
+      elements
+        .filter((element) => activeIds.includes(element.id))
+        .map((element) => getElementGroupId(element))
+        .filter((groupId): groupId is string => Boolean(groupId))
+    )
+
+    if (groupIds.size === 0) return
+
+    setHasUnsavedChanges(true)
+    setElements((current) =>
+      current.map((element) =>
+        groupIds.has(getElementGroupId(element) ?? "")
+          ? {
+              ...element,
+              props: {
+                ...(element.props ?? {}),
+                groupId: null,
+              },
+            }
+          : element
+      )
+    )
   }
 
   function handleSectionDragStart(sectionId: string) {
@@ -1871,6 +2174,17 @@ const selectedExperienceNode = experienceNodes.find(
   const canDuplicateSection = Boolean(selectedSection && selectedSection.type !== "hero")
 
   const selectedElementCount = selectedIds.length > 0 ? selectedIds.length : selectedElement ? 1 : 0
+  const selectedElementsForCommands = normalizedElements.filter((element) =>
+    (selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []).includes(
+      element.id
+    )
+  )
+  const canGroupElements =
+    selectedElementsForCommands.length >= 2 &&
+    selectedElementsForCommands.every((element) => !getElementGroupId(element))
+  const canUngroupElements = selectedElementsForCommands.some((element) =>
+    Boolean(getElementGroupId(element))
+  )
 
   const canDeleteElement = selectedElementCount > 0
   const canDuplicateElement = Boolean(selectedElement)
@@ -1903,6 +2217,9 @@ const selectedExperienceNode = experienceNodes.find(
           canvasZoom={canvasZoom}
           isMobilePreview={isMobilePreview}
           isEditing={isEditing}
+          selectedElementCount={selectedElementCount}
+          canGroupElements={canGroupElements}
+          canUngroupElements={canUngroupElements}
           onSelectPage={switchPageState}
           onSelectTemplate={(templateId) => {
             const template = templates.find((item) => item.id === templateId)
@@ -1923,6 +2240,9 @@ const selectedExperienceNode = experienceNodes.find(
           onChangeZoom={setCanvasZoom}
           onToggleMobilePreview={() => setIsMobilePreview((value) => !value)}
           onToggleEditing={() => setIsEditing((value) => !value)}
+          onAlignElements={executeElementAlignmentCommand}
+          onGroupElements={groupSelectedElements}
+          onUngroupElements={ungroupSelectedElements}
         />
       )}
 
@@ -2141,6 +2461,85 @@ const selectedExperienceNode = experienceNodes.find(
                             }}
                           />
                         ))}
+
+                        {alignmentGuides.distances.map((guide, index) => {
+                          const guideColor = guide.equal
+                            ? "bg-fuchsia-300"
+                            : "bg-fuchsia-400/70"
+                          const labelClass = guide.equal
+                            ? "border-fuchsia-100/40 bg-fuchsia-500 text-white shadow-[0_0_12px_rgba(217,70,239,0.55)]"
+                            : "border-fuchsia-300/25 bg-slate-950/90 text-fuchsia-100"
+
+                          return guide.orientation === "horizontal" ? (
+                            <div key={`distance-horizontal-${index}`}>
+                              <div
+                                className={`pointer-events-none absolute h-px ${guideColor}`}
+                                style={{
+                                  left: guide.start,
+                                  top: guide.crossPosition,
+                                  width: Math.max(0, guide.end - guide.start),
+                                  zIndex: 9999,
+                                }}
+                              />
+                              {[guide.start, guide.end].map((position, tickIndex) => (
+                                <div
+                                  key={`${position}-${tickIndex}`}
+                                  className={`pointer-events-none absolute h-2.5 w-px ${guideColor}`}
+                                  style={{
+                                    left: position,
+                                    top: guide.crossPosition - 5,
+                                    zIndex: 9999,
+                                  }}
+                                />
+                              ))}
+                              <div
+                                className={`pointer-events-none absolute rounded-md border px-1.5 py-0.5 text-[9px] font-black tabular-nums ${labelClass}`}
+                                style={{
+                                  left: guide.start + (guide.end - guide.start) / 2,
+                                  top: guide.crossPosition,
+                                  transform: "translate(-50%, -50%)",
+                                  zIndex: 10000,
+                                }}
+                              >
+                                {Math.round(guide.distance)}px
+                              </div>
+                            </div>
+                          ) : (
+                            <div key={`distance-vertical-${index}`}>
+                              <div
+                                className={`pointer-events-none absolute w-px ${guideColor}`}
+                                style={{
+                                  left: guide.crossPosition,
+                                  top: guide.start,
+                                  height: Math.max(0, guide.end - guide.start),
+                                  zIndex: 9999,
+                                }}
+                              />
+                              {[guide.start, guide.end].map((position, tickIndex) => (
+                                <div
+                                  key={`${position}-${tickIndex}`}
+                                  className={`pointer-events-none absolute h-px w-2.5 ${guideColor}`}
+                                  style={{
+                                    left: guide.crossPosition - 5,
+                                    top: position,
+                                    zIndex: 9999,
+                                  }}
+                                />
+                              ))}
+                              <div
+                                className={`pointer-events-none absolute rounded-md border px-1.5 py-0.5 text-[9px] font-black tabular-nums ${labelClass}`}
+                                style={{
+                                  left: guide.crossPosition,
+                                  top: guide.start + (guide.end - guide.start) / 2,
+                                  transform: "translate(-50%, -50%)",
+                                  zIndex: 10000,
+                                }}
+                              >
+                                {Math.round(guide.distance)}px
+                              </div>
+                            </div>
+                          )
+                        })}
                       </>
                     )}
 
@@ -2180,6 +2579,7 @@ const selectedExperienceNode = experienceNodes.find(
                         const isInlineEditing = editingElementId === el.id
                         const isLayerHovered = hoveredExperienceNodeId === el.id
                         const isLocked = el.locked === true
+                        const groupMemberIds = getElementGroupMemberIds(elements, el)
                         const showInlineEditor =
                           isInlineEditing &&
                           (el.element_type === "text" ||
@@ -2216,19 +2616,34 @@ const selectedExperienceNode = experienceNodes.find(
                               e.stopPropagation()
                               if (!isEditing) return
 
-                              const isShift = e.shiftKey
+                              const isSelectionModifier =
+                                e.shiftKey || e.metaKey || e.ctrlKey
                               const isAlreadySelected = selectedIds.includes(el.id)
                               const activeIds =
-                                selectedIds.length > 1 && isAlreadySelected ? selectedIds : [el.id]
+                                selectedIds.length > 1 && isAlreadySelected
+                                  ? selectedIds
+                                  : groupMemberIds.length > 1
+                                    ? groupMemberIds
+                                    : [el.id]
 
-                              if (!isShift) {
+                              if (isSelectionModifier) {
+                                dragRef.current = null
+                                groupDragRef.current = null
+                                setSelectedSectionId(null)
+                                return
+                              }
+
+                              if (!isSelectionModifier) {
                                 setSelectedId(el.id)
                                 setSelectedIds(activeIds)
                               }
 
                               setSelectedSectionId(null)
 
-                              if (activeIds.length > 1 && isAlreadySelected) {
+                              if (
+                                activeIds.length > 1 &&
+                                (groupMemberIds.length > 1 || isAlreadySelected)
+                              ) {
                                 const startPositions: Record<string, { x: number; y: number }> = {}
 
                                 elements.forEach((item) => {
@@ -2272,16 +2687,32 @@ const selectedExperienceNode = experienceNodes.find(
                               if (isDraggingRef.current) return
                               e.stopPropagation()
 
-                              if (e.shiftKey) {
-                                setSelectedIds((prev) =>
-                                  prev.includes(el.id)
-                                    ? prev.filter((id) => id !== el.id)
-                                    : [...prev, el.id]
+                              if (e.metaKey || e.ctrlKey) {
+                                const groupIsSelected = groupMemberIds.every((id) =>
+                                  selectedIds.includes(id)
                                 )
+                                const nextIds = groupIsSelected
+                                  ? selectedIds.filter(
+                                      (id) => !groupMemberIds.includes(id)
+                                    )
+                                  : Array.from(
+                                      new Set([...selectedIds, ...groupMemberIds])
+                                    )
+                                setSelectedIds(nextIds)
+                                setSelectedId(
+                                  !groupIsSelected
+                                    ? el.id
+                                    : nextIds[nextIds.length - 1] ?? null
+                                )
+                              } else if (e.shiftKey) {
+                                const nextIds = Array.from(
+                                  new Set([...selectedIds, ...groupMemberIds])
+                                )
+                                setSelectedIds(nextIds)
                                 setSelectedId(el.id)
                               } else {
                                 setSelectedId(el.id)
-                                setSelectedIds([el.id])
+                                setSelectedIds(groupMemberIds)
                               }
 
                               setSelectedSectionId(null)
