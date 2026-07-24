@@ -167,7 +167,7 @@ interface ExperienceInspectorRailProps {
 }
 
 const EXPERIENCE_EDITOR_RAIL_CLASS =
-  "shrink-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.965),rgba(2,4,9,0.992))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
+  "h-full min-h-0 shrink-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.965),rgba(2,4,9,0.992))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
 
 const EXPERIENCE_EDITOR_RAIL_HEADER_CLASS =
   "rounded-[18px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.032)]"
@@ -445,7 +445,10 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
         } ${!isEditing ? "pointer-events-none overflow-hidden" : "overflow-visible"}`
   }`}
 >
-  <div className={`h-full ${isEmbedded ? "w-[320px] p-4" : "w-[380px] p-6"}`}>
+  <div
+    className="h-full min-h-0 w-full overflow-x-hidden overflow-y-auto overscroll-contain"
+  >
+  <div className={isEmbedded ? "w-[320px] p-4" : "w-[380px] p-6"}>
             <div className={EXPERIENCE_EDITOR_RAIL_HEADER_CLASS}>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">Experience Composer</div>
 
@@ -2563,6 +2566,7 @@ onDragEnd={handleLayerDragEnd}
                 </>
               )}
             </div>
+  </div>
       </aside>
   )
 }

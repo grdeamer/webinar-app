@@ -129,6 +129,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isProducerWorkspace = /^\/admin\/events\/[^/]+\/producer(?:\/.*)?$/.test(pathname)
   const producerMatch = pathname.match(/^\/admin\/events\/([^/]+)\/producer(?:\/.*)?$/)
   const producerEventId = producerMatch?.[1]
+  const isPageEditorWorkspace = pathname.startsWith("/admin/page-editor/event/")
 
   if (isProducerWorkspace) {
     return (
@@ -175,9 +176,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.14),transparent_22%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.08),transparent_24%),linear-gradient(180deg,#020617_0%,#07111f_48%,#0f172a_100%)] text-white">
-      <div className="flex min-h-screen">
-        <aside className="w-[360px] border-r border-white/10 bg-[#050816]/82 backdrop-blur-2xl">
+    <div
+      className={`${
+        isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
+      } bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.14),transparent_22%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.08),transparent_24%),linear-gradient(180deg,#020617_0%,#07111f_48%,#0f172a_100%)] text-white`}
+    >
+      <div
+        className={`flex ${
+          isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"
+        }`}
+      >
+        <aside
+          className={`${
+            isPageEditorWorkspace ? "h-full" : ""
+          } w-[360px] border-r border-white/10 bg-[#050816]/82 backdrop-blur-2xl`}
+        >
           <div className="flex h-full flex-col">
             <div className="px-5 py-5">
               <div className="flex items-center gap-3">
@@ -287,8 +300,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </div>
         </aside>
 
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <header className="sticky top-0 z-20 border-b border-white/10 bg-slate-950/45 backdrop-blur-xl">
+        <div
+          className={`flex min-w-0 flex-1 flex-col ${
+            isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"
+          }`}
+        >
+          <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-slate-950/45 backdrop-blur-xl">
             <div className="flex items-center justify-between gap-4 px-6 py-3.5 lg:px-8">
               <div>
                 <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
@@ -316,8 +333,18 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
           </header>
 
-          <main className="flex-1 p-8 lg:p-10">
-            <div className="w-full">{children}</div>
+          <main
+            className={`flex-1 p-8 lg:p-10 ${
+              isPageEditorWorkspace ? "min-h-0 overflow-hidden" : ""
+            }`}
+          >
+            <div
+              className={`w-full ${
+                isPageEditorWorkspace ? "h-full min-h-0" : ""
+              }`}
+            >
+              {children}
+            </div>
           </main>
         </div>
       </div>
