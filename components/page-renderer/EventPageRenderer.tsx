@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import type {
+  EventPageElement,
   EventPageSection,
   SectionBlock,
   SystemComponentKey,
@@ -9,18 +10,6 @@ import type {
 type EventLike = {
   title: string
   description?: string | null
-}
-
-type EditorElement = {
-  id: string
-  element_type?: string
-  content: string
-  x: number
-  y: number
-  width?: number | null
-  height?: number | null
-  z_index?: number
-  props?: Record<string, unknown>
 }
 
 type SystemComponentsMap = Partial<Record<SystemComponentKey, ReactNode>>
@@ -301,7 +290,7 @@ export default function EventPageRenderer({
   eventTheme,
 }: {
   event: EventLike
-  elements?: EditorElement[]
+  elements?: EventPageElement[]
   mode?: "live" | "editor"
   sections?: EventPageSection[]
   isEditing?: boolean
@@ -512,7 +501,9 @@ export default function EventPageRenderer({
       })}
 
       {elements.length > 0
-        ? elements.map((el) => (
+        ? elements
+            .filter((element) => element.visible !== false)
+            .map((el) => (
             <div
               key={el.id}
               className={`absolute overflow-hidden rounded-xl shadow-lg ${
@@ -585,7 +576,7 @@ export default function EventPageRenderer({
                 </div>
               )}
             </div>
-          ))
+            ))
         : null}
     </div>
   )

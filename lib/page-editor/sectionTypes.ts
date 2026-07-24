@@ -148,6 +148,20 @@ export type EventPageSection = {
   blocks?: SectionBlock[]
 }
 
+export type EventPageElement = {
+  id: string
+  element_type?: string
+  content: string
+  x: number
+  y: number
+  width?: number | null
+  height?: number | null
+  z_index?: number
+  visible?: boolean
+  locked?: boolean
+  props?: Record<string, unknown>
+}
+
 export type SectionRegistryItem = {
   type: SectionType
   label: string

@@ -31,7 +31,9 @@ import {
   createDefaultEventHomeSections,
   getDefaultSectionConfig,
 } from "@/lib/page-editor/sectionRegistry"
+import { normalizeEventPageElements } from "@/lib/page-editor/elements"
 import type {
+  EventPageElement,
   SectionConfig,
   SectionType,
   SectionBlock,
@@ -40,19 +42,7 @@ import type {
   ExperienceNode,
 } from "@/lib/page-editor/sectionTypes"
 
-export type EditorElement = {
-  id: string
-  element_type?: string
-  content: string
-  x: number
-  y: number
-  width?: number | null
-  height?: number | null
-  z_index?: number
-  visible?: boolean
-  locked?: boolean
-  props?: Record<string, unknown>
-}
+export type EditorElement = EventPageElement
 
 export type EventPageSection = {
   id: string
@@ -679,29 +669,17 @@ const res = await fetch(
         return
       }
 
-      const rows = Array.isArray(data?.elements) ? data.elements : []
+      const rows = Array.isArray(data?.elements)
+        ? normalizeEventPageElements(data.elements)
+        : null
       const loadedSections = Array.isArray(data?.sections) ? data.sections : []
       const loadedTheme =
   data?.eventTheme && typeof data.eventTheme === "object" ? data.eventTheme : null
 
-      if (rows.length === 0) {
+      if (rows === null) {
         setElements(getFallbackElements())
       } else {
-        setElements(
-          rows.map((el: any) => ({
-            id: String(el.id),
-            element_type: String(el.element_type ?? "text"),
-            content: String(el.content ?? "Untitled Block"),
-            x: Number(el.x ?? 0),
-            y: Number(el.y ?? 0),
-            width: el.width == null ? 224 : Number(el.width),
-            height: el.height == null ? 56 : Number(el.height),
-            z_index: Number(el.z_index ?? 1),
-            visible: el.visible === false ? false : true,
-            locked: el.locked === true,
-            props: el.props && typeof el.props === "object" ? el.props : {},
-          }))
-        )
+        setElements(rows)
       }
 
       if (loadedSections.length > 0) {
@@ -1135,12 +1113,13 @@ const res = await fetch(
     const payload = [...elements]
       .sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0))
       .map((el, idx) => ({
+        id: el.id,
         element_type: el.element_type ?? "text",
         content: el.content,
-        x: snapToGrid(el.x),
-        y: snapToGrid(el.y),
-        width: el.width == null ? null : snapToGrid(el.width),
-        height: el.height == null ? null : snapToGrid(el.height),
+        x: el.x,
+        y: el.y,
+        width: el.width ?? null,
+        height: el.height ?? null,
         z_index: el.z_index ?? idx + 1,
         visible: (el as EditorElement).visible === false ? false : true,
         locked: (el as EditorElement).locked === true,

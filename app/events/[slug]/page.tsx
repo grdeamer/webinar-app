@@ -17,6 +17,7 @@ import { getEventUserOrNull } from "@/lib/eventAuth"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { parseSpeakerCards } from "@/lib/eventExperience"
 import { createDefaultEventHomeSections } from "@/lib/page-editor/sectionRegistry"
+import { normalizeEventPageElements } from "@/lib/page-editor/elements"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDestination"
 import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
@@ -377,7 +378,7 @@ export default async function EventHomePage(props: {
 
     supabaseAdmin
       .from("event_page_sections")
-      .select("sections")
+      .select("sections, elements")
       .eq("event_id", event.id)
       .eq("page_key", "event_home")
       .maybeSingle(),
@@ -393,6 +394,7 @@ export default async function EventHomePage(props: {
   const sessions = normalizeSessionRows(webinarRows)
   const breakouts = normalizeBreakoutRows(breakoutRows)
   const savedSections = normalizeSections(pageRow?.sections)
+  const savedElements = normalizeEventPageElements(pageRow?.elements)
   const eventTheme = normalizeTheme(themeRow?.event_theme)
 
   const liveDestination = await getEventLiveDestination(slug, event.id, viewer)
@@ -613,7 +615,7 @@ export default async function EventHomePage(props: {
           title: displayEventTitle,
           description: event.description,
         }}
-        elements={[]}
+        elements={savedElements}
         sections={resolvedSections}
         systemComponents={systemComponents}
         eventTheme={eventTheme ?? undefined}

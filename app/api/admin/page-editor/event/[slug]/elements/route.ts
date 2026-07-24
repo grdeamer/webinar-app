@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { normalizeEventPageElements } from "@/lib/page-editor/elements"
 import type { EventTheme } from "@/lib/page-editor/sectionTypes"
 
 export const runtime = "nodejs"
@@ -80,7 +81,7 @@ export async function GET(
 
   const { data: pageRow, error: pageError } = await supabaseAdmin
     .from("event_page_sections")
-    .select("sections")
+    .select("sections, elements")
     .eq("event_id", event.id)
     .eq("page_key", pageKey)
     .maybeSingle()
@@ -94,7 +95,7 @@ export async function GET(
     event_slug: event.slug,
     pageKey,
     eventTheme: normalizeTheme(event.event_theme),
-    elements: [],
+    elements: normalizeEventPageElements(pageRow?.elements),
     sections: normalizeSections(pageRow?.sections),
   })
 }
@@ -108,6 +109,8 @@ export async function POST(
   const body = await req.json().catch((_: unknown): null => null)
 
   const sections = normalizeSections(body?.sections)
+  const hasElements = Array.isArray(body?.elements)
+  const elements = normalizeEventPageElements(body?.elements)
   const eventTheme = normalizeTheme(body?.eventTheme)
 
   const { data: event, error: eventError } = await getEventBySlugOrId(slug)
@@ -122,6 +125,7 @@ export async function POST(
     event_id: event.id,
     page_key: pageKey,
     sections,
+    ...(hasElements ? { elements } : {}),
     updated_at: timestamp,
   }
 
@@ -130,7 +134,7 @@ export async function POST(
     .upsert(payload, {
       onConflict: "event_id,page_key",
     })
-    .select("sections")
+    .select("sections, elements")
     .single()
 
   if (saveError) {
@@ -155,7 +159,7 @@ export async function POST(
     event_slug: event.slug,
     pageKey,
     eventTheme,
-    elements: [],
+    elements: normalizeEventPageElements(savedRow?.elements),
     sections: normalizeSections(savedRow?.sections),
   })
 }
