@@ -4,6 +4,7 @@ import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
 import {
   calculateAlignmentGuides,
+  getCanvasAndSectionAlignmentTargets,
   type AlignmentGuides,
 } from "./alignmentGuides"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
@@ -883,6 +884,9 @@ const res = await fetch(
 
     const proposedX = snapToGrid(Math.max(0, e.clientX - offsetX))
     const proposedY = snapToGrid(Math.max(0, e.clientY - offsetY))
+    const canvasAndSectionTargets = canvasRef.current
+      ? getCanvasAndSectionAlignmentTargets(canvasRef.current)
+      : []
     const alignment = calculateAlignmentGuides({
       dragged: {
         id,
@@ -891,19 +895,22 @@ const res = await fetch(
         width: currentEl.width ?? 0,
         height: currentEl.height ?? 0,
       },
-      targets: elements
-        .filter((element) => (element as EditorElement).visible !== false)
-        .filter(
-          (element) =>
-            !(isMobilePreview && Boolean(element.props?.hideOnMobile))
-        )
-        .map((element) => ({
-          id: element.id,
-          x: element.x,
-          y: element.y,
-          width: element.width ?? 0,
-          height: element.height ?? 0,
-        })),
+      targets: [
+        ...elements
+          .filter((element) => (element as EditorElement).visible !== false)
+          .filter(
+            (element) =>
+              !(isMobilePreview && Boolean(element.props?.hideOnMobile))
+          )
+          .map((element) => ({
+            id: element.id,
+            x: element.x,
+            y: element.y,
+            width: element.width ?? 0,
+            height: element.height ?? 0,
+          })),
+        ...canvasAndSectionTargets,
+      ],
     })
 
     setAlignmentGuides(alignment.guides)

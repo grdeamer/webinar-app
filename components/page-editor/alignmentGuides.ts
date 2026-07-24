@@ -6,6 +6,13 @@ export type AlignableRect = {
   height: number
 }
 
+export type AlignmentAnchor = "start" | "center" | "end"
+
+export type AlignmentTarget = AlignableRect & {
+  xAnchors?: readonly AlignmentAnchor[]
+  yAnchors?: readonly AlignmentAnchor[]
+}
+
 export type AlignmentGuides = {
   vertical: number[]
   horizontal: number[]
@@ -24,6 +31,46 @@ type AlignmentCandidate = {
 
 const DEFAULT_ALIGNMENT_THRESHOLD = 8
 const ALIGNMENT_EPSILON = 0.001
+const AXIS_ANCHORS = ["start", "center", "end"] as const
+
+export function getCanvasAndSectionAlignmentTargets(
+  canvas: HTMLDivElement
+): AlignmentTarget[] {
+  const canvasRect = canvas.getBoundingClientRect()
+  const scaleX = canvas.offsetWidth > 0 ? canvasRect.width / canvas.offsetWidth : 1
+  const scaleY = canvas.offsetHeight > 0 ? canvasRect.height / canvas.offsetHeight : 1
+  const canvasContentLeft = canvasRect.left + canvas.clientLeft * scaleX
+  const canvasContentTop = canvasRect.top + canvas.clientTop * scaleY
+
+  const sectionTargets = Array.from(
+    canvas.querySelectorAll<HTMLElement>('[data-editor-section="true"]')
+  ).map((section, index): AlignmentTarget => {
+    const sectionRect = section.getBoundingClientRect()
+
+    return {
+      id: `__alignment-section-target-${index}__`,
+      x: (sectionRect.left - canvasContentLeft) / scaleX,
+      y: (sectionRect.top - canvasContentTop) / scaleY,
+      width: sectionRect.width / scaleX,
+      height: sectionRect.height / scaleY,
+      xAnchors: ["start", "end"],
+      yAnchors: ["start", "end"],
+    }
+  })
+
+  return [
+    {
+      id: "__alignment-canvas-target__",
+      x: 0,
+      y: 0,
+      width: canvas.clientWidth,
+      height: canvas.clientHeight,
+      xAnchors: ["center"],
+      yAnchors: ["center"],
+    },
+    ...sectionTargets,
+  ]
+}
 
 function getAxisAnchors(start: number, size: number) {
   return [start, start + size / 2, start + size] as const
@@ -32,7 +79,11 @@ function getAxisAnchors(start: number, size: number) {
 function getAxisSnap(
   proposedStart: number,
   draggedSize: number,
-  targetAxes: Array<{ start: number; size: number }>,
+  targetAxes: Array<{
+    start: number
+    size: number
+    anchors?: readonly AlignmentAnchor[]
+  }>,
   threshold: number
 ) {
   const draggedAnchors = getAxisAnchors(proposedStart, draggedSize)
@@ -42,6 +93,13 @@ function getAxisSnap(
     const targetAnchors = getAxisAnchors(targetAxis.start, targetAxis.size)
 
     for (let anchorIndex = 0; anchorIndex < draggedAnchors.length; anchorIndex += 1) {
+      if (
+        targetAxis.anchors &&
+        !targetAxis.anchors.includes(AXIS_ANCHORS[anchorIndex])
+      ) {
+        continue
+      }
+
       const delta = targetAnchors[anchorIndex] - draggedAnchors[anchorIndex]
 
       if (Math.abs(delta) > threshold || proposedStart + delta < 0) continue
@@ -91,7 +149,7 @@ export function calculateAlignmentGuides({
   threshold = DEFAULT_ALIGNMENT_THRESHOLD,
 }: {
   dragged: AlignableRect
-  targets: AlignableRect[]
+  targets: AlignmentTarget[]
   threshold?: number
 }): AlignmentGuideResult {
   const availableTargets = targets.filter((target) => target.id !== dragged.id)
@@ -102,6 +160,7 @@ export function calculateAlignmentGuides({
     availableTargets.map((target) => ({
       start: target.x,
       size: target.width,
+      anchors: target.xAnchors,
     })),
     threshold
   )
@@ -112,6 +171,7 @@ export function calculateAlignmentGuides({
     availableTargets.map((target) => ({
       start: target.y,
       size: target.height,
+      anchors: target.yAnchors,
     })),
     threshold
   )
