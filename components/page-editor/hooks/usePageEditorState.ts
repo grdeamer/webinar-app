@@ -1,4 +1,11 @@
-import { useCallback, useMemo, useState } from "react"
+import {
+  useCallback,
+  useMemo,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react"
 
 import { SYSTEM_COMPONENTS } from "@/lib/page-editor/systemComponentRegistry"
 import {
@@ -23,6 +30,8 @@ export type EditorElement = {
   width?: number | null
   height?: number | null
   z_index?: number
+  visible?: boolean
+  locked?: boolean
   props?: Record<string, unknown>
 }
 
@@ -41,6 +50,19 @@ type UsePageEditorStateParams = {
   }
 }
 
+export type PageEditorDocumentSnapshot = {
+  sections: EventPageSection[]
+  elements: EditorElement[]
+  eventTheme: EventTheme
+}
+
+type PageEditorHistory = {
+  snapshots: PageEditorDocumentSnapshot[]
+  index: number
+}
+
+const MAX_HISTORY_SNAPSHOTS = 40
+
 const DEFAULT_EVENT_THEME: EventTheme = {
   pageBackgroundColor: "#020617",
   panelBackgroundColor: "#0f172a",
@@ -49,6 +71,19 @@ const DEFAULT_EVENT_THEME: EventTheme = {
   gradientColorA: "#0f172a",
   gradientColorB: "#1d4ed8",
   gradientAngle: "135deg",
+}
+
+function cloneDocumentSnapshot(
+  snapshot: PageEditorDocumentSnapshot,
+): PageEditorDocumentSnapshot {
+  return structuredClone(snapshot)
+}
+
+function areDocumentSnapshotsEqual(
+  first: PageEditorDocumentSnapshot,
+  second: PageEditorDocumentSnapshot,
+): boolean {
+  return JSON.stringify(first) === JSON.stringify(second)
 }
 
 function toTitleCase(value: string): string {
@@ -210,20 +245,225 @@ export default function usePageEditorState({
       }
     >
   >({})
-  const [elements, setElements] = useState<EditorElement[]>([])
-  const [sections, setSections] = useState<EventPageSection[]>(() =>
+  const [elements, setElementsState] = useState<EditorElement[]>([])
+  const [sections, setSectionsState] = useState<EventPageSection[]>(() =>
     getDefaultSections(initialPageKey, eventInfo),
   )
-  const [eventTheme, setEventTheme] = useState<EventTheme>(DEFAULT_EVENT_THEME)
+  const [eventTheme, setEventThemeState] = useState<EventTheme>(DEFAULT_EVENT_THEME)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
-  const [historyIndex, setHistoryIndex] = useState(0)
-  const [historySnapshots, setHistorySnapshots] = useState<
-    Array<{
-      sections: EventPageSection[]
-      elements: EditorElement[]
-      eventTheme: EventTheme
-    }>
-  >([])
+  const [historiesByPage, setHistoriesByPage] = useState<
+    Record<string, PageEditorHistory>
+  >({})
+  const selectedPageKeyRef = useRef(selectedPageKey)
+  const sectionsRef = useRef(sections)
+  const elementsRef = useRef(elements)
+  const eventThemeRef = useRef(eventTheme)
+  const historiesByPageRef = useRef(historiesByPage)
+  const activeTransactionRef = useRef<{
+    pageKey: string
+    before: PageEditorDocumentSnapshot
+  } | null>(null)
+
+  selectedPageKeyRef.current = selectedPageKey
+  sectionsRef.current = sections
+  elementsRef.current = elements
+  eventThemeRef.current = eventTheme
+  historiesByPageRef.current = historiesByPage
+
+  const getCurrentDocumentSnapshot = useCallback(
+    (): PageEditorDocumentSnapshot => ({
+      sections: sectionsRef.current,
+      elements: elementsRef.current,
+      eventTheme: eventThemeRef.current,
+    }),
+    [],
+  )
+
+  const updateHistoriesByPage = useCallback(
+    (
+      updater: (
+        current: Record<string, PageEditorHistory>,
+      ) => Record<string, PageEditorHistory>,
+    ): void => {
+      setHistoriesByPage((current) => {
+        const next = updater(current)
+        historiesByPageRef.current = next
+        return next
+      })
+    },
+    [],
+  )
+
+  const recordDocumentChange = useCallback(
+    (
+      before: PageEditorDocumentSnapshot,
+      after: PageEditorDocumentSnapshot,
+    ): void => {
+      if (areDocumentSnapshotsEqual(before, after)) return
+
+      setHasUnsavedChanges(true)
+
+      const pageKey = selectedPageKeyRef.current
+      const activeTransaction = activeTransactionRef.current
+
+      if (activeTransaction?.pageKey === pageKey) {
+        return
+      }
+
+      updateHistoriesByPage((current) => {
+        const existing = current[pageKey]
+        let snapshots = existing
+          ? existing.snapshots.slice(0, existing.index + 1)
+          : [cloneDocumentSnapshot(before)]
+
+        const latestSnapshot = snapshots[snapshots.length - 1]
+        if (
+          latestSnapshot &&
+          !areDocumentSnapshotsEqual(latestSnapshot, before)
+        ) {
+          snapshots = [...snapshots, cloneDocumentSnapshot(before)]
+        }
+
+        snapshots = [...snapshots, cloneDocumentSnapshot(after)]
+
+        if (snapshots.length > MAX_HISTORY_SNAPSHOTS) {
+          snapshots = snapshots.slice(-MAX_HISTORY_SNAPSHOTS)
+        }
+
+        return {
+          ...current,
+          [pageKey]: {
+            snapshots,
+            index: snapshots.length - 1,
+          },
+        }
+      })
+    },
+    [updateHistoriesByPage],
+  )
+
+  const setElements = useCallback<Dispatch<SetStateAction<EditorElement[]>>>(
+    (nextState) => {
+      const before = getCurrentDocumentSnapshot()
+      const nextElements =
+        typeof nextState === "function"
+          ? nextState(elementsRef.current)
+          : nextState
+
+      elementsRef.current = nextElements
+      setElementsState(nextElements)
+      recordDocumentChange(before, {
+        ...before,
+        elements: nextElements,
+      })
+    },
+    [getCurrentDocumentSnapshot, recordDocumentChange],
+  )
+
+  const setSections = useCallback<
+    Dispatch<SetStateAction<EventPageSection[]>>
+  >(
+    (nextState) => {
+      const before = getCurrentDocumentSnapshot()
+      const nextSections =
+        typeof nextState === "function"
+          ? nextState(sectionsRef.current)
+          : nextState
+
+      sectionsRef.current = nextSections
+      setSectionsState(nextSections)
+      recordDocumentChange(before, {
+        ...before,
+        sections: nextSections,
+      })
+    },
+    [getCurrentDocumentSnapshot, recordDocumentChange],
+  )
+
+  const setEventTheme = useCallback<Dispatch<SetStateAction<EventTheme>>>(
+    (nextState) => {
+      const before = getCurrentDocumentSnapshot()
+      const nextEventTheme =
+        typeof nextState === "function"
+          ? nextState(eventThemeRef.current)
+          : nextState
+
+      eventThemeRef.current = nextEventTheme
+      setEventThemeState(nextEventTheme)
+      recordDocumentChange(before, {
+        ...before,
+        eventTheme: nextEventTheme,
+      })
+    },
+    [getCurrentDocumentSnapshot, recordDocumentChange],
+  )
+
+  const beginTransaction = useCallback((): void => {
+    if (activeTransactionRef.current) return
+
+    activeTransactionRef.current = {
+      pageKey: selectedPageKeyRef.current,
+      before: cloneDocumentSnapshot(getCurrentDocumentSnapshot()),
+    }
+  }, [getCurrentDocumentSnapshot])
+
+  const commitTransaction = useCallback((): void => {
+    const activeTransaction = activeTransactionRef.current
+    activeTransactionRef.current = null
+
+    if (!activeTransaction) return
+    if (activeTransaction.pageKey !== selectedPageKeyRef.current) return
+
+    recordDocumentChange(
+      activeTransaction.before,
+      getCurrentDocumentSnapshot(),
+    )
+  }, [getCurrentDocumentSnapshot, recordDocumentChange])
+
+  const runTransaction = useCallback(
+    (mutation: () => void): void => {
+      const ownsTransaction = activeTransactionRef.current === null
+      if (ownsTransaction) beginTransaction()
+
+      try {
+        mutation()
+      } finally {
+        if (ownsTransaction) commitTransaction()
+      }
+    },
+    [beginTransaction, commitTransaction],
+  )
+
+  const resetHistory = useCallback(
+    (pageKey: string, baseline: PageEditorDocumentSnapshot): void => {
+      const snapshot = cloneDocumentSnapshot(baseline)
+
+      updateHistoriesByPage((current) => ({
+        ...current,
+        [pageKey]: {
+          snapshots: [cloneDocumentSnapshot(snapshot)],
+          index: 0,
+        },
+      }))
+
+      if (selectedPageKeyRef.current !== pageKey) return
+
+      activeTransactionRef.current = null
+      sectionsRef.current = snapshot.sections
+      elementsRef.current = snapshot.elements
+      eventThemeRef.current = snapshot.eventTheme
+      setSectionsState(snapshot.sections)
+      setElementsState(snapshot.elements)
+      setEventThemeState(snapshot.eventTheme)
+      setSelectedId(null)
+      setSelectedIds([])
+      setSelectedSectionId(null)
+      setSelectedBlockId(null)
+      setEditingElementId(null)
+      setHasUnsavedChanges(false)
+    },
+    [updateHistoriesByPage],
+  )
 
   const selectedElement = useMemo(() => {
     if (!selectedId) return null
@@ -579,93 +819,98 @@ export default function usePageEditorState({
     },
     [selectedBlockId],
   )
-  const createHistorySnapshot = useCallback((): void => {
-    setHistorySnapshots((current) => {
-      const nextSnapshot = {
-        sections,
-        elements,
-        eventTheme,
-      }
-
-      const trimmed = current.slice(0, historyIndex + 1)
-
-      return [...trimmed, nextSnapshot].slice(-40)
-    })
-
-    setHistoryIndex((current) => Math.min(current + 1, 39))
-  }, [elements, eventTheme, historyIndex, sections])
-
   const restoreHistorySnapshot = useCallback(
     (direction: "undo" | "redo"): void => {
-      setHistorySnapshots((currentSnapshots) => {
-        if (currentSnapshots.length === 0) {
-          return currentSnapshots
+      const pageKey = selectedPageKeyRef.current
+      const history = historiesByPageRef.current[pageKey]
+      if (!history) return
+
+      const nextIndex =
+        direction === "undo"
+          ? history.index - 1
+          : history.index + 1
+      const snapshot = history.snapshots[nextIndex]
+      if (!snapshot) return
+
+      const restoredSnapshot = cloneDocumentSnapshot(snapshot)
+      activeTransactionRef.current = null
+      sectionsRef.current = restoredSnapshot.sections
+      elementsRef.current = restoredSnapshot.elements
+      eventThemeRef.current = restoredSnapshot.eventTheme
+      setSectionsState(restoredSnapshot.sections)
+      setElementsState(restoredSnapshot.elements)
+      setEventThemeState(restoredSnapshot.eventTheme)
+      clearSelection()
+      setHasUnsavedChanges(true)
+
+      updateHistoriesByPage((current) => {
+        const currentHistory = current[pageKey]
+        if (!currentHistory) return current
+
+        return {
+          ...current,
+          [pageKey]: {
+            ...currentHistory,
+            index: nextIndex,
+          },
         }
-
-        const nextIndex =
-          direction === "undo"
-            ? Math.max(0, historyIndex - 1)
-            : Math.min(currentSnapshots.length - 1, historyIndex + 1)
-
-        const snapshot = currentSnapshots[nextIndex]
-
-        if (!snapshot) {
-          return currentSnapshots
-        }
-
-        setSections(snapshot.sections)
-        setElements(snapshot.elements)
-        setEventTheme(snapshot.eventTheme)
-        setHasUnsavedChanges(true)
-        setHistoryIndex(nextIndex)
-
-        return currentSnapshots
       })
     },
-    [historyIndex],
+    [clearSelection, updateHistoriesByPage],
   )
 
   const switchPageState = useCallback(
     (pageKey: string): void => {
-      setPageStates((current) => {
-        const existingPageState = current[pageKey]
+      if (pageKey === selectedPageKeyRef.current) return
 
-        if (existingPageState) {
-          setSections(existingPageState.sections)
-          setElements(existingPageState.elements)
-          setEventTheme(existingPageState.eventTheme)
-        } else {
-          setSections(getDefaultSections(pageKey, eventInfo))
-          setElements([])
-          setEventTheme(DEFAULT_EVENT_THEME)
-        }
+      const currentPageKey = selectedPageKeyRef.current
+      const currentSnapshot = cloneDocumentSnapshot(
+        getCurrentDocumentSnapshot(),
+      )
+      const existingPageState = pageStates[pageKey]
+      const nextSections = existingPageState
+        ? structuredClone(existingPageState.sections)
+        : getDefaultSections(pageKey, eventInfo)
+      const nextElements = existingPageState
+        ? structuredClone(existingPageState.elements)
+        : []
 
-        return {
-          ...current,
-          [selectedPageKey]: {
-            sections,
-            elements,
-            eventTheme,
-          },
-        }
-      })
+      setPageStates((current) => ({
+        ...current,
+        [currentPageKey]: currentSnapshot,
+      }))
 
+      activeTransactionRef.current = null
+      selectedPageKeyRef.current = pageKey
+      sectionsRef.current = nextSections
+      elementsRef.current = nextElements
+      setSectionsState(nextSections)
+      setElementsState(nextElements)
       clearSelection()
       setSelectedPageKey(pageKey)
       setHasUnsavedChanges(false)
+
+      updateHistoriesByPage((current) => {
+        const next = { ...current }
+        delete next[pageKey]
+        return next
+      })
     },
     [
       clearSelection,
-      elements,
       eventInfo,
-      eventTheme,
-      sections,
-      selectedPageKey,
+      getCurrentDocumentSnapshot,
+      pageStates,
+      updateHistoriesByPage,
     ],
   )
   const markSaved = useCallback((): void => {
     setHasUnsavedChanges(false)
   }, [])
+
+  const currentHistory = historiesByPage[selectedPageKey]
+  const historySnapshots = currentHistory?.snapshots ?? []
+  const historyIndex = currentHistory?.index ?? 0
 
   return {
     elements,
@@ -711,9 +956,12 @@ export default function usePageEditorState({
     removeBlockFromSection,
     historyIndex,
     historySnapshots,
-    canUndo: historySnapshots.length > 0 && historyIndex > 0,
-    canRedo: historySnapshots.length > 0 && historyIndex < historySnapshots.length - 1,
-    createHistorySnapshot,
+    canUndo: historyIndex > 0,
+    canRedo: historyIndex < historySnapshots.length - 1,
+    beginTransaction,
+    commitTransaction,
+    runTransaction,
+    resetHistory,
     restoreHistorySnapshot,
     markSaved,
   }

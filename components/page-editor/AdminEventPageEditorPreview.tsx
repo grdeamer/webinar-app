@@ -589,7 +589,10 @@ const isEmbedded =
     clearSelection,
     canUndo,
     canRedo,
-    createHistorySnapshot,
+    beginTransaction,
+    commitTransaction,
+    runTransaction,
+    resetHistory,
     restoreHistorySnapshot,
     updateElement,
     updateElementProps,
@@ -648,23 +651,29 @@ const isEmbedded =
   } | null>(null)
 
   useEffect(() => {
+    let cancelled = false
+
     async function loadElements() {
+      const pageKey = selectedPageKey
       setLoading(true)
       setSaveMessage(null)
 
 const res = await fetch(
-  `/api/admin/page-editor/event/${slug}/elements?pageKey=${selectedPageKey}`,
+  `/api/admin/page-editor/event/${slug}/elements?pageKey=${pageKey}`,
   {
     cache: "no-store",
   }
 )
 
       const data: any = await res.json().catch((): null => null)
+      if (cancelled) return
 
       if (!res.ok) {
-        setElements(getFallbackElements())
-        setSections(normalizeSections(getDefaultSections(selectedPageKey, eventInfo)))
-        setHasUnsavedChanges(false)
+        resetHistory(pageKey, {
+          elements: getFallbackElements(),
+          sections: normalizeSections(getDefaultSections(pageKey, eventInfo)),
+          eventTheme,
+        })
         setLoading(false)
         return
       }
@@ -674,26 +683,27 @@ const res = await fetch(
         : null
       const loadedSections = Array.isArray(data?.sections) ? data.sections : []
       const loadedTheme =
-  data?.eventTheme && typeof data.eventTheme === "object" ? data.eventTheme : null
+        data?.eventTheme && typeof data.eventTheme === "object"
+          ? (data.eventTheme as EventTheme)
+          : eventTheme
 
-      if (rows === null) {
-        setElements(getFallbackElements())
-      } else {
-        setElements(rows)
-      }
-
-      if (loadedSections.length > 0) {
-        setSections(normalizeSections(loadedSections))
-      } else {
-        setSections(normalizeSections(getDefaultSections(selectedPageKey, eventInfo)))
-      }
-
-      setHasUnsavedChanges(false)
+      resetHistory(pageKey, {
+        elements: rows === null ? getFallbackElements() : rows,
+        sections:
+          loadedSections.length > 0
+            ? normalizeSections(loadedSections)
+            : normalizeSections(getDefaultSections(pageKey, eventInfo)),
+        eventTheme: loadedTheme,
+      })
       setLoading(false)
     }
 
     void loadElements()
-}, [slug, selectedPageKey])
+
+    return () => {
+      cancelled = true
+    }
+}, [resetHistory, slug, selectedPageKey])
 
   useEffect(() => {
     async function loadTemplates() {
@@ -756,13 +766,28 @@ const res = await fetch(
     function onKeyDown(e: KeyboardEvent) {
       const target = e.target as HTMLElement | null
       const tag = target?.tagName?.toLowerCase()
-      const isTyping = tag === "input" || tag === "textarea" || target?.isContentEditable
+      const isTyping =
+        tag === "input" ||
+        tag === "textarea" ||
+        tag === "select" ||
+        target?.isContentEditable ||
+        Boolean(
+          target?.closest(
+            "input, textarea, select, [contenteditable='true'], [role='textbox']"
+          )
+        )
 
       if (isTyping) return
       if (!isEditing) return
 
       const commandKey = e.metaKey || e.ctrlKey
       const key = e.key.toLowerCase()
+
+      if (commandKey && key === "z") {
+        e.preventDefault()
+        restoreHistorySnapshot(e.shiftKey ? "redo" : "undo")
+        return
+      }
 
       if (commandKey && key === "d") {
         e.preventDefault()
@@ -827,7 +852,14 @@ const res = await fetch(
 
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
-  }, [clearSelection, elements, isEditing, selectedId, selectedIds])
+  }, [
+    clearSelection,
+    elements,
+    isEditing,
+    restoreHistorySnapshot,
+    selectedId,
+    selectedIds,
+  ])
 
   function startDrag(
     e: React.PointerEvent<HTMLDivElement>,
@@ -842,6 +874,7 @@ const res = await fetch(
     if ((e.target as HTMLElement).dataset.resizeHandle === "true") return
     if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
 
+    beginTransaction()
     setAlignmentGuides({ vertical: [], horizontal: [], distances: [] })
     dragRef.current = {
       id,
@@ -862,6 +895,7 @@ const res = await fetch(
     if (editingElementId === id) return
     e.stopPropagation()
 
+    beginTransaction()
     const groupId = targetElement ? getElementGroupId(targetElement) : null
     const groupMembers = groupId
       ? elements.filter((element) => getElementGroupId(element) === groupId)
@@ -1017,6 +1051,7 @@ const res = await fetch(
   }
 
   function stopInteractions() {
+    commitTransaction()
     dragRef.current = null
     groupDragRef.current = null
     resizeRef.current = null
@@ -1148,10 +1183,6 @@ const res = await fetch(
 
     setSaveMessage(isAutoSave ? "Auto-saved" : "Saved")
     setHasUnsavedChanges(false)
-
-    if (!isAutoSave) {
-      createHistorySnapshot()
-    }
 
     if (isAutoSave) {
       window.setTimeout(() => {
@@ -2204,15 +2235,16 @@ const selectedExperienceNode = experienceNodes.find(
             const template = templates.find((item) => item.id === templateId)
             if (!template) return
 
-            setSections(
-              normalizeSections(
-                Array.isArray(template.sections_json) ? template.sections_json : []
+            runTransaction(() => {
+              setSections(
+                normalizeSections(
+                  Array.isArray(template.sections_json) ? template.sections_json : []
+                )
               )
-            )
-            setElements(
-              Array.isArray(template.elements_json) ? template.elements_json : []
-            )
-            setHasUnsavedChanges(true)
+              setElements(
+                Array.isArray(template.elements_json) ? template.elements_json : []
+              )
+            })
           }}
           onUndo={() => restoreHistorySnapshot("undo")}
           onRedo={() => restoreHistorySnapshot("redo")}
@@ -2368,6 +2400,7 @@ const selectedExperienceNode = experienceNodes.find(
 
                       canvasRef.current?.releasePointerCapture?.(e.pointerId)
                     }}
+                    onPointerCancel={stopInteractions}
                     onPointerLeave={() => {
                       stopInteractions()
 
@@ -2623,6 +2656,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 activeIds.length > 1 &&
                                 (groupMemberIds.length > 1 || isAlreadySelected)
                               ) {
+                                beginTransaction()
                                 const startPositions: Record<string, { x: number; y: number }> = {}
 
                                 elements.forEach((item) => {
