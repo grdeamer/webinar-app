@@ -1,7 +1,7 @@
 "use client"
 
 import { useParams, usePathname, useSearchParams } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import {
   calculateAlignmentGuides,
   getCanvasAndSectionAlignmentTargets,
@@ -23,6 +23,7 @@ import {
 import { DEFAULT_ELEMENT_ANIMATION } from "./elementAnimation"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
+import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import PageEditorToolbar from "./PageEditorToolbar"
 import { createSystemComponentPreviewRegistry } from "./SystemComponentPreviewRegistry"
@@ -582,9 +583,7 @@ const isEmbedded =
     editingElementId,
     setEditingElementId,
     selectedPageKey,
-    setSelectedPageKey,
     switchPageState,
-    hasUnsavedChanges,
     setHasUnsavedChanges,
     clearSelection,
     canUndo,
@@ -594,6 +593,8 @@ const isEmbedded =
     runTransaction,
     resetHistory,
     restoreHistorySnapshot,
+    documentRevision,
+    getDocumentRevision,
     updateElement,
     updateElementProps,
     updateSectionConfig,
@@ -610,6 +611,36 @@ const isEmbedded =
     initialPageKey: "event_home",
     eventInfo,
   })
+  const {
+    activePageSaveState,
+    activePageIsDirty,
+    registerLoadedPage,
+    scheduleSave,
+    saveNow,
+    flushLatestPage,
+  } = usePageEditorAutosave({
+    slug,
+    activePageKey: selectedPageKey,
+    activeRevision: documentRevision,
+  })
+  const flushCurrentPage = useCallback(async (): Promise<boolean> => {
+    const saved = await saveNow(selectedPageKey, documentRevision, {
+      elements,
+      sections,
+      eventTheme,
+    })
+    if (!saved) return false
+
+    return flushLatestPage(selectedPageKey)
+  }, [
+    documentRevision,
+    elements,
+    eventTheme,
+    flushLatestPage,
+    saveNow,
+    sections,
+    selectedPageKey,
+  ])
 
   const [selectionBox, setSelectionBox] = useState<{
     startX: number
@@ -640,6 +671,12 @@ const isEmbedded =
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
   const isDraggingRef = useRef(false)
+  const loadRequestIdRef = useRef(0)
+  const eventInfoRef = useRef(eventInfo)
+  const eventThemeRef = useRef(eventTheme)
+
+  eventInfoRef.current = eventInfo
+  eventThemeRef.current = eventTheme
 
   const resizeRef = useRef<{
     id: string
@@ -651,59 +688,101 @@ const isEmbedded =
   } | null>(null)
 
   useEffect(() => {
-    let cancelled = false
+    const requestId = loadRequestIdRef.current + 1
+    loadRequestIdRef.current = requestId
+    const abortController = new AbortController()
 
     async function loadElements() {
       const pageKey = selectedPageKey
       setLoading(true)
       setSaveMessage(null)
 
-const res = await fetch(
-  `/api/admin/page-editor/event/${slug}/elements?pageKey=${pageKey}`,
-  {
-    cache: "no-store",
-  }
-)
+      try {
+        const res = await fetch(
+          `/api/admin/page-editor/event/${slug}/elements?pageKey=${encodeURIComponent(pageKey)}`,
+          {
+            cache: "no-store",
+            signal: abortController.signal,
+          },
+        )
+        const data = (await res.json().catch((): null => null)) as {
+          elements?: unknown
+          sections?: unknown
+          eventTheme?: unknown
+        } | null
+        if (requestId !== loadRequestIdRef.current) return
 
-      const data: any = await res.json().catch((): null => null)
-      if (cancelled) return
+        const snapshot = !res.ok
+          ? {
+              elements: getFallbackElements(),
+              sections: normalizeSections(
+                getDefaultSections(pageKey, eventInfoRef.current),
+              ),
+              eventTheme: eventThemeRef.current,
+            }
+          : {
+              elements: Array.isArray(data?.elements)
+                ? normalizeEventPageElements(data.elements)
+                : getFallbackElements(),
+              sections:
+                Array.isArray(data?.sections) && data.sections.length > 0
+                  ? normalizeSections(data.sections)
+                  : normalizeSections(
+                      getDefaultSections(pageKey, eventInfoRef.current),
+                    ),
+              eventTheme:
+                data?.eventTheme && typeof data.eventTheme === "object"
+                  ? (data.eventTheme as EventTheme)
+                  : eventThemeRef.current,
+            }
 
-      if (!res.ok) {
-        resetHistory(pageKey, {
+        resetHistory(pageKey, snapshot)
+        registerLoadedPage(
+          pageKey,
+          getDocumentRevision(pageKey),
+          snapshot,
+        )
+      } catch (error) {
+        if (
+          abortController.signal.aborted ||
+          requestId !== loadRequestIdRef.current
+        ) {
+          return
+        }
+
+        const snapshot = {
           elements: getFallbackElements(),
-          sections: normalizeSections(getDefaultSections(pageKey, eventInfo)),
-          eventTheme,
-        })
-        setLoading(false)
-        return
+          sections: normalizeSections(
+            getDefaultSections(pageKey, eventInfoRef.current),
+          ),
+          eventTheme: eventThemeRef.current,
+        }
+        resetHistory(pageKey, snapshot)
+        registerLoadedPage(
+          pageKey,
+          getDocumentRevision(pageKey),
+          snapshot,
+        )
+        console.error("Failed to load page editor data", error)
+      } finally {
+        if (requestId === loadRequestIdRef.current) {
+          setLoading(false)
+        }
       }
-
-      const rows = Array.isArray(data?.elements)
-        ? normalizeEventPageElements(data.elements)
-        : null
-      const loadedSections = Array.isArray(data?.sections) ? data.sections : []
-      const loadedTheme =
-        data?.eventTheme && typeof data.eventTheme === "object"
-          ? (data.eventTheme as EventTheme)
-          : eventTheme
-
-      resetHistory(pageKey, {
-        elements: rows === null ? getFallbackElements() : rows,
-        sections:
-          loadedSections.length > 0
-            ? normalizeSections(loadedSections)
-            : normalizeSections(getDefaultSections(pageKey, eventInfo)),
-        eventTheme: loadedTheme,
-      })
-      setLoading(false)
     }
 
     void loadElements()
 
     return () => {
-      cancelled = true
+      abortController.abort()
     }
-}, [resetHistory, slug, selectedPageKey])
+  }, [
+    getDocumentRevision,
+    registerLoadedPage,
+    resetHistory,
+    slug,
+    selectedPageKey,
+  ])
 
   useEffect(() => {
     async function loadTemplates() {
@@ -724,15 +803,21 @@ const res = await fetch(
 
   useEffect(() => {
     if (loading) return
-    if (!isEditing) return
-    if (!hasUnsavedChanges) return
 
-    const timeout = window.setTimeout(() => {
-      void saveLayout(true)
-    }, 1200)
-
-    return () => window.clearTimeout(timeout)
-  }, [elements, sections, isEditing, loading, hasUnsavedChanges])
+    scheduleSave(selectedPageKey, documentRevision, {
+      elements,
+      sections,
+      eventTheme,
+    })
+  }, [
+    documentRevision,
+    elements,
+    eventTheme,
+    loading,
+    scheduleSave,
+    sections,
+    selectedPageKey,
+  ])
 
   useEffect(() => {
     async function loadGeneralSession() {
@@ -1142,54 +1227,83 @@ const res = await fetch(
     return data
   }
 
-  async function saveLayout(isAutoSave = false) {
-    setSaveMessage(isAutoSave ? "Auto-saving..." : "Saving...")
-
-    const payload = [...elements]
-      .sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0))
-      .map((el, idx) => ({
-        id: el.id,
-        element_type: el.element_type ?? "text",
-        content: el.content,
-        x: el.x,
-        y: el.y,
-        width: el.width ?? null,
-        height: el.height ?? null,
-        z_index: el.z_index ?? idx + 1,
-        visible: (el as EditorElement).visible === false ? false : true,
-        locked: (el as EditorElement).locked === true,
-        props: el.props ?? {},
-      }))
-
-const res = await fetch(
-  `/api/admin/page-editor/event/${slug}/elements?pageKey=${selectedPageKey}`,
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      elements: payload,
-      sections,
-      eventTheme,
-    }),
+  async function saveLayout() {
+    await flushCurrentPage()
   }
-)
 
-    const data: any = await res.json().catch((): null => null)
+  async function selectPage(pageKey: string) {
+    if (pageKey === selectedPageKey) return
 
-    if (!res.ok) {
-      setSaveMessage(data?.error || "Failed to save")
-      return
+    const saved = await flushCurrentPage()
+    if (!saved) return
+
+    setLoading(true)
+    switchPageState(pageKey)
+  }
+
+  function toggleEditing() {
+    if (isEditing) {
+      void flushCurrentPage()
+    }
+    setIsEditing((value) => !value)
+  }
+
+  useEffect(() => {
+    if (!activePageIsDirty) return
+
+    let navigationInProgress = false
+
+    function handleNavigationClick(event: MouseEvent): void {
+      if (
+        navigationInProgress ||
+        event.defaultPrevented ||
+        event.button !== 0 ||
+        event.metaKey ||
+        event.ctrlKey ||
+        event.shiftKey ||
+        event.altKey
+      ) {
+        return
+      }
+
+      const target = event.target
+      if (!(target instanceof Element)) return
+
+      const anchor = target.closest<HTMLAnchorElement>("a[href]")
+      if (
+        !anchor ||
+        anchor.hasAttribute("download") ||
+        (anchor.target && anchor.target !== "_self") ||
+        anchor.closest("[data-experience-editor-canvas]")
+      ) {
+        return
+      }
+
+      const destination = new URL(anchor.href, window.location.href)
+      if (
+        destination.origin !== window.location.origin ||
+        destination.href === window.location.href
+      ) {
+        return
+      }
+
+      event.preventDefault()
+      navigationInProgress = true
+
+      void flushCurrentPage().then((saved) => {
+        if (saved) {
+          window.location.assign(destination.href)
+          return
+        }
+
+        navigationInProgress = false
+      })
     }
 
-    setSaveMessage(isAutoSave ? "Auto-saved" : "Saved")
-    setHasUnsavedChanges(false)
-
-    if (isAutoSave) {
-      window.setTimeout(() => {
-        setSaveMessage((current) => (current === "Auto-saved" ? null : current))
-      }, 1800)
-    }
-  }
+    document.addEventListener("click", handleNavigationClick, true)
+    return () =>
+      document.removeEventListener("click", handleNavigationClick, true)
+  }, [activePageIsDirty, flushCurrentPage])
 
 
   function commitInlineElementEdit(id: string, value: string) {
@@ -2213,6 +2327,17 @@ const selectedExperienceNode = experienceNodes.find(
     ? "w-full overflow-auto"
     : "w-full overflow-auto rounded-[26px]"
   const systemComponents = createSystemComponentPreviewRegistry({ sections })
+  const saveStatusMessage =
+    activePageSaveState.status === "saving"
+      ? "Saving..."
+      : activePageSaveState.status === "failed"
+        ? `Save failed: ${activePageSaveState.error ?? "Please try again"}`
+        : activePageIsDirty
+          ? "Unsaved changes"
+          : "Saved"
+  const inspectorSaveMessage = saveMessage
+    ? `${saveMessage} · ${saveStatusMessage}`
+    : saveStatusMessage
 
   return (
     <div className={EXPERIENCE_EDITOR_ROOT_CLASS}>
@@ -2230,7 +2355,9 @@ const selectedExperienceNode = experienceNodes.find(
           selectedElementCount={selectedElementCount}
           canGroupElements={canGroupElements}
           canUngroupElements={canUngroupElements}
-          onSelectPage={switchPageState}
+          onSelectPage={(pageKey) => {
+            void selectPage(pageKey)
+          }}
           onSelectTemplate={(templateId) => {
             const template = templates.find((item) => item.id === templateId)
             if (!template) return
@@ -2250,7 +2377,7 @@ const selectedExperienceNode = experienceNodes.find(
           onRedo={() => restoreHistorySnapshot("redo")}
           onChangeZoom={setCanvasZoom}
           onToggleMobilePreview={() => setIsMobilePreview((value) => !value)}
-          onToggleEditing={() => setIsEditing((value) => !value)}
+          onToggleEditing={toggleEditing}
           onAlignElements={executeElementAlignmentCommand}
           onGroupElements={groupSelectedElements}
           onUngroupElements={ungroupSelectedElements}
@@ -2258,7 +2385,10 @@ const selectedExperienceNode = experienceNodes.find(
       )}
 
             <div className="relative flex min-h-0 flex-1 overflow-hidden">
-                <div className="min-w-0 flex-1 overflow-auto overscroll-contain">
+                <div
+                  className="min-w-0 flex-1 overflow-auto overscroll-contain"
+                  data-experience-editor-canvas
+                >
           <div className={isEmbedded ? "w-full px-0 py-0" : "mx-auto max-w-7xl px-5 py-6"}>
             <div
               className={
@@ -3053,7 +3183,7 @@ const selectedExperienceNode = experienceNodes.find(
             rightRailTab,
             saveCurrentTemplate,
             saveLayout,
-            saveMessage,
+            saveMessage: inspectorSaveMessage,
             sections,
             sectionsListOpen,
             sectionTemplatesOpen,

@@ -251,6 +251,9 @@ export default function usePageEditorState({
   )
   const [eventTheme, setEventThemeState] = useState<EventTheme>(DEFAULT_EVENT_THEME)
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
+  const [documentRevisionsByPage, setDocumentRevisionsByPage] = useState<
+    Record<string, number>
+  >({})
   const [historiesByPage, setHistoriesByPage] = useState<
     Record<string, PageEditorHistory>
   >({})
@@ -258,6 +261,7 @@ export default function usePageEditorState({
   const sectionsRef = useRef(sections)
   const elementsRef = useRef(elements)
   const eventThemeRef = useRef(eventTheme)
+  const documentRevisionsByPageRef = useRef(documentRevisionsByPage)
   const historiesByPageRef = useRef(historiesByPage)
   const activeTransactionRef = useRef<{
     pageKey: string
@@ -268,6 +272,7 @@ export default function usePageEditorState({
   sectionsRef.current = sections
   elementsRef.current = elements
   eventThemeRef.current = eventTheme
+  documentRevisionsByPageRef.current = documentRevisionsByPage
   historiesByPageRef.current = historiesByPage
 
   const getCurrentDocumentSnapshot = useCallback(
@@ -294,6 +299,26 @@ export default function usePageEditorState({
     [],
   )
 
+  const advanceDocumentRevision = useCallback((pageKey: string): number => {
+    const nextRevision =
+      (documentRevisionsByPageRef.current[pageKey] ?? 0) + 1
+    const nextRevisions = {
+      ...documentRevisionsByPageRef.current,
+      [pageKey]: nextRevision,
+    }
+
+    documentRevisionsByPageRef.current = nextRevisions
+    setDocumentRevisionsByPage(nextRevisions)
+
+    return nextRevision
+  }, [])
+
+  const getDocumentRevision = useCallback(
+    (pageKey: string): number =>
+      documentRevisionsByPageRef.current[pageKey] ?? 0,
+    [],
+  )
+
   const recordDocumentChange = useCallback(
     (
       before: PageEditorDocumentSnapshot,
@@ -309,6 +334,8 @@ export default function usePageEditorState({
       if (activeTransaction?.pageKey === pageKey) {
         return
       }
+
+      advanceDocumentRevision(pageKey)
 
       updateHistoriesByPage((current) => {
         const existing = current[pageKey]
@@ -339,7 +366,7 @@ export default function usePageEditorState({
         }
       })
     },
-    [updateHistoriesByPage],
+    [advanceDocumentRevision, updateHistoriesByPage],
   )
 
   const setElements = useCallback<Dispatch<SetStateAction<EditorElement[]>>>(
@@ -842,6 +869,7 @@ export default function usePageEditorState({
       setEventThemeState(restoredSnapshot.eventTheme)
       clearSelection()
       setHasUnsavedChanges(true)
+      advanceDocumentRevision(pageKey)
 
       updateHistoriesByPage((current) => {
         const currentHistory = current[pageKey]
@@ -856,7 +884,7 @@ export default function usePageEditorState({
         }
       })
     },
-    [clearSelection, updateHistoriesByPage],
+    [advanceDocumentRevision, clearSelection, updateHistoriesByPage],
   )
 
   const switchPageState = useCallback(
@@ -956,6 +984,8 @@ export default function usePageEditorState({
     removeBlockFromSection,
     historyIndex,
     historySnapshots,
+    documentRevision: documentRevisionsByPage[selectedPageKey] ?? 0,
+    getDocumentRevision,
     canUndo: historyIndex > 0,
     canRedo: historyIndex < historySnapshots.length - 1,
     beginTransaction,
