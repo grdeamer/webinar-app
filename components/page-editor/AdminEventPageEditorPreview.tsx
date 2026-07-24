@@ -255,22 +255,6 @@ function normalizeSections(inputSections: any[]): EventPageSection[] {
   )
 }
 
-function getFallbackElements(): EditorElement[] {
-  return [
-    {
-      id: "1",
-      element_type: "text",
-      content: "Sample Text Block",
-      x: 96,
-      y: 96,
-      width: 224,
-      height: 56,
-      z_index: 1,
-      props: { hideOnMobile: false },
-    },
-  ]
-}
-
 function getTextElementStyle(el: EditorElement) {
   return {
     padding: `${Number(el.props?.paddingY ?? 8)}px ${Number(el.props?.paddingX ?? 16)}px`,
@@ -540,6 +524,9 @@ const isEmbedded =
 
   const [isEditing, setIsEditing] = useState(isEmbedded)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [loadAttempt, setLoadAttempt] = useState(0)
+  const [loadedPageKey, setLoadedPageKey] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
@@ -623,7 +610,11 @@ const isEmbedded =
     activePageKey: selectedPageKey,
     activeRevision: documentRevision,
   })
+  const documentReady =
+    !loading && !loadError && loadedPageKey === selectedPageKey
   const flushCurrentPage = useCallback(async (): Promise<boolean> => {
+    if (!documentReady) return false
+
     const saved = await saveNow(selectedPageKey, documentRevision, {
       elements,
       sections,
@@ -637,6 +628,7 @@ const isEmbedded =
     elements,
     eventTheme,
     flushLatestPage,
+    documentReady,
     saveNow,
     sections,
     selectedPageKey,
@@ -695,6 +687,8 @@ const isEmbedded =
     async function loadElements() {
       const pageKey = selectedPageKey
       setLoading(true)
+      setLoadError(null)
+      setLoadedPageKey(null)
       setSaveMessage(null)
 
       try {
@@ -709,32 +703,38 @@ const isEmbedded =
           elements?: unknown
           sections?: unknown
           eventTheme?: unknown
+          error?: unknown
         } | null
         if (requestId !== loadRequestIdRef.current) return
 
-        const snapshot = !res.ok
-          ? {
-              elements: getFallbackElements(),
-              sections: normalizeSections(
-                getDefaultSections(pageKey, eventInfoRef.current),
-              ),
-              eventTheme: eventThemeRef.current,
-            }
-          : {
-              elements: Array.isArray(data?.elements)
-                ? normalizeEventPageElements(data.elements)
-                : getFallbackElements(),
-              sections:
-                Array.isArray(data?.sections) && data.sections.length > 0
-                  ? normalizeSections(data.sections)
-                  : normalizeSections(
-                      getDefaultSections(pageKey, eventInfoRef.current),
-                    ),
-              eventTheme:
-                data?.eventTheme && typeof data.eventTheme === "object"
-                  ? (data.eventTheme as EventTheme)
-                  : eventThemeRef.current,
-            }
+        if (!res.ok) {
+          throw new Error(
+            typeof data?.error === "string"
+              ? data.error
+              : "Failed to load the page editor document",
+          )
+        }
+
+        if (
+          !Array.isArray(data?.elements) ||
+          !Array.isArray(data?.sections)
+        ) {
+          throw new Error("The page editor returned an invalid document")
+        }
+
+        const snapshot = {
+          elements: normalizeEventPageElements(data.elements),
+          sections:
+            data.sections.length > 0
+              ? normalizeSections(data.sections)
+              : normalizeSections(
+                  getDefaultSections(pageKey, eventInfoRef.current),
+                ),
+          eventTheme:
+            data?.eventTheme && typeof data.eventTheme === "object"
+              ? (data.eventTheme as EventTheme)
+              : eventThemeRef.current,
+        }
 
         resetHistory(pageKey, snapshot)
         registerLoadedPage(
@@ -742,6 +742,7 @@ const isEmbedded =
           getDocumentRevision(pageKey),
           snapshot,
         )
+        setLoadedPageKey(pageKey)
       } catch (error) {
         if (
           abortController.signal.aborted ||
@@ -750,18 +751,10 @@ const isEmbedded =
           return
         }
 
-        const snapshot = {
-          elements: getFallbackElements(),
-          sections: normalizeSections(
-            getDefaultSections(pageKey, eventInfoRef.current),
-          ),
-          eventTheme: eventThemeRef.current,
-        }
-        resetHistory(pageKey, snapshot)
-        registerLoadedPage(
-          pageKey,
-          getDocumentRevision(pageKey),
-          snapshot,
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Failed to load the page editor document",
         )
         console.error("Failed to load page editor data", error)
       } finally {
@@ -778,6 +771,7 @@ const isEmbedded =
     }
   }, [
     getDocumentRevision,
+    loadAttempt,
     registerLoadedPage,
     resetHistory,
     slug,
@@ -802,7 +796,7 @@ const isEmbedded =
   }, [])
 
   useEffect(() => {
-    if (loading) return
+    if (!documentReady) return
 
     scheduleSave(selectedPageKey, documentRevision, {
       elements,
@@ -811,9 +805,9 @@ const isEmbedded =
     })
   }, [
     documentRevision,
+    documentReady,
     elements,
     eventTheme,
-    loading,
     scheduleSave,
     sections,
     selectedPageKey,
@@ -863,7 +857,7 @@ const isEmbedded =
         )
 
       if (isTyping) return
-      if (!isEditing) return
+      if (!isEditing || !documentReady) return
 
       const commandKey = e.metaKey || e.ctrlKey
       const key = e.key.toLowerCase()
@@ -939,6 +933,7 @@ const isEmbedded =
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [
     clearSelection,
+    documentReady,
     elements,
     isEditing,
     restoreHistorySnapshot,
@@ -1234,6 +1229,13 @@ const isEmbedded =
   async function selectPage(pageKey: string) {
     if (pageKey === selectedPageKey) return
 
+    if (!documentReady) {
+      setLoading(true)
+      setLoadError(null)
+      switchPageState(pageKey)
+      return
+    }
+
     const saved = await flushCurrentPage()
     if (!saved) return
 
@@ -1242,6 +1244,8 @@ const isEmbedded =
   }
 
   function toggleEditing() {
+    if (!documentReady) return
+
     if (isEditing) {
       void flushCurrentPage()
     }
@@ -2346,19 +2350,21 @@ const selectedExperienceNode = experienceNodes.find(
           isEmbedded={isEmbedded}
           eventTitle={eventInfo.title}
           selectedPageKey={selectedPageKey}
-          templates={templates}
-          canUndo={canUndo}
-          canRedo={canRedo}
+          templates={documentReady ? templates : []}
+          canUndo={documentReady && canUndo}
+          canRedo={documentReady && canRedo}
           canvasZoom={canvasZoom}
           isMobilePreview={isMobilePreview}
-          isEditing={isEditing}
-          selectedElementCount={selectedElementCount}
-          canGroupElements={canGroupElements}
-          canUngroupElements={canUngroupElements}
+          isEditing={isEditing && documentReady}
+          selectedElementCount={documentReady ? selectedElementCount : 0}
+          canGroupElements={documentReady && canGroupElements}
+          canUngroupElements={documentReady && canUngroupElements}
           onSelectPage={(pageKey) => {
             void selectPage(pageKey)
           }}
           onSelectTemplate={(templateId) => {
+            if (!documentReady) return
+
             const template = templates.find((item) => item.id === templateId)
             if (!template) return
 
@@ -2397,9 +2403,29 @@ const selectedExperienceNode = experienceNodes.find(
                   : EXPERIENCE_EDITOR_CANVAS_SHELL_CLASS
               }
             >
-              {loading ? (
+              {loading || (!loadError && !documentReady) ? (
                 <div className="mt-8 rounded-2xl border border-white/10 bg-black/30 p-8 text-white/60">
                   Loading editor elements...
+                </div>
+              ) : loadError ? (
+                <div className="mt-8 rounded-2xl border border-red-300/20 bg-red-500/10 p-8 text-red-50">
+                  <div className="text-lg font-semibold">
+                    This page could not be loaded
+                  </div>
+                  <p className="mt-2 max-w-2xl text-sm text-red-100/70">
+                    {loadError}
+                  </p>
+                  <p className="mt-3 max-w-2xl text-sm text-white/55">
+                    Editing and saving are disabled so the existing page cannot
+                    be overwritten with incomplete data.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => setLoadAttempt((attempt) => attempt + 1)}
+                    className="mt-5 rounded-xl border border-red-200/20 bg-red-400/15 px-4 py-2 text-sm font-semibold text-red-50 transition hover:bg-red-400/25"
+                  >
+                    Retry loading
+                  </button>
                 </div>
               ) : (
                 <div className={canvasViewportClass}>
@@ -3132,7 +3158,7 @@ const selectedExperienceNode = experienceNodes.find(
           </div>
         </div>
 
-        <ExperienceInspectorRail
+        {documentReady && <ExperienceInspectorRail
           {...{
             addElement,
             addElementOpen,
@@ -3217,7 +3243,7 @@ const selectedExperienceNode = experienceNodes.find(
             uploadSelectedPoster,
             uploadSelectedVideo,
           }}
-        />
+        />}
     </div>
   </div>
   )
