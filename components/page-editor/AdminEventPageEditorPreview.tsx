@@ -2,6 +2,10 @@
 
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useEffect, useRef, useState } from "react"
+import {
+  calculateAlignmentGuides,
+  type AlignmentGuides,
+} from "./alignmentGuides"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
@@ -604,6 +608,10 @@ const isEmbedded =
     currentX: number
     currentY: number
   } | null>(null)
+  const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuides>({
+    vertical: [],
+    horizontal: [],
+  })
 
   const [isMarqueeSelecting, setIsMarqueeSelecting] = useState(false)
 
@@ -782,6 +790,7 @@ const res = await fetch(
     if ((e.target as HTMLElement).dataset.resizeHandle === "true") return
     if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
 
+    setAlignmentGuides({ vertical: [], horizontal: [] })
     dragRef.current = {
       id,
       offsetX: e.clientX - x,
@@ -801,6 +810,7 @@ const res = await fetch(
     if (editingElementId === id) return
     e.stopPropagation()
 
+    setAlignmentGuides({ vertical: [], horizontal: [] })
     resizeRef.current = {
       id,
       startX: e.clientX,
@@ -871,12 +881,37 @@ const res = await fetch(
       isDraggingRef.current = true
     }
 
-    const nextX = snapToGrid(Math.max(0, e.clientX - offsetX))
-    const nextY = snapToGrid(Math.max(0, e.clientY - offsetY))
+    const proposedX = snapToGrid(Math.max(0, e.clientX - offsetX))
+    const proposedY = snapToGrid(Math.max(0, e.clientY - offsetY))
+    const alignment = calculateAlignmentGuides({
+      dragged: {
+        id,
+        x: proposedX,
+        y: proposedY,
+        width: currentEl.width ?? 0,
+        height: currentEl.height ?? 0,
+      },
+      targets: elements
+        .filter((element) => (element as EditorElement).visible !== false)
+        .filter(
+          (element) =>
+            !(isMobilePreview && Boolean(element.props?.hideOnMobile))
+        )
+        .map((element) => ({
+          id: element.id,
+          x: element.x,
+          y: element.y,
+          width: element.width ?? 0,
+          height: element.height ?? 0,
+        })),
+    })
 
+    setAlignmentGuides(alignment.guides)
     setHasUnsavedChanges(true)
     setElements((prev) =>
-      prev.map((el) => (el.id === id ? { ...el, x: nextX, y: nextY } : el))
+      prev.map((el) =>
+        el.id === id ? { ...el, x: alignment.x, y: alignment.y } : el
+      )
     )
   }
 
@@ -884,6 +919,7 @@ const res = await fetch(
     dragRef.current = null
     groupDragRef.current = null
     resizeRef.current = null
+    setAlignmentGuides({ vertical: [], horizontal: [] })
 
     setTimeout(() => {
       isDraggingRef.current = false
@@ -2073,6 +2109,32 @@ const selectedExperienceNode = experienceNodes.find(
                           zIndex: 9999,
                         }}
                       />
+                    )}
+
+                    {isEditing && isDraggingRef.current && (
+                      <>
+                        {alignmentGuides.vertical.map((position, index) => (
+                          <div
+                            key={`vertical-${position}-${index}`}
+                            className="pointer-events-none absolute inset-y-0 w-px bg-fuchsia-400/90 shadow-[0_0_6px_rgba(232,121,249,0.7)]"
+                            style={{
+                              left: position,
+                              zIndex: 9999,
+                            }}
+                          />
+                        ))}
+
+                        {alignmentGuides.horizontal.map((position, index) => (
+                          <div
+                            key={`horizontal-${position}-${index}`}
+                            className="pointer-events-none absolute inset-x-0 h-px bg-fuchsia-400/90 shadow-[0_0_6px_rgba(232,121,249,0.7)]"
+                            style={{
+                              top: position,
+                              zIndex: 9999,
+                            }}
+                          />
+                        ))}
+                      </>
                     )}
 
                     {isEditing && isDraggingRef.current && selectedElement && (
