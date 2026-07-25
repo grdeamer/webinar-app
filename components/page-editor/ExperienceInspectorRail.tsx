@@ -34,6 +34,7 @@ import {
   type ElementAnimationEasing,
   type ElementAnimationEffect,
 } from "./elementAnimation"
+import type { LayerCommand } from "./layerCommands"
 
 type EditorElement = {
   id: string
@@ -72,8 +73,6 @@ interface ExperienceInspectorRailProps {
   addRegistrationFieldFromTemplate: (template: RegistrationFieldTemplate) => void
   addSectionTemplate: (key: SectionType, title: string) => void
   addSystemBlockToSelectedSection: (componentKey: SystemComponentKey) => void
-  bringLayerForward: (node: EditorExperienceNode) => void
-  bringSelectedElementForward: () => void
   canBringForward: boolean
   canDeleteElement: boolean
   canDeleteSection: boolean
@@ -120,6 +119,7 @@ interface ExperienceInspectorRailProps {
   moveSelectedBlock: (direction: "up" | "down") => void
   moveSelectedSection: (direction: "up" | "down") => void
   orderedExperienceNodes: EditorExperienceNode[]
+  performLayerCommand: (targetId: string, command: LayerCommand) => void
   removeRegistrationField: (fieldId: string) => void
   resetRegistrationFields: () => void
   rightRailTab: RightRailTab
@@ -137,16 +137,12 @@ interface ExperienceInspectorRailProps {
   selectedSection: EventPageSection | null
   selectExperienceNode: (node: EditorExperienceNode) => void
   selectSectionFromList: (section: EventPageSection) => void
-  sendLayerBackward: (node: EditorExperienceNode) => void
-  sendSelectedElementBackward: () => void
   setAddElementOpen: Dispatch<SetStateAction<boolean>>
   setEditorDetailsOpen: Dispatch<SetStateAction<boolean>>
   setHoveredExperienceNodeId: Dispatch<SetStateAction<string | null>>
   setRightRailTab: Dispatch<SetStateAction<RightRailTab>>
   setSectionsListOpen: Dispatch<SetStateAction<boolean>>
   setSectionTemplatesOpen: Dispatch<SetStateAction<boolean>>
-  toggleLayerLock: (node: EditorExperienceNode) => void
-  toggleLayerVisibility: (node: EditorExperienceNode) => void
   updateElement: (id: string, patch: Partial<EditorElement>) => void
   updateElementProps: (id: string, patch: Record<string, unknown>) => void
   updateEventTheme: (nextTheme: Partial<EventTheme>) => void
@@ -345,8 +341,6 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     addRegistrationFieldFromTemplate,
     addSectionTemplate,
     addSystemBlockToSelectedSection,
-    bringLayerForward,
-    bringSelectedElementForward,
     canBringForward,
     canDeleteElement,
     canDeleteSection,
@@ -384,6 +378,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     moveSelectedBlock,
     moveSelectedSection,
     orderedExperienceNodes,
+    performLayerCommand,
     removeRegistrationField,
     resetRegistrationFields,
     rightRailTab,
@@ -401,16 +396,12 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     selectedSection,
     selectExperienceNode,
     selectSectionFromList,
-    sendLayerBackward,
-    sendSelectedElementBackward,
     setAddElementOpen,
     setEditorDetailsOpen,
     setHoveredExperienceNodeId,
     setRightRailTab,
     setSectionsListOpen,
     setSectionTemplatesOpen,
-    toggleLayerLock,
-    toggleLayerVisibility,
     updateElement,
     updateElementProps,
     updateEventTheme,
@@ -622,7 +613,7 @@ onDragEnd={handleLayerDragEnd}
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        bringLayerForward(node)
+                                        performLayerCommand(node.id, "bring-forward")
                                       }}
                                       className="pointer-events-auto rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] text-white/55 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
                                     >
@@ -633,7 +624,7 @@ onDragEnd={handleLayerDragEnd}
                                       type="button"
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        sendLayerBackward(node)
+                                        performLayerCommand(node.id, "send-backward")
                                       }}
                                       className="pointer-events-auto rounded-md border border-white/10 bg-white/[0.04] px-1.5 py-0.5 text-[9px] text-white/55 transition hover:border-white/20 hover:bg-white/[0.08] hover:text-white"
                                     >
@@ -651,7 +642,7 @@ onDragEnd={handleLayerDragEnd}
                                 title={node.visible === false ? "Hidden" : "Visible"}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  toggleLayerVisibility(node)
+                                  performLayerCommand(node.id, "toggle-visibility")
                                 }}
                                 className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black transition ${
                                   node.visible === false
@@ -667,7 +658,7 @@ onDragEnd={handleLayerDragEnd}
                                 title={node.locked ? "Locked" : "Unlocked"}
                                 onClick={(e) => {
                                   e.stopPropagation()
-                                  toggleLayerLock(node)
+                                  performLayerCommand(node.id, "toggle-lock")
                                 }}
                                 className={`flex h-6 w-6 items-center justify-center rounded-full border text-[10px] font-black transition ${
                                   node.locked
@@ -890,7 +881,9 @@ onDragEnd={handleLayerDragEnd}
 
                       <div className="grid grid-cols-2 gap-3">
                         <button
-                          onClick={sendSelectedElementBackward}
+                          onClick={() =>
+                            performLayerCommand(selectedElement.id, "send-to-back")
+                          }
                           disabled={!canSendBackward}
                           className={`rounded-xl px-4 py-2 text-sm font-semibold ${
                             canSendBackward
@@ -902,7 +895,9 @@ onDragEnd={handleLayerDragEnd}
                         </button>
 
                         <button
-                          onClick={bringSelectedElementForward}
+                          onClick={() =>
+                            performLayerCommand(selectedElement.id, "bring-to-front")
+                          }
                           disabled={!canBringForward}
                           className={`rounded-xl px-4 py-2 text-sm font-semibold ${
                             canBringForward

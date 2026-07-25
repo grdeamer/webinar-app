@@ -26,6 +26,10 @@ import {
   type GroupResizeSnapshot,
 } from "./elementGrouping"
 import { DEFAULT_ELEMENT_ANIMATION } from "./elementAnimation"
+import {
+  applyLayerCommand,
+  type LayerCommand,
+} from "./layerCommands"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
@@ -1405,54 +1409,28 @@ const isEmbedded =
     }))
   }
 
-  function bringSelectedElementForward() {
-    if (!selectedId) return
-
-    setHasUnsavedChanges(true)
-    setElements((prev) => {
-      const normalized = normalizeZIndexes(prev)
-      const index = normalized.findIndex((el) => el.id === selectedId)
-      if (index === -1 || index === normalized.length - 1) return prev
-
-      const next = [...normalized]
-      const currentZ = next[index].z_index ?? index + 1
-      const targetZ = next[index + 1].z_index ?? index + 2
-
-      next[index] = { ...next[index], z_index: targetZ }
-      next[index + 1] = { ...next[index + 1], z_index: currentZ }
-
-      return normalizeZIndexes(next)
-    })
+  function selectLayerElement(targetId: string) {
+    setSelectedId(targetId)
+    setSelectedIds([targetId])
+    setSelectedSectionId(null)
+    setSelectedBlockId(null)
+    setEditingElementId(null)
   }
 
-  function sendSelectedElementBackward() {
-    if (!selectedId) return
+  function performLayerCommand(targetId: string, command: LayerCommand) {
+    if (!elements.some((element) => element.id === targetId)) return
 
-    setHasUnsavedChanges(true)
-    setElements((prev) => {
-      const normalized = normalizeZIndexes(prev)
-      const index = normalized.findIndex((el) => el.id === selectedId)
-      if (index <= 0) return prev
-
-      const next = [...normalized]
-      const currentZ = next[index].z_index ?? index + 1
-      const targetZ = next[index - 1].z_index ?? index
-
-      next[index] = { ...next[index], z_index: targetZ }
-      next[index - 1] = { ...next[index - 1], z_index: currentZ }
-
-      return normalizeZIndexes(next)
-    })
+    selectLayerElement(targetId)
+    setElements((current) => applyLayerCommand(current, targetId, command))
   }
+
 function handleLayerDragStart(node: EditorExperienceNode) {
   if (node.sourceType !== "element") return
   if (node.locked) return
 
   setDraggingLayerNodeId(node.id)
   setDragOverLayerNodeId(null)
-  setSelectedId(node.id)
-  setSelectedSectionId(null)
-  setSelectedBlockId(null)
+  selectLayerElement(node.id)
 }
 
 function handleLayerDragOver(
@@ -1526,9 +1504,7 @@ function handleLayerDrop(
     }))
   })
 
-  setSelectedId(droppedId)
-  setSelectedSectionId(null)
-  setSelectedBlockId(null)
+  selectLayerElement(droppedId)
 
   setDraggingLayerNodeId(null)
   setDragOverLayerNodeId(null)
@@ -2267,55 +2243,13 @@ function addRegistrationFormSection() {
   function selectExperienceNode(node: EditorExperienceNode) {
     if (node.sourceType === "section") {
       setSelectedSectionId(node.id)
+      setSelectedBlockId(null)
       setSelectedId(null)
+      setSelectedIds([])
+      setEditingElementId(null)
     } else {
-      setSelectedId(node.id)
-      setSelectedSectionId(null)
+      selectLayerElement(node.id)
     }
-  }
-
-  function bringLayerForward(node: EditorExperienceNode) {
-    setSelectedId(node.id)
-    setSelectedSectionId(null)
-    bringSelectedElementForward()
-  }
-
-  function sendLayerBackward(node: EditorExperienceNode) {
-    setSelectedId(node.id)
-    setSelectedSectionId(null)
-    sendSelectedElementBackward()
-  }
-
-  function toggleLayerVisibility(node: EditorExperienceNode) {
-    if (node.sourceType !== "element") return
-
-    setHasUnsavedChanges(true)
-    setElements((prev) =>
-      prev.map((element) =>
-        element.id === node.id
-          ? {
-              ...element,
-              visible: node.visible === false ? true : false,
-            }
-          : element
-      )
-    )
-  }
-
-  function toggleLayerLock(node: EditorExperienceNode) {
-    if (node.sourceType !== "element") return
-
-    setHasUnsavedChanges(true)
-    setElements((prev) =>
-      prev.map((element) =>
-        element.id === node.id
-          ? {
-              ...element,
-              locked: node.locked ? false : true,
-            }
-          : element
-      )
-    )
   }
 
   function updateEventTheme(nextTheme: Partial<EventTheme>) {
@@ -3265,8 +3199,6 @@ const selectedExperienceNode = experienceNodes.find(
             addRegistrationFieldFromTemplate,
             addSectionTemplate,
             addSystemBlockToSelectedSection,
-            bringLayerForward,
-            bringSelectedElementForward,
             canBringForward,
             canDeleteElement,
             canDeleteSection,
@@ -3304,6 +3236,7 @@ const selectedExperienceNode = experienceNodes.find(
             moveSelectedBlock,
             moveSelectedSection,
             orderedExperienceNodes,
+            performLayerCommand,
             removeRegistrationField,
             resetRegistrationFields,
             rightRailTab,
@@ -3321,16 +3254,12 @@ const selectedExperienceNode = experienceNodes.find(
             selectedSection,
             selectExperienceNode,
             selectSectionFromList,
-            sendLayerBackward,
-            sendSelectedElementBackward,
             setAddElementOpen,
             setEditorDetailsOpen,
             setHoveredExperienceNodeId,
             setRightRailTab,
             setSectionsListOpen,
             setSectionTemplatesOpen,
-            toggleLayerLock,
-            toggleLayerVisibility,
             updateElement,
             updateElementProps,
             updateEventTheme,
