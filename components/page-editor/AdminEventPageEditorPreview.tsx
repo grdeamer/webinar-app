@@ -8,6 +8,11 @@ import {
   type AlignmentGuides,
 } from "./alignmentGuides"
 import {
+  screenDistanceToCanvasDistance,
+  screenPointToCanvasPoint,
+  type CanvasPoint,
+} from "./canvasCoordinates"
+import {
   findClosestReferenceBounds,
   getElementAlignmentUpdates,
   type ElementAlignmentCommand,
@@ -639,6 +644,7 @@ const isEmbedded =
     startY: number
     currentX: number
     currentY: number
+    scale: number
   } | null>(null)
   const [alignmentGuides, setAlignmentGuides] = useState<AlignmentGuides>({
     vertical: [],
@@ -650,15 +656,18 @@ const isEmbedded =
 
   const dragRef = useRef<{
     id: string
-    offsetX: number
-    offsetY: number
+    scale: number
+    startPointer: CanvasPoint
+    startPosition: CanvasPoint
+    hasMoved: boolean
   } | null>(null)
 
   const groupDragRef = useRef<{
     ids: string[]
-    startPointerX: number
-    startPointerY: number
+    scale: number
+    startPointer: CanvasPoint
     startPositions: Record<string, { x: number; y: number }>
+    hasMoved: boolean
   } | null>(null)
 
   const canvasRef = useRef<HTMLDivElement | null>(null)
@@ -672,8 +681,8 @@ const isEmbedded =
 
   const resizeRef = useRef<{
     id: string
-    startX: number
-    startY: number
+    scale: number
+    startPointer: CanvasPoint
     startWidth: number
     startHeight: number
     groupSnapshot?: GroupResizeSnapshot | null
@@ -953,13 +962,24 @@ const isEmbedded =
     if (editingElementId === id) return
     if ((e.target as HTMLElement).dataset.resizeHandle === "true") return
     if ((e.target as HTMLElement).dataset.inlineEditor === "true") return
+    if (!canvasRef.current) return
+
+    const startPointer = screenPointToCanvasPoint(
+      e.clientX,
+      e.clientY,
+      canvasRef.current,
+      canvasScale
+    )
 
     beginTransaction()
+    isDraggingRef.current = false
     setAlignmentGuides({ vertical: [], horizontal: [], distances: [] })
     dragRef.current = {
       id,
-      offsetX: e.clientX - x,
-      offsetY: e.clientY - y,
+      scale: canvasScale,
+      startPointer,
+      startPosition: { x, y },
+      hasMoved: false,
     }
   }
 
@@ -974,6 +994,14 @@ const isEmbedded =
     if (targetElement?.locked) return
     if (editingElementId === id) return
     e.stopPropagation()
+    if (!canvasRef.current) return
+
+    const startPointer = screenPointToCanvasPoint(
+      e.clientX,
+      e.clientY,
+      canvasRef.current,
+      canvasScale
+    )
 
     beginTransaction()
     const groupId = targetElement ? getElementGroupId(targetElement) : null
@@ -992,10 +1020,11 @@ const isEmbedded =
     )
 
     setAlignmentGuides({ vertical: [], horizontal: [], distances: [] })
+    isDraggingRef.current = false
     resizeRef.current = {
       id,
-      startX: e.clientX,
-      startY: e.clientY,
+      scale: canvasScale,
+      startPointer,
       startWidth: groupSnapshot?.bounds.width ?? width ?? 224,
       startHeight: groupSnapshot?.bounds.height ?? height ?? 56,
       groupSnapshot,
@@ -1010,14 +1039,34 @@ const isEmbedded =
 
   function onCanvasMove(e: React.PointerEvent<HTMLDivElement>) {
     if (groupDragRef.current) {
-      const { ids, startPointerX, startPointerY, startPositions } = groupDragRef.current
+      if (!canvasRef.current) return
 
-      const dx = snapToGrid(e.clientX - startPointerX)
-      const dy = snapToGrid(e.clientY - startPointerY)
+      const { ids, scale, startPointer, startPositions } = groupDragRef.current
+      const currentPointer = screenPointToCanvasPoint(
+        e.clientX,
+        e.clientY,
+        canvasRef.current,
+        scale
+      )
 
-      if (Math.abs(dx) > 0 || Math.abs(dy) > 0) {
-        isDraggingRef.current = true
+      const dx = snapToGrid(currentPointer.x - startPointer.x)
+      const dy = snapToGrid(currentPointer.y - startPointer.y)
+      const dragThreshold = screenDistanceToCanvasDistance(4, scale)
+      const pointerDeltaX = currentPointer.x - startPointer.x
+      const pointerDeltaY = currentPointer.y - startPointer.y
+
+      if (
+        !groupDragRef.current.hasMoved &&
+        Math.abs(pointerDeltaX) <= dragThreshold &&
+        Math.abs(pointerDeltaY) <= dragThreshold
+      ) {
+        return
       }
+
+      groupDragRef.current.hasMoved = true
+      isDraggingRef.current = true
+
+      if (dx === 0 && dy === 0) return
 
       setHasUnsavedChanges(true)
 
@@ -1040,18 +1089,30 @@ const isEmbedded =
     }
 
     if (resizeRef.current) {
+      if (!canvasRef.current) return
+
       const {
         id,
-        startX,
-        startY,
+        scale,
+        startPointer,
         startWidth,
         startHeight,
         groupSnapshot,
       } = resizeRef.current
+      const currentPointer = screenPointToCanvasPoint(
+        e.clientX,
+        e.clientY,
+        canvasRef.current,
+        scale
+      )
+      const deltaX = currentPointer.x - startPointer.x
+      const deltaY = currentPointer.y - startPointer.y
 
-      const nextWidth = snapToGrid(Math.max(96, startWidth + (e.clientX - startX)))
-      const nextHeight = snapToGrid(Math.max(32, startHeight + (e.clientY - startY)))
+      const nextWidth = Math.max(96, startWidth + snapToGrid(deltaX))
+      const nextHeight = Math.max(32, startHeight + snapToGrid(deltaY))
+      if (nextWidth === startWidth && nextHeight === startHeight) return
 
+      isDraggingRef.current = true
       setHasUnsavedChanges(true)
       if (groupSnapshot) {
         const updates = getGroupResizeUpdates({
@@ -1078,22 +1139,36 @@ const isEmbedded =
     }
 
     if (!dragRef.current) return
+    if (!canvasRef.current) return
 
-    const { id, offsetX, offsetY } = dragRef.current
+    const { id, scale, startPointer, startPosition } = dragRef.current
     const currentEl = elements.find((el) => el.id === id)
     if (!currentEl) return
+    const currentPointer = screenPointToCanvasPoint(
+      e.clientX,
+      e.clientY,
+      canvasRef.current,
+      scale
+    )
+    const deltaX = currentPointer.x - startPointer.x
+    const deltaY = currentPointer.y - startPointer.y
+    const dragThreshold = screenDistanceToCanvasDistance(4, scale)
 
-    const movedX = Math.abs(e.clientX - (offsetX + currentEl.x))
-    const movedY = Math.abs(e.clientY - (offsetY + currentEl.y))
-
-    if (movedX > 4 || movedY > 4) {
-      isDraggingRef.current = true
+    if (
+      !dragRef.current.hasMoved &&
+      Math.abs(deltaX) <= dragThreshold &&
+      Math.abs(deltaY) <= dragThreshold
+    ) {
+      return
     }
 
-    const proposedX = snapToGrid(Math.max(0, e.clientX - offsetX))
-    const proposedY = snapToGrid(Math.max(0, e.clientY - offsetY))
+    dragRef.current.hasMoved = true
+    isDraggingRef.current = true
+
+    const proposedX = Math.max(0, startPosition.x + snapToGrid(deltaX))
+    const proposedY = Math.max(0, startPosition.y + snapToGrid(deltaY))
     const canvasAndSectionTargets = canvasRef.current
-      ? getCanvasAndSectionAlignmentTargets(canvasRef.current)
+      ? getCanvasAndSectionAlignmentTargets(canvasRef.current, scale)
       : []
     const alignment = calculateAlignmentGuides({
       dragged: {
@@ -1119,6 +1194,8 @@ const isEmbedded =
           })),
         ...canvasAndSectionTargets,
       ],
+      threshold: screenDistanceToCanvasDistance(8, scale),
+      distanceGuideRange: screenDistanceToCanvasDistance(160, scale),
     })
 
     setAlignmentGuides(alignment.guides)
@@ -1163,7 +1240,7 @@ const isEmbedded =
       if (!canvasRef.current) return
 
       const [pageBounds, ...sectionBounds] =
-        getCanvasAndSectionAlignmentTargets(canvasRef.current)
+        getCanvasAndSectionAlignmentTargets(canvasRef.current, canvasScale)
       referenceBounds =
         command === "center-in-section"
           ? findClosestReferenceBounds(
@@ -2478,11 +2555,14 @@ const selectedExperienceNode = experienceNodes.find(
   return
 }
 
-                      const rect = canvasRef.current?.getBoundingClientRect()
-                      if (!rect) return
+                      if (!canvasRef.current) return
 
-                      const startX = e.clientX - rect.left
-                      const startY = e.clientY - rect.top
+                      const start = screenPointToCanvasPoint(
+                        e.clientX,
+                        e.clientY,
+                        canvasRef.current,
+                        canvasScale
+                      )
 
                       canvasRef.current?.setPointerCapture?.(e.pointerId)
 
@@ -2493,10 +2573,11 @@ const selectedExperienceNode = experienceNodes.find(
                       setEditingElementId(null)
 
                       setSelectionBox({
-                        startX,
-                        startY,
-                        currentX: startX,
-                        currentY: startY,
+                        startX: start.x,
+                        startY: start.y,
+                        currentX: start.x,
+                        currentY: start.y,
+                        scale: canvasScale,
                       })
 
                       setIsMarqueeSelecting(true)
@@ -2506,16 +2587,19 @@ const selectedExperienceNode = experienceNodes.find(
 
                       if (!isMarqueeSelecting || !selectionBox || !canvasRef.current) return
 
-                      const rect = canvasRef.current.getBoundingClientRect()
-                      const currentX = e.clientX - rect.left
-                      const currentY = e.clientY - rect.top
+                      const current = screenPointToCanvasPoint(
+                        e.clientX,
+                        e.clientY,
+                        canvasRef.current,
+                        selectionBox.scale
+                      )
 
                       setSelectionBox((prev) =>
                         prev
                           ? {
                               ...prev,
-                              currentX,
-                              currentY,
+                              currentX: current.x,
+                              currentY: current.y,
                             }
                           : null
                       )
@@ -2528,10 +2612,16 @@ const selectedExperienceNode = experienceNodes.find(
                         return
                       }
 
-                      const left = Math.min(selectionBox.startX, selectionBox.currentX)
-                      const right = Math.max(selectionBox.startX, selectionBox.currentX)
-                      const top = Math.min(selectionBox.startY, selectionBox.currentY)
-                      const bottom = Math.max(selectionBox.startY, selectionBox.currentY)
+                      const end = screenPointToCanvasPoint(
+                        e.clientX,
+                        e.clientY,
+                        canvasRef.current,
+                        selectionBox.scale
+                      )
+                      const left = Math.min(selectionBox.startX, end.x)
+                      const right = Math.max(selectionBox.startX, end.x)
+                      const top = Math.min(selectionBox.startY, end.y)
+                      const bottom = Math.max(selectionBox.startY, end.y)
 
                       const hitIds = normalizedElements
                         .filter((el) => {
@@ -2812,6 +2902,14 @@ const selectedExperienceNode = experienceNodes.find(
                                 activeIds.length > 1 &&
                                 (groupMemberIds.length > 1 || isAlreadySelected)
                               ) {
+                                if (!canvasRef.current) return
+
+                                const startPointer = screenPointToCanvasPoint(
+                                  e.clientX,
+                                  e.clientY,
+                                  canvasRef.current,
+                                  canvasScale
+                                )
                                 beginTransaction()
                                 const startPositions: Record<string, { x: number; y: number }> = {}
 
@@ -2823,10 +2921,12 @@ const selectedExperienceNode = experienceNodes.find(
 
                                 groupDragRef.current = {
                                   ids: activeIds,
-                                  startPointerX: e.clientX,
-                                  startPointerY: e.clientY,
+                                  scale: canvasScale,
+                                  startPointer,
                                   startPositions,
+                                  hasMoved: false,
                                 }
+                                isDraggingRef.current = false
 
                                 dragRef.current = null
                               } else {

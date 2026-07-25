@@ -1,3 +1,5 @@
+import { screenRectToCanvasRect } from "./canvasCoordinates"
+
 export type AlignableRect = {
   id: string
   x: number
@@ -51,25 +53,24 @@ const ALIGNMENT_EPSILON = 0.001
 const AXIS_ANCHORS = ["start", "center", "end"] as const
 
 export function getCanvasAndSectionAlignmentTargets(
-  canvas: HTMLDivElement
+  canvas: HTMLDivElement,
+  scale = 1
 ): AlignmentTarget[] {
-  const canvasRect = canvas.getBoundingClientRect()
-  const scaleX = canvas.offsetWidth > 0 ? canvasRect.width / canvas.offsetWidth : 1
-  const scaleY = canvas.offsetHeight > 0 ? canvasRect.height / canvas.offsetHeight : 1
-  const canvasContentLeft = canvasRect.left + canvas.clientLeft * scaleX
-  const canvasContentTop = canvasRect.top + canvas.clientTop * scaleY
-
   const sectionTargets = Array.from(
     canvas.querySelectorAll<HTMLElement>('[data-editor-section="true"]')
   ).map((section, index): AlignmentTarget => {
-    const sectionRect = section.getBoundingClientRect()
+    const sectionRect = screenRectToCanvasRect(
+      section.getBoundingClientRect(),
+      canvas,
+      scale
+    )
 
     return {
       id: `__alignment-section-target-${index}__`,
-      x: (sectionRect.left - canvasContentLeft) / scaleX,
-      y: (sectionRect.top - canvasContentTop) / scaleY,
-      width: sectionRect.width / scaleX,
-      height: sectionRect.height / scaleY,
+      x: sectionRect.x,
+      y: sectionRect.y,
+      width: sectionRect.width,
+      height: sectionRect.height,
       xAnchors: ["start", "end"],
       yAnchors: ["start", "end"],
       measureDistance: false,
@@ -372,10 +373,12 @@ export function calculateAlignmentGuides({
   dragged,
   targets,
   threshold = DEFAULT_ALIGNMENT_THRESHOLD,
+  distanceGuideRange = DEFAULT_DISTANCE_GUIDE_RANGE,
 }: {
   dragged: AlignableRect
   targets: AlignmentTarget[]
   threshold?: number
+  distanceGuideRange?: number
 }): AlignmentGuideResult {
   const availableTargets = targets.filter((target) => target.id !== dragged.id)
 
@@ -411,7 +414,7 @@ export function calculateAlignmentGuides({
   const horizontalNeighbors = getNearestHorizontalNeighbors(
     alignedRect,
     distanceTargets,
-    DEFAULT_DISTANCE_GUIDE_RANGE
+    distanceGuideRange
   )
   const horizontalDistanceAdjustment =
     horizontalSnap.guidePositions.length === 0 &&
@@ -431,7 +434,7 @@ export function calculateAlignmentGuides({
   const verticalNeighbors = getNearestVerticalNeighbors(
     horizontallySnappedRect,
     distanceTargets,
-    DEFAULT_DISTANCE_GUIDE_RANGE
+    distanceGuideRange
   )
   const verticalDistanceAdjustment =
     verticalSnap.guidePositions.length === 0 &&
@@ -458,7 +461,7 @@ export function calculateAlignmentGuides({
       distances: getDistanceGuides(
         snappedRect,
         distanceTargets,
-        DEFAULT_DISTANCE_GUIDE_RANGE
+        distanceGuideRange
       ),
     },
   }
