@@ -1,17 +1,93 @@
 import Link from "next/link"
+import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { getEventBySlug } from "@/lib/events"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
+import { normalizeEventPageSections } from "@/lib/page-editor/normalizeEventPageSections"
+import type { EventTheme } from "@/lib/page-editor/sectionTypes"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
+
+function OnDemandContent({ slug }: { slug: string }) {
+  return (
+    <div className="mx-auto max-w-6xl px-6 py-10">
+      <div className="mb-6 flex items-center justify-end">
+        <Link
+          href={`/events/${slug}`}
+          className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10"
+        >
+          Back to event
+        </Link>
+      </div>
+
+      <div className="grid gap-6 md:grid-cols-3">
+        <section className="rounded-3xl border border-white/10 bg-white/5 p-6 md:col-span-2">
+          <div className="mb-4 text-sm uppercase tracking-[0.25em] text-cyan-300/80">
+            Library
+          </div>
+
+          <div className="rounded-2xl border border-dashed border-white/10 bg-black/20 p-8 text-white/65">
+            No on-demand sessions yet.
+          </div>
+        </section>
+
+        <aside className="rounded-3xl border border-white/10 bg-white/5 p-6">
+          <div className="mb-4 text-sm uppercase tracking-[0.25em] text-white/50">
+            Coming soon
+          </div>
+
+          <div className="space-y-3 text-sm text-white/70">
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              Session recordings
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              Keynote replay
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              Downloadable materials
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+  )
+}
 
 export default async function EventOnDemandPage(props: {
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await props.params
   const event = await getEventBySlug(slug)
-  const pageDocument = await loadEventPageDocument(event.id, "on_demand")
+  const [pageDocument, { data: eventRow }] = await Promise.all([
+    loadEventPageDocument(event.id, "on_demand"),
+    supabaseAdmin
+      .from("events")
+      .select("event_theme")
+      .eq("id", event.id)
+      .maybeSingle(),
+  ])
+  const sections = normalizeEventPageSections(pageDocument.sections)
+  const eventTheme =
+    eventRow?.event_theme && typeof eventRow.event_theme === "object"
+      ? (eventRow.event_theme as EventTheme)
+      : undefined
+
+  if (sections.length > 0) {
+    return (
+      <main className="relative min-h-screen bg-[#050816] text-white">
+        <EventPageRenderer
+          event={event}
+          elements={pageDocument.elements}
+          sections={sections}
+          systemComponents={{}}
+          eventTheme={eventTheme}
+        />
+        <OnDemandContent slug={slug} />
+      </main>
+    )
+  }
 
   return (
     <main className="relative min-h-screen bg-[#050816] text-white">

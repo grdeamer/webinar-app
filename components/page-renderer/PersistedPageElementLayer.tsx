@@ -24,7 +24,6 @@ function PersistedVideoPresentation({
   element: EventPageElement
   generalSession: GeneralSessionPresentationSource
 }) {
-  const [hoverPreviewActive, setHoverPreviewActive] = useState(false)
   const props = element.props ?? {}
   const source = resolveElementVideoSource(element, generalSession)
   const posterUrl = String(props.posterUrl ?? "")
@@ -34,8 +33,6 @@ function PersistedVideoPresentation({
   const showPosterOnCard = Boolean(props.showPosterOnCard ?? true)
   const muted =
     typeof props.muted === "boolean" ? props.muted : autoPlay
-  const shouldPlay =
-    autoPlay || (!showControls && playOnHover && hoverPreviewActive)
   const videoStyle = getVideoElementPresentationStyle(element)
 
   if (showControls) {
@@ -53,6 +50,7 @@ function PersistedVideoPresentation({
           poster={posterUrl}
           trimStart={Number(props.trimStart ?? 0)}
           trimEnd={Number(props.trimEnd ?? 0)}
+          accessibleLabel={element.content || "Session Video"}
         />
       )
     }
@@ -73,18 +71,14 @@ function PersistedVideoPresentation({
   }
 
   return (
-    <div
-      className="group relative h-full w-full overflow-hidden bg-black"
-      onMouseEnter={() => setHoverPreviewActive(true)}
-      onMouseLeave={() => setHoverPreviewActive(false)}
-    >
+    <div className="group relative h-full w-full overflow-hidden bg-black">
       {source.url ? (
         <ElementVideoPlayer
           url={source.url}
           sourceType={source.sourceType}
           className="h-full w-full transition-transform duration-500 group-hover:scale-105"
           style={videoStyle}
-          autoPlay={shouldPlay}
+          autoPlay={autoPlay}
           muted={
             typeof props.muted === "boolean" ? props.muted : true
           }
@@ -93,6 +87,9 @@ function PersistedVideoPresentation({
           poster={showPosterOnCard ? posterUrl : ""}
           trimStart={Number(props.trimStart ?? 0)}
           trimEnd={Number(props.trimEnd ?? 0)}
+          playOnHover={playOnHover}
+          accessibleLabel={element.content || "Session Video"}
+          showPlaybackIndicator
         />
       ) : posterUrl ? (
         <img
@@ -109,14 +106,6 @@ function PersistedVideoPresentation({
       )}
 
       <div className="pointer-events-none absolute inset-0 bg-black/40 transition group-hover:bg-black/30" />
-
-      {!shouldPlay ? (
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 text-black shadow-xl transition group-hover:scale-110">
-            ▶
-          </div>
-        </div>
-      ) : null}
 
       <div className="pointer-events-none absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/70 to-transparent" />
 

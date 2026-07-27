@@ -27,19 +27,28 @@ type StoredSection = {
   blocks?: SectionBlock[]
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
 function normalizeSections(input: unknown): StoredSection[] {
   if (!Array.isArray(input)) return []
 
-  return input.map((section: any, idx: number) => ({
-    id:
-      typeof section?.id === "string" && section.id.trim().length > 0
-        ? section.id
-        : `section-${idx + 1}`,
-    type: typeof section?.type === "string" ? section.type : "content",
-    config:
-      section?.config && typeof section.config === "object" ? section.config : {},
-    blocks: Array.isArray(section?.blocks) ? section.blocks : [],
-  }))
+  return input.map((value, idx) => {
+    const section = isRecord(value) ? value : {}
+
+    return {
+      id:
+        typeof section.id === "string" && section.id.trim().length > 0
+          ? section.id
+          : `section-${idx + 1}`,
+      type: typeof section.type === "string" ? section.type : "content",
+      config: isRecord(section.config) ? section.config : {},
+      blocks: Array.isArray(section.blocks)
+        ? (section.blocks as SectionBlock[])
+        : [],
+    }
+  })
 }
 
 function normalizeTheme(input: unknown): EventTheme | null {
@@ -180,21 +189,21 @@ function renderBlock(block: SectionBlock, items: LibraryItem[]) {
     )
   }
 
-if (block.type === "system_component") {
-  const componentKey = String(block.props.componentKey ?? "")
+  if (block.type === "system_component") {
+    const componentKey = String(block.props.componentKey ?? "")
 
-  switch (componentKey) {
-    case "resource_library":
-      return renderLibraryGrid(items)
+    switch (componentKey) {
+      case "resource_library":
+        return renderLibraryGrid(items)
 
-    default:
-      return (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-sm text-white/45">
-          {componentKey} preview is not enabled on this page yet.
-        </div>
-      )
+      default:
+        return (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-sm text-white/45">
+            {componentKey} preview is not enabled on this page yet.
+          </div>
+        )
+    }
   }
-}
 
   return null
 }
@@ -210,8 +219,7 @@ export default async function LibraryPage(props: {
     return <EventEmailGate slug={slug} eventTitle={event.title} />
   }
 
-  const [{ data: eventRow }, pageDocument, legacyPageDocument, { data, error }] =
-    await Promise.all([
+  const [{ data: eventRow }, pageDocument, { data, error }] = await Promise.all([
     supabaseAdmin
       .from("events")
       .select("event_theme")
@@ -219,8 +227,6 @@ export default async function LibraryPage(props: {
       .maybeSingle(),
 
     loadEventPageDocument(event.id, "on_demand"),
-
-    loadEventPageDocument(event.id, "library"),
 
     supabaseAdmin
       .from("event_library_items")
@@ -234,7 +240,7 @@ export default async function LibraryPage(props: {
 
   const items = (data || []) as LibraryItem[]
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const storedSections = normalizeSections(legacyPageDocument.sections)
+  const storedSections = normalizeSections(pageDocument.sections)
 
   if (storedSections.length === 0) {
     return (
