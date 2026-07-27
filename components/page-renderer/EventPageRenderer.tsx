@@ -1,11 +1,10 @@
-import type { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
 import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { getSectionResponsiveVisibilityClass } from "@/lib/page-editor/elementPresentation"
 import type {
   EventPageElement,
   EventPageSection,
   SectionBlock,
-  SystemComponentKey,
   EventTheme,
 } from "@/lib/page-editor/sectionTypes"
 
@@ -14,7 +13,11 @@ type EventLike = {
   description?: string | null
 }
 
-type SystemComponentsMap = Partial<Record<SystemComponentKey, ReactNode>>
+export type AttendeeSystemComponentsMap = Readonly<
+  Record<string, ReactNode | undefined>
+>
+
+export type AttendeeSectionLayout = "full-bleed" | "card-stack"
 
 function getPublicHeroBody(body?: string | null) {
   const value = body?.trim()
@@ -126,9 +129,30 @@ function hasBottomDivider(divider?: EventPageSection["config"]["divider"]) {
 
 function renderBlock(
   block: SectionBlock,
-  systemComponents: SystemComponentsMap
+  systemComponents: AttendeeSystemComponentsMap,
+  layout: AttendeeSectionLayout,
 ): ReactNode {
   if (block.type === "rich_text") {
+    if (layout === "card-stack") {
+      return (
+        <div
+          key={block.id}
+          className={`rounded-2xl border border-white/10 bg-white/[0.03] p-6 ${
+            block.props.align === "center" ? "text-center" : "text-left"
+          }`}
+        >
+          {block.props.title ? (
+            <h3 className="text-lg font-semibold">{block.props.title}</h3>
+          ) : null}
+          {block.props.body ? (
+            <p className="mt-2 whitespace-pre-wrap text-white/70">
+              {block.props.body}
+            </p>
+          ) : null}
+        </div>
+      )
+    }
+
     return (
       <div
         key={block.id}
@@ -158,6 +182,17 @@ function renderBlock(
     const node = systemComponents[componentKey]
 
     if (!node) {
+      if (layout === "card-stack") {
+        return (
+          <div
+            key={block.id}
+            className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-sm text-white/45"
+          >
+            {String(componentKey)} preview is not enabled on this page yet.
+          </div>
+        )
+      }
+
       const cardClass = getCardClass(block.props.containerStyle ?? "panel")
 
       return (
@@ -172,6 +207,10 @@ function renderBlock(
           </p>
         </div>
       )
+    }
+
+    if (layout === "card-stack") {
+      return <div key={block.id}>{node}</div>
     }
 
     const cardClass = getCardClass(block.props.containerStyle ?? "panel")
@@ -202,6 +241,379 @@ function renderBlock(
   }
 
   return null
+}
+
+function getCardStackPageStyle(theme: EventTheme): CSSProperties {
+  const colorA = theme.gradientColorA || "#020617"
+  const colorB = theme.gradientColorB || "#020617"
+  const angle = theme.gradientAngle || "135deg"
+
+  return {
+    color: theme.textColor || "#ffffff",
+    backgroundColor: theme.pageBackgroundColor || "#020617",
+    backgroundImage: `linear-gradient(${angle}, ${colorA}, ${colorB})`,
+  }
+}
+
+function getCardStackPaddingClass(
+  sectionType: EventPageSection["type"],
+  paddingY?: EventPageSection["config"]["paddingY"],
+) {
+  if (sectionType === "hero") {
+    switch (paddingY) {
+      case "sm":
+        return "px-8 py-6 md:px-10"
+      case "lg":
+        return "px-8 py-10 md:px-10 md:py-14"
+      case "md":
+      default:
+        return "p-8 md:p-10"
+    }
+  }
+
+  switch (paddingY) {
+    case "sm":
+      return "px-6 py-6 md:px-8"
+    case "lg":
+      return "px-6 py-10 md:px-8 md:py-14"
+    case "md":
+    default:
+      return "p-6 md:p-8"
+  }
+}
+
+function getCardStackSectionStyle(
+  section: EventPageSection,
+  theme: EventTheme,
+): CSSProperties {
+  const config = section.config ?? {}
+  const themeMode = config.themeMode ?? "inherit"
+  const fillType = config.sectionBackgroundFillType ?? "solid"
+
+  if (themeMode !== "custom") {
+    return {
+      backgroundColor:
+        theme.panelBackgroundColor || "rgba(255,255,255,0.04)",
+      borderColor:
+        theme.panelBorderColor || "rgba(255,255,255,0.10)",
+      color: theme.textColor || "#ffffff",
+    }
+  }
+
+  const backgroundColor =
+    config.sectionBackgroundColor ||
+    theme.panelBackgroundColor ||
+    "rgba(255,255,255,0.04)"
+  const borderColor =
+    config.sectionBorderColor ||
+    theme.panelBorderColor ||
+    "rgba(255,255,255,0.10)"
+  const textColor =
+    config.sectionTextColor || theme.textColor || "#ffffff"
+  const gradientColorA =
+    config.sectionGradientColorA || theme.gradientColorA || "#0f172a"
+  const gradientColorB =
+    config.sectionGradientColorB || theme.gradientColorB || "#1d4ed8"
+  const gradientAngle =
+    config.sectionGradientAngle || theme.gradientAngle || "135deg"
+
+  return {
+    backgroundColor: fillType === "solid" ? backgroundColor : undefined,
+    backgroundImage:
+      fillType === "linear-gradient"
+        ? `linear-gradient(${gradientAngle}, ${gradientColorA}, ${gradientColorB})`
+        : fillType === "radial-gradient"
+          ? `radial-gradient(circle at center, ${gradientColorA}, ${gradientColorB})`
+          : undefined,
+    borderColor,
+    color: textColor,
+  }
+}
+
+function renderCardStackSection(
+  section: EventPageSection,
+  index: number,
+  event: EventLike,
+  theme: EventTheme,
+  systemComponents: AttendeeSystemComponentsMap,
+): ReactNode {
+  const config = section.config ?? {}
+  if (config.visible === false) return null
+
+  const responsiveVisibilityClass =
+    getSectionResponsiveVisibilityClass(config)
+  const explicitSystemComponent = (
+    config as EventPageSection["config"] & { systemComponent?: string }
+  ).systemComponent
+
+  if (explicitSystemComponent) {
+    const node = systemComponents[explicitSystemComponent]
+    if (node) {
+      return (
+        <div
+          key={`${section.id}-${index}`}
+          data-page-section-id={section.id}
+          data-page-section-type={section.type}
+          className={responsiveVisibilityClass || undefined}
+        >
+          {node}
+        </div>
+      )
+    }
+  }
+
+  const title = config.title || ""
+  const body = config.body || ""
+  const textAlignClass = getTextAlignClass(config.textAlign)
+  const widthClass = getWidthClass(config.contentWidth)
+  const contentWidthClass =
+    section.type === "hero" && config.textAlign !== "center"
+      ? "max-w-3xl"
+      : `mx-auto ${widthClass}`
+
+  return (
+    <section
+      key={`${section.id}-${index}`}
+      data-page-section-id={section.id}
+      data-page-section-type={section.type}
+      data-page-section-label={config.adminLabel || undefined}
+      className={`${responsiveVisibilityClass} rounded-3xl border ${getCardStackPaddingClass(
+        section.type,
+        config.paddingY,
+      )}`}
+      style={getCardStackSectionStyle(section, theme)}
+    >
+      <div
+        className={`${contentWidthClass} ${textAlignClass}`}
+      >
+        {section.type === "hero" ? (
+          <>
+            <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+              {title || event.title}
+            </h1>
+            {body ? (
+              <p className="mt-3 whitespace-pre-wrap text-base text-white/70 md:text-lg">
+                {body}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <>
+            {title ? (
+              <h2 className="text-2xl font-semibold">{title}</h2>
+            ) : null}
+            {body ? (
+              <p className="mt-2 whitespace-pre-wrap text-white/70">{body}</p>
+            ) : null}
+          </>
+        )}
+
+        {section.blocks?.length ? (
+          <div className="mt-6 space-y-6">
+            {section.blocks.map((block) =>
+              renderBlock(block, systemComponents, "card-stack"),
+            )}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  )
+}
+
+function renderFullBleedSection(
+  section: EventPageSection,
+  index: number,
+  eventTheme: EventTheme,
+  systemComponents: AttendeeSystemComponentsMap,
+): ReactNode {
+  const config = section.config ?? {}
+
+  if (config.visible === false) return null
+  const responsiveVisibilityClass =
+    getSectionResponsiveVisibilityClass(config)
+
+  const explicitSystemComponent = (
+    config as EventPageSection["config"] & { systemComponent?: string }
+  ).systemComponent
+
+  if (explicitSystemComponent) {
+    const node = systemComponents[explicitSystemComponent]
+    if (node) {
+      return (
+        <div
+          key={`${section.id}-${index}`}
+          data-page-section-id={section.id}
+          data-page-section-type={section.type}
+          data-page-section-label={config.adminLabel || undefined}
+          className={responsiveVisibilityClass || undefined}
+        >
+          {node}
+        </div>
+      )
+    }
+  }
+
+  const themeMode =
+    typeof config.themeMode === "string" && config.themeMode.trim()
+      ? config.themeMode
+      : "inherit"
+
+  const fillType =
+    themeMode === "custom" &&
+    typeof config.sectionBackgroundFillType === "string" &&
+    config.sectionBackgroundFillType.trim()
+      ? config.sectionBackgroundFillType
+      : "solid"
+
+  const sectionBackgroundColor =
+    themeMode === "custom"
+      ? typeof config.sectionBackgroundColor === "string" &&
+        config.sectionBackgroundColor.trim()
+        ? config.sectionBackgroundColor
+        : undefined
+      : eventTheme.panelBackgroundColor
+
+  const sectionBorderColor =
+    themeMode === "custom"
+      ? typeof config.sectionBorderColor === "string" &&
+        config.sectionBorderColor.trim()
+        ? config.sectionBorderColor
+        : undefined
+      : eventTheme.panelBorderColor
+
+  const sectionTextColor =
+    themeMode === "custom"
+      ? typeof config.sectionTextColor === "string" &&
+        config.sectionTextColor.trim()
+        ? config.sectionTextColor
+        : undefined
+      : eventTheme.textColor
+
+  const sectionGradientColorA =
+    themeMode === "custom"
+      ? typeof config.sectionGradientColorA === "string" &&
+        config.sectionGradientColorA.trim()
+        ? config.sectionGradientColorA
+        : eventTheme.gradientColorA || "#0f172a"
+      : eventTheme.gradientColorA || "#0f172a"
+
+  const sectionGradientColorB =
+    themeMode === "custom"
+      ? typeof config.sectionGradientColorB === "string" &&
+        config.sectionGradientColorB.trim()
+        ? config.sectionGradientColorB
+        : eventTheme.gradientColorB || "#1d4ed8"
+      : eventTheme.gradientColorB || "#1d4ed8"
+
+  const sectionGradientAngle =
+    themeMode === "custom"
+      ? typeof config.sectionGradientAngle === "string" &&
+        config.sectionGradientAngle.trim()
+        ? config.sectionGradientAngle
+        : eventTheme.gradientAngle || "135deg"
+      : eventTheme.gradientAngle || "135deg"
+
+  const sectionBackgroundImage =
+    themeMode === "custom"
+      ? fillType === "linear-gradient"
+        ? `linear-gradient(${sectionGradientAngle}, ${sectionGradientColorA}, ${sectionGradientColorB})`
+        : fillType === "radial-gradient"
+          ? `radial-gradient(circle at center, ${sectionGradientColorA}, ${sectionGradientColorB})`
+          : undefined
+      : undefined
+
+  const widthClass = getWidthClass(config.contentWidth)
+  const paddingYClass = getPaddingYClass(config.paddingY)
+  const textAlignClass = getTextAlignClass(config.textAlign)
+  const showTopDivider = hasTopDivider(config.divider)
+  const showBottomDivider = hasBottomDivider(config.divider)
+  const hasHeader = Boolean(config.title || config.body)
+
+  return (
+    <section
+      key={`${section.id}-${index}`}
+      data-page-section-id={section.id}
+      data-page-section-type={section.type}
+      data-page-section-label={config.adminLabel || undefined}
+      className={`${responsiveVisibilityClass} px-8 ${paddingYClass} ${getOuterBg(
+        config.backgroundStyle,
+        section.type,
+      )} ${showTopDivider ? "border-t border-white/10" : ""} ${
+        showBottomDivider ? "border-b border-white/10" : ""
+      }`}
+      style={{
+        backgroundColor:
+          fillType === "solid" ? sectionBackgroundColor : undefined,
+        backgroundImage: sectionBackgroundImage,
+        borderColor: sectionBorderColor,
+        color: sectionTextColor,
+      }}
+    >
+      <div className={`mx-auto ${widthClass}`}>
+        {section.type === "hero" && hasHeader ? (
+          <div className={textAlignClass}>
+            <div className="text-xs uppercase tracking-[0.22em] text-white/40">
+              Live Event
+            </div>
+
+            {config.title ? (
+              <h1
+                className="mt-3 text-4xl font-bold"
+                style={{ color: sectionTextColor }}
+              >
+                {getPublicTitle(config.title)}
+              </h1>
+            ) : null}
+
+            {getPublicHeroBody(config.body) ? (
+              <p
+                className={`mt-4 whitespace-pre-wrap ${
+                  config.textAlign === "center"
+                    ? "mx-auto max-w-3xl"
+                    : "max-w-3xl"
+                }`}
+                style={{ color: sectionTextColor }}
+              >
+                {getPublicHeroBody(config.body)}
+              </p>
+            ) : null}
+          </div>
+        ) : hasHeader ? (
+          <div className={textAlignClass}>
+            {config.title ? (
+              <h2
+                className="text-2xl font-semibold"
+                style={{ color: sectionTextColor }}
+              >
+                {getPublicTitle(config.title)}
+              </h2>
+            ) : null}
+
+            {getPublicHeroBody(config.body) ? (
+              <p
+                className={
+                  config.title
+                    ? "mt-4 whitespace-pre-wrap"
+                    : "whitespace-pre-wrap"
+                }
+                style={{ color: sectionTextColor }}
+              >
+                {getPublicHeroBody(config.body)}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+
+        {section.blocks?.length ? (
+          <div className={hasHeader ? "mt-6 space-y-6" : "space-y-6"}>
+            {section.blocks.map((block) =>
+              renderBlock(block, systemComponents, "full-bleed"),
+            )}
+          </div>
+        ) : null}
+      </div>
+    </section>
+  )
 }
 
 function getFallbackSections(event: EventLike): EventPageSection[] {
@@ -290,6 +702,11 @@ export default function EventPageRenderer({
   generalSession = null,
   systemComponents,
   eventTheme,
+  layout = "full-bleed",
+  stackedPadding = "default",
+  standalone = false,
+  beforeSections,
+  afterSections,
 }: {
   event: EventLike
   elements?: EventPageElement[]
@@ -300,8 +717,13 @@ export default function EventPageRenderer({
   onSelectSection?: (id: string | null) => void
   isMobilePreview?: boolean
   generalSession?: unknown
-  systemComponents: SystemComponentsMap
+  systemComponents: AttendeeSystemComponentsMap
   eventTheme?: EventTheme
+  layout?: AttendeeSectionLayout
+  stackedPadding?: "default" | "spacious"
+  standalone?: boolean
+  beforeSections?: ReactNode
+  afterSections?: ReactNode
 }) {
   void mode
   void isEditing
@@ -323,7 +745,39 @@ export default function EventPageRenderer({
     gradientAngle: eventTheme?.gradientAngle || "135deg",
   }
 
-  return (
+  if (layout === "card-stack") {
+    const cardStackTheme = eventTheme ?? {}
+
+    return (
+      <main
+        className="relative min-h-screen text-white"
+        style={getCardStackPageStyle(cardStackTheme)}
+      >
+        {beforeSections}
+        <div
+          className={`relative mx-auto max-w-6xl px-6 ${
+            stackedPadding === "spacious" ? "py-12" : "py-10"
+          }`}
+        >
+          <div className="space-y-8">
+            {resolvedSections.map((section, index) =>
+              renderCardStackSection(
+                section,
+                index,
+                event,
+                cardStackTheme,
+                systemComponents,
+              ),
+            )}
+            {afterSections}
+          </div>
+        </div>
+        <PersistedPageElementLayer elements={elements} />
+      </main>
+    )
+  }
+
+  const fullBleedContent = (
     <div
       className="relative overflow-hidden rounded-3xl border text-white"
       style={{
@@ -332,185 +786,33 @@ export default function EventPageRenderer({
         color: resolvedEventTheme.textColor,
       }}
     >
-      {resolvedSections.map((section, index) => {
-        const config = section.config ?? {}
-
-        if (config.visible === false) return null
-        const responsiveVisibilityClass =
-          getSectionResponsiveVisibilityClass(config)
-
-        const explicitSystemComponent = (config as { systemComponent?: SystemComponentKey })
-          .systemComponent
-
-        if (explicitSystemComponent) {
-          const node = systemComponents[explicitSystemComponent]
-          if (node) {
-            return (
-              <div
-                key={`${section.id}-${index}`}
-                className={responsiveVisibilityClass || undefined}
-              >
-                {node}
-              </div>
-            )
-          }
-        }
-
-        const themeMode =
-          typeof config.themeMode === "string" && config.themeMode.trim()
-            ? config.themeMode
-            : "inherit"
-
-        const fillType =
-          themeMode === "custom" &&
-          typeof config.sectionBackgroundFillType === "string" &&
-          config.sectionBackgroundFillType.trim()
-            ? config.sectionBackgroundFillType
-            : "solid"
-
-        const sectionBackgroundColor =
-          themeMode === "custom"
-            ? typeof config.sectionBackgroundColor === "string" &&
-              config.sectionBackgroundColor.trim()
-              ? config.sectionBackgroundColor
-              : undefined
-            : resolvedEventTheme.panelBackgroundColor
-
-        const sectionBorderColor =
-          themeMode === "custom"
-            ? typeof config.sectionBorderColor === "string" && config.sectionBorderColor.trim()
-              ? config.sectionBorderColor
-              : undefined
-            : resolvedEventTheme.panelBorderColor
-
-        const sectionTextColor =
-          themeMode === "custom"
-            ? typeof config.sectionTextColor === "string" && config.sectionTextColor.trim()
-              ? config.sectionTextColor
-              : undefined
-            : resolvedEventTheme.textColor
-
-        const sectionGradientColorA =
-          themeMode === "custom"
-            ? typeof config.sectionGradientColorA === "string" &&
-              config.sectionGradientColorA.trim()
-              ? config.sectionGradientColorA
-              : resolvedEventTheme.gradientColorA || "#0f172a"
-            : resolvedEventTheme.gradientColorA || "#0f172a"
-
-        const sectionGradientColorB =
-          themeMode === "custom"
-            ? typeof config.sectionGradientColorB === "string" &&
-              config.sectionGradientColorB.trim()
-              ? config.sectionGradientColorB
-              : resolvedEventTheme.gradientColorB || "#1d4ed8"
-            : resolvedEventTheme.gradientColorB || "#1d4ed8"
-
-        const sectionGradientAngle =
-          themeMode === "custom"
-            ? typeof config.sectionGradientAngle === "string" &&
-              config.sectionGradientAngle.trim()
-              ? config.sectionGradientAngle
-              : resolvedEventTheme.gradientAngle || "135deg"
-            : resolvedEventTheme.gradientAngle || "135deg"
-
-        const sectionBackgroundImage =
-          themeMode === "custom"
-            ? fillType === "linear-gradient"
-              ? `linear-gradient(${sectionGradientAngle}, ${sectionGradientColorA}, ${sectionGradientColorB})`
-              : fillType === "radial-gradient"
-                ? `radial-gradient(circle at center, ${sectionGradientColorA}, ${sectionGradientColorB})`
-                : undefined
-            : undefined
-
-        const widthClass = getWidthClass(config.contentWidth)
-        const paddingYClass = getPaddingYClass(config.paddingY)
-        const textAlignClass = getTextAlignClass(config.textAlign)
-        const showTopDivider = hasTopDivider(config.divider)
-        const showBottomDivider = hasBottomDivider(config.divider)
-
-        const hasHeader = Boolean(config.title || config.body)
-
-        return (
-          <section
-            key={`${section.id}-${index}`}
-            className={`${responsiveVisibilityClass} px-8 ${paddingYClass} ${getOuterBg(
-              config.backgroundStyle,
-              section.type
-            )} ${showTopDivider ? "border-t border-white/10" : ""} ${
-              showBottomDivider ? "border-b border-white/10" : ""
-            }`}
-            style={{
-              backgroundColor: fillType === "solid" ? sectionBackgroundColor : undefined,
-              backgroundImage: sectionBackgroundImage,
-              borderColor: sectionBorderColor,
-              color: sectionTextColor,
-            }}
-          >
-            <div className={`mx-auto ${widthClass}`}>
-              {section.type === "hero" && hasHeader ? (
-                <div className={textAlignClass}>
-                  <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-                    Live Event
-                  </div>
-
-                  {config.title ? (
-                    <h1
-                      className="mt-3 text-4xl font-bold"
-                      style={{ color: sectionTextColor }}
-                    >
-                      {getPublicTitle(config.title)}
-                    </h1>
-                  ) : null}
-
-                  {getPublicHeroBody(config.body) ? (
-                    <p
-                      className={`mt-4 whitespace-pre-wrap ${
-                        config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
-                      }`}
-                      style={{ color: sectionTextColor }}
-                    >
-                      {getPublicHeroBody(config.body)}
-                    </p>
-                  ) : null}
-                </div>
-              ) : hasHeader ? (
-                <div className={textAlignClass}>
-                  {config.title ? (
-                    <h2
-                      className="text-2xl font-semibold"
-                      style={{ color: sectionTextColor }}
-                    >
-                      {getPublicTitle(config.title)}
-                    </h2>
-                  ) : null}
-
-                  {getPublicHeroBody(config.body) ? (
-                    <p
-                      className={
-                        config.title
-                          ? "mt-4 whitespace-pre-wrap"
-                          : "whitespace-pre-wrap"
-                      }
-                      style={{ color: sectionTextColor }}
-                    >
-                      {getPublicHeroBody(config.body)}
-                    </p>
-                  ) : null}
-                </div>
-              ) : null}
-
-              {section.blocks?.length ? (
-                <div className={hasHeader ? "mt-6 space-y-6" : "space-y-6"}>
-                  {section.blocks.map((block) => renderBlock(block, systemComponents))}
-                </div>
-              ) : null}
-            </div>
-          </section>
-        )
-      })}
+      {beforeSections}
+      {resolvedSections.map((section, index) =>
+        renderFullBleedSection(
+          section,
+          index,
+          resolvedEventTheme,
+          systemComponents,
+        ),
+      )}
 
       <PersistedPageElementLayer elements={elements} />
     </div>
+  )
+
+  if (standalone) {
+    return (
+      <main className="relative min-h-screen bg-[#050816] text-white">
+        {fullBleedContent}
+        {afterSections}
+      </main>
+    )
+  }
+
+  return (
+    <>
+      {fullBleedContent}
+      {afterSections}
+    </>
   )
 }

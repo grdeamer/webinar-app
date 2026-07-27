@@ -121,3 +121,53 @@ export function hasSystemComponent(
     )
   })
 }
+
+export function withRequiredSystemComponent(
+  sections: EventPageSection[],
+  componentKey: SystemComponentKey,
+  {
+    sectionId,
+    adminLabel,
+    title = "",
+    body = null,
+    containerStyle = "none",
+  }: {
+    sectionId: string
+    adminLabel: string
+    title?: string
+    body?: string | null
+    containerStyle?: "none" | "panel" | "subtle"
+  },
+): EventPageSection[] {
+  if (hasSystemComponent(sections, componentKey)) return sections
+
+  return [
+    ...sections,
+    {
+      id: sectionId,
+      type: "content",
+      config: {
+        visible: true,
+        title,
+        body,
+        adminLabel,
+        backgroundStyle: "transparent",
+        contentWidth: "xl",
+        paddingY: "md",
+        textAlign: "left",
+        divider: "none",
+        hideOnMobile: false,
+      },
+      blocks: [
+        {
+          id: `${sectionId}-block`,
+          type: "system_component",
+          props: {
+            componentKey,
+            containerStyle,
+          },
+        },
+      ],
+    },
+  ]
+}

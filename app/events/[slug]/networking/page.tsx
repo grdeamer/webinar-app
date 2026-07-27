@@ -1,15 +1,68 @@
 import Link from "next/link"
 import NetworkingRoom from "@/components/NetworkingRoom"
 import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
-import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { getEventBySlug } from "@/lib/events"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
-import { normalizeEventPageSections } from "@/lib/page-editor/normalizeEventPageSections"
-import type { EventTheme } from "@/lib/page-editor/sectionTypes"
+import {
+  normalizeEventPageSections,
+  withRequiredSystemComponent,
+} from "@/lib/page-editor/normalizeEventPageSections"
+import type {
+  EventPageSection,
+  EventTheme,
+} from "@/lib/page-editor/sectionTypes"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
+
+function getNetworkingFallbackSections(eventTitle: string): EventPageSection[] {
+  return [
+    {
+      id: "networking-hero",
+      type: "hero",
+      config: {
+        visible: true,
+        title: `${eventTitle} Networking`,
+        body: "Meet attendees and join the event-wide networking space.",
+        adminLabel: "Networking Hero",
+        backgroundStyle: "subtle",
+        contentWidth: "xl",
+        paddingY: "lg",
+        textAlign: "left",
+        divider: "bottom",
+        hideOnMobile: false,
+      },
+      blocks: [],
+    },
+    {
+      id: "networking-room",
+      type: "content",
+      config: {
+        visible: true,
+        title: "",
+        body: null,
+        adminLabel: "Networking Room",
+        backgroundStyle: "transparent",
+        contentWidth: "xl",
+        paddingY: "md",
+        textAlign: "left",
+        divider: "none",
+        hideOnMobile: false,
+      },
+      blocks: [
+        {
+          id: "networking-room-block",
+          type: "system_component",
+          props: {
+            componentKey: "networking",
+            containerStyle: "none",
+          },
+        },
+      ],
+    },
+  ]
+}
 
 export default async function EventNetworkingPage(props: {
   params: Promise<{ slug: string }>
@@ -24,26 +77,32 @@ export default async function EventNetworkingPage(props: {
       .eq("id", event.id)
       .maybeSingle(),
   ])
-  const sections = normalizeEventPageSections(pageDocument.sections)
+  const savedSections = normalizeEventPageSections(pageDocument.sections)
+  const baseSections =
+    savedSections.length > 0
+      ? savedSections
+      : getNetworkingFallbackSections(event.title)
+  const sections = withRequiredSystemComponent(baseSections, "networking", {
+    sectionId: "networking-room-runtime",
+    adminLabel: "Networking Room",
+  })
   const eventTheme =
     eventRow?.event_theme && typeof eventRow.event_theme === "object"
       ? (eventRow.event_theme as EventTheme)
       : undefined
 
-  if (sections.length > 0) {
-    return (
-      <main className="relative min-h-screen bg-[#050816] text-white">
-        <EventPageRenderer
-          event={event}
-          elements={pageDocument.elements}
-          sections={sections}
-          systemComponents={{}}
-          eventTheme={eventTheme}
-        />
+  const networkingRoom = <NetworkingRoom eventSlug={slug} />
 
+  return (
+    <EventPageRenderer
+      event={event}
+      elements={pageDocument.elements}
+      sections={sections}
+      systemComponents={{ networking: networkingRoom }}
+      eventTheme={eventTheme}
+      standalone
+      afterSections={
         <div className="mx-auto max-w-6xl px-6 py-10">
-          <NetworkingRoom eventSlug={slug} />
-
           <Link
             href={`/events/${slug}`}
             className="mt-6 inline-block text-cyan-300"
@@ -51,25 +110,7 @@ export default async function EventNetworkingPage(props: {
             ← Back to event
           </Link>
         </div>
-      </main>
-    )
-  }
-
-  return (
-    <main className="relative min-h-screen bg-[#050816] text-white">
-      <PersistedPageElementLayer elements={pageDocument.elements} />
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <h1 className="text-4xl font-semibold mb-6">{event.title} Networking</h1>
-
-        <NetworkingRoom eventSlug={slug} />
-
-        <Link
-          href={`/events/${slug}`}
-          className="inline-block mt-6 text-cyan-300"
-        >
-          ← Back to event
-        </Link>
-      </div>
-    </main>
+      }
+    />
   )
 }

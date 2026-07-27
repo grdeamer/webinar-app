@@ -3,10 +3,13 @@ import { getEventBySlug } from "@/lib/events"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import EventEmailGate from "../EventEmailGate"
-import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
+import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
-import { getSectionResponsiveVisibilityClass } from "@/lib/page-editor/elementPresentation"
-import type { EventTheme, SectionBlock } from "@/lib/page-editor/sectionTypes"
+import {
+  normalizeEventPageSections,
+  withRequiredSystemComponent,
+} from "@/lib/page-editor/normalizeEventPageSections"
+import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -20,95 +23,9 @@ type LibraryItem = {
   storage_path: string | null
 }
 
-type StoredSection = {
-  id: string
-  type: string
-  config?: Record<string, unknown> | null
-  blocks?: SectionBlock[]
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
-}
-
-function normalizeSections(input: unknown): StoredSection[] {
-  if (!Array.isArray(input)) return []
-
-  return input.map((value, idx) => {
-    const section = isRecord(value) ? value : {}
-
-    return {
-      id:
-        typeof section.id === "string" && section.id.trim().length > 0
-          ? section.id
-          : `section-${idx + 1}`,
-      type: typeof section.type === "string" ? section.type : "content",
-      config: isRecord(section.config) ? section.config : {},
-      blocks: Array.isArray(section.blocks)
-        ? (section.blocks as SectionBlock[])
-        : [],
-    }
-  })
-}
-
 function normalizeTheme(input: unknown): EventTheme | null {
   if (!input || typeof input !== "object") return null
   return input as EventTheme
-}
-
-function getPageStyle(theme: EventTheme | null): React.CSSProperties {
-  const colorA = theme?.gradientColorA || "#020617"
-  const colorB = theme?.gradientColorB || "#020617"
-  const angle = theme?.gradientAngle || "135deg"
-
-  return {
-    color: theme?.textColor || "#ffffff",
-    backgroundColor: theme?.pageBackgroundColor || "#020617",
-    backgroundImage: `linear-gradient(${angle}, ${colorA}, ${colorB})`,
-  }
-}
-
-function getPanelStyle(theme: EventTheme | null): React.CSSProperties {
-  return {
-    backgroundColor: theme?.panelBackgroundColor || "rgba(255,255,255,0.04)",
-    borderColor: theme?.panelBorderColor || "rgba(255,255,255,0.10)",
-    color: theme?.textColor || "#ffffff",
-  }
-}
-
-function getSectionStyle(
-  section: StoredSection,
-  theme: EventTheme | null
-): React.CSSProperties {
-  const config = section.config ?? {}
-  const themeMode = String(config.themeMode ?? "inherit")
-  const fillType = String(config.sectionBackgroundFillType ?? "solid")
-
-  if (themeMode !== "custom") {
-    return getPanelStyle(theme)
-  }
-
-  const backgroundColor = String(config.sectionBackgroundColor ?? "")
-  const borderColor = String(config.sectionBorderColor ?? "")
-  const textColor = String(config.sectionTextColor ?? "")
-  const gradientColorA = String(config.sectionGradientColorA ?? "")
-  const gradientColorB = String(config.sectionGradientColorB ?? "")
-  const gradientAngle = String(config.sectionGradientAngle ?? "135deg")
-
-  const style: React.CSSProperties = {
-    backgroundColor:
-      fillType === "solid"
-        ? backgroundColor || theme?.panelBackgroundColor || "rgba(255,255,255,0.04)"
-        : undefined,
-    borderColor: borderColor || theme?.panelBorderColor || "rgba(255,255,255,0.10)",
-    color: textColor || theme?.textColor || "#ffffff",
-  }
-
-  if (fillType === "linear-gradient" && gradientColorA && gradientColorB) {
-    style.backgroundImage = `linear-gradient(${gradientAngle}, ${gradientColorA}, ${gradientColorB})`
-  }
-
-  return style
 }
 
 function getKindLabel(kind: string) {
@@ -175,37 +92,52 @@ function renderLibraryGrid(items: LibraryItem[]) {
   )
 }
 
-function renderBlock(block: SectionBlock, items: LibraryItem[]) {
-  if (block.type === "rich_text") {
-    return (
-      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-        {block.props.title ? (
-          <h3 className="text-lg font-semibold">{String(block.props.title)}</h3>
-        ) : null}
-        {block.props.body ? (
-          <p className="mt-2 text-white/70">{String(block.props.body)}</p>
-        ) : null}
-      </div>
-    )
-  }
-
-  if (block.type === "system_component") {
-    const componentKey = String(block.props.componentKey ?? "")
-
-    switch (componentKey) {
-      case "resource_library":
-        return renderLibraryGrid(items)
-
-      default:
-        return (
-          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-sm text-white/45">
-            {componentKey} preview is not enabled on this page yet.
-          </div>
-        )
-    }
-  }
-
-  return null
+function getLibraryFallbackSections(): EventPageSection[] {
+  return [
+    {
+      id: "library-hero",
+      type: "hero",
+      config: {
+        visible: true,
+        title: "On-demand Library",
+        body: "Recordings, PDFs, links, and follow-up resources.",
+        adminLabel: "On-Demand Hero",
+        backgroundStyle: "transparent",
+        contentWidth: "xl",
+        paddingY: "md",
+        textAlign: "left",
+        divider: "none",
+        hideOnMobile: false,
+      },
+      blocks: [],
+    },
+    {
+      id: "library-content",
+      type: "content",
+      config: {
+        visible: true,
+        title: "",
+        body: null,
+        adminLabel: "Resource Library",
+        backgroundStyle: "transparent",
+        contentWidth: "xl",
+        paddingY: "md",
+        textAlign: "left",
+        divider: "none",
+        hideOnMobile: false,
+      },
+      blocks: [
+        {
+          id: "resource-library-block",
+          type: "system_component",
+          props: {
+            componentKey: "resource_library",
+            containerStyle: "none",
+          },
+        },
+      ],
+    },
+  ]
 }
 
 export default async function LibraryPage(props: {
@@ -240,89 +172,35 @@ export default async function LibraryPage(props: {
 
   const items = (data || []) as LibraryItem[]
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const storedSections = normalizeSections(pageDocument.sections)
-
-  if (storedSections.length === 0) {
-    return (
-      <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
-        <PersistedPageElementLayer elements={pageDocument.elements} />
-        <div className="mx-auto max-w-6xl px-6 py-10">
-          <h1 className="text-4xl font-semibold">On-demand Library</h1>
-          <p className="mt-2 text-white/60">
-            Recordings, PDFs, links, and follow-up resources.
-          </p>
-
-          <div className="mt-6">{renderLibraryGrid(items)}</div>
-
-          <Link
-            href={`/events/${slug}`}
-            className="mt-6 inline-block text-cyan-300"
-          >
-            ← Back to event
-          </Link>
-        </div>
-      </main>
-    )
-  }
+  const storedSections = normalizeEventPageSections(pageDocument.sections)
+  const baseSections =
+    storedSections.length > 0
+      ? storedSections
+      : getLibraryFallbackSections()
+  const sections = withRequiredSystemComponent(
+    baseSections,
+    "resource_library",
+    {
+      sectionId: "resource-library-runtime",
+      adminLabel: "Resource Library",
+    },
+  )
 
   return (
-    <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
-      <PersistedPageElementLayer elements={pageDocument.elements} />
-      <div className="mx-auto max-w-6xl px-6 py-10">
-        <div className="space-y-8">
-          {storedSections
-            .filter((section) => section.config?.visible !== false)
-            .map((section) => {
-              const config = section.config ?? {}
-              const title = String(config.title ?? "")
-              const body = String(config.body ?? "")
-
-              if (section.type === "hero") {
-                return (
-                  <section
-                    key={section.id}
-                    className={`${getSectionResponsiveVisibilityClass(config)} rounded-3xl border p-8 md:p-10`}
-                    style={getSectionStyle(section, eventTheme)}
-                  >
-                    <div className="max-w-3xl">
-                      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                        {title || "On-demand Library"}
-                      </h1>
-
-                      {body ? (
-                        <p className="mt-3 text-base text-white/70 md:text-lg">{body}</p>
-                      ) : null}
-                    </div>
-                  </section>
-                )
-              }
-
-              return (
-                <section
-                  key={section.id}
-                  className={`${getSectionResponsiveVisibilityClass(config)} rounded-3xl border p-6 md:p-8`}
-                  style={getSectionStyle(section, eventTheme)}
-                >
-                  {title ? <h2 className="text-2xl font-semibold">{title}</h2> : null}
-                  {body ? <p className="mt-2 text-white/70">{body}</p> : null}
-
-                  <div className="mt-6 space-y-6">
-                    {(section.blocks ?? []).map((block) => (
-                      <div key={block.id}>{renderBlock(block, items)}</div>
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
-
-          <Link
-            href={`/events/${slug}`}
-            className="inline-block text-cyan-300"
-          >
-            ← Back to event
-          </Link>
-        </div>
-      </div>
-    </main>
+    <EventPageRenderer
+      event={event}
+      elements={pageDocument.elements}
+      sections={sections}
+      systemComponents={{
+        resource_library: renderLibraryGrid(items),
+      }}
+      eventTheme={eventTheme ?? undefined}
+      layout="card-stack"
+      afterSections={
+        <Link href={`/events/${slug}`} className="inline-block text-cyan-300">
+          ← Back to event
+        </Link>
+      }
+    />
   )
 }

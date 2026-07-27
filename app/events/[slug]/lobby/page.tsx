@@ -1,48 +1,28 @@
-import type { CSSProperties } from "react"
 import Link from "next/link"
 import { getEventBySlug } from "@/lib/events"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import EventEmailGate from "../EventEmailGate"
 import EventSpeakerCards from "@/components/EventSpeakerCards"
-import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
+import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import { getPlaybackSource, parseSpeakerCards } from "@/lib/eventExperience"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
-import { getSectionResponsiveVisibilityClass } from "@/lib/page-editor/elementPresentation"
+import {
+  hasSystemComponent,
+  normalizeEventPageSections,
+} from "@/lib/page-editor/normalizeEventPageSections"
 import RemoteRefreshListener from "@/components/RemoteRefreshListener"
 import { getEventLiveDestination, getEventLiveState } from "@/lib/app/liveState"
 import type { EventAssignedWebinar, EventBreakout, EventWebinarAssignmentRow } from "@/lib/types"
 import QASubmitBox from "@/components/qa/QASubmitBox"
 import QAList from "@/components/qa/QAList"
-import type { EventTheme, SectionBlock } from "@/lib/page-editor/sectionTypes"
+import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
-type StoredSection = {
-  id: string
-  type: string
-  config?: Record<string, unknown> | null
-  blocks?: SectionBlock[]
-}
-
 function isEventAssignedWebinar(value: EventAssignedWebinar | null): value is EventAssignedWebinar {
   return Boolean(value)
-}
-
-function normalizeSections(input: unknown): StoredSection[] {
-  if (!Array.isArray(input)) return []
-
-  return input.map((section: any, idx: number) => ({
-    id:
-      typeof section?.id === "string" && section.id.trim().length > 0
-        ? section.id
-        : `section-${idx + 1}`,
-    type: typeof section?.type === "string" ? section.type : "content",
-    config:
-      section?.config && typeof section.config === "object" ? section.config : {},
-    blocks: Array.isArray(section?.blocks) ? section.blocks : [],
-  }))
 }
 
 function normalizeTheme(input: unknown): EventTheme | null {
@@ -55,58 +35,6 @@ function formatDate(value: string | null | undefined) {
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return "Schedule to be announced"
   return date.toLocaleString()
-}
-
-function getPageStyle(theme: EventTheme | null): CSSProperties {
-  const colorA = theme?.gradientColorA || "#020617"
-  const colorB = theme?.gradientColorB || "#0f172a"
-  const angle = theme?.gradientAngle || "135deg"
-
-  return {
-    color: theme?.textColor || "#ffffff",
-    backgroundColor: theme?.pageBackgroundColor || "#020617",
-    backgroundImage: `linear-gradient(${angle}, ${colorA}, ${colorB})`,
-  }
-}
-
-function getPanelStyle(theme: EventTheme | null): CSSProperties {
-  return {
-    backgroundColor: theme?.panelBackgroundColor || "rgba(255,255,255,0.04)",
-    borderColor: theme?.panelBorderColor || "rgba(255,255,255,0.10)",
-    color: theme?.textColor || "#ffffff",
-  }
-}
-
-function getSectionStyle(section: StoredSection, theme: EventTheme | null): CSSProperties {
-  const config = section.config ?? {}
-  const themeMode = String(config.themeMode ?? "inherit")
-  const fillType = String(config.sectionBackgroundFillType ?? "solid")
-
-  if (themeMode !== "custom") {
-    return getPanelStyle(theme)
-  }
-
-  const backgroundColor = String(config.sectionBackgroundColor ?? "")
-  const borderColor = String(config.sectionBorderColor ?? "")
-  const textColor = String(config.sectionTextColor ?? "")
-  const gradientColorA = String(config.sectionGradientColorA ?? "")
-  const gradientColorB = String(config.sectionGradientColorB ?? "")
-  const gradientAngle = String(config.sectionGradientAngle ?? "135deg")
-
-  const style: CSSProperties = {
-    backgroundColor:
-      fillType === "solid"
-        ? backgroundColor || theme?.panelBackgroundColor || "rgba(255,255,255,0.04)"
-        : undefined,
-    borderColor: borderColor || theme?.panelBorderColor || "rgba(255,255,255,0.10)",
-    color: textColor || theme?.textColor || "#ffffff",
-  }
-
-  if (fillType === "linear-gradient" && gradientColorA && gradientColorB) {
-    style.backgroundImage = `linear-gradient(${gradientAngle}, ${gradientColorA}, ${gradientColorB})`
-  }
-
-  return style
 }
 
 function Card({
@@ -144,19 +72,6 @@ function MetricCard({
       <div className="text-[11px] uppercase tracking-[0.2em] text-white/40">{label}</div>
       <div className="mt-2 text-2xl font-bold">{value}</div>
       <div className="mt-1 text-sm text-white/55">{hint}</div>
-    </div>
-  )
-}
-
-function renderRichTextBlock(block: Extract<SectionBlock, { type: "rich_text" }>) {
-  return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-6">
-      {block.props.title ? (
-        <h3 className="text-lg font-semibold">{String(block.props.title)}</h3>
-      ) : null}
-      {block.props.body ? (
-        <p className="mt-2 text-white/70">{String(block.props.body)}</p>
-      ) : null}
     </div>
   )
 }
@@ -442,92 +357,27 @@ function renderQaBlock() {
   )
 }
 
-function renderBlock(
-  block: SectionBlock,
-  args: {
-    event: { title: string; description?: string | null }
-    user: { email?: string | null }
-    slug: string
-    webinars: EventAssignedWebinar[]
-    nextWebinar: EventAssignedWebinar | undefined
-    liveDestination: ReturnType<typeof getEventLiveDestination>
-    liveState: Awaited<ReturnType<typeof getEventLiveState>>
-  }
-) {
-  if (block.type === "rich_text") {
-    return renderRichTextBlock(block)
-  }
-
-  if (block.type !== "system_component") {
-    return null
-  }
-
-  switch (block.props.componentKey) {
-    case "live_state":
-      return renderLiveRoutingBlock({
-        liveDestination: args.liveDestination,
-        liveState: args.liveState,
-      })
-
-    case "sessions_list":
-      return renderSessionsPreviewBlock({
-        webinars: args.webinars,
-        slug: args.slug,
-      })
-
-    case "countdown":
-      return renderNextUpBlock({
-        nextWebinar: args.nextWebinar,
-        slug: args.slug,
-      })
-
-    case "speaker_cards":
-      return null
-
-    case "speaker_spotlight":
-      return null
-
-    case "agenda":
-      return (
-        <Card
-          title="Agenda"
-          href={`/events/${args.slug}/agenda`}
-          description="See the main schedule and flow."
-        />
-      )
-
-    case "access_gate":
-      return (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-sm text-white/45">
-          Access gate is only shown for signed-out users.
-        </div>
-      )
-
-    case "featured_breakouts":
-      return (
-        <Card
-          title="Breakouts"
-          href={`/events/${args.slug}/breakouts`}
-          description="Open side-room content and smaller sessions."
-        />
-      )
-
-    case "stage_player":
-      return (
-        <Card
-          title="Event home"
-          href={`/events/${args.slug}`}
-          description="Return to the homepage-style event landing screen."
-        />
-      )
-
-    default:
-      return (
-        <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-sm text-white/45">
-          {String(block.props.componentKey)} preview is not enabled on this page yet.
-        </div>
-      )
-  }
+function getLobbyFallbackSections(): EventPageSection[] {
+  return [
+    {
+      id: "lobby-runtime",
+      type: "system",
+      config: {
+        visible: true,
+        title: "",
+        body: null,
+        adminLabel: "Lobby",
+        backgroundStyle: "transparent",
+        contentWidth: "xl",
+        paddingY: "md",
+        textAlign: "left",
+        divider: "none",
+        hideOnMobile: false,
+        systemComponent: "lobby_runtime",
+      } as EventPageSection["config"] & { systemComponent: string },
+      blocks: [],
+    },
+  ]
 }
 
 export default async function LobbyPage(props: { params: Promise<{ slug: string }> }) {
@@ -582,116 +432,79 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
   ).slice(0, 6)
 
   const eventTheme = normalizeTheme(eventRow?.event_theme)
-  const sections = normalizeSections(pageDocument.sections)
-  const hasSavedSections = sections.length > 0
-
-  const blockArgs = {
-    event,
-    user,
-    slug,
-    webinars,
-    nextWebinar,
-    liveDestination,
-    liveState,
-  }
-
-  if (!hasSavedSections) {
-    return (
-      <div className="relative space-y-6">
-        <PersistedPageElementLayer elements={pageDocument.elements} />
-        <RemoteRefreshListener scopeType="event" scopeId={event.id} />
-
-        {renderLiveRoutingBlock({
-          liveDestination,
-          liveState,
-        })}
-
-        {renderLobbyOverviewBlock({
-          eventTitle: event.title,
-          eventDescription: event.description,
-          userEmail: user.email ?? "Unknown attendee",
-          webinarsCount: webinars.length,
-        })}
-
-        {renderMetricGridBlock({ webinars })}
-
-        <div className="grid gap-6 lg:grid-cols-[1.45fr_0.95fr]">
-          {renderSessionsPreviewBlock({ webinars, slug })}
-          {renderNavigationCardsBlock({ slug })}
-        </div>
-
-        {renderQaBlock()}
-
-        <EventSpeakerCards speakers={speakers} title="Session speakers" compact />
+  const savedSections = normalizeEventPageSections(pageDocument.sections)
+  const sections =
+    savedSections.length > 0 ? savedSections : getLobbyFallbackSections()
+  const liveRouting = renderLiveRoutingBlock({ liveDestination, liveState })
+  const sessionsPreview = renderSessionsPreviewBlock({ webinars, slug })
+  const speakerCards = (
+    <EventSpeakerCards speakers={speakers} title="Session speakers" compact />
+  )
+  const lobbyRuntime = (
+    <div className="relative space-y-6">
+      {liveRouting}
+      {renderLobbyOverviewBlock({
+        eventTitle: event.title,
+        eventDescription: event.description,
+        userEmail: user.email ?? "Unknown attendee",
+        webinarsCount: webinars.length,
+      })}
+      {renderMetricGridBlock({ webinars })}
+      <div className="grid gap-6 lg:grid-cols-[1.45fr_0.95fr]">
+        {sessionsPreview}
+        {renderNavigationCardsBlock({ slug })}
       </div>
-    )
-  }
+      {renderQaBlock()}
+    </div>
+  )
+  const includesSpeakerCards = hasSystemComponent(sections, "speaker_cards")
 
   return (
-    <main className="relative min-h-screen text-white" style={getPageStyle(eventTheme)}>
-      <PersistedPageElementLayer elements={pageDocument.elements} />
-      <RemoteRefreshListener scopeType="event" scopeId={event.id} />
-
-      <div className="relative mx-auto max-w-6xl px-6 py-12">
-        <div className="space-y-8">
-          {sections
-            .filter((section) => section.config?.visible !== false)
-            .map((section) => {
-              const config = section.config ?? {}
-              const title = String(config.title ?? "")
-              const body = String(config.body ?? "")
-
-              if (section.type === "hero") {
-                return (
-                  <section
-                    key={section.id}
-                    className={`${getSectionResponsiveVisibilityClass(config)} rounded-3xl border p-8 md:p-10`}
-                    style={getSectionStyle(section, eventTheme)}
-                  >
-                    <div className="max-w-3xl">
-                      {title ? (
-                        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                          {title}
-                        </h1>
-                      ) : (
-                        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
-                          {event.title}
-                        </h1>
-                      )}
-
-                      {body ? (
-                        <p className="mt-3 text-base text-white/70 md:text-lg">{body}</p>
-                      ) : event.description ? (
-                        <p className="mt-3 text-base text-white/70 md:text-lg">
-                          {event.description}
-                        </p>
-                      ) : null}
-                    </div>
-                  </section>
-                )
-              }
-
-              return (
-                <section
-                  key={section.id}
-                  className={`${getSectionResponsiveVisibilityClass(config)} rounded-3xl border p-6 md:p-8`}
-                  style={getSectionStyle(section, eventTheme)}
-                >
-                  {title ? <h2 className="text-2xl font-semibold">{title}</h2> : null}
-                  {body ? <p className="mt-2 text-white/70">{body}</p> : null}
-
-                  <div className="mt-6 space-y-6">
-                    {(section.blocks ?? []).map((block) => (
-                      <div key={block.id}>{renderBlock(block, blockArgs)}</div>
-                    ))}
-                  </div>
-                </section>
-              )
-            })}
-
-          <EventSpeakerCards speakers={speakers} title="Session speakers" compact />
-        </div>
-      </div>
-    </main>
+    <EventPageRenderer
+      event={event}
+      elements={pageDocument.elements}
+      sections={sections}
+      systemComponents={{
+        lobby_runtime: lobbyRuntime,
+        live_state: liveRouting,
+        sessions_list: sessionsPreview,
+        countdown: renderNextUpBlock({ nextWebinar, slug }),
+        agenda: (
+          <Card
+            title="Agenda"
+            href={`/events/${slug}/agenda`}
+            description="See the main schedule and flow."
+          />
+        ),
+        access_gate: (
+          <div className="rounded-2xl border border-dashed border-white/10 bg-white/[0.03] p-6 text-sm text-white/45">
+            Access gate is only shown for signed-out users.
+          </div>
+        ),
+        featured_breakouts: (
+          <Card
+            title="Breakouts"
+            href={`/events/${slug}/breakouts`}
+            description="Open side-room content and smaller sessions."
+          />
+        ),
+        stage_player: (
+          <Card
+            title="Event home"
+            href={`/events/${slug}`}
+            description="Return to the homepage-style event landing screen."
+          />
+        ),
+        speaker_cards: speakerCards,
+        qa: renderQaBlock(),
+      }}
+      eventTheme={eventTheme ?? undefined}
+      layout="card-stack"
+      stackedPadding="spacious"
+      beforeSections={
+        <RemoteRefreshListener scopeType="event" scopeId={event.id} />
+      }
+      afterSections={!includesSpeakerCards ? speakerCards : null}
+    />
   )
 }

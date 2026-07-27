@@ -18,6 +18,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { parseSpeakerCards } from "@/lib/eventExperience"
 import { createDefaultEventHomeSections } from "@/lib/page-editor/sectionRegistry"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
+import { normalizeEventPageSections } from "@/lib/page-editor/normalizeEventPageSections"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDestination"
 import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
@@ -57,19 +58,12 @@ type BreakoutCard = {
   end_at?: string | null
 }
 
-function normalizeSections(input: unknown): EventPageSection[] {
-  if (!Array.isArray(input)) return []
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
 
-  return input.map((section: any, idx: number) => ({
-    id:
-      typeof section?.id === "string" && section.id.trim().length > 0
-        ? section.id
-        : `section-${idx + 1}`,
-    type: section?.type ?? "content",
-    config:
-      section?.config && typeof section.config === "object" ? section.config : {},
-    blocks: Array.isArray(section?.blocks) ? section.blocks : [],
-  })) as EventPageSection[]
+function getNullableString(value: unknown): string | null {
+  return typeof value === "string" ? value : null
 }
 
 function normalizeTheme(input: unknown): EventTheme | null {
@@ -81,16 +75,16 @@ function normalizeSessionRows(input: unknown): SessionCard[] {
   if (!Array.isArray(input)) return []
 
   return input
-    .map((row: any) => row?.webinars)
-    .filter(Boolean)
-    .map((session: any) => ({
+    .map((row) => (isRecord(row) ? row.webinars : null))
+    .filter(isRecord)
+    .map((session) => ({
       id: String(session.id),
-      title: session.title ?? null,
-      description: session.description ?? null,
-      webinar_date: session.webinar_date ?? null,
-      speaker: session.speaker ?? null,
-      tag: session.tag ?? null,
-      thumbnail_url: session.thumbnail_url ?? null,
+      title: getNullableString(session.title),
+      description: getNullableString(session.description),
+      webinar_date: getNullableString(session.webinar_date),
+      speaker: getNullableString(session.speaker),
+      tag: getNullableString(session.tag),
+      thumbnail_url: getNullableString(session.thumbnail_url),
       speaker_cards: session.speaker_cards ?? null,
     }))
 }
@@ -98,28 +92,39 @@ function normalizeSessionRows(input: unknown): SessionCard[] {
 function normalizeAgendaRows(input: unknown): AgendaItem[] {
   if (!Array.isArray(input)) return []
 
-  return input.map((item: any) => ({
-    id: String(item.id),
-    title: item.title ?? null,
-    start_at: item.start_at ?? null,
-    end_at: item.end_at ?? null,
-    track: item.track ?? null,
-    speaker: item.speaker ?? null,
-    description: item.description ?? null,
-  }))
+  return input.flatMap((value) => {
+    if (!isRecord(value)) return []
+
+    return [{
+      id: String(value.id),
+      title: getNullableString(value.title),
+      start_at: getNullableString(value.start_at),
+      end_at: getNullableString(value.end_at),
+      track: getNullableString(value.track),
+      speaker: getNullableString(value.speaker),
+      description: getNullableString(value.description),
+    }]
+  })
 }
 
 function normalizeBreakoutRows(input: unknown): BreakoutCard[] {
   if (!Array.isArray(input)) return []
 
-  return input.map((item: any) => ({
-    id: String(item.id),
-    title: String(item.title ?? "Untitled Breakout"),
-    description: item.description ?? null,
-    join_link: item.join_link ?? null,
-    start_at: item.start_at ?? null,
-    end_at: item.end_at ?? null,
-  }))
+  return input.flatMap((value) => {
+    if (!isRecord(value)) return []
+
+    return [{
+      id: String(value.id),
+      title:
+        typeof value.title === "string"
+          ? value.title
+          : "Untitled Breakout",
+      description: getNullableString(value.description),
+      join_link: getNullableString(value.join_link),
+      start_at: getNullableString(value.start_at),
+      end_at: getNullableString(value.end_at),
+    }]
+  })
 }
 
 function formatAgendaRange(start?: string | null, end?: string | null) {
@@ -283,7 +288,7 @@ function SessionsList({
             No sessions found yet. Add sessions in admin to populate this block.
           </div>
         ) : (
-          sessions.map((session, index) => (
+          sessions.map((session) => (
             <article
               key={session.id}
               className="overflow-hidden rounded-[24px] border border-white/10 bg-[linear-gradient(180deg,rgba(30,41,59,0.88),rgba(2,6,23,0.96))] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
@@ -388,7 +393,7 @@ export default async function EventHomePage(props: {
   const agenda = normalizeAgendaRows(agendaRows)
   const sessions = normalizeSessionRows(webinarRows)
   const breakouts = normalizeBreakoutRows(breakoutRows)
-  const savedSections = normalizeSections(pageDocument.sections)
+  const savedSections = normalizeEventPageSections(pageDocument.sections)
   const savedElements = pageDocument.elements
   const eventTheme = normalizeTheme(themeRow?.event_theme)
 
@@ -573,16 +578,17 @@ export default async function EventHomePage(props: {
   const resolvedSections =
     savedSections.length > 0 ? savedSections : fallbackSections
 
+  const authValue: unknown = authedUser
+  const authRecord = isRecord(authValue) ? authValue : null
+  const authUser = isRecord(authRecord?.user) ? authRecord.user : null
+  const authAttendee = isRecord(authRecord?.attendee)
+    ? authRecord.attendee
+    : null
   const attendeeUserId =
-    typeof (authedUser as any)?.id === "string"
-      ? (authedUser as any).id
-      : typeof (authedUser as any)?.user_id === "string"
-      ? (authedUser as any).user_id
-      : typeof (authedUser as any)?.user?.id === "string"
-      ? (authedUser as any).user.id
-      : typeof (authedUser as any)?.attendee?.user_id === "string"
-      ? (authedUser as any).attendee.user_id
-      : null
+    getNullableString(authRecord?.id) ??
+    getNullableString(authRecord?.user_id) ??
+    getNullableString(authUser?.id) ??
+    getNullableString(authAttendee?.user_id)
 
   const transitionState = liveDestination as typeof liveDestination & {
     transition_active?: boolean | null
