@@ -14,15 +14,20 @@ import {
 } from "./canvasCoordinates"
 import {
   findClosestReferenceBounds,
-  getElementAlignmentUpdates,
   type ElementAlignmentCommand,
 } from "./elementAlignmentCommands"
 import {
+  compositeSelectionHasLockedMember,
   createElementGroupId,
+  getCompositeAlignmentUpdates,
+  getCompositeMoveUpdates,
+  getCompositeSelectionItems,
   getElementGroupId,
   getElementGroupMemberIds,
+  getExpandedGroupMemberIds,
   getGroupResizeSnapshot,
   getGroupResizeUpdates,
+  getMinimumGroupResizeDimensions,
   type GroupResizeSnapshot,
 } from "./elementGrouping"
 import { DEFAULT_ELEMENT_ANIMATION } from "./elementAnimation"
@@ -998,6 +1003,11 @@ const isEmbedded =
     if (targetElement?.locked) return
     if (editingElementId === id) return
     e.stopPropagation()
+    const groupId = targetElement ? getElementGroupId(targetElement) : null
+    const groupMembers = groupId
+      ? elements.filter((element) => getElementGroupId(element) === groupId)
+      : []
+    if (groupMembers.some((element) => element.locked === true)) return
     if (!canvasRef.current) return
 
     const startPointer = screenPointToCanvasPoint(
@@ -1008,10 +1018,6 @@ const isEmbedded =
     )
 
     beginTransaction()
-    const groupId = targetElement ? getElementGroupId(targetElement) : null
-    const groupMembers = groupId
-      ? elements.filter((element) => getElementGroupId(element) === groupId)
-      : []
     const groupSnapshot = getGroupResizeSnapshot(
       groupMembers.map((element) => ({
         id: element.id,
@@ -1037,8 +1043,11 @@ const isEmbedded =
     setSelectedId(id)
     if (groupSnapshot) {
       setSelectedIds(groupSnapshot.elements.map((element) => element.id))
+    } else {
+      setSelectedIds([id])
     }
     setSelectedSectionId(null)
+    setSelectedBlockId(null)
   }
 
   function onCanvasMove(e: React.PointerEvent<HTMLDivElement>) {
@@ -1074,18 +1083,33 @@ const isEmbedded =
 
       setHasUnsavedChanges(true)
 
+      const updates = getCompositeMoveUpdates({
+        elements: elements.flatMap((element) => {
+          const start = startPositions[element.id]
+          if (!start) return []
+
+          return [
+            {
+              id: element.id,
+              x: start.x,
+              y: start.y,
+              width: element.width ?? 0,
+              height: element.height ?? 0,
+              locked: element.locked,
+              props: element.props,
+            },
+          ]
+        }),
+        selectedIds: ids,
+        deltaX: dx,
+        deltaY: dy,
+      })
+      const updatesById = new Map(updates.map((update) => [update.id, update]))
+
       setElements((prev) =>
         prev.map((el) => {
-          if (!ids.includes(el.id)) return el
-
-          const start = startPositions[el.id]
-          if (!start) return el
-
-          return {
-            ...el,
-            x: Math.max(0, start.x + dx),
-            y: Math.max(0, start.y + dy),
-          }
+          const update = updatesById.get(el.id)
+          return update ? { ...el, ...update } : el
         })
       )
 
@@ -1112,8 +1136,17 @@ const isEmbedded =
       const deltaX = currentPointer.x - startPointer.x
       const deltaY = currentPointer.y - startPointer.y
 
-      const nextWidth = Math.max(96, startWidth + snapToGrid(deltaX))
-      const nextHeight = Math.max(32, startHeight + snapToGrid(deltaY))
+      const minimumGroupDimensions = groupSnapshot
+        ? getMinimumGroupResizeDimensions(groupSnapshot, 96, 32)
+        : null
+      const nextWidth = Math.max(
+        minimumGroupDimensions?.width ?? 96,
+        startWidth + snapToGrid(deltaX)
+      )
+      const nextHeight = Math.max(
+        minimumGroupDimensions?.height ?? 32,
+        startHeight + snapToGrid(deltaY)
+      )
       if (nextWidth === startWidth && nextHeight === startHeight) return
 
       isDraggingRef.current = true
@@ -1224,23 +1257,37 @@ const isEmbedded =
   }
 
   function executeElementAlignmentCommand(command: ElementAlignmentCommand) {
-    const activeIds =
+    const requestedIds =
       selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
-    if (activeIds.length === 0) return
+    if (requestedIds.length === 0) return
 
-    const selected = elements.find((element) => element.id === activeIds[0])
-    if (!selected) return
+    const activeIds = getExpandedGroupMemberIds(elements, requestedIds)
+    if (activeIds.length === 0) return
+    if (compositeSelectionHasLockedMember(elements, activeIds)) return
+
+    const groupableElements = elements.map((element) => ({
+      id: element.id,
+      x: element.x,
+      y: element.y,
+      width: element.width ?? 0,
+      height: element.height ?? 0,
+      locked: element.locked,
+      props: element.props,
+    }))
+    const composites = getCompositeSelectionItems(groupableElements, activeIds)
+    const selectedComposite = composites[0]
+    if (!selectedComposite) return
 
     const isDistributionCommand =
       command === "distribute-horizontally" ||
       command === "distribute-vertically"
     const isSingleElementReferenceCommand =
       command === "center-in-section" || command === "center-on-page"
-    if (activeIds.length > 1 && isSingleElementReferenceCommand) return
+    if (composites.length > 1 && isSingleElementReferenceCommand) return
 
     let referenceBounds = null
 
-    if (activeIds.length === 1 && !isDistributionCommand) {
+    if (composites.length === 1 && !isDistributionCommand) {
       if (!canvasRef.current) return
 
       const [pageBounds, ...sectionBounds] =
@@ -1249,34 +1296,24 @@ const isEmbedded =
         command === "center-in-section"
           ? findClosestReferenceBounds(
               {
-                id: selected.id,
-                x: selected.x,
-                y: selected.y,
-                width: selected.width ?? 0,
-                height: selected.height ?? 0,
+                ...selectedComposite.bounds,
+                id: selectedComposite.id,
               },
               sectionBounds
             )
           : pageBounds
     }
 
-    if (activeIds.length === 1 && !isDistributionCommand && !referenceBounds) return
+    if (composites.length === 1 && !isDistributionCommand && !referenceBounds) return
 
-    const updates = getElementAlignmentUpdates({
-      elements: elements.map((element) => ({
-        id: element.id,
-        x: element.x,
-        y: element.y,
-        width: element.width ?? 0,
-        height: element.height ?? 0,
-      })),
+    const updates = getCompositeAlignmentUpdates({
+      elements: groupableElements,
       selectedIds: activeIds,
       command,
       referenceBounds,
     })
     const updatesById = new Map(updates.map((update) => [update.id, update]))
 
-    setHasUnsavedChanges(true)
     setElements((current) =>
       current.map((element) => {
         const update = updatesById.get(element.id)
@@ -1410,8 +1447,13 @@ const isEmbedded =
   }
 
   function selectLayerElement(targetId: string) {
+    const target = elements.find((element) => element.id === targetId)
+    const nextSelectedIds = target
+      ? getElementGroupMemberIds(elements, target)
+      : [targetId]
+
     setSelectedId(targetId)
-    setSelectedIds([targetId])
+    setSelectedIds(nextSelectedIds)
     setSelectedSectionId(null)
     setSelectedBlockId(null)
     setEditingElementId(null)
@@ -1918,6 +1960,7 @@ function addRegistrationFormSection() {
     setHasUnsavedChanges(true)
     setElements((prev) => normalizeZIndexes([...prev, nextElement]))
     setSelectedId(id)
+    setSelectedIds([id])
     setSelectedSectionId(null)
     setSelectedBlockId(null)
 
@@ -1932,26 +1975,14 @@ function addRegistrationFormSection() {
   function getActiveSelectedElementIds() {
     const selected =
       selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
-    const selectedGroupIds = new Set(
-      elements
-        .filter((element) => selected.includes(element.id))
-        .map((element) => getElementGroupId(element))
-        .filter((groupId): groupId is string => Boolean(groupId))
-    )
-
-    return elements
-      .filter(
-        (element) =>
-          selected.includes(element.id) ||
-          selectedGroupIds.has(getElementGroupId(element) ?? "")
-      )
-      .map((element) => element.id)
+    return getExpandedGroupMemberIds(elements, selected)
   }
 
   function deleteSelectedElement() {
     const idsToDelete = getActiveSelectedElementIds()
 
     if (idsToDelete.length === 0) return
+    if (compositeSelectionHasLockedMember(elements, idsToDelete)) return
 
     setHasUnsavedChanges(true)
     setElements((prev) => normalizeZIndexes(prev.filter((el) => !idsToDelete.includes(el.id))))
@@ -1963,9 +1994,11 @@ function addRegistrationFormSection() {
 
   function duplicateSelectedElement() {
     const activeIds = getActiveSelectedElementIds()
-    const selectedElements = elements.filter((element) =>
-      activeIds.includes(element.id)
-    )
+    if (compositeSelectionHasLockedMember(elements, activeIds)) return
+
+    const selectedElements = elements
+      .filter((element) => activeIds.includes(element.id))
+      .sort((a, b) => (a.z_index ?? 0) - (b.z_index ?? 0))
     if (selectedElements.length === 0) return
 
     const highestZ = elements.reduce((max, el) => Math.max(max, el.z_index ?? 0), 0)
@@ -1984,8 +2017,8 @@ function addRegistrationFormSection() {
       return {
         ...selected,
         id: nextId,
-        x: snapToGrid(selected.x + 24),
-        y: snapToGrid(selected.y + 24),
+        x: selected.x + 24,
+        y: selected.y + 24,
         z_index: highestZ + index + 1,
         props: {
           ...(selected.props ?? {}),
@@ -2006,31 +2039,42 @@ function addRegistrationFormSection() {
   function moveSelectedElementsBy(deltaX: number, deltaY: number) {
     const activeIds = getActiveSelectedElementIds()
     if (activeIds.length === 0) return
+    if (compositeSelectionHasLockedMember(elements, activeIds)) return
+
+    const updates = getCompositeMoveUpdates({
+      elements: elements.map((element) => ({
+        id: element.id,
+        x: element.x,
+        y: element.y,
+        width: element.width ?? 0,
+        height: element.height ?? 0,
+        locked: element.locked,
+        props: element.props,
+      })),
+      selectedIds: activeIds,
+      deltaX,
+      deltaY,
+    })
+    const updatesById = new Map(updates.map((update) => [update.id, update]))
 
     setHasUnsavedChanges(true)
     setElements((current) =>
-      current.map((element) =>
-        activeIds.includes(element.id) &&
-        !(element as EditorElement).locked
-          ? {
-              ...element,
-              x: Math.max(0, element.x + deltaX),
-              y: Math.max(0, element.y + deltaY),
-            }
-          : element
-      )
+      current.map((element) => {
+        const update = updatesById.get(element.id)
+        return update ? { ...element, ...update } : element
+      })
     )
   }
 
   function groupSelectedElements() {
-    const activeIds =
-      selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+    const activeIds = getActiveSelectedElementIds()
     const selectedElements = elements.filter((element) =>
       activeIds.includes(element.id)
     )
 
     if (
       selectedElements.length < 2 ||
+      selectedElements.some((element) => element.locked === true) ||
       selectedElements.some((element) => getElementGroupId(element))
     ) {
       return
@@ -2057,8 +2101,9 @@ function addRegistrationFormSection() {
   }
 
   function ungroupSelectedElements() {
-    const activeIds =
-      selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+    const activeIds = getActiveSelectedElementIds()
+    if (compositeSelectionHasLockedMember(elements, activeIds)) return
+
     const groupIds = new Set(
       elements
         .filter((element) => activeIds.includes(element.id))
@@ -2082,6 +2127,8 @@ function addRegistrationFormSection() {
           : element
       )
     )
+    setSelectedIds(activeIds)
+    setSelectedId(activeIds[activeIds.length - 1] ?? null)
   }
 
   function handleSectionDragStart(sectionId: string) {
@@ -2093,6 +2140,7 @@ function addRegistrationFormSection() {
     setSelectedSectionId(sectionId)
     setSelectedBlockId(null)
     setSelectedId(null)
+    setSelectedIds([])
   }
 
   function handleSectionDragOver(e: React.DragEvent<HTMLElement>, sectionId: string) {
@@ -2145,6 +2193,7 @@ function addRegistrationFormSection() {
     setDraggingSectionId(null)
     setDragOverSectionId(null)
     setSelectedId(null)
+    setSelectedIds([])
   }
 
   function handleSectionDragEnd() {
@@ -2312,21 +2361,41 @@ const selectedExperienceNode = experienceNodes.find(
   const canDeleteSection = Boolean(selectedSection && selectedSection.type !== "hero")
   const canDuplicateSection = Boolean(selectedSection && selectedSection.type !== "hero")
 
-  const selectedElementCount = selectedIds.length > 0 ? selectedIds.length : selectedElement ? 1 : 0
+  const selectedCommandIds = getExpandedGroupMemberIds(
+    normalizedElements,
+    selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []
+  )
   const selectedElementsForCommands = normalizedElements.filter((element) =>
-    (selectedIds.length > 0 ? selectedIds : selectedId ? [selectedId] : []).includes(
-      element.id
-    )
+    selectedCommandIds.includes(element.id)
+  )
+  const selectedElementCount = getCompositeSelectionItems(
+    selectedElementsForCommands.map((element) => ({
+      id: element.id,
+      x: element.x,
+      y: element.y,
+      width: element.width ?? 0,
+      height: element.height ?? 0,
+      locked: element.locked,
+      props: element.props,
+    })),
+    selectedCommandIds
+  ).length
+  const selectedCompositeIsLocked = compositeSelectionHasLockedMember(
+    normalizedElements,
+    selectedCommandIds
   )
   const canGroupElements =
+    !selectedCompositeIsLocked &&
     selectedElementsForCommands.length >= 2 &&
     selectedElementsForCommands.every((element) => !getElementGroupId(element))
-  const canUngroupElements = selectedElementsForCommands.some((element) =>
-    Boolean(getElementGroupId(element))
-  )
+  const canUngroupElements =
+    !selectedCompositeIsLocked &&
+    selectedElementsForCommands.some((element) =>
+      Boolean(getElementGroupId(element))
+    )
 
-  const canDeleteElement = selectedElementCount > 0
-  const canDuplicateElement = Boolean(selectedElement)
+  const canDeleteElement = selectedElementCount > 0 && !selectedCompositeIsLocked
+  const canDuplicateElement = Boolean(selectedElement) && !selectedCompositeIsLocked
   const canBringForward =
     selectedElementIndex > -1 && selectedElementIndex < normalizedElements.length - 1
   const canSendBackward = selectedElementIndex > 0
@@ -2557,7 +2626,7 @@ const selectedExperienceNode = experienceNodes.find(
                       const top = Math.min(selectionBox.startY, end.y)
                       const bottom = Math.max(selectionBox.startY, end.y)
 
-                      const hitIds = normalizedElements
+                      const directlyHitIds = normalizedElements
                         .filter((el) => {
                           const elLeft = el.x
                           const elTop = el.y
@@ -2572,6 +2641,10 @@ const selectedExperienceNode = experienceNodes.find(
                           )
                         })
                         .map((el) => el.id)
+                      const hitIds = getExpandedGroupMemberIds(
+                        elements,
+                        directlyHitIds
+                      )
 
                       setSelectedIds(hitIds)
                       setSelectedId(hitIds[hitIds.length - 1] ?? null)
@@ -2822,6 +2895,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 dragRef.current = null
                                 groupDragRef.current = null
                                 setSelectedSectionId(null)
+                                setSelectedBlockId(null)
                                 return
                               }
 
@@ -2831,11 +2905,21 @@ const selectedExperienceNode = experienceNodes.find(
                               }
 
                               setSelectedSectionId(null)
+                              setSelectedBlockId(null)
 
                               if (
                                 activeIds.length > 1 &&
                                 (groupMemberIds.length > 1 || isAlreadySelected)
                               ) {
+                                if (
+                                  elements.some(
+                                    (item) =>
+                                      activeIds.includes(item.id) &&
+                                      item.locked === true
+                                  )
+                                ) {
+                                  return
+                                }
                                 if (!canvasRef.current) return
 
                                 const startPointer = screenPointToCanvasPoint(
@@ -2873,8 +2957,9 @@ const selectedExperienceNode = experienceNodes.find(
   if (!isEditing) return
 
   setSelectedId(el.id)
-  setSelectedIds([el.id])
+  setSelectedIds(groupMemberIds)
   setSelectedSectionId(null)
+  setSelectedBlockId(null)
 
   if (
     el.element_type === "text" ||
@@ -2919,6 +3004,7 @@ const selectedExperienceNode = experienceNodes.find(
                               }
 
                               setSelectedSectionId(null)
+                              setSelectedBlockId(null)
                             }}
                             className={`absolute overflow-hidden rounded-xl shadow-lg ${
                               isEditing
@@ -3055,7 +3141,9 @@ const selectedExperienceNode = experienceNodes.find(
                                       className="relative h-full w-full bg-black"
                                       onClick={() => {
                                         setSelectedId(el.id)
+                                        setSelectedIds(groupMemberIds)
                                         setSelectedSectionId(null)
+                                        setSelectedBlockId(null)
                                       }}
                                     >
                                       {videoUrl ? (
@@ -3093,7 +3181,9 @@ const selectedExperienceNode = experienceNodes.find(
                                     type="button"
                                     onClick={() => {
                                       setSelectedId(el.id)
+                                      setSelectedIds(groupMemberIds)
                                       setSelectedSectionId(null)
+                                      setSelectedBlockId(null)
                                     }}
                                     className="relative block h-full w-full bg-black text-left"
                                   >

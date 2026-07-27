@@ -850,9 +850,9 @@ onDragEnd={handleLayerDragEnd}
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           onClick={duplicateSelectedElement}
-                          disabled={!canDuplicateElement || selectedIds.length > 1}
+                          disabled={!canDuplicateElement}
                           className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                            canDuplicateElement && selectedIds.length <= 1
+                            canDuplicateElement
                               ? "bg-blue-600 text-white hover:bg-blue-500"
                               : "cursor-not-allowed bg-white/10 text-white/35"
                           }`}
