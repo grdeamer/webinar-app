@@ -15,11 +15,13 @@ export type PageEditorSaveStatus =
   | "unsaved"
   | "saving"
   | "failed"
+  | "conflict"
 
 export type PageEditorSaveState = {
   localRevision: number
   lastSavedRevision: number
   latestRequestedRevision: number
+  serverRevision: number
   status: PageEditorSaveStatus
   error: string | null
   failedRevision: number | null
@@ -41,12 +43,16 @@ type SaveRequest = {
 }
 
 const DEFAULT_DEBOUNCE_MS = 1200
+const REVISION_CONFLICT_CODE = "revision_conflict"
+const REVISION_CONFLICT_MESSAGE =
+  "This page was modified elsewhere. Refresh before continuing."
 
 function createInitialSaveState(): PageEditorSaveState {
   return {
     localRevision: 0,
     lastSavedRevision: 0,
     latestRequestedRevision: 0,
+    serverRevision: 0,
     status: "saved",
     error: null,
     failedRevision: null,
@@ -153,6 +159,16 @@ export default function usePageEditorAutosave({
 
   const performSave = useCallback(
     async (request: SaveRequest): Promise<boolean> => {
+      const initialState = getPageSaveState(request.pageKey)
+      if (
+        initialState.generation !== request.generation ||
+        initialState.status === "conflict"
+      ) {
+        return false
+      }
+
+      const expectedRevision = initialState.serverRevision
+
       try {
         const response = await fetch(
           `/api/admin/page-editor/event/${slug}/elements?pageKey=${encodeURIComponent(request.pageKey)}`,
@@ -163,16 +179,38 @@ export default function usePageEditorAutosave({
               elements: serializeElements(request.snapshot),
               sections: request.snapshot.sections,
               eventTheme: request.snapshot.eventTheme,
+              expectedRevision,
             }),
           },
         )
         const data = (await response
           .json()
-          .catch((): null => null)) as { error?: string } | null
+          .catch((): null => null)) as {
+          error?: string
+          code?: string
+          revision?: unknown
+        } | null
         const current = getPageSaveState(request.pageKey)
 
         if (current.generation !== request.generation) {
           return response.ok
+        }
+
+        if (
+          response.status === 409 &&
+          data?.code === REVISION_CONFLICT_CODE
+        ) {
+          clearDebounce(request.pageKey)
+          updatePageSaveState(request.pageKey, (state) => ({
+            ...state,
+            status: "conflict",
+            error: data.error || REVISION_CONFLICT_MESSAGE,
+            failedRevision: Math.max(
+              state.failedRevision ?? 0,
+              request.revision,
+            ),
+          }))
+          return false
         }
 
         if (!response.ok) {
@@ -190,6 +228,23 @@ export default function usePageEditorAutosave({
               ),
             }
           })
+          return false
+        }
+
+        const serverRevision = Number(data?.revision)
+        if (
+          !Number.isSafeInteger(serverRevision) ||
+          serverRevision <= expectedRevision
+        ) {
+          updatePageSaveState(request.pageKey, (state) => ({
+            ...state,
+            status: "failed",
+            error: "The save response did not include a valid document revision.",
+            failedRevision: Math.max(
+              state.failedRevision ?? 0,
+              request.revision,
+            ),
+          }))
           return false
         }
 
@@ -212,6 +267,7 @@ export default function usePageEditorAutosave({
           return {
             ...state,
             lastSavedRevision,
+            serverRevision,
             failedRevision,
             status: hasUnsavedChanges
               ? hasNewerRequest
@@ -247,7 +303,7 @@ export default function usePageEditorAutosave({
         return false
       }
     },
-    [getPageSaveState, slug, updatePageSaveState],
+    [clearDebounce, getPageSaveState, slug, updatePageSaveState],
   )
 
   const enqueueSave = useCallback(
@@ -259,6 +315,10 @@ export default function usePageEditorAutosave({
       clearDebounce(pageKey)
 
       const current = getPageSaveState(pageKey)
+      if (current.status === "conflict") {
+        return Promise.resolve(false)
+      }
+
       if (
         revision <= current.lastSavedRevision &&
         (current.failedRevision === null ||
@@ -314,7 +374,8 @@ export default function usePageEditorAutosave({
   const registerLoadedPage = useCallback(
     (
       pageKey: string,
-      revision: number,
+      localRevision: number,
+      serverRevision: number,
       snapshot: PageEditorDocumentSnapshot,
     ): void => {
       clearDebounce(pageKey)
@@ -322,13 +383,14 @@ export default function usePageEditorAutosave({
       const generation = current.generation + 1
 
       latestSnapshotsRef.current[pageKey] = {
-        revision,
+        revision: localRevision,
         snapshot: cloneSnapshot(snapshot),
       }
       updatePageSaveState(pageKey, () => ({
-        localRevision: revision,
-        lastSavedRevision: revision,
-        latestRequestedRevision: revision,
+        localRevision,
+        lastSavedRevision: localRevision,
+        latestRequestedRevision: localRevision,
+        serverRevision,
         status: "saved",
         error: null,
         failedRevision: null,
@@ -354,16 +416,27 @@ export default function usePageEditorAutosave({
         ...state,
         localRevision: Math.max(state.localRevision, revision),
         status:
-          revision > state.lastSavedRevision ? "unsaved" : state.status,
+          state.status === "conflict"
+            ? "conflict"
+            : revision > state.lastSavedRevision
+              ? "unsaved"
+              : state.status,
         error:
-          revision > (state.failedRevision ?? -1) ? null : state.error,
+          state.status === "conflict"
+            ? state.error
+            : revision > (state.failedRevision ?? -1)
+              ? null
+              : state.error,
         failedRevision:
-          revision > (state.failedRevision ?? -1)
-            ? null
-            : state.failedRevision,
+          state.status === "conflict"
+            ? state.failedRevision
+            : revision > (state.failedRevision ?? -1)
+              ? null
+              : state.failedRevision,
       }))
 
       clearDebounce(pageKey)
+      if (current.status === "conflict") return
       if (!isSaveStateDirty(current)) return
 
       debounceTimersRef.current[pageKey] = window.setTimeout(() => {
@@ -441,19 +514,22 @@ export default function usePageEditorAutosave({
     return () => window.removeEventListener("beforeunload", handleBeforeUnload)
   }, [getPageSaveState])
 
-  const storedActivePageSaveState =
-    saveStatesByPage[activePageKey] ?? createInitialSaveState()
-  const activePageSaveState =
-    activeRevision > storedActivePageSaveState.localRevision
+  const activePageSaveState = useMemo(() => {
+    const storedState =
+      saveStatesByPage[activePageKey] ?? createInitialSaveState()
+
+    return activeRevision > storedState.localRevision
       ? {
-          ...storedActivePageSaveState,
+          ...storedState,
           localRevision: activeRevision,
           status:
-            storedActivePageSaveState.status === "failed"
-              ? ("failed" as const)
+            storedState.status === "failed" ||
+            storedState.status === "conflict"
+              ? storedState.status
               : ("unsaved" as const),
         }
-      : storedActivePageSaveState
+      : storedState
+  }, [activePageKey, activeRevision, saveStatesByPage])
   const activePageIsDirty = isSaveStateDirty(activePageSaveState)
 
   return useMemo(

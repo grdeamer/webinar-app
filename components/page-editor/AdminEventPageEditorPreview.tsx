@@ -625,6 +625,7 @@ const isEmbedded =
           elements?: unknown
           sections?: unknown
           eventTheme?: unknown
+          revision?: unknown
           error?: unknown
         } | null
         if (requestId !== loadRequestIdRef.current) return
@@ -637,9 +638,13 @@ const isEmbedded =
           )
         }
 
+        const serverRevision = Number(data?.revision)
+
         if (
           !Array.isArray(data?.elements) ||
-          !Array.isArray(data?.sections)
+          !Array.isArray(data?.sections) ||
+          !Number.isSafeInteger(serverRevision) ||
+          serverRevision < 0
         ) {
           throw new Error("The page editor returned an invalid document")
         }
@@ -662,6 +667,7 @@ const isEmbedded =
         registerLoadedPage(
           pageKey,
           getDocumentRevision(pageKey),
+          serverRevision,
           snapshot,
         )
         setLoadedPageKey(pageKey)
@@ -2312,6 +2318,9 @@ const selectedExperienceNode = experienceNodes.find(
   const saveStatusMessage =
     activePageSaveState.status === "saving"
       ? "Saving..."
+      : activePageSaveState.status === "conflict"
+        ? activePageSaveState.error ??
+          "This page was modified elsewhere. Refresh before continuing."
       : activePageSaveState.status === "failed"
         ? `Save failed: ${activePageSaveState.error ?? "Please try again"}`
         : activePageIsDirty

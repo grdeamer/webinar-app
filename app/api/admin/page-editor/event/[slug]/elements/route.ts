@@ -7,9 +7,14 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const DEFAULT_PAGE_KEY = "event_home"
+const REVISION_CONFLICT_CODE = "revision_conflict"
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
 function getPageKey(req: Request) {
@@ -37,32 +42,70 @@ async function getEventBySlugOrId(value: string) {
 function normalizeSections(input: unknown) {
   if (!Array.isArray(input)) return []
 
-  return input.map((section: any, idx: number) => ({
-    id:
-      typeof section?.id === "string" && section.id.trim().length > 0
-        ? section.id
-        : `section-${idx + 1}`,
-    type: typeof section?.type === "string" ? section.type : "content",
-    config:
-      section?.config && typeof section.config === "object" ? section.config : {},
-    blocks: Array.isArray(section?.blocks)
-      ? section.blocks.map((block: any, blockIdx: number) => ({
-          id:
-            typeof block?.id === "string" && block.id.trim().length > 0
-              ? block.id
-              : `block-${idx + 1}-${blockIdx + 1}`,
-          type:
-            block?.type === "rich_text" || block?.type === "system_component"
-              ? block.type
-              : "rich_text",
-          props: block?.props && typeof block.props === "object" ? block.props : {},
-        }))
-      : [],
-  }))
+  return input.map((value, idx) => {
+    const section = isRecord(value) ? value : {}
+
+    return {
+      id:
+        typeof section.id === "string" && section.id.trim().length > 0
+          ? section.id
+          : `section-${idx + 1}`,
+      type: typeof section.type === "string" ? section.type : "content",
+      config: isRecord(section.config) ? section.config : {},
+      blocks: Array.isArray(section.blocks)
+        ? section.blocks.map((value, blockIdx) => {
+            const block = isRecord(value) ? value : {}
+
+            return {
+              id:
+                typeof block.id === "string" && block.id.trim().length > 0
+                  ? block.id
+                  : `block-${idx + 1}-${blockIdx + 1}`,
+              type:
+                block.type === "rich_text" || block.type === "system_component"
+                  ? block.type
+                  : "rich_text",
+              props: isRecord(block.props) ? block.props : {},
+            }
+          })
+        : [],
+    }
+  })
+}
+
+function normalizeRevision(input: unknown) {
+  const revision = Number(input)
+  return Number.isSafeInteger(revision) && revision >= 0 ? revision : 0
+}
+
+function parseExpectedRevision(input: unknown) {
+  return typeof input === "number" &&
+    Number.isSafeInteger(input) &&
+    input >= 0
+    ? input
+    : null
+}
+
+async function getCurrentRevision(eventId: string, pageKey: string) {
+  const { data } = await supabaseAdmin
+    .from("event_page_sections")
+    .select("document_revision")
+    .eq("event_id", eventId)
+    .eq("page_key", pageKey)
+    .maybeSingle()
+
+  return normalizeRevision(data?.document_revision)
+}
+
+type SavedPageDocumentRow = {
+  saved_sections: unknown
+  saved_elements: unknown
+  saved_event_theme: unknown
+  saved_revision: unknown
 }
 
 function normalizeTheme(input: unknown): EventTheme | null {
-  if (!input || typeof input !== "object") return null
+  if (!isRecord(input)) return null
   return input as EventTheme
 }
 
@@ -81,7 +124,7 @@ export async function GET(
 
   const { data: pageRow, error: pageError } = await supabaseAdmin
     .from("event_page_sections")
-    .select("sections, elements")
+    .select("sections, elements, document_revision")
     .eq("event_id", event.id)
     .eq("page_key", pageKey)
     .maybeSingle()
@@ -97,6 +140,7 @@ export async function GET(
     eventTheme: normalizeTheme(event.event_theme),
     elements: normalizeEventPageElements(pageRow?.elements),
     sections: normalizeSections(pageRow?.sections),
+    revision: normalizeRevision(pageRow?.document_revision),
   })
 }
 
@@ -106,12 +150,24 @@ export async function POST(
 ): Promise<Response> {
   const { slug } = await ctx.params
   const pageKey = getPageKey(req)
-  const body = await req.json().catch((_: unknown): null => null)
+  const input = await req.json().catch((): null => null)
+  const body = isRecord(input) ? input : {}
+  const expectedRevision = parseExpectedRevision(body.expectedRevision)
 
-  const sections = normalizeSections(body?.sections)
-  const hasElements = Array.isArray(body?.elements)
-  const elements = normalizeEventPageElements(body?.elements)
-  const eventTheme = normalizeTheme(body?.eventTheme)
+  if (expectedRevision === null) {
+    return json(
+      {
+        error: "expectedRevision must be a non-negative integer",
+        code: "validation_error",
+      },
+      400,
+    )
+  }
+
+  const sections = normalizeSections(body.sections)
+  const hasElements = Array.isArray(body.elements)
+  const elements = normalizeEventPageElements(body.elements)
+  const eventTheme = normalizeTheme(body.eventTheme)
 
   const { data: event, error: eventError } = await getEventBySlugOrId(slug)
 
@@ -119,47 +175,43 @@ export async function POST(
     return json({ error: "Event not found" }, 404)
   }
 
-  const timestamp = new Date().toISOString()
-
-  const payload = {
-    event_id: event.id,
-    page_key: pageKey,
-    sections,
-    ...(hasElements ? { elements } : {}),
-    updated_at: timestamp,
-  }
-
   const { data: savedRow, error: saveError } = await supabaseAdmin
-    .from("event_page_sections")
-    .upsert(payload, {
-      onConflict: "event_id,page_key",
+    .rpc("save_event_page_document", {
+      p_event_id: event.id,
+      p_page_key: pageKey,
+      p_sections: sections,
+      p_elements: elements,
+      p_has_elements: hasElements,
+      p_event_theme: eventTheme,
+      p_expected_revision: expectedRevision,
     })
-    .select("sections, elements")
-    .single()
+    .maybeSingle()
 
   if (saveError) {
     return json({ error: saveError.message }, 400)
   }
 
-  const { error: themeMirrorError } = await supabaseAdmin
-    .from("events")
-    .update({
-      event_theme: eventTheme,
-      updated_at: timestamp,
-    })
-    .eq("id", event.id)
-
-  if (themeMirrorError) {
-    return json({ error: themeMirrorError.message }, 400)
+  if (!savedRow) {
+    return json(
+      {
+        error: "This page was modified elsewhere. Refresh before continuing.",
+        code: REVISION_CONFLICT_CODE,
+        currentRevision: await getCurrentRevision(event.id, pageKey),
+      },
+      409,
+    )
   }
+
+  const savedDocument = savedRow as SavedPageDocumentRow
 
   return json({
     ok: true,
     event_id: event.id,
     event_slug: event.slug,
     pageKey,
-    eventTheme,
-    elements: normalizeEventPageElements(savedRow?.elements),
-    sections: normalizeSections(savedRow?.sections),
+    eventTheme: normalizeTheme(savedDocument.saved_event_theme),
+    elements: normalizeEventPageElements(savedDocument.saved_elements),
+    sections: normalizeSections(savedDocument.saved_sections),
+    revision: normalizeRevision(savedDocument.saved_revision),
   })
 }
