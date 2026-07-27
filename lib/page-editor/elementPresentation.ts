@@ -7,11 +7,16 @@ import type {
 export type ElementVideoSource = {
   url: string
   sourceType: "mp4" | "hls"
+  expiresAt?: number | null
+  sourceIdentity?: string | null
+  refreshable?: boolean
 }
 
 export type GeneralSessionPresentationSource = {
   sourceType?: string | null
   mp4Url?: string | null
+  mp4ExpiresAt?: number | null
+  mp4SourceIdentity?: string | null
   hlsUrl?: string | null
   playbackUrl?: string | null
 } | null
@@ -30,6 +35,17 @@ function getOptionalFiniteNumber(value: unknown) {
 
   const number = Number(value)
   return Number.isFinite(number) ? number : null
+}
+
+function getOptionalTimestamp(value: unknown) {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value
+  }
+
+  if (typeof value !== "string" || !value.trim()) return null
+
+  const timestamp = Date.parse(value)
+  return Number.isFinite(timestamp) ? timestamp : null
 }
 
 function getCssLength(value: unknown, fallback: number) {
@@ -315,7 +331,25 @@ export function resolveElementVideoSource(
         ""
     )
 
-    if (url) return { url, sourceType }
+    if (url) {
+      const isRefreshableSignedMp4 =
+        sourceType === "mp4" &&
+        url === generalSession.mp4Url &&
+        typeof generalSession.mp4ExpiresAt === "number" &&
+        Boolean(generalSession.mp4SourceIdentity)
+
+      return {
+        url,
+        sourceType,
+        expiresAt: isRefreshableSignedMp4
+          ? generalSession.mp4ExpiresAt
+          : null,
+        sourceIdentity: isRefreshableSignedMp4
+          ? generalSession.mp4SourceIdentity
+          : null,
+        refreshable: isRefreshableSignedMp4,
+      }
+    }
   }
 
   return {
@@ -350,6 +384,16 @@ export function parseGeneralSessionProgramSource(
     playbackUrl: playbackUrl.trim(),
     mp4Url:
       sourceType === "mp4" ? playbackUrl.trim() : null,
+    mp4ExpiresAt:
+      sourceType === "mp4"
+        ? getOptionalTimestamp(program.program_mp4_expires_at)
+        : null,
+    mp4SourceIdentity:
+      sourceType === "mp4" &&
+      typeof program.program_mp4_source_id === "string" &&
+      program.program_mp4_source_id.trim()
+        ? program.program_mp4_source_id.trim()
+        : null,
     hlsUrl:
       sourceType === "hls" ? playbackUrl.trim() : null,
   }

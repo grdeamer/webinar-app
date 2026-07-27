@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useRef, useState } from "react"
 import ElementVideoPlayer from "@/components/page-renderer/ElementVideoPlayer"
 import {
   getButtonElementPresentationStyle,
@@ -13,6 +13,7 @@ import {
   getVideoElementPresentationStyle,
   parseGeneralSessionProgramSource,
   resolveElementVideoSource,
+  type ElementVideoSource,
   type GeneralSessionPresentationSource,
 } from "@/lib/page-editor/elementPresentation"
 import type { EventPageElement } from "@/lib/page-editor/sectionTypes"
@@ -20,9 +21,11 @@ import type { EventPageElement } from "@/lib/page-editor/sectionTypes"
 function PersistedVideoPresentation({
   element,
   generalSession,
+  refreshGeneralSession,
 }: {
   element: EventPageElement
   generalSession: GeneralSessionPresentationSource
+  refreshGeneralSession: () => Promise<GeneralSessionPresentationSource>
 }) {
   const props = element.props ?? {}
   const source = resolveElementVideoSource(element, generalSession)
@@ -34,6 +37,17 @@ function PersistedVideoPresentation({
   const muted =
     typeof props.muted === "boolean" ? props.muted : autoPlay
   const videoStyle = getVideoElementPresentationStyle(element)
+  const refreshSource = source.refreshable
+    ? async (): Promise<ElementVideoSource | null> => {
+        const refreshedGeneralSession = await refreshGeneralSession()
+        const refreshedSource = resolveElementVideoSource(
+          element,
+          refreshedGeneralSession,
+        )
+
+        return refreshedSource.refreshable ? refreshedSource : null
+      }
+    : undefined
 
   if (showControls) {
     if (source.url) {
@@ -51,6 +65,9 @@ function PersistedVideoPresentation({
           trimStart={Number(props.trimStart ?? 0)}
           trimEnd={Number(props.trimEnd ?? 0)}
           accessibleLabel={element.content || "Session Video"}
+          sourceExpiresAt={source.expiresAt}
+          sourceIdentity={source.sourceIdentity}
+          refreshSource={refreshSource}
         />
       )
     }
@@ -90,6 +107,9 @@ function PersistedVideoPresentation({
           playOnHover={playOnHover}
           accessibleLabel={element.content || "Session Video"}
           showPlaybackIndicator
+          sourceExpiresAt={source.expiresAt}
+          sourceIdentity={source.sourceIdentity}
+          refreshSource={refreshSource}
         />
       ) : posterUrl ? (
         <img
@@ -133,6 +153,9 @@ export default function PersistedPageElementLayer({
 }) {
   const [generalSession, setGeneralSession] =
     useState<GeneralSessionPresentationSource>(null)
+  const refreshPromiseRef = useRef<
+    Promise<GeneralSessionPresentationSource> | null
+  >(null)
   const usesGeneralSession = elements.some(
     (element) =>
       element.visible !== false &&
@@ -140,32 +163,42 @@ export default function PersistedPageElementLayer({
       element.props?.useGeneralSession === true
   )
 
+  const refreshGeneralSession = useCallback(async () => {
+    const activeRequest = refreshPromiseRef.current
+    if (activeRequest) return activeRequest
+
+    const request = (async (): Promise<GeneralSessionPresentationSource> => {
+      const response = await fetch("/api/general-session/program", {
+        cache: "no-store",
+      })
+      if (!response.ok) {
+        throw new Error("Failed to refresh the General Session media source")
+      }
+
+      const data: unknown = await response.json()
+      return parseGeneralSessionProgramSource(data)
+    })()
+
+    refreshPromiseRef.current = request
+
+    try {
+      const source = await request
+      setGeneralSession(source)
+      return source
+    } finally {
+      if (refreshPromiseRef.current === request) {
+        refreshPromiseRef.current = null
+      }
+    }
+  }, [])
+
   useEffect(() => {
     if (!usesGeneralSession) return
 
-    const abortController = new AbortController()
-
-    async function loadGeneralSession() {
-      try {
-        const response = await fetch("/api/general-session/program", {
-          cache: "no-store",
-          signal: abortController.signal,
-        })
-        if (!response.ok) return
-
-        const data: unknown = await response.json()
-        setGeneralSession(parseGeneralSessionProgramSource(data))
-      } catch {
-        if (!abortController.signal.aborted) setGeneralSession(null)
-      }
-    }
-
-    void loadGeneralSession()
-
-    return () => {
-      abortController.abort()
-    }
-  }, [usesGeneralSession])
+    void refreshGeneralSession().catch(() => {
+      setGeneralSession(null)
+    })
+  }, [refreshGeneralSession, usesGeneralSession])
 
   const resolvedGeneralSession = usesGeneralSession ? generalSession : null
 
@@ -208,6 +241,7 @@ export default function PersistedPageElementLayer({
           <PersistedVideoPresentation
             element={element}
             generalSession={resolvedGeneralSession}
+            refreshGeneralSession={refreshGeneralSession}
           />
         ) : element.element_type === "pdf" ? (
           <div className="flex h-full w-full flex-col justify-between p-4">
