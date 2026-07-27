@@ -15,18 +15,6 @@ type EventLike = {
   description?: string | null
 }
 
-type EditorElement = {
-  id: string
-  element_type?: string
-  content: string
-  x: number
-  y: number
-  width?: number | null
-  height?: number | null
-  z_index?: number
-  props?: Record<string, unknown>
-}
-
 type RendererExperienceNode = ExperienceNode & {
   sourceType: "section" | "element"
 }
@@ -71,36 +59,6 @@ function sectionToExperienceNode(
         ...block.props,
       },
     })),
-  }
-}
-
-function elementToExperienceNode(element: EditorElement): RendererExperienceNode {
-  return {
-    id: element.id,
-    nodeType:
-      element.element_type === "image" || element.element_type === "video" || element.element_type === "pdf"
-        ? "media"
-        : element.element_type === "button" || element.element_type === "spacer"
-          ? "graphic"
-          : "overlay",
-    sourceType: "element",
-    parentId: null,
-    position: {
-      x: element.x,
-      y: element.y,
-    },
-    size: {
-      width: element.width ?? 0,
-      height: element.height ?? 0,
-    },
-    zIndex: element.z_index ?? 1,
-    visible: true,
-    locked: false,
-    props: {
-      elementType: element.element_type,
-      content: element.content,
-      ...element.props,
-    },
   }
 }
 
@@ -171,25 +129,10 @@ const RICH_TEXT_TITLE_CLASS =
 const RICH_TEXT_BODY_CLASS =
   "whitespace-pre-wrap text-sm leading-7 text-white/62 md:text-[15px]"
 
-const ELEMENT_BASE_CLASS =
-  "absolute overflow-hidden rounded-[18px] border border-white/[0.08] shadow-[0_18px_50px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.030)]"
-
-const ELEMENT_SELECTION_CHROME_CLASS =
-  "pointer-events-none absolute inset-0 rounded-[18px] border border-sky-200/38 shadow-[0_0_20px_rgba(56,189,248,0.14)]"
-
 const SECTION_BLOCK_STACK_CLASS = "relative z-10 space-y-6"
 const SECTION_BLOCK_STACK_WITH_HEADER_CLASS = "relative z-10 mt-8 space-y-6"
 
 const SYSTEM_COMPONENT_CONTENT_CLASS = "relative z-10"
-
-const ELEMENT_BUTTON_CLASS =
-  "rounded-[14px] border border-blue-200/20 bg-blue-600 px-5 py-3 text-sm font-semibold text-white no-underline shadow-[0_12px_34px_rgba(37,99,235,0.24)] transition hover:bg-blue-500"
-
-const EMPTY_VIDEO_BLOCK_CLASS =
-  "flex h-full w-full items-center justify-center bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_40%),#020617] text-sm font-semibold uppercase tracking-[0.16em] text-white/42"
-
-const SPACER_BLOCK_CLASS =
-  "flex h-full w-full items-center justify-center text-xs font-black uppercase tracking-[0.18em] text-white/34"
 
 function getWidthClass(width?: EventPageSection["config"]["contentWidth"]) {
   switch (width) {
@@ -455,7 +398,6 @@ function getFallbackSections(event: EventLike): EventPageSection[] {
 
 export default function EditorEventPageRenderer({
   event,
-  elements = [],
   sections,
   isEditing = false,
   selectedSectionId = null,
@@ -468,9 +410,9 @@ export default function EditorEventPageRenderer({
   onSectionDragEnd,
   systemComponents,
   eventTheme,
+  experienceNodeCount,
 }: {
   event: EventLike
-  elements?: EditorElement[]
   sections?: EventPageSection[]
   isEditing?: boolean
   selectedSectionId?: string | null
@@ -483,13 +425,13 @@ export default function EditorEventPageRenderer({
   onSectionDragEnd?: () => void
   systemComponents: SystemComponentsMap
   eventTheme?: EventTheme
+  experienceNodeCount?: number
 }) {
   const resolvedSections =
     sections && sections.length > 0 ? sections : getFallbackSections(event)
 
   const experienceNodes: RendererExperienceNode[] = [
     ...resolvedSections.map((section, index) => sectionToExperienceNode(section, index)),
-    ...elements.map((element) => elementToExperienceNode(element)),
   ]
 
   const resolvedEventTheme: EventTheme = {
@@ -510,7 +452,7 @@ export default function EditorEventPageRenderer({
         borderColor: resolvedEventTheme.panelBorderColor,
         color: resolvedEventTheme.textColor,
       }}
-      data-experience-node-count={experienceNodes.length}
+      data-experience-node-count={experienceNodeCount ?? experienceNodes.length}
     >
       <div className={RENDERER_TEXTURE_CLASS} />
       <div className={RENDERER_TOP_GLOW_CLASS} />
@@ -809,83 +751,6 @@ export default function EditorEventPageRenderer({
         )
       })}
 
-      {elements.length > 0
-        ? elements.map((el) => (
-            <div
-              key={el.id}
-              className={`${ELEMENT_BASE_CLASS} ${
-                el.element_type === "image"
-                  ? "bg-white/90"
-                  : el.element_type === "video"
-                    ? "bg-black/90"
-                    : el.element_type === "pdf"
-                      ? "bg-red-950/80 text-white"
-                      : el.element_type === "button"
-                        ? "bg-transparent"
-                        : el.element_type === "spacer"
-                          ? "border-dashed border-white/20 bg-white/5"
-                          : "bg-amber-300 text-black"
-              }`}
-              style={{
-                left: el.x,
-                top: el.y,
-                zIndex: el.z_index ?? 1,
-                width: el.width ?? "auto",
-                height: el.height ?? "auto",
-              }}
-            >
-              {isEditing ? <div className={ELEMENT_SELECTION_CHROME_CLASS} /> : null}
-              {el.element_type === "image" ? (
-                <img
-                  src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
-                  alt={String(el.props?.alt ?? "Image block")}
-                  className="h-full w-full object-cover"
-                  draggable={false}
-                />
-              ) : el.element_type === "video" ? (
-                String(el.props?.posterUrl ?? "") ? (
-                  <img
-                    src={String(el.props?.posterUrl ?? "")}
-                    alt={el.content || "Video poster"}
-                    className="h-full w-full object-cover"
-                    draggable={false}
-                  />
-                ) : (
-                  <div className={EMPTY_VIDEO_BLOCK_CLASS}>
-                    Video block
-                  </div>
-                )
-              ) : el.element_type === "pdf" ? (
-                <div className="flex h-full w-full flex-col justify-between p-4">
-                  <div>
-                    <div className="text-xs uppercase tracking-[0.18em] text-white/50">PDF</div>
-                    <div className="mt-2 text-base font-semibold">{el.content}</div>
-                  </div>
-                  <div className="mt-4 break-all text-xs text-white/70">
-                    {String(el.props?.url ?? "")}
-                  </div>
-                </div>
-              ) : el.element_type === "button" ? (
-                <div className="flex h-full w-full items-center justify-center">
-                  <a
-                    href={String(el.props?.href ?? "#")}
-                    className={ELEMENT_BUTTON_CLASS}
-                  >
-                    {el.content || "Button"}
-                  </a>
-                </div>
-              ) : el.element_type === "spacer" ? (
-                <div className={SPACER_BLOCK_CLASS}>
-                  Spacer
-                </div>
-              ) : (
-                <div className="px-4 py-2 text-sm font-medium whitespace-pre-wrap">
-                  {el.content}
-                </div>
-              )}
-            </div>
-          ))
-        : null}
     </div>
   )
 }

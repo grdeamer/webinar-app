@@ -2665,7 +2665,6 @@ const selectedExperienceNode = experienceNodes.find(
                   >
 <EditorEventPageRenderer
   event={eventInfo}
-  elements={normalizedElements}
   sections={sections}
   isEditing={isEditing}
   selectedSectionId={selectedSectionId}
@@ -2686,6 +2685,7 @@ const selectedExperienceNode = experienceNodes.find(
     setEditorDetailsOpen(true)
   }}
   eventTheme={eventTheme}
+  experienceNodeCount={experienceNodes.length}
   systemComponents={systemComponents}
                     />
 
