@@ -8,6 +8,7 @@ import { listEventSessions } from "@/lib/repos/sessionsRepo"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
+import { getSectionResponsiveVisibilityClass } from "@/lib/page-editor/elementPresentation"
 import type { EventTheme, SectionBlock } from "@/lib/page-editor/sectionTypes"
 
 export const runtime = "nodejs"
@@ -318,7 +319,7 @@ export default async function EventSessionsPage(props: {
                 return (
                   <section
                     key={section.id}
-                    className="rounded-3xl border p-8 md:p-10"
+                    className={`${getSectionResponsiveVisibilityClass(config)} rounded-3xl border p-8 md:p-10`}
                     style={getSectionStyle(section, eventTheme)}
                   >
                     <div className="max-w-3xl">
@@ -343,7 +344,7 @@ export default async function EventSessionsPage(props: {
               return (
                 <section
                   key={section.id}
-                  className="rounded-3xl border p-6 md:p-8"
+                  className={`${getSectionResponsiveVisibilityClass(config)} rounded-3xl border p-6 md:p-8`}
                   style={getSectionStyle(section, eventTheme)}
                 >
                   {title ? <h2 className="text-2xl font-semibold">{title}</h2> : null}

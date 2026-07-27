@@ -411,6 +411,7 @@ export default function EditorEventPageRenderer({
   systemComponents,
   eventTheme,
   experienceNodeCount,
+  isMobilePreview = false,
 }: {
   event: EventLike
   sections?: EventPageSection[]
@@ -426,6 +427,7 @@ export default function EditorEventPageRenderer({
   systemComponents: SystemComponentsMap
   eventTheme?: EventTheme
   experienceNodeCount?: number
+  isMobilePreview?: boolean
 }) {
   const resolvedSections =
     sections && sections.length > 0 ? sections : getFallbackSections(event)
@@ -460,7 +462,7 @@ export default function EditorEventPageRenderer({
         const config = section.config ?? {}
 
         if (config.visible === false) return null
-        if (config.hideOnMobile) return null
+        if (isMobilePreview && config.hideOnMobile) return null
 
         const isHeroSection = section.type === "hero"
         const isSectionDragging = draggingSectionId === section.id

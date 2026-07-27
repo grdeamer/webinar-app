@@ -36,6 +36,7 @@ import {
   type LayerCommand,
 } from "./layerCommands"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
+import ElementVideoPlayer from "@/components/page-renderer/ElementVideoPlayer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
@@ -47,6 +48,18 @@ import {
   getDefaultSectionConfig,
 } from "@/lib/page-editor/sectionRegistry"
 import { normalizeEventPageElements } from "@/lib/page-editor/elements"
+import {
+  getButtonElementPresentationStyle,
+  getElementAnimationAttribute,
+  getElementContentAlignmentStyle,
+  getElementFrameStyle,
+  getImageElementPresentationStyle,
+  getTextElementPresentationStyle,
+  getVideoElementPresentationStyle,
+  parseGeneralSessionProgramSource,
+  resolveElementVideoSource,
+  type GeneralSessionPresentationSource,
+} from "@/lib/page-editor/elementPresentation"
 import type {
   EventPageElement,
   SectionConfig,
@@ -113,32 +126,6 @@ const registrationPreviewProps =
       ...registrationPreviewProps,
     },
   }
-}
-
-function hexToRgb(hex: string) {
-  const clean = hex.replace("#", "").trim()
-
-  if (clean.length === 3) {
-    const expanded = clean
-      .split("")
-      .map((c) => c + c)
-      .join("")
-    const num = parseInt(expanded, 16)
-    const r = (num >> 16) & 255
-    const g = (num >> 8) & 255
-    const b = num & 255
-    return `${r}, ${g}, ${b}`
-  }
-
-  if (clean.length === 6) {
-    const num = parseInt(clean, 16)
-    const r = (num >> 16) & 255
-    const g = (num >> 8) & 255
-    const b = num & 255
-    return `${r}, ${g}, ${b}`
-  }
-
-  return "251, 191, 36"
 }
 
 function getSafeDefaultSectionConfig(type: string): SectionConfig {
@@ -269,23 +256,6 @@ function normalizeSections(inputSections: any[]): EventPageSection[] {
   )
 }
 
-function getTextElementStyle(el: EditorElement) {
-  return {
-    padding: `${Number(el.props?.paddingY ?? 8)}px ${Number(el.props?.paddingX ?? 16)}px`,
-    color: String(el.props?.textColor ?? "#111111"),
-    backgroundColor: el.props?.backgroundColor
-      ? `rgba(${hexToRgb(String(el.props.backgroundColor))}, ${Number(
-          el.props?.backgroundOpacity ?? 0.9
-        )})`
-      : "rgba(251, 191, 36, 0.9)",
-    fontSize: `${Number(el.props?.fontSize ?? 14)}px`,
-    fontWeight: Number(el.props?.fontWeight ?? 500),
-    fontFamily: String(el.props?.fontFamily ?? "inherit"),
-    borderRadius: `${Number(el.props?.borderRadius ?? 12)}px`,
-    lineHeight: 1.4,
-  }
-}
-
 function sectionToEditorExperienceNode(
   section: EventPageSection,
   index: number
@@ -357,67 +327,6 @@ function elementToEditorExperienceNode(element: EditorElement): EditorExperience
       ...element.props,
     },
   }
-}
-
-function EditorVideoPreview({
-  url,
-  sourceType = "mp4",
-  className = "",
-}: {
-  url: string
-  sourceType?: string
-  className?: string
-}) {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-
-  useEffect(() => {
-    let destroyed = false
-    let hlsInstance: any = null
-
-    async function setup() {
-      const video = videoRef.current
-      if (!video || !url) return
-
-      if (sourceType !== "hls") {
-        video.src = url
-        video.load()
-        return
-      }
-
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url
-        video.load()
-        return
-      }
-
-      try {
-        const mod = await import("hls.js")
-        if (destroyed) return
-
-        const Hls = mod.default
-        if (Hls.isSupported()) {
-          hlsInstance = new Hls()
-          hlsInstance.loadSource(url)
-          hlsInstance.attachMedia(video)
-        } else {
-          video.src = url
-          video.load()
-        }
-      } catch {
-        video.src = url
-        video.load()
-      }
-    }
-
-    void setup()
-
-    return () => {
-      destroyed = true
-      if (hlsInstance) hlsInstance.destroy()
-    }
-  }, [url, sourceType])
-
-  return <video ref={videoRef} className={className} muted playsInline autoPlay />
 }
 
 function EditorTrimPreview({
@@ -555,13 +464,8 @@ const isEmbedded =
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
   const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
   const [templates, setTemplates] = useState<any[]>([])
-  const [generalSession, setGeneralSession] = useState<{
-    title?: string | null
-    sourceType?: string | null
-    mp4Url?: string | null
-    hlsUrl?: string | null
-    playbackUrl?: string | null
-  } | null>(null)
+  const [generalSession, setGeneralSession] =
+    useState<GeneralSessionPresentationSource>(null)
 
   const {
     elements,
@@ -834,21 +738,15 @@ const isEmbedded =
   useEffect(() => {
     async function loadGeneralSession() {
       try {
-        const res = await fetch(`/api/admin/events/${slug}/general-session`, {
+        const res = await fetch("/api/general-session/program", {
           cache: "no-store",
         })
 
-        const data = (await res.json().catch((_: unknown): null => null)) as any
+        const data: unknown = await res.json().catch((): null => null)
 
         if (!res.ok || !data) return
 
-        setGeneralSession({
-          title: data.title ?? null,
-          sourceType: data.sourceType ?? "mp4",
-          mp4Url: data.mp4Url ?? null,
-          hlsUrl: data.hlsUrl ?? null,
-          playbackUrl: data.playbackUrl ?? null,
-        })
+        setGeneralSession(parseGeneralSessionProgramSource(data))
       } catch {
         console.error("Failed to load general session")
       }
@@ -2686,6 +2584,7 @@ const selectedExperienceNode = experienceNodes.find(
   }}
   eventTheme={eventTheme}
   experienceNodeCount={experienceNodes.length}
+  isMobilePreview={isMobilePreview}
   systemComponents={systemComponents}
                     />
 
@@ -2853,27 +2752,13 @@ const selectedExperienceNode = experienceNodes.find(
 
                         const videoSource =
                           el.element_type === "video"
-                            ? {
-                                url:
-                                  el.props?.useGeneralSession && generalSession
-                                    ? String(
-                                        generalSession.playbackUrl ||
-                                          (generalSession.sourceType === "hls"
-                                            ? generalSession.hlsUrl
-                                            : generalSession.mp4Url) ||
-                                          ""
-                                      )
-                                    : String(el.props?.url ?? ""),
-                                sourceType:
-                                  el.props?.useGeneralSession && generalSession
-                                    ? String(generalSession.sourceType ?? "mp4")
-                                    : String(el.props?.sourceType ?? "mp4"),
-                              }
+                            ? resolveElementVideoSource(el, generalSession)
                             : null
 
                         return (
                           <div
                             data-editor-element="true"
+                            data-element-animation={getElementAnimationAttribute(el)}
                             key={el.id}
                             onMouseEnter={() => setHoveredExperienceNodeId(el.id)}
                             onMouseLeave={() => setHoveredExperienceNodeId(null)}
@@ -3044,13 +2929,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 ? "border border-dashed border-white/20 bg-white/5"
                                 : ""
                             }`}
-                            style={{
-                              left: el.x,
-                              top: el.y,
-                              zIndex: el.z_index ?? 1,
-                              width: el.width ?? "auto",
-                              height: el.height ?? "auto",
-                            }}
+                            style={getElementFrameStyle(el)}
                           >
                                                         {isLocked && (
                               <div className="pointer-events-none absolute right-2 top-2 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-amber-300/30 bg-amber-500/12 text-[10px] font-black text-amber-100/70 shadow-[0_0_18px_rgba(251,191,36,0.18)] backdrop-blur-sm">
@@ -3100,21 +2979,8 @@ const selectedExperienceNode = experienceNodes.find(
                               <img
                                 src={String(el.props?.src ?? "https://placehold.co/800x450/png")}
                                 alt={String(el.props?.alt ?? "Image block")}
-                                className={`h-full w-full ${
-                                  String(el.props?.imageFit ?? "cover") === "contain"
-                                    ? "object-contain"
-                                    : "object-cover"
-                                } ${
-                                  String(el.props?.imagePosition ?? "center") === "top"
-                                    ? "object-top"
-                                    : String(el.props?.imagePosition ?? "center") === "bottom"
-                                    ? "object-bottom"
-                                    : String(el.props?.imagePosition ?? "center") === "left"
-                                    ? "object-left"
-                                    : String(el.props?.imagePosition ?? "center") === "right"
-                                    ? "object-right"
-                                    : "object-center"
-                                }`}
+                                className="h-full w-full"
+                                style={getImageElementPresentationStyle(el)}
                                 draggable={false}
                               />
                             ) : el.element_type === "video" ? (
@@ -3123,6 +2989,10 @@ const selectedExperienceNode = experienceNodes.find(
                                 const shouldLoop = Boolean(el.props?.loop ?? false)
                                 const shouldAutoplay = Boolean(el.props?.autoplay ?? false)
                                 const posterUrl = String(el.props?.posterUrl ?? "")
+                                const shouldMute =
+                                  typeof el.props?.muted === "boolean"
+                                    ? el.props.muted
+                                    : shouldAutoplay
 
                                 const videoUrl = String(videoSource?.url ?? "")
                                 const sourceType = String(videoSource?.sourceType ?? "mp4")
@@ -3147,28 +3017,25 @@ const selectedExperienceNode = experienceNodes.find(
                                       }}
                                     >
                                       {videoUrl ? (
-                                        sourceType === "hls" ? (
-                                          <EditorVideoPreview
-                                            url={videoUrl}
-                                            sourceType="hls"
-                                            className="h-full w-full object-cover"
-                                          />
-                                        ) : (
-                                          <video
-                                            src={videoUrl}
-                                            className="h-full w-full object-cover"
-                                            controls
-                                            playsInline
-                                            loop={shouldLoop}
-                                            autoPlay={shouldAutoplay}
-                                            poster={posterUrl || undefined}
-                                          />
-                                        )
+                                        <ElementVideoPlayer
+                                          url={videoUrl}
+                                          sourceType={sourceType}
+                                          className="h-full w-full"
+                                          style={getVideoElementPresentationStyle(el)}
+                                          controls
+                                          loop={shouldLoop}
+                                          autoPlay={shouldAutoplay}
+                                          muted={shouldMute}
+                                          poster={posterUrl}
+                                          trimStart={Number(el.props?.trimStart ?? 0)}
+                                          trimEnd={Number(el.props?.trimEnd ?? 0)}
+                                        />
                                       ) : (
                                         <img
                                           src={posterUrl}
                                           alt={el.content || "Video poster"}
-                                          className="h-full w-full object-cover"
+                                          className="h-full w-full"
+                                          style={getVideoElementPresentationStyle(el)}
                                           draggable={false}
                                         />
                                       )}
@@ -3188,18 +3055,37 @@ const selectedExperienceNode = experienceNodes.find(
                                     className="relative block h-full w-full bg-black text-left"
                                   >
                                     <div className="group relative h-full w-full overflow-hidden">
-                                      {posterUrl ? (
+                                      {videoUrl ? (
+                                        <ElementVideoPlayer
+                                          url={videoUrl}
+                                          sourceType={sourceType}
+                                          className="h-full w-full transition-transform duration-500 group-hover:scale-105"
+                                          style={getVideoElementPresentationStyle(el)}
+                                          controls={false}
+                                          loop={shouldLoop}
+                                          autoPlay={shouldAutoplay}
+                                          muted={
+                                            typeof el.props?.muted === "boolean"
+                                              ? el.props.muted
+                                              : true
+                                          }
+                                          poster={
+                                            Boolean(
+                                              el.props?.showPosterOnCard ?? true
+                                            )
+                                              ? posterUrl
+                                              : ""
+                                          }
+                                          trimStart={Number(el.props?.trimStart ?? 0)}
+                                          trimEnd={Number(el.props?.trimEnd ?? 0)}
+                                        />
+                                      ) : posterUrl ? (
                                         <img
                                           src={posterUrl}
                                           alt={el.content || "Video poster"}
-                                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                          className="h-full w-full transition-transform duration-500 group-hover:scale-105"
+                                          style={getVideoElementPresentationStyle(el)}
                                           draggable={false}
-                                        />
-                                      ) : videoUrl ? (
-                                        <EditorVideoPreview
-                                          url={videoUrl}
-                                          sourceType={sourceType}
-                                          className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
                                         />
                                       ) : null}
 
@@ -3243,10 +3129,13 @@ const selectedExperienceNode = experienceNodes.find(
                                 </div>
                               </div>
                             ) : el.element_type === "button" ? (
-                              <div className="flex h-full w-full items-center justify-center">
+                              <div
+                                className="flex h-full w-full"
+                                style={getElementContentAlignmentStyle(el)}
+                              >
                                 <button
                                   type="button"
-                                  className="rounded-xl bg-blue-600 px-5 py-3 text-sm font-semibold text-white"
+                                  style={getButtonElementPresentationStyle(el)}
                                 >
                                   {el.content || "Button"}
                                 </button>
@@ -3258,7 +3147,7 @@ const selectedExperienceNode = experienceNodes.find(
                             ) : (
                               <div
                                 className="h-full w-full whitespace-pre-wrap"
-                                style={getTextElementStyle(el)}
+                                style={getTextElementPresentationStyle(el)}
                               >
                                 {el.content}
                               </div>

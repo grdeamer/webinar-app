@@ -1,5 +1,6 @@
 import type { ReactNode } from "react"
 import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
+import { getSectionResponsiveVisibilityClass } from "@/lib/page-editor/elementPresentation"
 import type {
   EventPageElement,
   EventPageSection,
@@ -298,7 +299,7 @@ export default function EventPageRenderer({
   selectedSectionId?: string | null
   onSelectSection?: (id: string | null) => void
   isMobilePreview?: boolean
-  generalSession?: any
+  generalSession?: unknown
   systemComponents: SystemComponentsMap
   eventTheme?: EventTheme
 }) {
@@ -335,7 +336,8 @@ export default function EventPageRenderer({
         const config = section.config ?? {}
 
         if (config.visible === false) return null
-        if (config.hideOnMobile) return null
+        const responsiveVisibilityClass =
+          getSectionResponsiveVisibilityClass(config)
 
         const explicitSystemComponent = (config as { systemComponent?: SystemComponentKey })
           .systemComponent
@@ -343,7 +345,14 @@ export default function EventPageRenderer({
         if (explicitSystemComponent) {
           const node = systemComponents[explicitSystemComponent]
           if (node) {
-            return <div key={`${section.id}-${index}`}>{node}</div>
+            return (
+              <div
+                key={`${section.id}-${index}`}
+                className={responsiveVisibilityClass || undefined}
+              >
+                {node}
+              </div>
+            )
           }
         }
 
@@ -425,7 +434,7 @@ export default function EventPageRenderer({
         return (
           <section
             key={`${section.id}-${index}`}
-            className={`px-8 ${paddingYClass} ${getOuterBg(
+            className={`${responsiveVisibilityClass} px-8 ${paddingYClass} ${getOuterBg(
               config.backgroundStyle,
               section.type
             )} ${showTopDivider ? "border-t border-white/10" : ""} ${
