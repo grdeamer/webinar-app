@@ -23,7 +23,7 @@ export async function GET(req: Request): Promise<Response> {
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
     .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,created_at"
+      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
     )
     .eq("event_id", event_id)
     .order("start_at", { ascending: true })
@@ -51,13 +51,17 @@ export async function POST(req: Request): Promise<Response> {
     start_at: body.start_at || null,
     end_at: body.end_at || null,
     sort_index: Number.isFinite(Number(body.sort_index)) ? Number(body.sort_index) : 0,
+    status: body.status || "upcoming",
+    button_text: clamp(body.button_text, 200),
+    button_url: clamp(body.button_url, 2000),
+    is_visible: body.is_visible !== false,
   }
 
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
     .insert(row)
     .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,created_at"
+      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
     )
     .single()
 
@@ -91,13 +95,21 @@ export async function PUT(req: Request): Promise<Response> {
   if (body.sort_index !== undefined) {
     patch.sort_index = Number.isFinite(Number(body.sort_index)) ? Number(body.sort_index) : 0
   }
+  if (body.status !== undefined) patch.status = body.status
+  if (body.button_text !== undefined) {
+    patch.button_text = body.button_text == null ? null : (clamp(body.button_text, 200) as any)
+  }
+  if (body.button_url !== undefined) {
+    patch.button_url = body.button_url == null ? null : (clamp(body.button_url, 2000) as any)
+  }
+  if (body.is_visible !== undefined) patch.is_visible = Boolean(body.is_visible)
 
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
     .update(patch)
     .eq("id", body.id)
     .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,created_at"
+      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
     )
     .single()
 

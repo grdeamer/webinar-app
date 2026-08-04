@@ -38,6 +38,12 @@ export interface EventRecord {
   end_at?: string | null
 }
 
+export type EventAgendaStatus =
+  | "upcoming"
+  | "live"
+  | "complete"
+  | "cancelled"
+
 export interface EventAgendaItem {
   id: string
   event_id: string
@@ -49,7 +55,14 @@ export interface EventAgendaItem {
   start_at: string | null
   end_at: string | null
   sort_index: number | null
+
+  status: EventAgendaStatus
+  button_text: string | null
+  button_url: string | null
+  is_visible: boolean
+
   created_at: string | null
+  updated_at: string | null
 }
 
 export interface EventBreakout {

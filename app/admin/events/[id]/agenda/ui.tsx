@@ -14,7 +14,12 @@ type AgendaItem = {
   track: string | null
   speaker: string | null
   sort_index: number
-  created_at: string
+  status: "upcoming" | "live" | "complete" | "cancelled"
+  button_text: string | null
+  button_url: string | null
+  is_visible: boolean
+  created_at: string | null
+  updated_at: string | null
 }
 
 function fmt(v: string | null) {
@@ -45,6 +50,10 @@ export default function AdminAgendaEditor({
     speaker: "",
     description: "",
     sort_index: 0,
+    status: "upcoming",
+    button_text: "",
+    button_url: "",
+    is_visible: true,
   })
 
   async function refresh() {
@@ -65,7 +74,7 @@ export default function AdminAgendaEditor({
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")
-      setDraft({ title: "", start_at: "", end_at: "", location: "", track: "", speaker: "", description: "", sort_index: 0 })
+      setDraft({ title: "", start_at: "", end_at: "", location: "", track: "", speaker: "", description: "", sort_index: 0, status: "upcoming", button_text: "", button_url: "", is_visible: true })
       await refresh()
       setMsg("Added")
     } catch (e: any) {
@@ -198,6 +207,50 @@ export default function AdminAgendaEditor({
               onChange={(e) => setDraft({ ...draft, sort_index: Number(e.target.value || 0) })}
             />
           </div>
+
+          <div>
+            <div className="text-xs text-white/60">Status</div>
+            <select className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              value={draft.status || "upcoming"}
+              onChange={(e) => setDraft({ ...draft, status: e.target.value as AgendaItem["status"] })}
+            >
+              <option value="upcoming">Upcoming</option>
+              <option value="live">Live</option>
+              <option value="complete">Complete</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="text-xs text-white/60">Visibility</div>
+            <label className="mt-1 flex min-h-[42px] items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={draft.is_visible !== false}
+                onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })}
+              />
+              <span>Visible to attendees</span>
+            </label>
+          </div>
+
+          <div>
+            <div className="text-xs text-white/60">Button Text</div>
+            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              value={draft.button_text || ""}
+              onChange={(e) => setDraft({ ...draft, button_text: e.target.value })}
+              placeholder="Enter Session"
+            />
+          </div>
+
+          <div>
+            <div className="text-xs text-white/60">Button URL</div>
+            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              type="url"
+              value={draft.button_url || ""}
+              onChange={(e) => setDraft({ ...draft, button_url: e.target.value })}
+              placeholder="https://..."
+            />
+          </div>
         </div>
 
         {err ? <div className="text-sm text-red-400">{err}</div> : null}
@@ -247,7 +300,7 @@ function AgendaRow({
   const [row, setRow] = useState<AgendaItem>(item)
 
   // keep in sync if refresh replaces item
-  useEffect(() => { setRow(item) }, [item.id, item.start_at, item.end_at, item.title, item.description, item.location, item.track, item.speaker, item.sort_index])
+  useEffect(() => { setRow(item) }, [item.id, item.start_at, item.end_at, item.title, item.description, item.location, item.track, item.speaker, item.sort_index, item.status, item.button_text, item.button_url, item.is_visible])
 
   return (
     <div className="rounded-xl border border-white/10 bg-black/20 p-4">
@@ -332,6 +385,50 @@ function AgendaRow({
             <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
               value={String(row.sort_index ?? 0)}
               onChange={(e) => setRow({ ...row, sort_index: Number(e.target.value || 0) })}
+            />
+          </div>
+
+          <div>
+            <div className="text-xs text-white/60">Status</div>
+            <select className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              value={row.status}
+              onChange={(e) => setRow({ ...row, status: e.target.value as AgendaItem["status"] })}
+            >
+              <option value="upcoming">Upcoming</option>
+              <option value="live">Live</option>
+              <option value="complete">Complete</option>
+              <option value="cancelled">Cancelled</option>
+            </select>
+          </div>
+
+          <div>
+            <div className="text-xs text-white/60">Visibility</div>
+            <label className="mt-1 flex min-h-[42px] items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={row.is_visible}
+                onChange={(e) => setRow({ ...row, is_visible: e.target.checked })}
+              />
+              <span>Visible to attendees</span>
+            </label>
+          </div>
+
+          <div>
+            <div className="text-xs text-white/60">Button Text</div>
+            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              value={row.button_text || ""}
+              onChange={(e) => setRow({ ...row, button_text: e.target.value || null })}
+              placeholder="Enter Session"
+            />
+          </div>
+
+          <div>
+            <div className="text-xs text-white/60">Button URL</div>
+            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              type="url"
+              value={row.button_url || ""}
+              onChange={(e) => setRow({ ...row, button_url: e.target.value || null })}
+              placeholder="https://..."
             />
           </div>
 
