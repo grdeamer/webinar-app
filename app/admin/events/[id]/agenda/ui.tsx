@@ -1,7 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
+
+type AgendaStatus = "upcoming" | "live" | "complete" | "cancelled"
 
 type AgendaItem = {
   id: string
@@ -14,7 +16,7 @@ type AgendaItem = {
   track: string | null
   speaker: string | null
   sort_index: number
-  status: "upcoming" | "live" | "complete" | "cancelled"
+  status: AgendaStatus
   button_text: string | null
   button_url: string | null
   is_visible: boolean
@@ -22,9 +24,58 @@ type AgendaItem = {
   updated_at: string | null
 }
 
-function fmt(v: string | null) {
-  if (!v) return ""
-  try { return new Date(v).toLocaleString() } catch { return v }
+const emptyDraft: Partial<AgendaItem> = {
+  title: "",
+  start_at: "",
+  end_at: "",
+  location: "",
+  track: "",
+  speaker: "",
+  description: "",
+  sort_index: 0,
+  status: "upcoming",
+  button_text: "",
+  button_url: "",
+  is_visible: true,
+}
+
+const statusStyles: Record<AgendaStatus, string> = {
+  upcoming: "border-sky-400/20 bg-sky-400/10 text-sky-200",
+  live: "border-red-400/30 bg-red-500/15 text-red-200",
+  complete: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
+  cancelled: "border-white/10 bg-white/5 text-white/40",
+}
+
+function formatTime(value: string | null) {
+  if (!value) return "TBD"
+  try {
+    return new Date(value).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+  } catch {
+    return value
+  }
+}
+
+function formatDateTime(value: string | null) {
+  if (!value) return "Not set"
+  try {
+    return new Date(value).toLocaleString([], {
+      month: "short",
+      day: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+    })
+  } catch {
+    return value
+  }
+}
+
+function StatusBadge({ status }: { status: AgendaStatus }) {
+  return (
+    <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusStyles[status]}`}>
+      {status === "live" ? <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.9)]" /> : null}
+      {status}
+    </span>
+  )
 }
 
 export default function AdminAgendaEditor({
@@ -37,55 +88,85 @@ export default function AdminAgendaEditor({
   initialItems: AgendaItem[]
 }) {
   const [items, setItems] = useState<AgendaItem[]>(initialItems || [])
+  const [selectedId, setSelectedId] = useState<string | null>(() => {
+    const preferred = initialItems.find((item) => item.status === "live") || initialItems.find((item) => item.status === "upcoming") || initialItems[0]
+    return preferred?.id || null
+  })
+  const [row, setRow] = useState<AgendaItem | null>(() => {
+    return initialItems.find((item) => item.id === selectedId) || null
+  })
+  const [draft, setDraft] = useState<Partial<AgendaItem>>(emptyDraft)
+  const [adding, setAdding] = useState(false)
+  const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [syncingDisplays, setSyncingDisplays] = useState(false)
+  const [lastDisplaySync, setLastDisplaySync] = useState<string | null>(null)
+  const [displaySyncError, setDisplaySyncError] = useState<string | null>(null)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
-  const [draft, setDraft] = useState<Partial<AgendaItem>>({
-    title: "",
-    start_at: "",
-    end_at: "",
-    location: "",
-    track: "",
-    speaker: "",
-    description: "",
-    sort_index: 0,
-    status: "upcoming",
-    button_text: "",
-    button_url: "",
-    is_visible: true,
-  })
+  const selectedItem = useMemo(
+    () => items.find((item) => item.id === selectedId) || null,
+    [items, selectedId]
+  )
+  const nextItemId = useMemo(
+    () => items.find((item) => item.status === "upcoming")?.id || null,
+    [items]
+  )
 
-  async function refresh() {
+  useEffect(() => {
+    if (selectedItem) setRow(selectedItem)
+  }, [selectedItem])
+
+  async function refresh(preferredId?: string | null) {
     const res = await fetch(`/api/admin/event-agenda?event_id=${encodeURIComponent(eventId)}`, { cache: "no-store" })
     const json = await res.json()
     if (!res.ok) throw new Error(json.error || "Failed")
-    setItems(json.items || [])
+    const nextItems: AgendaItem[] = json.items || []
+    setItems(nextItems)
+    const targetId = preferredId ?? selectedId
+    if (targetId && nextItems.some((item) => item.id === targetId)) {
+      setSelectedId(targetId)
+    } else {
+      const preferred = nextItems.find((item) => item.status === "live") || nextItems.find((item) => item.status === "upcoming") || nextItems[0]
+      setSelectedId(preferred?.id || null)
+    }
   }
 
-  async function createItem() {
+  function flash(message: string) {
+    setMsg(message)
+    setTimeout(() => setMsg(null), 1800)
+  }
+
+  async function createItem(payload: Partial<AgendaItem> = draft, duplicate = false) {
     setBusy(true); setErr(null); setMsg(null)
     try {
-      if (!draft.title || !String(draft.title).trim()) throw new Error("Title is required")
+      if (!payload.title || !String(payload.title).trim()) throw new Error("Title is required")
       const res = await fetch("/api/admin/event-agenda", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...draft, event_id: eventId }),
+        body: JSON.stringify({
+          ...payload,
+          id: undefined,
+          event_id: eventId,
+          title: duplicate ? `${String(payload.title)} Copy` : payload.title,
+          status: duplicate ? "upcoming" : payload.status,
+        }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")
-      setDraft({ title: "", start_at: "", end_at: "", location: "", track: "", speaker: "", description: "", sort_index: 0, status: "upcoming", button_text: "", button_url: "", is_visible: true })
-      await refresh()
-      setMsg("Added")
+      setDraft(emptyDraft)
+      setAdding(false)
+      await refresh(json.item?.id || null)
+      flash(duplicate ? "Session duplicated" : "Session added")
     } catch (e: any) {
       setErr(e.message || "Failed")
     } finally {
       setBusy(false)
-      setTimeout(() => setMsg(null), 1500)
     }
   }
 
-  async function updateItem(id: string, patch: Partial<AgendaItem>) {
+  async function updateItem(id: string, patch: Partial<AgendaItem>, message = "Changes saved") {
     setBusy(true); setErr(null); setMsg(null)
     try {
       const res = await fetch("/api/admin/event-agenda", {
@@ -95,18 +176,18 @@ export default function AdminAgendaEditor({
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")
-      await refresh()
-      setMsg("Saved")
+      await refresh(id)
+      setEditing(false)
+      flash(message)
     } catch (e: any) {
       setErr(e.message || "Failed")
     } finally {
       setBusy(false)
-      setTimeout(() => setMsg(null), 1500)
     }
   }
 
   async function deleteItem(id: string) {
-    if (!confirm("Delete this agenda item?")) return
+    if (!confirm("Remove this session from the run of show?")) return
     setBusy(true); setErr(null); setMsg(null)
     try {
       const res = await fetch("/api/admin/event-agenda", {
@@ -116,347 +197,290 @@ export default function AdminAgendaEditor({
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")
-      await refresh()
-      setMsg("Deleted")
+      await refresh(null)
+      setEditing(false)
+      flash("Session removed")
     } catch (e: any) {
       setErr(e.message || "Failed")
     } finally {
       setBusy(false)
-      setTimeout(() => setMsg(null), 1500)
+    }
+  }
+
+  function selectItem(item: AgendaItem) {
+    setSelectedId(item.id)
+    setRow(item)
+    setEditing(false)
+    setErr(null)
+  }
+
+  async function syncDisplays() {
+    setSyncingDisplays(true)
+    setDisplaySyncError(null)
+
+    try {
+      const res = await fetch("/api/admin/event-display-sync", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: eventId }),
+      })
+      const json = await res.json()
+
+      if (!res.ok) throw new Error(json.error || "Failed to sync displays")
+
+      setLastDisplaySync(json.sync_token)
+      flash("Display sync requested")
+    } catch (e: any) {
+      setDisplaySyncError(e.message || "Failed to sync displays")
+    } finally {
+      setSyncingDisplays(false)
     }
   }
 
   return (
     <div className="space-y-5">
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <div className="text-lg font-semibold">Add agenda item</div>
-            <div className="text-sm text-white/60">These show on /events/{eventSlug}/agenda</div>
-          </div>
-          <button
-            onClick={createItem}
-            disabled={busy}
-            className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-500 disabled:opacity-60"
-          >
-            + Add
-          </button>
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-xl">
+        <div className="flex flex-wrap items-center gap-5 text-sm">
+          <div><span className="text-white/40">Sessions</span> <span className="ml-1 font-semibold">{items.length}</span></div>
+          <div><span className="text-white/40">Live</span> <span className="ml-1 font-semibold text-red-300">{items.filter((item) => item.status === "live").length}</span></div>
+          <div><span className="text-white/40">Upcoming</span> <span className="ml-1 font-semibold text-sky-200">{items.filter((item) => item.status === "upcoming").length}</span></div>
         </div>
-
-        <div className="grid gap-3 md:grid-cols-2">
-          <div>
-            <div className="text-xs text-white/60">Title *</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={draft.title as any}
-              onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-              placeholder="Opening Keynote"
-            />
-          </div>
-          <div>
-            <div className="text-xs text-white/60">Speaker</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={draft.speaker as any}
-              onChange={(e) => setDraft({ ...draft, speaker: e.target.value })}
-              placeholder="Dr. Smith"
-            />
-          </div>
-
-          <AdminDateTimeField
-            label="Start"
-            value={(draft.start_at as string) || null}
-            onChange={(next) => setDraft({ ...draft, start_at: next || "" })}
-            disabled={busy}
-          />
-          <AdminDateTimeField
-            label="End"
-            value={(draft.end_at as string) || null}
-            onChange={(next) => setDraft({ ...draft, end_at: next || "" })}
-            disabled={busy}
-          />
-
-          <div>
-            <div className="text-xs text-white/60">Track</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={draft.track as any}
-              onChange={(e) => setDraft({ ...draft, track: e.target.value })}
-              placeholder="Main"
-            />
-          </div>
-          <div>
-            <div className="text-xs text-white/60">Location</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={draft.location as any}
-              onChange={(e) => setDraft({ ...draft, location: e.target.value })}
-              placeholder="Ballroom A / Zoom / Room 1"
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <div className="text-xs text-white/60">Description</div>
-            <textarea className="mt-1 w-full min-h-[90px] rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={draft.description as any}
-              onChange={(e) => setDraft({ ...draft, description: e.target.value })}
-              placeholder="Short session description…"
-            />
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Sort index</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={String(draft.sort_index ?? 0)}
-              onChange={(e) => setDraft({ ...draft, sort_index: Number(e.target.value || 0) })}
-            />
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Status</div>
-            <select className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={draft.status || "upcoming"}
-              onChange={(e) => setDraft({ ...draft, status: e.target.value as AgendaItem["status"] })}
-            >
-              <option value="upcoming">Upcoming</option>
-              <option value="live">Live</option>
-              <option value="complete">Complete</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Visibility</div>
-            <label className="mt-1 flex min-h-[42px] items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-              <input
-                type="checkbox"
-                checked={draft.is_visible !== false}
-                onChange={(e) => setDraft({ ...draft, is_visible: e.target.checked })}
-              />
-              <span>Visible to attendees</span>
-            </label>
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Button Text</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={draft.button_text || ""}
-              onChange={(e) => setDraft({ ...draft, button_text: e.target.value })}
-              placeholder="Enter Session"
-            />
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Button URL</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              type="url"
-              value={draft.button_url || ""}
-              onChange={(e) => setDraft({ ...draft, button_url: e.target.value })}
-              placeholder="https://..."
-            />
-          </div>
+        <div className="flex items-center gap-2">
+          <button onClick={() => refresh()} disabled={busy} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-50">Refresh</button>
+          <button onClick={() => setAdding((value) => !value)} disabled={busy} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50">+ Add Session</button>
         </div>
+      </div>
 
-        {err ? <div className="text-sm text-red-400">{err}</div> : null}
-        {msg ? <div className="text-sm text-emerald-400">{msg}</div> : null}
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-5 py-4 shadow-xl backdrop-blur-xl">
+        <div>
+          <div className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200/55">Operations</div>
+          <div className="mt-1 text-base font-semibold">Sync Displays</div>
+          <p className="mt-1 text-sm text-white/45">Ask connected attendee pages to quietly reload the latest event data.</p>
+          {lastDisplaySync ? <div className="mt-2 text-xs text-emerald-300/70">Last successful sync: {formatDateTime(lastDisplaySync)}</div> : null}
+          {displaySyncError ? <div className="mt-2 text-sm text-red-300">{displaySyncError}</div> : null}
+        </div>
+        <button
+          onClick={syncDisplays}
+          disabled={syncingDisplays}
+          className="rounded-xl border border-cyan-300/20 bg-cyan-500/15 px-5 py-3 text-sm font-bold text-cyan-100 shadow-[0_0_20px_rgba(34,211,238,0.08)] hover:bg-cyan-500/25 disabled:cursor-wait disabled:opacity-50"
+        >
+          {syncingDisplays ? "Syncing…" : "Sync Displays"}
+        </button>
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <div className="flex items-center justify-between">
-          <div className="text-lg font-semibold">Agenda items</div>
-          <button onClick={() => refresh()} className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10">
-            Refresh
-          </button>
-        </div>
+      {adding ? (
+        <section className="rounded-2xl border border-indigo-400/20 bg-indigo-500/[0.06] p-5 shadow-2xl backdrop-blur-xl">
+          <div className="mb-4 flex items-center justify-between">
+            <div>
+              <h2 className="text-lg font-semibold">Add Session</h2>
+              <p className="text-sm text-white/45">Add a new cue to the attendee agenda at /events/{eventSlug}/agenda.</p>
+            </div>
+            <button onClick={() => setAdding(false)} className="rounded-lg px-3 py-1.5 text-sm text-white/50 hover:bg-white/5 hover:text-white">Close</button>
+          </div>
+          <SessionFields value={draft} onChange={setDraft} busy={busy} />
+          <div className="mt-4 flex gap-2">
+            <button onClick={() => createItem()} disabled={busy} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Add Session</button>
+            <button onClick={() => { setDraft(emptyDraft); setAdding(false) }} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10">Cancel</button>
+          </div>
+        </section>
+      ) : null}
 
-        <div className="mt-4 space-y-3">
-          {items.map((it) => (
-            <AgendaRow
-              key={it.id}
-              item={it}
-              busy={busy}
-              onSave={(patch) => updateItem(it.id, patch)}
-              onDelete={() => deleteItem(it.id)}
-            />
-          ))}
+      {err ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{err}</div> : null}
+      {msg ? <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{msg}</div> : null}
 
-          {items.length === 0 ? (
-            <div className="rounded-xl border border-white/10 bg-black/20 p-4 text-white/60">No agenda items yet.</div>
-          ) : null}
-        </div>
-      </section>
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+        <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 shadow-2xl backdrop-blur-xl">
+          <div className="mb-6">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Production Timeline</div>
+            <h2 className="mt-1 text-xl font-semibold">Run of Show Timeline</h2>
+          </div>
+
+          <div className="space-y-0">
+            {items.map((item, index) => {
+              const active = selectedId === item.id
+              const live = item.status === "live"
+              const muted = item.status === "complete" || item.status === "cancelled"
+              return (
+                <div key={item.id} className="grid grid-cols-[68px_20px_minmax(0,1fr)] gap-2">
+                  <div className={`pt-5 text-right text-sm font-semibold tabular-nums ${muted ? "text-white/25" : "text-white/65"}`}>
+                    {formatTime(item.start_at)}
+                  </div>
+                  <div className="relative flex justify-center">
+                    {index > 0 ? <div className="absolute bottom-1/2 top-0 w-px bg-white/10" /> : null}
+                    {index < items.length - 1 ? <div className="absolute bottom-0 top-1/2 w-px bg-white/10" /> : null}
+                    <div className={`relative z-10 mt-6 h-2.5 w-2.5 rounded-full border-2 ${live ? "animate-pulse border-red-300 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]" : muted ? "border-white/20 bg-zinc-700" : "border-sky-300 bg-sky-500"}`} />
+                  </div>
+                  <button
+                    onClick={() => selectItem(item)}
+                    className={`group relative mb-3 overflow-hidden rounded-2xl border p-4 text-left transition-all ${live ? "border-red-400/35 bg-red-500/[0.09] shadow-[0_0_34px_rgba(239,68,68,0.15)] hover:border-red-300/50" : active ? "border-indigo-400/40 bg-indigo-500/10 shadow-lg" : muted ? "border-white/[0.06] bg-black/20 opacity-60 hover:opacity-80" : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]"}`}
+                  >
+                    {live ? <div className="pointer-events-none absolute inset-0 -translate-x-full animate-[pulse_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-red-300/[0.05] to-transparent" /> : null}
+                    <div className="relative flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className={`truncate text-base font-semibold ${muted ? "text-white/55" : "text-white"}`}>{item.title}</div>
+                        <div className="mt-1 truncate text-sm text-white/45">{item.speaker || "Speaker not assigned"}</div>
+                      </div>
+                      <StatusBadge status={item.status} />
+                    </div>
+                    <div className="relative mt-3 flex items-center justify-between gap-3 text-xs">
+                      <span className={item.is_visible ? "text-emerald-300/80" : "text-white/30"}>{item.is_visible ? "● Visible to attendees" : "○ Hidden from attendees"}</span>
+                      {item.id === nextItemId && item.status === "upcoming" ? <span className="font-bold uppercase tracking-wider text-sky-300">Up next</span> : null}
+                    </div>
+                  </button>
+                </div>
+              )
+            })}
+
+            {items.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-6 py-12 text-center">
+                <div className="text-lg font-semibold text-white/70">No sessions yet</div>
+                <div className="mt-1 text-sm text-white/35">Add the first session to build your run of show.</div>
+              </div>
+            ) : null}
+          </div>
+        </section>
+
+        <section className={`rounded-2xl border bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl lg:sticky lg:top-6 ${selectedItem?.status === "live" ? "border-red-400/25 shadow-[0_0_50px_rgba(239,68,68,0.1)]" : "border-white/10"}`}>
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Current Session</div>
+            {selectedItem ? <StatusBadge status={selectedItem.status} /> : null}
+          </div>
+
+          {selectedItem && row ? (
+            <>
+              {!editing ? (
+                <div className="mt-5">
+                  <h2 className="text-3xl font-bold leading-tight tracking-tight">{selectedItem.title}</h2>
+                  <div className="mt-2 text-base text-white/55">{selectedItem.speaker || "Speaker not assigned"}</div>
+
+                  <div className="mt-6 grid grid-cols-2 gap-3">
+                    <InfoBlock label="Start" value={formatDateTime(selectedItem.start_at)} />
+                    <InfoBlock label="End" value={formatDateTime(selectedItem.end_at)} />
+                    <InfoBlock label="Button Text" value={selectedItem.button_text || "Not set"} />
+                    <InfoBlock label="Visibility" value={selectedItem.is_visible ? "Visible to attendees" : "Hidden from attendees"} />
+                  </div>
+
+                  <div className="mt-3 rounded-xl border border-white/[0.07] bg-black/20 p-3">
+                    <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">Button URL</div>
+                    <div className="mt-1 break-all text-sm text-white/65">{selectedItem.button_url || "Not set"}</div>
+                  </div>
+
+                  {selectedItem.description ? <p className="mt-4 text-sm leading-6 text-white/45">{selectedItem.description}</p> : null}
+
+                  <div className="mt-6 grid grid-cols-2 gap-2">
+                    <button onClick={() => updateItem(selectedItem.id, { status: "live" }, "Session is live")} disabled={busy || selectedItem.status === "live"} className="rounded-xl bg-red-600 px-4 py-3 text-sm font-bold tracking-wide text-white shadow-[0_0_20px_rgba(220,38,38,0.2)] hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-35">GO LIVE</button>
+                    <button onClick={() => updateItem(selectedItem.id, { status: "complete" }, "Session completed")} disabled={busy || selectedItem.status === "complete"} className="rounded-xl bg-emerald-600 px-4 py-3 text-sm font-bold tracking-wide hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35">COMPLETE</button>
+                    <button onClick={() => updateItem(selectedItem.id, { status: "cancelled" }, "Session cancelled")} disabled={busy || selectedItem.status === "cancelled"} className="rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-bold tracking-wide text-white/70 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35">CANCEL</button>
+                    <button onClick={() => setEditing(true)} disabled={busy} className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold tracking-wide hover:bg-indigo-500 disabled:opacity-35">EDIT</button>
+                  </div>
+
+                  <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
+                    <button onClick={() => createItem(selectedItem, true)} disabled={busy} className="rounded-xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-50">Duplicate Session</button>
+                    <button onClick={() => deleteItem(selectedItem.id)} disabled={busy} className="rounded-xl px-4 py-2 text-sm font-semibold text-red-300/70 hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50">Remove Session</button>
+                  </div>
+                  <div className="mt-4 text-xs text-white/25">Last changed {formatDateTime(selectedItem.updated_at || selectedItem.created_at)}</div>
+                </div>
+              ) : (
+                <div className="mt-5">
+                  <SessionFields value={row} onChange={(next) => setRow(next as AgendaItem)} busy={busy} />
+                  <div className="mt-5 flex flex-wrap gap-2">
+                    <button onClick={() => updateItem(row.id, row)} disabled={busy} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Save Changes</button>
+                    <button onClick={() => { setRow(selectedItem); setEditing(false) }} disabled={busy} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="py-16 text-center">
+              <div className="text-lg font-semibold text-white/65">No session selected</div>
+              <div className="mt-1 text-sm text-white/35">Select a timeline card or add a session.</div>
+            </div>
+          )}
+        </section>
+      </div>
     </div>
   )
 }
 
-function AgendaRow({
-  item,
-  busy,
-  onSave,
-  onDelete,
-}: {
-  item: AgendaItem
-  busy: boolean
-  onSave: (patch: Partial<AgendaItem>) => void
-  onDelete: () => void
-}) {
-  const [open, setOpen] = useState(false)
-  const [row, setRow] = useState<AgendaItem>(item)
+function InfoBlock({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-xl border border-white/[0.07] bg-black/20 p-3">
+      <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-white/30">{label}</div>
+      <div className="mt-1 text-sm font-medium text-white/75">{value}</div>
+    </div>
+  )
+}
 
-  // keep in sync if refresh replaces item
-  useEffect(() => { setRow(item) }, [item.id, item.start_at, item.end_at, item.title, item.description, item.location, item.track, item.speaker, item.sort_index, item.status, item.button_text, item.button_url, item.is_visible])
+function SessionFields({
+  value,
+  onChange,
+  busy,
+}: {
+  value: Partial<AgendaItem>
+  onChange: (next: Partial<AgendaItem>) => void
+  busy: boolean
+}) {
+  const fieldClass = "mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none transition focus:border-indigo-400/50 focus:bg-white/[0.07]"
+  const labelClass = "text-xs font-medium text-white/50"
 
   return (
-    <div className="rounded-xl border border-white/10 bg-black/20 p-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="font-semibold">{item.title}</div>
-          <div className="mt-1 text-xs text-white/50">
-            {fmt(item.start_at)} {item.end_at ? "– " + fmt(item.end_at) : ""}
-          </div>
-          <div className="mt-1 text-xs text-white/50 flex flex-wrap gap-2">
-            {item.track ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">{item.track}</span> : null}
-            {item.location ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">{item.location}</span> : null}
-            {item.speaker ? <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5">{item.speaker}</span> : null}
-          </div>
-        </div>
-
-        <div className="flex gap-2">
-          <button
-            onClick={() => setOpen((v) => !v)}
-            className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-xs hover:bg-white/10"
-          >
-            {open ? "Close" : "Edit"}
-          </button>
-          <button
-            disabled={busy}
-            onClick={onDelete}
-            className="rounded-xl border border-red-400/20 bg-red-500/10 px-3 py-1.5 text-xs text-red-200 hover:bg-red-500/20 disabled:opacity-60"
-          >
-            Delete
-          </button>
-        </div>
+    <div className="grid gap-3 md:grid-cols-2">
+      <div className="md:col-span-2">
+        <div className={labelClass}>Title *</div>
+        <input className={fieldClass} value={value.title || ""} onChange={(e) => onChange({ ...value, title: e.target.value })} placeholder="Opening Keynote" />
       </div>
 
-      {open ? (
-        <div className="mt-4 grid gap-3 md:grid-cols-2">
-          <div className="md:col-span-2">
-            <div className="text-xs text-white/60">Title</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={row.title}
-              onChange={(e) => setRow({ ...row, title: e.target.value })}
-            />
-          </div>
+      <div>
+        <div className={labelClass}>Speaker</div>
+        <input className={fieldClass} value={value.speaker || ""} onChange={(e) => onChange({ ...value, speaker: e.target.value || null })} placeholder="Dr. Smith" />
+      </div>
+      <div>
+        <div className={labelClass}>Status</div>
+        <select className={fieldClass} value={value.status || "upcoming"} onChange={(e) => onChange({ ...value, status: e.target.value as AgendaStatus })}>
+          <option value="upcoming">Upcoming</option>
+          <option value="live">Live</option>
+          <option value="complete">Complete</option>
+          <option value="cancelled">Cancelled</option>
+        </select>
+      </div>
 
-          <AdminDateTimeField
-            label="Start"
-            value={row.start_at}
-            onChange={(next) => setRow({ ...row, start_at: next })}
-            disabled={busy}
-          />
-          <AdminDateTimeField
-            label="End"
-            value={row.end_at}
-            onChange={(next) => setRow({ ...row, end_at: next })}
-            disabled={busy}
-          />
+      <AdminDateTimeField label="Start" value={(value.start_at as string) || null} onChange={(next) => onChange({ ...value, start_at: next || "" })} disabled={busy} />
+      <AdminDateTimeField label="End" value={(value.end_at as string) || null} onChange={(next) => onChange({ ...value, end_at: next || "" })} disabled={busy} />
 
-          <div>
-            <div className="text-xs text-white/60">Track</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={row.track || ""}
-              onChange={(e) => setRow({ ...row, track: e.target.value || null })}
-            />
-          </div>
-          <div>
-            <div className="text-xs text-white/60">Location</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={row.location || ""}
-              onChange={(e) => setRow({ ...row, location: e.target.value || null })}
-            />
-          </div>
+      <div>
+        <div className={labelClass}>Track</div>
+        <input className={fieldClass} value={value.track || ""} onChange={(e) => onChange({ ...value, track: e.target.value || null })} placeholder="Main" />
+      </div>
+      <div>
+        <div className={labelClass}>Location</div>
+        <input className={fieldClass} value={value.location || ""} onChange={(e) => onChange({ ...value, location: e.target.value || null })} placeholder="Ballroom A / Zoom / Room 1" />
+      </div>
 
-          <div>
-            <div className="text-xs text-white/60">Speaker</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={row.speaker || ""}
-              onChange={(e) => setRow({ ...row, speaker: e.target.value || null })}
-            />
-          </div>
+      <div>
+        <div className={labelClass}>Button Text</div>
+        <input className={fieldClass} value={value.button_text || ""} onChange={(e) => onChange({ ...value, button_text: e.target.value || null })} placeholder="Enter Session" />
+      </div>
+      <div>
+        <div className={labelClass}>Button URL</div>
+        <input type="url" className={fieldClass} value={value.button_url || ""} onChange={(e) => onChange({ ...value, button_url: e.target.value || null })} placeholder="https://..." />
+      </div>
 
-          <div>
-            <div className="text-xs text-white/60">Sort index</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={String(row.sort_index ?? 0)}
-              onChange={(e) => setRow({ ...row, sort_index: Number(e.target.value || 0) })}
-            />
-          </div>
+      <div>
+        <div className={labelClass}>Sort index</div>
+        <input className={fieldClass} value={String(value.sort_index ?? 0)} onChange={(e) => onChange({ ...value, sort_index: Number(e.target.value || 0) })} />
+      </div>
+      <div>
+        <div className={labelClass}>Visibility</div>
+        <label className="mt-1 flex min-h-[42px] items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/75">
+          <input type="checkbox" checked={value.is_visible !== false} onChange={(e) => onChange({ ...value, is_visible: e.target.checked })} />
+          Visible to attendees
+        </label>
+      </div>
 
-          <div>
-            <div className="text-xs text-white/60">Status</div>
-            <select className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={row.status}
-              onChange={(e) => setRow({ ...row, status: e.target.value as AgendaItem["status"] })}
-            >
-              <option value="upcoming">Upcoming</option>
-              <option value="live">Live</option>
-              <option value="complete">Complete</option>
-              <option value="cancelled">Cancelled</option>
-            </select>
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Visibility</div>
-            <label className="mt-1 flex min-h-[42px] items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
-              <input
-                type="checkbox"
-                checked={row.is_visible}
-                onChange={(e) => setRow({ ...row, is_visible: e.target.checked })}
-              />
-              <span>Visible to attendees</span>
-            </label>
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Button Text</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={row.button_text || ""}
-              onChange={(e) => setRow({ ...row, button_text: e.target.value || null })}
-              placeholder="Enter Session"
-            />
-          </div>
-
-          <div>
-            <div className="text-xs text-white/60">Button URL</div>
-            <input className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              type="url"
-              value={row.button_url || ""}
-              onChange={(e) => setRow({ ...row, button_url: e.target.value || null })}
-              placeholder="https://..."
-            />
-          </div>
-
-          <div className="md:col-span-2">
-            <div className="text-xs text-white/60">Description</div>
-            <textarea className="mt-1 w-full min-h-[90px] rounded-xl border border-white/10 bg-white/5 px-3 py-2"
-              value={row.description || ""}
-              onChange={(e) => setRow({ ...row, description: e.target.value || null })}
-            />
-          </div>
-
-          <div className="md:col-span-2 flex gap-2">
-            <button
-              disabled={busy}
-              onClick={() => onSave(row)}
-              className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-60"
-            >
-              Save
-            </button>
-            <button
-              onClick={() => setOpen(false)}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10"
-            >
-              Cancel
-            </button>
-          </div>
-        </div>
-      ) : null}
+      <div className="md:col-span-2">
+        <div className={labelClass}>Description</div>
+        <textarea className={`${fieldClass} min-h-[90px]`} value={value.description || ""} onChange={(e) => onChange({ ...value, description: e.target.value || null })} placeholder="Short session description…" />
+      </div>
     </div>
   )
 }

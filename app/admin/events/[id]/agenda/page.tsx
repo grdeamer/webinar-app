@@ -22,7 +22,7 @@ export default async function AdminEventAgendaPage(props: {
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
     .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,created_at"
+      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
     )
     .eq("event_id", id)
     .order("start_at", { ascending: true })
@@ -36,8 +36,9 @@ export default async function AdminEventAgendaPage(props: {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="text-xs uppercase tracking-wider text-white/40">Event</div>
-          <h1 className="text-3xl font-bold">Agenda</h1>
-          <div className="mt-1 text-white/60">{event.title}</div>
+          <h1 className="text-3xl font-bold">Run of Show</h1>
+          <div className="mt-1 text-white/60">Manage the live flow of your event.</div>
+          <div className="mt-1 text-sm text-white/40">{event.title}</div>
         </div>
 
         <div className="flex gap-2">

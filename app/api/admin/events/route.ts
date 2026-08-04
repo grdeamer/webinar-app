@@ -80,6 +80,26 @@ export async function POST(req: Request) {
     return json({ error: error.message }, 400)
   }
 
+  const { error: liveStateError } = await supabaseAdmin
+    .from("event_live_state")
+    .insert({
+      event_id: data.id,
+      mode: "lobby",
+      force_redirect: false,
+      updated_at: new Date().toISOString(),
+    })
+
+  if (liveStateError) {
+    return json(
+      {
+        error: `Event created, but runtime initialization failed: ${liveStateError.message}`,
+        id: data.id,
+        slug: data.slug,
+      },
+      500
+    )
+  }
+
   return json({ id: data.id, slug: data.slug })
 }
 
