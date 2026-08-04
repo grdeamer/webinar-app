@@ -57,6 +57,24 @@ export async function GET(
       return json({ error: agendaResult.error.message }, 500)
     }
 
+    const agenda = agendaResult.data || []
+    const currentSession = agenda.find((item) => item.status === "live") ?? null
+    const currentIndex = currentSession
+      ? agenda.findIndex((item) => item.id === currentSession.id)
+      : -1
+    const nextSession =
+      agenda
+        .slice(currentIndex + 1)
+        .find((item) => item.status === "upcoming") ?? null
+    const eventStatus = currentSession
+      ? "in_progress"
+      : agenda.length > 0 &&
+          agenda.every(
+            (item) => item.status === "complete" || item.status === "cancelled"
+          )
+        ? "complete"
+        : "scheduled"
+
     return json({
       event: {
         id: event.id,
@@ -64,7 +82,13 @@ export async function GET(
         title: event.title,
       },
       sync_token: liveStateResult.data?.updated_at ?? null,
-      agenda: agendaResult.data || [],
+      status: eventStatus,
+      active_session: currentSession?.id ?? null,
+      current_session: currentSession,
+      next_session: nextSession,
+      button_text: currentSession?.button_text ?? null,
+      button_url: currentSession?.button_url ?? null,
+      agenda,
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load event runtime"
