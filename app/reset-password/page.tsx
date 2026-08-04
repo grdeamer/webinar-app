@@ -7,18 +7,80 @@ import { createClient } from "@/lib/supabase/client"
 
 export default function ResetPasswordPage() {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = React.useMemo(() => createClient(), [])
 
   const [password, setPassword] = React.useState("")
   const [confirmPassword, setConfirmPassword] = React.useState("")
+  const [sessionReady, setSessionReady] = React.useState(false)
+  const [checkingSession, setCheckingSession] = React.useState(true)
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [message, setMessage] = React.useState<string | null>(null)
+
+  React.useEffect(() => {
+    let active = true
+
+    async function initializeRecoverySession() {
+      const code = new URL(window.location.href).searchParams.get("code")
+
+      if (code) {
+        const { error: exchangeError } =
+          await supabase.auth.exchangeCodeForSession(code)
+
+        if (exchangeError) {
+          if (active) {
+            setError("This password reset link is invalid or has expired. Request a new link and try again.")
+            setCheckingSession(false)
+          }
+          return
+        }
+
+        window.history.replaceState({}, "", window.location.pathname)
+      }
+
+      const { data, error: sessionError } = await supabase.auth.getSession()
+
+      if (!active) return
+
+      if (sessionError || !data.session) {
+        setError("This password reset link is invalid or has expired. Request a new link and try again.")
+        setCheckingSession(false)
+        return
+      }
+
+      setSessionReady(true)
+      setCheckingSession(false)
+    }
+
+    void initializeRecoverySession()
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (!active) return
+
+      if (event === "PASSWORD_RECOVERY" || session) {
+        setSessionReady(true)
+        setCheckingSession(false)
+        setError(null)
+      }
+    })
+
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
+  }, [supabase])
 
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setError(null)
     setMessage(null)
+
+    if (!sessionReady) {
+      setError("This password reset link is invalid or has expired. Request a new link and try again.")
+      return
+    }
 
     const pw = password.trim()
     const confirm = confirmPassword.trim()
@@ -107,10 +169,14 @@ export default function ResetPasswordPage() {
 
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || checkingSession || !sessionReady}
             className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 transition px-5 py-3 font-medium shadow-lg shadow-indigo-600/20"
           >
-            {loading ? "Updating..." : "Update password"}
+            {checkingSession
+              ? "Verifying reset link..."
+              : loading
+                ? "Updating..."
+                : "Update password"}
           </button>
         </form>
 
