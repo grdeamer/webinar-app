@@ -21,9 +21,28 @@ export default function ResetPasswordPage() {
     let active = true
 
     async function initializeRecoverySession() {
-      const code = new URL(window.location.href).searchParams.get("code")
+      const url = new URL(window.location.href)
+      const code = url.searchParams.get("code")
+      const hash = new URLSearchParams(url.hash.slice(1))
+      const accessToken = hash.get("access_token")
+      const refreshToken = hash.get("refresh_token")
 
-      if (code) {
+      if (accessToken && refreshToken) {
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+
+        if (sessionError) {
+          if (active) {
+            setError("This password reset link is invalid or has expired. Request a new link and try again.")
+            setCheckingSession(false)
+          }
+          return
+        }
+
+        window.history.replaceState({}, "", window.location.pathname)
+      } else if (code) {
         const { error: exchangeError } =
           await supabase.auth.exchangeCodeForSession(code)
 
