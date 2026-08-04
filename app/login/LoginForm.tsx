@@ -1,6 +1,7 @@
 "use client"
 
 import * as React from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
@@ -64,6 +65,14 @@ export default function LoginForm({ next = "/admin/webinars" }: { next?: string 
           autoComplete="current-password"
           required
         />
+        <div className="mt-2 text-right">
+          <Link
+            href="/forgot-password"
+            className="text-sm text-white/60 transition hover:text-white"
+          >
+            Forgot password?
+          </Link>
+        </div>
       </div>
 
       {error ? (
