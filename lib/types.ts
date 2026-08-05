@@ -52,6 +52,9 @@ export interface EventAgendaItem {
   location: string | null
   track: string | null
   speaker: string | null
+  speaker_title: string | null
+  speaker_bio: string | null
+  speaker_photo_url: string | null
   start_at: string | null
   end_at: string | null
   sort_index: number | null

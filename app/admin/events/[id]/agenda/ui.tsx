@@ -1,5 +1,6 @@
 "use client"
 
+import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 
@@ -15,6 +16,9 @@ type AgendaItem = {
   location: string | null
   track: string | null
   speaker: string | null
+  speaker_title: string | null
+  speaker_bio: string | null
+  speaker_photo_url: string | null
   sort_index: number
   status: AgendaStatus
   button_text: string | null
@@ -31,6 +35,9 @@ const emptyDraft: Partial<AgendaItem> = {
   location: "",
   track: "",
   speaker: "",
+  speaker_title: "",
+  speaker_bio: "",
+  speaker_photo_url: "",
   description: "",
   sort_index: 0,
   status: "upcoming",
@@ -69,6 +76,10 @@ function formatDateTime(value: string | null) {
   }
 }
 
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
+}
+
 function StatusBadge({ status }: { status: AgendaStatus }) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusStyles[status]}`}>
@@ -101,6 +112,7 @@ export default function AdminAgendaEditor({
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [uploadingSpeakerPhoto, setUploadingSpeakerPhoto] = useState(false)
   const [accessOpen, setAccessOpen] = useState(initialAccessOpen)
   const [updatingAccess, setUpdatingAccess] = useState(false)
   const [accessSyncToken, setAccessSyncToken] = useState<string | null>(null)
@@ -165,8 +177,8 @@ export default function AdminAgendaEditor({
       setAdding(false)
       await refresh(json.item?.id || null)
       flash(duplicate ? "Session duplicated" : "Session added")
-    } catch (e: any) {
-      setErr(e.message || "Failed")
+    } catch (error) {
+      setErr(errorMessage(error, "Failed"))
     } finally {
       setBusy(false)
     }
@@ -185,8 +197,8 @@ export default function AdminAgendaEditor({
       await refresh(id)
       setEditing(false)
       flash(message)
-    } catch (e: any) {
-      setErr(e.message || "Failed")
+    } catch (error) {
+      setErr(errorMessage(error, "Failed"))
     } finally {
       setBusy(false)
     }
@@ -206,8 +218,8 @@ export default function AdminAgendaEditor({
       await refresh(null)
       setEditing(false)
       flash("Session removed")
-    } catch (e: any) {
-      setErr(e.message || "Failed")
+    } catch (error) {
+      setErr(errorMessage(error, "Failed"))
     } finally {
       setBusy(false)
     }
@@ -236,8 +248,8 @@ export default function AdminAgendaEditor({
 
       setLastDisplaySync(json.sync_token)
       flash("Display sync requested")
-    } catch (e: any) {
-      setDisplaySyncError(e.message || "Failed to sync displays")
+    } catch (error) {
+      setDisplaySyncError(errorMessage(error, "Failed to sync displays"))
     } finally {
       setSyncingDisplays(false)
     }
@@ -274,8 +286,8 @@ export default function AdminAgendaEditor({
       setAccessOpen(json.access === "open")
       setAccessSyncToken(json.sync_token || null)
       flash(nextOpen ? "Event opened to attendees" : "Event closed to attendees")
-    } catch (e: any) {
-      setAccessError(e.message || `Failed to ${action} event`)
+    } catch (error) {
+      setAccessError(errorMessage(error, `Failed to ${action} event`))
     } finally {
       setUpdatingAccess(false)
     }
@@ -363,12 +375,21 @@ export default function AdminAgendaEditor({
               <h2 className="text-lg font-semibold">Add Session</h2>
               <p className="text-sm text-white/45">Add a new cue to the attendee agenda at /events/{eventSlug}/agenda.</p>
             </div>
-            <button onClick={() => setAdding(false)} className="rounded-lg px-3 py-1.5 text-sm text-white/50 hover:bg-white/5 hover:text-white">Close</button>
+            <button onClick={() => setAdding(false)} disabled={uploadingSpeakerPhoto} className="rounded-lg px-3 py-1.5 text-sm text-white/50 hover:bg-white/5 hover:text-white disabled:opacity-50">Close</button>
           </div>
-          <SessionFields value={draft} onChange={setDraft} busy={busy} />
+          <SessionFields
+            eventId={eventId}
+            value={draft}
+            onChange={setDraft}
+            onPhotoChange={(url) =>
+              setDraft((current) => ({ ...current, speaker_photo_url: url }))
+            }
+            busy={busy}
+            onUploadStateChange={setUploadingSpeakerPhoto}
+          />
           <div className="mt-4 flex gap-2">
-            <button onClick={() => createItem()} disabled={busy} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Add Session</button>
-            <button onClick={() => { setDraft(emptyDraft); setAdding(false) }} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10">Cancel</button>
+            <button onClick={() => createItem()} disabled={busy || uploadingSpeakerPhoto} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Add Session</button>
+            <button onClick={() => { setDraft(emptyDraft); setAdding(false) }} disabled={uploadingSpeakerPhoto} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
           </div>
         </section>
       ) : null}
@@ -440,6 +461,7 @@ export default function AdminAgendaEditor({
                 <div className="mt-5">
                   <h2 className="text-3xl font-bold leading-tight tracking-tight">{selectedItem.title}</h2>
                   <div className="mt-2 text-base text-white/55">{selectedItem.speaker || "Speaker not assigned"}</div>
+                  {selectedItem.speaker_title ? <div className="mt-1 text-sm text-white/35">{selectedItem.speaker_title}</div> : null}
 
                   <div className="mt-6 grid grid-cols-2 gap-3">
                     <InfoBlock label="Start" value={formatDateTime(selectedItem.start_at)} />
@@ -470,10 +492,21 @@ export default function AdminAgendaEditor({
                 </div>
               ) : (
                 <div className="mt-5">
-                  <SessionFields value={row} onChange={(next) => setRow(next as AgendaItem)} busy={busy} />
+                  <SessionFields
+                    eventId={eventId}
+                    value={row}
+                    onChange={(next) => setRow(next as AgendaItem)}
+                    onPhotoChange={(url) =>
+                      setRow((current) =>
+                        current ? { ...current, speaker_photo_url: url } : current
+                      )
+                    }
+                    busy={busy}
+                    onUploadStateChange={setUploadingSpeakerPhoto}
+                  />
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <button onClick={() => updateItem(row.id, row)} disabled={busy} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Save Changes</button>
-                    <button onClick={() => { setRow(selectedItem); setEditing(false) }} disabled={busy} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
+                    <button onClick={() => updateItem(row.id, row)} disabled={busy || uploadingSpeakerPhoto} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Save Changes</button>
+                    <button onClick={() => { setRow(selectedItem); setEditing(false) }} disabled={busy || uploadingSpeakerPhoto} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
                   </div>
                 </div>
               )}
@@ -500,16 +533,61 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
 }
 
 function SessionFields({
+  eventId,
   value,
   onChange,
+  onPhotoChange,
   busy,
+  onUploadStateChange,
 }: {
+  eventId: string
   value: Partial<AgendaItem>
   onChange: (next: Partial<AgendaItem>) => void
+  onPhotoChange: (url: string | null) => void
   busy: boolean
+  onUploadStateChange: (uploading: boolean) => void
 }) {
+  const [photoError, setPhotoError] = useState<string | null>(null)
   const fieldClass = "mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none transition focus:border-indigo-400/50 focus:bg-white/[0.07]"
   const labelClass = "text-xs font-medium text-white/50"
+
+  async function uploadSpeakerPhoto(file: File) {
+    setPhotoError(null)
+
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      setPhotoError("Speaker photos must be JPEG, PNG, or WebP")
+      return
+    }
+
+    if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+      setPhotoError("Speaker photos must be between 1 byte and 5 MB")
+      return
+    }
+
+    onUploadStateChange(true)
+
+    try {
+      const form = new FormData()
+      form.append("event_id", eventId)
+      form.append("file", file)
+
+      const response = await fetch("/api/admin/event-agenda/speaker-photo", {
+        method: "POST",
+        body: form,
+      })
+      const result = await response.json()
+
+      if (!response.ok || !result.url) {
+        throw new Error(result.error || "Speaker photo upload failed")
+      }
+
+      onPhotoChange(result.url)
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "Speaker photo upload failed")
+    } finally {
+      onUploadStateChange(false)
+    }
+  }
 
   return (
     <div className="grid gap-3 md:grid-cols-2">
@@ -519,9 +597,69 @@ function SessionFields({
       </div>
 
       <div>
-        <div className={labelClass}>Speaker</div>
+        <div className={labelClass}>Speaker Name</div>
         <input className={fieldClass} value={value.speaker || ""} onChange={(e) => onChange({ ...value, speaker: e.target.value || null })} placeholder="Dr. Smith" />
       </div>
+      <div>
+        <div className={labelClass}>Speaker Role/Title</div>
+        <input className={fieldClass} value={value.speaker_title || ""} onChange={(e) => onChange({ ...value, speaker_title: e.target.value || null })} placeholder="Chief Medical Officer" />
+      </div>
+
+      <div className="md:col-span-2">
+        <div className={labelClass}>Speaker Bio</div>
+        <textarea className={`${fieldClass} min-h-[96px]`} value={value.speaker_bio || ""} onChange={(e) => onChange({ ...value, speaker_bio: e.target.value || null })} placeholder="Short speaker biography…" />
+      </div>
+
+      <div className="md:col-span-2">
+        <div className={labelClass}>Speaker Photo</div>
+        <div className="mt-1 flex flex-wrap items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-3">
+          {value.speaker_photo_url ? (
+            <Image
+              src={value.speaker_photo_url}
+              alt={`${value.speaker || "Speaker"} photo preview`}
+              width={88}
+              height={88}
+              className="h-[88px] w-[88px] rounded-xl object-cover"
+            />
+          ) : (
+            <div className="flex h-[88px] w-[88px] items-center justify-center rounded-xl border border-dashed border-white/15 bg-black/20 text-center text-xs text-white/30">
+              No photo
+            </div>
+          )}
+          <div className="min-w-[220px] flex-1">
+            <div className="flex flex-wrap gap-2">
+              <label className="cursor-pointer rounded-lg border border-indigo-300/20 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25">
+                {value.speaker_photo_url ? "Replace Speaker Photo" : "Upload Speaker Photo"}
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={busy}
+                  className="sr-only"
+                  onChange={async (event) => {
+                    const input = event.currentTarget
+                    const file = input.files?.[0]
+                    if (file) await uploadSpeakerPhoto(file)
+                    input.value = ""
+                  }}
+                />
+              </label>
+              {value.speaker_photo_url ? (
+                <button
+                  type="button"
+                  onClick={() => onPhotoChange(null)}
+                  disabled={busy}
+                  className="rounded-lg border border-red-300/15 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50"
+                >
+                  Remove Photo
+                </button>
+              ) : null}
+            </div>
+            <div className="mt-2 text-xs text-white/35">JPEG, PNG, or WebP. Maximum 5 MB.</div>
+            {photoError ? <div className="mt-2 text-sm text-red-300">{photoError}</div> : null}
+          </div>
+        </div>
+      </div>
+
       <div>
         <div className={labelClass}>Status</div>
         <select className={fieldClass} value={value.status || "upcoming"} onChange={(e) => onChange({ ...value, status: e.target.value as AgendaStatus })}>

@@ -24,6 +24,9 @@ create table if not exists public.event_agenda_items (
   location text null,
   track text null,
   speaker text null,
+  speaker_title text null,
+  speaker_bio text null,
+  speaker_photo_url text null,
   sort_index int not null default 0,
   created_at timestamptz not null default now()
 );
@@ -170,3 +173,7 @@ alter table public.event_breakouts add column if not exists speaker_name text nu
 alter table public.event_breakouts add column if not exists speaker_avatar_url text null;
 alter table public.event_breakouts add column if not exists manual_live boolean not null default false;
 alter table public.event_breakouts add column if not exists auto_open boolean not null default false;
+
+alter table public.event_agenda_items add column if not exists speaker_title text null;
+alter table public.event_agenda_items add column if not exists speaker_bio text null;
+alter table public.event_agenda_items add column if not exists speaker_photo_url text null;

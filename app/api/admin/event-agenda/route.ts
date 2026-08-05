@@ -6,7 +6,10 @@ import type { EventAgendaItem } from "@/lib/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200): Response {
+const agendaSelect =
+  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+
+function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
@@ -22,9 +25,7 @@ export async function GET(req: Request): Promise<Response> {
 
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
-    .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
-    )
+    .select(agendaSelect)
     .eq("event_id", event_id)
     .order("start_at", { ascending: true })
     .order("sort_index", { ascending: true })
@@ -48,6 +49,9 @@ export async function POST(req: Request): Promise<Response> {
     location: clamp(body.location, 200),
     track: clamp(body.track, 120),
     speaker: clamp(body.speaker, 200),
+    speaker_title: clamp(body.speaker_title, 200),
+    speaker_bio: clamp(body.speaker_bio, 10000),
+    speaker_photo_url: clamp(body.speaker_photo_url, 2000),
     start_at: body.start_at || null,
     end_at: body.end_at || null,
     sort_index: Number.isFinite(Number(body.sort_index)) ? Number(body.sort_index) : 0,
@@ -60,9 +64,7 @@ export async function POST(req: Request): Promise<Response> {
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
     .insert(row)
-    .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
-    )
+    .select(agendaSelect)
     .single()
 
   if (error) return json({ error: error.message }, 400)
@@ -77,18 +79,32 @@ export async function PUT(req: Request): Promise<Response> {
 
   const patch: Partial<EventAgendaItem> = {}
 
-  if (body.title != null) patch.title = clamp(body.title, 200) as any
+  if (body.title != null) patch.title = clamp(body.title, 200) || "Untitled"
   if (body.description !== undefined) {
-    patch.description = body.description == null ? null : (clamp(body.description, 10000) as any)
+    patch.description = body.description == null ? null : clamp(body.description, 10000)
   }
   if (body.location !== undefined) {
-    patch.location = body.location == null ? null : (clamp(body.location, 200) as any)
+    patch.location = body.location == null ? null : clamp(body.location, 200)
   }
   if (body.track !== undefined) {
-    patch.track = body.track == null ? null : (clamp(body.track, 120) as any)
+    patch.track = body.track == null ? null : clamp(body.track, 120)
   }
   if (body.speaker !== undefined) {
-    patch.speaker = body.speaker == null ? null : (clamp(body.speaker, 200) as any)
+    patch.speaker = body.speaker == null ? null : clamp(body.speaker, 200)
+  }
+  if (body.speaker_title !== undefined) {
+    patch.speaker_title =
+      body.speaker_title == null ? null : clamp(body.speaker_title, 200)
+  }
+  if (body.speaker_bio !== undefined) {
+    patch.speaker_bio =
+      body.speaker_bio == null ? null : clamp(body.speaker_bio, 10000)
+  }
+  if (body.speaker_photo_url !== undefined) {
+    patch.speaker_photo_url =
+      body.speaker_photo_url == null
+        ? null
+        : clamp(body.speaker_photo_url, 2000)
   }
   if (body.start_at !== undefined) patch.start_at = body.start_at || null
   if (body.end_at !== undefined) patch.end_at = body.end_at || null
@@ -97,10 +113,10 @@ export async function PUT(req: Request): Promise<Response> {
   }
   if (body.status !== undefined) patch.status = body.status
   if (body.button_text !== undefined) {
-    patch.button_text = body.button_text == null ? null : (clamp(body.button_text, 200) as any)
+    patch.button_text = body.button_text == null ? null : clamp(body.button_text, 200)
   }
   if (body.button_url !== undefined) {
-    patch.button_url = body.button_url == null ? null : (clamp(body.button_url, 2000) as any)
+    patch.button_url = body.button_url == null ? null : clamp(body.button_url, 2000)
   }
   if (body.is_visible !== undefined) patch.is_visible = Boolean(body.is_visible)
 
@@ -108,9 +124,7 @@ export async function PUT(req: Request): Promise<Response> {
     .from("event_agenda_items")
     .update(patch)
     .eq("id", body.id)
-    .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
-    )
+    .select(agendaSelect)
     .single()
 
   if (error) return json({ error: error.message }, 400)

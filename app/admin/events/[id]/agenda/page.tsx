@@ -23,7 +23,7 @@ export default async function AdminEventAgendaPage(props: {
     supabaseAdmin
       .from("event_agenda_items")
       .select(
-        "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+        "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
       )
       .eq("event_id", id)
       .order("start_at", { ascending: true })
