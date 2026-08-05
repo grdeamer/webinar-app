@@ -57,7 +57,24 @@ export async function GET(
       return json({ error: agendaResult.error.message }, 500)
     }
 
-    const agenda = agendaResult.data || []
+    const agenda = [...(agendaResult.data || [])].sort((left, right) => {
+      const startDifference =
+        new Date(left.start_at).getTime() - new Date(right.start_at).getTime()
+
+      if (startDifference !== 0) return startDifference
+
+      const statusOrder: Record<string, number> = {
+        complete: 0,
+        cancelled: 0,
+        live: 1,
+        upcoming: 2,
+      }
+
+      return (
+        (statusOrder[left.status] ?? 3) - (statusOrder[right.status] ?? 3) ||
+        left.sort_index - right.sort_index
+      )
+    })
     const currentSession = agenda.find((item) => item.status === "live") ?? null
     const currentIndex = currentSession
       ? agenda.findIndex((item) => item.id === currentSession.id)
