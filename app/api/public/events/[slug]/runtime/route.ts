@@ -35,7 +35,7 @@ export async function GET(
     const [liveStateResult, agendaResult] = await Promise.all([
       supabaseAdmin
         .from("event_live_state")
-        .select("updated_at")
+        .select("mode,status,updated_at")
         .eq("event_id", event.id)
         .maybeSingle(),
       supabaseAdmin
@@ -91,6 +91,7 @@ export async function GET(
           )
         ? "complete"
         : "scheduled"
+    const accessMode = liveStateResult.data?.status === "open" ? "open" : "closed"
 
     return json({
       event: {
@@ -99,7 +100,10 @@ export async function GET(
         title: event.title,
       },
       sync_token: liveStateResult.data?.updated_at ?? null,
-      status: eventStatus,
+      status: accessMode,
+      mode: accessMode,
+      routing_mode: liveStateResult.data?.mode ?? "lobby",
+      event_status: eventStatus,
       active_session: currentSession?.id ?? null,
       current_session: currentSession,
       next_session: nextSession,

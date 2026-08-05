@@ -186,10 +186,13 @@ export type EventLiveMode =
   | "session_redirect"
   | "multi_session"
 
+export type EventAccessStatus = "open" | "closed"
+
 export type EventLiveStateRecord = {
   id: string
   event_id: string
   mode: EventLiveMode
+  status?: EventAccessStatus | null
   active_breakout_id: string | null
   destination_type: string | null
   destination_session_id: string | null

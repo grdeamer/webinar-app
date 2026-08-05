@@ -19,17 +19,25 @@ export default async function AdminEventAgendaPage(props: {
 
   if (e1) throw new Error(e1.message)
 
-  const { data, error } = await supabaseAdmin
-    .from("event_agenda_items")
-    .select(
-      "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
-    )
-    .eq("event_id", id)
-    .order("start_at", { ascending: true })
-    .order("sort_index", { ascending: true })
-    .returns<EventAgendaItem[]>()
+  const [agendaResult, liveStateResult] = await Promise.all([
+    supabaseAdmin
+      .from("event_agenda_items")
+      .select(
+        "id,event_id,start_at,end_at,title,description,location,track,speaker,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+      )
+      .eq("event_id", id)
+      .order("start_at", { ascending: true })
+      .order("sort_index", { ascending: true })
+      .returns<EventAgendaItem[]>(),
+    supabaseAdmin
+      .from("event_live_state")
+      .select("status")
+      .eq("event_id", id)
+      .maybeSingle(),
+  ])
 
-  if (error) throw new Error(error.message)
+  if (agendaResult.error) throw new Error(agendaResult.error.message)
+  if (liveStateResult.error) throw new Error(liveStateResult.error.message)
 
   return (
     <div className="space-y-6">
@@ -63,7 +71,8 @@ export default async function AdminEventAgendaPage(props: {
       <AdminAgendaEditor
         eventId={id}
         eventSlug={event.slug}
-        initialItems={(data || []).map((item) => ({
+        initialAccessOpen={liveStateResult.data?.status === "open"}
+        initialItems={(agendaResult.data || []).map((item) => ({
           ...item,
           created_at: item.created_at ?? "",
           sort_index: item.sort_index ?? 0,

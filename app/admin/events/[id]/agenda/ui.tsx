@@ -81,10 +81,12 @@ function StatusBadge({ status }: { status: AgendaStatus }) {
 export default function AdminAgendaEditor({
   eventId,
   eventSlug,
+  initialAccessOpen,
   initialItems,
 }: {
   eventId: string
   eventSlug: string
+  initialAccessOpen: boolean
   initialItems: AgendaItem[]
 }) {
   const [items, setItems] = useState<AgendaItem[]>(initialItems || [])
@@ -99,6 +101,10 @@ export default function AdminAgendaEditor({
   const [adding, setAdding] = useState(false)
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [accessOpen, setAccessOpen] = useState(initialAccessOpen)
+  const [updatingAccess, setUpdatingAccess] = useState(false)
+  const [accessSyncToken, setAccessSyncToken] = useState<string | null>(null)
+  const [accessError, setAccessError] = useState<string | null>(null)
   const [syncingDisplays, setSyncingDisplays] = useState(false)
   const [lastDisplaySync, setLastDisplaySync] = useState<string | null>(null)
   const [displaySyncError, setDisplaySyncError] = useState<string | null>(null)
@@ -237,6 +243,44 @@ export default function AdminAgendaEditor({
     }
   }
 
+  async function updateEventAccess(nextOpen: boolean) {
+    const action = nextOpen ? "open" : "close"
+    const confirmed = confirm(
+      nextOpen
+        ? "Open this event to attendees? The LETS attendee page will begin showing the live event experience."
+        : "Close this event to attendees? The LETS attendee page will return to its gated state."
+    )
+
+    if (!confirmed) return
+
+    setUpdatingAccess(true)
+    setAccessError(null)
+
+    try {
+      const res = await fetch("/api/admin/event-access", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: eventId,
+          access: nextOpen ? "open" : "closed",
+        }),
+      })
+      const json = await res.json()
+
+      if (!res.ok) {
+        throw new Error(json.error || `Failed to ${action} event`)
+      }
+
+      setAccessOpen(json.access === "open")
+      setAccessSyncToken(json.sync_token || null)
+      flash(nextOpen ? "Event opened to attendees" : "Event closed to attendees")
+    } catch (e: any) {
+      setAccessError(e.message || `Failed to ${action} event`)
+    } finally {
+      setUpdatingAccess(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-xl">
@@ -250,6 +294,50 @@ export default function AdminAgendaEditor({
           <button onClick={() => setAdding((value) => !value)} disabled={busy} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50">+ Add Session</button>
         </div>
       </div>
+
+      <section className={`flex flex-wrap items-center justify-between gap-4 rounded-2xl border px-5 py-4 shadow-xl backdrop-blur-xl ${accessOpen ? "border-emerald-400/20 bg-emerald-400/[0.055]" : "border-amber-400/20 bg-amber-400/[0.045]"}`}>
+        <div>
+          <div className={`text-xs font-bold uppercase tracking-[0.18em] ${accessOpen ? "text-emerald-200/60" : "text-amber-200/60"}`}>
+            Attendee Access
+          </div>
+          <div className="mt-1 flex items-center gap-2">
+            <div className="text-base font-semibold">Event Access</div>
+            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${accessOpen ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200" : "border-amber-300/25 bg-amber-400/10 text-amber-100"}`}>
+              {accessOpen ? "Open" : "Closed"}
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-white/45">
+            {accessOpen
+              ? "Attendees can see the live event experience."
+              : "Attendees remain on the gated LETS experience until you open the event."}
+          </p>
+          {accessSyncToken ? (
+            <div className="mt-2 text-xs text-white/35">
+              Last access change: {formatDateTime(accessSyncToken)}
+            </div>
+          ) : null}
+          {accessError ? <div className="mt-2 text-sm text-red-300">{accessError}</div> : null}
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => updateEventAccess(true)}
+            disabled={updatingAccess || accessOpen}
+            className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(5,150,105,0.16)] hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            {updatingAccess && !accessOpen ? "Opening…" : "Open Event"}
+          </button>
+          <button
+            type="button"
+            onClick={() => updateEventAccess(false)}
+            disabled={updatingAccess || !accessOpen}
+            className="rounded-xl border border-red-300/20 bg-red-500/10 px-5 py-3 text-sm font-bold text-red-100 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-35"
+          >
+            {updatingAccess && accessOpen ? "Closing…" : "Close Event"}
+          </button>
+        </div>
+      </section>
 
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-5 py-4 shadow-xl backdrop-blur-xl">
         <div>
