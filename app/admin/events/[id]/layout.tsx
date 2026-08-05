@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   Mail,
   Radio,
+  Settings,
   Sparkles,
   Users,
   PanelLeftClose,
@@ -219,6 +220,9 @@ export default function EventLayout({
           <NavGroup title="Manage" collapsed={collapsed}>
             <NavItem href={base} icon={<LayoutDashboard size={16} />} label="Overview" collapsed={collapsed} exact>
               Overview
+            </NavItem>
+            <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" collapsed={collapsed}>
+              Settings
             </NavItem>
             <NavItem href={`${base}/attendees`} icon={<Users size={16} />} label="Registrants" collapsed={collapsed}>
               Registrants
