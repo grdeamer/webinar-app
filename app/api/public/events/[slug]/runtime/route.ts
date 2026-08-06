@@ -35,13 +35,13 @@ export async function GET(
     const [liveStateResult, agendaResult] = await Promise.all([
       supabaseAdmin
         .from("event_live_state")
-        .select("mode,status,updated_at")
+        .select("mode,status,survey_url,show_survey,updated_at")
         .eq("event_id", event.id)
         .maybeSingle(),
       supabaseAdmin
         .from("event_agenda_items")
         .select(
-          "id,title,description,speaker,speaker_title,speaker_bio,speaker_photo_url,show_session_details,show_speaker_photo,icon_key,track,location,start_at,end_at,sort_index,status,button_text,button_url,is_visible,updated_at"
+          "id,title,description,speaker,speaker_title,speaker_bio,speaker_photo_url,show_session_details,show_speaker_photo,resources,show_resources,icon_key,track,location,start_at,end_at,sort_index,status,button_text,button_url,is_visible,updated_at"
         )
         .eq("event_id", event.id)
         .eq("is_visible", true)
@@ -108,6 +108,8 @@ export async function GET(
       mode: accessMode,
       routing_mode: liveStateResult.data?.mode ?? "lobby",
       event_status: eventStatus,
+      survey_url: liveStateResult.data?.survey_url ?? null,
+      show_survey: liveStateResult.data?.show_survey === true,
       active_session: currentSession?.id ?? null,
       current_session: currentSession,
       next_session: nextSession,

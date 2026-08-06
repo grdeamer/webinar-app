@@ -7,12 +7,18 @@ create table if not exists public.event_live_state (
   message text null,
   force_redirect boolean not null default false,
   status text not null default 'closed' check (status in ('open','closed')),
+  survey_url text null,
+  show_survey boolean not null default false,
   updated_by text null,
   updated_at timestamptz not null default now()
 );
 
 alter table public.event_live_state
   add column if not exists status text not null default 'closed';
+
+alter table public.event_live_state
+  add column if not exists survey_url text null,
+  add column if not exists show_survey boolean not null default false;
 
 create index if not exists idx_event_live_state_event_id on public.event_live_state(event_id);
 create index if not exists idx_event_live_state_mode on public.event_live_state(mode);

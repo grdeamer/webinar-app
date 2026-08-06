@@ -46,6 +46,15 @@ export type EventAgendaStatus =
   | "complete"
   | "cancelled"
 
+export interface EventAgendaResource {
+  id: string
+  label: string
+  url: string
+  file_name: string
+  mime_type: string | null
+  size_bytes: number | null
+}
+
 export interface EventAgendaItem {
   id: string
   event_id: string
@@ -59,6 +68,8 @@ export interface EventAgendaItem {
   speaker_photo_url: string | null
   show_session_details: boolean
   show_speaker_photo: boolean
+  resources: EventAgendaResource[]
+  show_resources: boolean
   icon_key: AgendaIconKey | null
   start_at: string | null
   end_at: string | null

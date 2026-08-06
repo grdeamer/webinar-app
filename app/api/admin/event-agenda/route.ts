@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
-import type { EventAgendaItem } from "@/lib/types"
+import type { EventAgendaItem, EventAgendaResource } from "@/lib/types"
 import { normalizeAgendaIconKey } from "@/lib/agendaIcons"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const agendaSelect =
-  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,show_session_details,show_speaker_photo,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,show_session_details,show_speaker_photo,resources,show_resources,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
 
 function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
@@ -17,6 +17,25 @@ function json(data: unknown, status = 200): Response {
 function clamp(v: unknown, max: number) {
   if (v == null) return null
   return String(v).slice(0, max)
+}
+
+function normalizeResources(value: unknown): EventAgendaResource[] {
+  if (!Array.isArray(value)) return []
+  return value.slice(0, 25).flatMap((entry): EventAgendaResource[] => {
+    if (!entry || typeof entry !== "object") return []
+    const resource = entry as Record<string, unknown>
+    const url = clamp(resource.url, 2000)
+    const label = clamp(resource.label, 200)
+    if (!url || !label || !url.startsWith("https://")) return []
+    return [{
+      id: clamp(resource.id, 100) || crypto.randomUUID(),
+      label,
+      url,
+      file_name: clamp(resource.file_name, 255) || label,
+      mime_type: clamp(resource.mime_type, 200),
+      size_bytes: Number.isFinite(Number(resource.size_bytes)) ? Number(resource.size_bytes) : null,
+    }]
+  })
 }
 
 export async function GET(req: Request): Promise<Response> {
@@ -55,6 +74,8 @@ export async function POST(req: Request): Promise<Response> {
     speaker_photo_url: clamp(body.speaker_photo_url, 2000),
     show_session_details: body.show_session_details !== false,
     show_speaker_photo: body.show_speaker_photo !== false,
+    resources: normalizeResources(body.resources),
+    show_resources: body.show_resources !== false,
     icon_key: normalizeAgendaIconKey(body.icon_key),
     start_at: body.start_at || null,
     end_at: body.end_at || null,
@@ -115,6 +136,12 @@ export async function PUT(req: Request): Promise<Response> {
   }
   if (body.show_speaker_photo !== undefined) {
     patch.show_speaker_photo = Boolean(body.show_speaker_photo)
+  }
+  if (body.resources !== undefined) {
+    patch.resources = normalizeResources(body.resources)
+  }
+  if (body.show_resources !== undefined) {
+    patch.show_resources = Boolean(body.show_resources)
   }
   if (body.icon_key !== undefined) {
     patch.icon_key = normalizeAgendaIconKey(body.icon_key)

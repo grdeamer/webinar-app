@@ -33,6 +33,15 @@ import {
 
 type AgendaStatus = "upcoming" | "live" | "complete" | "cancelled"
 
+type AgendaResource = {
+  id: string
+  label: string
+  url: string
+  file_name: string
+  mime_type: string | null
+  size_bytes: number | null
+}
+
 type AgendaItem = {
   id: string
   event_id: string
@@ -48,6 +57,8 @@ type AgendaItem = {
   speaker_photo_url: string | null
   show_session_details: boolean
   show_speaker_photo: boolean
+  resources: AgendaResource[]
+  show_resources: boolean
   icon_key: AgendaIconKey | null
   sort_index: number
   status: AgendaStatus
@@ -70,6 +81,8 @@ const emptyDraft: Partial<AgendaItem> = {
   speaker_photo_url: "",
   show_session_details: true,
   show_speaker_photo: true,
+  resources: [],
+  show_resources: true,
   icon_key: null,
   description: "",
   sort_index: 0,
@@ -155,6 +168,12 @@ function formatDuration(startValue: string | null, endValue: string | null) {
   return `${hours} hr${hours === 1 ? "" : "s"} ${minutes} min`
 }
 
+function formatFileSize(value: number | null) {
+  if (!value || value < 1) return ""
+  if (value < 1024 * 1024) return `${Math.ceil(value / 1024)} KB`
+  return `${(value / (1024 * 1024)).toFixed(1)} MB`
+}
+
 function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
@@ -172,11 +191,15 @@ export default function AdminAgendaEditor({
   eventId,
   eventSlug,
   initialAccessOpen,
+  initialSurveyUrl,
+  initialShowSurvey,
   initialItems,
 }: {
   eventId: string
   eventSlug: string
   initialAccessOpen: boolean
+  initialSurveyUrl: string
+  initialShowSurvey: boolean
   initialItems: AgendaItem[]
 }) {
   const [items, setItems] = useState<AgendaItem[]>(initialItems || [])
@@ -192,12 +215,18 @@ export default function AdminAgendaEditor({
   const [editing, setEditing] = useState(false)
   const [busy, setBusy] = useState(false)
   const [uploadingSpeakerPhoto, setUploadingSpeakerPhoto] = useState(false)
+  const [uploadingResource, setUploadingResource] = useState(false)
   const [accessOpen, setAccessOpen] = useState(initialAccessOpen)
   const [updatingAccess, setUpdatingAccess] = useState(false)
   const [pendingAccessChange, setPendingAccessChange] = useState<boolean | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<AgendaItem | null>(null)
   const [accessSyncToken, setAccessSyncToken] = useState<string | null>(null)
   const [accessError, setAccessError] = useState<string | null>(null)
+  const [surveyUrl, setSurveyUrl] = useState(initialSurveyUrl)
+  const [showSurvey, setShowSurvey] = useState(initialShowSurvey)
+  const [savingSurvey, setSavingSurvey] = useState(false)
+  const [surveyError, setSurveyError] = useState<string | null>(null)
+  const [surveySyncToken, setSurveySyncToken] = useState<string | null>(null)
   const [syncingDisplays, setSyncingDisplays] = useState(false)
   const [lastDisplaySync, setLastDisplaySync] = useState<string | null>(null)
   const [displaySyncError, setDisplaySyncError] = useState<string | null>(null)
@@ -463,6 +492,34 @@ export default function AdminAgendaEditor({
     }
   }
 
+  async function saveSurvey(nextShow = showSurvey) {
+    setSavingSurvey(true)
+    setSurveyError(null)
+
+    try {
+      const res = await fetch("/api/admin/event-survey", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: eventId,
+          survey_url: surveyUrl,
+          show_survey: nextShow,
+        }),
+      })
+      const json = await res.json()
+      if (!res.ok) throw new Error(json.error || "Failed to update survey")
+
+      setSurveyUrl(json.survey_url || "")
+      setShowSurvey(json.show_survey === true)
+      setSurveySyncToken(json.sync_token || null)
+      flash(json.show_survey ? "Closing survey pushed to attendees" : "Closing survey hidden")
+    } catch (error) {
+      setSurveyError(errorMessage(error, "Failed to update survey"))
+    } finally {
+      setSavingSurvey(false)
+    }
+  }
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-white/10 bg-white/[0.04] px-5 py-4 backdrop-blur-xl">
@@ -583,6 +640,53 @@ export default function AdminAgendaEditor({
           >
             {updatingAccess && accessOpen ? "Closing…" : "Close Event"}
           </button>
+        </div>
+      </section>
+
+      <section className={`rounded-2xl border px-5 py-5 shadow-xl backdrop-blur-xl ${showSurvey ? "border-violet-300/25 bg-violet-500/[0.07]" : "border-white/10 bg-white/[0.035]"}`}>
+        <div className="flex flex-wrap items-start justify-between gap-5">
+          <div className="min-w-[260px] flex-1">
+            <div className="text-xs font-bold uppercase tracking-[0.18em] text-violet-200/60">Closing Experience</div>
+            <div className="mt-1 flex items-center gap-2">
+              <div className="text-base font-semibold">Attendee Survey</div>
+              <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${showSurvey ? "border-violet-300/30 bg-violet-400/15 text-violet-100" : "border-white/10 bg-white/5 text-white/40"}`}>
+                {showSurvey ? "Visible" : "Hidden"}
+              </span>
+            </div>
+            <p className="mt-1 text-sm text-white/45">Push a branded closing page with the third-party survey embedded inside it.</p>
+            <label className="mt-4 block text-xs font-medium text-white/50">
+              Survey URL
+              <input
+                type="url"
+                value={surveyUrl}
+                onChange={(event) => setSurveyUrl(event.target.value)}
+                placeholder="https://survey-provider.com/..."
+                className="mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2.5 text-sm outline-none transition focus:border-violet-400/50 focus:bg-white/[0.07]"
+              />
+            </label>
+            <p className="mt-2 text-xs text-white/30">Use an HTTPS link. Some survey providers require iframe embedding to be enabled in their own settings.</p>
+            {surveySyncToken ? <div className="mt-2 text-xs text-emerald-300/70">Last synced: {formatDateTime(surveySyncToken)}</div> : null}
+            {surveyError ? <div className="mt-2 text-sm text-red-300">{surveyError}</div> : null}
+          </div>
+
+          <div className="flex min-w-[190px] flex-col gap-2 sm:pt-6">
+            <button
+              type="button"
+              onClick={() => void saveSurvey(showSurvey)}
+              disabled={savingSurvey}
+              className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/75 hover:bg-white/10 disabled:opacity-50"
+            >
+              {savingSurvey ? "Saving…" : "Save Survey Link"}
+            </button>
+            <button
+              type="button"
+              onClick={() => void saveSurvey(!showSurvey)}
+              disabled={savingSurvey || (!showSurvey && !surveyUrl.trim())}
+              className={`rounded-xl px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${showSurvey ? "border border-red-300/20 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "bg-violet-600 shadow-[0_0_20px_rgba(124,58,237,0.16)] hover:bg-violet-500"}`}
+            >
+              {showSurvey ? "Hide Survey" : "Push Survey to Attendees"}
+            </button>
+          </div>
         </div>
       </section>
 
@@ -732,10 +836,11 @@ export default function AdminAgendaEditor({
             }
             busy={busy}
             onUploadStateChange={setUploadingSpeakerPhoto}
+            onResourceUploadStateChange={setUploadingResource}
           />
           <div className="mt-4 flex gap-2">
-            <button onClick={() => createItem()} disabled={busy || uploadingSpeakerPhoto} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Add Session</button>
-            <button onClick={() => { setDraft(emptyDraft); setAdding(false) }} disabled={uploadingSpeakerPhoto} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
+            <button onClick={() => createItem()} disabled={busy || uploadingSpeakerPhoto || uploadingResource} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Add Session</button>
+            <button onClick={() => { setDraft(emptyDraft); setAdding(false) }} disabled={uploadingSpeakerPhoto || uploadingResource} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
           </div>
         </section>
       ) : null}
@@ -828,6 +933,7 @@ export default function AdminAgendaEditor({
                     <InfoBlock label="Button Text" value={selectedItem.button_text || "Not set"} />
                     <InfoBlock label="Visibility" value={selectedItem.is_visible ? "Visible to attendees" : "Hidden from attendees"} />
                     <InfoBlock label="Session Details" value={selectedItem.show_session_details ? "Shown" : "Hidden"} />
+                    <InfoBlock label="Resources" value={`${selectedItem.resources?.length || 0} ${selectedItem.show_resources ? "shown" : "hidden"}`} />
                   </div>
 
                   <div className="mt-3 rounded-xl border border-white/[0.07] bg-black/20 p-3">
@@ -863,10 +969,11 @@ export default function AdminAgendaEditor({
                     }
                     busy={busy}
                     onUploadStateChange={setUploadingSpeakerPhoto}
+                    onResourceUploadStateChange={setUploadingResource}
                   />
                   <div className="mt-5 flex flex-wrap gap-2">
-                    <button onClick={() => updateItem(row.id, row)} disabled={busy || uploadingSpeakerPhoto} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Save Changes</button>
-                    <button onClick={() => { setRow(selectedItem); setEditing(false) }} disabled={busy || uploadingSpeakerPhoto} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
+                    <button onClick={() => updateItem(row.id, row)} disabled={busy || uploadingSpeakerPhoto || uploadingResource} className="rounded-xl bg-emerald-600 px-5 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-50">Save Changes</button>
+                    <button onClick={() => { setRow(selectedItem); setEditing(false) }} disabled={busy || uploadingSpeakerPhoto || uploadingResource} className="rounded-xl border border-white/10 bg-white/5 px-5 py-2.5 text-sm hover:bg-white/10 disabled:opacity-50">Cancel</button>
                   </div>
                 </div>
               )}
@@ -899,6 +1006,7 @@ function SessionFields({
   onPhotoChange,
   busy,
   onUploadStateChange,
+  onResourceUploadStateChange,
   dateFieldsSideBySide = false,
 }: {
   eventId: string
@@ -907,9 +1015,11 @@ function SessionFields({
   onPhotoChange: (url: string | null) => void
   busy: boolean
   onUploadStateChange: (uploading: boolean) => void
+  onResourceUploadStateChange: (uploading: boolean) => void
   dateFieldsSideBySide?: boolean
 }) {
   const [photoError, setPhotoError] = useState<string | null>(null)
+  const [resourceError, setResourceError] = useState<string | null>(null)
   const fieldClass = "mt-1 min-w-0 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none transition focus:border-indigo-400/50 focus:bg-white/[0.07]"
   const labelClass = "text-xs font-medium text-white/50"
 
@@ -948,6 +1058,38 @@ function SessionFields({
       setPhotoError(error instanceof Error ? error.message : "Speaker photo upload failed")
     } finally {
       onUploadStateChange(false)
+    }
+  }
+
+  async function uploadResource(file: File) {
+    setResourceError(null)
+    if (file.size === 0 || file.size > 25 * 1024 * 1024) {
+      setResourceError("Resources must be between 1 byte and 25 MB")
+      return
+    }
+
+    onResourceUploadStateChange(true)
+    try {
+      const form = new FormData()
+      form.append("event_id", eventId)
+      form.append("file", file)
+      const response = await fetch("/api/admin/event-agenda/resource", {
+        method: "POST",
+        body: form,
+      })
+      const result = await response.json()
+      if (!response.ok || !result.resource) {
+        throw new Error(result.error || "Resource upload failed")
+      }
+      onChange({
+        ...value,
+        resources: [...(value.resources || []), result.resource as AgendaResource],
+        show_resources: true,
+      })
+    } catch (error) {
+      setResourceError(errorMessage(error, "Resource upload failed"))
+    } finally {
+      onResourceUploadStateChange(false)
     }
   }
 
@@ -1099,6 +1241,71 @@ function SessionFields({
             </span>
           </label>
         </div>
+      </div>
+
+      <div className="sm:col-span-2">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className={labelClass}>Downloadable Resources</div>
+            <div className="mt-0.5 text-xs text-white/30">PDF, PowerPoint, Excel, Word, image, CSV, text, or ZIP. Maximum 25 MB each.</div>
+          </div>
+          <label className="cursor-pointer rounded-lg border border-indigo-300/20 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25">
+            Upload Resource
+            <input
+              type="file"
+              accept=".pdf,.ppt,.pptx,.xls,.xlsx,.doc,.docx,.jpg,.jpeg,.png,.webp,.csv,.txt,.zip"
+              disabled={busy}
+              className="sr-only"
+              onChange={async (event) => {
+                const input = event.currentTarget
+                const file = input.files?.[0]
+                if (file) await uploadResource(file)
+                input.value = ""
+              }}
+            />
+          </label>
+        </div>
+
+        <div className="mt-2 space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
+          {(value.resources || []).map((resource) => (
+            <div key={resource.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.07] bg-black/15 p-2.5">
+              <input
+                value={resource.label}
+                onChange={(event) => onChange({
+                  ...value,
+                  resources: (value.resources || []).map((item) => item.id === resource.id ? { ...item, label: event.target.value } : item),
+                })}
+                aria-label={`Resource label for ${resource.file_name}`}
+                className="min-w-[180px] flex-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm outline-none focus:border-indigo-400/50"
+              />
+              <span className="max-w-[190px] truncate text-xs text-white/35" title={resource.file_name}>{resource.file_name}</span>
+              {resource.size_bytes ? <span className="text-xs text-white/25">{formatFileSize(resource.size_bytes)}</span> : null}
+              <button
+                type="button"
+                onClick={() => onChange({ ...value, resources: (value.resources || []).filter((item) => item.id !== resource.id) })}
+                className="rounded-lg border border-red-300/15 bg-red-500/10 px-3 py-2 text-xs font-semibold text-red-200 hover:bg-red-500/20"
+              >
+                Remove
+              </button>
+            </div>
+          ))}
+          {(value.resources || []).length === 0 ? (
+            <div className="py-3 text-center text-sm text-white/30">No resources uploaded for this session.</div>
+          ) : null}
+          <label className="flex items-start gap-2 border-t border-white/[0.07] pt-3 text-sm text-white/75">
+            <input
+              type="checkbox"
+              checked={value.show_resources !== false}
+              onChange={(event) => onChange({ ...value, show_resources: event.target.checked })}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block font-medium">Show Resources to Attendees</span>
+              <span className="mt-0.5 block text-xs text-white/35">The download expander appears only when this is on and files are available.</span>
+            </span>
+          </label>
+        </div>
+        {resourceError ? <div className="mt-2 text-sm text-red-300">{resourceError}</div> : null}
       </div>
 
       <div className="sm:col-span-2">
