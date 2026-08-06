@@ -115,6 +115,7 @@ export default function AdminAgendaEditor({
   const [uploadingSpeakerPhoto, setUploadingSpeakerPhoto] = useState(false)
   const [accessOpen, setAccessOpen] = useState(initialAccessOpen)
   const [updatingAccess, setUpdatingAccess] = useState(false)
+  const [pendingAccessChange, setPendingAccessChange] = useState<boolean | null>(null)
   const [accessSyncToken, setAccessSyncToken] = useState<string | null>(null)
   const [accessError, setAccessError] = useState<string | null>(null)
   const [syncingDisplays, setSyncingDisplays] = useState(false)
@@ -257,14 +258,6 @@ export default function AdminAgendaEditor({
 
   async function updateEventAccess(nextOpen: boolean) {
     const action = nextOpen ? "open" : "close"
-    const confirmed = confirm(
-      nextOpen
-        ? "Open this event to attendees? The LETS attendee page will begin showing the live event experience."
-        : "Close this event to attendees? The LETS attendee page will return to its gated state."
-    )
-
-    if (!confirmed) return
-
     setUpdatingAccess(true)
     setAccessError(null)
 
@@ -334,7 +327,7 @@ export default function AdminAgendaEditor({
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
-            onClick={() => updateEventAccess(true)}
+            onClick={() => setPendingAccessChange(true)}
             disabled={updatingAccess || accessOpen}
             className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(5,150,105,0.16)] hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35"
           >
@@ -342,7 +335,7 @@ export default function AdminAgendaEditor({
           </button>
           <button
             type="button"
-            onClick={() => updateEventAccess(false)}
+            onClick={() => setPendingAccessChange(false)}
             disabled={updatingAccess || !accessOpen}
             className="rounded-xl border border-red-300/20 bg-red-500/10 px-5 py-3 text-sm font-bold text-red-100 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-35"
           >
@@ -350,6 +343,61 @@ export default function AdminAgendaEditor({
           </button>
         </div>
       </section>
+
+      {pendingAccessChange !== null ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#02030d]/80 px-4 backdrop-blur-md">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="event-access-dialog-title"
+            className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-indigo-300/20 bg-[radial-gradient(circle_at_top_right,rgba(99,102,241,0.22),transparent_42%),linear-gradient(145deg,rgba(14,17,36,0.98),rgba(5,7,20,0.98))] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.65),0_0_55px_rgba(79,70,229,0.12)]"
+          >
+            <div className="pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full border border-indigo-300/10" />
+            <div className="pointer-events-none absolute -right-5 -top-7 h-24 w-24 rounded-full border border-indigo-300/15" />
+
+            <div className="relative flex items-start gap-4">
+              <div className="relative mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-500/10 shadow-[0_0_24px_rgba(99,102,241,0.16)]">
+                <div className="h-4 w-4 rounded-full border border-indigo-200/70" />
+                <div className="absolute h-8 w-4 rotate-45 rounded-[50%] border border-indigo-300/45" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-200/55">
+                  Jupiter Event Control
+                </div>
+                <h2 id="event-access-dialog-title" className="mt-2 text-2xl font-bold tracking-tight text-white">
+                  {pendingAccessChange ? "Open Event?" : "Close Event?"}
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-white/55">
+                  {pendingAccessChange
+                    ? "Attendees on the LETS page will immediately enter the live event experience."
+                    : "Attendees on the LETS page will return to the gated event screen."}
+                </p>
+              </div>
+            </div>
+
+            <div className="relative mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingAccessChange(null)}
+                className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const nextOpen = pendingAccessChange
+                  setPendingAccessChange(null)
+                  void updateEventAccess(nextOpen)
+                }}
+                className={`rounded-xl px-5 py-3 text-sm font-bold text-white shadow-lg ${pendingAccessChange ? "bg-emerald-600 shadow-emerald-950/40 hover:bg-emerald-500" : "bg-red-600 shadow-red-950/40 hover:bg-red-500"}`}
+              >
+                {pendingAccessChange ? "Confirm Open Event" : "Confirm Close Event"}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-5 py-4 shadow-xl backdrop-blur-xl">
         <div>
