@@ -1072,8 +1072,8 @@ function SessionFields({
 
   async function uploadResource(file: File) {
     setResourceError(null)
-    if (file.size === 0 || file.size > 25 * 1024 * 1024) {
-      setResourceError("Resources must be between 1 byte and 25 MB")
+    if (file.size === 0 || file.size > 50 * 1024 * 1024) {
+      setResourceError("Resources must be between 1 byte and 50 MB")
       return
     }
 
@@ -1267,7 +1267,7 @@ function SessionFields({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className={labelClass}>Downloadable Resources</div>
-            <div className="mt-0.5 text-xs text-white/30">PDF, PowerPoint, Excel, Word, image, CSV, text, or ZIP. Maximum 25 MB each. Use the arrows to set attendee order.</div>
+            <div className="mt-0.5 text-xs text-white/30">PDF, PowerPoint, Excel, Word, image, CSV, text, or ZIP. Maximum 50 MB each. Use the arrows to set attendee order.</div>
           </div>
           <label className="cursor-pointer rounded-lg border border-indigo-300/20 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25">
             Upload Resource

@@ -7,7 +7,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const bucket = "upload"
-const maxFileSize = 25 * 1024 * 1024
+const maxFileSize = 50 * 1024 * 1024
 
 const allowedFiles: Record<string, Set<string>> = {
   pdf: new Set(["application/pdf"]),
@@ -77,7 +77,7 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: "Upload a PDF, PowerPoint, Excel, Word, image, CSV, text, or ZIP file" }, { status: 400 })
     }
     if (file.size === 0 || file.size > maxFileSize) {
-      return NextResponse.json({ error: "Resources must be between 1 byte and 25 MB" }, { status: 400 })
+      return NextResponse.json({ error: "Resources must be between 1 byte and 50 MB" }, { status: 400 })
     }
 
     const { data: event, error: eventError } = await supabaseAdmin
