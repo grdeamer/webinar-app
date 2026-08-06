@@ -58,7 +58,6 @@ function Nav() {
 
         <nav className="hidden items-center gap-8 text-sm text-white/70 md:flex">
           <a href="#platform">Platform</a>
-          <a href="#studio">Studio</a>
           <a href="#scale">Scale</a>
         </nav>
 
@@ -140,13 +139,6 @@ export default function JupiterHome() {
             >
               Start Producing
             </a>
-
-            <a
-              href="#studio"
-              className="rounded-full border border-white/15 bg-white/5 px-8 py-4 text-white/80 backdrop-blur-xl transition hover:bg-white/10"
-            >
-              See the Studio
-            </a>
           </div>
         </motion.div>
       </section>
@@ -176,53 +168,6 @@ export default function JupiterHome() {
             )
           })}
         </div>
-      </section>
-
-      <section id="studio" className="relative scroll-mt-24 px-6 pb-28">
-        <motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.25 }}
-          variants={fadeUp}
-          className="mx-auto grid max-w-6xl items-center gap-10 rounded-[2rem] border border-white/10 bg-white/[0.045] p-8 shadow-[0_0_80px_rgba(59,130,246,.08)] backdrop-blur-xl md:grid-cols-2 md:p-12"
-        >
-          <div>
-            <h2 className="text-4xl font-semibold tracking-[-0.04em]">
-              Direct Every <span className="text-violet-400">Moment.</span>
-            </h2>
-
-            <p className="mt-4 text-white/65">
-              Scenes, speakers, audience flow, and live transitions—in one studio.
-            </p>
-
-            <div className="mt-8 grid grid-cols-2 gap-4 text-sm text-white/65">
-              {[
-                "Backstage Control",
-                "Dynamic Scenes",
-                "Audience Experience",
-                "Real-Time Insights",
-              ].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-2xl border border-white/10 bg-white/5 p-4"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative h-80 overflow-hidden rounded-3xl border border-white/10 bg-[#070d1d] shadow-2xl">
-            <div className="absolute inset-4 rounded-2xl bg-[radial-gradient(circle_at_50%_10%,rgba(96,165,250,.35),transparent_30%),linear-gradient(to_bottom,#111827,#030712)]" />
-            <div className="absolute bottom-8 left-8 right-8 h-16 rounded-xl border border-white/10 bg-black/35 backdrop-blur" />
-            <div className="absolute right-6 top-6 h-56 w-20 rounded-xl border border-white/10 bg-white/5" />
-            <motion.div
-              className="absolute left-1/2 top-16 h-28 w-1 -translate-x-1/2 rounded-full bg-blue-200/70 blur-sm"
-              animate={{ opacity: [0.25, 0.8, 0.25] }}
-              transition={{ duration: 3, repeat: Infinity }}
-            />
-          </div>
-        </motion.div>
       </section>
 
       <section id="scale" className="relative scroll-mt-24 px-6 pb-24">
@@ -313,7 +258,6 @@ export default function JupiterHome() {
 
           <div className="flex flex-wrap items-center gap-8 text-sm">
             <a href="#platform">Platform</a>
-            <a href="#studio">Studio</a>
             <a href="/login">Sign in</a>
           </div>
         </div>
