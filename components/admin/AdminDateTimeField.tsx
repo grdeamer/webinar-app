@@ -166,7 +166,7 @@ export default function AdminDateTimeField({
     .flatMap((h) => [`${h}:00`, `${h}:15`, `${h}:30`, `${h}:45`])
 
   return (
-    <div className="space-y-3">
+    <div className="min-w-0 space-y-3">
       <label className="block text-sm text-white/80">{label}</label>
 
       <div className="grid gap-3 md:grid-cols-[1.4fr_1fr_140px]">

@@ -116,6 +116,7 @@ export default function AdminAgendaEditor({
   const [accessOpen, setAccessOpen] = useState(initialAccessOpen)
   const [updatingAccess, setUpdatingAccess] = useState(false)
   const [pendingAccessChange, setPendingAccessChange] = useState<boolean | null>(null)
+  const [pendingRemoval, setPendingRemoval] = useState<AgendaItem | null>(null)
   const [accessSyncToken, setAccessSyncToken] = useState<string | null>(null)
   const [accessError, setAccessError] = useState<string | null>(null)
   const [syncingDisplays, setSyncingDisplays] = useState(false)
@@ -206,7 +207,6 @@ export default function AdminAgendaEditor({
   }
 
   async function deleteItem(id: string) {
-    if (!confirm("Remove this session from the run of show?")) return
     setBusy(true); setErr(null); setMsg(null)
     try {
       const res = await fetch("/api/admin/event-agenda", {
@@ -399,6 +399,61 @@ export default function AdminAgendaEditor({
         </div>
       ) : null}
 
+      {pendingRemoval ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#02030d]/80 px-4 backdrop-blur-md">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="remove-session-dialog-title"
+            className="relative w-full max-w-lg overflow-hidden rounded-3xl border border-red-300/20 bg-[radial-gradient(circle_at_top_right,rgba(239,68,68,0.18),transparent_42%),linear-gradient(145deg,rgba(14,17,36,0.98),rgba(5,7,20,0.98))] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.65),0_0_55px_rgba(239,68,68,0.1)]"
+          >
+            <div className="pointer-events-none absolute -right-12 -top-14 h-40 w-40 rounded-full border border-red-300/10" />
+            <div className="pointer-events-none absolute -right-5 -top-7 h-24 w-24 rounded-full border border-red-300/15" />
+
+            <div className="relative flex items-start gap-4">
+              <div className="relative mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-300/20 bg-red-500/10 shadow-[0_0_24px_rgba(239,68,68,0.14)]">
+                <div className="h-4 w-4 rounded-full border border-red-200/70" />
+                <div className="absolute h-8 w-4 rotate-45 rounded-[50%] border border-red-300/45" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-red-200/55">
+                  Jupiter Run of Show
+                </div>
+                <h2 id="remove-session-dialog-title" className="mt-2 text-2xl font-bold tracking-tight text-white">
+                  Remove Session?
+                </h2>
+                <p className="mt-3 text-sm leading-6 text-white/55">
+                  <span className="font-semibold text-white/80">{pendingRemoval.title}</span> will be permanently removed from the run of show and the attendee agenda.
+                </p>
+              </div>
+            </div>
+
+            <div className="relative mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button
+                type="button"
+                onClick={() => setPendingRemoval(null)}
+                disabled={busy}
+                className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/70 hover:bg-white/10 hover:text-white disabled:opacity-50"
+              >
+                Keep Session
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const itemId = pendingRemoval.id
+                  setPendingRemoval(null)
+                  void deleteItem(itemId)
+                }}
+                disabled={busy}
+                className="rounded-xl bg-red-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-red-950/40 hover:bg-red-500 disabled:opacity-50"
+              >
+                Remove Session
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-5 py-4 shadow-xl backdrop-blur-xl">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200/55">Operations</div>
@@ -445,7 +500,7 @@ export default function AdminAgendaEditor({
       {err ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{err}</div> : null}
       {msg ? <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{msg}</div> : null}
 
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]">
+      <div className={`grid items-start gap-5 ${editing ? "lg:grid-cols-[minmax(280px,0.75fr)_minmax(520px,1.25fr)]" : "lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]"}`}>
         <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 shadow-2xl backdrop-blur-xl">
           <div className="mb-6">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Production Timeline</div>
@@ -497,7 +552,7 @@ export default function AdminAgendaEditor({
           </div>
         </section>
 
-        <section className={`rounded-2xl border bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl lg:sticky lg:top-6 ${selectedItem?.status === "live" ? "border-red-400/25 shadow-[0_0_50px_rgba(239,68,68,0.1)]" : "border-white/10"}`}>
+        <section className={`min-w-0 rounded-2xl border bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl ${editing ? "" : "lg:sticky lg:top-6"} ${selectedItem?.status === "live" ? "border-red-400/25 shadow-[0_0_50px_rgba(239,68,68,0.1)]" : "border-white/10"}`}>
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Current Session</div>
             {selectedItem ? <StatusBadge status={selectedItem.status} /> : null}
@@ -534,7 +589,7 @@ export default function AdminAgendaEditor({
 
                   <div className="mt-5 flex flex-wrap items-center justify-between gap-3 border-t border-white/10 pt-5">
                     <button onClick={() => createItem(selectedItem, true)} disabled={busy} className="rounded-xl border border-indigo-400/20 bg-indigo-500/10 px-4 py-2 text-sm font-semibold text-indigo-200 hover:bg-indigo-500/20 disabled:opacity-50">Duplicate Session</button>
-                    <button onClick={() => deleteItem(selectedItem.id)} disabled={busy} className="rounded-xl px-4 py-2 text-sm font-semibold text-red-300/70 hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50">Remove Session</button>
+                    <button onClick={() => setPendingRemoval(selectedItem)} disabled={busy} className="rounded-xl px-4 py-2 text-sm font-semibold text-red-300/70 hover:bg-red-500/10 hover:text-red-200 disabled:opacity-50">Remove Session</button>
                   </div>
                   <div className="mt-4 text-xs text-white/25">Last changed {formatDateTime(selectedItem.updated_at || selectedItem.created_at)}</div>
                 </div>
@@ -596,7 +651,7 @@ function SessionFields({
   onUploadStateChange: (uploading: boolean) => void
 }) {
   const [photoError, setPhotoError] = useState<string | null>(null)
-  const fieldClass = "mt-1 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none transition focus:border-indigo-400/50 focus:bg-white/[0.07]"
+  const fieldClass = "mt-1 min-w-0 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none transition focus:border-indigo-400/50 focus:bg-white/[0.07]"
   const labelClass = "text-xs font-medium text-white/50"
 
   async function uploadSpeakerPhoto(file: File) {
@@ -638,8 +693,8 @@ function SessionFields({
   }
 
   return (
-    <div className="grid gap-3 md:grid-cols-2">
-      <div className="md:col-span-2">
+    <div className="grid min-w-0 gap-3 sm:grid-cols-2">
+      <div className="sm:col-span-2">
         <div className={labelClass}>Title *</div>
         <input className={fieldClass} value={value.title || ""} onChange={(e) => onChange({ ...value, title: e.target.value })} placeholder="Opening Keynote" />
       </div>
@@ -653,12 +708,12 @@ function SessionFields({
         <input className={fieldClass} value={value.speaker_title || ""} onChange={(e) => onChange({ ...value, speaker_title: e.target.value || null })} placeholder="Chief Medical Officer" />
       </div>
 
-      <div className="md:col-span-2">
+      <div className="sm:col-span-2">
         <div className={labelClass}>Speaker Bio</div>
         <textarea className={`${fieldClass} min-h-[96px]`} value={value.speaker_bio || ""} onChange={(e) => onChange({ ...value, speaker_bio: e.target.value || null })} placeholder="Short speaker biography…" />
       </div>
 
-      <div className="md:col-span-2">
+      <div className="sm:col-span-2">
         <div className={labelClass}>Speaker Photo</div>
         <div className="mt-1 flex flex-wrap items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-3">
           {value.speaker_photo_url ? (
@@ -718,8 +773,12 @@ function SessionFields({
         </select>
       </div>
 
-      <AdminDateTimeField label="Start" value={(value.start_at as string) || null} onChange={(next) => onChange({ ...value, start_at: next || "" })} disabled={busy} />
-      <AdminDateTimeField label="End" value={(value.end_at as string) || null} onChange={(next) => onChange({ ...value, end_at: next || "" })} disabled={busy} />
+      <div className="min-w-0 sm:col-span-2">
+        <AdminDateTimeField label="Start" value={(value.start_at as string) || null} onChange={(next) => onChange({ ...value, start_at: next || "" })} disabled={busy} />
+      </div>
+      <div className="min-w-0 sm:col-span-2">
+        <AdminDateTimeField label="End" value={(value.end_at as string) || null} onChange={(next) => onChange({ ...value, end_at: next || "" })} disabled={busy} />
+      </div>
 
       <div>
         <div className={labelClass}>Track</div>
@@ -751,7 +810,7 @@ function SessionFields({
         </label>
       </div>
 
-      <div className="md:col-span-2">
+      <div className="sm:col-span-2">
         <div className={labelClass}>Description</div>
         <textarea className={`${fieldClass} min-h-[90px]`} value={value.description || ""} onChange={(e) => onChange({ ...value, description: e.target.value || null })} placeholder="Short session description…" />
       </div>
