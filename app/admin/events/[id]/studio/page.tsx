@@ -1,6 +1,5 @@
 import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import EventAdminNav from "@/components/admin/EventAdminNav"
 import StudioSidebarNav from "@/components/admin/StudioSidebarNav"
 
 export const runtime = "nodejs"
@@ -32,11 +31,11 @@ export default async function AdminStudioPage(props: {
 
   const { data: event } = await supabaseAdmin
     .from("events")
-    .select("id, name, slug")
+    .select("id, title, slug")
     .eq("id", eventId)
     .single()
 
-  const eventName = event?.name ?? "Event"
+  const eventName = event?.title ?? "Event"
   const eventSlug = event?.slug ?? eventId
 
   const studioBase = `/admin/events/${eventId}/studio`
@@ -58,16 +57,6 @@ export default async function AdminStudioPage(props: {
       title: "Audience Flow",
       description: "Control where attendees are sent during the event.",
       href: `${studioBase}?tool=audience-flow`,
-    },
-    {
-      title: "Scenes",
-      description: "Manage saved stage looks and reusable layouts.",
-      href: `${studioBase}?tool=scenes`,
-    },
-    {
-      title: "Graphics",
-      description: "Manage overlays and on-air visual elements.",
-      href: `${studioBase}?tool=graphics`,
     },
   ]
 
@@ -91,8 +80,8 @@ export default async function AdminStudioPage(props: {
         "Open the producer room to manage the stage, presenters, layouts, and the live switching workflow.",
       primaryHref: `/admin/events/${eventId}/producer/room`,
       primaryLabel: "Open Broadcast",
-      secondaryHref: `${studioBase}?tool=scenes`,
-      secondaryLabel: "Go to Scenes",
+      secondaryHref: `${studioBase}?tool=audience-flow`,
+      secondaryLabel: "Open Audience Flow",
     },
     "audience-flow": {
       eyebrow: "Audience Flow",
@@ -104,26 +93,6 @@ export default async function AdminStudioPage(props: {
       secondaryHref: `${studioBase}?tool=experience`,
       secondaryLabel: "Back to Experience",
     },
-    scenes: {
-      eyebrow: "Scenes",
-      title: `Manage stage scenes for ${eventName}`,
-      body:
-        "Create and reuse saved stage looks so your live production can move quickly and stay consistent.",
-      primaryHref: `/admin/events/${eventId}/producer/scenes`,
-      primaryLabel: "Open Scenes",
-      secondaryHref: `${studioBase}?tool=graphics`,
-      secondaryLabel: "Go to Graphics",
-    },
-    graphics: {
-      eyebrow: "Graphics",
-      title: `Prepare on-air graphics for ${eventName}`,
-      body:
-        "Manage overlays, lower thirds, and visual elements that support the live show experience.",
-      primaryHref: `/admin/events/${eventId}/producer/overlays`,
-      primaryLabel: "Open Graphics",
-      secondaryHref: `${studioBase}?tool=broadcast`,
-      secondaryLabel: "Back to Broadcast",
-    },
   }
 
   const workspace =
@@ -134,9 +103,7 @@ export default async function AdminStudioPage(props: {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="w-full px-4 py-8 xl:px-6 2xl:px-8">
-        <EventAdminNav eventId={eventId} />
-
-        <div className="mt-8 grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[240px_minmax(0,1fr)_320px]">
+        <div className="grid gap-6 xl:grid-cols-[220px_minmax(0,1fr)_300px] 2xl:grid-cols-[240px_minmax(0,1fr)_320px]">
           <aside className="rounded-3xl border border-white/10 bg-white/[0.03] p-4">
             <div className="text-xs uppercase tracking-[0.18em] text-white/40">
               Jupiter Studio
