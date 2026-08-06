@@ -3,6 +3,8 @@
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
 import {
+  ArrowDown,
+  ArrowUp,
   Award,
   Briefcase,
   CalendarDays,
@@ -1093,6 +1095,17 @@ function SessionFields({
     }
   }
 
+  function moveResource(index: number, offset: -1 | 1) {
+    const resources = [...(value.resources || [])]
+    const nextIndex = index + offset
+
+    if (nextIndex < 0 || nextIndex >= resources.length) return
+
+    const [resource] = resources.splice(index, 1)
+    resources.splice(nextIndex, 0, resource)
+    onChange({ ...value, resources })
+  }
+
   function updateStartDateTime(next: string | null) {
     const previousStart = value.start_at || ""
     const previousEnd = value.end_at || ""
@@ -1247,7 +1260,7 @@ function SessionFields({
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className={labelClass}>Downloadable Resources</div>
-            <div className="mt-0.5 text-xs text-white/30">PDF, PowerPoint, Excel, Word, image, CSV, text, or ZIP. Maximum 25 MB each.</div>
+            <div className="mt-0.5 text-xs text-white/30">PDF, PowerPoint, Excel, Word, image, CSV, text, or ZIP. Maximum 25 MB each. Use the arrows to set attendee order.</div>
           </div>
           <label className="cursor-pointer rounded-lg border border-indigo-300/20 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25">
             Upload Resource
@@ -1267,8 +1280,14 @@ function SessionFields({
         </div>
 
         <div className="mt-2 space-y-2 rounded-xl border border-white/10 bg-white/5 p-3">
-          {(value.resources || []).map((resource) => (
+          {(value.resources || []).map((resource, index, resources) => (
             <div key={resource.id} className="flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.07] bg-black/15 p-2.5">
+              <span
+                className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-xs font-semibold text-white/45"
+                aria-label={`Resource order ${index + 1}`}
+              >
+                {index + 1}
+              </span>
               <input
                 value={resource.label}
                 onChange={(event) => onChange({
@@ -1280,6 +1299,28 @@ function SessionFields({
               />
               <span className="max-w-[190px] truncate text-xs text-white/35" title={resource.file_name}>{resource.file_name}</span>
               {resource.size_bytes ? <span className="text-xs text-white/25">{formatFileSize(resource.size_bytes)}</span> : null}
+              <div className="flex items-center gap-1" aria-label={`Reorder ${resource.label}`}>
+                <button
+                  type="button"
+                  onClick={() => moveResource(index, -1)}
+                  disabled={busy || index === 0}
+                  aria-label={`Move ${resource.label} up`}
+                  title="Move up"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/55 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                >
+                  <ArrowUp size={15} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => moveResource(index, 1)}
+                  disabled={busy || index === resources.length - 1}
+                  aria-label={`Move ${resource.label} down`}
+                  title="Move down"
+                  className="flex h-8 w-8 items-center justify-center rounded-lg border border-white/10 bg-white/5 text-white/55 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-25"
+                >
+                  <ArrowDown size={15} />
+                </button>
+              </div>
               <button
                 type="button"
                 onClick={() => onChange({ ...value, resources: (value.resources || []).filter((item) => item.id !== resource.id) })}
