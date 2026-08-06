@@ -92,12 +92,16 @@ export async function GET(
         ? "complete"
         : "scheduled"
     const accessMode = liveStateResult.data?.status === "open" ? "open" : "closed"
+    const agendaStartAt = agenda.find((item) => item.start_at)?.start_at ?? event.start_at
+    const agendaEndAt = [...agenda].reverse().find((item) => item.end_at)?.end_at ?? event.end_at
 
     return json({
       event: {
         id: event.id,
         slug: event.slug,
         title: event.title,
+        start_at: agendaStartAt,
+        end_at: agendaEndAt,
       },
       sync_token: liveStateResult.data?.updated_at ?? null,
       status: accessMode,
