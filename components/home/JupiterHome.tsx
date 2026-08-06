@@ -97,14 +97,7 @@ export default function JupiterHome() {
     },
   ]
 
-  const cards = [
-    "Real-Time",
-    "Broadcast-Grade",
-    "Flexible by Design",
-    "Your Brand",
-    "Global Reach",
-    "Enterprise Ready",
-  ]
+  const capabilities = ["Real-time", "Broadcast-grade", "Global + secure"]
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#020617] text-white">
@@ -232,35 +225,29 @@ export default function JupiterHome() {
         </motion.div>
       </section>
 
-      <section id="scale" className="relative scroll-mt-24 px-6 pb-28">
-        <div className="mx-auto max-w-6xl text-center">
-          <motion.h2
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={fadeUp}
-            className="text-5xl font-semibold tracking-[-0.05em]"
-          >
+      <section id="scale" className="relative scroll-mt-24 px-6 pb-24">
+        <motion.div
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          variants={fadeUp}
+          className="mx-auto flex max-w-5xl flex-col items-center justify-between gap-5 rounded-[2rem] border border-white/10 bg-white/[0.04] px-6 py-7 text-center backdrop-blur-xl md:flex-row md:px-8 md:text-left"
+        >
+          <h2 className="text-3xl font-semibold tracking-[-0.04em]">
             Built to <span className="text-violet-400">Scale.</span>
-          </motion.h2>
+          </h2>
 
-          <div className="mt-10 grid gap-6 text-left md:grid-cols-3">
-            {cards.map((card, i) => (
-              <motion.div
-                key={card}
-                initial="hidden"
-                whileInView="show"
-                viewport={{ once: true, amount: 0.25 }}
-                variants={fadeUp}
-                transition={{ delay: i * 0.05 }}
-                className="group rounded-3xl border border-white/10 bg-white/[0.045] p-7 transition hover:-translate-y-1 hover:border-violet-300/30 hover:bg-white/[0.075]"
+          <div className="flex flex-wrap justify-center gap-2 text-sm text-white/65 md:justify-end">
+            {capabilities.map((capability) => (
+              <span
+                key={capability}
+                className="rounded-full border border-white/10 bg-black/20 px-4 py-2"
               >
-                <div className="mb-5 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500/25 to-violet-500/25 shadow-[0_0_30px_rgba(99,102,241,.25)]" />
-                <h3 className="text-xl font-medium">{card}</h3>
-              </motion.div>
+                {capability}
+              </span>
             ))}
           </div>
-        </div>
+        </motion.div>
       </section>
 
       <section className="relative px-6 pb-28">
