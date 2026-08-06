@@ -2,7 +2,6 @@ import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { getEventRoutingState, upsertEventRoutingState } from "@/lib/app/liveState"
 import MissionControlClient from "../MissionControlClient"
-import EventAdminNav from "@/components/admin/EventAdminNav"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,6 +15,18 @@ type SessionOption = {
 type BreakoutOption = {
   id: string
   title: string
+}
+
+type SessionRow = {
+  id: string
+  title: string | null
+  is_general_session: boolean | null
+  session_kind: string | null
+}
+
+type BreakoutRow = {
+  id: string
+  title: string | null
 }
 
 function isUuid(value: string) {
@@ -372,7 +383,7 @@ export default async function AdminEventDetailPage({
     throw new Error(sessionError.message)
   }
 
-  const sessionOptions: SessionOption[] = ((sessionRows || []) as any[]).map((row) => ({
+  const sessionOptions: SessionOption[] = ((sessionRows || []) as SessionRow[]).map((row) => ({
     id: String(row.id),
     title: String(row.title || "Untitled Session"),
     kind:
@@ -399,7 +410,7 @@ export default async function AdminEventDetailPage({
     throw new Error(breakoutError.message)
   }
 
-  const breakouts: BreakoutOption[] = ((breakoutRows || []) as any[]).map((row) => ({
+  const breakouts: BreakoutOption[] = ((breakoutRows || []) as BreakoutRow[]).map((row) => ({
     id: String(row.id),
     title: String(row.title || "Untitled Breakout"),
   }))
@@ -411,8 +422,6 @@ export default async function AdminEventDetailPage({
 
   return (
     <div className="space-y-6 p-6">
-      <EventAdminNav eventId={eventId} />
-
       <MissionControlClient
         routingState={liveState}
         sessions={sessions}

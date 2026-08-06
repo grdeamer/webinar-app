@@ -1,5 +1,4 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import EventAdminNav from "@/components/admin/EventAdminNav"
 import SessionsEditor from "./ui"
 
 export const dynamic = "force-dynamic"
@@ -99,8 +98,6 @@ export default async function AdminEventSessionsPage(props: {
 
   return (
     <div className="space-y-6 p-6">
-      <EventAdminNav eventId={event.id} />
-
       <SessionsEditor
         event={event}
         eventSlug={event.slug}

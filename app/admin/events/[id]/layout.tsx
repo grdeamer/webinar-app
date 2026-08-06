@@ -12,7 +12,6 @@ import {
   LayoutDashboard,
   ListOrdered,
   Mail,
-  Radio,
   Settings,
   Sparkles,
   Users,
@@ -139,19 +138,23 @@ export default function EventLayout({
   const [collapsed, setCollapsed] = useState(false)
 
   useEffect(() => {
-    const stored = window.localStorage.getItem(EVENT_WORKSPACE_RAIL_STORAGE_KEY)
+    const frame = window.requestAnimationFrame(() => {
+      const stored = window.localStorage.getItem(EVENT_WORKSPACE_RAIL_STORAGE_KEY)
 
-    if (stored === "collapsed") {
-      setCollapsed(true)
-      return
-    }
+      if (stored === "collapsed") {
+        setCollapsed(true)
+        return
+      }
 
-    if (stored === "expanded") {
-      setCollapsed(false)
-      return
-    }
+      if (stored === "expanded") {
+        setCollapsed(false)
+        return
+      }
 
-    if (isProducerWorkspace) setCollapsed(true)
+      if (isProducerWorkspace) setCollapsed(true)
+    })
+
+    return () => window.cancelAnimationFrame(frame)
   }, [isProducerWorkspace])
 
   function toggleCollapsed() {
@@ -245,14 +248,16 @@ export default function EventLayout({
             >
               Run of Show
             </NavItem>
-            <NavItem href={`${base}/producer`} icon={<Radio size={16} />} label="Broadcast" collapsed={collapsed}>
-              Broadcast
+            <NavItem
+              href={`${base}/producer/room`}
+              icon={<Clapperboard size={16} />}
+              label="Producer Room"
+              collapsed={collapsed}
+            >
+              Producer Room
             </NavItem>
             <NavItem href={`${base}/page-editor`} icon={<Sparkles size={16} />} label="Experience" collapsed={collapsed}>
               Experience
-            </NavItem>
-            <NavItem href={`${base}/studio`} icon={<Clapperboard size={16} />} label="Studio" collapsed={collapsed}>
-              Studio
             </NavItem>
             <NavItem href={`${base}/sponsors`} icon={<ImageIcon size={16} />} label="Assets" collapsed={collapsed}>
               Assets

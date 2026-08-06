@@ -1,3 +1,4 @@
+import Link from "next/link"
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomClient"
@@ -17,8 +18,6 @@ export default async function AdminProducerRoomPage(props: {
   const { id } = await props.params
 
   let eventId = id
-  let eventSlug = id
-
   if (!isUuid(id)) {
     const { data: event } = await supabaseAdmin
       .from("events")
@@ -29,7 +28,6 @@ export default async function AdminProducerRoomPage(props: {
     if (!event?.id) notFound()
 
     eventId = event.id
-    eventSlug = event.slug
   } else {
     const { data: event } = await supabaseAdmin
       .from("events")
@@ -38,19 +36,40 @@ export default async function AdminProducerRoomPage(props: {
       .maybeSingle()
 
     if (!event?.id) notFound()
-
-    eventSlug = event.slug
   }
 
-  const { data: session } = await supabaseAdmin
+  const { data: session, error: sessionError } = await supabaseAdmin
     .from("event_sessions")
-    .select("id, title, delivery_mode, live_room_name, is_general_session, session_kind")
+    .select("id, title, delivery_mode, live_room_name, is_general_session, session_kind, sort_order")
     .eq("event_id", eventId)
     .or("is_general_session.eq.true,session_kind.eq.general")
+    .order("is_general_session", { ascending: false })
+    .order("sort_order", { ascending: true, nullsFirst: false })
+    .limit(1)
     .maybeSingle()
 
+  if (sessionError) throw new Error(sessionError.message)
+
   if (!session?.id) {
-    notFound()
+    return (
+      <div className="min-h-screen bg-slate-950 px-6 py-8 text-white">
+        <div className="mx-auto max-w-3xl rounded-3xl border border-amber-300/20 bg-amber-300/[0.06] p-8">
+          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/60">
+            Producer Room Setup
+          </div>
+          <h1 className="mt-3 text-3xl font-semibold">Add a Main Stage session first</h1>
+          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">
+            The switcher needs one session marked as the general session or Main Stage. Create it in Sessions, then return here.
+          </p>
+          <Link
+            href={`/admin/events/${eventId}/sessions`}
+            className="mt-6 inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
+          >
+            Open Sessions
+          </Link>
+        </div>
+      </div>
+    )
   }
 
   return (
