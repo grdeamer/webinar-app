@@ -57,18 +57,21 @@ function Nav() {
         <JupiterLogo className="text-white" />
 
         <nav className="hidden items-center gap-8 text-sm text-white/70 md:flex">
-          <a>Product</a>
-          <a>Solutions</a>
-          <a>Resources</a>
-          <a>Pricing</a>
-          <a>About</a>
+          <a href="#platform">Platform</a>
+          <a href="#studio">Studio</a>
+          <a href="#scale">Scale</a>
         </nav>
 
         <div className="flex items-center gap-4 text-sm">
-          <button className="hidden text-white/70 sm:block">Sign in</button>
-          <button className="rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-5 py-2.5 shadow-[0_0_30px_rgba(99,102,241,.35)] transition hover:scale-105">
-            Start Your First Production
-          </button>
+          <a className="hidden text-white/70 sm:block" href="/login">
+            Sign in
+          </a>
+          <a
+            href="/login"
+            className="rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-5 py-2.5 shadow-[0_0_30px_rgba(99,102,241,.35)] transition hover:scale-105"
+          >
+            Start Producing
+          </a>
         </div>
       </div>
     </header>
@@ -80,27 +83,27 @@ export default function JupiterHome() {
     {
       title: "Set the Stage",
       icon: Mic2,
-      body: "Create anticipation before the first speaker appears.",
+      body: "Build anticipation.",
     },
     {
       title: "Direct the Moment",
       icon: Clapperboard,
-      body: "Switch scenes, shape pacing, and guide the show live.",
+      body: "Shape the show live.",
     },
     {
       title: "Guide the Audience",
       icon: Orbit,
-      body: "Move attendees through a seamless, memorable journey.",
+      body: "Move people seamlessly.",
     },
   ]
 
   const cards = [
-    "Real-Time by Design",
-    "Production-Grade Streaming",
-    "Flexible Architecture",
-    "Fully Customizable",
-    "Global Scale",
-    "Enterprise Security",
+    "Real-Time",
+    "Broadcast-Grade",
+    "Flexible by Design",
+    "Your Brand",
+    "Global Reach",
+    "Enterprise Ready",
   ]
 
   return (
@@ -121,7 +124,7 @@ export default function JupiterHome() {
           className="relative mx-auto max-w-5xl"
         >
           <p className="mb-6 text-xs uppercase tracking-[0.42em] text-blue-200/75">
-            ✦ Your event, written in the stars
+            ✦ Events with gravity
           </p>
 
           <h1 className="text-6xl font-semibold leading-none tracking-[-0.06em] md:text-8xl">
@@ -134,26 +137,28 @@ export default function JupiterHome() {
           </h1>
 
           <p className="mt-7 text-xl text-white/75">
-            Run events like a production. Not meetings—experiences.
-          </p>
-
-          <p className="mt-2 text-white/50">
-            Designed for producers, not just presenters.
+            Produce live moments people remember.
           </p>
 
           <div className="mt-10 flex flex-wrap justify-center gap-4">
-            <button className="group rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-8 py-4 font-medium shadow-[0_0_45px_rgba(99,102,241,.45)] transition hover:scale-105">
-              Start Your First Production
-            </button>
+            <a
+              href="/login"
+              className="group rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-8 py-4 font-medium shadow-[0_0_45px_rgba(99,102,241,.45)] transition hover:scale-105"
+            >
+              Start Producing
+            </a>
 
-            <button className="rounded-full border border-white/15 bg-white/5 px-8 py-4 text-white/80 backdrop-blur-xl transition hover:bg-white/10">
-              ▶ See How It Works
-            </button>
+            <a
+              href="#studio"
+              className="rounded-full border border-white/15 bg-white/5 px-8 py-4 text-white/80 backdrop-blur-xl transition hover:bg-white/10"
+            >
+              See the Studio
+            </a>
           </div>
         </motion.div>
       </section>
 
-      <section className="relative px-6 pb-24">
+      <section id="platform" className="relative scroll-mt-24 px-6 pb-24">
         <div className="mx-auto grid max-w-6xl gap-6 md:grid-cols-3">
           {pillars.map((pillar, i) => {
             const Icon = pillar.icon
@@ -180,7 +185,7 @@ export default function JupiterHome() {
         </div>
       </section>
 
-      <section className="relative px-6 pb-28">
+      <section id="studio" className="relative scroll-mt-24 px-6 pb-28">
         <motion.div
           initial="hidden"
           whileInView="show"
@@ -190,13 +195,11 @@ export default function JupiterHome() {
         >
           <div>
             <h2 className="text-4xl font-semibold tracking-[-0.04em]">
-              Direct Your Event Like a{" "}
-              <span className="text-violet-400">Production.</span>
+              Direct Every <span className="text-violet-400">Moment.</span>
             </h2>
 
             <p className="mt-4 text-white/65">
-              Control every moment—from backstage to broadcast. Your producer
-              interface gives you the power of a TV studio in your browser.
+              Scenes, speakers, audience flow, and live transitions—in one studio.
             </p>
 
             <div className="mt-8 grid grid-cols-2 gap-4 text-sm text-white/65">
@@ -229,7 +232,7 @@ export default function JupiterHome() {
         </motion.div>
       </section>
 
-      <section className="relative px-6 pb-28">
+      <section id="scale" className="relative scroll-mt-24 px-6 pb-28">
         <div className="mx-auto max-w-6xl text-center">
           <motion.h2
             initial="hidden"
@@ -238,13 +241,8 @@ export default function JupiterHome() {
             variants={fadeUp}
             className="text-5xl font-semibold tracking-[-0.05em]"
           >
-            Scale <span className="text-violet-400">Beautifully.</span>
+            Built to <span className="text-violet-400">Scale.</span>
           </motion.h2>
-
-          <p className="mx-auto mt-4 max-w-2xl text-white/60">
-            Modern real-time SaaS infrastructure for events that need to feel
-            seamless, no matter the volume of attendees.
-          </p>
 
           <div className="mt-10 grid gap-6 text-left md:grid-cols-3">
             {cards.map((card, i) => (
@@ -259,10 +257,6 @@ export default function JupiterHome() {
               >
                 <div className="mb-5 h-12 w-12 rounded-full bg-gradient-to-br from-blue-500/25 to-violet-500/25 shadow-[0_0_30px_rgba(99,102,241,.25)]" />
                 <h3 className="text-xl font-medium">{card}</h3>
-                <p className="mt-2 text-white/55">
-                  Built for premium virtual experiences at any scale.
-                </p>
-                <p className="mt-5 text-sm text-violet-300">Learn more ›</p>
               </motion.div>
             ))}
           </div>
@@ -298,10 +292,6 @@ export default function JupiterHome() {
               <span className="text-violet-400">The best ones are felt.</span>
             </h2>
 
-            <p className="mt-5 text-white/60">
-              Jupiter is built for the moments that matter—where attention,
-              emotion, and storytelling come together.
-            </p>
           </div>
         </motion.div>
       </section>
@@ -315,17 +305,15 @@ export default function JupiterHome() {
           className="mx-auto max-w-5xl rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/[0.07] to-violet-500/[0.08] p-10 text-center shadow-[0_0_80px_rgba(99,102,241,.14)] backdrop-blur-xl"
         >
           <h2 className="text-5xl font-semibold tracking-[-0.05em]">
-            Ready to Create Something{" "}
-            <span className="text-violet-400">Unforgettable?</span>
+            Make It <span className="text-violet-400">Unforgettable.</span>
           </h2>
 
-          <p className="mt-4 text-white/60">
-            Build events people don’t just attend—they remember.
-          </p>
-
-          <button className="mt-8 rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-9 py-4 font-medium shadow-[0_0_45px_rgba(99,102,241,.45)] transition hover:scale-105">
-            Get Started ›
-          </button>
+          <a
+            href="/login"
+            className="mt-8 inline-flex rounded-full bg-gradient-to-r from-blue-500 to-violet-500 px-9 py-4 font-medium shadow-[0_0_45px_rgba(99,102,241,.45)] transition hover:scale-105"
+          >
+            Start Producing
+          </a>
         </motion.div>
       </section>
 
@@ -333,35 +321,13 @@ export default function JupiterHome() {
         <div className="mx-auto flex max-w-6xl flex-col justify-between gap-8 md:flex-row">
           <div>
             <JupiterLogo className="text-white" />
-            <p className="mt-3 max-w-sm">
-              Transforming virtual events into cinematic experiences.
-            </p>
+            <p className="mt-3 max-w-sm">Live events with gravity.</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-10 text-sm">
-            <div>
-              Product
-              <br />
-              Studio
-              <br />
-              Live Events
-            </div>
-
-            <div>
-              Resources
-              <br />
-              Blog
-              <br />
-              Cases
-            </div>
-
-            <div>
-              Company
-              <br />
-              About
-              <br />
-              Careers
-            </div>
+          <div className="flex flex-wrap items-center gap-8 text-sm">
+            <a href="#platform">Platform</a>
+            <a href="#studio">Studio</a>
+            <a href="/login">Sign in</a>
           </div>
         </div>
       </footer>
