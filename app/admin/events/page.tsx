@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import Image from "next/image"
+import JupiterLogo from "@/components/brand/JupiterLogo"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
@@ -17,13 +17,7 @@ export default async function AdminEventsPage() {
       <div className="flex items-center justify-between">
 <div>
   <div className="mb-3">
-    <Image
-      src="/jupiter-logo.svg"
-      alt="Jupiter Events"
-      width={220}
-      height={60}
-      priority
-    />
+    <JupiterLogo className="text-white" markClassName="h-10 w-10" wordmarkClassName="text-xl font-semibold tracking-[0.18em]" />
   </div>
 
   <h1 className="text-3xl font-bold">Events</h1>
@@ -38,7 +32,7 @@ export default async function AdminEventsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {(data || []).map((e: any) => (
+        {(data || []).map((e) => (
           <Link
             key={e.id}
             href={`/admin/events/${e.id}`}

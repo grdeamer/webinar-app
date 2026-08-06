@@ -5,6 +5,7 @@ import {
   Radio,
   UserCog,
 } from "lucide-react"
+import JupiterLogo from "@/components/brand/JupiterLogo"
 
 type StageLayout = "solo" | "grid" | "screen_speaker"
 
@@ -133,9 +134,8 @@ export default function ProducerRoomHeader({
 
       <div className="relative z-10 flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-sky-300/10 bg-sky-400/[0.035] shadow-[0_0_18px_rgba(56,189,248,0.055)]">
-            <div className="h-[22px] w-[22px] rounded-full border border-sky-200/28 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.62),rgba(56,189,248,0.20)_35%,rgba(79,70,229,0.12)_70%)] shadow-[0_0_10px_rgba(125,211,252,0.14)]" />
-            <div className="absolute h-7 w-10 -rotate-12 rounded-full border border-sky-200/10" />
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-300/10 bg-indigo-400/[0.035] text-white/75 shadow-[0_0_18px_rgba(99,102,241,0.07)]">
+            <JupiterLogo showWordmark={false} markClassName="h-7 w-7" />
           </div>
 
           <div className="min-w-0">

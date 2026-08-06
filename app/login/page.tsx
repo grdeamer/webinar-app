@@ -1,4 +1,5 @@
 import LoginForm from "./LoginForm"
+import JupiterLogo from "@/components/brand/JupiterLogo"
 
 export const dynamic = "force-dynamic"
 
@@ -11,6 +12,7 @@ export default async function LoginPage(props: {
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
       <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6">
+        <JupiterLogo className="mb-6 text-white" />
         <h1 className="text-2xl font-bold">Admin Login</h1>
         <p className="mt-2 text-sm text-white/60">
           Sign in to access admin tools.

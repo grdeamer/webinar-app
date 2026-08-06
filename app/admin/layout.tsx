@@ -22,6 +22,7 @@ import {
   ArrowLeft,
   Satellite,
 } from "lucide-react"
+import JupiterLogo from "@/components/brand/JupiterLogo"
 
 function matches(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin"
@@ -87,17 +88,6 @@ function Section({
         {title}
       </div>
       <nav className="space-y-1">{children}</nav>
-    </div>
-  )
-}
-
-function JupiterMark() {
-  return (
-    <div className="relative h-9 w-9 shrink-0">
-      <div className="absolute inset-0 rounded-full bg-gradient-to-br from-orange-200 via-amber-500 to-orange-800 shadow-[0_0_24px_rgba(251,146,60,0.28)]" />
-      <div className="absolute inset-0 rounded-full bg-[radial-gradient(circle_at_30%_28%,rgba(255,255,255,0.42),transparent_28%),radial-gradient(circle_at_70%_70%,rgba(120,53,15,0.35),transparent_36%)]" />
-      <div className="absolute left-[12%] top-[33%] h-1.5 w-7 rounded-full bg-white/14 blur-[1px]" />
-      <div className="absolute left-1/2 top-1/2 h-4 w-[140%] -translate-x-1/2 -translate-y-1/2 rounded-full border border-amber-100/20" />
     </div>
   )
 }
@@ -194,11 +184,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           <div className="flex h-full flex-col">
             <div className="px-5 py-5">
               <div className="flex items-center gap-3">
-                <JupiterMark />
                 <div className="min-w-0">
-                  <h2 className="truncate text-sm font-bold tracking-tight text-white">
-                    Jupiter
-                  </h2>
+                  <JupiterLogo
+                    className="text-white"
+                    markClassName="h-9 w-9 shrink-0"
+                    wordmarkClassName="text-sm font-bold tracking-[0.18em]"
+                  />
                   <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">
                     Mission Control
                   </p>

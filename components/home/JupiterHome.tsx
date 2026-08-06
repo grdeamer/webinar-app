@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion"
 import { Clapperboard, Mic2, Orbit } from "lucide-react"
+import JupiterLogo from "@/components/brand/JupiterLogo"
 
 const fadeUp = {
   hidden: { opacity: 0, y: 28 },
@@ -53,10 +54,7 @@ function Nav() {
   return (
     <header className="fixed left-0 right-0 top-0 z-50 border-b border-white/10 bg-[#020617]/55 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-        <div className="flex items-center gap-3 font-semibold tracking-wide">
-          <div className="h-8 w-8 rounded-full border border-violet-300/50 bg-white/5 shadow-[0_0_25px_rgba(139,92,246,.35)]" />
-          Jupiter
-        </div>
+        <JupiterLogo className="text-white" />
 
         <nav className="hidden items-center gap-8 text-sm text-white/70 md:flex">
           <a>Product</a>
@@ -334,7 +332,7 @@ export default function JupiterHome() {
       <footer className="relative border-t border-white/10 bg-black/40 px-6 py-12 text-white/50">
         <div className="mx-auto flex max-w-6xl flex-col justify-between gap-8 md:flex-row">
           <div>
-            <div className="text-lg font-medium text-white">Jupiter</div>
+            <JupiterLogo className="text-white" />
             <p className="mt-3 max-w-sm">
               Transforming virtual events into cinematic experiences.
             </p>

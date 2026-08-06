@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import JupiterLogo from "@/components/brand/JupiterLogo"
 
 export default function AccessPage() {
   const router = useRouter()
@@ -49,9 +50,9 @@ export default function AccessPage() {
     <main className="min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 text-white flex items-center justify-center p-6">
       <Link
         href="/"
-        className="fixed top-6 left-6 flex items-center gap-2 text-white/70 hover:text-white transition"
+        className="fixed top-6 left-6 text-white/70 transition hover:text-white"
       >
-        🪐 <span className="font-semibold">Jupiter.events</span>
+        <JupiterLogo />
       </Link>
 
       <div className="w-full max-w-lg rounded-3xl bg-white/5 border border-white/10 p-8 shadow-2xl shadow-black/30 backdrop-blur">
