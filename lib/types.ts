@@ -57,6 +57,8 @@ export interface EventAgendaItem {
   speaker_title: string | null
   speaker_bio: string | null
   speaker_photo_url: string | null
+  show_session_details: boolean
+  show_speaker_photo: boolean
   icon_key: AgendaIconKey | null
   start_at: string | null
   end_at: string | null

@@ -8,7 +8,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const agendaSelect =
-  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,show_session_details,show_speaker_photo,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
 
 function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
@@ -53,6 +53,8 @@ export async function POST(req: Request): Promise<Response> {
     speaker_title: clamp(body.speaker_title, 200),
     speaker_bio: clamp(body.speaker_bio, 10000),
     speaker_photo_url: clamp(body.speaker_photo_url, 2000),
+    show_session_details: body.show_session_details !== false,
+    show_speaker_photo: body.show_speaker_photo !== false,
     icon_key: normalizeAgendaIconKey(body.icon_key),
     start_at: body.start_at || null,
     end_at: body.end_at || null,
@@ -107,6 +109,12 @@ export async function PUT(req: Request): Promise<Response> {
       body.speaker_photo_url == null
         ? null
         : clamp(body.speaker_photo_url, 2000)
+  }
+  if (body.show_session_details !== undefined) {
+    patch.show_session_details = Boolean(body.show_session_details)
+  }
+  if (body.show_speaker_photo !== undefined) {
+    patch.show_speaker_photo = Boolean(body.show_speaker_photo)
   }
   if (body.icon_key !== undefined) {
     patch.icon_key = normalizeAgendaIconKey(body.icon_key)

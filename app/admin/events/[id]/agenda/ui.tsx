@@ -6,6 +6,7 @@ import {
   Award,
   Briefcase,
   CalendarDays,
+  Clock3,
   Coffee,
   GraduationCap,
   Handshake,
@@ -45,6 +46,8 @@ type AgendaItem = {
   speaker_title: string | null
   speaker_bio: string | null
   speaker_photo_url: string | null
+  show_session_details: boolean
+  show_speaker_photo: boolean
   icon_key: AgendaIconKey | null
   sort_index: number
   status: AgendaStatus
@@ -65,6 +68,8 @@ const emptyDraft: Partial<AgendaItem> = {
   speaker_title: "",
   speaker_bio: "",
   speaker_photo_url: "",
+  show_session_details: true,
+  show_speaker_photo: true,
   icon_key: null,
   description: "",
   sort_index: 0,
@@ -131,6 +136,23 @@ function formatDateTime(value: string | null) {
   } catch {
     return value
   }
+}
+
+function formatDuration(startValue: string | null, endValue: string | null) {
+  if (!startValue || !endValue) return "Duration TBD"
+  const start = new Date(startValue).getTime()
+  const end = new Date(endValue).getTime()
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start) {
+    return "Duration TBD"
+  }
+
+  const totalMinutes = Math.round((end - start) / 60000)
+  if (totalMinutes < 1) return "Less than 1 min"
+  const hours = Math.floor(totalMinutes / 60)
+  const minutes = totalMinutes % 60
+  if (hours === 0) return `${minutes} min`
+  if (minutes === 0) return `${hours} hr${hours === 1 ? "" : "s"}`
+  return `${hours} hr${hours === 1 ? "" : "s"} ${minutes} min`
 }
 
 function errorMessage(error: unknown, fallback: string) {
@@ -754,7 +776,13 @@ export default function AdminAgendaEditor({
                           <AgendaIcon iconKey={item.icon_key} className="h-4 w-4 shrink-0 text-indigo-200/75" />
                           <span className="truncate">{item.title}</span>
                         </div>
-                        <div className="mt-1 truncate text-sm text-white/45">{item.speaker || "Speaker not assigned"}</div>
+                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/45">
+                          <span className="truncate">{item.speaker || "Speaker not assigned"}</span>
+                          <span className="inline-flex items-center gap-1 text-indigo-200/55">
+                            <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
+                            {formatDuration(item.start_at, item.end_at)}
+                          </span>
+                        </div>
                       </div>
                       <StatusBadge status={item.status} />
                     </div>
@@ -796,8 +824,10 @@ export default function AdminAgendaEditor({
                   <div className="mt-6 grid grid-cols-2 gap-3">
                     <InfoBlock label="Start" value={formatDateTime(selectedItem.start_at)} />
                     <InfoBlock label="End" value={formatDateTime(selectedItem.end_at)} />
+                    <InfoBlock label="Duration" value={formatDuration(selectedItem.start_at, selectedItem.end_at)} />
                     <InfoBlock label="Button Text" value={selectedItem.button_text || "Not set"} />
                     <InfoBlock label="Visibility" value={selectedItem.is_visible ? "Visible to attendees" : "Hidden from attendees"} />
+                    <InfoBlock label="Session Details" value={selectedItem.show_session_details ? "Shown" : "Hidden"} />
                   </div>
 
                   <div className="mt-3 rounded-xl border border-white/[0.07] bg-black/20 p-3">
@@ -1034,6 +1064,40 @@ function SessionFields({
             <div className="mt-2 text-xs text-white/35">JPEG, PNG, or WebP. Maximum 5 MB.</div>
             {photoError ? <div className="mt-2 text-sm text-red-300">{photoError}</div> : null}
           </div>
+        </div>
+      </div>
+
+      <div className="sm:col-span-2">
+        <div className={labelClass}>Attendee Details</div>
+        <div className="mt-1 grid gap-2 rounded-xl border border-white/10 bg-white/5 p-3 sm:grid-cols-2">
+          <label className="flex items-start gap-2 rounded-lg border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white/75">
+            <input
+              type="checkbox"
+              checked={value.show_session_details !== false}
+              onChange={(event) =>
+                onChange({ ...value, show_session_details: event.target.checked })
+              }
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block font-medium">Show Session Details</span>
+              <span className="mt-0.5 block text-xs text-white/35">Displays the details link and speaker panel.</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 rounded-lg border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white/75">
+            <input
+              type="checkbox"
+              checked={value.show_speaker_photo !== false}
+              onChange={(event) =>
+                onChange({ ...value, show_speaker_photo: event.target.checked })
+              }
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block font-medium">Show Speaker Photo</span>
+              <span className="mt-0.5 block text-xs text-white/35">Hides the portrait while keeping text details available.</span>
+            </span>
+          </label>
         </div>
       </div>
 

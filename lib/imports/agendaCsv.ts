@@ -14,6 +14,8 @@ export const AGENDA_CSV_HEADERS = [
   "speaker_title",
   "speaker_bio",
   "speaker_photo_url",
+  "show_session_details",
+  "show_speaker_photo",
   "track",
   "location",
   "status",
@@ -33,6 +35,8 @@ export type AgendaCsvPayload = {
   speaker_title: string | null
   speaker_bio: string | null
   speaker_photo_url: string | null
+  show_session_details: boolean
+  show_speaker_photo: boolean
   track: string | null
   location: string | null
   status: "upcoming" | "live" | "complete" | "cancelled"
@@ -76,12 +80,12 @@ function dateValue(value: string, label: string, errors: string[]) {
   return parsed.toISOString()
 }
 
-function booleanValue(value: string, errors: string[]) {
+function booleanValue(value: string, label: string, errors: string[]) {
   if (!value) return true
   const normalized = value.toLowerCase()
   if (["true", "yes", "1"].includes(normalized)) return true
   if (["false", "no", "0"].includes(normalized)) return false
-  errors.push("is_visible must be true/false, yes/no, or 1/0")
+  errors.push(`${label} must be true/false, yes/no, or 1/0`)
   return true
 }
 
@@ -97,6 +101,8 @@ export function createAgendaSampleCsv() {
         "Chief Medical Officer",
         "Opening keynote speaker and program host.",
         "https://example.com/speakers/jane-smith.webp",
+        "true",
+        "true",
         "General Session",
         "Main Stage",
         "upcoming",
@@ -115,6 +121,9 @@ export function createAgendaSampleCsv() {
         "",
         "",
         "",
+        "",
+        "false",
+        "false",
         "Hospitality",
         "Dining Room",
         "upcoming",
@@ -184,6 +193,16 @@ export function parseAgendaCsv(csvText: string): ParsedAgendaCsv {
         speaker_title: nullableValue(row, "speaker_title"),
         speaker_bio: nullableValue(row, "speaker_bio"),
         speaker_photo_url: nullableValue(row, "speaker_photo_url"),
+        show_session_details: booleanValue(
+          stringValue(row, "show_session_details"),
+          "show_session_details",
+          errors
+        ),
+        show_speaker_photo: booleanValue(
+          stringValue(row, "show_speaker_photo"),
+          "show_speaker_photo",
+          errors
+        ),
         track: nullableValue(row, "track"),
         location: nullableValue(row, "location"),
         status: agendaStatuses.has(statusValue)
@@ -192,7 +211,7 @@ export function parseAgendaCsv(csvText: string): ParsedAgendaCsv {
         icon_key: isAgendaIconKey(iconValue) ? iconValue : null,
         button_text: nullableValue(row, "button_text"),
         button_url: nullableValue(row, "button_url"),
-        is_visible: booleanValue(stringValue(row, "is_visible"), errors),
+        is_visible: booleanValue(stringValue(row, "is_visible"), "is_visible", errors),
         sort_index: Number.isFinite(sortIndex) ? sortIndex : index,
         description: nullableValue(row, "description"),
       },
