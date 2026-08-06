@@ -2,6 +2,7 @@
 
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
+import { createClient } from "@/lib/supabase/client"
 import {
   ArrowDown,
   ArrowUp,
@@ -1079,17 +1080,30 @@ function SessionFields({
 
     onResourceUploadStateChange(true)
     try {
-      const form = new FormData()
-      form.append("event_id", eventId)
-      form.append("file", file)
       const response = await fetch("/api/admin/event-agenda/resource", {
         method: "POST",
-        body: form,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: eventId,
+          file_name: file.name,
+          mime_type: file.type || "application/octet-stream",
+          size_bytes: file.size,
+        }),
       })
       const result = await response.json()
-      if (!response.ok || !result.resource) {
+      if (!response.ok || !result.resource || !result.path || !result.token) {
         throw new Error(result.error || "Resource upload failed")
       }
+
+      const supabase = createClient()
+      const { error: uploadError } = await supabase.storage
+        .from("upload")
+        .uploadToSignedUrl(result.path, result.token, file, {
+          contentType: file.type || "application/octet-stream",
+          upsert: false,
+        })
+      if (uploadError) throw new Error(uploadError.message)
+
       onChange({
         ...value,
         resources: [...(value.resources || []), result.resource as AgendaResource],

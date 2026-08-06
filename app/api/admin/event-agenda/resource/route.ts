@@ -46,37 +46,29 @@ function extensionOf(name: string): string {
   return name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || ""
 }
 
-function hasValidSignature(bytes: Uint8Array, extension: string): boolean {
-  if (extension === "pdf") return bytes.length >= 5 && String.fromCharCode(...bytes.slice(0, 5)) === "%PDF-"
-  if (extension === "jpg" || extension === "jpeg") return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff
-  if (extension === "png") return bytes.length >= 8 && [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a].every((byte, index) => bytes[index] === byte)
-  if (extension === "webp") return bytes.length >= 12 && String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP"
-  if (["pptx", "xlsx", "docx", "zip"].includes(extension)) return bytes.length >= 4 && bytes[0] === 0x50 && bytes[1] === 0x4b
-  if (["ppt", "xls", "doc"].includes(extension)) return bytes.length >= 4 && bytes[0] === 0xd0 && bytes[1] === 0xcf && bytes[2] === 0x11 && bytes[3] === 0xe0
-  return extension === "csv" || extension === "txt"
-}
-
 export async function POST(req: Request): Promise<Response> {
   await requireAdmin()
 
   try {
-    const form = await req.formData()
-    const file = form.get("file")
-    const eventId = form.get("event_id")
+    const body = await req.json().catch((): null => null)
+    const eventId = body?.event_id
+    const fileName = typeof body?.file_name === "string" ? body.file_name : ""
+    const fileType = typeof body?.mime_type === "string" && body.mime_type ? body.mime_type : "application/octet-stream"
+    const fileSize = typeof body?.size_bytes === "number" ? body.size_bytes : 0
 
     if (!isUuid(eventId)) {
       return NextResponse.json({ error: "A valid event_id is required" }, { status: 400 })
     }
-    if (!(file instanceof File)) {
+    if (!fileName) {
       return NextResponse.json({ error: "Choose a resource to upload" }, { status: 400 })
     }
 
-    const extension = extensionOf(file.name)
+    const extension = extensionOf(fileName)
     const allowedTypes = allowedFiles[extension]
-    if (!allowedTypes || !allowedTypes.has(file.type || "application/octet-stream")) {
+    if (!allowedTypes || !allowedTypes.has(fileType)) {
       return NextResponse.json({ error: "Upload a PDF, PowerPoint, Excel, Word, image, CSV, text, or ZIP file" }, { status: 400 })
     }
-    if (file.size === 0 || file.size > maxFileSize) {
+    if (fileSize === 0 || fileSize > maxFileSize) {
       return NextResponse.json({ error: "Resources must be between 1 byte and 50 MB" }, { status: 400 })
     }
 
@@ -89,30 +81,23 @@ export async function POST(req: Request): Promise<Response> {
     if (eventError) return NextResponse.json({ error: eventError.message }, { status: 500 })
     if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 })
 
-    const bytes = new Uint8Array(await file.arrayBuffer())
-    if (!hasValidSignature(bytes, extension)) {
-      return NextResponse.json({ error: "The uploaded file does not match its file type" }, { status: 400 })
-    }
-
     const path = `event-agenda/resources/${eventId}/${randomUUID()}.${extension}`
-    const { error: uploadError } = await supabaseAdmin.storage.from(bucket).upload(path, bytes, {
-      contentType: file.type || "application/octet-stream",
-      cacheControl: "3600",
-      upsert: false,
-    })
+    const { data: upload, error: uploadError } = await supabaseAdmin.storage.from(bucket).createSignedUploadUrl(path)
 
     if (uploadError) return NextResponse.json({ error: uploadError.message }, { status: 500 })
 
     const { data } = supabaseAdmin.storage.from(bucket).getPublicUrl(path)
     return NextResponse.json({
       ok: true,
+      path: upload.path,
+      token: upload.token,
       resource: {
         id: randomUUID(),
-        label: file.name.replace(/\.[^.]+$/, ""),
+        label: fileName.replace(/\.[^.]+$/, ""),
         url: data.publicUrl,
-        file_name: file.name,
-        mime_type: file.type || null,
-        size_bytes: file.size,
+        file_name: fileName,
+        mime_type: fileType,
+        size_bytes: fileSize,
       },
     })
   } catch (error) {
