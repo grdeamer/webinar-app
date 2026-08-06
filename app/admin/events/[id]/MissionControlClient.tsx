@@ -198,6 +198,11 @@ function destinationLabel(
   return item.label
 }
 
+function formatRoutingLabel(value: string | null | undefined) {
+  if (!value) return "Not set"
+  return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
 export default function MissionControlClient({
   routingState,
   sessions,
@@ -286,23 +291,17 @@ export default function MissionControlClient({
     normalizeRunOfShowItems(initialRunOfShow)
   )
 
-  useEffect(() => {
-    if (!mainStageSessionId && generalSessions[0]?.id) {
-      setMainStageSessionId(generalSessions[0].id)
-    }
-  }, [generalSessions, mainStageSessionId])
-
-  useEffect(() => {
-    if (!sessionId && sessions[0]?.id) {
-      setSessionId(sessions[0].id)
-    }
-  }, [sessions, sessionId])
-
-  useEffect(() => {
-    if (!breakoutId && breakouts[0]?.id) {
-      setBreakoutId(breakouts[0].id)
-    }
-  }, [breakouts, breakoutId])
+  const resolvedMainStageSessionId = generalSessions.some(
+    (item) => item.id === mainStageSessionId
+  )
+    ? mainStageSessionId
+    : defaultGeneralSessionId
+  const resolvedSessionId = sessions.some((item) => item.id === sessionId)
+    ? sessionId
+    : defaultSessionId
+  const resolvedBreakoutId = breakouts.some((item) => item.id === breakoutId)
+    ? breakoutId
+    : defaultBreakoutId
 
   useEffect(() => {
     let cancelled = false
@@ -339,6 +338,10 @@ export default function MissionControlClient({
       destinationId
     )
   }, [routingState, sessionMap, breakoutMap, generalSessionMap])
+
+  const audienceLocation = currentDestinationLabel
+    ? currentDestinationLabel
+    : formatRoutingLabel(routingState?.destination_type || routingState?.mode)
 
   function scheduleTransitionClear(durationMs: number) {
     const delay = Math.max(1200, durationMs + 800)
@@ -488,61 +491,75 @@ export default function MissionControlClient({
   }
 
   return (
-    <div className="space-y-6 p-6 text-white">
+    <div className="space-y-5 p-6 text-white">
       <div>
-        <h1 className="text-2xl font-bold">Mission Control</h1>
-        <p className="text-sm text-white/55">
-          Event routing, audience transitions, and run-of-show controls.
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100/45">
+          Live Operations
+        </div>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">Audience Routing</h1>
+        <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
+          Move attendee browsers between the lobby, main stage, sessions, and breakouts. Video switching stays in Producer Room.
         </p>
       </div>
 
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <div className="text-sm text-white/50">Current Routing Mode</div>
-        <div className="text-lg font-semibold">{routingState?.mode || "Not set"}</div>
+      <section className="rounded-[22px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_40%),rgba(255,255,255,0.035)] p-6">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+          Current Audience Location
+        </div>
+        <div className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-white">
+          Audience is currently in {audienceLocation}
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/55">
+          <span className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5">
+            Mode: {formatRoutingLabel(routingState?.mode)}
+          </span>
+          <span className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5">
+            Transition: {formatRoutingLabel(routingState?.transition_type)}
+          </span>
+          <span className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5">
+            Duration: {routingState?.transition_duration_ms ?? 0}ms
+          </span>
+        </div>
+      </section>
 
-        {routingState?.destination_type ? (
-          <div className="mt-2 text-sm text-white/60">
-            Routing Destination Type: {routingState.destination_type}
+      <section className="rounded-[22px] border border-white/[0.08] bg-white/[0.025] p-5">
+        <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h2 className="text-lg font-semibold text-white">Move the audience</h2>
+            <p className="mt-1 text-sm text-white/50">
+              Each action opens a review step before anything changes live.
+            </p>
           </div>
-        ) : null}
+          {runOfShowItems.length > 0 ? (
+            <div className="w-fit rounded-full border border-violet-200/15 bg-violet-300/[0.07] px-3 py-1 text-xs text-violet-100/70">
+              {runOfShowItems.length} queued
+            </div>
+          ) : null}
+        </div>
 
-        {currentDestinationLabel ? (
-          <div className="mt-1 text-sm text-white/60">Destination: {currentDestinationLabel}</div>
-        ) : null}
-
-        {routingState?.transition_type ? (
-          <div className="mt-1 text-sm text-white/60">
-            Transition: {routingState.transition_type}
-          </div>
-        ) : null}
-
-        {typeof routingState?.transition_duration_ms === "number" ? (
-          <div className="mt-1 text-sm text-white/60">
-            Duration: {routingState.transition_duration_ms}ms
-          </div>
-        ) : null}
-      </div>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
         <Dialog open={mainStageOpen} onOpenChange={setMainStageOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full rounded-xl bg-green-600 px-4 py-3 font-medium text-white hover:bg-green-500">
-              Go Main Stage
+            <Button className="h-auto w-full justify-start rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.09] px-5 py-4 text-left text-white hover:bg-emerald-300/[0.14]">
+              <span>
+                <span className="block font-semibold">Move to Main Stage</span>
+                <span className="mt-1 block text-xs font-normal text-white/50">Send everyone to the primary session.</span>
+              </span>
             </Button>
           </DialogTrigger>
 
           <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Main Stage Transition</DialogTitle>
+              <DialogTitle>Review Main Stage Move</DialogTitle>
               <DialogDescription className="text-white/60">
-                Configure the audience transition before sending everyone to the main stage.
+                Choose the destination and transition. The audience will not move until you confirm below.
               </DialogDescription>
             </DialogHeader>
 
             <form
               action={async (formData) => {
-                if (mainStageSessionId) {
-                  formData.set("sessionId", mainStageSessionId)
+                if (resolvedMainStageSessionId) {
+                  formData.set("sessionId", resolvedMainStageSessionId)
                 }
                 await goGeneralSession(formData)
                 setMainStageOpen(false)
@@ -553,7 +570,7 @@ export default function MissionControlClient({
               <div className="space-y-2">
                 <label className="text-sm text-white/70">Main Stage Session</label>
                 <select
-                  value={mainStageSessionId}
+                  value={resolvedMainStageSessionId}
                   onChange={(e) => setMainStageSessionId(e.target.value)}
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
                 >
@@ -694,28 +711,28 @@ export default function MissionControlClient({
                   onClick={() =>
                     addRunOfShowItem({
                       label:
-                        generalSessions.find((item) => item.id === mainStageSessionId)?.title ||
+                        generalSessions.find((item) => item.id === resolvedMainStageSessionId)?.title ||
                         mainStageHeadline ||
                         "Main Stage",
                       destinationKind: "general_session",
-                      destinationId: mainStageSessionId || null,
+                      destinationId: resolvedMainStageSessionId || null,
                       transitionType: mainStageTransitionType,
                       duration: mainStageDuration,
                       headline: mainStageHeadline || "Now Entering Main Stage",
                       message: mainStageMessage || "The keynote is beginning now.",
                     })
                   }
-                  disabled={!mainStageSessionId || generalSessions.length === 0}
+                  disabled={!resolvedMainStageSessionId || generalSessions.length === 0}
                 >
-                  Add to Run of Show
+                  Queue Move
                 </Button>
 
                 <Button
                   type="submit"
                   className="bg-green-600 text-white hover:bg-green-500"
-                  disabled={!mainStageSessionId || generalSessions.length === 0}
+                  disabled={!resolvedMainStageSessionId || generalSessions.length === 0}
                 >
-                  Apply Transition
+                  Move Audience to Main Stage
                 </Button>
               </div>
             </form>
@@ -724,16 +741,19 @@ export default function MissionControlClient({
 
         <Dialog open={sessionOpen} onOpenChange={setSessionOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full rounded-xl bg-blue-600 px-4 py-3 font-medium text-white hover:bg-blue-500">
-              Send to Session
+            <Button className="h-auto w-full justify-start rounded-2xl border border-sky-300/15 bg-sky-300/[0.06] px-5 py-4 text-left text-white hover:bg-sky-300/[0.11]">
+              <span>
+                <span className="block font-semibold">Move to Session</span>
+                <span className="mt-1 block text-xs font-normal text-white/50">Choose one programmed session.</span>
+              </span>
             </Button>
           </DialogTrigger>
 
           <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Session Transition</DialogTitle>
+              <DialogTitle>Review Session Move</DialogTitle>
               <DialogDescription className="text-white/60">
-                Choose a destination session and configure the audience transition.
+                Choose a destination and transition. The audience will not move until you confirm below.
               </DialogDescription>
             </DialogHeader>
 
@@ -749,7 +769,7 @@ export default function MissionControlClient({
                 <label className="text-sm text-white/70">Destination Session</label>
                 <select
                   name="sessionId"
-                  value={sessionId}
+                  value={resolvedSessionId}
                   onChange={(e) => setSessionId(e.target.value)}
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
                 >
@@ -889,28 +909,28 @@ export default function MissionControlClient({
                   onClick={() =>
                     addRunOfShowItem({
                       label:
-                        sessions.find((item) => item.id === sessionId)?.title ||
+                        sessions.find((item) => item.id === resolvedSessionId)?.title ||
                         sessionHeadline ||
                         "Session",
                       destinationKind: "session",
-                      destinationId: sessionId || null,
+                      destinationId: resolvedSessionId || null,
                       transitionType: sessionTransitionType,
                       duration: sessionDuration,
                       headline: sessionHeadline || "Entering Session",
                       message: sessionMessage || "Your next session is opening.",
                     })
                   }
-                  disabled={!sessionId || sessions.length === 0}
+                  disabled={!resolvedSessionId || sessions.length === 0}
                 >
-                  Add to Run of Show
+                  Queue Move
                 </Button>
 
                 <Button
                   type="submit"
                   className="bg-blue-600 text-white hover:bg-blue-500"
-                  disabled={!sessionId || sessions.length === 0}
+                  disabled={!resolvedSessionId || sessions.length === 0}
                 >
-                  Apply Transition
+                  Move Audience to Session
                 </Button>
               </div>
             </form>
@@ -919,16 +939,19 @@ export default function MissionControlClient({
 
         <Dialog open={breakoutOpen} onOpenChange={setBreakoutOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full rounded-xl bg-purple-600 px-4 py-3 font-medium text-white hover:bg-purple-500">
-              Send to Breakout
+            <Button className="h-auto w-full justify-start rounded-2xl border border-violet-300/15 bg-violet-300/[0.07] px-5 py-4 text-left text-white hover:bg-violet-300/[0.12]">
+              <span>
+                <span className="block font-semibold">Move to Breakout</span>
+                <span className="mt-1 block text-xs font-normal text-white/50">Send attendees into a breakout.</span>
+              </span>
             </Button>
           </DialogTrigger>
 
           <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Breakout Transition</DialogTitle>
+              <DialogTitle>Review Breakout Move</DialogTitle>
               <DialogDescription className="text-white/60">
-                Choose a destination breakout and configure the audience transition.
+                Choose a destination and transition. The audience will not move until you confirm below.
               </DialogDescription>
             </DialogHeader>
 
@@ -944,7 +967,7 @@ export default function MissionControlClient({
                 <label className="text-sm text-white/70">Destination Breakout</label>
                 <select
                   name="breakoutId"
-                  value={breakoutId}
+                  value={resolvedBreakoutId}
                   onChange={(e) => setBreakoutId(e.target.value)}
                   className="w-full rounded-md border border-white/10 bg-black/40 px-3 py-2 text-sm"
                 >
@@ -1085,11 +1108,11 @@ export default function MissionControlClient({
                   onClick={() =>
                     addRunOfShowItem({
                       label:
-                        breakouts.find((item) => item.id === breakoutId)?.title ||
+                        breakouts.find((item) => item.id === resolvedBreakoutId)?.title ||
                         breakoutHeadline ||
                         "Breakout",
                       destinationKind: "breakout",
-                      destinationId: breakoutId || null,
+                      destinationId: resolvedBreakoutId || null,
                       transitionType: breakoutTransitionType,
                       duration: breakoutDuration,
                       headline: breakoutHeadline || "Entering Breakout",
@@ -1097,17 +1120,17 @@ export default function MissionControlClient({
                         breakoutMessage || "We’re moving you into a breakout room.",
                     })
                   }
-                  disabled={!breakoutId || breakouts.length === 0}
+                  disabled={!resolvedBreakoutId || breakouts.length === 0}
                 >
-                  Add to Run of Show
+                  Queue Move
                 </Button>
 
                 <Button
                   type="submit"
                   className="bg-purple-600 text-white hover:bg-purple-500"
-                  disabled={!breakoutId || breakouts.length === 0}
+                  disabled={!resolvedBreakoutId || breakouts.length === 0}
                 >
-                  Apply Transition
+                  Move Audience to Breakout
                 </Button>
               </div>
             </form>
@@ -1116,16 +1139,19 @@ export default function MissionControlClient({
 
         <Dialog open={offAirOpen} onOpenChange={setOffAirOpen}>
           <DialogTrigger asChild>
-            <Button className="w-full rounded-xl bg-gray-700 px-4 py-3 font-medium text-white hover:bg-gray-600">
-              Off Air
+            <Button className="h-auto w-full justify-start rounded-2xl border border-red-300/15 bg-red-300/[0.045] px-5 py-4 text-left text-white hover:bg-red-300/[0.09]">
+              <span>
+                <span className="block font-semibold text-red-100">Take Off Air</span>
+                <span className="mt-1 block text-xs font-normal text-white/50">Return attendees to the event home.</span>
+              </span>
             </Button>
           </DialogTrigger>
 
           <DialogContent className="border-white/10 bg-slate-950 text-white sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Off Air Transition</DialogTitle>
+              <DialogTitle>Confirm Off-Air Move</DialogTitle>
               <DialogDescription className="text-white/60">
-                Configure the transition that returns attendees to the event home page.
+                This returns attendees to the event home page. Review the message and transition before confirming.
               </DialogDescription>
             </DialogHeader>
 
@@ -1272,42 +1298,37 @@ export default function MissionControlClient({
                     })
                   }
                 >
-                  Add to Run of Show
+                  Queue Move
                 </Button>
 
-                <Button type="submit" className="bg-gray-700 text-white hover:bg-gray-600">
-                  Apply Transition
+                <Button type="submit" className="bg-red-600 text-white hover:bg-red-500">
+                  Take Audience Off Air
                 </Button>
               </div>
             </form>
           </DialogContent>
         </Dialog>
-      </div>
-
-      <div className="rounded-xl border border-white/10 bg-white/5 p-4">
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-white">Run of Show</h2>
-            <p className="mt-1 text-sm text-white/55">
-              Queue upcoming audience transitions before firing them live.
-            </p>
-          </div>
-
-          <div className="rounded-full border border-white/10 bg-black/20 px-3 py-1 text-xs text-white/60">
-            {runOfShowItems.length} queued
-          </div>
         </div>
+      </section>
 
-        <div className="mt-4 space-y-3">
-          {runOfShowItems.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-white/10 bg-black/20 p-4 text-sm text-white/50">
-              No queued transitions yet.
-            </div>
-          ) : (
-            runOfShowItems.map((item, index) => (
+      {runOfShowItems.length > 0 ? (
+        <details className="group rounded-[18px] border border-violet-200/[0.10] bg-violet-300/[0.035] p-4">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-semibold text-white/78">
+            <span>Queued audience moves</span>
+            <span className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1 text-xs font-normal text-white/55">
+              {runOfShowItems.length} queued
+            </span>
+          </summary>
+
+          <p className="mt-2 text-sm text-white/45">
+            Review and trigger prepared moves when the show reaches the right moment.
+          </p>
+
+          <div className="mt-4 space-y-3">
+            {runOfShowItems.map((item, index) => (
               <div
                 key={item.id}
-                className="flex items-start justify-between gap-4 rounded-xl border border-white/10 bg-black/20 p-4"
+                className="flex flex-col gap-4 rounded-xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-start sm:justify-between"
               >
                 <div className="min-w-0 flex-1">
                   <div className="text-xs uppercase tracking-[0.18em] text-white/40">
@@ -1338,7 +1359,7 @@ export default function MissionControlClient({
                   <div className="mt-1 text-sm text-white/45">{item.message}</div>
                 </div>
 
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2 sm:flex-col">
                   <Button
                     type="button"
                     className="bg-emerald-600 text-white hover:bg-emerald-500"
@@ -1346,7 +1367,7 @@ export default function MissionControlClient({
                       void fireRunOfShowItem(item)
                     }}
                   >
-                    Fire
+                    Move Audience
                   </Button>
 
                   <Button
@@ -1379,14 +1400,22 @@ export default function MissionControlClient({
                   </Button>
                 </div>
               </div>
-            ))
-          )}
-        </div>
-      </div>
+            ))}
+          </div>
+        </details>
+      ) : null}
 
-      <div className="rounded-xl border border-white/10 bg-black/40 p-4 text-xs">
-        <pre>{JSON.stringify(routingState, null, 2)}</pre>
-      </div>
+      <details className="rounded-[18px] border border-white/[0.06] bg-black/15 p-4 text-xs text-white/45">
+        <summary className="cursor-pointer font-semibold text-white/55">
+          Developer Details
+        </summary>
+        <p className="mt-2 text-white/35">
+          Raw routing state for troubleshooting.
+        </p>
+        <pre className="mt-3 max-h-72 overflow-auto rounded-xl border border-white/[0.06] bg-black/35 p-4 text-white/55">
+          {JSON.stringify(routingState, null, 2)}
+        </pre>
+      </details>
 
       <StageTransitionOverlay
         active={previewActive}
