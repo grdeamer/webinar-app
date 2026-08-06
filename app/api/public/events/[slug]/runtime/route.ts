@@ -41,7 +41,7 @@ export async function GET(
       supabaseAdmin
         .from("event_agenda_items")
         .select(
-          "id,title,description,speaker,speaker_title,speaker_bio,speaker_photo_url,track,location,start_at,end_at,sort_index,status,button_text,button_url,is_visible,updated_at"
+          "id,title,description,speaker,speaker_title,speaker_bio,speaker_photo_url,icon_key,track,location,start_at,end_at,sort_index,status,button_text,button_url,is_visible,updated_at"
         )
         .eq("event_id", event.id)
         .eq("is_visible", true)

@@ -2,7 +2,33 @@
 
 import Image from "next/image"
 import { useEffect, useMemo, useState } from "react"
+import {
+  Award,
+  Briefcase,
+  CalendarDays,
+  Coffee,
+  GraduationCap,
+  Handshake,
+  LayoutGrid,
+  MessageSquare,
+  Mic2,
+  PartyPopper,
+  Presentation,
+  Utensils,
+  Users,
+  Video,
+  type LucideIcon,
+} from "lucide-react"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
+import {
+  AGENDA_ICON_OPTIONS,
+  type AgendaIconKey,
+} from "@/lib/agendaIcons"
+import {
+  createAgendaSampleCsv,
+  parseAgendaCsv,
+  type ParsedAgendaCsvRow,
+} from "@/lib/imports/agendaCsv"
 
 type AgendaStatus = "upcoming" | "live" | "complete" | "cancelled"
 
@@ -19,6 +45,7 @@ type AgendaItem = {
   speaker_title: string | null
   speaker_bio: string | null
   speaker_photo_url: string | null
+  icon_key: AgendaIconKey | null
   sort_index: number
   status: AgendaStatus
   button_text: string | null
@@ -38,6 +65,7 @@ const emptyDraft: Partial<AgendaItem> = {
   speaker_title: "",
   speaker_bio: "",
   speaker_photo_url: "",
+  icon_key: null,
   description: "",
   sort_index: 0,
   status: "upcoming",
@@ -51,6 +79,35 @@ const statusStyles: Record<AgendaStatus, string> = {
   live: "border-red-400/30 bg-red-500/15 text-red-200",
   complete: "border-emerald-400/20 bg-emerald-400/10 text-emerald-200",
   cancelled: "border-white/10 bg-white/5 text-white/40",
+}
+
+const agendaIconComponents: Record<AgendaIconKey, LucideIcon> = {
+  calendar: CalendarDays,
+  presentation: Presentation,
+  meeting: Users,
+  keynote: Mic2,
+  workshop: Briefcase,
+  breakout: LayoutGrid,
+  lunch: Utensils,
+  break: Coffee,
+  networking: Handshake,
+  qa: MessageSquare,
+  video: Video,
+  training: GraduationCap,
+  award: Award,
+  celebration: PartyPopper,
+}
+
+function AgendaIcon({
+  iconKey,
+  className = "h-4 w-4",
+}: {
+  iconKey: AgendaIconKey | null | undefined
+  className?: string
+}) {
+  if (!iconKey) return null
+  const Icon = agendaIconComponents[iconKey]
+  return Icon ? <Icon aria-hidden="true" className={className} /> : null
 }
 
 function formatTime(value: string | null) {
@@ -122,6 +179,10 @@ export default function AdminAgendaEditor({
   const [syncingDisplays, setSyncingDisplays] = useState(false)
   const [lastDisplaySync, setLastDisplaySync] = useState<string | null>(null)
   const [displaySyncError, setDisplaySyncError] = useState<string | null>(null)
+  const [csvFileName, setCsvFileName] = useState<string | null>(null)
+  const [csvRows, setCsvRows] = useState<ParsedAgendaCsvRow[]>([])
+  const [csvParseError, setCsvParseError] = useState<string | null>(null)
+  const [importingCsv, setImportingCsv] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
 
@@ -132,6 +193,13 @@ export default function AdminAgendaEditor({
   const nextItemId = useMemo(
     () => items.find((item) => item.status === "upcoming")?.id || null,
     [items]
+  )
+  const csvValidationErrors = useMemo(
+    () =>
+      csvRows.flatMap((csvRow) =>
+        csvRow.errors.map((message) => `Row ${csvRow.rowNumber}: ${message}`)
+      ),
+    [csvRows]
   )
 
   useEffect(() => {
@@ -226,6 +294,93 @@ export default function AdminAgendaEditor({
     }
   }
 
+  function downloadAgendaSample() {
+    const blob = new Blob([createAgendaSampleCsv()], {
+      type: "text/csv;charset=utf-8",
+    })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.download = "jupiter-agenda-sample.csv"
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+  }
+
+  async function loadAgendaCsv(file: File) {
+    setCsvFileName(file.name)
+    setCsvRows([])
+    setCsvParseError(null)
+    setErr(null)
+
+    try {
+      if (file.size === 0 || file.size > 5 * 1024 * 1024) {
+        throw new Error("Agenda CSV must be between 1 byte and 5 MB")
+      }
+      const parsed = parseAgendaCsv(await file.text())
+      if (parsed.rows.length === 0) {
+        throw new Error("CSV does not contain any session rows")
+      }
+      setCsvRows(parsed.rows)
+    } catch (error) {
+      setCsvParseError(errorMessage(error, "Unable to read CSV"))
+    }
+  }
+
+  async function importAgendaCsv() {
+    if (csvRows.length === 0 || csvValidationErrors.length > 0) return
+
+    setImportingCsv(true)
+    setBusy(true)
+    setErr(null)
+    setMsg(null)
+    const failures: string[] = []
+    const failedRows: ParsedAgendaCsvRow[] = []
+    let importedCount = 0
+
+    for (const csvRow of csvRows) {
+      try {
+        const response = await fetch("/api/admin/event-agenda", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ event_id: eventId, ...csvRow.payload }),
+        })
+        const result = await response.json()
+        if (!response.ok) {
+          throw new Error(result.error || "Import failed")
+        }
+        importedCount += 1
+      } catch (error) {
+        failedRows.push(csvRow)
+        failures.push(
+          `Row ${csvRow.rowNumber}: ${errorMessage(error, "Import failed")}`
+        )
+      }
+    }
+
+    try {
+      await refresh()
+    } catch (error) {
+      failures.push(errorMessage(error, "Imported sessions but refresh failed"))
+    }
+
+    setImportingCsv(false)
+    setBusy(false)
+
+    if (failures.length > 0) {
+      setCsvRows(failedRows)
+      setErr(
+        `${importedCount} session${importedCount === 1 ? "" : "s"} imported. ${failures.slice(0, 3).join(" ")}`
+      )
+      return
+    }
+
+    setCsvFileName(null)
+    setCsvRows([])
+    flash(`${importedCount} session${importedCount === 1 ? "" : "s"} imported`)
+  }
+
   function selectItem(item: AgendaItem) {
     setSelectedId(item.id)
     setRow(item)
@@ -294,11 +449,76 @@ export default function AdminAgendaEditor({
           <div><span className="text-white/40">Live</span> <span className="ml-1 font-semibold text-red-300">{items.filter((item) => item.status === "live").length}</span></div>
           <div><span className="text-white/40">Upcoming</span> <span className="ml-1 font-semibold text-sky-200">{items.filter((item) => item.status === "upcoming").length}</span></div>
         </div>
-        <div className="flex items-center gap-2">
-          <button onClick={() => refresh()} disabled={busy} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-50">Refresh</button>
-          <button onClick={() => setAdding((value) => !value)} disabled={busy} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50">+ Add Session</button>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <button type="button" onClick={downloadAgendaSample} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold text-white/70 hover:bg-white/10 hover:text-white">Download Sample CSV</button>
+          <label className={`cursor-pointer rounded-xl border border-indigo-300/20 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/20 ${busy || importingCsv ? "pointer-events-none opacity-50" : ""}`}>
+            Upload CSV
+            <input
+              type="file"
+              accept=".csv,text/csv"
+              disabled={busy || importingCsv}
+              className="sr-only"
+              onChange={async (event) => {
+                const input = event.currentTarget
+                const file = input.files?.[0]
+                if (file) await loadAgendaCsv(file)
+                input.value = ""
+              }}
+            />
+          </label>
+          <button onClick={() => refresh()} disabled={busy || importingCsv} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-50">Refresh</button>
+          <button onClick={() => setAdding((value) => !value)} disabled={busy || importingCsv} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50">+ Add Session</button>
         </div>
       </div>
+
+      {csvFileName || csvParseError ? (
+        <section className={`rounded-2xl border p-5 shadow-xl backdrop-blur-xl ${csvParseError || csvValidationErrors.length > 0 ? "border-red-400/20 bg-red-500/[0.055]" : "border-indigo-400/20 bg-indigo-500/[0.055]"}`}>
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-200/55">Agenda CSV Import</div>
+              <div className="mt-1 text-base font-semibold text-white">{csvFileName || "Selected CSV"}</div>
+              {csvParseError ? (
+                <p className="mt-2 text-sm text-red-200">{csvParseError}</p>
+              ) : csvValidationErrors.length > 0 ? (
+                <div className="mt-2 space-y-1 text-sm text-red-200">
+                  {csvValidationErrors.slice(0, 6).map((message, index) => (
+                    <div key={`${index}-${message}`}>{message}</div>
+                  ))}
+                  {csvValidationErrors.length > 6 ? (
+                    <div>And {csvValidationErrors.length - 6} more validation errors.</div>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-2 text-sm text-white/50">
+                  {csvRows.length} valid session{csvRows.length === 1 ? "" : "s"} ready to append. Existing sessions will not be changed.
+                </p>
+              )}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setCsvFileName(null)
+                  setCsvRows([])
+                  setCsvParseError(null)
+                }}
+                disabled={importingCsv}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-semibold text-white/65 hover:bg-white/10 hover:text-white disabled:opacity-50"
+              >
+                Clear
+              </button>
+              <button
+                type="button"
+                onClick={() => void importAgendaCsv()}
+                disabled={importingCsv || csvRows.length === 0 || csvValidationErrors.length > 0 || Boolean(csvParseError)}
+                className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {importingCsv ? "Importing…" : `Import ${csvRows.length || ""} Session${csvRows.length === 1 ? "" : "s"}`}
+              </button>
+            </div>
+          </div>
+        </section>
+      ) : null}
 
       <section className={`flex flex-wrap items-center justify-between gap-4 rounded-2xl border px-5 py-4 shadow-xl backdrop-blur-xl ${accessOpen ? "border-emerald-400/20 bg-emerald-400/[0.055]" : "border-amber-400/20 bg-amber-400/[0.045]"}`}>
         <div>
@@ -530,7 +750,10 @@ export default function AdminAgendaEditor({
                     {live ? <div className="pointer-events-none absolute inset-0 -translate-x-full animate-[pulse_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-red-300/[0.05] to-transparent" /> : null}
                     <div className="relative flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <div className={`truncate text-base font-semibold ${muted ? "text-white/55" : "text-white"}`}>{item.title}</div>
+                        <div className={`flex min-w-0 items-center gap-2 text-base font-semibold ${muted ? "text-white/55" : "text-white"}`}>
+                          <AgendaIcon iconKey={item.icon_key} className="h-4 w-4 shrink-0 text-indigo-200/75" />
+                          <span className="truncate">{item.title}</span>
+                        </div>
                         <div className="mt-1 truncate text-sm text-white/45">{item.speaker || "Speaker not assigned"}</div>
                       </div>
                       <StatusBadge status={item.status} />
@@ -563,7 +786,10 @@ export default function AdminAgendaEditor({
             <>
               {!editing ? (
                 <div className="mt-5">
-                  <h2 className="text-3xl font-bold leading-tight tracking-tight">{selectedItem.title}</h2>
+                  <h2 className="flex items-start gap-3 text-3xl font-bold leading-tight tracking-tight">
+                    <AgendaIcon iconKey={selectedItem.icon_key} className="mt-1 h-7 w-7 shrink-0 text-indigo-200/80" />
+                    <span>{selectedItem.title}</span>
+                  </h2>
                   <div className="mt-2 text-base text-white/55">{selectedItem.speaker || "Speaker not assigned"}</div>
                   {selectedItem.speaker_title ? <div className="mt-1 text-sm text-white/35">{selectedItem.speaker_title}</div> : null}
 
@@ -700,6 +926,35 @@ function SessionFields({
       <div className="sm:col-span-2">
         <div className={labelClass}>Title *</div>
         <input className={fieldClass} value={value.title || ""} onChange={(e) => onChange({ ...value, title: e.target.value })} placeholder="Opening Keynote" />
+      </div>
+
+      <div className="sm:col-span-2">
+        <div className={labelClass}>Session Icon</div>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3 xl:grid-cols-5">
+          <button
+            type="button"
+            onClick={() => onChange({ ...value, icon_key: null })}
+            disabled={busy}
+            aria-pressed={!value.icon_key}
+            className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition disabled:opacity-50 ${!value.icon_key ? "border-indigo-300/45 bg-indigo-500/20 text-white" : "border-white/10 bg-white/[0.035] text-white/45 hover:bg-white/[0.07] hover:text-white/70"}`}
+          >
+            <span className="flex h-5 w-5 items-center justify-center rounded-md border border-dashed border-current/40">—</span>
+            None
+          </button>
+          {AGENDA_ICON_OPTIONS.map((option) => (
+            <button
+              key={option.key}
+              type="button"
+              onClick={() => onChange({ ...value, icon_key: option.key })}
+              disabled={busy}
+              aria-pressed={value.icon_key === option.key}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-left text-xs font-semibold transition disabled:opacity-50 ${value.icon_key === option.key ? "border-indigo-300/45 bg-indigo-500/20 text-white shadow-[0_0_18px_rgba(99,102,241,0.1)]" : "border-white/10 bg-white/[0.035] text-white/45 hover:bg-white/[0.07] hover:text-white/70"}`}
+            >
+              <AgendaIcon iconKey={option.key} className="h-5 w-5 shrink-0" />
+              <span className="truncate">{option.label}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       <div>

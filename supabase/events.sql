@@ -177,3 +177,4 @@ alter table public.event_breakouts add column if not exists auto_open boolean no
 alter table public.event_agenda_items add column if not exists speaker_title text null;
 alter table public.event_agenda_items add column if not exists speaker_bio text null;
 alter table public.event_agenda_items add column if not exists speaker_photo_url text null;
+alter table public.event_agenda_items add column if not exists icon_key text null;
