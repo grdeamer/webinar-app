@@ -484,6 +484,7 @@ export default function AdminAgendaEditor({
             eventId={eventId}
             value={draft}
             onChange={setDraft}
+            dateFieldsSideBySide
             onPhotoChange={(url) =>
               setDraft((current) => ({ ...current, speaker_photo_url: url }))
             }
@@ -642,6 +643,7 @@ function SessionFields({
   onPhotoChange,
   busy,
   onUploadStateChange,
+  dateFieldsSideBySide = false,
 }: {
   eventId: string
   value: Partial<AgendaItem>
@@ -649,6 +651,7 @@ function SessionFields({
   onPhotoChange: (url: string | null) => void
   busy: boolean
   onUploadStateChange: (uploading: boolean) => void
+  dateFieldsSideBySide?: boolean
 }) {
   const [photoError, setPhotoError] = useState<string | null>(null)
   const fieldClass = "mt-1 min-w-0 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none transition focus:border-indigo-400/50 focus:bg-white/[0.07]"
@@ -763,7 +766,7 @@ function SessionFields({
         </div>
       </div>
 
-      <div>
+      <div className="sm:col-span-2">
         <div className={labelClass}>Status</div>
         <select className={fieldClass} value={value.status || "upcoming"} onChange={(e) => onChange({ ...value, status: e.target.value as AgendaStatus })}>
           <option value="upcoming">Upcoming</option>
@@ -773,11 +776,13 @@ function SessionFields({
         </select>
       </div>
 
-      <div className="min-w-0 sm:col-span-2">
-        <AdminDateTimeField label="Start" value={(value.start_at as string) || null} onChange={(next) => onChange({ ...value, start_at: next || "" })} disabled={busy} />
-      </div>
-      <div className="min-w-0 sm:col-span-2">
-        <AdminDateTimeField label="End" value={(value.end_at as string) || null} onChange={(next) => onChange({ ...value, end_at: next || "" })} disabled={busy} />
+      <div className={`grid min-w-0 gap-3 sm:col-span-2 ${dateFieldsSideBySide ? "xl:grid-cols-2" : ""}`}>
+        <div className="min-w-0">
+          <AdminDateTimeField label="Start" value={(value.start_at as string) || null} onChange={(next) => onChange({ ...value, start_at: next || "" })} disabled={busy} />
+        </div>
+        <div className="min-w-0">
+          <AdminDateTimeField label="End" value={(value.end_at as string) || null} onChange={(next) => onChange({ ...value, end_at: next || "" })} disabled={busy} />
+        </div>
       </div>
 
       <div>
