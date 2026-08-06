@@ -921,6 +921,22 @@ function SessionFields({
     }
   }
 
+  function updateStartDateTime(next: string | null) {
+    const previousStart = value.start_at || ""
+    const previousEnd = value.end_at || ""
+    const nextStart = next || ""
+    const endIsLinked = !previousEnd || previousEnd === previousStart
+    const endFallsBeforeStart =
+      Boolean(nextStart && previousEnd) &&
+      new Date(previousEnd).getTime() < new Date(nextStart).getTime()
+
+    onChange({
+      ...value,
+      start_at: nextStart,
+      end_at: endIsLinked || endFallsBeforeStart ? nextStart : previousEnd,
+    })
+  }
+
   return (
     <div className="grid min-w-0 gap-3 sm:grid-cols-2">
       <div className="sm:col-span-2">
@@ -1033,7 +1049,7 @@ function SessionFields({
 
       <div className={`grid min-w-0 gap-3 sm:col-span-2 ${dateFieldsSideBySide ? "xl:grid-cols-2" : ""}`}>
         <div className="min-w-0">
-          <AdminDateTimeField label="Start" value={(value.start_at as string) || null} onChange={(next) => onChange({ ...value, start_at: next || "" })} disabled={busy} />
+          <AdminDateTimeField label="Start" value={(value.start_at as string) || null} onChange={updateStartDateTime} disabled={busy} />
         </div>
         <div className="min-w-0">
           <AdminDateTimeField label="End" value={(value.end_at as string) || null} onChange={(next) => onChange({ ...value, end_at: next || "" })} disabled={busy} />
