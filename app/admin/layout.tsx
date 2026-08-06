@@ -5,20 +5,11 @@ import { ReactNode } from "react"
 import { usePathname } from "next/navigation"
 import {
   Activity,
-  BarChart3,
   Calendar,
-  Clapperboard,
-  FileUp,
   LayoutDashboard,
-  MessageSquare,
-  Mic,
-  Monitor,
   Radio,
-  Sparkles,
   Users,
-  Video,
   Wrench,
-  Zap,
   ArrowLeft,
   Satellite,
 } from "lucide-react"
@@ -92,28 +83,6 @@ function Section({
   )
 }
 
-function QuickAction({
-  href,
-  icon,
-  label,
-}: {
-  href: string
-  icon: ReactNode
-  label: string
-}) {
-  return (
-    <Link
-      href={href}
-      className="group flex items-center gap-2 rounded-xl border border-white/8 bg-white/[0.035] px-3 py-2 text-xs font-semibold text-white/62 transition hover:border-violet-300/25 hover:bg-violet-400/10 hover:text-white"
-    >
-      <span className="text-violet-200/55 transition group-hover:text-violet-100">
-        {icon}
-      </span>
-      {label}
-    </Link>
-  )
-}
-
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isProducerWorkspace = /^\/admin\/events\/[^/]+\/producer(?:\/.*)?$/.test(pathname)
@@ -179,7 +148,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <aside
           className={`${
             isPageEditorWorkspace ? "h-full" : ""
-          } w-[360px] border-r border-white/10 bg-[#050816]/82 backdrop-blur-2xl`}
+          } w-[288px] border-r border-white/10 bg-[#050816]/82 backdrop-blur-2xl`}
         >
           <div className="flex h-full flex-col">
             <div className="px-5 py-5">
@@ -214,7 +183,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
 
             <div className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
-              <Section title="Overview">
+              <Section title="Global">
                 <NavLink href="/admin" icon={<LayoutDashboard size={17} />}>
                   Dashboard
                 </NavLink>
@@ -224,36 +193,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 <NavLink href="/admin/activity" icon={<Activity size={17} />}>
                   Live Activity
                 </NavLink>
-                <NavLink href="/admin/analytics" icon={<BarChart3 size={17} />}>
-                  Analytics
-                </NavLink>
               </Section>
 
-              <Section title="Operations">
-                <NavLink href="/admin/import" icon={<FileUp size={17} />}>
-                  Import Registrants
-                </NavLink>
-              </Section>
-
-              <Section title="Broadcast">
-                <NavLink href="/admin/general-session" icon={<Video size={17} />}>
-                  General Session
-                </NavLink>
-                <NavLink href="/admin/qa" icon={<MessageSquare size={17} />}>
-                  Q&amp;A Control
-                </NavLink>
-                <NavLink href="/presenter" icon={<Mic size={17} />}>
-                  Presenter Mode
-                </NavLink>
-                <NavLink href="/admin/graphics" icon={<Clapperboard size={17} />}>
-                  Graphics
-                </NavLink>
-              </Section>
-
-              <Section title="Platform">
-                <NavLink href="/admin/webinars" icon={<Monitor size={17} />}>
-                  Webinars
-                </NavLink>
+              <Section title="Administration">
                 <NavLink href="/admin/users" icon={<Users size={17} />}>
                   Users
                 </NavLink>
@@ -261,16 +203,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   Dev Tools
                 </NavLink>
               </Section>
-
-              <div className="px-2">
-                <div className="mb-2 px-1 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/30">
-                  Quick Actions
-                </div>
-                <div className="grid gap-2">
-                  <QuickAction href="/access" icon={<Zap size={14} />} label="Attendee View" />
-                  <QuickAction href="/" icon={<Sparkles size={14} />} label="Jupiter Home" />
-                </div>
-              </div>
             </div>
 
             <div className="border-t border-white/10 p-4">
