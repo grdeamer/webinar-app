@@ -10,6 +10,7 @@ import {
   FileText,
   ImageIcon,
   LayoutDashboard,
+  ListOrdered,
   Mail,
   Radio,
   Settings,
@@ -236,6 +237,14 @@ export default function EventLayout({
           </NavGroup>
 
           <NavGroup title="Live" collapsed={collapsed}>
+            <NavItem
+              href={`${base}/agenda`}
+              icon={<ListOrdered size={16} />}
+              label="Run of Show"
+              collapsed={collapsed}
+            >
+              Run of Show
+            </NavItem>
             <NavItem href={`${base}/producer`} icon={<Radio size={16} />} label="Broadcast" collapsed={collapsed}>
               Broadcast
             </NavItem>
