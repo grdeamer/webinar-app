@@ -23,6 +23,7 @@ import {
   type LucideIcon,
 } from "lucide-react"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
+import JupiterLogo from "@/components/brand/JupiterLogo"
 import {
   AGENDA_ICON_OPTIONS,
   type AgendaIconKey,
@@ -705,8 +706,11 @@ export default function AdminAgendaEditor({
 
             <div className="relative flex items-start gap-4">
               <div className="relative mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-500/10 shadow-[0_0_24px_rgba(99,102,241,0.16)]">
-                <div className="h-4 w-4 rounded-full border border-indigo-200/70" />
-                <div className="absolute h-8 w-4 rotate-45 rounded-[50%] border border-indigo-300/45" />
+                <JupiterLogo
+                  showWordmark={false}
+                  className="text-white"
+                  markClassName="h-9 w-9"
+                />
               </div>
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-200/55">
@@ -760,8 +764,11 @@ export default function AdminAgendaEditor({
 
             <div className="relative flex items-start gap-4">
               <div className="relative mt-1 flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-red-300/20 bg-red-500/10 shadow-[0_0_24px_rgba(239,68,68,0.14)]">
-                <div className="h-4 w-4 rounded-full border border-red-200/70" />
-                <div className="absolute h-8 w-4 rotate-45 rounded-[50%] border border-red-300/45" />
+                <JupiterLogo
+                  showWordmark={false}
+                  className="text-white"
+                  markClassName="h-9 w-9"
+                />
               </div>
               <div>
                 <div className="text-[10px] font-black uppercase tracking-[0.24em] text-red-200/55">
