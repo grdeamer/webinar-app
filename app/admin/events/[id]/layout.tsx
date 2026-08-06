@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { ReactNode, useEffect, useState } from "react"
 import {
+  Activity,
   BarChart3,
   CalendarDays,
   Clapperboard,
@@ -240,6 +241,14 @@ export default function EventLayout({
           </NavGroup>
 
           <NavGroup title="Live" collapsed={collapsed}>
+            <NavItem
+              href={`${base}/routing`}
+              icon={<Activity size={16} />}
+              label="Audience Routing"
+              collapsed={collapsed}
+            >
+              Audience Routing
+            </NavItem>
             <NavItem
               href={`${base}/agenda`}
               icon={<ListOrdered size={16} />}
