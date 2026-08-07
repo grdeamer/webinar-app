@@ -2,6 +2,7 @@
 
 import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
+import LetsLiveAgendaExperience from "@/components/events/LetsLiveAgendaExperience"
 
 export function createSystemComponentPreviewRegistry({
   sections,
@@ -9,6 +10,20 @@ export function createSystemComponentPreviewRegistry({
   sections: EventPageSection[]
 }) {
   return {
+    lets_live_agenda: (
+      <LetsLiveAgendaExperience
+        preview
+        title="CAPLYTA September POA Meeting"
+        description="Follow the live agenda, see what is happening now, and enter the correct meeting space from this page."
+        accessOpen
+        joinHref="#"
+        agenda={[
+          { id: "preview-1", title: "Meeting Kick-Off & Welcome", start_at: "2026-09-24T15:00:00Z", end_at: "2026-09-24T15:30:00Z", status: "upcoming" },
+          { id: "preview-2", title: "Keynote Speaker", start_at: "2026-09-24T15:30:00Z", end_at: "2026-09-24T16:30:00Z", status: "upcoming" },
+          { id: "preview-3", title: "Lunch", start_at: "2026-09-24T16:30:00Z", end_at: "2026-09-24T17:00:00Z", status: "upcoming" },
+        ]}
+      />
+    ),
     live_state: (
       <div className="flex items-center gap-2 text-sm">
         <span className="h-2 w-2 animate-pulse rounded-full bg-red-500" />
@@ -61,18 +76,18 @@ export function createSystemComponentPreviewRegistry({
           : "Browse the event schedule."
 
       const displayMode =
-        typeof (agendaProps as any).displayMode === "string"
-          ? (agendaProps as any).displayMode
+        typeof agendaProps.displayMode === "string"
+          ? agendaProps.displayMode
           : "list"
 
       const showTime =
-        typeof (agendaProps as any).showTime === "boolean"
-          ? (agendaProps as any).showTime
+        typeof agendaProps.showTime === "boolean"
+          ? agendaProps.showTime
           : true
 
       const showDescriptions =
-        typeof (agendaProps as any).showDescriptions === "boolean"
-          ? (agendaProps as any).showDescriptions
+        typeof agendaProps.showDescriptions === "boolean"
+          ? agendaProps.showDescriptions
           : true
 
       const agendaItems = [

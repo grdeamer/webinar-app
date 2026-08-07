@@ -16,6 +16,12 @@ export interface SystemComponentDefinition {
 
 export const SYSTEM_COMPONENTS: SystemComponentDefinition[] = [
   {
+    key: "lets_live_agenda",
+    label: "LETS Live Agenda",
+    category: "live",
+    description: "Complete attendee page with event hero, live status, countdown, agenda, support, and footer.",
+  },
+  {
     key: "stage_player",
     label: "Stage Player",
     category: "broadcast",

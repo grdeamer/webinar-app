@@ -24,6 +24,7 @@ import { getEventLiveDestination } from "@/lib/services/events/getEventLiveDesti
 import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
 import JupiterHomeHero from "@/components/events/JupiterHomeHero"
 import TransitionAwareEventShell from "@/components/events/TransitionAwareEventShell"
+import LetsLiveAgendaExperience from "@/components/events/LetsLiveAgendaExperience"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -36,6 +37,9 @@ type AgendaItem = {
   track?: string | null
   speaker?: string | null
   description?: string | null
+  status?: string | null
+  button_text?: string | null
+  button_url?: string | null
 }
 
 type SessionCard = {
@@ -103,6 +107,9 @@ function normalizeAgendaRows(input: unknown): AgendaItem[] {
       track: getNullableString(value.track),
       speaker: getNullableString(value.speaker),
       description: getNullableString(value.description),
+      status: getNullableString(value.status),
+      button_text: getNullableString(value.button_text),
+      button_url: getNullableString(value.button_url),
     }]
   })
 }
@@ -358,10 +365,11 @@ export default async function EventHomePage(props: {
     { data: breakoutRows },
     pageDocument,
     { data: themeRow },
+    { data: accessRow },
   ] = await Promise.all([
     supabaseAdmin
       .from("event_agenda_items")
-      .select("id,title,start_at,end_at,track,speaker,description")
+      .select("id,title,start_at,end_at,track,speaker,description,status,button_text,button_url")
       .eq("event_id", event.id)
       .order("start_at", { ascending: true, nullsFirst: false })
       .limit(6),
@@ -387,6 +395,12 @@ export default async function EventHomePage(props: {
       .from("events")
       .select("event_theme")
       .eq("id", event.id)
+      .maybeSingle(),
+
+    supabaseAdmin
+      .from("event_live_state")
+      .select("status")
+      .eq("event_id", event.id)
       .maybeSingle(),
   ])
 
@@ -440,6 +454,26 @@ export default async function EventHomePage(props: {
   const displayEventTitle = formatDisplayTitle(event.title)
 
   const systemComponents = {
+    lets_live_agenda: (
+      <LetsLiveAgendaExperience
+        title={displayEventTitle}
+        description={event.description}
+        agenda={agenda.map((item) => ({
+          id: item.id,
+          title: item.title || "Untitled session",
+          description: item.description,
+          speaker: item.speaker,
+          track: item.track,
+          start_at: item.start_at,
+          end_at: item.end_at,
+          status: item.status,
+          button_text: item.button_text,
+          button_url: item.button_url,
+        }))}
+        accessOpen={accessRow?.status === "open"}
+        joinHref={liveDestination.href}
+      />
+    ),
     jupiter_home_hero: (
       <JupiterHomeHero
         title={displayEventTitle}

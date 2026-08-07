@@ -2364,6 +2364,9 @@ const selectedExperienceNode = experienceNodes.find(
               setElements(
                 Array.isArray(template.elements_json) ? template.elements_json : []
               )
+              if (template.event_theme && typeof template.event_theme === "object") {
+                setEventTheme(template.event_theme as EventTheme)
+              }
             })
           }}
           onUndo={() => restoreHistorySnapshot("undo")}

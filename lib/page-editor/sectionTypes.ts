@@ -3,6 +3,7 @@ import type { RegistrationExperienceState } from "@/lib/page-editor/types/regist
 export type SectionType = "hero" | "content" | "system" | "grid"
 
 export type SystemComponentKey =
+  | "lets_live_agenda"
   | "live_state"
   | "stage_player"
   | "sessions_list"

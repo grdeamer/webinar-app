@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+	<link rel="icon" type="image/png" href="favicon.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#eb1700" />
+  <meta name="description" content="Johnson & Johnson National POA Meeting attendee portal" />
+  <title>J&J National POA Meeting</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="styles.css?v=20260806-meeting-provider" />
+  <script src="config.js?v=20260806-runtime-fix"></script>
+  <script src="app.js?v=20260806-meeting-provider" defer></script>
+</head>
+
+<body>
+  <section class="event-gate" id="eventGate" aria-live="polite">
+    <div class="event-gate-card">
+      <img class="event-gate-logo" src="jnj-logo.png" alt="Johnson &amp; Johnson">
+      <span class="event-gate-kicker" id="eventGateTitle">CAPLYTA September POA Meeting</span>
+      <h1>The event hasn’t opened yet.</h1>
+      <p>Please check back shortly. This page will open automatically when the event team begins the program.</p>
+      <div class="event-gate-status"><span></span> Waiting for the event to open</div>
+    </div>
+  </section>
+
+  <section class="survey-page" id="surveyPage" aria-labelledby="surveyHeading" hidden>
+    <div class="survey-shell">
+      <div class="survey-header">
+        <img src="jnj-logo.png" alt="Johnson &amp; Johnson">
+        <div>
+          <span>Event follow-up</span>
+          <h1 id="surveyHeading">Thank you for joining us.</h1>
+          <p>Please complete the brief survey below. Your feedback helps us improve future programs.</p>
+        </div>
+        <a id="surveyExternalLink" href="#" target="_blank" rel="noopener noreferrer">Open survey in a new tab ↗</a>
+      </div>
+      <div class="survey-frame-wrap">
+        <iframe
+          id="surveyFrame"
+          title="Event survey"
+          loading="eager"
+          referrerpolicy="strict-origin-when-cross-origin"
+          allow="clipboard-write"
+          sandbox="allow-forms allow-popups allow-same-origin allow-scripts"
+        ></iframe>
+      </div>
+      <footer class="survey-footer">
+        <a class="footer-brand" href="https://letstrainonline.com">Leading Edge Training Solutions, LLC</a>
+        <span class="footer-credit">Powered by <a href="https://jupiter.events">Jupiter</a></span>
+      </footer>
+    </div>
+  </section>
+
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+
+  <header class="site-header">
+    <div class="header-inner">
+      <img class="brand-logo" src="jnj-logo.png" alt="Johnson & Johnson" />
+      <div class="event-mark">
+        <span class="event-mark-dot"></span>
+        <span>National POA Meeting</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page-shell">
+    <section class="hero">
+      <div class="hero-copy">
+        <p class="eyebrow">Welcome</p>
+        <h1 id="eventTitle">CAPLYTA September POA Meeting</h1>
+        <p class="hero-description" id="eventDescription">
+          Follow the live agenda, see what is happening now, and enter the correct meeting space from this page.
+        </p>
+
+        <div class="live-summary" id="liveSummary" aria-live="polite">
+          <div class="live-summary-icon" aria-hidden="true">
+            <span class="pulse-ring"></span>
+            <span class="pulse-dot"></span>
+          </div>
+
+          <div class="live-summary-copy">
+            <span class="live-label" id="liveLabel">Up next</span>
+            <strong id="liveSessionName">Meeting Kick-Off &amp; Welcome</strong>
+            <span id="liveSessionTime">11:00–11:30 AM ET</span>
+          </div>
+        </div>
+
+        <div class="hero-actions">
+          <a
+            id="enterButton"
+            class="enter-button"
+            href="https://letstrainonline.zoom.us/j/81667427994"
+            target="_blank"
+            rel="noopener noreferrer nofollow"
+          >
+            <span class="meeting-provider-icon" id="meetingProviderIcon" aria-hidden="true"></span>
+            <span class="enter-button-copy">
+              <span id="enterButtonText">Enter live meeting</span>
+              <small id="meetingProviderLabel">Zoom</small>
+            </span>
+            <svg class="enter-button-arrow" aria-hidden="true" viewBox="0 0 24 24">
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+          </a>
+
+          <div class="next-up" id="nextUp">
+            <span>Next up</span>
+            <strong id="nextSessionName">Keynote Speaker</strong>
+            <small id="nextSessionTime">11:30 AM–12:30 PM ET</small>
+          </div>
+        </div>
+      </div>
+
+      <aside class="status-panel">
+        <div class="status-panel-top">
+          <span class="status-pill" id="statusPill">
+            <span></span>
+            Event in progress
+          </span>
+          <span class="timezone">Eastern Time</span>
+        </div>
+
+        <div class="clock-block">
+          <span class="clock-label">Current time</span>
+          <strong id="eventClock">--:-- --</strong>
+          <span id="eventDate">Loading date…</span>
+        </div>
+
+        <div class="countdown-card" id="countdownCard">
+          <span class="countdown-label" id="countdownLabel">Next session begins in</span>
+          <div class="countdown-value" id="countdownValue">--:--:--</div>
+          <span class="countdown-session" id="countdownSession">Keynote Speaker</span>
+        </div>
+
+        <div class="status-note">
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20Z" />
+            <path d="M12 10v6M12 7h.01" />
+          </svg>
+          <span>This page updates automatically. No refresh is required.</span>
+        </div>
+      </aside>
+    </section>
+
+    <section class="agenda-section" aria-labelledby="agendaHeading">
+      <div class="runtime-announcement" id="runtimeAnnouncement" role="status" aria-live="polite" hidden>
+        <span class="runtime-announcement-dot" aria-hidden="true"></span>
+        <span id="runtimeAnnouncementText"></span>
+      </div>
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Day One <span class="eyebrow-date" id="eventDayDate"></span></p>
+          <h2 id="agendaHeading">Today’s agenda</h2>
+        </div>
+        <p>Completed sessions fade back. The current session stays illuminated.</p>
+      </div>
+
+      <div class="agenda-experience">
+      <ol class="agenda-list" id="agendaList">
+        <li class="agenda-item" data-session="kickoff" data-start="11:00" data-end="11:30">
+          <div class="agenda-time">
+            <span>11:00 AM</span>
+            <small>11:30 AM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+            <span class="agenda-line"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">Opening session</span>
+              <h3>Meeting Kick-Off &amp; Welcome</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+
+        <li class="agenda-item" data-session="keynote" data-start="11:30" data-end="12:30">
+          <div class="agenda-time">
+            <span>11:30 AM</span>
+            <small>12:30 PM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+            <span class="agenda-line"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">Featured session</span>
+              <h3>Keynote Speaker</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+
+        <li class="agenda-item" data-session="lunch" data-start="12:30" data-end="13:00">
+          <div class="agenda-time">
+            <span>12:30 PM</span>
+            <small>1:00 PM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+            <span class="agenda-line"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">Break</span>
+              <h3>Lunch</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+
+        <li class="agenda-item" data-session="marketing" data-start="13:00" data-end="15:00">
+          <div class="agenda-time">
+            <span>1:00 PM</span>
+            <small>3:00 PM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+            <span class="agenda-line"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">General session</span>
+              <h3>Marketing Presentation</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+
+        <li class="agenda-item" data-session="break1" data-start="15:00" data-end="15:15">
+          <div class="agenda-time">
+            <span>3:00 PM</span>
+            <small>3:15 PM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+            <span class="agenda-line"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">Break</span>
+              <h3>Break</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+
+        <li class="agenda-item" data-session="walkthrough" data-start="15:15" data-end="16:00">
+          <div class="agenda-time">
+            <span>3:15 PM</span>
+            <small>4:00 PM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+            <span class="agenda-line"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">Working session</span>
+              <h3>MDD IVA Walk-Thru</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+
+        <li class="agenda-item" data-session="break2" data-start="16:00" data-end="16:15">
+          <div class="agenda-time">
+            <span>4:00 PM</span>
+            <small>4:15 PM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+            <span class="agenda-line"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">Break</span>
+              <h3>Break</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+
+        <li class="agenda-item" data-session="core1" data-start="16:15" data-end="17:30">
+          <div class="agenda-time">
+            <span>4:15 PM</span>
+            <small>5:30 PM</small>
+          </div>
+          <div class="agenda-track">
+            <span class="agenda-node"></span>
+          </div>
+          <div class="agenda-card">
+            <div class="agenda-card-main">
+              <span class="agenda-kicker">Workshop</span>
+              <h3>Core Messaging Workshop – Part I</h3>
+            </div>
+            <span class="agenda-state">Upcoming</span>
+          </div>
+        </li>
+      </ol>
+
+      <aside class="speaker-panel" id="speakerPanel" aria-live="polite" hidden>
+        <button class="speaker-panel-close" id="speakerPanelClose" type="button" aria-label="Close speaker details">×</button>
+        <div class="speaker-portrait">
+          <img id="speakerPhoto" alt="" hidden>
+          <span id="speakerInitials" aria-hidden="true">POA</span>
+        </div>
+        <div class="speaker-panel-body">
+          <span class="speaker-panel-label" id="speakerPanelLabel">Meet the speaker</span>
+          <h3 id="speakerName">Speaker details coming soon</h3>
+          <p class="speaker-role" id="speakerRole"></p>
+          <p class="speaker-bio" id="speakerBio"></p>
+          <div class="speaker-session-meta">
+            <div><span>Session</span><strong id="speakerSession"></strong></div>
+            <div><span>Time</span><strong id="speakerTime"></strong></div>
+          </div>
+        </div>
+      </aside>
+      </div>
+    </section>
+
+    <section class="support-section">
+      <div class="support-copy">
+        <p class="eyebrow">Event support</p>
+        <h2>Need a hand?</h2>
+        <p>Our live event team is available throughout the program.</p>
+      </div>
+
+      <a class="support-button" href="#" id="openSupport" role="button" aria-controls="crisp-chatbox">
+        Open live support
+        <svg aria-hidden="true" viewBox="0 0 24 24">
+          <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4v8Z" />
+        </svg>
+      </a>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <a class="footer-brand" href="https://letstrainonline.com">Leading Edge Training Solutions, LLC</a>
+    <span class="footer-credit">Powered by <a href="https://jupiter.events">Jupiter</a></span>
+  </footer>
+
+  <noscript>
+    <div class="noscript-message">
+      JavaScript is required for live agenda updates. The meeting can still be entered using the button above.
+    </div>
+  </noscript>
+
+  <script>
+    window.$crisp = window.$crisp || [];
+    window.CRISP_WEBSITE_ID = "cdf45033-218a-4e22-a0e7-058b66dc0ff0";
+
+    (function () {
+      var d = document;
+      var s = d.createElement("script");
+      s.src = "https://client.crisp.chat/l.js";
+      s.async = true;
+      d.getElementsByTagName("head")[0].appendChild(s);
+    })();
+
+    // Keep the native messenger hidden until the attendee requests support.
+    window.$crisp.push(["do", "chat:hide"]);
+  </script>
+
+</body>
+</html>

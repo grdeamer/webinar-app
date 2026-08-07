@@ -206,6 +206,8 @@ function getFallbackSections(event: EventLike): EventPageSection[] {
 
 function getSystemComponentPlaceholderLabel(componentKey: SystemComponentKey) {
   switch (componentKey) {
+    case "lets_live_agenda":
+      return "LETS Live Agenda"
     case "live_state":
       return "Live Status"
     case "stage_player":

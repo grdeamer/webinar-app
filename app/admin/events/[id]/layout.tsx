@@ -17,6 +17,7 @@ import {
   Sparkles,
   Users,
   PanelLeftClose,
+  Globe2,
 } from "lucide-react"
 
 const EVENT_WORKSPACE_RAIL_STORAGE_KEY = "jupiter:eventWorkspaceRail"
@@ -267,6 +268,9 @@ export default function EventLayout({
             </NavItem>
             <NavItem href={`${base}/page-editor`} icon={<Sparkles size={16} />} label="Experience" collapsed={collapsed}>
               Experience
+            </NavItem>
+            <NavItem href={`${base}/publishing`} icon={<Globe2 size={16} />} label="Publish Site" collapsed={collapsed}>
+              Publish Site
             </NavItem>
             <NavItem href={`${base}/sponsors`} icon={<ImageIcon size={16} />} label="Assets" collapsed={collapsed}>
               Assets
