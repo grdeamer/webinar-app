@@ -10,10 +10,15 @@ const inter = Inter({
   variable: "--font-inter",
 })
 
-export const metadata = {
+export const metadata: Metadata = {
   title: "Jupiter.events",
   description:
     "Host events with gravity. Run webinars, summits, and live broadcasts on a platform built to scale.",
+  icons: {
+    icon: [{ url: "/jupiter-planet.svg", type: "image/svg+xml" }],
+    shortcut: "/jupiter-planet.svg",
+    apple: "/jupiter-planet.svg",
+  },
 }
 
 export default function RootLayout({
