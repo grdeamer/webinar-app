@@ -472,13 +472,34 @@
 
   function resolveDisplaySessions() {
     const sessions = Array.from(sessionMap.values());
-    const active = findSession(state.current_session) || findSession(state.active_session) || sessions.find(session => session.status === "live") || null;
-    const primary = active || findSession(state.next_session) || sessions.find(session => session.status === "upcoming") || sessions[0] || null;
+    const now = new Date();
+    const timedActive = sessions.find(session => {
+      const start = eventMoment(session.start);
+      const end = eventMoment(session.end);
+      return start && end && start <= now && end > now && !["complete", "cancelled"].includes(session.status);
+    }) || null;
+    const explicitNext = findSession(state.next_session);
+    const futureSessions = sessions.filter(session => {
+      const start = eventMoment(session.start);
+      return start && start > now && !["complete", "cancelled"].includes(session.status);
+    });
+    const active = findSession(state.current_session) || findSession(state.active_session) || sessions.find(session => session.status === "live") || timedActive;
+    const usableExplicitNext = explicitNext && (!eventMoment(explicitNext.end) || eventMoment(explicitNext.end) > now) ? explicitNext : null;
+    const primary = active || usableExplicitNext || futureSessions[0] || sessions.find(session => session.status === "upcoming") || sessions[0] || null;
     let secondary = findSession(state.next_session);
     if (secondary?.key === primary?.key) secondary = null;
-    secondary ||= sessions.find(session => session.status === "upcoming" && session.index > (primary?.index ?? -1) && session.key !== primary?.key);
-    secondary ||= sessions.find(session => session.status === "upcoming" && session.key !== primary?.key);
+    if (secondary && eventMoment(secondary.end) && eventMoment(secondary.end) <= now) secondary = null;
+    secondary ||= futureSessions.find(session => session.index > (primary?.index ?? -1) && session.key !== primary?.key);
+    secondary ||= futureSessions.find(session => session.key !== primary?.key);
     return { active, primary, secondary };
+  }
+
+  function displayStatus(session, active, now = new Date()) {
+    if (!session) return "upcoming";
+    if (["complete", "cancelled"].includes(session.status)) return session.status;
+    if (active?.key === session.key) return "live";
+    const end = eventMoment(session.end);
+    return end && end <= now ? "complete" : session.status === "live" ? "upcoming" : session.status || "upcoming";
   }
 
   function animateUpdate() {
@@ -527,9 +548,10 @@
     if (nextState.agenda?.length) renderAgenda(nextState.agenda);
 
     const { active, primary, secondary } = resolveDisplaySessions();
+    const sessionStatusNow = new Date();
     agendaItems.forEach(item => {
       const session = sessionMap.get(item.dataset.session);
-      const status = active?.key === session?.key ? "live" : session?.status || "upcoming";
+      const status = displayStatus(session, active, sessionStatusNow);
       item.classList.toggle("is-live", status === "live");
       item.classList.toggle("is-complete", status === "complete" || status === "cancelled");
       const label = item.querySelector(".agenda-state");
@@ -623,6 +645,26 @@
     const { active, primary, secondary } = resolveDisplaySessions();
     const next = active ? secondary : primary;
     const now = new Date();
+    if (els.liveLabel) els.liveLabel.textContent = active ? "Live now" : "Up next";
+    if (primary) {
+      els.liveSessionName.textContent = primary.name;
+      els.liveSessionTime.textContent = primary.displayTime;
+    }
+    if (secondary) {
+      els.nextUp.hidden = false;
+      els.nextSessionName.textContent = secondary.name;
+      els.nextSessionTime.textContent = secondary.displayTime;
+    } else {
+      els.nextUp.hidden = true;
+    }
+    agendaItems.forEach(item => {
+      const session = sessionMap.get(item.dataset.session);
+      const status = displayStatus(session, active, now);
+      item.classList.toggle("is-live", status === "live");
+      item.classList.toggle("is-complete", status === "complete" || status === "cancelled");
+      const label = item.querySelector(".agenda-state");
+      if (label) label.textContent = status === "live" ? "Live now" : status === "complete" ? "Complete" : status === "cancelled" ? "Cancelled" : "Upcoming";
+    });
     if (next) {
       const nextStart = eventMoment(next.start);
       els.countdownLabel.textContent = "Next session begins in";
