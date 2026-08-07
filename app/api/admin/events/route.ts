@@ -112,6 +112,7 @@ export async function PUT(req: Request) {
     return json({ error: "Missing id" }, 400)
   }
 
+  const updatedAt = new Date().toISOString()
   const patch = {
     title: body.title ? String(body.title).slice(0, 200) : null,
     description:
@@ -120,7 +121,7 @@ export async function PUT(req: Request) {
         : null,
     start_at: body.start_at || null,
     end_at: body.end_at || null,
-    updated_at: new Date().toISOString(),
+    updated_at: updatedAt,
   }
 
   const { error } = await supabaseAdmin
@@ -130,6 +131,15 @@ export async function PUT(req: Request) {
 
   if (error) {
     return json({ error: error.message }, 400)
+  }
+
+  const { error: syncError } = await supabaseAdmin
+    .from("event_live_state")
+    .update({ updated_at: updatedAt })
+    .eq("event_id", body.id)
+
+  if (syncError) {
+    return json({ error: `Event saved, but display sync failed: ${syncError.message}` }, 500)
   }
 
   return json({ ok: true })

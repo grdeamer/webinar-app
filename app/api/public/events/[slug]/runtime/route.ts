@@ -100,6 +100,7 @@ export async function GET(
         id: event.id,
         slug: event.slug,
         title: event.title,
+        description: event.description,
         start_at: agendaStartAt,
         end_at: agendaEndAt,
       },
