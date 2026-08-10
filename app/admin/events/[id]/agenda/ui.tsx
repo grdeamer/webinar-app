@@ -155,6 +155,38 @@ function formatDateTime(value: string | null) {
   }
 }
 
+function dateInputValue(value: string | null) {
+  if (!value) return ""
+  const date = new Date(value)
+  if (!Number.isFinite(date.getTime())) return ""
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, "0")
+  const day = String(date.getDate()).padStart(2, "0")
+  return `${year}-${month}-${day}`
+}
+
+function moveDateKeepingLocalTime(value: string | null, targetDate: string) {
+  if (!value) return null
+  const current = new Date(value)
+  const [year, month, day] = targetDate.split("-").map(Number)
+  if (
+    !Number.isFinite(current.getTime()) ||
+    !year ||
+    !month ||
+    !day
+  ) return value
+
+  return new Date(
+    year,
+    month - 1,
+    day,
+    current.getHours(),
+    current.getMinutes(),
+    current.getSeconds(),
+    current.getMilliseconds()
+  ).toISOString()
+}
+
 function formatDuration(startValue: string | null, endValue: string | null) {
   if (!startValue || !endValue) return "Duration TBD"
   const start = new Date(startValue).getTime()
@@ -224,6 +256,10 @@ export default function AdminAgendaEditor({
   const [updatingAccess, setUpdatingAccess] = useState(false)
   const [pendingAccessChange, setPendingAccessChange] = useState<boolean | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<AgendaItem | null>(null)
+  const [syncDateOpen, setSyncDateOpen] = useState(false)
+  const [syncDate, setSyncDate] = useState(() =>
+    dateInputValue(initialItems.find((item) => item.start_at)?.start_at || null)
+  )
   const [accessSyncToken, setAccessSyncToken] = useState<string | null>(null)
   const [accessError, setAccessError] = useState<string | null>(null)
   const [surveyUrl, setSurveyUrl] = useState(initialSurveyUrl)
@@ -324,6 +360,49 @@ export default function AdminAgendaEditor({
       flash(message)
     } catch (error) {
       setErr(errorMessage(error, "Failed"))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function syncAllSessionDates() {
+    if (!syncDate) return
+
+    setBusy(true); setErr(null); setMsg(null)
+    try {
+      const results = await Promise.all(
+        items.map(async (item) => {
+          const startAt = moveDateKeepingLocalTime(item.start_at, syncDate)
+          let endAt = moveDateKeepingLocalTime(item.end_at, syncDate)
+
+          if (item.start_at && item.end_at && startAt) {
+            const duration = new Date(item.end_at).getTime() - new Date(item.start_at).getTime()
+            if (Number.isFinite(duration) && duration >= 0) {
+              endAt = new Date(new Date(startAt).getTime() + duration).toISOString()
+            }
+          }
+
+          const res = await fetch("/api/admin/event-agenda", {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: item.id, start_at: startAt, end_at: endAt }),
+          })
+          const json = await res.json()
+          if (!res.ok) throw new Error(json.error || `Failed to update ${item.title}`)
+          return json.item
+        })
+      )
+
+      await refresh(selectedId)
+      setSyncDateOpen(false)
+      flash(`${results.length} session${results.length === 1 ? "" : "s"} moved to ${new Date(`${syncDate}T12:00:00`).toLocaleDateString()}`)
+    } catch (error) {
+      try {
+        await refresh(selectedId)
+      } catch {
+        // Keep the original update error visible if the follow-up refresh also fails.
+      }
+      setErr(errorMessage(error, "Failed to sync session dates"))
     } finally {
       setBusy(false)
     }
@@ -810,6 +889,47 @@ export default function AdminAgendaEditor({
         </div>
       ) : null}
 
+      {syncDateOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#02030d]/80 px-4 backdrop-blur-md">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="sync-date-dialog-title"
+            className="w-full max-w-lg rounded-3xl border border-indigo-300/20 bg-[linear-gradient(145deg,rgba(18,22,46,0.99),rgba(5,7,20,0.99))] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.65)]"
+          >
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-indigo-300/20 bg-indigo-500/10">
+                <CalendarDays aria-hidden="true" className="h-6 w-6 text-indigo-200" />
+              </div>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-indigo-200/55">Run of Show</div>
+                <h2 id="sync-date-dialog-title" className="mt-2 text-2xl font-bold tracking-tight text-white">Change all session dates</h2>
+                <p className="mt-3 text-sm leading-6 text-white/55">
+                  Move all {items.length} session{items.length === 1 ? "" : "s"} to one date. Start times and durations will stay the same.
+                </p>
+              </div>
+            </div>
+
+            <label className="mt-6 block">
+              <span className="mb-2 block text-xs font-bold uppercase tracking-[0.16em] text-white/40">New date</span>
+              <input
+                type="date"
+                value={syncDate}
+                onChange={(event) => setSyncDate(event.target.value)}
+                className="w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-base text-white outline-none focus:border-indigo-400/60"
+              />
+            </label>
+
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setSyncDateOpen(false)} disabled={busy} className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/70 hover:bg-white/10 disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={() => void syncAllSessionDates()} disabled={busy || !syncDate || items.length === 0} className="rounded-xl bg-indigo-600 px-5 py-3 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-50">
+                {busy ? "Changing dates…" : `Change ${items.length} date${items.length === 1 ? "" : "s"}`}
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-5 py-4 shadow-xl backdrop-blur-xl">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200/55">Operations</div>
@@ -860,9 +980,23 @@ export default function AdminAgendaEditor({
 
       <div className={`grid items-start gap-5 ${editing ? "lg:grid-cols-[minmax(280px,0.75fr)_minmax(520px,1.25fr)]" : "lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]"}`}>
         <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 shadow-2xl backdrop-blur-xl">
-          <div className="mb-6">
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Production Timeline</div>
-            <h2 className="mt-1 text-xl font-semibold">Run of Show Timeline</h2>
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Production Timeline</div>
+              <h2 className="mt-1 text-xl font-semibold">Run of Show Timeline</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                if (!syncDate) setSyncDate(dateInputValue(items.find((item) => item.start_at)?.start_at || null))
+                setSyncDateOpen(true)
+              }}
+              disabled={busy || items.length === 0}
+              className="inline-flex items-center gap-2 rounded-xl border border-indigo-300/20 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/20 disabled:opacity-40"
+            >
+              <CalendarDays aria-hidden="true" className="h-4 w-4" />
+              Change All Dates
+            </button>
           </div>
 
           <div className="space-y-0">
