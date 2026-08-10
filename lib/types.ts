@@ -55,6 +55,14 @@ export interface EventAgendaResource {
   size_bytes: number | null
 }
 
+export interface EventAgendaSpeaker {
+  id: string
+  name: string
+  title: string | null
+  bio: string | null
+  photo_url: string | null
+}
+
 export interface EventAgendaItem {
   id: string
   event_id: string
@@ -66,6 +74,7 @@ export interface EventAgendaItem {
   speaker_title: string | null
   speaker_bio: string | null
   speaker_photo_url: string | null
+  speakers: EventAgendaSpeaker[]
   show_session_details: boolean
   show_speaker_photo: boolean
   resources: EventAgendaResource[]

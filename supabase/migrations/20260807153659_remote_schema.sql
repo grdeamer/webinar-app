@@ -1,0 +1,2 @@
+-- History placeholder for the schema migration already applied to the linked
+-- Supabase project before this repository adopted local migration files.

@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
-import type { EventAgendaItem, EventAgendaResource } from "@/lib/types"
+import type { EventAgendaItem, EventAgendaResource, EventAgendaSpeaker } from "@/lib/types"
 import { normalizeAgendaIconKey } from "@/lib/agendaIcons"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const agendaSelect =
-  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,show_session_details,show_speaker_photo,resources,show_resources,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,speakers,show_session_details,show_speaker_photo,resources,show_resources,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
 
 function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
@@ -38,6 +38,23 @@ function normalizeResources(value: unknown): EventAgendaResource[] {
   })
 }
 
+function normalizeSpeakers(value: unknown): EventAgendaSpeaker[] {
+  if (!Array.isArray(value)) return []
+  return value.slice(0, 12).flatMap((entry): EventAgendaSpeaker[] => {
+    if (!entry || typeof entry !== "object") return []
+    const speaker = entry as Record<string, unknown>
+    const name = clamp(speaker.name, 200)?.trim()
+    if (!name) return []
+    return [{
+      id: clamp(speaker.id, 100) || crypto.randomUUID(),
+      name,
+      title: clamp(speaker.title, 200),
+      bio: clamp(speaker.bio, 10000),
+      photo_url: clamp(speaker.photo_url, 2000),
+    }]
+  })
+}
+
 export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url)
   const event_id = searchParams.get("event_id")
@@ -62,16 +79,28 @@ export async function POST(req: Request): Promise<Response> {
     return json({ error: "Missing fields" }, 400)
   }
 
+  const speakers = normalizeSpeakers(body.speakers)
+  if (speakers.length === 0 && clamp(body.speaker, 200)?.trim()) {
+    speakers.push({
+      id: crypto.randomUUID(),
+      name: clamp(body.speaker, 200)?.trim() || "Speaker",
+      title: clamp(body.speaker_title, 200),
+      bio: clamp(body.speaker_bio, 10000),
+      photo_url: clamp(body.speaker_photo_url, 2000),
+    })
+  }
+  const primarySpeaker = speakers[0]
   const row = {
     event_id: body.event_id,
     title: clamp(body.title, 200) || "Untitled",
     description: clamp(body.description, 10000),
     location: clamp(body.location, 200),
     track: clamp(body.track, 120),
-    speaker: clamp(body.speaker, 200),
-    speaker_title: clamp(body.speaker_title, 200),
-    speaker_bio: clamp(body.speaker_bio, 10000),
-    speaker_photo_url: clamp(body.speaker_photo_url, 2000),
+    speaker: primarySpeaker?.name || clamp(body.speaker, 200),
+    speaker_title: primarySpeaker?.title ?? clamp(body.speaker_title, 200),
+    speaker_bio: primarySpeaker?.bio ?? clamp(body.speaker_bio, 10000),
+    speaker_photo_url: primarySpeaker?.photo_url ?? clamp(body.speaker_photo_url, 2000),
+    speakers,
     show_session_details: body.show_session_details !== false,
     show_speaker_photo: body.show_speaker_photo !== false,
     resources: normalizeResources(body.resources),
@@ -130,6 +159,15 @@ export async function PUT(req: Request): Promise<Response> {
       body.speaker_photo_url == null
         ? null
         : clamp(body.speaker_photo_url, 2000)
+  }
+  if (body.speakers !== undefined) {
+    const speakers = normalizeSpeakers(body.speakers)
+    const primarySpeaker = speakers[0]
+    patch.speakers = speakers
+    patch.speaker = primarySpeaker?.name || null
+    patch.speaker_title = primarySpeaker?.title || null
+    patch.speaker_bio = primarySpeaker?.bio || null
+    patch.speaker_photo_url = primarySpeaker?.photo_url || null
   }
   if (body.show_session_details !== undefined) {
     patch.show_session_details = Boolean(body.show_session_details)

@@ -8,6 +8,12 @@
   let lastSyncToken = null;
   let requestInFlight = false;
   let state = { ...(config.FALLBACK_STATE || {}) };
+  const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || config.TIME_ZONE || "America/New_York";
+  let selectedTimeZone = localStorage.getItem("poa-time-zone") || "local";
+
+  function activeTimeZone() {
+    return selectedTimeZone === "local" ? browserTimeZone : selectedTimeZone;
+  }
 
   const sessionIconPaths = {
     calendar: ["M8 2v4M16 2v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Z"],
@@ -61,17 +67,13 @@
     countdownSession: document.getElementById("countdownSession"),
     statusPill: document.getElementById("statusPill"),
     eventDayDate: document.getElementById("eventDayDate"),
+    timeZoneSelect: document.getElementById("timeZoneSelect"),
     announcement: document.getElementById("runtimeAnnouncement"),
     announcementText: document.getElementById("runtimeAnnouncementText"),
     speakerPanel: document.getElementById("speakerPanel"),
     speakerPanelClose: document.getElementById("speakerPanelClose"),
     speakerPanelLabel: document.getElementById("speakerPanelLabel"),
-    speakerPortrait: document.querySelector(".speaker-portrait"),
-    speakerPhoto: document.getElementById("speakerPhoto"),
-    speakerInitials: document.getElementById("speakerInitials"),
-    speakerName: document.getElementById("speakerName"),
-    speakerRole: document.getElementById("speakerRole"),
-    speakerBio: document.getElementById("speakerBio"),
+    speakerList: document.getElementById("speakerList"),
     speakerSession: document.getElementById("speakerSession"),
     speakerTime: document.getElementById("speakerTime")
   };
@@ -161,11 +163,18 @@
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return String(value);
     return new Intl.DateTimeFormat("en-US", {
-      timeZone: config.TIME_ZONE || "America/New_York",
+      timeZone: activeTimeZone(),
       hour: "numeric",
       minute: "2-digit",
       hour12: true
     }).format(date);
+  }
+
+  function timeZoneAbbreviation(value = new Date()) {
+    const date = new Date(value);
+    const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+    return new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), timeZoneName: "short" })
+      .formatToParts(safeDate).find(part => part.type === "timeZoneName")?.value || "";
   }
 
   function localTimeValue(value) {
@@ -174,7 +183,7 @@
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
     const parts = new Intl.DateTimeFormat("en-US", {
-      timeZone: config.TIME_ZONE || "America/New_York",
+      timeZone: activeTimeZone(),
       hour: "2-digit", minute: "2-digit", hourCycle: "h23"
     }).formatToParts(date);
     const values = Object.fromEntries(parts.filter(part => part.type !== "literal").map(part => [part.type, part.value]));
@@ -209,19 +218,22 @@
     sessionMap = new Map(agendaItems.map((item, index) => {
       const key = item.dataset.session;
       const localProfile = config.SPEAKER_PROFILES?.[key] || {};
+      const legacySpeaker = {
+        name: firstValue(item.dataset.speaker, localProfile.name, ""),
+        title: firstValue(item.dataset.speakerRole, localProfile.role, ""),
+        bio: firstValue(item.dataset.speakerBio, localProfile.bio, item.dataset.description, ""),
+        photo_url: firstValue(item.dataset.speakerPhoto, localProfile.photo_url, "")
+      };
       const session = {
         item,
         index,
         key,
         name: item.querySelector("h3")?.textContent?.trim() || "",
-        displayTime: `${item.querySelector(".agenda-time span")?.textContent || ""}–${item.querySelector(".agenda-time small")?.textContent || ""} ET`,
+        displayTime: `${item.querySelector(".agenda-time span")?.textContent || ""}–${item.querySelector(".agenda-time small")?.textContent || ""} ${timeZoneAbbreviation(item.dataset.start)}`,
         start: item.dataset.start,
         end: item.dataset.end,
         description: item.dataset.description || "",
-        speaker: firstValue(item.dataset.speaker, localProfile.name, ""),
-        speakerRole: firstValue(item.dataset.speakerRole, localProfile.role, ""),
-        speakerBio: firstValue(item.dataset.speakerBio, localProfile.bio, item.dataset.description, ""),
-        speakerPhoto: firstValue(item.dataset.speakerPhoto, localProfile.photo_url, ""),
+        speakers: normalizeSpeakers(JSON.parse(item.dataset.speakers || "[]"), legacySpeaker),
         showSessionDetails: item.dataset.showSessionDetails !== "false",
         showSpeakerPhoto: item.dataset.showSpeakerPhoto !== "false",
         resources: normalizeResources(JSON.parse(item.dataset.resources || "[]")),
@@ -238,7 +250,7 @@
           trigger.className = "agenda-speaker-trigger";
           item.querySelector(".agenda-card-main")?.append(trigger);
         }
-        trigger.textContent = session.speaker ? "Meet the speaker" : "Session details";
+        trigger.textContent = session.speakers.length > 1 ? "Meet the speakers" : session.speakers.length ? "Meet the speaker" : "Session details";
         trigger.onclick = () => openSpeakerDetails(key);
       } else if (trigger) {
         trigger.remove();
@@ -291,6 +303,12 @@
       speakerRole: firstValue(item.speaker?.title, item.speaker?.role, item.speaker_title, item.speaker_role, ""),
       speakerBio: firstValue(item.speaker?.bio, item.speaker_bio, item.bio, ""),
       speakerPhoto: firstValue(item.speaker?.photo_url, item.speaker?.image_url, item.speaker_photo_url, item.photo_url, ""),
+      speakers: normalizeSpeakers(item.speakers, {
+        name: firstValue(item.speaker?.name, item.speaker_name, typeof item.speaker === "string" ? item.speaker : "", ""),
+        title: firstValue(item.speaker?.title, item.speaker?.role, item.speaker_title, item.speaker_role, ""),
+        bio: firstValue(item.speaker?.bio, item.speaker_bio, item.bio, ""),
+        photo_url: firstValue(item.speaker?.photo_url, item.speaker?.image_url, item.speaker_photo_url, item.photo_url, "")
+      }),
       showSessionDetails: item.show_session_details !== false && item.showSessionDetails !== false,
       showSpeakerPhoto: item.show_speaker_photo !== false && item.showSpeakerPhoto !== false,
       resources: normalizeResources(item.resources),
@@ -316,6 +334,7 @@
       item.dataset.speakerRole = session.speakerRole || "";
       item.dataset.speakerBio = session.speakerBio || "";
       item.dataset.speakerPhoto = session.speakerPhoto || "";
+      item.dataset.speakers = JSON.stringify(session.speakers || []);
       item.dataset.showSessionDetails = String(session.showSessionDetails !== false);
       item.dataset.showSpeakerPhoto = String(session.showSpeakerPhoto !== false);
       item.dataset.resources = JSON.stringify(session.resources || []);
@@ -396,33 +415,75 @@
     return parts.slice(0, 2).map(part => part[0]).join("").toUpperCase() || "POA";
   }
 
+  function normalizeSpeakers(value, fallback) {
+    const speakers = Array.isArray(value) ? value : [];
+    const normalized = speakers.slice(0, 12).map(speaker => ({
+      id: firstValue(speaker?.id, ""),
+      name: firstValue(speaker?.name, ""),
+      title: firstValue(speaker?.title, speaker?.role, ""),
+      bio: firstValue(speaker?.bio, ""),
+      photo_url: firstValue(speaker?.photo_url, speaker?.image_url, "")
+    })).filter(speaker => speaker.name);
+    if (normalized.length) return normalized;
+    return fallback?.name ? [fallback] : [];
+  }
+
+  function renderSpeakerList(session) {
+    if (!els.speakerList) return;
+    els.speakerList.replaceChildren();
+    if (!session.speakers.length) {
+      const empty = document.createElement("p");
+      empty.className = "speaker-empty";
+      empty.textContent = "Speaker information and a session overview will appear here when they are added in Jupiter.";
+      els.speakerList.append(empty);
+      return;
+    }
+    session.speakers.forEach(speaker => {
+      const card = document.createElement("article");
+      card.className = "speaker-card";
+      const portrait = document.createElement("div");
+      portrait.className = "speaker-card-portrait";
+      const validPhoto = session.showSpeakerPhoto !== false && /^https:\/\//i.test(speaker.photo_url || "");
+      if (validPhoto) {
+        const photo = document.createElement("img");
+        photo.src = speaker.photo_url;
+        photo.alt = `${speaker.name}, speaker`;
+        portrait.append(photo);
+      } else {
+        const initials = document.createElement("span");
+        initials.textContent = speakerInitials(speaker.name);
+        portrait.append(initials);
+      }
+      if (session.showSpeakerPhoto === false) portrait.hidden = true;
+      const copy = document.createElement("div");
+      copy.className = "speaker-card-copy";
+      const name = document.createElement("h3");
+      name.textContent = speaker.name;
+      copy.append(name);
+      if (speaker.title) {
+        const role = document.createElement("p");
+        role.className = "speaker-role";
+        role.textContent = speaker.title;
+        copy.append(role);
+      }
+      const bio = document.createElement("p");
+      bio.className = "speaker-bio";
+      bio.textContent = speaker.bio || "A full speaker biography will be available here soon.";
+      copy.append(bio);
+      card.append(portrait, copy);
+      els.speakerList.append(card);
+    });
+  }
+
   function openSpeakerDetails(key) {
     const session = sessionMap.get(key);
     if (!session || !session.showSessionDetails || !els.speakerPanel) return;
-    const hasSpeaker = Boolean(session.speaker);
+    const hasSpeaker = session.speakers.length > 0;
     els.speakerPanel.hidden = false;
-    els.speakerPanelLabel.textContent = hasSpeaker ? "Meet the speaker" : "Session details";
-    els.speakerName.textContent = session.speaker || "Speaker details coming soon";
-    els.speakerRole.textContent = session.speakerRole || "";
-    els.speakerRole.hidden = !session.speakerRole;
-    els.speakerBio.textContent = session.speakerBio || (hasSpeaker
-      ? "A full speaker biography will be available here soon."
-      : "Speaker information and a session overview will appear here when they are added in Jupiter.");
+    els.speakerPanelLabel.textContent = session.speakers.length > 1 ? "Meet the speakers" : hasSpeaker ? "Meet the speaker" : "Session details";
+    renderSpeakerList(session);
     els.speakerSession.textContent = session.name;
     els.speakerTime.textContent = session.displayTime;
-    els.speakerInitials.textContent = speakerInitials(session.speaker);
-    const showPortrait = session.showSpeakerPhoto !== false;
-    if (els.speakerPortrait) els.speakerPortrait.hidden = !showPortrait;
-    const validPhoto = showPortrait && /^https:\/\//i.test(session.speakerPhoto || "");
-    els.speakerPhoto.hidden = !validPhoto;
-    els.speakerInitials.hidden = validPhoto;
-    if (validPhoto) {
-      els.speakerPhoto.src = session.speakerPhoto;
-      els.speakerPhoto.alt = session.speaker ? `${session.speaker}, speaker` : "Session speaker";
-    } else {
-      els.speakerPhoto.removeAttribute("src");
-      els.speakerPhoto.alt = "";
-    }
     agendaItems.forEach(item => item.classList.toggle("is-selected", item.dataset.session === key));
     if (window.matchMedia("(max-width: 820px)").matches) {
       els.speakerPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
@@ -605,8 +666,8 @@
 
   function updateClock() {
     const now = new Date();
-    els.eventClock.textContent = new Intl.DateTimeFormat("en-US", { timeZone: config.TIME_ZONE || "America/New_York", hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).format(now);
-    els.eventDate.textContent = new Intl.DateTimeFormat("en-US", { timeZone: config.TIME_ZONE || "America/New_York", weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(now);
+    els.eventClock.textContent = new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).format(now);
+    els.eventDate.textContent = new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(now);
   }
 
   function updateEventDayDate(value = state.event_date || config.EVENT_DATE) {
@@ -618,7 +679,7 @@
       month: "long",
       day: "numeric",
       year: "numeric",
-      timeZone: dateOnly ? "UTC" : config.TIME_ZONE || "America/New_York"
+      timeZone: dateOnly ? "UTC" : activeTimeZone()
     }).format(eventDate)}`;
   }
 
@@ -711,6 +772,18 @@
     els.speakerPanel.hidden = true;
     agendaItems.forEach(item => item.classList.remove("is-selected"));
   });
+
+  if (els.timeZoneSelect) {
+    els.timeZoneSelect.value = selectedTimeZone;
+    els.timeZoneSelect.addEventListener("change", () => {
+      selectedTimeZone = els.timeZoneSelect.value;
+      localStorage.setItem("poa-time-zone", selectedTimeZone);
+      if (state.agenda?.length) renderAgenda(state.agenda);
+      applyState(state);
+      updateClock();
+      updateEventDayDate();
+    });
+  }
 
   ensureSessionIconStyles();
   refreshAgendaIndex();

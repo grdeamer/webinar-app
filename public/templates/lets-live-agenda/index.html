@@ -123,7 +123,17 @@
             <span></span>
             Event in progress
           </span>
-          <span class="timezone">Eastern Time</span>
+          <label class="timezone-picker">
+            <span>View times in</span>
+            <select id="timeZoneSelect" aria-label="Display timezone">
+              <option value="local">My local time</option>
+              <option value="America/New_York">Eastern Time</option>
+              <option value="America/Chicago">Central Time</option>
+              <option value="America/Denver">Mountain Time</option>
+              <option value="America/Los_Angeles">Pacific Time</option>
+              <option value="UTC">UTC</option>
+            </select>
+          </label>
         </div>
 
         <div class="clock-block">
@@ -309,15 +319,9 @@
 
       <aside class="speaker-panel" id="speakerPanel" aria-live="polite" hidden>
         <button class="speaker-panel-close" id="speakerPanelClose" type="button" aria-label="Close speaker details">×</button>
-        <div class="speaker-portrait">
-          <img id="speakerPhoto" alt="" hidden>
-          <span id="speakerInitials" aria-hidden="true">POA</span>
-        </div>
         <div class="speaker-panel-body">
           <span class="speaker-panel-label" id="speakerPanelLabel">Meet the speaker</span>
-          <h3 id="speakerName">Speaker details coming soon</h3>
-          <p class="speaker-role" id="speakerRole"></p>
-          <p class="speaker-bio" id="speakerBio"></p>
+          <div class="speaker-list" id="speakerList"></div>
           <div class="speaker-session-meta">
             <div><span>Session</span><strong id="speakerSession"></strong></div>
             <div><span>Time</span><strong id="speakerTime"></strong></div>

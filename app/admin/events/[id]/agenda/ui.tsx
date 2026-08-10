@@ -46,6 +46,14 @@ type AgendaResource = {
   size_bytes: number | null
 }
 
+type AgendaSpeaker = {
+  id: string
+  name: string
+  title: string | null
+  bio: string | null
+  photo_url: string | null
+}
+
 type AgendaItem = {
   id: string
   event_id: string
@@ -59,6 +67,7 @@ type AgendaItem = {
   speaker_title: string | null
   speaker_bio: string | null
   speaker_photo_url: string | null
+  speakers: AgendaSpeaker[]
   show_session_details: boolean
   show_speaker_photo: boolean
   resources: AgendaResource[]
@@ -83,6 +92,7 @@ const emptyDraft: Partial<AgendaItem> = {
   speaker_title: "",
   speaker_bio: "",
   speaker_photo_url: "",
+  speakers: [],
   show_session_details: true,
   show_speaker_photo: true,
   resources: [],
@@ -214,6 +224,18 @@ function errorMessage(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
 }
 
+function agendaSpeakers(value: Partial<AgendaItem>): AgendaSpeaker[] {
+  if (Array.isArray(value.speakers) && value.speakers.length > 0) return value.speakers
+  if (!value.speaker) return []
+  return [{
+    id: "primary-speaker",
+    name: value.speaker,
+    title: value.speaker_title || null,
+    bio: value.speaker_bio || null,
+    photo_url: value.speaker_photo_url || null,
+  }]
+}
+
 function StatusBadge({ status }: { status: AgendaStatus }) {
   return (
     <span className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] ${statusStyles[status]}`}>
@@ -260,6 +282,9 @@ export default function AdminAgendaEditor({
   const [syncDate, setSyncDate] = useState(() =>
     dateInputValue(initialItems.find((item) => item.start_at)?.start_at || null)
   )
+  const [timeShiftOpen, setTimeShiftOpen] = useState(false)
+  const [timeShiftMinutes, setTimeShiftMinutes] = useState(15)
+  const [timeShiftDirection, setTimeShiftDirection] = useState<"later" | "earlier">("later")
   const [accessSyncToken, setAccessSyncToken] = useState<string | null>(null)
   const [accessError, setAccessError] = useState<string | null>(null)
   const [surveyUrl, setSurveyUrl] = useState(initialSurveyUrl)
@@ -403,6 +428,38 @@ export default function AdminAgendaEditor({
         // Keep the original update error visible if the follow-up refresh also fails.
       }
       setErr(errorMessage(error, "Failed to sync session dates"))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function shiftAllSessionTimes() {
+    if (!Number.isFinite(timeShiftMinutes) || timeShiftMinutes <= 0) return
+    const delta = timeShiftMinutes * 60_000 * (timeShiftDirection === "later" ? 1 : -1)
+
+    setBusy(true); setErr(null); setMsg(null)
+    try {
+      await Promise.all(items.map(async (item) => {
+        const shift = (value: string | null) => {
+          if (!value) return null
+          const timestamp = new Date(value).getTime()
+          return Number.isFinite(timestamp) ? new Date(timestamp + delta).toISOString() : value
+        }
+        const res = await fetch("/api/admin/event-agenda", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ id: item.id, start_at: shift(item.start_at), end_at: shift(item.end_at) }),
+        })
+        const json = await res.json()
+        if (!res.ok) throw new Error(json.error || `Failed to update ${item.title}`)
+      }))
+
+      await refresh(selectedId)
+      setTimeShiftOpen(false)
+      flash(`${items.length} session${items.length === 1 ? "" : "s"} moved ${timeShiftMinutes} minute${timeShiftMinutes === 1 ? "" : "s"} ${timeShiftDirection}`)
+    } catch (error) {
+      try { await refresh(selectedId) } catch {}
+      setErr(errorMessage(error, "Failed to adjust agenda times"))
     } finally {
       setBusy(false)
     }
@@ -930,6 +987,39 @@ export default function AdminAgendaEditor({
         </div>
       ) : null}
 
+      {timeShiftOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#02030d]/80 px-4 backdrop-blur-md">
+          <div role="dialog" aria-modal="true" aria-labelledby="time-shift-dialog-title" className="w-full max-w-lg rounded-3xl border border-cyan-300/20 bg-[linear-gradient(145deg,rgba(18,22,46,0.99),rgba(5,7,20,0.99))] p-7 shadow-[0_30px_100px_rgba(0,0,0,0.65)]">
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/20 bg-cyan-500/10"><Clock3 aria-hidden="true" className="h-6 w-6 text-cyan-200" /></div>
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[0.24em] text-cyan-200/55">Run of Show</div>
+                <h2 id="time-shift-dialog-title" className="mt-2 text-2xl font-bold tracking-tight text-white">Adjust the entire agenda</h2>
+                <p className="mt-3 text-sm leading-6 text-white/55">Shift every session together. Durations and gaps between sessions will stay unchanged.</p>
+              </div>
+            </div>
+            <div className="mt-6 grid gap-3 sm:grid-cols-2">
+              <label className="text-xs font-bold uppercase tracking-[0.16em] text-white/40">Move sessions
+                <select value={timeShiftDirection} onChange={(event) => setTimeShiftDirection(event.target.value as "later" | "earlier")} className="mt-2 w-full rounded-xl border border-white/10 bg-[#0b1020] px-4 py-3 text-base normal-case tracking-normal text-white outline-none focus:border-cyan-400/60">
+                  <option value="later">Later</option>
+                  <option value="earlier">Earlier</option>
+                </select>
+              </label>
+              <label className="text-xs font-bold uppercase tracking-[0.16em] text-white/40">Minutes
+                <input type="number" min="1" max="1440" step="1" value={timeShiftMinutes} onChange={(event) => setTimeShiftMinutes(Number(event.target.value))} className="mt-2 w-full rounded-xl border border-white/10 bg-black/25 px-4 py-3 text-base normal-case tracking-normal text-white outline-none focus:border-cyan-400/60" />
+              </label>
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[5, 10, 15, 30, 60].map((minutes) => <button key={minutes} type="button" onClick={() => setTimeShiftMinutes(minutes)} className={`rounded-lg border px-3 py-2 text-xs font-semibold ${timeShiftMinutes === minutes ? "border-cyan-300/40 bg-cyan-500/20 text-cyan-100" : "border-white/10 bg-white/5 text-white/50 hover:bg-white/10"}`}>{minutes === 60 ? "1 hour" : `${minutes} min`}</button>)}
+            </div>
+            <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+              <button type="button" onClick={() => setTimeShiftOpen(false)} disabled={busy} className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm font-semibold text-white/70 hover:bg-white/10 disabled:opacity-50">Cancel</button>
+              <button type="button" onClick={() => void shiftAllSessionTimes()} disabled={busy || !Number.isFinite(timeShiftMinutes) || timeShiftMinutes <= 0 || items.length === 0} className="rounded-xl bg-cyan-600 px-5 py-3 text-sm font-bold text-white hover:bg-cyan-500 disabled:opacity-50">{busy ? "Adjusting agenda…" : `Move ${timeShiftDirection} ${timeShiftMinutes} min`}</button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-5 py-4 shadow-xl backdrop-blur-xl">
         <div>
           <div className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200/55">Operations</div>
@@ -961,9 +1051,6 @@ export default function AdminAgendaEditor({
             value={draft}
             onChange={setDraft}
             dateFieldsSideBySide
-            onPhotoChange={(url) =>
-              setDraft((current) => ({ ...current, speaker_photo_url: url }))
-            }
             busy={busy}
             onUploadStateChange={setUploadingSpeakerPhoto}
             onResourceUploadStateChange={setUploadingResource}
@@ -985,6 +1072,7 @@ export default function AdminAgendaEditor({
               <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Production Timeline</div>
               <h2 className="mt-1 text-xl font-semibold">Run of Show Timeline</h2>
             </div>
+            <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => {
@@ -997,6 +1085,11 @@ export default function AdminAgendaEditor({
               <CalendarDays aria-hidden="true" className="h-4 w-4" />
               Change All Dates
             </button>
+            <button type="button" onClick={() => setTimeShiftOpen(true)} disabled={busy || items.length === 0} className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-40">
+              <Clock3 aria-hidden="true" className="h-4 w-4" />
+              Adjust Agenda Time
+            </button>
+            </div>
           </div>
 
           <div className="space-y-0">
@@ -1067,8 +1160,16 @@ export default function AdminAgendaEditor({
                     <AgendaIcon iconKey={selectedItem.icon_key} className="mt-1 h-7 w-7 shrink-0 text-indigo-200/80" />
                     <span>{selectedItem.title}</span>
                   </h2>
-                  <div className="mt-2 text-base text-white/55">{selectedItem.speaker || "Speaker not assigned"}</div>
-                  {selectedItem.speaker_title ? <div className="mt-1 text-sm text-white/35">{selectedItem.speaker_title}</div> : null}
+                  {agendaSpeakers(selectedItem).length > 0 ? (
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      {agendaSpeakers(selectedItem).map((speaker) => (
+                        <div key={speaker.id} className="rounded-xl border border-white/[0.07] bg-black/15 px-3 py-2.5">
+                          <div className="text-sm font-semibold text-white/75">{speaker.name}</div>
+                          {speaker.title ? <div className="mt-0.5 text-xs text-white/35">{speaker.title}</div> : null}
+                        </div>
+                      ))}
+                    </div>
+                  ) : <div className="mt-2 text-base text-white/55">Speaker not assigned</div>}
 
                   <div className="mt-6 grid grid-cols-2 gap-3">
                     <InfoBlock label="Start" value={formatDateTime(selectedItem.start_at)} />
@@ -1107,11 +1208,6 @@ export default function AdminAgendaEditor({
                     eventId={eventId}
                     value={row}
                     onChange={(next) => setRow(next as AgendaItem)}
-                    onPhotoChange={(url) =>
-                      setRow((current) =>
-                        current ? { ...current, speaker_photo_url: url } : current
-                      )
-                    }
                     busy={busy}
                     onUploadStateChange={setUploadingSpeakerPhoto}
                     onResourceUploadStateChange={setUploadingResource}
@@ -1148,7 +1244,6 @@ function SessionFields({
   eventId,
   value,
   onChange,
-  onPhotoChange,
   busy,
   onUploadStateChange,
   onResourceUploadStateChange,
@@ -1157,7 +1252,6 @@ function SessionFields({
   eventId: string
   value: Partial<AgendaItem>
   onChange: (next: Partial<AgendaItem>) => void
-  onPhotoChange: (url: string | null) => void
   busy: boolean
   onUploadStateChange: (uploading: boolean) => void
   onResourceUploadStateChange: (uploading: boolean) => void
@@ -1167,8 +1261,27 @@ function SessionFields({
   const [resourceError, setResourceError] = useState<string | null>(null)
   const fieldClass = "mt-1 min-w-0 w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2 outline-none transition focus:border-indigo-400/50 focus:bg-white/[0.07]"
   const labelClass = "text-xs font-medium text-white/50"
+  const speakers = agendaSpeakers(value)
 
-  async function uploadSpeakerPhoto(file: File) {
+  function setSpeakers(nextSpeakers: AgendaSpeaker[]) {
+    const primary = nextSpeakers[0]
+    onChange({
+      ...value,
+      speakers: nextSpeakers,
+      speaker: primary?.name || null,
+      speaker_title: primary?.title || null,
+      speaker_bio: primary?.bio || null,
+      speaker_photo_url: primary?.photo_url || null,
+    })
+  }
+
+  function updateSpeaker(index: number, patch: Partial<AgendaSpeaker>) {
+    setSpeakers(speakers.map((speaker, speakerIndex) =>
+      speakerIndex === index ? { ...speaker, ...patch } : speaker
+    ))
+  }
+
+  async function uploadSpeakerPhoto(file: File, speakerIndex: number) {
     setPhotoError(null)
 
     if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
@@ -1198,7 +1311,7 @@ function SessionFields({
         throw new Error(result.error || "Speaker photo upload failed")
       }
 
-      onPhotoChange(result.url)
+      updateSpeaker(speakerIndex, { photo_url: result.url })
     } catch (error) {
       setPhotoError(error instanceof Error ? error.message : "Speaker photo upload failed")
     } finally {
@@ -1314,67 +1427,47 @@ function SessionFields({
         </div>
       </div>
 
-      <div>
-        <div className={labelClass}>Speaker Name</div>
-        <input className={fieldClass} value={value.speaker || ""} onChange={(e) => onChange({ ...value, speaker: e.target.value || null })} placeholder="Dr. Smith" />
-      </div>
-      <div>
-        <div className={labelClass}>Speaker Role/Title</div>
-        <input className={fieldClass} value={value.speaker_title || ""} onChange={(e) => onChange({ ...value, speaker_title: e.target.value || null })} placeholder="Chief Medical Officer" />
-      </div>
-
       <div className="sm:col-span-2">
-        <div className={labelClass}>Speaker Bio</div>
-        <textarea className={`${fieldClass} min-h-[96px]`} value={value.speaker_bio || ""} onChange={(e) => onChange({ ...value, speaker_bio: e.target.value || null })} placeholder="Short speaker biography…" />
-      </div>
-
-      <div className="sm:col-span-2">
-        <div className={labelClass}>Speaker Photo</div>
-        <div className="mt-1 flex flex-wrap items-center gap-4 rounded-xl border border-white/10 bg-white/5 p-3">
-          {value.speaker_photo_url ? (
-            <Image
-              src={value.speaker_photo_url}
-              alt={`${value.speaker || "Speaker"} photo preview`}
-              width={88}
-              height={88}
-              className="h-[88px] w-[88px] rounded-xl object-cover"
-            />
-          ) : (
-            <div className="flex h-[88px] w-[88px] items-center justify-center rounded-xl border border-dashed border-white/15 bg-black/20 text-center text-xs text-white/30">
-              No photo
-            </div>
-          )}
-          <div className="min-w-[220px] flex-1">
-            <div className="flex flex-wrap gap-2">
-              <label className="cursor-pointer rounded-lg border border-indigo-300/20 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25">
-                {value.speaker_photo_url ? "Replace Speaker Photo" : "Upload Speaker Photo"}
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  disabled={busy}
-                  className="sr-only"
-                  onChange={async (event) => {
-                    const input = event.currentTarget
-                    const file = input.files?.[0]
-                    if (file) await uploadSpeakerPhoto(file)
-                    input.value = ""
-                  }}
-                />
-              </label>
-              {value.speaker_photo_url ? (
-                <button
-                  type="button"
-                  onClick={() => onPhotoChange(null)}
-                  disabled={busy}
-                  className="rounded-lg border border-red-300/15 bg-red-500/10 px-3 py-2 text-sm font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-50"
-                >
-                  Remove Photo
-                </button>
-              ) : null}
-            </div>
-            <div className="mt-2 text-xs text-white/35">JPEG, PNG, or WebP. Maximum 5 MB.</div>
-            {photoError ? <div className="mt-2 text-sm text-red-300">{photoError}</div> : null}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <div className={labelClass}>Speakers</div>
+            <div className="mt-0.5 text-xs text-white/30">Add speakers in the order they should appear to attendees.</div>
           </div>
+          <button type="button" onClick={() => setSpeakers([...speakers, { id: crypto.randomUUID(), name: "", title: null, bio: null, photo_url: null }])} disabled={busy || speakers.length >= 12} className="rounded-lg border border-indigo-300/20 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25 disabled:opacity-50">+ Add Speaker</button>
+        </div>
+
+        <div className="mt-3 space-y-3">
+          {speakers.map((speaker, index) => (
+            <div key={speaker.id} className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <div className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-200/60">Speaker {index + 1}</div>
+                <button type="button" onClick={() => setSpeakers(speakers.filter((_, speakerIndex) => speakerIndex !== index))} disabled={busy} className="rounded-lg px-2.5 py-1.5 text-xs font-semibold text-red-300/70 hover:bg-red-500/10 hover:text-red-200">Remove</button>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className={labelClass}>Name
+                  <input className={fieldClass} value={speaker.name} onChange={(event) => updateSpeaker(index, { name: event.target.value })} placeholder="Dr. Smith" />
+                </label>
+                <label className={labelClass}>Role/Title
+                  <input className={fieldClass} value={speaker.title || ""} onChange={(event) => updateSpeaker(index, { title: event.target.value || null })} placeholder="Chief Medical Officer" />
+                </label>
+                <label className={`sm:col-span-2 ${labelClass}`}>Bio
+                  <textarea className={`${fieldClass} min-h-[96px]`} value={speaker.bio || ""} onChange={(event) => updateSpeaker(index, { bio: event.target.value || null })} placeholder="Short speaker biography…" />
+                </label>
+                <div className="sm:col-span-2 flex flex-wrap items-center gap-4 rounded-xl border border-white/[0.07] bg-black/15 p-3">
+                  {speaker.photo_url ? <Image src={speaker.photo_url} alt={`${speaker.name || "Speaker"} photo preview`} width={72} height={72} className="h-[72px] w-[72px] rounded-xl object-cover" /> : <div className="flex h-[72px] w-[72px] items-center justify-center rounded-xl border border-dashed border-white/15 text-xs text-white/30">No photo</div>}
+                  <div className="flex flex-wrap gap-2">
+                    <label className="cursor-pointer rounded-lg border border-indigo-300/20 bg-indigo-500/15 px-3 py-2 text-sm font-semibold text-indigo-100 hover:bg-indigo-500/25">
+                      {speaker.photo_url ? "Replace Photo" : "Upload Photo"}
+                      <input type="file" accept="image/jpeg,image/png,image/webp" disabled={busy} className="sr-only" onChange={async (event) => { const input = event.currentTarget; const file = input.files?.[0]; if (file) await uploadSpeakerPhoto(file, index); input.value = "" }} />
+                    </label>
+                    {speaker.photo_url ? <button type="button" onClick={() => updateSpeaker(index, { photo_url: null })} disabled={busy} className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white/60 hover:bg-white/10">Remove Photo</button> : null}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+          {speakers.length === 0 ? <button type="button" onClick={() => setSpeakers([{ id: crypto.randomUUID(), name: "", title: null, bio: null, photo_url: null }])} className="w-full rounded-xl border border-dashed border-white/15 bg-black/10 px-4 py-8 text-sm text-white/45 hover:border-indigo-300/30 hover:text-indigo-100">Add the first speaker</button> : null}
+          {photoError ? <div className="text-sm text-red-300">{photoError}</div> : null}
         </div>
       </div>
 
