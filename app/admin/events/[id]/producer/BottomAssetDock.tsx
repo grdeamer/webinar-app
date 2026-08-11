@@ -3888,7 +3888,7 @@ onSelectAsset={setSelectedMediaAssetLabel}
 
       </div>
 
-      {workspaceMode === "advanced" ? (
+      {workspaceMode === "show" || workspaceMode === "advanced" ? (
       <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-4">
         <UtilityButton
           icon={<CircleDot size={18} />}
