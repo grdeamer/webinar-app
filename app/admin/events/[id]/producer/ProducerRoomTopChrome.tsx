@@ -107,7 +107,8 @@ function TopChromeTransmissionShell({
     <div className={TOP_CHROME_SHELL_CLASS}>
       <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
         <div className="absolute -right-24 -top-[390px] h-[560px] w-[760px] rounded-[50%] border border-blue-200/[0.18] bg-[radial-gradient(circle_at_34%_66%,rgba(120,169,255,0.62),transparent_18%),radial-gradient(circle_at_44%_58%,rgba(38,91,193,0.88),rgba(7,21,58,0.96)_58%,rgba(2,7,20,0.99)_76%)] opacity-90 shadow-[-24px_34px_80px_rgba(68,127,238,0.32),-80px_90px_170px_rgba(36,91,201,0.20)]" />
-        <div className="absolute -right-20 top-[44px] h-[84px] w-[690px] rotate-[-6deg] rounded-[50%] border-t border-blue-100/[0.30] opacity-85 drop-shadow-[0_-12px_25px_rgba(78,143,255,0.26)]" />
+        <div className="absolute -right-16 top-[28px] h-[108px] w-[720px] rotate-[-6deg] rounded-[50%] border-t-2 border-blue-100/[0.62] bg-[linear-gradient(180deg,rgba(73,135,255,0.12),rgba(12,35,91,0.10)_38%,transparent_74%)] opacity-100 drop-shadow-[0_-10px_20px_rgba(110,166,255,0.55)]" />
+        <div className="absolute right-[12%] top-[22px] h-[2px] w-[36%] rotate-[-5deg] bg-gradient-to-r from-transparent via-blue-100/65 to-transparent blur-[0.5px] shadow-[0_0_18px_rgba(105,164,255,0.72)]" />
       </div>
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-[3] h-8 transition-opacity duration-700 ${
