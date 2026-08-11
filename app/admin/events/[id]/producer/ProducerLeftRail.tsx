@@ -1,78 +1,13 @@
 import type { JSX } from "react"
-import {
-  AudioLines,
-  FileVideo,
-  LayoutPanelTop,
-  Radio,
-} from "lucide-react"
+import { ArrowRight, Radio, ShieldCheck, Zap } from "lucide-react"
 
 import type { StageState } from "./producerRoomTypes"
 import type { ScreenLayoutPreset } from "./assetDockTypes"
 
-function LeftRailAtmosphere(): JSX.Element {
-  return (
-    <>
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b from-sky-300/[0.020] via-violet-300/[0.008] to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.006)_42%,transparent_64%)] animate-[leftRailSignalSweep_24s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.012] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.012)_0px,rgba(255,255,255,0.012)_1px,transparent_1px,transparent_18px)]" />
-      <div className="pointer-events-none absolute inset-x-10 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/10 to-transparent" />
-    </>
-  )
-}
-
-function ControlNavItem({
-  icon,
-  label,
-}: {
-  icon: JSX.Element
-  label: string
-}): JSX.Element {
-  return (
-    <button
-      type="button"
-      className="group/nav flex min-h-[64px] w-full flex-col items-center justify-center gap-2 rounded-[16px] border border-white/[0.04] bg-white/[0.014] px-1.5 py-3 text-center text-[9px] font-semibold leading-tight text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] transition hover:border-sky-200/12 hover:bg-sky-300/[0.035] hover:text-white/78"
-    >
-      <span className="text-white/36 transition group-hover/nav:text-sky-100/58">
-        {icon}
-      </span>
-      <span className="max-w-[58px] truncate">{label}</span>
-    </button>
-  )
-}
-
-function SectionLabel({ children }: { children: string }): JSX.Element {
-  return (
-    <div className="text-[8px] font-black uppercase tracking-[0.16em] text-white/42">
-      {children}
-    </div>
-  )
-}
-
-export default function ProducerLeftRail({
-  takeBusy,
-  previewProgramDifferent,
-  onTake,
-  onGoLive,
-  onGoOffAir,
-  layout,
-  onSetLayout,
-  autoDirectorEnabled,
-  onToggleAutoDirector,
-  screenLayoutPreset,
-  onSetScreenLayoutPreset,
-  localMicLevel,
-  monitorHeight,
-  onMonitorHeightChange,
-  deviceAccessReady,
-  videoDevices,
-  audioDevices,
-  selectedVideoDeviceId,
-  selectedAudioDeviceId,
-  onSelectVideoDevice,
-  onSelectAudioDevice,
-}: {
+type ProducerLeftRailProps = {
   takeBusy: boolean
   previewProgramDifferent: boolean
+  isProgramLive: boolean
   onTake: () => void
   onGoLive: () => void
   onGoOffAir: () => void
@@ -92,41 +27,78 @@ export default function ProducerLeftRail({
   selectedAudioDeviceId: string
   onSelectVideoDevice: (value: string) => void
   onSelectAudioDevice: (value: string) => void
-}): JSX.Element {
+}
+
+export default function ProducerLeftRail({
+  takeBusy,
+  previewProgramDifferent,
+  isProgramLive,
+  onTake,
+  onGoLive,
+  onGoOffAir,
+}: ProducerLeftRailProps): JSX.Element {
   return (
-    <div className="group relative h-full overflow-hidden rounded-[20px] border border-white/[0.055] bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.012),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.010),transparent_34%),linear-gradient(180deg,rgba(16,23,38,0.82),rgba(6,10,18,0.94))] p-3 shadow-[0_10px_30px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.018)] backdrop-blur-2xl transition duration-300 hover:border-white/[0.075] xl:col-start-1">
-      <LeftRailAtmosphere />
-
-      <div className="relative z-10 flex h-full min-h-0 flex-col overflow-hidden">
-        <div className="shrink-0">
-          <SectionLabel>Controls</SectionLabel>
-        </div>
-
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-4 py-4">
-          <ControlNavItem icon={<Radio size={15} />} label="Live" />
-          <ControlNavItem icon={<FileVideo size={15} />} label="Transition" />
-          <ControlNavItem icon={<AudioLines size={15} />} label="Audio" />
-          <ControlNavItem icon={<LayoutPanelTop size={15} />} label="Layout" />
+    <aside className="flex h-full min-h-0 flex-col border-r border-white/[0.055] bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(3,6,12,1))] p-2 text-white">
+      <div className="flex items-center justify-center py-2">
+        <div
+          className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+            isProgramLive
+              ? "border-red-300/30 bg-red-500/15 text-red-100 shadow-[0_0_20px_rgba(248,113,113,0.16)]"
+              : "border-white/10 bg-white/[0.035] text-white/45"
+          }`}
+          title={isProgramLive ? "Audience is live" : "Audience is in holding"}
+        >
+          <Radio size={17} />
         </div>
       </div>
 
-      <style jsx global>{`
-        @keyframes leftRailSignalSweep {
-          0%,
-          100% {
-            opacity: 0;
-            transform: translateX(-18%);
-          }
+      <div className="mt-2 space-y-2">
+        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-1.5 py-2 text-center">
+          <div className="text-[7px] font-black uppercase tracking-[0.14em] text-white/32">1 · Preview</div>
+          <div className={`mt-1 text-[8px] font-bold ${previewProgramDifferent ? "text-amber-200/75" : "text-emerald-200/62"}`}>
+            {previewProgramDifferent ? "READY" : "MATCHED"}
+          </div>
+        </div>
 
-          46% {
-            opacity: 0.10;
-          }
+        <ArrowRight className="mx-auto text-white/20" size={13} />
 
-          100% {
-            transform: translateX(18%);
-          }
-        }
-      `}</style>
-    </div>
+        <button
+          type="button"
+          disabled={takeBusy || !previewProgramDifferent}
+          onClick={onTake}
+          className="flex w-full flex-col items-center rounded-xl border border-sky-300/18 bg-sky-400/[0.08] px-1 py-3 text-sky-50 transition hover:bg-sky-400/[0.14] disabled:cursor-not-allowed disabled:border-white/[0.05] disabled:bg-white/[0.02] disabled:text-white/25"
+          title="Send Preview to Program"
+        >
+          <Zap size={16} />
+          <span className="mt-1 text-[8px] font-black uppercase tracking-[0.12em]">
+            {takeBusy ? "Taking" : "2 · Take"}
+          </span>
+        </button>
+
+        <ArrowRight className="mx-auto text-white/20" size={13} />
+
+        <button
+          type="button"
+          onClick={isProgramLive ? onGoOffAir : onGoLive}
+          className={`flex w-full flex-col items-center rounded-xl border px-1 py-3 transition ${
+            isProgramLive
+              ? "border-red-300/22 bg-red-500/[0.10] text-red-100 hover:bg-red-500/[0.16]"
+              : "border-emerald-300/18 bg-emerald-400/[0.08] text-emerald-100 hover:bg-emerald-400/[0.14]"
+          }`}
+          title={isProgramLive ? "Take the event off air" : "Send Program to attendees"}
+        >
+          <ShieldCheck size={16} />
+          <span className="mt-1 text-[8px] font-black uppercase tracking-[0.09em]">
+            {isProgramLive ? "3 · Off Air" : "3 · Go Live"}
+          </span>
+        </button>
+      </div>
+
+      <div className="mt-auto rounded-xl border border-white/[0.055] bg-black/20 px-1 py-2 text-center">
+        <div className={`text-[8px] font-black uppercase tracking-[0.12em] ${isProgramLive ? "text-red-200/78" : "text-white/38"}`}>
+          {isProgramLive ? "Audience Live" : "Holding"}
+        </div>
+      </div>
+    </aside>
   )
 }

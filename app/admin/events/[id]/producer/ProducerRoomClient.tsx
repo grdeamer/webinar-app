@@ -505,6 +505,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     setProgramState: updateProgramState,
     setLoadingText,
     setError,
+    setSyncWarningText,
   });
 
   const {
@@ -676,6 +677,32 @@ updateShadowColor: updateSelectedBlockShadowColor,
     [takeProgram],
   );
 
+  const setAutoDirector = useCallback(async (enabled: boolean): Promise<void> => {
+    const data = await api.setAutoDirector(enabled);
+    updateStageState(data.state);
+    setAutoDirectorEnabled(Boolean(data?.state?.auto_director_enabled));
+  }, [api, updateStageState]);
+
+  const setLayout = useCallback(async (
+    layout: "solo" | "grid" | "screen_speaker",
+  ): Promise<void> => {
+    const data = await api.setLayout(layout);
+    updateStageState(data.state);
+  }, [api, updateStageState]);
+
+  const setScreenShare = useCallback(async (
+    participantId: string,
+    trackId: string,
+  ): Promise<void> => {
+    const data = await api.setScreenShare(participantId, trackId);
+    updateStageState(data.state);
+  }, [api, updateStageState]);
+
+  const clearScreenShare = useCallback(async (): Promise<void> => {
+    const data = await api.clearScreenShare();
+    updateStageState(data.state);
+  }, [api, updateStageState]);
+
   const handleLeftRailTake = useCallback((): void => {
     takeProgram("cut");
   }, [takeProgram]);
@@ -686,14 +713,6 @@ updateShadowColor: updateSelectedBlockShadowColor,
     },
     [takeProgram],
   );
-
-  const handleGoLive = useCallback((): void => {
-    void goLive().catch(handleAsyncError);
-  }, [goLive, handleAsyncError]);
-
-  const handleGoOffAir = useCallback((): void => {
-    void goOffAir().catch(handleAsyncError);
-  }, [goOffAir, handleAsyncError]);
 
   const handleSetLayout = useCallback(
     (layout: "solo" | "grid" | "screen_speaker"): void => {
@@ -1141,36 +1160,19 @@ updateShadowColor: updateSelectedBlockShadowColor,
     setSnapGuideX,
     setSnapGuideY,
   });
-  async function setAutoDirector(enabled: boolean) {
-    const data = await api.setAutoDirector(enabled);
-    updateStageState(data.state);
-    setAutoDirectorEnabled(Boolean(data?.state?.auto_director_enabled));
-  }
+  const handleGoLive = useCallback((): void => {
+    if (!window.confirm("Go live and send Program to attendees?")) return;
+    void api.goLive()
+      .then((data) => updateStageState(data.state))
+      .catch(handleAsyncError);
+  }, [api, handleAsyncError, updateStageState]);
 
-  async function goLive() {
-    const data = await api.goLive();
-    updateStageState(data.state);
-  }
-
-  async function goOffAir() {
-    const data = await api.goOffAir();
-    updateStageState(data.state);
-  }
-
-  async function setLayout(layout: "solo" | "grid" | "screen_speaker") {
-    const data = await api.setLayout(layout);
-    updateStageState(data.state);
-  }
-
-  async function setScreenShare(participantId: string, trackId: string) {
-    const data = await api.setScreenShare(participantId, trackId);
-    updateStageState(data.state);
-  }
-
-  async function clearScreenShare() {
-    const data = await api.clearScreenShare();
-    updateStageState(data.state);
-  }
+  const handleGoOffAir = useCallback((): void => {
+    if (!window.confirm("Take the event off air? Attendees will return to holding.")) return;
+    void api.goOffAir()
+      .then((data) => updateStageState(data.state))
+      .catch(handleAsyncError);
+  }, [api, handleAsyncError, updateStageState]);
 
   const getScreenTrackSid = useCallback(
     (participant: ProducerParticipant): string | null => {
@@ -1437,6 +1439,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     () => ({
       takeBusy,
       previewProgramDifferent,
+      isProgramLive,
       onTake: handleLeftRailTake,
       onGoLive: handleGoLive,
       onGoOffAir: handleGoOffAir,
@@ -1460,6 +1463,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     [
       takeBusy,
       previewProgramDifferent,
+      isProgramLive,
       handleLeftRailTake,
       handleGoLive,
       handleGoOffAir,
@@ -1735,4 +1739,3 @@ onSaveScene: () => {
     </LiveKitRoom>
   );
 }
-

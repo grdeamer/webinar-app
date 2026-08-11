@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { ensureEventLiveProgramState } from "@/lib/live/state"
+import { requireAdmin } from "@/lib/requireAdmin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -8,6 +9,9 @@ export async function GET(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdmin()
+  if (auth instanceof Response) return auth
+
   try {
     const { id } = await context.params
 
@@ -18,9 +22,12 @@ export async function GET(
     const state = await ensureEventLiveProgramState(id)
 
     return NextResponse.json({ state })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error?.message || "Failed to load program state" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to load program state",
+      },
       { status: 500 }
     )
   }

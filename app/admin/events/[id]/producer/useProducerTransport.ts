@@ -31,7 +31,7 @@ export default function useProducerTransport({
   const [programSceneId, setProgramSceneId] = useState<string | null>(null)
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
 
-  function takeProgram(
+  async function takeProgram(
     mode: "cut" | "auto",
     transitionType?: CinematicTransitionType,
     options?: {
@@ -39,14 +39,12 @@ export default function useProducerTransport({
       slideLabel?: string | null
       transitionDurationMs?: number
     }
-  ) {
+  ): Promise<void> {
     const durationMs =
       options?.transitionDurationMs ?? selectedTransitionDurationMs
 
-    setLastTransportActionAt(Date.now())
+    await runTake(mode, transitionType)
     commitPreviewToProgram?.()
-
-    void runTake(mode, transitionType)
 
     broadcastPresenterProgramSource({
       mode,
@@ -59,6 +57,7 @@ export default function useProducerTransport({
 
     setProgramSceneId(options?.sceneId ?? selectedSceneId)
     setProgramSlideLabel(options?.slideLabel ?? null)
+    setLastTransportActionAt(Date.now())
   }
 
   const transportState = useMemo(

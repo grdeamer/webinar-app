@@ -645,18 +645,11 @@ export default function ProducerRightRail({
   onError: (value: string | null) => void
 }): JSX.Element {
   
-  const featuredParticipants = participants.slice(0, 4)
   const onStageParticipants = participants.filter((participant) => stageIds.has(participant.identity))
   const backstageParticipants = participants.filter((participant) => !stageIds.has(participant.identity))
   const participantRole = (index: number): string =>
     index === 0 ? "Host" : index === 1 ? "Presenter" : index === 2 ? "Speaker" : "Guest"
-  const fallbackParticipants: Array<{ name: string; role: string }> = [
-    { name: "Jane Cooper", role: "Host" },
-    { name: "Wade Warren", role: "Presenter" },
-    { name: "Cameron Williamson", role: "Speaker" },
-    { name: "Brooklyn Simmons", role: "Guest" },
-  ]
-  const backstageCount = participants.length > 0 ? backstageParticipants.length : 6
+  const backstageCount = backstageParticipants.length
   const defaultRailTab = previewBlocks.length > 0 || selectedBlock ? "Blocks" : "Stage"
   const [activeRailTab, setActiveRailTab] = useState(defaultRailTab)
   const blocksSectionRef = useRef<HTMLDivElement | null>(null)
@@ -678,7 +671,6 @@ export default function ProducerRightRail({
       block: "start",
     })
   }
-  const audienceCount = Math.max(participants.length * 611, 2462)
   return (
     <div className="group flex h-full min-w-0 flex-col gap-2 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(5,9,18,0.94),rgba(2,4,9,0.995))] p-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.018)] backdrop-blur-2xl lg:col-start-3">
       
@@ -772,13 +764,10 @@ export default function ProducerRightRail({
           <div className="mt-px text-[10px] font-medium text-white/46">
             {stageIds.size > 0 ? `${stageIds.size} source${stageIds.size === 1 ? "" : "s"} on stage` : "No one is on stage"}
           </div>
-          <button
-            type="button"
-            className="mt-2 flex w-full items-center justify-center gap-2 rounded-[10px] border border-emerald-300/12 bg-emerald-400/[0.075] px-3 py-1.5 text-[9px] font-black text-emerald-100/72 shadow-[inset_0_1px_0_rgba(255,255,255,0.020)] hover:bg-emerald-400/[0.12]"
-          >
+          <div className="mt-2 flex items-center gap-2 rounded-[10px] border border-white/[0.04] bg-white/[0.014] px-3 py-2 text-[9px] font-semibold text-white/38">
             <ShieldCheck size={13} />
-            Send to Stage
-          </button>
+            Route talent from the list below.
+          </div>
         </div>
 
         <div className="mt-5 border-t border-white/[0.05] pt-4">
@@ -791,9 +780,6 @@ export default function ProducerRightRail({
                 {onStageParticipants.length} Ready
               </div>
             </div>
-            <button type="button" className="text-[9px] font-black text-emerald-200/62 hover:text-emerald-100">
-              Manage all →
-            </button>
           </div>
 
           <div className="mt-2 space-y-1.5">
@@ -835,9 +821,6 @@ export default function ProducerRightRail({
                 {backstageCount} In backstage
               </div>
             </div>
-            <button type="button" className="text-[9px] font-black text-emerald-200/62 hover:text-emerald-100">
-              View all →
-            </button>
           </div>
 
           <div className="mt-2 space-y-1.5">
@@ -866,58 +849,10 @@ export default function ProducerRightRail({
                 Everyone is currently on stage.
               </div>
             ) : (
-              fallbackParticipants.slice(0, 4).map((participant) => (
-                <div
-                  key={participant.name}
-                  className="rounded-[13px] border border-white/[0.035] bg-white/[0.018] px-2 py-1.5"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex min-w-0 items-center gap-2">
-                      <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-sky-200/10 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.16)_38%,rgba(15,23,42,0.82)_80%)] text-[9px] font-black text-white/72">
-                        {participant.name
-                          .split(" ")
-                          .map((part) => part[0])
-                          .join("")
-                          .slice(0, 2)}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="truncate text-[10px] font-semibold tracking-[-0.02em] text-white/70">
-                          {participant.name}
-                        </div>
-                        <div className="mt-px text-[8px] font-semibold text-white/26">
-                          {participant.role}
-                        </div>
-                      </div>
-                    </div>
-                    <span className="rounded-full border border-white/[0.04] bg-white/[0.014] px-2 py-1 text-[7px] font-black uppercase tracking-[0.08em] text-white/30">
-                      Demo
-                    </span>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div className="hidden">
-          <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
-            Audience
-          </div>
-          <div className="mt-1 text-[15px] font-semibold tracking-[-0.05em] text-white/82">
-            {audienceCount.toLocaleString()} connected
-          </div>
-          <div className="mt-2 grid grid-cols-4 gap-1.5">
-            {[
-              ["👍", "1.2K"],
-              ["👏", "980"],
-              ["❤️", "642"],
-              ["🔥", "398"],
-            ].map(([emoji, value]) => (
-              <div key={emoji} className="rounded-[10px] border border-white/[0.035] bg-white/[0.018] px-1.5 py-1 text-center text-[9px] font-black text-white/72">
-                <span className="mr-1">{emoji}</span>
-                {value}
+              <div className="rounded-[13px] border border-white/[0.035] bg-white/[0.014] px-3 py-3 text-[10px] font-semibold leading-relaxed text-white/38">
+                No talent is connected. Share the presenter link, then connected speakers will appear here.
               </div>
-            ))}
+            )}
           </div>
         </div>
 

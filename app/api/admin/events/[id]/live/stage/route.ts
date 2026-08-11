@@ -2,6 +2,10 @@ import { NextResponse } from "next/server"
 import { RoomServiceClient } from "livekit-server-sdk"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { applyProducerStageAction } from "@/lib/live/stageState"
+import {
+  ensureEventLiveProgramState,
+  updateEventLiveProgramState,
+} from "@/lib/live/state"
 import type { ProducerStageActionInput } from "@/lib/types"
 
 export const runtime = "nodejs"
@@ -31,6 +35,13 @@ export async function POST(
       input: body,
       updatedBy: auth.user.email ?? auth.user.id,
     })
+
+    if (body.action === "go_live" || body.action === "go_off_air") {
+      await ensureEventLiveProgramState(id)
+      await updateEventLiveProgramState(id, {
+        is_live: body.action === "go_live",
+      })
+    }
 
     const livekitUrl = process.env.LIVEKIT_URL
     const apiKey = process.env.LIVEKIT_API_KEY

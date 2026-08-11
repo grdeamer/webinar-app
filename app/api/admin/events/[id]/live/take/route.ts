@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { requireAdmin } from "@/lib/requireAdmin"
 import {
   ensureEventLiveProgramState,
   updateEventLiveProgramState,
@@ -17,6 +18,9 @@ export async function POST(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  const auth = await requireAdmin()
+  if (auth instanceof Response) return auth
+
   try {
     const { id } = await context.params
 
@@ -60,9 +64,12 @@ export async function POST(
       ok: true,
       state: program,
     })
-  } catch (error: any) {
+  } catch (error: unknown) {
     return NextResponse.json(
-      { error: error?.message || "Failed to take program live" },
+      {
+        error:
+          error instanceof Error ? error.message : "Failed to take program live",
+      },
       { status: 500 }
     )
   }

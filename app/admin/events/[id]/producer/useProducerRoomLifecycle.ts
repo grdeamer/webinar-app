@@ -17,6 +17,7 @@ type Params = {
   setProgramState: (state: StageState | null) => void
   setLoadingText: (text: string) => void
   setError: (error: string | null) => void
+  setSyncWarningText: (warning: string | null) => void
 }
 
 export default function useProducerRoomLifecycle({
@@ -32,6 +33,7 @@ export default function useProducerRoomLifecycle({
   setProgramState,
   setLoadingText,
   setError,
+  setSyncWarningText,
 }: Params) {
   const loadToken = useCallback(async () => {
     const data = await api.loadToken()
@@ -56,12 +58,20 @@ export default function useProducerRoomLifecycle({
   }, [api, setStageState])
 
   const refreshAll = useCallback(async () => {
-    await Promise.all([
-      loadParticipants(),
-      loadStageState(),
-      loadProgramState(),
-    ])
-  }, [loadParticipants, loadStageState, loadProgramState])
+    try {
+      await Promise.all([
+        loadParticipants(),
+        loadStageState(),
+        loadProgramState(),
+      ])
+      setSyncWarningText(null)
+    } catch (error: unknown) {
+      const message =
+        error instanceof Error ? error.message : "Producer state synchronization failed"
+      setSyncWarningText(`Live state is not synchronized: ${message}`)
+      throw error
+    }
+  }, [loadParticipants, loadStageState, loadProgramState, setSyncWarningText])
 
   useEffect(() => {
     let mounted = true
@@ -107,7 +117,9 @@ export default function useProducerRoomLifecycle({
 
   useEffect(() => {
     const id = window.setInterval(() => {
-      void refreshAll().catch(() => {})
+      void refreshAll().catch(() => {
+        // refreshAll exposes a persistent warning until a later sync succeeds.
+      })
     }, 3000)
 
     return () => window.clearInterval(id)
