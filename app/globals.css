@@ -36,15 +36,15 @@ html, body {
   pointer-events: none;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 31% 13%, rgba(153, 190, 255, 0.42), transparent 24%),
-    radial-gradient(circle at 44% 38%, rgba(37, 83, 174, 0.78), rgba(7, 20, 54, 0.95) 52%, #020714 77%);
+    radial-gradient(circle at 31% 12%, rgba(153, 190, 255, 0.3), transparent 22%),
+    radial-gradient(circle at 44% 34%, rgba(37, 83, 174, 0.46), rgba(7, 20, 54, 0.54) 50%, rgba(2, 7, 20, 0.12) 72%, transparent 82%);
   box-shadow:
-    0 0 0 1px rgba(144, 181, 255, 0.2),
-    -20px -12px 58px rgba(69, 127, 240, 0.28),
-    -82px 12px 170px rgba(35, 89, 190, 0.2);
-  opacity: 0.76;
-  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 28%, rgba(0, 0, 0, 0.76) 43%, transparent 70%);
-  mask-image: linear-gradient(to bottom, #000 0%, #000 28%, rgba(0, 0, 0, 0.76) 43%, transparent 70%);
+    0 0 0 1px rgba(144, 181, 255, 0.18),
+    -18px -10px 52px rgba(69, 127, 240, 0.2),
+    -72px 8px 150px rgba(35, 89, 190, 0.12);
+  opacity: 0.58;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 12%, rgba(0, 0, 0, 0.68) 21%, rgba(0, 0, 0, 0.22) 33%, transparent 46%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 12%, rgba(0, 0, 0, 0.68) 21%, rgba(0, 0, 0, 0.22) 33%, transparent 46%);
 }
 
 .jupiter-space-site::after {
