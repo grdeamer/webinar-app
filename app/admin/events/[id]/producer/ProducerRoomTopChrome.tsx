@@ -105,7 +105,7 @@ function TopChromeTransmissionShell({
 
   return (
     <div className={TOP_CHROME_SHELL_CLASS}>
-      <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
+      <div className="pointer-events-none absolute inset-0 z-[20] overflow-hidden">
         <div className="absolute right-[15%] top-[2px] h-[132px] w-[132px] rounded-full border border-blue-100/45 bg-[radial-gradient(circle_at_31%_25%,rgba(214,230,255,0.92),rgba(91,143,255,0.82)_12%,rgba(35,77,171,0.96)_40%,rgba(7,21,61,0.98)_72%,rgba(2,7,22,1)_100%)] opacity-90 shadow-[0_0_24px_rgba(112,164,255,0.52),0_0_72px_rgba(58,112,235,0.42),inset_-22px_-18px_34px_rgba(0,0,0,0.62)]" />
         <div className="absolute right-[11.7%] top-[48px] h-[42px] w-[238px] rotate-[-13deg] rounded-[50%] border-[3px] border-blue-100/60 opacity-90 shadow-[0_0_18px_rgba(121,171,255,0.72)]" />
         <div className="absolute right-[13.8%] top-[57px] h-[25px] w-[188px] rotate-[-13deg] rounded-[50%] border border-indigo-200/50 opacity-80" />
