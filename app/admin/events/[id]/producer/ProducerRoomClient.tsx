@@ -1702,7 +1702,7 @@ onSaveScene: () => {
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
 
-      <div className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_16%_0%,rgba(125,211,252,0.060),transparent_32%),radial-gradient(circle_at_82%_8%,rgba(196,181,253,0.042),transparent_30%),radial-gradient(circle_at_50%_102%,rgba(34,211,238,0.024),transparent_42%),linear-gradient(180deg,#07101f_0%,#050b16_48%,#02050b_100%)] text-white">
+      <div className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.13),transparent_34%),radial-gradient(circle_at_82%_2%,rgba(112,87,255,0.15),transparent_32%),radial-gradient(circle_at_50%_106%,rgba(214,92,158,0.07),transparent_40%),linear-gradient(180deg,#0b1024_0%,#070a19_48%,#040611_100%)] text-white">
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 

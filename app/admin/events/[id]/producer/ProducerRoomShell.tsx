@@ -14,7 +14,7 @@ type ProducerRoomLayoutProps = {
 }
 
 const PRODUCER_FRAME_BACKGROUND_CLASS =
-  "bg-[linear-gradient(180deg,rgba(4,7,13,0.998),rgba(2,4,9,1))]"
+  "bg-[linear-gradient(180deg,rgba(8,12,28,0.96),rgba(4,6,17,0.99))]"
 
 const PRODUCER_FRAME_GRID_TEXTURE_CLASS =
   "pointer-events-none absolute inset-0 opacity-[0.004] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.014)_0px,rgba(255,255,255,0.014)_1px,transparent_1px,transparent_42px)]"
@@ -144,7 +144,7 @@ export function ProducerRoomContentStack({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative z-10 flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0">
+    <div className="relative z-10 flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0 font-['Source_Sans_3','Myriad_Pro',sans-serif]">
       {children}
     </div>
   )
@@ -155,7 +155,7 @@ export function ProducerRoomWorkspaceFrame({
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
     <div
-      className={`relative flex min-h-0 flex-1 flex-col overflow-hidden px-0 pb-0 pt-0 ${PRODUCER_FRAME_BACKGROUND_CLASS}`}
+      className={`relative mx-3 mb-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[24px] border border-white/[0.055] px-0 pb-0 pt-0 shadow-[0_24px_70px_rgba(0,0,0,0.32),inset_0_1px_0_rgba(255,255,255,0.025)] xl:mx-5 ${PRODUCER_FRAME_BACKGROUND_CLASS}`}
     >
       <div className={PRODUCER_FRAME_GRID_TEXTURE_CLASS} />
       <div className={PRODUCER_FRAME_TOP_EDGE_CLASS} />

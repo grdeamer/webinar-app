@@ -11,14 +11,14 @@ const MODES: Array<{
 }> = [
   {
     id: "show",
-    label: "Show",
-    detail: "Operate the live program",
+    label: "Standard",
+    detail: "Operate the live program with the essential controls",
     icon: <Clapperboard size={13} />,
   },
   {
     id: "prepare",
-    label: "Prepare",
-    detail: "Build scenes and media",
+    label: "Guided",
+    detail: "Prepare scenes and media with more guidance",
     icon: <SlidersHorizontal size={13} />,
   },
   {
@@ -37,12 +37,17 @@ export default function ProducerModeBar({
   onModeChange: (mode: ProducerWorkspaceMode) => void
 }): JSX.Element {
   return (
-    <div className="flex shrink-0 items-center justify-between gap-3 border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(5,9,18,0.96),rgba(3,6,12,0.90))] px-3 py-1.5">
-      <div className="hidden text-[9px] font-semibold text-white/34 xl:block">
-        {MODES.find((item) => item.id === mode)?.detail}
+    <div className="flex shrink-0 items-center justify-between gap-4 border-b border-white/[0.05] bg-[linear-gradient(180deg,rgba(8,12,28,0.98),rgba(5,8,20,0.94))] px-5 py-2.5">
+      <div className="hidden min-w-0 xl:block">
+        <div className="text-[9px] font-black uppercase tracking-[0.16em] text-violet-200/58">
+          Operating mode
+        </div>
+        <div className="mt-0.5 truncate text-[11px] font-semibold text-white/42">
+          {MODES.find((item) => item.id === mode)?.detail}
+        </div>
       </div>
 
-      <div className="ml-auto grid grid-cols-3 gap-1 rounded-[13px] border border-white/[0.06] bg-black/25 p-1">
+      <div className="ml-auto grid grid-cols-3 gap-1.5 rounded-[16px] border border-white/[0.07] bg-black/30 p-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         {MODES.map((item) => {
           const active = item.id === mode
 
@@ -53,9 +58,9 @@ export default function ProducerModeBar({
               onClick={() => onModeChange(item.id)}
               aria-pressed={active}
               title={item.detail}
-              className={`flex items-center justify-center gap-1.5 rounded-[9px] border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] transition ${
+              className={`flex items-center justify-center gap-1.5 rounded-[12px] border px-4 py-2 text-[10px] font-bold tracking-[0.02em] transition ${
                 active
-                  ? "border-sky-300/20 bg-sky-400/[0.11] text-sky-50 shadow-[0_0_14px_rgba(56,189,248,0.08)]"
+                  ? "border-violet-300/24 bg-[linear-gradient(180deg,rgba(112,87,255,0.34),rgba(66,61,139,0.42))] text-violet-50 shadow-[0_0_20px_rgba(112,87,255,0.13),inset_0_1px_0_rgba(255,255,255,0.08)]"
                   : "border-transparent text-white/34 hover:border-white/[0.07] hover:bg-white/[0.035] hover:text-white/64"
               }`}
             >

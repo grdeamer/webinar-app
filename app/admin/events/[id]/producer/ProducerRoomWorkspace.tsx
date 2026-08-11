@@ -91,27 +91,27 @@ export default function ProducerRoomWorkspace({
     : "minmax(0,1fr)"
 
   const railChromeClassName =
-    "min-h-0 overflow-hidden border-white/[0.055] bg-[linear-gradient(180deg,rgba(6,10,18,0.985),rgba(2,4,9,1))]"
+    "min-h-0 overflow-hidden border-white/[0.06] bg-[linear-gradient(180deg,rgba(17,23,44,0.96),rgba(8,11,25,0.99))]"
 
   return (
     <div
-      className="grid h-full min-h-0 w-full min-w-0 gap-0 overflow-hidden px-0 pb-0 pt-0"
+      className="grid h-full min-h-0 w-full min-w-0 gap-2 overflow-hidden p-2"
       style={{
         gridTemplateColumns: PRODUCER_WORKSPACE_GRID_COLUMNS,
         gridTemplateRows,
       }}
     >
       <div
-        className={`${bottomDock ? "row-span-3" : ""} ${railChromeClassName} border-r shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
+        className={`${bottomDock ? "row-span-3" : ""} ${railChromeClassName} rounded-[18px] border shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
       >
         {leftRail}
       </div>
 
-      <div className="relative min-h-0 min-w-0 w-full overflow-hidden bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.022),transparent_36%)] px-0">
+      <div className="relative min-h-0 min-w-0 w-full overflow-hidden rounded-[20px] border border-white/[0.055] bg-[radial-gradient(circle_at_top,rgba(112,87,255,0.055),transparent_38%),linear-gradient(180deg,rgba(11,16,36,0.94),rgba(5,8,20,0.98))] px-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         {centerColumn}
       </div>
 
-      <div className="row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(7,11,20,0.985),rgba(2,4,9,1))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
+      <div className="row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden rounded-[18px] border border-white/[0.06] bg-[linear-gradient(180deg,rgba(17,23,44,0.96),rgba(8,11,25,0.99))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
         {rightRail}
       </div>
 
