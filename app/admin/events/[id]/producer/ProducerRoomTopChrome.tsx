@@ -106,9 +106,10 @@ function TopChromeTransmissionShell({
   return (
     <div className={TOP_CHROME_SHELL_CLASS}>
       <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
-        <div className="absolute -right-24 -top-[390px] h-[560px] w-[760px] rounded-[50%] border border-blue-200/[0.18] bg-[radial-gradient(circle_at_34%_66%,rgba(120,169,255,0.62),transparent_18%),radial-gradient(circle_at_44%_58%,rgba(38,91,193,0.88),rgba(7,21,58,0.96)_58%,rgba(2,7,20,0.99)_76%)] opacity-90 shadow-[-24px_34px_80px_rgba(68,127,238,0.32),-80px_90px_170px_rgba(36,91,201,0.20)]" />
-        <div className="absolute -right-16 top-[28px] h-[108px] w-[720px] rotate-[-6deg] rounded-[50%] border-t-2 border-blue-100/[0.62] bg-[linear-gradient(180deg,rgba(73,135,255,0.12),rgba(12,35,91,0.10)_38%,transparent_74%)] opacity-100 drop-shadow-[0_-10px_20px_rgba(110,166,255,0.55)]" />
-        <div className="absolute right-[12%] top-[22px] h-[2px] w-[36%] rotate-[-5deg] bg-gradient-to-r from-transparent via-blue-100/65 to-transparent blur-[0.5px] shadow-[0_0_18px_rgba(105,164,255,0.72)]" />
+        <div className="absolute right-[15%] top-[2px] h-[132px] w-[132px] rounded-full border border-blue-100/45 bg-[radial-gradient(circle_at_31%_25%,rgba(214,230,255,0.92),rgba(91,143,255,0.82)_12%,rgba(35,77,171,0.96)_40%,rgba(7,21,61,0.98)_72%,rgba(2,7,22,1)_100%)] opacity-90 shadow-[0_0_24px_rgba(112,164,255,0.52),0_0_72px_rgba(58,112,235,0.42),inset_-22px_-18px_34px_rgba(0,0,0,0.62)]" />
+        <div className="absolute right-[11.7%] top-[48px] h-[42px] w-[238px] rotate-[-13deg] rounded-[50%] border-[3px] border-blue-100/60 opacity-90 shadow-[0_0_18px_rgba(121,171,255,0.72)]" />
+        <div className="absolute right-[13.8%] top-[57px] h-[25px] w-[188px] rotate-[-13deg] rounded-[50%] border border-indigo-200/50 opacity-80" />
+        <div className="absolute right-[16.5%] top-[8px] h-[92px] w-[92px] rounded-full bg-blue-300/24 blur-2xl" />
       </div>
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-[3] h-8 transition-opacity duration-700 ${
