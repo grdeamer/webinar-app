@@ -60,6 +60,8 @@ type ParticipantAppearanceOverride = {
 function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
+      <div className="absolute -right-[9vw] -top-[32vw] aspect-square w-[64vw] max-w-[1060px] rounded-full border border-blue-200/[0.12] bg-[radial-gradient(circle_at_35%_35%,rgba(112,157,255,0.42),transparent_25%),radial-gradient(circle_at_48%_54%,rgba(35,83,177,0.78),rgba(7,20,54,0.92)_56%,rgba(2,7,20,0.98)_76%)] opacity-70 shadow-[-30px_40px_90px_rgba(57,111,224,0.22),-80px_90px_180px_rgba(35,89,190,0.14)]" />
+      <div className="absolute -right-[8vw] top-[72px] h-[15vw] min-h-[110px] w-[58vw] max-w-[940px] rotate-[-7deg] rounded-[50%] border-t border-blue-200/[0.18] opacity-70 drop-shadow-[0_-10px_22px_rgba(66,128,245,0.14)]" />
       <div
         className={`absolute left-[-20%] top-[6%] h-[430px] w-[430px] rounded-full blur-3xl transition-opacity duration-1000 ${
           isLive ? "bg-red-300/[0.030] opacity-44" : "bg-sky-200/[0.036] opacity-40"

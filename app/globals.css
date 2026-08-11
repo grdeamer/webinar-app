@@ -10,6 +10,73 @@ html, body {
   overflow-x: hidden;
 }
 
+.jupiter-space-site {
+  position: relative;
+  isolation: isolate;
+  background-color: #030714;
+  background-image:
+    radial-gradient(circle at 8% 14%, rgba(140, 176, 255, 0.72) 0 0.7px, transparent 1px),
+    radial-gradient(circle at 34% 8%, rgba(255, 255, 255, 0.52) 0 0.6px, transparent 1px),
+    radial-gradient(circle at 62% 20%, rgba(126, 156, 255, 0.46) 0 0.7px, transparent 1px),
+    radial-gradient(circle at 88% 12%, rgba(255, 255, 255, 0.48) 0 0.6px, transparent 1px),
+    radial-gradient(circle at 50% -12%, rgba(47, 92, 176, 0.18), transparent 42%),
+    linear-gradient(180deg, #020612 0%, #050a19 48%, #030713 100%);
+  background-size: 190px 190px, 260px 260px, 330px 330px, 420px 420px, auto, auto;
+  background-attachment: fixed;
+}
+
+.jupiter-space-site::before {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  top: -31vw;
+  right: -10vw;
+  width: min(66vw, 1080px);
+  aspect-ratio: 1;
+  pointer-events: none;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 34%, rgba(114, 157, 255, 0.46), transparent 26%),
+    radial-gradient(circle at 46% 52%, rgba(33, 83, 176, 0.82), rgba(7, 20, 54, 0.94) 54%, #020714 76%);
+  box-shadow:
+    0 0 0 1px rgba(131, 173, 255, 0.16),
+    -22px 28px 74px rgba(57, 111, 224, 0.27),
+    -70px 85px 160px rgba(35, 89, 190, 0.18);
+  opacity: 0.72;
+}
+
+.jupiter-space-site::after {
+  content: "";
+  position: fixed;
+  z-index: -1;
+  top: 5.5rem;
+  right: -8vw;
+  width: min(60vw, 980px);
+  height: 16vw;
+  min-height: 120px;
+  pointer-events: none;
+  border-top: 1px solid rgba(118, 166, 255, 0.22);
+  border-radius: 50%;
+  filter: drop-shadow(0 -10px 22px rgba(66, 128, 245, 0.16));
+  transform: rotate(-7deg);
+  opacity: 0.72;
+}
+
+@media (max-width: 768px) {
+  .jupiter-space-site::before {
+    top: -24vw;
+    right: -42vw;
+    width: 112vw;
+    opacity: 0.48;
+  }
+
+  .jupiter-space-site::after {
+    right: -38vw;
+    width: 108vw;
+    opacity: 0.44;
+  }
+}
+
 * {
   box-sizing: border-box;
 }

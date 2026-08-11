@@ -92,7 +92,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   if (isProducerWorkspace) {
     return (
-      <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.10),transparent_22%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.08),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.06),transparent_24%),linear-gradient(180deg,#020617_0%,#07111f_48%,#0f172a_100%)] text-white">
+      <div className="min-h-screen bg-transparent text-white">
         <main className="relative min-h-screen p-2 pt-16 lg:p-3 lg:pt-[72px] 2xl:p-4 2xl:pt-[76px]">
           {producerEventId ? (
             <div className="fixed left-3 right-3 top-3 z-50 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.72))] px-2.5 py-2 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl lg:left-4 lg:right-4 lg:top-4">
@@ -138,7 +138,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <div
       className={`${
         isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
-      } bg-[radial-gradient(circle_at_top_left,rgba(168,85,247,0.14),transparent_22%),radial-gradient(circle_at_top_right,rgba(56,189,248,0.10),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(245,158,11,0.08),transparent_24%),linear-gradient(180deg,#020617_0%,#07111f_48%,#0f172a_100%)] text-white`}
+      } bg-transparent text-white`}
     >
       <div
         className={`flex ${
@@ -148,7 +148,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <aside
           className={`${
             isPageEditorWorkspace ? "h-full" : ""
-          } w-[288px] border-r border-white/10 bg-[#050816]/82 backdrop-blur-2xl`}
+          } w-[288px] border-r border-white/10 bg-[#050816]/78 backdrop-blur-2xl`}
         >
           <div className="flex h-full flex-col">
             <div className="px-5 py-5">
