@@ -29,51 +29,52 @@ html, body {
   content: "";
   position: fixed;
   z-index: -1;
-  top: -31vw;
-  right: -10vw;
-  width: min(66vw, 1080px);
+  top: 4.5rem;
+  right: -7rem;
+  width: min(36vw, 620px);
   aspect-ratio: 1;
   pointer-events: none;
   border-radius: 50%;
   background:
-    radial-gradient(circle at 36% 34%, rgba(114, 157, 255, 0.46), transparent 26%),
-    radial-gradient(circle at 46% 52%, rgba(33, 83, 176, 0.82), rgba(7, 20, 54, 0.94) 54%, #020714 76%);
+    radial-gradient(circle at 31% 13%, rgba(153, 190, 255, 0.42), transparent 24%),
+    radial-gradient(circle at 44% 38%, rgba(37, 83, 174, 0.78), rgba(7, 20, 54, 0.95) 52%, #020714 77%);
   box-shadow:
-    0 0 0 1px rgba(131, 173, 255, 0.16),
-    -22px 28px 74px rgba(57, 111, 224, 0.27),
-    -70px 85px 160px rgba(35, 89, 190, 0.18);
-  opacity: 0.72;
+    0 0 0 1px rgba(144, 181, 255, 0.2),
+    -20px -12px 58px rgba(69, 127, 240, 0.28),
+    -82px 12px 170px rgba(35, 89, 190, 0.2);
+  opacity: 0.76;
+  -webkit-mask-image: linear-gradient(to bottom, #000 0%, #000 28%, rgba(0, 0, 0, 0.76) 43%, transparent 70%);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 28%, rgba(0, 0, 0, 0.76) 43%, transparent 70%);
 }
 
 .jupiter-space-site::after {
   content: "";
   position: fixed;
   z-index: -1;
-  top: 5.5rem;
-  right: -8vw;
-  width: min(60vw, 980px);
-  height: 16vw;
-  min-height: 120px;
+  top: 5.8rem;
+  right: -8rem;
+  width: min(39vw, 660px);
+  height: 190px;
   pointer-events: none;
-  border-top: 1px solid rgba(118, 166, 255, 0.22);
+  border-top: 1px solid rgba(139, 181, 255, 0.3);
   border-radius: 50%;
-  filter: drop-shadow(0 -10px 22px rgba(66, 128, 245, 0.16));
-  transform: rotate(-7deg);
-  opacity: 0.72;
+  filter: drop-shadow(0 -8px 20px rgba(77, 137, 247, 0.2));
+  transform: rotate(-6deg);
+  opacity: 0.58;
 }
 
 @media (max-width: 768px) {
   .jupiter-space-site::before {
-    top: -24vw;
-    right: -42vw;
-    width: 112vw;
-    opacity: 0.48;
+    top: 4rem;
+    right: -15rem;
+    width: 34rem;
+    opacity: 0.52;
   }
 
   .jupiter-space-site::after {
-    right: -38vw;
-    width: 108vw;
-    opacity: 0.44;
+    right: -17rem;
+    width: 38rem;
+    opacity: 0.38;
   }
 }
 

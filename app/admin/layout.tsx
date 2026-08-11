@@ -83,20 +83,6 @@ function Section({
   )
 }
 
-function AdminPlanetBackdrop() {
-  return (
-    <div
-      aria-hidden="true"
-      className="pointer-events-none fixed right-[4%] top-[-76px] z-[15] h-[228px] w-[300px] overflow-visible"
-    >
-      <div className="absolute right-8 top-0 h-[210px] w-[210px] rounded-full border border-blue-100/40 bg-[radial-gradient(circle_at_30%_25%,rgba(225,236,255,0.96),rgba(103,153,255,0.88)_11%,rgba(38,82,180,0.98)_39%,rgba(8,23,65,0.99)_70%,rgba(2,7,22,1)_100%)] opacity-90 shadow-[0_0_28px_rgba(117,168,255,0.58),0_0_90px_rgba(54,107,230,0.48),inset_-34px_-28px_48px_rgba(0,0,0,0.66)]" />
-      <div className="absolute -right-2 top-[80px] h-[58px] w-[300px] rotate-[-13deg] rounded-[50%] border-[3px] border-blue-100/65 opacity-95 shadow-[0_0_20px_rgba(124,175,255,0.76)]" />
-      <div className="absolute right-5 top-[92px] h-[34px] w-[244px] rotate-[-13deg] rounded-[50%] border border-indigo-200/55 opacity-90" />
-      <div className="absolute right-14 top-8 h-[150px] w-[150px] rounded-full bg-blue-300/25 blur-3xl" />
-    </div>
-  )
-}
-
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
   const isProducerWorkspace = /^\/admin\/events\/[^/]+\/producer(?:\/.*)?$/.test(pathname)
@@ -154,7 +140,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
       } bg-transparent text-white`}
     >
-      <AdminPlanetBackdrop />
       <div
         className={`flex ${
           isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"

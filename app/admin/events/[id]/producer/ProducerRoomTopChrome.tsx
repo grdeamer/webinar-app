@@ -106,10 +106,8 @@ function TopChromeTransmissionShell({
   return (
     <div className={TOP_CHROME_SHELL_CLASS}>
       <div className="pointer-events-none absolute inset-0 z-[20] overflow-hidden">
-        <div className="absolute right-[15%] top-[2px] h-[132px] w-[132px] rounded-full border border-blue-100/45 bg-[radial-gradient(circle_at_31%_25%,rgba(214,230,255,0.92),rgba(91,143,255,0.82)_12%,rgba(35,77,171,0.96)_40%,rgba(7,21,61,0.98)_72%,rgba(2,7,22,1)_100%)] opacity-90 shadow-[0_0_24px_rgba(112,164,255,0.52),0_0_72px_rgba(58,112,235,0.42),inset_-22px_-18px_34px_rgba(0,0,0,0.62)]" />
-        <div className="absolute right-[11.7%] top-[48px] h-[42px] w-[238px] rotate-[-13deg] rounded-[50%] border-[3px] border-blue-100/60 opacity-90 shadow-[0_0_18px_rgba(121,171,255,0.72)]" />
-        <div className="absolute right-[13.8%] top-[57px] h-[25px] w-[188px] rotate-[-13deg] rounded-[50%] border border-indigo-200/50 opacity-80" />
-        <div className="absolute right-[16.5%] top-[8px] h-[92px] w-[92px] rounded-full bg-blue-300/24 blur-2xl" />
+        <div className="absolute -right-20 top-[72px] h-[430px] w-[560px] rounded-[50%] border border-blue-100/25 bg-[radial-gradient(circle_at_28%_4%,rgba(139,181,255,0.38),transparent_22%),radial-gradient(circle_at_42%_30%,rgba(34,77,165,0.74),rgba(6,18,49,0.96)_55%,rgba(2,7,20,1)_78%)] opacity-80 shadow-[-26px_-18px_64px_rgba(66,125,239,0.28),-90px_6px_170px_rgba(35,87,188,0.18)]" />
+        <div className="absolute -right-24 top-[78px] h-[138px] w-[620px] rotate-[-6deg] rounded-[50%] border-t border-blue-100/35 opacity-75 drop-shadow-[0_-9px_22px_rgba(78,140,252,0.25)]" />
       </div>
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-[3] h-8 transition-opacity duration-700 ${
