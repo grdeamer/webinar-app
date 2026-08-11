@@ -1245,6 +1245,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
   // Top chrome props
   const topChromeProps = useMemo(
     () => ({
+      eventId,
       headline: sessionTitle || stageState?.headline || "Live Production",
       layout: stageState?.layout,
       previewProgramDifferent,
@@ -1266,6 +1267,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       onTake: handleCommandDeckTake,
     }),
     [
+      eventId,
       stageState?.headline,
       sessionTitle,
       stageState?.layout,

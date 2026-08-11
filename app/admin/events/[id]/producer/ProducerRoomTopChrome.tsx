@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type JSX } from "react"
+import { useRouter } from "next/navigation"
 
 import OperationsSyncStrip from "./OperationsSyncStrip"
 import ProducerRoomHeader from "./ProducerRoomHeader"
@@ -6,6 +7,7 @@ import type { CinematicTransitionType } from "./commandDeckTypes"
 import type { StageState } from "./producerRoomTypes"
 
 type ProducerRoomTopChromeProps = {
+  eventId: string
   headline: string
   layout: StageState["layout"] | undefined
   previewProgramDifferent: boolean
@@ -56,15 +58,26 @@ const TOP_CHROME_STATUS_PILL_CLASS =
   "pointer-events-none flex h-8 min-w-[108px] items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-black/38 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md"
 
 function TopChromeTransmissionShell({
+  eventId,
   isLive,
   children,
 }: {
+  eventId: string
   isLive: boolean
   children: JSX.Element
 }): JSX.Element {
   const [hubOpen, setHubOpen] = useState(false)
+  const router = useRouter()
 
   const hubRef = useRef<HTMLDivElement | null>(null)
+
+  function navigateFromProducer(destination: string): void {
+    if (isLive && !window.confirm("Leave the Producer Room while the event is live? The broadcast will continue running.")) {
+      return
+    }
+
+    router.push(destination)
+  }
 
   useEffect(() => {
     if (!hubOpen) return
@@ -104,6 +117,15 @@ function TopChromeTransmissionShell({
       <div className={TOP_CHROME_BOTTOM_EDGE_CLASS} />
 
       <div className="absolute right-4 top-2.5 z-[120] flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => navigateFromProducer(`/admin/events/${eventId}`)}
+          className="flex h-8 items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.035] px-4 text-[11px] font-semibold text-white/68 transition hover:border-white/16 hover:bg-white/[0.07] hover:text-white"
+        >
+          <span aria-hidden="true">←</span>
+          Back to Event
+        </button>
+
         <div ref={hubRef} className="relative">
           <button
             type="button"
@@ -111,7 +133,7 @@ function TopChromeTransmissionShell({
             className={TOP_CHROME_HUB_BUTTON_CLASS}
           >
             <span className="h-1.5 w-1.5 rounded-full bg-sky-300/80 shadow-[0_0_8px_rgba(125,211,252,0.34)]" />
-            Hub
+            Jupiter Menu
             <span
               className={`text-[10px] text-sky-50/54 transition-transform duration-150 ${
                 hubOpen ? "rotate-180" : "rotate-0"
@@ -129,25 +151,28 @@ function TopChromeTransmissionShell({
               }}
             >
               <div className="px-2 pb-2 pt-1 text-[9px] font-black uppercase tracking-[0.16em] text-white/34">
-                Producer Utilities
+                Jupiter Navigation
               </div>
 
               <div className="grid gap-1.5">
-                <a href="../" className={TOP_CHROME_PRIMARY_HUB_LINK_CLASS}>
-                  Exit Producer
-                </a>
-                <a href="../../" className={TOP_CHROME_HUB_LINK_CLASS}>
-                  Session Overview
-                </a>
-                <a href="../../../registrants" className={TOP_CHROME_HUB_LINK_CLASS}>
-                  Registrants
-                </a>
-                <a href="../../../emails" className={TOP_CHROME_HUB_LINK_CLASS}>
-                  Emails
-                </a>
-                <a href="../../../" className={TOP_CHROME_HUB_LINK_CLASS}>
+                <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}`)} className={`${TOP_CHROME_PRIMARY_HUB_LINK_CLASS} text-left`}>
                   Event Dashboard
-                </a>
+                </button>
+                <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}/sessions`)} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
+                  Sessions
+                </button>
+                <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}/attendees`)} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
+                  Registrants
+                </button>
+                <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}/emails`)} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
+                  Emails
+                </button>
+                <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}/publishing`)} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
+                  Publishing
+                </button>
+                <button type="button" onClick={() => navigateFromProducer("/access")} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
+                  Attendee View
+                </button>
               </div>
             </div>
           ) : null}
@@ -229,6 +254,7 @@ function TopChromeTransmissionShell({
 }
 
 export default function ProducerRoomTopChrome({
+  eventId,
   headline,
   layout,
   previewProgramDifferent,
@@ -250,7 +276,7 @@ export default function ProducerRoomTopChrome({
   onTake,
 }: ProducerRoomTopChromeProps): JSX.Element {
   return (
-    <TopChromeTransmissionShell isLive={isProgramLive}>
+    <TopChromeTransmissionShell eventId={eventId} isLive={isProgramLive}>
       <div className="space-y-0">
         <ProducerRoomHeader
           headline={headline}
