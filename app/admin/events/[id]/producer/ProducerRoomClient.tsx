@@ -192,6 +192,7 @@ export default function ProducerRoomClient({
   const [syncWarningText, setSyncWarningText] = useState<string | null>(null);
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true);
+  const [standardToolsOpen, setStandardToolsOpen] = useState(false);
   const [screenLayoutPreset, setScreenLayoutPreset] =
     useState<ScreenLayoutPreset>("classic");
   const [selectedTransitionDurationMs] = useState(600);
@@ -1743,9 +1744,24 @@ onSaveScene: () => {
                   leftRail={<ProducerLeftRail {...leftRailProps} />}
                   centerColumn={centerColumn}
                   rightRail={<ProducerRightRail {...rightRailProps} />}
-                  bottomDock={workspaceMode === "show" ? undefined : bottomDock}
+                  bottomDock={workspaceMode === "show" && !standardToolsOpen ? undefined : bottomDock}
                 />
               </ProducerRoomGrid>
+
+              {workspaceMode === "show" ? (
+                <button
+                  type="button"
+                  onClick={() => setStandardToolsOpen((current) => !current)}
+                  aria-expanded={standardToolsOpen}
+                  className="absolute bottom-3 left-1/2 z-[85] flex -translate-x-1/2 items-center gap-2 rounded-full border border-violet-300/18 bg-[linear-gradient(180deg,rgba(25,31,61,0.96),rgba(10,13,30,0.98))] px-5 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-50/82 shadow-[0_14px_34px_rgba(0,0,0,0.42),0_0_22px_rgba(112,87,255,0.10),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition hover:border-violet-200/30 hover:text-white"
+                >
+                  <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.54)]" />
+                  {standardToolsOpen ? "Close Production Tools" : "Production Tools"}
+                  <span aria-hidden="true" className={`transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}>
+                    ▴
+                  </span>
+                </button>
+              ) : null}
             </div>
           </ProducerRoomWorkspaceFrame>
         </ProducerRoomContentStack>

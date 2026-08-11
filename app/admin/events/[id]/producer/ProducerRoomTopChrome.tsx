@@ -105,16 +105,20 @@ function TopChromeTransmissionShell({
 
   return (
     <div className={TOP_CHROME_SHELL_CLASS}>
+      <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
+        <div className="absolute -right-24 -top-[390px] h-[560px] w-[760px] rounded-[50%] border border-blue-200/[0.18] bg-[radial-gradient(circle_at_34%_66%,rgba(120,169,255,0.62),transparent_18%),radial-gradient(circle_at_44%_58%,rgba(38,91,193,0.88),rgba(7,21,58,0.96)_58%,rgba(2,7,20,0.99)_76%)] opacity-90 shadow-[-24px_34px_80px_rgba(68,127,238,0.32),-80px_90px_170px_rgba(36,91,201,0.20)]" />
+        <div className="absolute -right-20 top-[44px] h-[84px] w-[690px] rotate-[-6deg] rounded-[50%] border-t border-blue-100/[0.30] opacity-85 drop-shadow-[0_-12px_25px_rgba(78,143,255,0.26)]" />
+      </div>
       <div
-        className={`pointer-events-none absolute inset-x-0 top-0 z-0 h-8 transition-opacity duration-700 ${
+        className={`pointer-events-none absolute inset-x-0 top-0 z-[3] h-8 transition-opacity duration-700 ${
           isLive
             ? "bg-[radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.038),transparent_68%)] opacity-55"
             : "bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.030),transparent_68%)] opacity-45"
         }`}
       />
 
-      <div className={TOP_CHROME_TOP_EDGE_CLASS} />
-      <div className={TOP_CHROME_BOTTOM_EDGE_CLASS} />
+      <div className={`${TOP_CHROME_TOP_EDGE_CLASS} z-[4]`} />
+      <div className={`${TOP_CHROME_BOTTOM_EDGE_CLASS} z-[4]`} />
 
       <div className="absolute right-4 top-2.5 z-[120] flex items-center gap-2">
         <button
@@ -193,7 +197,7 @@ function TopChromeTransmissionShell({
         </div>
       </div>
 
-      <div className="relative z-0 flex items-start justify-between gap-4 px-0 pb-0">
+      <div className="relative z-10 flex items-start justify-between gap-4 px-0 pb-0">
         <div className="min-w-0 flex-1">
           {children}
         </div>

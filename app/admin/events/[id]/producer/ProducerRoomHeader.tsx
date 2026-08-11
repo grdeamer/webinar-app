@@ -122,7 +122,7 @@ export default function ProducerRoomHeader({
     layout === "screen_speaker" ? "Speaker + Screen" : layout === "grid" ? "Grid" : "Solo"
 
   return (
-    <div className="relative overflow-hidden border-b border-white/[0.045] bg-[radial-gradient(circle_at_top_right,rgba(112,87,255,0.06),transparent_32%),linear-gradient(180deg,rgba(10,15,34,0.96),rgba(6,9,22,0.92))] px-5 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl xl:px-7">
+    <div className="relative overflow-hidden border-b border-white/[0.045] bg-[radial-gradient(circle_at_top_right,rgba(112,87,255,0.04),transparent_34%),linear-gradient(180deg,rgba(10,15,34,0.76),rgba(6,9,22,0.72))] px-5 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-md xl:px-7">
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity duration-500 ${
           isLive
