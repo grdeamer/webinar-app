@@ -47,7 +47,7 @@ function MissionPill({
 }
 
 function MissionClock(): JSX.Element {
-  const [seconds, setSeconds] = useState(4722)
+  const [seconds, setSeconds] = useState(0)
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -70,7 +70,7 @@ function MissionClock(): JSX.Element {
   return (
     <MissionPill
       icon={<Clock3 size={11} />}
-      label="Runtime"
+      label="Room open"
       value={runtime}
       tone="neutral"
     />

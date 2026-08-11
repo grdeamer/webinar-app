@@ -93,7 +93,6 @@ type RecordingSourceOption = {
 
 import {
   Archive,
-  CalendarDays,
   CircleDot,
   Clapperboard,
   HardDrive,
@@ -102,10 +101,8 @@ import {
   Keyboard,
   Layers3,
   Mic2,
-  MonitorPlay,
   Music2,
   Radio,
-  Settings,
   ShieldCheck,
   SlidersHorizontal,
   TimerReset,
@@ -113,6 +110,7 @@ import {
   Volume2,
   Waves,
 } from "lucide-react"
+import type { ProducerWorkspaceMode } from "./ProducerModeBar"
 
 import type { PreviewBlock } from "./useProducerBlocks"
 
@@ -2570,6 +2568,7 @@ function MediaRoutingWorkspace({
   )
 }
 export default function BottomAssetDock({
+  workspaceMode,
   scenes,
   selectedSceneId,
   programSceneId,
@@ -2588,6 +2587,7 @@ export default function BottomAssetDock({
   onDeleteScene,
   onRenameScene,
 }: {
+  workspaceMode: ProducerWorkspaceMode
   scenes: SceneSummary[]
   selectedSceneId: string | null
   programSceneId: string | null
@@ -3888,21 +3888,20 @@ onSelectAsset={setSelectedMediaAssetLabel}
 
       </div>
 
-      <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-[1fr_1fr_1fr_1.4fr_1.15fr_1fr_1fr]">
+      {workspaceMode === "advanced" ? (
+      <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-4">
         <UtilityButton
           icon={<CircleDot size={18} />}
           label={recordingStatus === "recording" ? "Recording" : recordingStatus === "starting" ? "Starting" : "Record"}
-meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "starting" ? "Requesting egress" : recordingStatus === "armed" ? "Armed" : recordingStatus === "stopped" ? "Finalizing" : "Egress Ready"}
+meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "starting" ? "Requesting egress" : recordingStatus === "armed" ? "Armed" : recordingStatus === "stopped" ? "Finalizing" : "Not recording"}
 danger={recordingStatus === "recording" || recordingStatus === "starting"}
           onClick={() => setExpandedRecordingOpen(true)}
         />
-        <UtilityButton icon={<Radio size={30} />} label="Stream" meta="YouTube + FB" onClick={() => setActiveUtilityPanel("stream")} />
-        <UtilityButton icon={<Layers3 size={30} />} label="Overlays" meta="2 Active" onClick={() => setActiveUtilityPanel("overlays")} />
+        <UtilityButton icon={<Radio size={30} />} label="Streaming" meta="Configure" onClick={() => setActiveUtilityPanel("stream")} />
+        <UtilityButton icon={<Layers3 size={30} />} label="Overlays" meta="Manage" onClick={() => setActiveUtilityPanel("overlays")} />
         <UtilityButton icon={<Volume2 size={30} />} label="Audio" meta="Open mixer" onClick={() => setExpandedMixerOpen(true)} />
-        <UtilityButton icon={<MonitorPlay size={30} />} label="End Stream" meta="Live control" danger onClick={() => setActiveUtilityPanel("stream")} />
-        <UtilityButton icon={<CalendarDays size={30} />} label="Scheduled Event" meta="Sunday 9:00 AM" onClick={() => setActiveUtilityPanel("schedule")} />
-        <UtilityButton icon={<Settings size={30} />} label="Settings" meta="Workflow" onClick={() => setActiveUtilityPanel("settings")} />
       </div>
+      ) : null}
     </div>
   )
 }

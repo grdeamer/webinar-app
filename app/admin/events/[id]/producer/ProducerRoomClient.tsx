@@ -22,6 +22,7 @@ import ProducerLeftRail from "./ProducerLeftRail";
 import ProducerRightRail from "./ProducerRightRail";
 import BottomAssetDock from "./BottomAssetDock";
 import ProducerRoomTopChrome from "./ProducerRoomTopChrome";
+import ProducerModeBar, { type ProducerWorkspaceMode } from "./ProducerModeBar";
 import ProducerRoomWorkspace from "./ProducerRoomWorkspace";
 import {
   ProducerRoomBackground,
@@ -201,6 +202,7 @@ export default function ProducerRoomClient({
   const [monitorHeight, setMonitorHeight] = useState(640);
   const [audienceOriginCollapsed, setAudienceOriginCollapsed] = useState(true);
   const [assetDockExpanded, setAssetDockExpanded] = useState(true);
+  const [workspaceMode, setWorkspaceMode] = useState<ProducerWorkspaceMode>("show");
 const updateStageState = useCallback(
   (updater: StageState | null | ((current: StageState | null) => StageState | null)): void => {
     setStageState((current) => {
@@ -1312,6 +1314,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
   // Center workspace props
   const centerSwitcherProps = useMemo(
     () => ({
+      workspaceMode,
       triggerAudienceCue,
       onHideAudienceCue: handleHideAudienceCue,
       previewProgramDifferent,
@@ -1370,6 +1373,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       deleteSelectedBlock,
     }),
     [
+      workspaceMode,
       triggerAudienceCue,
       handleHideAudienceCue,
       previewProgramDifferent,
@@ -1590,6 +1594,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
   // Dock props
   const bottomAssetDockProps = useMemo(
     () => ({
+      workspaceMode,
       scenes,
       selectedSceneId,
       programSceneId,
@@ -1618,6 +1623,7 @@ onSaveScene: () => {
       onDeleteScene: handleDockDeleteScene,
     }),
     [
+      workspaceMode,
       scenes,
       selectedSceneId,
       programSceneId,
@@ -1722,6 +1728,7 @@ onSaveScene: () => {
           />
 
           <ProducerRoomTopChrome {...topChromeProps} />
+          <ProducerModeBar mode={workspaceMode} onModeChange={setWorkspaceMode} />
           <ProducerRoomWorkspaceFrame>
             <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
               <ProducerRoomGrid>
@@ -1729,7 +1736,7 @@ onSaveScene: () => {
                   leftRail={<ProducerLeftRail {...leftRailProps} />}
                   centerColumn={centerColumn}
                   rightRail={<ProducerRightRail {...rightRailProps} />}
-                  bottomDock={bottomDock}
+                  bottomDock={workspaceMode === "show" ? undefined : bottomDock}
                 />
               </ProducerRoomGrid>
             </div>

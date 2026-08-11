@@ -5,6 +5,7 @@ import StageVideoPreview from "./StageVideoPreview";
 import type { PreviewBlock } from "./useProducerBlocks";
 import type { ProducerParticipant, StageState } from "./producerRoomTypes";
 import { renderPlacedBlocks } from "./producerRoomBlockHelpers";
+import type { ProducerWorkspaceMode } from "./ProducerModeBar";
 function LiveProductionStatusPanel({
   programState,
   previewProgramDifferent,
@@ -22,13 +23,22 @@ function LiveProductionStatusPanel({
 }): JSX.Element {
   const isLive = Boolean(programState?.is_live);
   const statusValue = isLive ? "Live" : "Standby";
+  const programSourceCount =
+    (programState?.stage_participant_ids?.length ?? 0) +
+    (programState?.screen_share_participant_id ? 1 : 0);
 
   const statusItems = [
     { label: "Status", value: statusValue, tone: "red" },
-    { label: "Runtime", value: "00:54:00", tone: "neutral" },
-    { label: "Rec", value: "00:54:00", tone: "neutral" },
-    { label: "Confidence", value: "99%", tone: "green" },
-    { label: "Audience", value: "2,462", tone: "neutral" },
+    {
+      label: "Preview",
+      value: previewProgramDifferent ? "Ready" : "Matched",
+      tone: previewProgramDifferent ? "neutral" : "green",
+    },
+    {
+      label: "Program",
+      value: programSourceCount > 0 ? `${programSourceCount} source${programSourceCount === 1 ? "" : "s"}` : "Waiting",
+      tone: programSourceCount > 0 ? "green" : "neutral",
+    },
   ];
 
   return (
@@ -43,7 +53,7 @@ function LiveProductionStatusPanel({
           </span>
         </div>
 
-        <div className="grid min-w-0 flex-1 grid-cols-5 gap-1.5">
+        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5">
           {statusItems.map((item) => (
             <div
               key={item.label}
@@ -482,6 +492,7 @@ function PreviewSnapGuides({
 }
 
 export default function CenterSwitcherColumn({
+  workspaceMode,
   triggerAudienceCue,
   onHideAudienceCue,
   previewProgramDifferent,
@@ -539,6 +550,7 @@ export default function CenterSwitcherColumn({
   bringSelectedBlockToFront,
   deleteSelectedBlock,
 }: {
+  workspaceMode: ProducerWorkspaceMode;
   triggerAudienceCue: (options?: {
     region?: string;
     moonMode?: boolean;
@@ -895,6 +907,7 @@ export default function CenterSwitcherColumn({
             </div>
           </div>
 
+          {workspaceMode !== "show" ? (
           <div className="relative z-10 hidden items-center gap-1.5 xl:flex">
             <button
               type="button"
@@ -918,13 +931,13 @@ export default function CenterSwitcherColumn({
               + Camera Slot
             </button>
 
-            <div className="rounded-full border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
-              Edge · AWS us-east-1
-            </div>
-            <div className="rounded-full border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
-              {confidenceMonitorMode}
-            </div>
+            {workspaceMode === "advanced" ? (
+              <div className="rounded-full border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
+                Monitor · {confidenceMonitorMode}
+              </div>
+            ) : null}
           </div>
+          ) : null}
         </div>
 
 <div
