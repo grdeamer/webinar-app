@@ -122,7 +122,7 @@ export default function ProducerRoomHeader({
     layout === "screen_speaker" ? "Speaker + Screen" : layout === "grid" ? "Grid" : "Solo"
 
   return (
-    <div className="relative overflow-hidden border-b border-white/[0.030] bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.014),transparent_30%),radial-gradient(circle_at_top_left,rgba(168,85,247,0.012),transparent_26%),linear-gradient(180deg,rgba(6,12,26,0.78),rgba(2,6,16,0.68))] px-4 py-2 shadow-[0_4px_14px_rgba(0,0,0,0.12)] backdrop-blur-xl xl:px-5">
+    <div className="relative overflow-hidden border-b border-white/[0.045] bg-[radial-gradient(circle_at_top_right,rgba(112,87,255,0.06),transparent_32%),linear-gradient(180deg,rgba(10,15,34,0.96),rgba(6,9,22,0.92))] px-5 py-3 shadow-[0_8px_24px_rgba(0,0,0,0.18)] backdrop-blur-xl xl:px-7">
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 h-px transition-opacity duration-500 ${
           isLive
@@ -132,33 +132,28 @@ export default function ProducerRoomHeader({
       />
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.003)_38%,transparent_62%)] animate-[headerTransmissionSweep_42s_ease-in-out_infinite]" />
 
-      <div className="relative z-10 flex items-center justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-indigo-300/10 bg-indigo-400/[0.035] text-white/75 shadow-[0_0_18px_rgba(99,102,241,0.07)]">
-            <JupiterLogo showWordmark={false} markClassName="h-7 w-7" />
+      <div className="relative z-10 grid grid-cols-[minmax(250px,1fr)_minmax(280px,1.4fr)_minmax(250px,1fr)] items-center gap-5 pr-52">
+        <div className="flex min-w-0 items-center gap-3.5">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-[15px] border border-violet-300/16 bg-violet-400/[0.08] text-white/88 shadow-[0_0_24px_rgba(112,87,255,0.12),inset_0_1px_0_rgba(255,255,255,0.05)]">
+            <JupiterLogo showWordmark={false} markClassName="h-8 w-8" />
           </div>
 
           <div className="min-w-0">
-            <div className="hidden items-center gap-2 text-[9px] font-black uppercase tracking-[0.16em] text-white/28 lg:flex">
-              <span>Jupiter</span>
-              <span className="text-white/14">/</span>
-              <span>Producer Room</span>
-              <span className="text-white/14">/</span>
-              <span>{scopeLabel}</span>
+            <div className="text-[9px] font-black uppercase tracking-[0.19em] text-violet-200/58">
+              Jupiter
             </div>
+            <h1 className="truncate text-[22px] font-bold leading-none tracking-[-0.035em] text-white/94 xl:text-[25px]">
+              Producer Room
+            </h1>
+          </div>
+        </div>
 
-            <div className="flex min-w-0 items-center gap-2">
-              <h1 className="truncate text-[18px] font-semibold leading-none tracking-[-0.04em] text-white/82 xl:text-[20px]">
-                {headline}
-              </h1>
-
-              <HeaderTransmissionBadge isLive={isLive} />
-
-              <span className="hidden h-7 items-center gap-1.5 rounded-full border border-white/[0.065] bg-white/[0.018] px-2.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/34 lg:inline-flex">
-                <Activity size={10} />
-                {layoutLabel}
-              </span>
-            </div>
+        <div className="min-w-0 text-center">
+          <div className="text-[9px] font-black uppercase tracking-[0.15em] text-white/30">
+            Current production
+          </div>
+          <div className="mt-1 truncate text-[15px] font-semibold text-white/82 xl:text-[17px]">
+            {headline}
           </div>
         </div>
 
@@ -180,6 +175,11 @@ export default function ProducerRoomHeader({
           <div className="hidden xl:block">
             <MissionClock />
           </div>
+
+          <span className="hidden h-7 items-center gap-1.5 rounded-full border border-white/[0.065] bg-white/[0.018] px-2.5 text-[9px] font-black uppercase tracking-[0.10em] text-white/34 2xl:inline-flex">
+            <Activity size={10} />
+            {layoutLabel}
+          </span>
         </div>
       </div>
 

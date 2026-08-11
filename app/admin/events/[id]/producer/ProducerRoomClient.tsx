@@ -168,9 +168,11 @@ function CameraSlotLiveContent({ block }: { block: PreviewBlock }): JSX.Element 
 export default function ProducerRoomClient({
   eventId,
   sessionId,
+  sessionTitle,
 }: {
   eventId: string;
   sessionId: string;
+  sessionTitle?: string;
 }): JSX.Element {
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
@@ -1243,7 +1245,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
   // Top chrome props
   const topChromeProps = useMemo(
     () => ({
-      headline: stageState?.headline || "Live Production",
+      headline: sessionTitle || stageState?.headline || "Live Production",
       layout: stageState?.layout,
       previewProgramDifferent,
       onStageCount: onStageParticipants.length,
@@ -1265,6 +1267,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     }),
     [
       stageState?.headline,
+      sessionTitle,
       stageState?.layout,
       previewProgramDifferent,
       onStageParticipants.length,
@@ -1702,7 +1705,7 @@ onSaveScene: () => {
     <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
       <RoomAudioRenderer />
 
-      <div className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.13),transparent_34%),radial-gradient(circle_at_82%_2%,rgba(112,87,255,0.15),transparent_32%),radial-gradient(circle_at_50%_106%,rgba(214,92,158,0.07),transparent_40%),linear-gradient(180deg,#0b1024_0%,#070a19_48%,#040611_100%)] text-white">
+      <div className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.13),transparent_34%),radial-gradient(circle_at_82%_2%,rgba(112,87,255,0.15),transparent_32%),radial-gradient(circle_at_50%_106%,rgba(214,92,158,0.07),transparent_40%),linear-gradient(180deg,#0b1024_0%,#070a19_48%,#040611_100%)] text-white">
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 

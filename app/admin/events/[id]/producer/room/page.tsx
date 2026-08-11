@@ -55,20 +55,10 @@ export default async function AdminProducerRoomPage(props: {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 py-8 text-white">
-      <div className="w-full space-y-6">
-        <div className="px-6">
-          <div className="text-xs uppercase tracking-[0.18em] text-white/40">
-            Producer Room
-          </div>
-          <h1 className="mt-2 text-3xl font-semibold">{session.title}</h1>
-          <p className="mt-2 text-sm text-white/60">
-            Choose who appears on stage for attendees.
-          </p>
-        </div>
-
-        <ProducerRoomClient eventId={eventId} sessionId={session.id} />
-      </div>
-    </div>
+    <ProducerRoomClient
+      eventId={eventId}
+      sessionId={session.id}
+      sessionTitle={session.title}
+    />
   )
 }
