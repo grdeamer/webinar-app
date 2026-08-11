@@ -1,7 +1,7 @@
-import Link from "next/link"
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomClient"
+import ProducerRoomSetup from "./ProducerRoomSetup"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -51,25 +51,7 @@ export default async function AdminProducerRoomPage(props: {
   if (sessionError) throw new Error(sessionError.message)
 
   if (!session?.id) {
-    return (
-      <div className="min-h-screen bg-slate-950 px-6 py-8 text-white">
-        <div className="mx-auto max-w-3xl rounded-3xl border border-amber-300/20 bg-amber-300/[0.06] p-8">
-          <div className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-100/60">
-            Producer Room Setup
-          </div>
-          <h1 className="mt-3 text-3xl font-semibold">Add a Main Stage session first</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-white/65">
-            The switcher needs one session marked as the general session or Main Stage. Create it in Sessions, then return here.
-          </p>
-          <Link
-            href={`/admin/events/${eventId}/sessions`}
-            className="mt-6 inline-flex rounded-xl bg-white px-4 py-2 text-sm font-semibold text-slate-950 transition hover:bg-white/90"
-          >
-            Open Sessions
-          </Link>
-        </div>
-      </div>
-    )
+    return <ProducerRoomSetup eventId={eventId} />
   }
 
   return (
