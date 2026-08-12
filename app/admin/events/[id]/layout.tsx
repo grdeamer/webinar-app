@@ -256,7 +256,7 @@ export default function EventLayout({
         EVENT_WORKSPACE_GRID_CLASS,
         collapsed
           ? "xl:grid-cols-[72px_minmax(0,1fr)]"
-          : "xl:grid-cols-[184px_minmax(0,1fr)] 2xl:grid-cols-[196px_minmax(0,1fr)]",
+          : "xl:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-[232px_minmax(0,1fr)]",
       ].join(" ")}
     >
       <aside
