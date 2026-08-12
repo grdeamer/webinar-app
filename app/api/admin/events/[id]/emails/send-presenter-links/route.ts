@@ -134,9 +134,11 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
   const body = (await req.json().catch((): null => null)) as {
     testTo?: string
     userId?: string
+    registrantId?: string
   } | null
   const testTo = String(body?.testTo || "").trim().toLowerCase()
   const userId = String(body?.userId || "").trim()
+  const registrantId = String(body?.registrantId || "").trim()
 
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
@@ -146,6 +148,57 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
 
   if (eventError || !event) {
     return NextResponse.json({ error: "Event not found" }, { status: 404 })
+  }
+
+  if (registrantId) {
+    const { data: registrant, error: registrantError } = await supabaseAdmin
+      .from("event_registrants")
+      .select("id,email,first_name,last_name,tag")
+      .eq("id", registrantId)
+      .eq("event_id", eventId)
+      .maybeSingle()
+
+    if (registrantError) return NextResponse.json({ error: registrantError.message }, { status: 500 })
+    if (!registrant) return NextResponse.json({ error: "Person not found" }, { status: 404 })
+    if (!String(registrant.tag || "").toLowerCase().includes("presenter")) {
+      return NextResponse.json({ error: "Person is not marked as a presenter" }, { status: 400 })
+    }
+
+    const { data: assignmentRows, error: assignmentError } = await supabaseAdmin
+      .from("event_registrant_sessions")
+      .select("session_id")
+      .eq("event_id", eventId)
+      .eq("registrant_id", registrantId)
+
+    if (assignmentError) return NextResponse.json({ error: assignmentError.message }, { status: 500 })
+    const assignedIds = (assignmentRows || []).map((row) => row.session_id).filter(Boolean)
+    let assignedSessions: SessionRow[] = []
+
+    if (assignedIds.length) {
+      const { data: sessionRows, error: sessionError } = await supabaseAdmin
+        .from("event_sessions")
+        .select("id,code,title")
+        .in("id", assignedIds)
+      if (sessionError) return NextResponse.json({ error: sessionError.message }, { status: 500 })
+      assignedSessions = (sessionRows || []) as SessionRow[]
+    }
+
+    const presenter = registrant as PresenterRegistrant
+    const resend = getResendClient()
+    await resend.emails.send({
+      from: getEmailFrom(),
+      to: testTo || presenter.email,
+      subject: `${testTo ? "[TEST] " : ""}Presenter links: ${event.title}`,
+      html: presenterLinksHtml({
+        eventTitle: event.title,
+        presenter: { ...presenter, email: testTo || presenter.email },
+        sessions: assignedSessions,
+        appUrl: getAppUrl().replace(/\/$/, ""),
+        eventSlug: event.slug,
+      }),
+    })
+
+    return NextResponse.json({ ok: true, test: Boolean(testTo), sent: 1, failed: 0, presenters: 1 })
   }
 
   if (userId) {

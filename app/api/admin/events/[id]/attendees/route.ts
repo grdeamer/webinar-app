@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
 }
 
@@ -24,25 +24,13 @@ type RegistrantRow = {
   email: string
   first_name: string | null
   last_name: string | null
+  tag: string | null
+  created_at: string | null
 }
 
 type RegistrantSessionRow = {
   registrant_id: string
   session_id: string
-}
-
-type EventAttendeeRow = {
-  user_id: string
-}
-
-type UserRow = {
-  id: string
-  email: string | null
-}
-
-type LegacyAssignmentRow = {
-  user_id: string
-  webinar_id: string
 }
 
 type ApiAttendee = {
@@ -52,7 +40,9 @@ type ApiAttendee = {
   last_name: string | null
   name: string
   session_ids: string[]
-  source: "event_registrants" | "event_attendees"
+  role: "registrant" | "presenter"
+  created_at: string | null
+  source: "event_registrants"
 }
 
 export async function GET(
@@ -85,11 +75,9 @@ export async function GET(
       ends_at: session.ends_at,
     }))
 
-    const attendees: ApiAttendee[] = []
-
     const { data: registrants, error: registrantsError } = await supabaseAdmin
       .from("event_registrants")
-      .select("id,event_id,email,first_name,last_name")
+      .select("id,event_id,email,first_name,last_name,tag,created_at")
       .eq("event_id", eventId)
       .order("email", { ascending: true })
 
@@ -119,9 +107,7 @@ export async function GET(
         registrantSessionMap[row.registrant_id].push(row.session_id)
       }
 
-      // ✅ FIXED HERE
-      attendees.push(
-        ...(registrants as RegistrantRow[]).map((r): ApiAttendee => ({
+      const attendees = (registrants as RegistrantRow[]).map((r): ApiAttendee => ({
           id: r.id,
           email: r.email,
           first_name: r.first_name ?? null,
@@ -129,72 +115,14 @@ export async function GET(
           name:
             [r.first_name, r.last_name].filter(Boolean).join(" ").trim() || r.email,
           session_ids: registrantSessionMap[r.id] || [],
+          role: String(r.tag || "").toLowerCase().includes("presenter") ? "presenter" : "registrant",
+          created_at: r.created_at,
           source: "event_registrants",
         }))
-      )
+
+      return json({ attendees, sessions: safeSessions })
     }
-
-    const { data: eventAttendees, error: attendeesError } = await supabaseAdmin
-      .from("event_attendees")
-      .select("user_id")
-      .eq("event_id", eventId)
-
-    if (attendeesError) {
-      return json({ error: attendeesError.message }, 400)
-    }
-
-    if (eventAttendees && eventAttendees.length > 0) {
-      const userIds = (eventAttendees as EventAttendeeRow[]).map((a) => a.user_id)
-
-      const { data: users, error: usersError } = await supabaseAdmin
-        .from("users")
-        .select("id,email")
-        .in("id", userIds)
-
-      if (usersError) {
-        return json({ error: usersError.message }, 400)
-      }
-
-      const { data: legacyAssignments, error: assignmentsError } = await supabaseAdmin
-        .from("event_user_webinars")
-        .select("user_id,webinar_id")
-        .eq("event_id", eventId)
-
-      if (assignmentsError) {
-        return json({ error: assignmentsError.message }, 400)
-      }
-
-      const legacySessionMap: Record<string, string[]> = {}
-
-      for (const row of (legacyAssignments || []) as LegacyAssignmentRow[]) {
-        if (!legacySessionMap[row.user_id]) {
-          legacySessionMap[row.user_id] = []
-        }
-        legacySessionMap[row.user_id].push(row.webinar_id)
-      }
-
-      const existingIds = new Set(attendees.map((a) => a.id))
-
-      // ✅ FIXED HERE TOO
-      attendees.push(
-        ...((users || []) as UserRow[])
-          .filter((u) => !existingIds.has(u.id))
-          .map((u): ApiAttendee => ({
-            id: u.id,
-            email: u.email || "",
-            first_name: null,
-            last_name: null,
-            name: u.email || "Unknown attendee",
-            session_ids: legacySessionMap[u.id] || [],
-            source: "event_attendees",
-          }))
-      )
-    }
-
-    return json({
-      attendees,
-      sessions: safeSessions,
-    })
+    return json({ attendees: [], sessions: safeSessions })
   } catch (err) {
     console.error(err)
     return json({ error: "Server error" }, 500)

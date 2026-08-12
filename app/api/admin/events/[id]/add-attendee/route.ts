@@ -5,7 +5,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
 }
 
@@ -33,12 +33,14 @@ export async function POST(
     const email = normEmail(body.email)
     const first_name = cleanOptionalString(body.first_name)
     const last_name = cleanOptionalString(body.last_name)
+    const tag = body.role === "presenter" ? "Presenter" : "Registrant"
 
     if (!email || !email.includes("@")) {
       return json({ error: "Valid email required" }, 400)
     }
 
-    // 1️⃣ users table (KEEP SIMPLE — no first/last here)
+    // Keep legacy access records in sync while event_registrants remains the
+    // canonical event directory used by People and Communications.
     const { data: user, error: userErr } = await supabaseAdmin
       .from("users")
       .upsert(
@@ -76,6 +78,7 @@ export async function POST(
           email,
           first_name,
           last_name,
+          tag,
         },
         { onConflict: "event_id,email" }
       )
@@ -93,8 +96,8 @@ export async function POST(
         last_name,
       },
     })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("add-attendee error:", err)
-    return json({ error: err?.message || "Server error" }, 500)
+    return json({ error: err instanceof Error ? err.message : "Server error" }, 500)
   }
 }
