@@ -158,8 +158,6 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
     void loadFiles("")
   }
 
-  if (!destinationId) return null
-
   return (
     <section className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -170,10 +168,12 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
             <p className="text-xs text-white/40">Browse this destination and drag files in to upload them.</p>
           </div>
         </div>
-        <button type="button" onClick={isOpen ? () => setIsOpen(false) : openBrowser} className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/10">
+        <button type="button" disabled={!destinationId} onClick={isOpen ? () => setIsOpen(false) : openBrowser} className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-35">
           {isOpen ? "Close files" : "Open files"}
         </button>
       </div>
+
+      {!destinationId ? <div className="mt-5 rounded-2xl border border-dashed border-white/10 bg-black/15 px-5 py-8 text-center text-sm text-white/40">Save and select an FTP or FTPS destination to browse its files.</div> : null}
 
       {isOpen ? (
         <div className="mt-5 overflow-hidden rounded-2xl border border-white/[.09] bg-black/20">
