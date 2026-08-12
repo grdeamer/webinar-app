@@ -137,7 +137,11 @@ export default function EventSettingsForm({
                 label="Event start"
                 value={event.start_at}
                 onChange={(value) =>
-                  setEvent((current) => ({ ...current, start_at: value }))
+                  setEvent((current) => ({
+                    ...current,
+                    start_at: value,
+                    end_at: value,
+                  }))
                 }
                 disabled={saving}
               />
