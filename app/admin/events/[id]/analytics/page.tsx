@@ -48,8 +48,8 @@ export default async function AdminEventAnalyticsPage({
       .select("id", { count: "exact", head: true })
       .eq("event_id", event.id),
     supabaseAdmin
-      .from("event_attendees")
-      .select("user_id", { count: "exact", head: true })
+      .from("event_registrants")
+      .select("id", { count: "exact", head: true })
       .eq("event_id", event.id),
     supabaseAdmin
       .from("event_agenda_items")
