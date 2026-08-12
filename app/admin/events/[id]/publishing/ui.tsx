@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
 import { CheckCircle2, ExternalLink, Globe2, History, Loader2, RotateCcw, Server, UploadCloud } from "lucide-react"
+import RemoteFileBrowser from "./RemoteFileBrowser"
 
 type Destination = {
   id: string
@@ -129,6 +130,8 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
             {error ? <div className="mt-5 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
           </section>
         </div>
+
+        <RemoteFileBrowser eventId={eventId} destinationId={selectedId} />
 
         <section className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7"><div className="flex items-center gap-3"><History className="text-white/60" size={20} /><h2 className="font-semibold">Publish history</h2></div><div className="mt-5 space-y-3">{deployments.length === 0 ? <p className="text-sm text-white/40">No external deployments yet.</p> : deployments.map((deployment) => <div key={deployment.id} className="flex flex-col gap-3 rounded-2xl border border-white/[.07] bg-black/15 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold capitalize">{deployment.status.replace(/_/g, " ")}</div><div className="mt-1 text-xs text-white/40">{new Date(deployment.created_at).toLocaleString()}</div></div>{deployment.status === "published" && deployment.backup_path ? <button type="button" disabled={Boolean(busy)} onClick={() => run("rollback", { deployment_id: deployment.id })} className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-100"><RotateCcw size={14} />Rollback</button> : null}</div>)}</div></section>
       </div>

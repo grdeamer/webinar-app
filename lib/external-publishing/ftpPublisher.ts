@@ -4,6 +4,8 @@ import os from "node:os"
 import path from "node:path"
 import { lookup } from "node:dns/promises"
 import { isIP } from "node:net"
+import { randomUUID } from "node:crypto"
+import type { Readable } from "node:stream"
 import type { PublishArtifact } from "./letsTemplate"
 
 export type FtpConnection = {
@@ -21,6 +23,31 @@ function normalizeRemotePath(value: string) {
     throw new Error("Remote path must be an explicit folder without '..'")
   }
   return `/${trimmed.replace(/^\/+|\/+$/g, "")}`
+}
+
+function normalizeBrowserPath(value: string) {
+  const trimmed = value.trim().replace(/\\/g, "/").replace(/^\/+|\/+$/g, "")
+  if (!trimmed) return ""
+
+  const segments = trimmed.split("/")
+  if (segments.some((segment) => !segment || segment === "." || segment === ".." || segment === ".jupiter")) {
+    throw new Error("Remote folder is invalid")
+  }
+  return segments.join("/")
+}
+
+function remoteBrowserPath(connection: FtpConnection, browserPath: string) {
+  const root = normalizeRemotePath(connection.remotePath)
+  const relative = normalizeBrowserPath(browserPath)
+  return relative ? `${root}/${relative}` : root
+}
+
+function safeRemoteFileName(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed || trimmed === "." || trimmed === ".." || trimmed === ".jupiter" || /[\\/\0]/.test(trimmed)) {
+    throw new Error("File name is invalid")
+  }
+  return trimmed
 }
 
 async function connect(connection: FtpConnection) {
@@ -62,6 +89,90 @@ export async function testFtpConnection(connection: FtpConnection) {
     const remotePath = normalizeRemotePath(connection.remotePath)
     await client.cd(remotePath)
     await client.list()
+  } finally {
+    client.close()
+  }
+}
+
+export type RemoteFileEntry = {
+  name: string
+  type: "file" | "directory"
+  size: number
+  modified_at: string | null
+}
+
+export async function listRemoteFiles(connection: FtpConnection, browserPath = "") {
+  const client = await connect(connection)
+  try {
+    const remotePath = remoteBrowserPath(connection, browserPath)
+    const entries = await client.list(remotePath)
+    return entries
+      .filter((entry) => entry.name !== "." && entry.name !== ".." && entry.name !== ".jupiter")
+      .filter((entry) => entry.isDirectory || entry.isFile)
+      .map<RemoteFileEntry>((entry) => ({
+        name: entry.name,
+        type: entry.isDirectory ? "directory" : "file",
+        size: entry.size,
+        modified_at: entry.modifiedAt?.toISOString() || null,
+      }))
+      .sort((left, right) => {
+        if (left.type !== right.type) return left.type === "directory" ? -1 : 1
+        return left.name.localeCompare(right.name, undefined, { sensitivity: "base" })
+      })
+  } finally {
+    client.close()
+  }
+}
+
+export class RemoteFileExistsError extends Error {
+  constructor(fileName: string) {
+    super(`${fileName} already exists`)
+    this.name = "RemoteFileExistsError"
+  }
+}
+
+export async function uploadRemoteFile(args: {
+  connection: FtpConnection
+  browserPath: string
+  fileName: string
+  source: Readable
+  overwrite: boolean
+}) {
+  const client = await connect(args.connection)
+  const rootPath = normalizeRemotePath(args.connection.remotePath)
+  const targetDirectory = remoteBrowserPath(args.connection, args.browserPath)
+  const fileName = safeRemoteFileName(args.fileName)
+  const targetPath = `${targetDirectory}/${fileName}`
+  const operationId = randomUUID()
+  const stagingDirectory = `${rootPath}/.jupiter/uploads`
+  const stagingPath = `${stagingDirectory}/${operationId}`
+  const backupDirectory = `${rootPath}/.jupiter/manual-backups/${operationId}`
+  const backupPath = `${backupDirectory}/${fileName}`
+  let movedToBackup = false
+
+  try {
+    await client.cd(targetDirectory)
+    const existing = (await client.list(targetDirectory)).find((entry) => entry.name === fileName)
+    if (existing?.isDirectory) throw new Error(`${fileName} is a folder and cannot be replaced`)
+    if (existing && !args.overwrite) throw new RemoteFileExistsError(fileName)
+
+    await client.ensureDir(stagingDirectory)
+    await client.uploadFrom(args.source, stagingPath)
+
+    if (existing) {
+      await client.ensureDir(backupDirectory)
+      await client.rename(targetPath, backupPath)
+      movedToBackup = true
+    }
+
+    await client.rename(stagingPath, targetPath)
+    return { name: fileName, replaced: Boolean(existing) }
+  } catch (error) {
+    await client.remove(stagingPath).catch((): void => undefined)
+    if (movedToBackup) {
+      await client.rename(backupPath, targetPath).catch((): void => undefined)
+    }
+    throw error
   } finally {
     client.close()
   }
