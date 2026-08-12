@@ -345,15 +345,16 @@ const res = await fetch(`/api/admin/sessions/${id}`, {
   return (
     <div className="space-y-6">
       <AdminHeader
-        title="Manage Sessions"
-        subtitle={`Event: ${event.title}`}
+        title="Program"
+        subtitle={`Build the sessions and schedule for ${event.title}.`}
+        showNavigation={false}
         actions={
           <>
             <Link
               href={`/admin/events/${event.id}`}
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10"
             >
-              Back to Event
+              Event Overview
             </Link>
             <Link
               href={`/admin/import?eventId=${event.id}`}

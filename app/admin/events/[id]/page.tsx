@@ -192,7 +192,7 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
 
               <HeaderAction
                 href={`/admin/page-editor/event/${event.slug}`}
-                label="Experience Editor"
+                label="Experience"
                 icon={<LayoutTemplate size={15} />}
               />
             </div>
@@ -257,7 +257,7 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
               <div className="space-y-2.5">
                 <ActionLink
                   href={`/admin/events/${event.id}/routing`}
-                  title="Audience Routing"
+                  title="Run Event"
                   description="Control where attendees go."
                   icon={<Activity size={17} />}
                 />

@@ -123,7 +123,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   href="/access"
                   className="rounded-xl border border-violet-300/15 bg-violet-300/10 px-2.5 py-1.5 text-xs font-semibold text-violet-100/75 transition hover:border-violet-200/30 hover:bg-violet-300/15 hover:text-violet-50"
                 >
-                  Attendee View
+                  Attendee Preview
                 </Link>
               </div>
             </div>
@@ -244,7 +244,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   href="/access"
                   className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
                 >
-                  Attendee View
+                  Attendee Preview
                 </Link>
                 <Link
                   href="/"

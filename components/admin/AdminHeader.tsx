@@ -16,10 +16,12 @@ export default function AdminHeader({
   title,
   subtitle,
   actions,
+  showNavigation = true,
 }: {
   title: string
   subtitle?: string
   actions?: React.ReactNode
+  showNavigation?: boolean
 }) {
   const pathname = usePathname()
 
@@ -44,7 +46,7 @@ export default function AdminHeader({
           <div className="flex items-center gap-2">{actions}</div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
+        {showNavigation ? <div className="flex flex-wrap items-center gap-2 border-t border-white/10 pt-4">
           {navItems.map((item) => {
             const active =
               item.href === "/admin"
@@ -61,7 +63,7 @@ export default function AdminHeader({
               </Link>
             )
           })}
-        </div>
+        </div> : null}
       </div>
     </div>
   )

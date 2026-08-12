@@ -624,6 +624,7 @@ export default function AdminAgendaEditor({
 
       setAccessOpen(json.access === "open")
       setAccessSyncToken(json.sync_token || null)
+      window.dispatchEvent(new Event("jupiter:event-context-updated"))
       flash(nextOpen ? "Event opened to attendees" : "Event closed to attendees")
     } catch (error) {
       setAccessError(errorMessage(error, `Failed to ${action} event`))

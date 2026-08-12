@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
-import { ReactNode, useEffect, useState } from "react"
+import { ReactNode, useCallback, useEffect, useState } from "react"
 import {
   Activity,
   BarChart3,
@@ -45,6 +45,41 @@ const EVENT_WORKSPACE_FOOTER_CARD_CLASS =
 
 const EVENT_WORKSPACE_SECTION_CLASS =
   "relative min-w-0 overflow-hidden rounded-[24px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(6,10,18,0.55),rgba(2,4,9,0.18))] shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]"
+
+type EventWorkspaceContext = {
+  title: string
+  startAt: string | null
+  endAt: string | null
+  access: "open" | "closed"
+  hasLiveSession: boolean
+}
+
+function formatEventDate(startAt: string | null, endAt: string | null): string {
+  if (!startAt) return "Schedule not set"
+
+  const start = new Date(startAt)
+  if (Number.isNaN(start.getTime())) return "Schedule not set"
+
+  const date = new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(start)
+
+  if (!endAt) return date
+
+  const end = new Date(endAt)
+  if (Number.isNaN(end.getTime())) return date
+
+  const sameDay = start.toDateString() === end.toDateString()
+  if (sameDay) return date
+
+  return `${date} – ${new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).format(end)}`
+}
 
 function isActive(pathname: string, href: string, exact = false) {
   if (exact) return pathname === href
@@ -138,6 +173,39 @@ export default function EventLayout({
 
   const shortId = id.length > 8 ? id.slice(0, 8) : id
   const [collapsed, setCollapsed] = useState(false)
+  const [eventContext, setEventContext] = useState<EventWorkspaceContext | null>(null)
+
+  const loadEventContext = useCallback(async (signal?: AbortSignal) => {
+    try {
+      const response = await fetch(`/api/admin/events/${id}/workspace-context`, {
+        cache: "no-store",
+        signal,
+      })
+
+      if (!response.ok) throw new Error("Failed to load event context")
+      setEventContext((await response.json()) as EventWorkspaceContext)
+    } catch (error: unknown) {
+      if (error instanceof DOMException && error.name === "AbortError") return
+      console.error("Event workspace context failed to load", error)
+    }
+  }, [id])
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const refresh = (): void => {
+      void loadEventContext(controller.signal)
+    }
+
+    refresh()
+    const interval = window.setInterval(refresh, 15_000)
+    window.addEventListener("jupiter:event-context-updated", refresh)
+
+    return () => {
+      controller.abort()
+      window.clearInterval(interval)
+      window.removeEventListener("jupiter:event-context-updated", refresh)
+    }
+  }, [loadEventContext])
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -169,6 +237,18 @@ export default function EventLayout({
       return next
     })
   }
+
+  const eventStatus = eventContext?.hasLiveSession
+    ? "Live"
+    : eventContext?.access === "open"
+      ? "Open"
+      : "Closed"
+
+  const eventStatusClass = eventContext?.hasLiveSession
+    ? "border-red-300/20 bg-red-400/10 text-red-100"
+    : eventContext?.access === "open"
+      ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
+      : "border-white/10 bg-white/[0.04] text-white/52"
 
   return (
     <div
@@ -211,33 +291,47 @@ export default function EventLayout({
           <div className={EVENT_WORKSPACE_CARD_CLASS}>
             <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-violet-100/16 to-transparent" />
             <div className="text-[9px] font-black uppercase tracking-[0.2em] text-violet-100/48">
-              Event Workspace
+              Current Event
             </div>
-            <div className="mt-1.5 truncate text-sm font-semibold text-white/92">
-              Event {shortId}
+            <div className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-white/92" title={eventContext?.title}>
+              {eventContext?.title || `Event ${shortId}`}
             </div>
-            <div className="mt-1 text-[11px] leading-snug text-white/38">
-              Configure, produce, and measure.
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${eventStatusClass}`}>
+                {eventStatus}
+              </span>
+              <span className="text-[10px] text-white/42">
+                {formatEventDate(eventContext?.startAt ?? null, eventContext?.endAt ?? null)}
+              </span>
             </div>
           </div>
         )}
 
         <nav className={collapsed ? "relative z-10 space-y-2" : "relative z-10 space-y-3"}>
-          <NavGroup title="Manage" collapsed={collapsed}>
+          <NavGroup title="Setup" collapsed={collapsed}>
             <NavItem href={base} icon={<LayoutDashboard size={16} />} label="Overview" collapsed={collapsed} exact>
               Overview
             </NavItem>
-            <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Settings" collapsed={collapsed}>
-              Settings
+            <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Event Details" collapsed={collapsed}>
+              Event Details
             </NavItem>
-            <NavItem href={`${base}/attendees`} icon={<Users size={16} />} label="Registrants" collapsed={collapsed}>
-              Registrants
+            <NavItem href={`${base}/attendees`} icon={<Users size={16} />} label="People" collapsed={collapsed}>
+              People
             </NavItem>
-            <NavItem href={`${base}/sessions`} icon={<CalendarDays size={16} />} label="Sessions" collapsed={collapsed}>
-              Sessions
+            <NavItem href={`${base}/sessions`} icon={<CalendarDays size={16} />} label="Program" collapsed={collapsed}>
+              Program
             </NavItem>
-            <NavItem href={`${base}/emails`} icon={<Mail size={16} />} label="Emails" collapsed={collapsed}>
-              Emails
+            <NavItem href={`${base}/page-editor`} icon={<Sparkles size={16} />} label="Experience" collapsed={collapsed}>
+              Experience
+            </NavItem>
+            <NavItem href={`${base}/emails`} icon={<Mail size={16} />} label="Communications" collapsed={collapsed}>
+              Communications
+            </NavItem>
+            <NavItem href={`${base}/publishing`} icon={<Globe2 size={16} />} label="Publish" collapsed={collapsed}>
+              Publish
+            </NavItem>
+            <NavItem href={`${base}/sponsors`} icon={<ImageIcon size={16} />} label="Media & Sponsors" collapsed={collapsed}>
+              Media & Sponsors
             </NavItem>
           </NavGroup>
 
@@ -245,10 +339,10 @@ export default function EventLayout({
             <NavItem
               href={`${base}/routing`}
               icon={<Activity size={16} />}
-              label="Audience Routing"
+              label="Run Event"
               collapsed={collapsed}
             >
-              Audience Routing
+              Run Event
             </NavItem>
             <NavItem
               href={`${base}/agenda`}
@@ -266,18 +360,9 @@ export default function EventLayout({
             >
               Producer Room
             </NavItem>
-            <NavItem href={`${base}/page-editor`} icon={<Sparkles size={16} />} label="Experience" collapsed={collapsed}>
-              Experience
-            </NavItem>
-            <NavItem href={`${base}/publishing`} icon={<Globe2 size={16} />} label="Publish Site" collapsed={collapsed}>
-              Publish Site
-            </NavItem>
-            <NavItem href={`${base}/sponsors`} icon={<ImageIcon size={16} />} label="Assets" collapsed={collapsed}>
-              Assets
-            </NavItem>
           </NavGroup>
 
-          <NavGroup title="Measure" collapsed={collapsed}>
+          <NavGroup title="Review" collapsed={collapsed}>
             <NavItem href={`${base}/analytics`} icon={<BarChart3 size={16} />} label="Analytics" collapsed={collapsed}>
               Analytics
             </NavItem>
@@ -287,10 +372,9 @@ export default function EventLayout({
         {!collapsed && (
           <div className={EVENT_WORKSPACE_FOOTER_CARD_CLASS}>
             <div className="mb-1 flex items-center gap-1.5 font-semibold text-white/62">
-              <FileText size={13} /> Event workspace
+              <FileText size={13} /> Operator workflow
             </div>
-            Local tools for this event live here. Global tools stay in the main
-            admin sidebar.
+            Build the event in Setup, operate it in Live, then review results.
           </div>
         )}
       </aside>

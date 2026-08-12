@@ -14,12 +14,12 @@ export default async function EventEmailsPage({ params }: PageProps) {
     <div className="space-y-6 text-white">
       <section className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_38%),rgba(255,255,255,0.04)] p-8">
         <div className="text-xs uppercase tracking-[0.18em] text-violet-100/50">
-          Email Center
+          Communications
         </div>
 
         <div className="mt-3 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-3xl font-semibold">Event Emails</h1>
+            <h1 className="text-3xl font-semibold">Communications</h1>
             <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">
               Prepare, validate, and launch event communications from one
               controlled workspace.

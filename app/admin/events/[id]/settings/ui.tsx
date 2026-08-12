@@ -51,6 +51,7 @@ export default function EventSettingsForm({
 
       setEvent((current) => ({ ...current, title }))
       setMessage("Event settings saved.")
+      window.dispatchEvent(new Event("jupiter:event-context-updated"))
       router.refresh()
     } catch (saveError) {
       setError(
@@ -71,10 +72,10 @@ export default function EventSettingsForm({
             Event Workspace
           </div>
           <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">
-            Event Settings
+            Event Details
           </h1>
           <p className="mt-2 text-sm text-white/50">
-            Manage the event name, description, and schedule.
+            Manage the event name, description, schedule, and permanent URL.
           </p>
         </header>
 

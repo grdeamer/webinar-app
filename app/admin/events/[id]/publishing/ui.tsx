@@ -98,8 +98,8 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
       <div className="mx-auto max-w-6xl space-y-5">
         <header className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7">
           <div className="flex items-start justify-between gap-6">
-            <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-100/50">External Experience Delivery</div><h1 className="mt-3 text-3xl font-semibold tracking-[-.03em]">Publish Attendee Site</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-white/50">Deploy the LETS Live Agenda template to an external FTP or FTPS destination. Credentials are encrypted and remain server-side.</p></div>
-            <Link href={`/admin/events/${eventId}/page-editor`} className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/10">Open Page Editor</Link>
+            <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-100/50">External Experience Delivery</div><h1 className="mt-3 text-3xl font-semibold tracking-[-.03em]">Publish</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-white/50">Deploy the attendee experience to an external FTP or FTPS destination. Credentials are encrypted and remain server-side.</p></div>
+            <Link href={`/admin/events/${eventId}/page-editor`} className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/10">Open Experience</Link>
           </div>
         </header>
 

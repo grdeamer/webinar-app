@@ -130,7 +130,8 @@ const presenceMap = new Map(presence.map((p) => [p.user_id, p]))
     
 
       <div className="space-y-6">
-        <h1 className="text-3xl font-semibold text-white">Registrants</h1>
+        <h1 className="text-3xl font-semibold text-white">People</h1>
+        <p className="text-sm text-white/55">Manage registrants, presenters, and session access in one place.</p>
 
 <div className="grid gap-4 md:grid-cols-3">
   <Stat label="Total" value={typedAttendees.length} />

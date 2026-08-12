@@ -496,9 +496,9 @@ export default function MissionControlClient({
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100/45">
           Live Operations
         </div>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">Audience Routing</h1>
+        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">Run Event</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-          Move attendee browsers between the lobby, main stage, sessions, and breakouts. Video switching stays in Producer Room.
+          Control where attendees go during the event. Video, audio, and program switching stay in Producer Room.
         </p>
       </div>
 

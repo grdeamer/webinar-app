@@ -60,9 +60,9 @@ export default async function AdminEventAssetsPage({
     <div className="space-y-6 p-6 text-white">
       <section className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_top_right,rgba(56,189,248,0.12),transparent_38%),rgba(255,255,255,0.04)] p-8">
         <div className="text-xs font-semibold uppercase tracking-[0.18em] text-sky-100/50">
-          Event Assets
+          Media Library
         </div>
-        <h1 className="mt-3 text-3xl font-semibold">Sponsors &amp; Brand Assets</h1>
+        <h1 className="mt-3 text-3xl font-semibold">Media &amp; Sponsors</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-white/60">
           Manage the sponsor logos, partner links, tiers, and descriptions shown across {event.title}.
         </p>
