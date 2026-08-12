@@ -1,13 +1,20 @@
 import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import JupiterLogo from "@/components/brand/JupiterLogo"
+import EventsListClient from "./EventsListClient"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
+
+const eventDateFormatter = new Intl.DateTimeFormat("en-US", {
+  dateStyle: "short",
+  timeStyle: "short",
+  timeZone: "America/New_York",
+})
 
 export default async function AdminEventsPage() {
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id,slug,title,start_at,end_at")
+    .select("id,slug,title,start_at,lifecycle_stage")
     .order("created_at", { ascending: false })
 
   if (error) throw new Error(error.message)
@@ -31,26 +38,13 @@ export default async function AdminEventsPage() {
         </Link>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {(data || []).map((e) => (
-          <Link
-            key={e.id}
-            href={`/admin/events/${e.id}`}
-            className="rounded-2xl border border-white/10 bg-white/5 p-5 hover:bg-white/10"
-          >
-            <div className="text-lg font-semibold">{e.title}</div>
-            <div className="mt-1 text-sm text-white/60">/{e.slug}</div>
-            <div className="mt-3 text-xs text-white/40">
-              {e.start_at ? new Date(e.start_at).toLocaleString() : "Date TBD"}
-            </div>
-          </Link>
-        ))}
-        {(data || []).length === 0 ? (
-          <div className="rounded-2xl border border-white/10 bg-white/5 p-5 text-white/60">
-            No events yet.
-          </div>
-        ) : null}
-      </div>
+      <EventsListClient initialEvents={(data || []).map((event) => ({
+        id: event.id,
+        slug: event.slug,
+        title: event.title,
+        lifecycle_stage: event.lifecycle_stage,
+        start_label: event.start_at ? eventDateFormatter.format(new Date(event.start_at)) : "Date TBD",
+      }))} />
     </div>
   )
 }
