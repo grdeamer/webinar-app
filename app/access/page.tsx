@@ -91,7 +91,7 @@ export default function AccessPage() {
         </form>
 
         <div className="mt-6 text-sm text-white/50">
-          <Link href="/" className="hover:text-white transition">
+          <Link href="https://jupiter.events" className="hover:text-white transition">
             ← Back to Jupiter.events
           </Link>
         </div>
