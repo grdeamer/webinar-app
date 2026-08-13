@@ -456,6 +456,7 @@ const isEmbedded =
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [loadedPageKey, setLoadedPageKey] = useState<string | null>(null)
+  const [eventAdminId, setEventAdminId] = useState<string | null>(null)
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
@@ -631,6 +632,7 @@ const isEmbedded =
           elements?: unknown
           sections?: unknown
           eventTheme?: unknown
+          event_id?: unknown
           revision?: unknown
           error?: unknown
         } | null
@@ -667,6 +669,10 @@ const isEmbedded =
             data?.eventTheme && typeof data.eventTheme === "object"
               ? (data.eventTheme as EventTheme)
               : eventThemeRef.current,
+        }
+
+        if (typeof data.event_id === "string" && data.event_id.trim()) {
+          setEventAdminId(data.event_id)
         }
 
         resetHistory(pageKey, snapshot)
@@ -2345,6 +2351,7 @@ const selectedExperienceNode = experienceNodes.find(
         <PageEditorToolbar
           isEmbedded={isEmbedded}
           eventTitle={eventInfo.title}
+          eventAdminHref={eventAdminId ? `/admin/events/${eventAdminId}` : null}
           selectedPageKey={selectedPageKey}
           templates={documentReady ? templates : []}
           canUndo={documentReady && canUndo}

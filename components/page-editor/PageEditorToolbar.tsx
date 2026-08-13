@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import type { ElementAlignmentCommand } from "./elementAlignmentCommands"
 
 type TemplateOption = {
@@ -10,6 +11,7 @@ type TemplateOption = {
 type Props = {
   isEmbedded: boolean
   eventTitle: string
+  eventAdminHref: string | null
   selectedPageKey: string
   templates: TemplateOption[]
   canUndo: boolean
@@ -88,6 +90,7 @@ const DISTRIBUTION_ACTIONS: Array<{
 export default function PageEditorToolbar({
   isEmbedded,
   eventTitle,
+  eventAdminHref,
   selectedPageKey,
   templates,
   canUndo,
@@ -122,6 +125,20 @@ export default function PageEditorToolbar({
             <h1 className="text-xl font-semibold capitalize">
               {isEmbedded ? "Experience Builder" : eventTitle}
             </h1>
+            {!isEmbedded ? (
+              <Link
+                href={eventAdminHref ?? "/admin/events"}
+                aria-disabled={!eventAdminHref}
+                className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold transition ${
+                  eventAdminHref
+                    ? "text-sky-200/70 hover:text-sky-100"
+                    : "pointer-events-none text-white/25"
+                }`}
+              >
+                <span aria-hidden="true">←</span>
+                Back to Event
+              </Link>
+            ) : null}
           </div>
         </div>
 
