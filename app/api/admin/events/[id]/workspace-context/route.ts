@@ -14,7 +14,7 @@ export async function GET(_request: Request, context: Params): Promise<Response>
 
   const { id } = await context.params
 
-  const [eventResult, liveStateResult, liveSessionResult] = await Promise.all([
+  const [eventResult, liveStateResult, liveSessionResult, presenceResult] = await Promise.all([
     supabaseAdmin
       .from("events")
       .select("title,start_at,end_at")
@@ -31,6 +31,10 @@ export async function GET(_request: Request, context: Params): Promise<Response>
       .eq("event_id", id)
       .eq("status", "live")
       .limit(1),
+    supabaseAdmin
+      .from("event_presence")
+      .select("user_id,last_seen")
+      .eq("event_id", id),
   ])
 
   if (eventResult.error) {
@@ -49,11 +53,28 @@ export async function GET(_request: Request, context: Params): Promise<Response>
     return NextResponse.json({ error: liveSessionResult.error.message }, { status: 400 })
   }
 
+  if (presenceResult.error) {
+    return NextResponse.json({ error: presenceResult.error.message }, { status: 400 })
+  }
+
+  const activeCutoff = Date.now() - 30_000
+  const liveAttendeeCount = new Set(
+    (presenceResult.data ?? [])
+      .filter((row) => {
+        if (!row.last_seen) return false
+        const lastSeen = new Date(row.last_seen).getTime()
+        return Number.isFinite(lastSeen) && lastSeen >= activeCutoff
+      })
+      .map((row) => row.user_id)
+      .filter((userId): userId is string => Boolean(userId))
+  ).size
+
   return NextResponse.json({
     title: eventResult.data.title,
     startAt: eventResult.data.start_at,
     endAt: eventResult.data.end_at,
     access: liveStateResult.data?.status === "open" ? "open" : "closed",
     hasLiveSession: (liveSessionResult.data?.length ?? 0) > 0,
+    liveAttendeeCount,
   })
 }

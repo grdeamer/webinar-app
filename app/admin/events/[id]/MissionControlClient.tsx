@@ -203,7 +203,15 @@ function formatRoutingLabel(value: string | null | undefined) {
   return value.replace(/_/g, " ").replace(/\b\w/g, (letter) => letter.toUpperCase())
 }
 
+function formatTransitionDuration(value: number | null | undefined) {
+  const duration = typeof value === "number" && Number.isFinite(value) ? value : 0
+  return `${(duration / 1000).toFixed(duration % 1000 === 0 ? 0 : 1)} seconds`
+}
+
 export default function MissionControlClient({
+  eventId,
+  initialEventStatus,
+  initialLiveAttendeeCount,
   routingState,
   sessions,
   breakouts,
@@ -223,6 +231,9 @@ export default function MissionControlClient({
   fireOffAirCue,
   clearTransitionState,
 }: {
+  eventId: string
+  initialEventStatus: "open" | "closed" | "live"
+  initialLiveAttendeeCount: number
   routingState: EventRoutingStateLike | null
   sessions: SessionOption[]
   breakouts: BreakoutOption[]
@@ -242,6 +253,8 @@ export default function MissionControlClient({
   fireOffAirCue: (formData: FormData) => Promise<void>
   clearTransitionState: () => Promise<void>
 }) {
+  const [eventStatus, setEventStatus] = useState(initialEventStatus)
+  const [liveAttendeeCount, setLiveAttendeeCount] = useState(initialLiveAttendeeCount)
   const [mainStageOpen, setMainStageOpen] = useState(false)
   const [sessionOpen, setSessionOpen] = useState(false)
   const [breakoutOpen, setBreakoutOpen] = useState(false)
@@ -304,6 +317,46 @@ export default function MissionControlClient({
     : defaultBreakoutId
 
   useEffect(() => {
+    const controller = new AbortController()
+
+    async function refreshEventSnapshot() {
+      try {
+        const response = await fetch(`/api/admin/events/${eventId}/workspace-context`, {
+          cache: "no-store",
+          signal: controller.signal,
+        })
+
+        if (!response.ok) return
+
+        const snapshot = (await response.json()) as {
+          access?: "open" | "closed"
+          hasLiveSession?: boolean
+          liveAttendeeCount?: number
+        }
+
+        setEventStatus(snapshot.hasLiveSession ? "live" : snapshot.access === "open" ? "open" : "closed")
+        setLiveAttendeeCount(
+          typeof snapshot.liveAttendeeCount === "number" ? snapshot.liveAttendeeCount : 0
+        )
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.error("Failed to refresh event snapshot", error)
+        }
+      }
+    }
+
+    void refreshEventSnapshot()
+    const interval = window.setInterval((): void => {
+      void refreshEventSnapshot()
+    }, 10_000)
+
+    return () => {
+      controller.abort()
+      window.clearInterval(interval)
+    }
+  }, [eventId])
+
+  useEffect(() => {
     let cancelled = false
 
     async function persist() {
@@ -339,9 +392,17 @@ export default function MissionControlClient({
     )
   }, [routingState, sessionMap, breakoutMap, generalSessionMap])
 
-  const audienceLocation = currentDestinationLabel
+  const configuredDestination = currentDestinationLabel
     ? currentDestinationLabel
     : formatRoutingLabel(routingState?.destination_type || routingState?.mode)
+
+  const eventStatusLabel = formatRoutingLabel(eventStatus)
+  const eventStatusDescription =
+    eventStatus === "live"
+      ? "A programmed session is live now."
+      : eventStatus === "open"
+        ? "Attendees can enter the event."
+        : "Attendee access is closed."
 
   function scheduleTransitionClear(durationMs: number) {
     const delay = Math.max(1200, durationMs + 800)
@@ -502,23 +563,61 @@ export default function MissionControlClient({
         </p>
       </div>
 
-      <section className="rounded-[22px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_40%),rgba(255,255,255,0.035)] p-6">
-        <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
-          Current Audience Location
+      <section className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_40%),rgba(255,255,255,0.035)]">
+        <div className="border-b border-white/[0.07] px-6 py-5">
+          <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+            Routing Snapshot
+          </div>
+          <h2 className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white">
+            What is configured and what is actually live
+          </h2>
         </div>
-        <div className="mt-2 text-2xl font-semibold tracking-[-0.025em] text-white">
-          Audience is currently in {audienceLocation}
+
+        <div className="grid md:grid-cols-3">
+          <div className="border-b border-white/[0.07] p-6 md:border-b-0 md:border-r">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+              <span className={`h-2 w-2 rounded-full ${eventStatus === "live" ? "bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.75)]" : eventStatus === "open" ? "bg-emerald-400" : "bg-white/30"}`} />
+              Event Status
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-white">
+              {eventStatusLabel}
+            </div>
+            <p className="mt-1 text-sm text-white/48">{eventStatusDescription}</p>
+          </div>
+
+          <div className="border-b border-white/[0.07] p-6 md:border-b-0 md:border-r">
+            <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+              Configured Destination
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-white">
+              {configuredDestination}
+            </div>
+            <p className="mt-1 text-sm text-white/48">
+              {eventStatus === "closed"
+                ? "Saved route; no attendees are being sent while closed."
+                : "Destination used when the next audience move is confirmed."}
+            </p>
+          </div>
+
+          <div className="p-6">
+            <div className="flex items-center gap-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-white/38">
+              <span className={`h-2 w-2 rounded-full ${liveAttendeeCount > 0 ? "bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,0.7)]" : "bg-white/20"}`} />
+              Live Attendees
+            </div>
+            <div className="mt-3 text-2xl font-semibold tracking-[-0.025em] text-white">
+              {liveAttendeeCount}
+            </div>
+            <p className="mt-1 text-sm text-white/48">
+              {liveAttendeeCount === 1 ? "1 browser active" : `${liveAttendeeCount} browsers active`} in the last 30 seconds.
+            </p>
+          </div>
         </div>
-        <div className="mt-4 flex flex-wrap gap-2 text-xs text-white/55">
-          <span className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5">
-            Mode: {formatRoutingLabel(routingState?.mode)}
-          </span>
-          <span className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5">
-            Transition: {formatRoutingLabel(routingState?.transition_type)}
-          </span>
-          <span className="rounded-full border border-white/[0.08] bg-black/20 px-3 py-1.5">
-            Duration: {routingState?.transition_duration_ms ?? 0}ms
-          </span>
+
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-white/[0.07] bg-black/15 px-6 py-3 text-xs text-white/45">
+          <span className="font-semibold text-white/62">Next move transition</span>
+          <span>{formatRoutingLabel(routingState?.transition_type)}</span>
+          <span aria-hidden="true" className="text-white/20">•</span>
+          <span>{formatTransitionDuration(routingState?.transition_duration_ms)}</span>
         </div>
       </section>
 

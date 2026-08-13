@@ -29,6 +29,11 @@ type BreakoutRow = {
   title: string | null
 }
 
+type PresenceRow = {
+  user_id: string | null
+  last_seen: string | null
+}
+
 function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
     value
@@ -63,6 +68,21 @@ function readTransitionType(value: FormDataEntryValue | null) {
   }
 
   return "fade"
+}
+
+function countLivePresence(rows: PresenceRow[]) {
+  const activeCutoff = Date.now() - 30_000
+
+  return new Set(
+    rows
+      .filter((row) => {
+        if (!row.last_seen) return false
+        const lastSeen = new Date(row.last_seen).getTime()
+        return Number.isFinite(lastSeen) && lastSeen >= activeCutoff
+      })
+      .map((row) => row.user_id)
+      .filter((userId): userId is string => Boolean(userId))
+  ).size
 }
 
 export default async function AdminEventDetailPage({
@@ -415,14 +435,47 @@ export default async function AdminEventDetailPage({
     title: String(row.title || "Untitled Breakout"),
   }))
 
-  const [liveState, initialRunOfShow] = await Promise.all([
+  const [liveState, initialRunOfShow, accessResult, liveSessionResult, presenceResult] = await Promise.all([
     getEventRoutingState(eventId),
     loadRunOfShow(),
+    supabaseAdmin
+      .from("event_live_state")
+      .select("status")
+      .eq("event_id", eventId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("event_agenda_items")
+      .select("id")
+      .eq("event_id", eventId)
+      .eq("status", "live")
+      .limit(1),
+    supabaseAdmin
+      .from("event_presence")
+      .select("user_id,last_seen")
+      .eq("event_id", eventId),
   ])
+
+  if (accessResult.error) throw new Error(accessResult.error.message)
+  if (liveSessionResult.error) throw new Error(liveSessionResult.error.message)
+  if (presenceResult.error) throw new Error(presenceResult.error.message)
+
+  const liveAttendeeCount = countLivePresence(
+    (presenceResult.data ?? []) as PresenceRow[]
+  )
+
+  const eventStatus =
+    (liveSessionResult.data?.length ?? 0) > 0
+      ? "live"
+      : accessResult.data?.status === "open"
+        ? "open"
+        : "closed"
 
   return (
     <div className="space-y-6 p-6">
       <MissionControlClient
+        eventId={eventId}
+        initialEventStatus={eventStatus}
+        initialLiveAttendeeCount={liveAttendeeCount}
         routingState={liveState}
         sessions={sessions}
         breakouts={breakouts}
