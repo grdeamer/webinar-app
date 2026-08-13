@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { getAppUrl, getEmailFrom, getResendClient } from "@/lib/email/resend"
+import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from "@/lib/email/campaigns"
+import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -86,8 +87,10 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
   const dryRun = url.searchParams.get("dryRun") === "1"
   const body = (await req.json().catch((): null => null)) as {
     testTo?: string
+    requestKey?: string
   } | null
   const testTo = String(body?.testTo || "").trim().toLowerCase()
+  const requestKey = String(body?.requestKey || crypto.randomUUID()).trim()
 
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
@@ -109,7 +112,13 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     return NextResponse.json({ error: registrantsError.message }, { status: 500 })
   }
 
-  const registrantRows = (registrants || []) as RegistrantRow[]
+  const registrantRows = Array.from(
+    new Map(
+      ((registrants || []) as RegistrantRow[])
+        .filter((registrant) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(registrant.email || "").trim()))
+        .map((registrant) => [registrant.email.trim().toLowerCase(), { ...registrant, email: registrant.email.trim().toLowerCase() }])
+    ).values()
+  )
 
   const { data: assignments, error: assignmentsError } = await supabaseAdmin
     .from("event_registrant_sessions")
@@ -176,16 +185,20 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
       )
     }
 
-    const assignedSessions = (sessionIdsByRegistrantId.get(sampleRegistrant.id) || [])
-      .map((sessionId) => sessionsById.get(sessionId))
-      .filter((session): session is SessionRow => Boolean(session))
-
     const resend = getResendClient()
     const from = getEmailFrom()
     const appUrl = getAppUrl().replace(/\/$/, "")
     const eventUrl = `${appUrl}/events/${event.slug}`
 
-    await resend.emails.send({
+    const campaignId = await createEmailCampaign({
+      eventId,
+      campaignType: "confirmation",
+      mode: "test",
+      requestedBy: authResult.user.id,
+      idempotencyKey: `confirmation:test:${eventId}:${requestKey}`,
+      recipientCount: 1,
+    })
+    const response = await resend.emails.send({
       from,
       to: testTo,
       subject: `[TEST] Confirmation: ${event.title}`,
@@ -193,14 +206,24 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
         eventTitle: event.title,
         eventUrl,
         registrant: {
-          ...sampleRegistrant,
+          id: sampleRegistrant.id,
           email: testTo,
-          first_name: sampleRegistrant.first_name || "Test",
-          last_name: sampleRegistrant.last_name || "Recipient",
+          first_name: "Test",
+          last_name: "Recipient",
         },
-        sessions: assignedSessions,
+        sessions: [],
       }),
-    })
+    }, { idempotencyKey: `confirmation-test-${eventId}-${requestKey}` })
+
+    if (response.error || !response.data?.id) {
+      const message = resendErrorMessage(response.error)
+      await recordEmailMessages({ campaignId, eventId, messages: [{ recipientEmail: testTo, status: "failed", errorMessage: message }] })
+      await completeEmailCampaign({ campaignId, accepted: 0, failed: 1, errorSummary: message })
+      return NextResponse.json({ error: message, ok: false, sent: 0, failed: 1 }, { status: 502 })
+    }
+
+    await recordEmailMessages({ campaignId, eventId, messages: [{ recipientEmail: testTo, resendEmailId: response.data.id, status: "accepted" }] })
+    await completeEmailCampaign({ campaignId, accepted: 1, failed: 0 })
 
     return NextResponse.json({
       ok: true,
@@ -216,15 +239,27 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
   const appUrl = getAppUrl().replace(/\/$/, "")
   const eventUrl = `${appUrl}/events/${event.slug}`
 
+  if (!registrantRows.length) {
+    return NextResponse.json({ error: "No valid, unique recipient email addresses found" }, { status: 400 })
+  }
+
+  const campaignId = await createEmailCampaign({
+    eventId,
+    campaignType: "confirmation",
+    mode: "production",
+    requestedBy: authResult.user.id,
+    idempotencyKey: `confirmation:production:${eventId}:${requestKey}`,
+    recipientCount: registrantRows.length,
+  })
   const results: Array<{ email: string; ok: boolean; error?: string }> = []
 
-  for (const registrant of registrantRows) {
-    const assignedSessions = (sessionIdsByRegistrantId.get(registrant.id) || [])
-      .map((sessionId) => sessionsById.get(sessionId))
-      .filter((session): session is SessionRow => Boolean(session))
-
-    try {
-      await resend.emails.send({
+  for (let offset = 0; offset < registrantRows.length; offset += 100) {
+    const chunk = registrantRows.slice(offset, offset + 100)
+    const messages = chunk.map((registrant) => {
+      const assignedSessions = (sessionIdsByRegistrantId.get(registrant.id) || [])
+        .map((sessionId) => sessionsById.get(sessionId))
+        .filter((session): session is SessionRow => Boolean(session))
+      return {
         from,
         to: registrant.email,
         subject: `Confirmation: ${event.title}`,
@@ -234,22 +269,37 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
           registrant,
           sessions: assignedSessions,
         }),
-      })
-
-      results.push({ email: registrant.email, ok: true })
-    } catch (error) {
-      results.push({
-        email: registrant.email,
-        ok: false,
-        error: error instanceof Error ? error.message : "Unknown email error",
-      })
+      }
+    })
+    const response = await resend.batch.send(messages, {
+      idempotencyKey: `confirmation-${eventId}-${requestKey}-${offset / 100}`,
+      batchValidation: "permissive",
+    })
+    if (response.error || !response.data) {
+      const message = resendErrorMessage(response.error)
+      chunk.forEach((registrant) => results.push({ email: registrant.email, ok: false, error: message }))
+      continue
     }
+    const failures = new Map(response.data.errors.map((failure) => [failure.index, failure.message]))
+    chunk.forEach((registrant, index) => {
+      const failure = failures.get(index)
+      results.push(failure ? { email: registrant.email, ok: false, error: failure } : { email: registrant.email, ok: true })
+    })
   }
+
+  await recordEmailMessages({
+    campaignId,
+    eventId,
+    messages: results.map((result) => ({ recipientEmail: result.email, status: result.ok ? "accepted" : "failed", errorMessage: result.error })),
+  })
+  const sent = results.filter((result) => result.ok).length
+  const failed = results.length - sent
+  await completeEmailCampaign({ campaignId, accepted: sent, failed, errorSummary: results.find((result) => !result.ok)?.error })
 
   return NextResponse.json({
     ok: true,
-    sent: results.filter((result) => result.ok).length,
-    failed: results.filter((result) => !result.ok).length,
+    sent,
+    failed,
     results,
   })
 }

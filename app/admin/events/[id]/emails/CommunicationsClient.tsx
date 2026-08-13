@@ -6,15 +6,18 @@ import { AlertTriangle, CheckCircle2, Mail, Send, TestTube2, Users } from "lucid
 
 type Campaign = "confirmations" | "presenters"
 type Result = { sent: number; failed: number; test: boolean }
+type CampaignHistory = { id: string; campaign_type: string; mode: string; status: string; recipient_count: number; accepted_count: number; failed_count: number; created_at: string }
 
 export default function CommunicationsClient({
   eventId,
   eventTitle,
   counts,
+  history,
 }: {
   eventId: string
   eventTitle: string
-  counts: { everyone: number; presenters: number; presentersMissingSessions: number; missingEmails: number }
+  counts: { everyone: number; sendable: number; presenters: number; presentersMissingSessions: number; missingEmails: number }
+  history: CampaignHistory[]
 }) {
   const [campaign, setCampaign] = useState<Campaign>("confirmations")
   const [testEmail, setTestEmail] = useState("")
@@ -22,7 +25,7 @@ export default function CommunicationsClient({
   const [error, setError] = useState<string | null>(null)
   const [result, setResult] = useState<Result | null>(null)
 
-  const recipientCount = campaign === "confirmations" ? counts.everyone : counts.presenters
+  const recipientCount = campaign === "confirmations" ? counts.sendable : counts.presenters
   const endpoint = campaign === "confirmations" ? "send-confirmations" : "send-presenter-links"
   const campaignName = campaign === "confirmations" ? "Attendee Confirmation" : "Presenter Access"
 
@@ -40,7 +43,7 @@ export default function CommunicationsClient({
       const response = await fetch(`/api/admin/events/${eventId}/emails/${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(mode === "test" ? { testTo: testEmail } : {}),
+        body: JSON.stringify({ ...(mode === "test" ? { testTo: testEmail } : {}), requestKey: crypto.randomUUID() }),
       })
       const payload = await response.json().catch((): null => null)
       if (!response.ok) throw new Error(payload?.error || "Send failed")
@@ -62,7 +65,7 @@ export default function CommunicationsClient({
       </section>
 
       <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <Metric label="Eligible people" value={counts.everyone} state="ready" />
+        <Metric label="Sendable recipients" value={counts.sendable} state="ready" />
         <Metric label="Presenters" value={counts.presenters} state="ready" />
         <Metric label="Missing assignments" value={counts.presentersMissingSessions} state={counts.presentersMissingSessions ? "warning" : "ready"} />
         <Metric label="Missing email" value={counts.missingEmails} state={counts.missingEmails ? "warning" : "ready"} />
@@ -72,7 +75,7 @@ export default function CommunicationsClient({
         <div className="rounded-3xl border border-white/10 bg-white/[.03] p-5">
           <div className="text-xs font-semibold uppercase tracking-[.16em] text-white/35">1 · Choose message</div>
           <div className="mt-4 space-y-3">
-            <CampaignButton active={campaign === "confirmations"} title="Attendee Confirmation" detail={`${counts.everyone} registrants`} onClick={() => { setCampaign("confirmations"); setResult(null); setError(null) }} />
+            <CampaignButton active={campaign === "confirmations"} title="Attendee Confirmation" detail={`${counts.sendable} unique, valid email addresses`} onClick={() => { setCampaign("confirmations"); setResult(null); setError(null) }} />
             <CampaignButton active={campaign === "presenters"} title="Presenter Access" detail={`${counts.presenters} presenters`} onClick={() => { setCampaign("presenters"); setResult(null); setError(null) }} />
           </div>
           <div className="mt-5 rounded-xl border border-white/[.07] bg-black/15 p-4"><div className="text-xs font-semibold text-white/45">Audience source</div><div className="mt-2 text-sm text-white/70">The recipient list comes directly from People. Roles and session assignments are never duplicated here.</div><Link href={`/admin/events/${eventId}/attendees`} className="mt-3 inline-block text-xs font-semibold text-sky-200/75">Review people →</Link></div>
@@ -88,7 +91,15 @@ export default function CommunicationsClient({
           <button type="button" disabled={busy !== null || recipientCount === 0 || (campaign === "presenters" && counts.presentersMissingSessions > 0)} onClick={() => void run("send")} className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-5 py-3.5 text-sm font-semibold hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35"><Send size={16} />{busy === "send" ? "Sending…" : `Send to ${recipientCount} recipient${recipientCount === 1 ? "" : "s"}`}</button>
           {campaign === "presenters" && counts.presentersMissingSessions > 0 ? <p className="mt-2 text-center text-xs text-white/35">Resolve missing presenter assignments to enable the production send.</p> : null}
           {error ? <div className="mt-4 rounded-xl border border-red-400/20 bg-red-500/10 p-3 text-sm text-red-100">{error}</div> : null}
-          {result ? <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-100"><CheckCircle2 size={17} />{result.test ? "Test sent successfully." : `${result.sent} sent${result.failed ? `, ${result.failed} failed` : ""}.`}</div> : null}
+          {result ? <div className="mt-4 flex items-center gap-3 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-sm text-emerald-100"><CheckCircle2 size={17} />{result.test ? "Test accepted by Resend." : `${result.sent} accepted by Resend${result.failed ? `, ${result.failed} rejected` : ""}.`}</div> : null}
+        </div>
+      </section>
+
+      <section className="rounded-2xl border border-white/10 bg-white/[.025] p-5">
+        <div className="text-xs font-semibold uppercase tracking-[.16em] text-white/35">Recent sends</div>
+        <div className="mt-3 divide-y divide-white/[.07]">
+          {history.map((item) => <div key={item.id} className="grid gap-2 py-3 text-sm sm:grid-cols-[1fr_auto_auto_auto] sm:items-center"><div><div className="font-medium">{item.campaign_type === "confirmation" ? "Attendee Confirmation" : "Presenter Access"}</div><div className="text-xs text-white/40">{new Date(item.created_at).toLocaleString()} · {item.mode}</div></div><div className="text-white/55">{item.recipient_count} recipients</div><div className="text-emerald-200/75">{item.accepted_count} accepted</div><div className={item.failed_count ? "text-red-200" : "text-white/45"}>{item.failed_count} failed</div></div>)}
+          {history.length === 0 ? <div className="py-4 text-sm text-white/40">No recorded sends yet.</div> : null}
         </div>
       </section>
 

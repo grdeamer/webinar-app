@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { getAppUrl, getEmailFrom, getResendClient } from "@/lib/email/resend"
+import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from "@/lib/email/campaigns"
+import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -135,10 +136,12 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     testTo?: string
     userId?: string
     registrantId?: string
+    requestKey?: string
   } | null
   const testTo = String(body?.testTo || "").trim().toLowerCase()
   const userId = String(body?.userId || "").trim()
   const registrantId = String(body?.registrantId || "").trim()
+  const requestKey = String(body?.requestKey || crypto.randomUUID()).trim()
 
   const { data: event, error: eventError } = await supabaseAdmin
     .from("events")
@@ -185,7 +188,7 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
 
     const presenter = registrant as PresenterRegistrant
     const resend = getResendClient()
-    await resend.emails.send({
+    const response = await resend.emails.send({
       from: getEmailFrom(),
       to: testTo || presenter.email,
       subject: `${testTo ? "[TEST] " : ""}Presenter links: ${event.title}`,
@@ -197,6 +200,9 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
         eventSlug: event.slug,
       }),
     })
+    if (response.error || !response.data?.id) {
+      return NextResponse.json({ error: resendErrorMessage(response.error), ok: false, sent: 0, failed: 1 }, { status: 502 })
+    }
 
     return NextResponse.json({ ok: true, test: Boolean(testTo), sent: 1, failed: 0, presenters: 1 })
   }
@@ -261,7 +267,7 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     }
 
     try {
-      await resend.emails.send({
+      const response = await resend.emails.send({
         from,
         to: presenter.email,
         subject: `${testTo ? "[TEST] " : ""}Presenter links: ${event.title}`,
@@ -273,6 +279,9 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
           eventSlug: event.slug,
         }),
       })
+      if (response.error || !response.data?.id) {
+        return NextResponse.json({ error: resendErrorMessage(response.error), ok: false, sent: 0, failed: 1 }, { status: 502 })
+      }
 
       return NextResponse.json({
         ok: true,
@@ -365,8 +374,8 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     ? presenterRows.slice(0, 1).map((presenter) => ({
         ...presenter,
         email: testTo,
-        first_name: presenter.first_name || "Test",
-        last_name: presenter.last_name || "Presenter",
+        first_name: "Test",
+        last_name: "Presenter",
       }))
     : presenterRows
 
@@ -377,7 +386,15 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     )
   }
 
-  const results: Array<{ email: string; ok: boolean; error?: string }> = []
+  const campaignId = await createEmailCampaign({
+    eventId,
+    campaignType: "presenter_access",
+    mode: testTo ? "test" : "production",
+    requestedBy: authResult.user.id,
+    idempotencyKey: `presenter:${testTo ? "test" : "production"}:${eventId}:${requestKey}`,
+    recipientCount: targets.length,
+  })
+  const results: Array<{ email: string; ok: boolean; error?: string; resendEmailId?: string }> = []
 
   for (const presenter of targets) {
     const assignedSessions = (sessionIdsByRegistrantId.get(presenter.id) || [])
@@ -385,7 +402,7 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
       .filter((session): session is SessionRow => Boolean(session))
 
     try {
-      await resend.emails.send({
+      const response = await resend.emails.send({
         from,
         to: presenter.email,
         subject: `${testTo ? "[TEST] " : ""}Presenter links: ${event.title}`,
@@ -396,9 +413,13 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
           appUrl,
           eventSlug: event.slug,
         }),
-      })
+      }, { idempotencyKey: `presenter-${eventId}-${requestKey}-${presenter.id}` })
 
-      results.push({ email: presenter.email, ok: true })
+      if (response.error || !response.data?.id) {
+        results.push({ email: presenter.email, ok: false, error: resendErrorMessage(response.error) })
+      } else {
+        results.push({ email: presenter.email, ok: true, resendEmailId: response.data.id })
+      }
     } catch (error) {
       results.push({
         email: presenter.email,
@@ -408,12 +429,35 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     }
   }
 
+  await recordEmailMessages({
+    campaignId,
+    eventId,
+    messages: results.map((result) => ({
+      recipientEmail: result.email,
+      resendEmailId: result.resendEmailId,
+      status: result.ok ? "accepted" : "failed",
+      errorMessage: result.error,
+    })),
+  })
+  const accepted = results.filter((result) => result.ok).length
+  const failed = results.length - accepted
+  await completeEmailCampaign({
+    campaignId,
+    accepted,
+    failed,
+    errorSummary: failed ? `${failed} message${failed === 1 ? "" : "s"} rejected by Resend` : undefined,
+  })
+
   return NextResponse.json({
-    ok: true,
+    ok: failed === 0,
     test: Boolean(testTo),
-    sent: results.filter((result) => result.ok).length,
-    failed: results.filter((result) => !result.ok).length,
+    sent: accepted,
+    failed,
     presenters: presenterRows.length,
-    results,
+    results: results.map((result) => ({
+      email: result.email,
+      ok: result.ok,
+      error: result.error,
+    })),
   })
 }
