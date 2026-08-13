@@ -36,6 +36,7 @@ import {
   type LayerCommand,
 } from "./layerCommands"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
+import FullCodeEditor from "@/components/page-editor/FullCodeEditor"
 import ElementVideoPlayer from "@/components/page-renderer/ElementVideoPlayer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
@@ -48,6 +49,10 @@ import {
   getDefaultSectionConfig,
 } from "@/lib/page-editor/sectionRegistry"
 import { normalizeEventPageElements } from "@/lib/page-editor/elements"
+import {
+  getCustomCodeDocument,
+  setCustomCodeDocument,
+} from "@/lib/page-editor/customCode"
 import {
   getButtonElementPresentationStyle,
   getElementAnimationAttribute,
@@ -446,6 +451,7 @@ const isEmbedded =
   }
 
   const [isEditing, setIsEditing] = useState(isEmbedded)
+  const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loadAttempt, setLoadAttempt] = useState(0)
@@ -2241,8 +2247,10 @@ function addRegistrationFormSection() {
       : -1
 
   const normalizedElements = normalizeZIndexes(elements)
-const experienceNodes: EditorExperienceNode[] = [
-  ...sections.map((section, index) => sectionToEditorExperienceNode(section, index)),
+  const experienceNodes: EditorExperienceNode[] = [
+  ...sections
+    .filter((section) => section.id !== "__jupiter_custom_code__")
+    .map((section, index) => sectionToEditorExperienceNode(section, index)),
   ...normalizedElements.map((element) => elementToEditorExperienceNode(element)),
 ]
 const orderedExperienceNodes = [...experienceNodes].sort(
@@ -2329,6 +2337,7 @@ const selectedExperienceNode = experienceNodes.find(
   const inspectorSaveMessage = saveMessage
     ? `${saveMessage} · ${saveStatusMessage}`
     : saveStatusMessage
+  const customCodeDocument = getCustomCodeDocument(sections)
 
   return (
     <div className={EXPERIENCE_EDITOR_ROOT_CLASS}>
@@ -2343,6 +2352,7 @@ const selectedExperienceNode = experienceNodes.find(
           canvasZoom={canvasZoom}
           isMobilePreview={isMobilePreview}
           isEditing={isEditing && documentReady}
+          isCodeEditorOpen={isCodeEditorOpen}
           selectedElementCount={documentReady ? selectedElementCount : 0}
           canGroupElements={documentReady && canGroupElements}
           canUngroupElements={documentReady && canUngroupElements}
@@ -2374,6 +2384,11 @@ const selectedExperienceNode = experienceNodes.find(
           onChangeZoom={setCanvasZoom}
           onToggleMobilePreview={() => setIsMobilePreview((value) => !value)}
           onToggleEditing={toggleEditing}
+          onToggleCodeEditor={() => {
+            setIsCodeEditorOpen((value) => !value)
+            setIsEditing(false)
+            clearSelection()
+          }}
           onAlignElements={executeElementAlignmentCommand}
           onGroupElements={groupSelectedElements}
           onUngroupElements={ungroupSelectedElements}
@@ -2381,6 +2396,35 @@ const selectedExperienceNode = experienceNodes.find(
       )}
 
             <div className="relative flex min-h-0 flex-1 overflow-hidden">
+              {isCodeEditorOpen && documentReady ? (
+                <FullCodeEditor
+                  key={selectedPageKey}
+                  initialHtml={customCodeDocument.html}
+                  initialCss={customCodeDocument.css}
+                  enabled={customCodeDocument.enabled}
+                  saveStatus={saveStatusMessage}
+                  onApply={(html, css) => {
+                    setSections((current) =>
+                      setCustomCodeDocument(current, {
+                        enabled: true,
+                        html,
+                        css,
+                      }),
+                    )
+                    setSaveMessage("Custom code applied")
+                  }}
+                  onUseVisualDesign={() => {
+                    setSections((current) =>
+                      setCustomCodeDocument(current, {
+                        ...getCustomCodeDocument(current),
+                        enabled: false,
+                      }),
+                    )
+                    setSaveMessage("Visual design restored")
+                  }}
+                />
+              ) : (
+                <>
                 <div
                   className="min-w-0 flex-1 overflow-auto overscroll-contain"
                   data-experience-editor-canvas
@@ -3183,7 +3227,7 @@ const selectedExperienceNode = experienceNodes.find(
           </div>
         </div>
 
-        {documentReady && <ExperienceInspectorRail
+        {documentReady && !isCodeEditorOpen && <ExperienceInspectorRail
           {...{
             addElement,
             addElementOpen,
@@ -3264,6 +3308,8 @@ const selectedExperienceNode = experienceNodes.find(
             uploadSelectedVideo,
           }}
         />}
+                </>
+              )}
     </div>
   </div>
   )

@@ -134,6 +134,9 @@ export type SectionConfig = {
   hideOnMobile?: boolean
   columns?: 1 | 2
   registrationState?: RegistrationExperienceState
+  customCodeMode?: boolean
+  customHtml?: string
+  customCss?: string
 
   sectionBackgroundFillType?: "solid" | "linear-gradient" | "radial-gradient"
   sectionBackgroundColor?: string

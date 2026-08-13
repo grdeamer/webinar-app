@@ -17,6 +17,7 @@ type Props = {
   canvasZoom: number
   isMobilePreview: boolean
   isEditing: boolean
+  isCodeEditorOpen: boolean
   selectedElementCount: number
   canGroupElements: boolean
   canUngroupElements: boolean
@@ -27,6 +28,7 @@ type Props = {
   onChangeZoom: (zoom: number) => void
   onToggleMobilePreview: () => void
   onToggleEditing: () => void
+  onToggleCodeEditor: () => void
   onAlignElements: (command: ElementAlignmentCommand) => void
   onGroupElements: () => void
   onUngroupElements: () => void
@@ -93,6 +95,7 @@ export default function PageEditorToolbar({
   canvasZoom,
   isMobilePreview,
   isEditing,
+  isCodeEditorOpen,
   selectedElementCount,
   canGroupElements,
   canUngroupElements,
@@ -103,13 +106,14 @@ export default function PageEditorToolbar({
   onChangeZoom,
   onToggleMobilePreview,
   onToggleEditing,
+  onToggleCodeEditor,
   onAlignElements,
   onGroupElements,
   onUngroupElements,
 }: Props) {
   return (
     <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
-      <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-6 py-4">
+      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-6 py-4">
         <div className="flex items-center gap-4">
           <div>
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">
@@ -121,7 +125,7 @@ export default function PageEditorToolbar({
           </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-end gap-3">
           <select
             value={selectedPageKey}
             onChange={(event) => onSelectPage(event.target.value)}
@@ -216,10 +220,27 @@ export default function PageEditorToolbar({
           </button>
 
           <button
-            onClick={onToggleEditing}
-            className={EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS}
+            type="button"
+            onClick={onToggleCodeEditor}
+            className={
+              isCodeEditorOpen
+                ? "rounded-xl border border-violet-300/25 bg-violet-400/15 px-4 py-2 text-sm font-semibold text-violet-50 shadow-[0_0_24px_rgba(139,92,246,0.12)]"
+                : EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS
+            }
           >
-            {isEditing ? "Close Editor" : "Edit Page"}
+            {isCodeEditorOpen ? "Close Code" : "HTML + CSS"}
+          </button>
+
+          <button
+            onClick={onToggleEditing}
+            disabled={isCodeEditorOpen}
+            className={`${EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-35`}
+          >
+            {isCodeEditorOpen
+              ? "Visual Editor"
+              : isEditing
+                ? "Close Editor"
+                : "Edit Page"}
           </button>
         </div>
       </div>

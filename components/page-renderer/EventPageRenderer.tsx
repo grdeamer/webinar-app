@@ -1,5 +1,10 @@
 import type { CSSProperties, ReactNode } from "react"
 import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
+import CustomCodePage from "@/components/page-renderer/CustomCodePage"
+import {
+  getCustomCodeDocument,
+  getRenderableSections,
+} from "@/lib/page-editor/customCode"
 import { getSectionResponsiveVisibilityClass } from "@/lib/page-editor/elementPresentation"
 import type {
   EventPageElement,
@@ -732,8 +737,12 @@ export default function EventPageRenderer({
   void isMobilePreview
   void generalSession
 
+  const customCode = getCustomCodeDocument(sections)
+  const visualSections = getRenderableSections(sections)
   const resolvedSections =
-    sections && sections.length > 0 ? sections : getFallbackSections(event)
+    visualSections && visualSections.length > 0
+      ? visualSections
+      : getFallbackSections(event)
 
   const resolvedEventTheme: EventTheme = {
     pageBackgroundColor: eventTheme?.pageBackgroundColor || "#020617",
@@ -743,6 +752,16 @@ export default function EventPageRenderer({
     gradientColorA: eventTheme?.gradientColorA || "#0f172a",
     gradientColorB: eventTheme?.gradientColorB || "#1d4ed8",
     gradientAngle: eventTheme?.gradientAngle || "135deg",
+  }
+
+  if (customCode.enabled) {
+    return (
+      <main className="min-h-screen bg-[#050816]">
+        {beforeSections}
+        <CustomCodePage html={customCode.html} css={customCode.css} />
+        {afterSections}
+      </main>
+    )
   }
 
   if (layout === "card-stack") {

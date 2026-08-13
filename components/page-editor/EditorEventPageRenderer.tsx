@@ -9,6 +9,7 @@ import type {
   ExperienceNode,
 } from "@/lib/page-editor/sectionTypes"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
+import { getRenderableSections } from "@/lib/page-editor/customCode"
 
 type EventLike = {
   title: string
@@ -429,8 +430,11 @@ export default function EditorEventPageRenderer({
   experienceNodeCount?: number
   isMobilePreview?: boolean
 }) {
+  const visualSections = getRenderableSections(sections)
   const resolvedSections =
-    sections && sections.length > 0 ? sections : getFallbackSections(event)
+    visualSections && visualSections.length > 0
+      ? visualSections
+      : getFallbackSections(event)
 
   const experienceNodes: RendererExperienceNode[] = [
     ...resolvedSections.map((section, index) => sectionToExperienceNode(section, index)),
