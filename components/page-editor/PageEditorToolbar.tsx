@@ -129,13 +129,13 @@ export default function PageEditorToolbar({
               <Link
                 href={eventAdminHref ?? "/admin/events"}
                 aria-disabled={!eventAdminHref}
-                className={`mt-2 inline-flex items-center gap-1.5 text-xs font-semibold transition ${
+                className={`mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 ${
                   eventAdminHref
-                    ? "text-sky-200/70 hover:text-sky-100"
-                    : "pointer-events-none text-white/25"
+                    ? "border-sky-300/35 bg-sky-400/15 text-sky-50 shadow-sky-950/30 hover:border-sky-200/60 hover:bg-sky-300/25 hover:text-white"
+                    : "pointer-events-none border-white/5 bg-white/[0.025] text-white/25 shadow-none"
                 }`}
               >
-                <span aria-hidden="true">←</span>
+                <span aria-hidden="true" className="text-lg leading-none">←</span>
                 Back to Event
               </Link>
             ) : null}
