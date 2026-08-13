@@ -345,8 +345,8 @@ const res = await fetch(`/api/admin/sessions/${id}`, {
   return (
     <div className="space-y-6">
       <AdminHeader
-        title="Program"
-        subtitle={`Build the sessions and schedule for ${event.title}.`}
+        title="Build the day."
+        subtitle={`Arrange the sessions ${event.title} will experience.`}
         showNavigation={false}
         actions={
           <>

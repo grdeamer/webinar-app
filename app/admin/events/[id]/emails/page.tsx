@@ -24,11 +24,11 @@ export default async function EventEmailsPage({ params }: { params: Promise<{ id
 
   const uniqueValidEmails = new Set((people || []).map((person) => String(person.email || "").trim().toLowerCase()).filter((email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)))
 
-  return <CommunicationsClient eventId={id} eventTitle={event.title} counts={{
+  return <main className="event-editorial-page"><CommunicationsClient eventId={id} eventTitle={event.title} counts={{
     everyone: people?.length || 0,
     sendable: uniqueValidEmails.size,
     presenters: presenterIds.size,
     presentersMissingSessions: presenterIds.size - assignedPresenterIds.size,
     missingEmails,
-  }} history={history || []} />
+  }} history={history || []} /></main>
 }

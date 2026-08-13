@@ -248,9 +248,9 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
 
   return (
     <div className="space-y-5 text-white">
-      <section className="rounded-3xl border border-white/10 bg-white/[.035] p-7">
+      <section className="border-b border-[#33405a] pb-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-100/45">Event directory</div><h1 className="mt-3 text-3xl font-semibold">People</h1><p className="mt-2 text-sm text-white/55">Add and manage everyone connected to {eventTitle}.</p></div>
+          <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; People</div><h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Bring everyone together.</h1><p className="mt-3 text-base text-white/55">Add and manage everyone connected to {eventTitle}.</p></div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={toggleBulkMode} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${bulkMode ? "border-red-300/25 bg-red-500/10 text-red-100" : "border-white/10 bg-white/[.05] hover:bg-white/10"}`}>{bulkMode ? <X size={16} /> : <Check size={16} />}{bulkMode ? "Exit Bulk Select" : "Bulk Select"}</button>
             <button type="button" onClick={() => { setAddOpen(!addOpen); setImportOpen(false) }} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold hover:bg-violet-500"><Plus size={16} />Add Person</button>

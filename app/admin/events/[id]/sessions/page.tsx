@@ -97,12 +97,12 @@ export default async function AdminEventSessionsPage(props: {
   }
 
   return (
-    <div className="space-y-6 p-6">
+    <main className="event-editorial-page">
       <SessionsEditor
         event={event}
         eventSlug={event.slug}
         initialSessions={(sessions || []) as SessionRow[]}
       />
-    </div>
+    </main>
   )
 }

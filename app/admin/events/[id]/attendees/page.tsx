@@ -14,5 +14,5 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
     .maybeSingle()
 
   if (error || !event) notFound()
-  return <PeopleClient eventId={event.id} eventSlug={event.slug} eventTitle={event.title} />
+  return <main className="event-editorial-page"><PeopleClient eventId={event.id} eventSlug={event.slug} eventTitle={event.title} /></main>
 }

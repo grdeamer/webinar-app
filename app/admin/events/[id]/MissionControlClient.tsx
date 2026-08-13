@@ -552,12 +552,12 @@ export default function MissionControlClient({
   }
 
   return (
-    <div className="space-y-5 p-6 text-white">
+    <div className="space-y-5 text-white">
       <div>
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100/45">
-          Live Operations
+          Event &nbsp;/&nbsp; Run Event
         </div>
-        <h1 className="mt-2 text-3xl font-semibold tracking-[-0.03em]">Run Event</h1>
+        <h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Guide the audience.</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
           Control where attendees go during the event. Video, audio, and program switching stay in Producer Room.
         </p>

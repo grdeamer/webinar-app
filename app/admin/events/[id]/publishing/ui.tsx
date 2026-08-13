@@ -95,11 +95,11 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
   const selected = destinations.find((destination) => destination.id === selectedId) || null
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,.07),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,.08),transparent_26%),linear-gradient(180deg,#050816_0%,#040712_42%,#02040a_100%)] p-6 text-white">
+    <main className="event-editorial-page">
       <div className="mx-auto max-w-6xl space-y-5">
-        <header className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7">
+        <header className="border-b border-[#33405a] pb-7">
           <div className="flex items-start justify-between gap-6">
-            <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-100/50">External Experience Delivery</div><h1 className="mt-3 text-3xl font-semibold tracking-[-.03em]">Publish</h1><p className="mt-2 max-w-2xl text-sm leading-6 text-white/50">Deploy the attendee experience to an external FTP or FTPS destination. Credentials are encrypted and remain server-side.</p></div>
+            <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; Publish</div><h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Deliver the experience.</h1><p className="mt-3 max-w-2xl text-base leading-6 text-white/50">Deploy the attendee experience to an external FTP or FTPS destination. Credentials are encrypted and remain server-side.</p></div>
             <Link href={`/admin/events/${eventId}/page-editor`} className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/10">Open Experience</Link>
           </div>
         </header>

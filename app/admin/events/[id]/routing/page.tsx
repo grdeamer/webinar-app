@@ -471,7 +471,7 @@ export default async function AdminEventDetailPage({
         : "closed"
 
   return (
-    <div className="space-y-6 p-6">
+    <main className="event-editorial-page">
       <MissionControlClient
         eventId={eventId}
         initialEventStatus={eventStatus}
@@ -495,6 +495,6 @@ export default async function AdminEventDetailPage({
         fireOffAirCue={fireOffAirCue}
         clearTransitionState={clearTransitionState}
       />
-    </div>
+    </main>
   )
 }

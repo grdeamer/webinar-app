@@ -57,9 +57,9 @@ export default function CommunicationsClient({
 
   return (
     <div className="space-y-5 text-white">
-      <section className="rounded-3xl border border-white/10 bg-white/[.035] p-7">
+      <section className="border-b border-[#33405a] pb-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div><div className="text-[10px] font-black uppercase tracking-[.2em] text-violet-100/45">Event messaging</div><h1 className="mt-3 text-3xl font-semibold">Communications</h1><p className="mt-2 text-sm text-white/55">Review audiences, test messages, and send communications for {eventTitle}.</p></div>
+          <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; Communications</div><h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Reach the room.</h1><p className="mt-3 text-base text-white/55">Review audiences, test messages, and send communications for {eventTitle}.</p></div>
           <Link href={`/admin/events/${eventId}/attendees`} className="inline-flex w-fit items-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/10"><Users size={16} />Manage People</Link>
         </div>
       </section>

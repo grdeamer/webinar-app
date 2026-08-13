@@ -4,20 +4,9 @@ import { useState } from "react"
 import { useRouter } from "next/navigation"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 
-type EventSettingsRow = {
-  id: string
-  slug: string
-  title: string
-  description: string | null
-  start_at: string | null
-  end_at: string | null
-}
+type EventSettingsRow = { id: string; slug: string; title: string; description: string | null; start_at: string | null; end_at: string | null }
 
-export default function EventSettingsForm({
-  initial,
-}: {
-  initial: EventSettingsRow
-}) {
+export default function EventSettingsForm({ initial }: { initial: EventSettingsRow }) {
   const router = useRouter()
   const [event, setEvent] = useState(initial)
   const [saving, setSaving] = useState(false)
@@ -26,160 +15,64 @@ export default function EventSettingsForm({
 
   async function save() {
     const title = event.title.trim()
-
-    setError(null)
-    setMessage(null)
-
-    if (!title) {
-      setError("Event name is required.")
-      return
-    }
-
+    setError(null); setMessage(null)
+    if (!title) return setError("Event name is required.")
     setSaving(true)
-
     try {
-      const response = await fetch("/api/admin/events", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...event, title }),
-      })
+      const response = await fetch("/api/admin/events", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...event, title }) })
       const payload = await response.json().catch((): null => null)
-
-      if (!response.ok) {
-        throw new Error(payload?.error || "Failed to save event settings")
-      }
-
+      if (!response.ok) throw new Error(payload?.error || "Failed to save event details")
       setEvent((current) => ({ ...current, title }))
-      setMessage("Event settings saved.")
+      setMessage("Event details saved.")
       window.dispatchEvent(new Event("jupiter:event-context-updated"))
       router.refresh()
     } catch (saveError) {
-      setError(
-        saveError instanceof Error
-          ? saveError.message
-          : "Failed to save event settings"
-      )
-    } finally {
-      setSaving(false)
-    }
+      setError(saveError instanceof Error ? saveError.message : "Failed to save event details")
+    } finally { setSaving(false) }
   }
 
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.07),transparent_24%),radial-gradient(circle_at_82%_18%,rgba(168,85,247,0.08),transparent_26%),linear-gradient(180deg,#050816_0%,#040712_42%,#02040a_100%)] px-6 py-6 text-white">
-      <div className="mx-auto max-w-5xl space-y-5">
-        <header className="rounded-[26px] border border-white/[0.08] bg-white/[0.035] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-          <div className="text-[10px] font-black uppercase tracking-[0.2em] text-violet-100/50">
-            Event Workspace
-          </div>
-          <h1 className="mt-3 text-3xl font-semibold tracking-[-0.03em]">
-            Event Details
-          </h1>
-          <p className="mt-2 text-sm text-white/50">
-            Manage the event name, description, schedule, and permanent URL.
-          </p>
+    <main className="event-editorial-page">
+      <div className="mx-auto max-w-[1180px]">
+        <header>
+          <div className="editorial-eyebrow">Event &nbsp;/&nbsp; Details</div>
+          <h1 className="mt-7 text-5xl font-medium tracking-[-.045em]">Shape the event.</h1>
+          <p className="mt-4 text-lg text-[#98a4bd]">Set the identity and timing that every attendee-facing experience inherits.</p>
         </header>
+        <div className="editorial-rule mt-8 border-t" />
 
-        <section className="rounded-[26px] border border-white/[0.08] bg-white/[0.035] p-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
-          <div className="space-y-6">
-            <div>
-              <label className="text-sm font-medium text-white/75" htmlFor="event-title">
-                Event name
-              </label>
-              <input
-                id="event-title"
-                value={event.title}
-                onChange={(changeEvent) =>
-                  setEvent((current) => ({
-                    ...current,
-                    title: changeEvent.target.value,
-                  }))
-                }
-                disabled={saving}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-violet-300/40 focus:ring-2 focus:ring-violet-400/15 disabled:opacity-60"
-              />
+        <section className="grid gap-14 py-10 lg:grid-cols-2">
+          <div>
+            <div className="editorial-eyebrow !text-[#8d9ab4]">Identity</div>
+            <h2 className="mt-4 text-2xl font-medium">Name and description</h2>
+            <Field label="Event name"><input id="event-title" value={event.title} disabled={saving} onChange={(e) => setEvent((c) => ({ ...c, title: e.target.value }))} className="w-full border-0 border-b border-[#34415c] bg-transparent px-0 py-3 text-lg outline-none focus:border-[#41c8f5]" /></Field>
+            <Field label="Description"><textarea id="event-description" value={event.description || ""} disabled={saving} onChange={(e) => setEvent((c) => ({ ...c, description: e.target.value }))} className="min-h-24 w-full resize-y border-0 border-b border-[#34415c] bg-transparent px-0 py-3 leading-6 outline-none focus:border-[#41c8f5]" /></Field>
+            <div className="editorial-rule mt-8 border-t pt-6"><div className="editorial-eyebrow !text-[#8d9ab4]">Permanent event URL</div><div className="mt-4 text-[#aeb9d0]">jupiter.events/events/{event.slug}</div><p className="mt-2 text-xs text-[#6e7b95]">Stable after creation so existing invitations never break.</p></div>
+          </div>
+
+          <div>
+            <div className="editorial-eyebrow !text-[#8d9ab4]">Schedule</div>
+            <h2 className="mt-4 text-2xl font-medium">Date and time</h2>
+            <div className="mt-7 space-y-7">
+              <AdminDateTimeField label="Event start" value={event.start_at} disabled={saving} onChange={(value) => setEvent((current) => ({ ...current, start_at: value, end_at: value }))} />
+              <AdminDateTimeField label="Event end" value={event.end_at} disabled={saving} onChange={(value) => setEvent((current) => ({ ...current, end_at: value }))} />
             </div>
-
-            <div>
-              <label className="text-sm font-medium text-white/75" htmlFor="event-slug">
-                Event URL slug
-              </label>
-              <input
-                id="event-slug"
-                value={event.slug}
-                readOnly
-                className="mt-2 w-full cursor-not-allowed rounded-xl border border-white/[0.07] bg-black/15 px-4 py-3 text-white/45 outline-none"
-              />
-              <p className="mt-2 text-xs text-white/35">
-                The URL remains unchanged when the event name is updated.
-              </p>
-            </div>
-
-            <div>
-              <label className="text-sm font-medium text-white/75" htmlFor="event-description">
-                Description
-              </label>
-              <textarea
-                id="event-description"
-                value={event.description || ""}
-                onChange={(changeEvent) =>
-                  setEvent((current) => ({
-                    ...current,
-                    description: changeEvent.target.value,
-                  }))
-                }
-                disabled={saving}
-                className="mt-2 min-h-32 w-full resize-y rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-white outline-none transition focus:border-violet-300/40 focus:ring-2 focus:ring-violet-400/15 disabled:opacity-60"
-              />
-            </div>
-
-            <div className="grid gap-6 lg:grid-cols-2">
-              <AdminDateTimeField
-                label="Event start"
-                value={event.start_at}
-                onChange={(value) =>
-                  setEvent((current) => ({
-                    ...current,
-                    start_at: value,
-                    end_at: value,
-                  }))
-                }
-                disabled={saving}
-              />
-              <AdminDateTimeField
-                label="Event end"
-                value={event.end_at}
-                onChange={(value) =>
-                  setEvent((current) => ({ ...current, end_at: value }))
-                }
-                disabled={saving}
-              />
-            </div>
-
-            {error ? (
-              <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
-                {error}
-              </div>
-            ) : null}
-
-            {message ? (
-              <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">
-                {message}
-              </div>
-            ) : null}
-
-            <div className="flex justify-end border-t border-white/[0.07] pt-5">
-              <button
-                type="button"
-                onClick={save}
-                disabled={saving}
-                className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold text-white shadow-[0_10px_28px_rgba(124,58,237,0.22)] transition hover:bg-violet-500 disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {saving ? "Saving..." : "Save Changes"}
-              </button>
-            </div>
+            <p className="mt-4 text-xs uppercase tracking-[.13em] text-emerald-300/75">End follows start until you change it</p>
+            <div className="mt-10"><div className="editorial-eyebrow !text-[#8d9ab4]">Timezone</div><div className="mt-3 border-b border-[#34415c] py-3 text-[#b7c0d3]">Eastern Time (US &amp; Canada)</div></div>
           </div>
         </section>
+
+        <div className="editorial-rule border-t pt-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="text-sm text-[#7b88a2]">{error || message || "No unsaved changes"}</div>
+            <button type="button" onClick={save} disabled={saving} className="min-h-12 min-w-56 rounded-full bg-[linear-gradient(90deg,#1b75ff,#7444ef)] px-7 text-sm font-semibold disabled:opacity-50">{saving ? "Saving…" : "Save event details"}</button>
+          </div>
+        </div>
       </div>
     </main>
   )
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return <label className="mt-7 block"><span className="editorial-eyebrow !text-[#8d9ab4]">{label}</span><div className="mt-2">{children}</div></label>
 }

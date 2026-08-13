@@ -40,11 +40,11 @@ export default async function AdminEventAgendaPage(props: {
   if (liveStateResult.error) throw new Error(liveStateResult.error.message)
 
   return (
-    <div className="space-y-6">
+    <main className="event-editorial-page">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="text-xs uppercase tracking-wider text-white/40">Event</div>
-          <h1 className="text-3xl font-bold">Run of Show</h1>
+          <div className="editorial-eyebrow">Event &nbsp;/&nbsp; Run of Show</div>
+          <h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Run the day.</h1>
           <div className="mt-1 text-white/60">Manage the live flow of your event.</div>
           <div className="mt-1 text-sm text-white/40">{event.title}</div>
         </div>
@@ -80,6 +80,6 @@ export default async function AdminEventAgendaPage(props: {
           sort_index: item.sort_index ?? 0,
         }))}
       />
-    </div>
+    </main>
   )
 }

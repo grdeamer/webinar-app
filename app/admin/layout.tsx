@@ -42,22 +42,28 @@ function NavLink({
   href,
   icon,
   children,
+  compact = false,
 }: {
   href: string
   icon: ReactNode
   children: ReactNode
+  compact?: boolean
 }) {
   const pathname = usePathname()
   const active = matches(pathname, href)
 
   return (
-    <Link href={href} className={navClass(active)}>
+    <Link
+      href={href}
+      title={compact && typeof children === "string" ? children : undefined}
+      className={`${navClass(active)} ${compact ? "flex-col justify-center gap-1 px-1 py-3 text-[10px]" : ""}`}
+    >
       {active ? (
         <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-violet-300 shadow-[0_0_18px_rgba(196,181,253,0.85)]" />
       ) : null}
 
       <span className={iconWrapClass(active)}>{icon}</span>
-      <span className="flex-1 truncate">{children}</span>
+      <span className={compact ? "truncate text-[9px] font-medium text-white/55" : "flex-1 truncate"}>{children}</span>
 
       {active ? (
         <span className="h-1.5 w-1.5 rounded-full bg-violet-200 shadow-[0_0_12px_rgba(196,181,253,0.9)]" />
@@ -69,13 +75,15 @@ function NavLink({
 function Section({
   title,
   children,
+  compact = false,
 }: {
   title: string
   children: ReactNode
+  compact?: boolean
 }) {
   return (
     <div>
-      <div className="mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/30">
+      <div className={`${compact ? "sr-only" : "mb-2 px-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-white/30"}`}>
         {title}
       </div>
       <nav className="space-y-1">{children}</nav>
@@ -89,6 +97,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const producerMatch = pathname.match(/^\/admin\/events\/([^/]+)\/producer(?:\/.*)?$/)
   const producerEventId = producerMatch?.[1]
   const isPageEditorWorkspace = pathname.startsWith("/admin/page-editor/event/")
+  const isEventWorkspace = /^\/admin\/events\/[^/]+(?:\/.*)?$/.test(pathname) && !isProducerWorkspace
 
   if (isProducerWorkspace) {
     return (
@@ -148,24 +157,26 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         <aside
           className={`${
             isPageEditorWorkspace ? "h-full" : ""
-          } w-[288px] border-r border-white/10 bg-[#050816]/78 backdrop-blur-2xl`}
+          } ${isEventWorkspace ? "w-[84px]" : "w-[288px]"} border-r border-white/10 bg-[#050816]/92 backdrop-blur-2xl`}
         >
           <div className="flex h-full flex-col">
-            <div className="px-5 py-5">
+            <div className={isEventWorkspace ? "px-2 py-5" : "px-5 py-5"}>
               <div className="flex items-center gap-3">
                 <div className="min-w-0">
                   <JupiterLogo
                     className="text-white"
-                    markClassName="h-9 w-9 shrink-0"
-                    wordmarkClassName="text-sm font-bold tracking-[0.18em]"
+                    markClassName={isEventWorkspace ? "mx-auto h-8 w-8 shrink-0" : "h-9 w-9 shrink-0"}
+                    wordmarkClassName={isEventWorkspace ? "hidden" : "text-sm font-bold tracking-[0.18em]"}
                   />
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">
-                    Mission Control
-                  </p>
+                  {isEventWorkspace ? (
+                    <p className="mt-1 text-center text-[9px] font-semibold tracking-[0.14em] text-white/72">JUPITER</p>
+                  ) : (
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-white/35">Mission Control</p>
+                  )}
                 </div>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.14),transparent_42%),rgba(255,255,255,0.035)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+              {!isEventWorkspace ? <div className="mt-4 rounded-2xl border border-violet-300/12 bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.14),transparent_42%),rgba(255,255,255,0.035)] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                 <div className="flex items-center justify-between gap-3">
                   <div>
                     <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-100/55">
@@ -179,33 +190,33 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     <Radio size={15} />
                   </span>
                 </div>
-              </div>
+              </div> : <div className="mx-auto mt-5 h-px w-8 bg-white/15" />}
             </div>
 
-            <div className="flex-1 space-y-6 overflow-y-auto px-3 pb-4">
-              <Section title="Global">
-                <NavLink href="/admin" icon={<LayoutDashboard size={17} />}>
+            <div className={`${isEventWorkspace ? "space-y-3 px-2" : "space-y-6 px-3"} flex-1 overflow-y-auto pb-4`}>
+              <Section title="Global" compact={isEventWorkspace}>
+                <NavLink compact={isEventWorkspace} href="/admin" icon={<LayoutDashboard size={17} />}>
                   Dashboard
                 </NavLink>
-                <NavLink href="/admin/events" icon={<Calendar size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin/events" icon={<Calendar size={17} />}>
                   Events
                 </NavLink>
-                <NavLink href="/admin/activity" icon={<Activity size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin/activity" icon={<Activity size={17} />}>
                   Live Activity
                 </NavLink>
               </Section>
 
-              <Section title="Administration">
-                <NavLink href="/admin/users" icon={<Users size={17} />}>
+              <Section title="Administration" compact={isEventWorkspace}>
+                <NavLink compact={isEventWorkspace} href="/admin/users" icon={<Users size={17} />}>
                   Users
                 </NavLink>
-                <NavLink href="/admin/dev-tools" icon={<Wrench size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin/dev-tools" icon={<Wrench size={17} />}>
                   Dev Tools
                 </NavLink>
               </Section>
             </div>
 
-            <div className="border-t border-white/10 p-4">
+            {!isEventWorkspace ? <div className="border-t border-white/10 p-4">
               <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
                 <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-400/15 text-sm font-black text-violet-100">
                   JD
@@ -219,7 +230,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   </div>
                 </div>
               </div>
-            </div>
+            </div> : <div className="mx-auto mb-5 h-9 w-9 rounded-full border border-white/15 bg-[linear-gradient(135deg,#1c78ff,#7542ef)]" />}
           </div>
         </aside>
 
@@ -228,7 +239,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"
           }`}
         >
-          <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-slate-950/45 backdrop-blur-xl">
+          {!isEventWorkspace ? <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-slate-950/45 backdrop-blur-xl">
             <div className="flex items-center justify-between gap-4 px-6 py-3.5 lg:px-8">
               <div>
                 <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
@@ -254,10 +265,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </Link>
               </div>
             </div>
-          </header>
+          </header> : null}
 
           <main
-            className={`flex-1 p-8 lg:p-10 ${
+            className={`flex-1 ${isEventWorkspace ? "p-3" : "p-8 lg:p-10"} ${
               isPageEditorWorkspace ? "min-h-0 overflow-hidden" : ""
             }`}
           >

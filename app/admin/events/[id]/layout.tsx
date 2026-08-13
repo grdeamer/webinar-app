@@ -8,7 +8,6 @@ import {
   BarChart3,
   CalendarDays,
   Clapperboard,
-  FileText,
   ImageIcon,
   LayoutDashboard,
   ListOrdered,
@@ -23,10 +22,10 @@ import {
 const EVENT_WORKSPACE_RAIL_STORAGE_KEY = "jupiter:eventWorkspaceRail"
 
 const EVENT_WORKSPACE_GRID_CLASS =
-  "grid min-h-0 gap-3 transition-all duration-300"
+  "grid min-h-0 transition-all duration-300"
 
 const EVENT_WORKSPACE_SHELL_CLASS =
-  "relative isolate overflow-hidden rounded-[22px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(7,11,20,0.92),rgba(3,6,13,0.98))] shadow-[0_18px_56px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.045)] transition-all duration-300"
+  "relative isolate overflow-hidden border-r border-white/[0.09] bg-[linear-gradient(180deg,#050814,#030510)] transition-all duration-300"
 
 const EVENT_WORKSPACE_SHELL_TEXTURE_CLASS =
   "pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_18px)]"
@@ -38,13 +37,13 @@ const EVENT_WORKSPACE_TOGGLE_CLASS =
   "absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-lg border border-white/[0.09] bg-black/24 text-white/45 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] transition hover:border-violet-300/22 hover:bg-violet-400/10 hover:text-white"
 
 const EVENT_WORKSPACE_CARD_CLASS =
-  "relative z-10 mb-2.5 overflow-hidden rounded-[18px] border border-violet-200/[0.105] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.16),transparent_45%),linear-gradient(180deg,rgba(255,255,255,0.045),rgba(255,255,255,0.018))] p-3 pr-10 shadow-[inset_0_1px_0_rgba(255,255,255,0.040)]"
+  "relative z-10 mb-3 border-b border-white/[0.12] px-1 pb-4 pt-8"
 
 const EVENT_WORKSPACE_FOOTER_CARD_CLASS =
-  "relative z-10 mt-3 rounded-[18px] border border-white/[0.07] bg-black/18 p-2.5 text-[11px] leading-snug text-white/38 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]"
+  "relative z-10 mt-4 border-t border-white/[0.08] px-2 pt-3 text-[10px] leading-snug text-white/34"
 
 const EVENT_WORKSPACE_SECTION_CLASS =
-  "relative min-w-0 overflow-hidden rounded-[24px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(6,10,18,0.55),rgba(2,4,9,0.18))] shadow-[inset_0_1px_0_rgba(255,255,255,0.020)]"
+  "event-editorial-surface relative min-w-0 overflow-hidden bg-[#02040a]"
 
 type EventWorkspaceContext = {
   title: string
@@ -244,19 +243,13 @@ export default function EventLayout({
       ? "Open"
       : "Closed"
 
-  const eventStatusClass = eventContext?.hasLiveSession
-    ? "border-red-300/20 bg-red-400/10 text-red-100"
-    : eventContext?.access === "open"
-      ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-100"
-      : "border-white/10 bg-white/[0.04] text-white/52"
-
   return (
     <div
       className={[
         EVENT_WORKSPACE_GRID_CLASS,
         collapsed
           ? "xl:grid-cols-[72px_minmax(0,1fr)]"
-          : "xl:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-[232px_minmax(0,1fr)]",
+          : "xl:grid-cols-[220px_minmax(0,1fr)]",
       ].join(" ")}
     >
       <aside
@@ -289,20 +282,14 @@ export default function EventLayout({
 
         {!collapsed && (
           <div className={EVENT_WORKSPACE_CARD_CLASS}>
-            <div className="pointer-events-none absolute inset-x-4 top-0 h-px bg-gradient-to-r from-transparent via-violet-100/16 to-transparent" />
-            <div className="text-[9px] font-black uppercase tracking-[0.2em] text-violet-100/48">
-              Current Event
-            </div>
-            <div className="mt-1.5 line-clamp-2 text-sm font-semibold leading-snug text-white/92" title={eventContext?.title}>
+            <div className="text-[9px] font-semibold uppercase tracking-[0.2em] text-[#8fa1c5]">Event admin</div>
+            <div className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">Mission Control</div>
+            <div className="mt-6 text-[9px] font-semibold uppercase tracking-[0.18em] text-[#7182a6]">Current event</div>
+            <div className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-white/92" title={eventContext?.title}>
               {eventContext?.title || `Event ${shortId}`}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className={`rounded-full border px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.14em] ${eventStatusClass}`}>
-                {eventStatus}
-              </span>
-              <span className="text-[10px] text-white/42">
-                {formatEventDate(eventContext?.startAt ?? null, eventContext?.endAt ?? null)}
-              </span>
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/90">
+              <span>{eventStatus}</span><span>/</span><span>{formatEventDate(eventContext?.startAt ?? null, eventContext?.endAt ?? null)}</span>
             </div>
           </div>
         )}
@@ -370,12 +357,9 @@ export default function EventLayout({
         </nav>
 
         {!collapsed && (
-          <div className={EVENT_WORKSPACE_FOOTER_CARD_CLASS}>
-            <div className="mb-1 flex items-center gap-1.5 font-semibold text-white/62">
-              <FileText size={13} /> Operator workflow
-            </div>
-            Build the event in Setup, operate it in Live, then review results.
-          </div>
+          <Link href="/admin/events" className={`${EVENT_WORKSPACE_FOOTER_CARD_CLASS} flex items-center gap-2 hover:text-white/72`}>
+            <span aria-hidden>←</span> All events
+          </Link>
         )}
       </aside>
 
