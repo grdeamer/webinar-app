@@ -5,14 +5,13 @@ import { ReactNode } from "react"
 import { usePathname } from "next/navigation"
 import {
   Activity,
-  Calendar,
-  LayoutDashboard,
-  Radio,
-  Users,
-  Wrench,
   ArrowLeft,
-  Satellite,
-} from "lucide-react"
+  CalendarDate,
+  Home03,
+  Signal02,
+  Tool02,
+  Users01,
+} from "@untitledui/icons"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 
 function matches(pathname: string, href: string) {
@@ -24,7 +23,7 @@ function navClass(active: boolean) {
   return [
     "group relative flex items-center gap-3 overflow-hidden rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200",
     active
-      ? "bg-violet-500/14 text-white shadow-[inset_0_0_0_1px_rgba(196,181,253,0.16),0_0_26px_rgba(168,85,247,0.16)]"
+      ? "border border-[#397cff]/70 bg-[#0c1428] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
       : "text-white/62 hover:bg-white/[0.055] hover:text-white",
   ].join(" ")
 }
@@ -33,7 +32,7 @@ function iconWrapClass(active: boolean) {
   return [
     "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
     active
-      ? "bg-violet-300/14 text-violet-100 shadow-[0_0_18px_rgba(196,181,253,0.16)]"
+      ? "bg-[#142548] text-white"
       : "bg-white/[0.035] text-white/48 group-hover:bg-white/[0.07] group-hover:text-white/80",
   ].join(" ")
 }
@@ -58,16 +57,9 @@ function NavLink({
       title={compact && typeof children === "string" ? children : undefined}
       className={`${navClass(active)} ${compact ? "flex-col justify-center gap-1 px-1 py-3 text-[10px]" : ""}`}
     >
-      {active ? (
-        <span className="absolute inset-y-2 left-0 w-1 rounded-r-full bg-violet-300 shadow-[0_0_18px_rgba(196,181,253,0.85)]" />
-      ) : null}
-
+      {active ? <span className="absolute inset-y-2 left-0 w-px rounded-full bg-[#63a1ff]" /> : null}
       <span className={iconWrapClass(active)}>{icon}</span>
       <span className={compact ? "truncate text-[9px] font-medium text-white/55" : "flex-1 truncate"}>{children}</span>
-
-      {active ? (
-        <span className="h-1.5 w-1.5 rounded-full bg-violet-200 shadow-[0_0_12px_rgba(196,181,253,0.9)]" />
-      ) : null}
     </Link>
   )
 }
@@ -107,7 +99,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             <div className="fixed left-3 right-3 top-3 z-50 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.72))] px-2.5 py-2 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl lg:left-4 lg:right-4 lg:top-4">
               <div className="flex min-w-0 items-center gap-2.5">
                 <span className="flex h-8 w-8 items-center justify-center rounded-xl border border-violet-300/15 bg-violet-300/10 text-violet-100/75">
-                  <Satellite size={14} />
+                  <Signal02 className="h-3.5 w-3.5" strokeWidth={1.8} />
                 </span>
                 <div className="hidden min-w-0 sm:block">
                   <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-violet-100/42">
@@ -125,7 +117,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                   className="flex h-8 items-center gap-2 rounded-xl border border-transparent px-2.5 text-xs font-semibold text-white/62 transition hover:border-white/10 hover:bg-white/8 hover:text-white"
                   title="Back to event dashboard"
                 >
-                  <ArrowLeft size={14} />
+                  <ArrowLeft className="h-3.5 w-3.5" strokeWidth={1.8} />
                   Event
                 </Link>
                 <Link
@@ -161,11 +153,11 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         >
           <div className="flex h-full flex-col">
             <div className={isEventWorkspace ? "px-2 py-5" : "px-5 py-5"}>
-              <div className="flex items-center gap-3">
-                <div className="min-w-0">
+              <div className={isEventWorkspace ? "flex w-full justify-center" : "flex items-center gap-3"}>
+                <div className={isEventWorkspace ? "w-full text-center" : "min-w-0"}>
                   <JupiterLogo
-                    className="text-white"
-                    markClassName={isEventWorkspace ? "mx-auto h-8 w-8 shrink-0" : "h-9 w-9 shrink-0"}
+                    className={isEventWorkspace ? "mx-auto flex w-full justify-center text-white" : "text-white"}
+                    markClassName={isEventWorkspace ? "h-8 w-8 shrink-0" : "h-9 w-9 shrink-0"}
                     wordmarkClassName={isEventWorkspace ? "hidden" : "text-sm font-bold tracking-[0.18em]"}
                   />
                   {isEventWorkspace ? (
@@ -187,7 +179,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                     </div>
                   </div>
                   <span className="flex h-8 w-8 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-400/10 text-emerald-200">
-                    <Radio size={15} />
+                    <Signal02 className="h-[15px] w-[15px]" strokeWidth={1.8} />
                   </span>
                 </div>
               </div> : <div className="mx-auto mt-5 h-px w-8 bg-white/15" />}
@@ -195,22 +187,22 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
             <div className={`${isEventWorkspace ? "space-y-3 px-2" : "space-y-6 px-3"} flex-1 overflow-y-auto pb-4`}>
               <Section title="Global" compact={isEventWorkspace}>
-                <NavLink compact={isEventWorkspace} href="/admin" icon={<LayoutDashboard size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin" icon={<Home03 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Dashboard
                 </NavLink>
-                <NavLink compact={isEventWorkspace} href="/admin/events" icon={<Calendar size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin/events" icon={<CalendarDate className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Events
                 </NavLink>
-                <NavLink compact={isEventWorkspace} href="/admin/activity" icon={<Activity size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin/activity" icon={<Activity className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Live Activity
                 </NavLink>
               </Section>
 
               <Section title="Administration" compact={isEventWorkspace}>
-                <NavLink compact={isEventWorkspace} href="/admin/users" icon={<Users size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin/users" icon={<Users01 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Users
                 </NavLink>
-                <NavLink compact={isEventWorkspace} href="/admin/dev-tools" icon={<Wrench size={17} />}>
+                <NavLink compact={isEventWorkspace} href="/admin/dev-tools" icon={<Tool02 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Dev Tools
                 </NavLink>
               </Section>

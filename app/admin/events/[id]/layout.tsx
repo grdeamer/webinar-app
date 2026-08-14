@@ -4,20 +4,19 @@ import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { ReactNode, useCallback, useEffect, useState } from "react"
 import {
-  Activity,
-  BarChart3,
-  CalendarDays,
-  Clapperboard,
-  ImageIcon,
-  LayoutDashboard,
-  ListOrdered,
-  Mail,
-  Settings,
-  Sparkles,
-  Users,
-  PanelLeftClose,
-  Globe2,
-} from "lucide-react"
+  BarChart08,
+  CalendarDate,
+  ChevronLeft,
+  File04,
+  Image03,
+  LayersThree01,
+  List,
+  Mail02,
+  Signal02,
+  UploadCloud01,
+  Users01,
+  VideoRecorder,
+} from "@untitledui/icons"
 
 const EVENT_WORKSPACE_RAIL_STORAGE_KEY = "jupiter:eventWorkspaceRail"
 
@@ -112,19 +111,19 @@ function NavItem({
         "group relative flex items-center overflow-hidden rounded-[14px] py-2 text-[13px] font-semibold transition-all duration-200",
         collapsed ? "justify-center px-1.5" : "gap-2 px-2.5",
         active
-          ? "border border-violet-200/[0.14] bg-violet-300/[0.105] text-white shadow-[0_0_24px_rgba(168,85,247,0.055),inset_0_1px_0_rgba(255,255,255,0.040)]"
+          ? "border border-[#397cff]/70 bg-[#0c1428] text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
           : "border border-transparent text-white/54 hover:border-white/[0.065] hover:bg-white/[0.045] hover:text-white/84",
       ].join(" ")}
     >
       {active ? (
-        <span className="pointer-events-none absolute inset-y-2 left-0 w-px rounded-full bg-violet-200/42 shadow-[0_0_10px_rgba(196,181,253,0.32)]" />
+        <span className="pointer-events-none absolute inset-y-2 left-0 w-px rounded-full bg-[#63a1ff]" />
       ) : null}
 
       <span
         className={[
           "flex h-7 w-7 shrink-0 items-center justify-center rounded-[10px] transition-all duration-200",
           active
-            ? "bg-violet-200/[0.14] text-violet-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]"
+            ? "bg-[#142548] text-white"
             : "bg-white/[0.035] text-white/42 group-hover:bg-white/[0.055] group-hover:text-white/72",
         ].join(" ")}
       >
@@ -268,15 +267,19 @@ export default function EventLayout({
           aria-label={collapsed ? "Expand event workspace sidebar" : "Collapse event workspace sidebar"}
           title={collapsed ? "Expand workspace" : "Collapse workspace"}
         >
-          <PanelLeftClose
-            size={14}
-            className={collapsed ? "rotate-180 transition-transform" : "transition-transform"}
+          <ChevronLeft
+            strokeWidth={1.8}
+            className={`h-3.5 w-3.5 ${collapsed ? "rotate-180 transition-transform" : "transition-transform"}`}
           />
         </button>
 
-        {collapsed && isProducerWorkspace && (
-          <div className="relative z-10 mb-2 flex justify-center text-[8px] font-black uppercase tracking-[0.18em] text-violet-100/38">
-            Live
+        {collapsed && eventContext?.hasLiveSession && (
+          <div
+            className="relative z-10 mb-2 flex flex-col items-center gap-1 text-[8px] font-black uppercase tracking-[0.18em] text-rose-300/90"
+            title="Event running"
+          >
+            <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+            Running
           </div>
         )}
 
@@ -288,36 +291,48 @@ export default function EventLayout({
             <div className="mt-2 line-clamp-2 text-sm font-semibold leading-snug text-white/92" title={eventContext?.title}>
               {eventContext?.title || `Event ${shortId}`}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/90">
-              <span>{eventStatus}</span><span>/</span><span>{formatEventDate(eventContext?.startAt ?? null, eventContext?.endAt ?? null)}</span>
-            </div>
+            {eventContext?.hasLiveSession ? (
+              <div className="mt-2 space-y-1.5">
+                <div className="flex items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-rose-300">
+                  <span className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                  <span>Event running</span>
+                </div>
+                <div className="text-[9px] font-medium uppercase tracking-[0.12em] text-white/38">
+                  {formatEventDate(eventContext?.startAt ?? null, eventContext?.endAt ?? null)}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-2 flex flex-wrap items-center gap-2 text-[9px] font-semibold uppercase tracking-[0.14em] text-emerald-300/90">
+                <span>{eventStatus}</span><span>/</span><span>{formatEventDate(eventContext?.startAt ?? null, eventContext?.endAt ?? null)}</span>
+              </div>
+            )}
           </div>
         )}
 
         <nav className={collapsed ? "relative z-10 space-y-2" : "relative z-10 space-y-3"}>
           <NavGroup title="Setup" collapsed={collapsed}>
-            <NavItem href={base} icon={<LayoutDashboard size={16} />} label="Overview" collapsed={collapsed} exact>
+            <NavItem href={base} icon={<BarChart08 className="h-4 w-4" strokeWidth={1.75} />} label="Overview" collapsed={collapsed} exact>
               Overview
             </NavItem>
-            <NavItem href={`${base}/settings`} icon={<Settings size={16} />} label="Event Details" collapsed={collapsed}>
+            <NavItem href={`${base}/settings`} icon={<File04 className="h-4 w-4" strokeWidth={1.75} />} label="Event Details" collapsed={collapsed}>
               Event Details
             </NavItem>
-            <NavItem href={`${base}/attendees`} icon={<Users size={16} />} label="People" collapsed={collapsed}>
+            <NavItem href={`${base}/attendees`} icon={<Users01 className="h-4 w-4" strokeWidth={1.75} />} label="People" collapsed={collapsed}>
               People
             </NavItem>
-            <NavItem href={`${base}/sessions`} icon={<CalendarDays size={16} />} label="Program" collapsed={collapsed}>
+            <NavItem href={`${base}/sessions`} icon={<CalendarDate className="h-4 w-4" strokeWidth={1.75} />} label="Program" collapsed={collapsed}>
               Program
             </NavItem>
-            <NavItem href={`${base}/page-editor`} icon={<Sparkles size={16} />} label="Experience" collapsed={collapsed}>
+            <NavItem href={`${base}/page-editor`} icon={<LayersThree01 className="h-4 w-4" strokeWidth={1.75} />} label="Experience" collapsed={collapsed}>
               Experience
             </NavItem>
-            <NavItem href={`${base}/emails`} icon={<Mail size={16} />} label="Communications" collapsed={collapsed}>
+            <NavItem href={`${base}/emails`} icon={<Mail02 className="h-4 w-4" strokeWidth={1.75} />} label="Communications" collapsed={collapsed}>
               Communications
             </NavItem>
-            <NavItem href={`${base}/publishing`} icon={<Globe2 size={16} />} label="Publish" collapsed={collapsed}>
+            <NavItem href={`${base}/publishing`} icon={<UploadCloud01 className="h-4 w-4" strokeWidth={1.75} />} label="Publish" collapsed={collapsed}>
               Publish
             </NavItem>
-            <NavItem href={`${base}/sponsors`} icon={<ImageIcon size={16} />} label="Media & Sponsors" collapsed={collapsed}>
+            <NavItem href={`${base}/sponsors`} icon={<Image03 className="h-4 w-4" strokeWidth={1.75} />} label="Media & Sponsors" collapsed={collapsed}>
               Media & Sponsors
             </NavItem>
           </NavGroup>
@@ -325,7 +340,7 @@ export default function EventLayout({
           <NavGroup title="Live" collapsed={collapsed}>
             <NavItem
               href={`${base}/routing`}
-              icon={<Activity size={16} />}
+              icon={<Signal02 className="h-4 w-4" strokeWidth={1.75} />}
               label="Run Event"
               collapsed={collapsed}
             >
@@ -333,7 +348,7 @@ export default function EventLayout({
             </NavItem>
             <NavItem
               href={`${base}/agenda`}
-              icon={<ListOrdered size={16} />}
+              icon={<List className="h-4 w-4" strokeWidth={1.75} />}
               label="Run of Show"
               collapsed={collapsed}
             >
@@ -341,7 +356,7 @@ export default function EventLayout({
             </NavItem>
             <NavItem
               href={`${base}/producer/room`}
-              icon={<Clapperboard size={16} />}
+              icon={<VideoRecorder className="h-4 w-4" strokeWidth={1.75} />}
               label="Producer Room"
               collapsed={collapsed}
             >
@@ -350,7 +365,7 @@ export default function EventLayout({
           </NavGroup>
 
           <NavGroup title="Review" collapsed={collapsed}>
-            <NavItem href={`${base}/analytics`} icon={<BarChart3 size={16} />} label="Analytics" collapsed={collapsed}>
+            <NavItem href={`${base}/analytics`} icon={<BarChart08 className="h-4 w-4" strokeWidth={1.75} />} label="Analytics" collapsed={collapsed}>
               Analytics
             </NavItem>
           </NavGroup>
