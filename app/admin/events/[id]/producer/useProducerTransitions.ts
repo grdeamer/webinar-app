@@ -6,7 +6,11 @@ type TakeMode = "cut" | "auto"
 
 
 type ProducerTransitionApi = {
-  takeProgram: () => Promise<{ state?: StageState | null } | null | undefined>
+  takeProgram: (input: {
+    expectedPreviewVersion: number | null
+    programBlocks: PreviewBlock[]
+    transition: Record<string, unknown>
+  }) => Promise<{ state?: StageState | null } | null | undefined>
   setEventTransition?: (payload: {
     active: boolean
     type?: "fade" | "warp" | "curtain" | "none"
@@ -35,6 +39,7 @@ function completeBlocksForTakeAnimation(blocks: PreviewBlock[]): PreviewBlock[] 
 export default function useProducerTransitions({
   api,
   programState,
+  previewState,
   programBlocks,
   previewBlocks,
   setProgramState,
@@ -43,6 +48,7 @@ export default function useProducerTransitions({
 }: {
   api: ProducerTransitionApi
   programState: StageState | null
+  previewState: StageState | null
   programBlocks: PreviewBlock[]
   previewBlocks: PreviewBlock[]
   setProgramState: React.Dispatch<React.SetStateAction<StageState | null>>
@@ -56,11 +62,21 @@ export default function useProducerTransitions({
   const [transitionFromBlocks, setTransitionFromBlocks] = useState<PreviewBlock[]>([])
   const [transitionFadingOut, setTransitionFadingOut] = useState(false)
 
-  const takeProgram = useCallback(async () => {
+  const takeProgram = useCallback(async (
+    mode: TakeMode,
+    transitionType?: "fade" | "warp" | "curtain",
+  ) => {
     const previousProgramState = programState ? { ...programState } : null
     const previousProgramBlocks = programBlocks.map((block) => ({ ...block }))
 
-    const data = await api.takeProgram()
+    const data = await api.takeProgram({
+      expectedPreviewVersion: previewState?.scene_version ?? null,
+      programBlocks: previewBlocks,
+      transition: {
+        type: mode === "cut" ? "none" : transitionType ?? "fade",
+        durationMs: mode === "cut" ? 0 : 620,
+      },
+    })
 
     setTransitionFromState(previousProgramState)
     setTransitionFromBlocks(previousProgramBlocks)
@@ -90,7 +106,7 @@ export default function useProducerTransitions({
     }, 620)
 
     return data?.state ?? null
-  }, [api, programState, programBlocks, previewBlocks, setProgramBlocks, setProgramState])
+  }, [api, previewState?.scene_version, programState, programBlocks, previewBlocks, setProgramBlocks, setProgramState])
 
   const runTake = useCallback(
     async (mode: TakeMode = "cut", transitionType?: "fade" | "warp" | "curtain") => {
@@ -107,7 +123,7 @@ export default function useProducerTransitions({
           message: "Preparing next live destination",
           durationMs: 1600,
         })
-        await takeProgram()
+        await takeProgram(mode, transitionType)
         window.setTimeout(() => {
           void api.clearEventTransition?.()
         }, 1400)

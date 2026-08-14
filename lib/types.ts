@@ -302,6 +302,10 @@ export interface EventLiveStageStateRecord {
   scene_version: number
   headline: string | null
   message: string | null
+  preview_blocks?: unknown[]
+  program_blocks?: unknown[]
+  transition_json?: Record<string, unknown>
+  last_command_id?: string | null
   updated_by: string | null
   updated_at: string
 }

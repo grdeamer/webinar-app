@@ -4,12 +4,11 @@ import { useCallback, useEffect } from "react"
 import type { SceneSummary } from "./assetDockTypes"
 
 function isTypingTarget(target: EventTarget | null): boolean {
-  const tag = (target as HTMLElement | null)?.tagName?.toLowerCase()
-
-  return (
-    tag === "input" ||
-    tag === "textarea" ||
-    tag === "select"
+  const element = target instanceof HTMLElement ? target : null
+  return Boolean(
+    element?.closest(
+      'input,textarea,select,button,a,[contenteditable="true"],[role="dialog"]'
+    )
   )
 }
 
@@ -34,11 +33,11 @@ export default function useProducerHotkeys({
   const handleTransportHotkeys = useCallback(
     (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return
-      if (event.metaKey || event.ctrlKey || event.altKey) return
+      if (event.repeat || event.metaKey || event.ctrlKey || !event.altKey) return
 
       const key = event.key.toLowerCase()
 
-      if (event.code === "Space" || key === "t" || key === "c") {
+      if (key === "t" || key === "c") {
         event.preventDefault()
         takeProgram("cut")
         return
@@ -55,9 +54,11 @@ export default function useProducerHotkeys({
   const handleSceneHotkeys = useCallback(
     (event: KeyboardEvent) => {
       if (isTypingTarget(event.target)) return
+      if (event.repeat || event.metaKey || event.ctrlKey) return
 
-      if (event.shiftKey && event.key >= "1" && event.key <= "9") {
-        const index = Number(event.key) - 1
+      const digitMatch = event.code.match(/^Digit([1-9])$/)
+      if (event.altKey && event.shiftKey && digitMatch) {
+        const index = Number(digitMatch[1]) - 1
         const scene = scenes[index]
 
         if (scene) {
@@ -69,8 +70,8 @@ export default function useProducerHotkeys({
         return
       }
 
-      if (event.key >= "1" && event.key <= "9") {
-        const index = Number(event.key) - 1
+      if (!event.altKey && !event.shiftKey && digitMatch) {
+        const index = Number(digitMatch[1]) - 1
         const scene = scenes[index]
 
         if (scene) {

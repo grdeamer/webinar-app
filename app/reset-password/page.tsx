@@ -17,12 +17,15 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [message, setMessage] = React.useState<string | null>(null)
+  const [nextPath, setNextPath] = React.useState("/login")
 
   React.useEffect(() => {
     let active = true
 
     async function initializeRecoverySession() {
       const url = new URL(window.location.href)
+      const requestedNext = url.searchParams.get("next")
+      if (requestedNext?.startsWith("/admin/events/")) setNextPath(requestedNext)
       const code = url.searchParams.get("code")
       const hash = new URLSearchParams(url.hash.slice(1))
       const accessToken = hash.get("access_token")
@@ -42,7 +45,7 @@ export default function ResetPasswordPage() {
           return
         }
 
-        window.history.replaceState({}, "", window.location.pathname)
+        window.history.replaceState({}, "", requestedNext ? `${window.location.pathname}?next=${encodeURIComponent(requestedNext)}` : window.location.pathname)
       } else if (code) {
         const { error: exchangeError } =
           await supabase.auth.exchangeCodeForSession(code)
@@ -55,7 +58,7 @@ export default function ResetPasswordPage() {
           return
         }
 
-        window.history.replaceState({}, "", window.location.pathname)
+        window.history.replaceState({}, "", requestedNext ? `${window.location.pathname}?next=${encodeURIComponent(requestedNext)}` : window.location.pathname)
       }
 
       const { data, error: sessionError } = await supabase.auth.getSession()
@@ -135,7 +138,7 @@ export default function ResetPasswordPage() {
     setMessage("Password updated successfully. Redirecting to login...")
 
     setTimeout(() => {
-      router.push("/login")
+      router.push(nextPath)
       router.refresh()
     }, 1200)
   }

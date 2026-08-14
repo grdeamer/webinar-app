@@ -31,7 +31,7 @@ export async function requireAdmin(): Promise<RequireAdminResult> {
     .eq("id", user.id)
     .maybeSingle<AdminProfile>()
 
-  if (profileError || !profile || profile.role !== "admin" || profile.is_active === false) {
+  if (profileError || !profile || !["admin", "event_member"].includes(profile.role ?? "") || profile.is_active === false) {
     redirect("/admin/login")
   }
 

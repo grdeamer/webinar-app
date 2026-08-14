@@ -13,7 +13,7 @@ type EventTransitionPayload = {
   durationMs?: number
 }
 async function readJson(res: Response) {
-    const data = await res.json().catch((): null => null)
+  const data = await res.json().catch((): null => null)
 
   if (!res.ok) {
     throw new Error(data?.error || "Request failed")
@@ -26,12 +26,20 @@ export default function useProducerRoomApi(
   eventId: string,
   sessionId: string
 ) {
+  return useMemo(() => {
   const scoped = (path: string) =>
     `${path}${path.includes("?") ? "&" : "?"}session_id=${encodeURIComponent(
       sessionId
     )}`
 
   async function loadToken() {
+    const consoleKey = `jupiter:producer-console:${eventId}`
+    let consoleId = window.sessionStorage.getItem(consoleKey)
+    if (!consoleId) {
+      consoleId = crypto.randomUUID()
+      window.sessionStorage.setItem(consoleKey, consoleId)
+    }
+
     const res = await fetch(`/api/admin/events/${eventId}/live/token`, {
       method: "POST",
       headers: {
@@ -41,6 +49,7 @@ export default function useProducerRoomApi(
         role: "producer",
         display_name: "Producer",
         session_id: sessionId,
+        console_id: consoleId,
       }),
     })
 
@@ -91,7 +100,10 @@ export default function useProducerRoomApi(
     return readJson(res)
   }
 
-  async function postStage(payload: Record<string, unknown>) {
+  async function postStage(
+    payload: Record<string, unknown>,
+    expectedPreviewVersion?: number | null
+  ) {
     const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
       method: "POST",
       headers: {
@@ -100,6 +112,8 @@ export default function useProducerRoomApi(
       body: JSON.stringify({
         ...payload,
         session_id: sessionId,
+        commandId: crypto.randomUUID(),
+        expectedPreviewVersion: expectedPreviewVersion ?? null,
       }),
     })
 
@@ -146,16 +160,16 @@ export default function useProducerRoomApi(
     })
   }
 
-  async function goLive() {
+  async function goLive(expectedPreviewVersion?: number | null) {
     return postStage({
       action: "go_live",
-    })
+    }, expectedPreviewVersion)
   }
 
-  async function goOffAir() {
+  async function goOffAir(expectedPreviewVersion?: number | null) {
     return postStage({
       action: "go_off_air",
-    })
+    }, expectedPreviewVersion)
   }
 
   async function setScreenShare(
@@ -208,13 +222,16 @@ export default function useProducerRoomApi(
     return readJson(res)
   }
 
-  async function takeProgram() {
-    const res = await fetch(`/api/admin/events/${eventId}/live/take`, {
+  async function savePreviewComposition(
+    blocks: unknown[],
+    expectedVersion: number | null
+  ) {
+    const res = await fetch(`/api/admin/events/${eventId}/live/composition`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        blocks,
+        expectedVersion,
         session_id: sessionId,
       }),
     })
@@ -222,14 +239,42 @@ export default function useProducerRoomApi(
     return readJson(res)
   }
 
-  async function saveScene(name: string) {
+  async function takeProgram(input: {
+    expectedPreviewVersion: number | null
+    programBlocks: unknown[]
+    transition: Record<string, unknown>
+  }) {
+    const res = await fetch(`/api/admin/events/${eventId}/live/take`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        session_id: sessionId,
+        commandId: crypto.randomUUID(),
+        expectedPreviewVersion: input.expectedPreviewVersion,
+        programBlocks: input.programBlocks,
+        transition: input.transition,
+      }),
+    })
+
+    return readJson(res)
+  }
+
+  async function saveScene(input: {
+    name: string
+    sceneId?: string | null
+    previewBlocks: unknown[]
+    screenLayoutPreset: string
+    thumbnailUrl?: string | null
+  }) {
     const res = await fetch(`/api/admin/events/${eventId}/live/scenes`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name,
+        ...input,
         session_id: sessionId,
       }),
     })
@@ -251,6 +296,26 @@ export default function useProducerRoomApi(
       }
     )
 
+    return readJson(res)
+  }
+
+  async function renameScene(sceneId: string, name: string) {
+    const res = await fetch(
+      `/api/admin/events/${eventId}/live/scenes/${sceneId}`,
+      {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name }),
+      }
+    )
+    return readJson(res)
+  }
+
+  async function deleteScene(sceneId: string) {
+    const res = await fetch(
+      `/api/admin/events/${eventId}/live/scenes/${sceneId}`,
+      { method: "DELETE" }
+    )
     return readJson(res)
   }
   async function setEventTransition({
@@ -287,8 +352,7 @@ export default function useProducerRoomApi(
       durationMs: 0,
     })
   }
-  return useMemo(
-    () => ({
+    return {
       loadToken,
       loadParticipants,
       loadStageState,
@@ -306,12 +370,14 @@ export default function useProducerRoomApi(
       clearScreenShare,
       setLayout,
       setAutoDirector,
+      savePreviewComposition,
       takeProgram,
       saveScene,
       applyScene,
+      renameScene,
+      deleteScene,
       setEventTransition,
       clearEventTransition,
-    }),
-    [eventId, sessionId]
-  )
+    }
+  }, [eventId, sessionId])
 }

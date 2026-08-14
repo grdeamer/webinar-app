@@ -10,6 +10,24 @@ html, body {
   overflow-x: hidden;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body { min-height: 100dvh; }
+
+button, a, input, select, textarea {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ios-scrollbar-none {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ios-scrollbar-none::-webkit-scrollbar { display: none; }
+
 .jupiter-space-site {
   position: relative;
   isolation: isolate;
@@ -68,30 +86,71 @@ html, body {
 .global-jupiter-backdrop {
   position: fixed;
   z-index: 0;
-  top: 4.25rem;
-  right: 2.4rem;
-  width: clamp(118px, 12vw, 190px);
+  top: 4.75rem;
+  right: 3rem;
+  width: clamp(190px, 18vw, 290px);
   aspect-ratio: 1;
   pointer-events: none;
-  border-radius: 50%;
-  background:
-    linear-gradient(90deg, rgba(3,7,20,.12), rgba(3,7,20,.62)),
-    url('/jupiter-photoreal.png') center / cover no-repeat;
-  box-shadow: -28px 0 80px rgba(82,116,181,.12);
-  opacity: .31;
-  filter: saturate(.78) contrast(.95);
-  -webkit-mask-image: radial-gradient(circle at center, #000 0 62%, rgba(0,0,0,.72) 72%, transparent 88%);
-  mask-image: radial-gradient(circle at center, #000 0 62%, rgba(0,0,0,.72) 72%, transparent 88%);
+  background: url('/jupiter-full-disc.png') center / contain no-repeat;
+  opacity: .36;
+  filter: saturate(.78) contrast(.98);
+  -webkit-mask-image: radial-gradient(circle at center, #000 0 58%, rgba(0,0,0,.92) 66%, rgba(0,0,0,.38) 78%, transparent 94%);
+  mask-image: radial-gradient(circle at center, #000 0 58%, rgba(0,0,0,.92) 66%, rgba(0,0,0,.38) 78%, transparent 94%);
 }
 
 .global-jupiter-backdrop--events {
-  top: 3.25rem;
-  right: -1.8rem;
-  width: clamp(300px, 28vw, 480px);
-  opacity: .43;
-  filter: saturate(.86) contrast(1.02);
-  box-shadow: -40px 0 110px rgba(82,116,181,.18);
+  top: 2.75rem;
+  right: 1.5rem;
+  width: clamp(330px, 31vw, 500px);
+  opacity: .46;
+  filter: saturate(.84) contrast(1.01);
 }
+
+.event-directory-card {
+  position: relative;
+  overflow: visible;
+  min-height: 138px;
+  border: 1px solid rgba(116, 149, 207, .17);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(20, 33, 58, .86), rgba(8, 14, 28, .8));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.035), 0 14px 38px rgba(0,0,0,.12);
+  transition: border-color .2s ease, background .2s ease, transform .2s ease;
+}
+
+.event-directory-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  border-radius: 18px 0 0 18px;
+  background: #4f8cff;
+  opacity: .72;
+}
+
+.event-directory-card:hover {
+  transform: translateY(-1px);
+  border-color: rgba(116, 162, 242, .36);
+  background: linear-gradient(135deg, rgba(25, 42, 72, .94), rgba(10, 18, 35, .88));
+}
+
+.event-directory-card--1 {
+  background: linear-gradient(135deg, rgba(32, 27, 58, .86), rgba(12, 13, 29, .82));
+}
+
+.event-directory-card--1::before { background: #8a68e8; }
+
+.event-directory-card--2 {
+  background: linear-gradient(135deg, rgba(17, 43, 51, .84), rgba(8, 17, 27, .82));
+}
+
+.event-directory-card--2::before { background: #37a9b6; }
+
+.event-directory-card--3 {
+  background: linear-gradient(135deg, rgba(50, 31, 31, .82), rgba(18, 13, 23, .84));
+}
+
+.event-directory-card--3::before { background: #cf795f; }
 
 .global-editorial-page {
   position: relative;
@@ -121,6 +180,21 @@ html, body {
 }
 
 @media (max-width: 768px) {
+  .jupiter-space-site { background-attachment: scroll; }
+
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  .event-editorial-page {
+    min-height: calc(100dvh - 4rem);
+    padding: 2rem 1rem calc(2rem + env(safe-area-inset-bottom));
+  }
+
+  .event-editorial-page .editorial-title {
+    font-size: clamp(2.25rem, 12vw, 3.25rem);
+  }
+
   .jupiter-space-site::before {
     top: 4rem;
     right: -15rem;

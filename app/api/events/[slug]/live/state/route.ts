@@ -24,7 +24,7 @@ export async function GET(
     const { data: program, error: programError } = await supabaseAdmin
       .from("event_live_program_state")
       .select(
-        "event_id,room_id,is_live,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,updated_at"
+        "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,program_blocks,transition_json,last_command_id,updated_at"
       )
       .eq("event_id", String(event.id))
       .maybeSingle()

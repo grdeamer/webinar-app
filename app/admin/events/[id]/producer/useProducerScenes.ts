@@ -5,7 +5,13 @@ import type { SceneSummary, ScreenLayoutPreset } from "./assetDockTypes"
 import type { SceneSnapshot, StageState } from "./producerRoomTypes"
 
 type ProducerRoomApi = {
-  saveScene: (name: string) => Promise<{
+  saveScene: (input: {
+    name: string
+    sceneId?: string | null
+    previewBlocks: PreviewBlock[]
+    screenLayoutPreset: ScreenLayoutPreset
+    thumbnailUrl?: string | null
+  }) => Promise<{
     scene?: {
       id?: string | number
     }
@@ -16,6 +22,8 @@ type ProducerRoomApi = {
   loadScenes: () => Promise<{
     scenes?: unknown[]
   }>
+  renameScene: (sceneId: string, name: string) => Promise<unknown>
+  deleteScene: (sceneId: string) => Promise<unknown>
 }
 
 type RawSceneSummary = {
@@ -25,6 +33,11 @@ type RawSceneSummary = {
   screenLayoutPreset?: ScreenLayoutPreset | null
   previewBlocks?: PreviewBlock[] | null
   thumbnailUrl?: string | null
+  scene_json?: {
+    preview_blocks?: PreviewBlock[] | null
+    screen_layout_preset?: ScreenLayoutPreset | null
+    thumbnail_url?: string | null
+  } | null
 }
 
 function clonePreviewBlock(block: PreviewBlock): PreviewBlock {
@@ -57,14 +70,16 @@ function clonePreviewBlock(block: PreviewBlock): PreviewBlock {
 }
 
 function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
+  const sceneJson = scene.scene_json ?? null
   return {
     id: String(scene.id),
     name: scene.name ?? scene.title ?? "Scene",
-    screenLayoutPreset: scene.screenLayoutPreset ?? null,
-    previewBlocks: scene.previewBlocks
-      ? scene.previewBlocks.map((block) => clonePreviewBlock(block))
+    screenLayoutPreset:
+      scene.screenLayoutPreset ?? sceneJson?.screen_layout_preset ?? null,
+    previewBlocks: (scene.previewBlocks ?? sceneJson?.preview_blocks)
+      ? (scene.previewBlocks ?? sceneJson?.preview_blocks ?? []).map((block) => clonePreviewBlock(block))
       : null,
-    thumbnailUrl: scene.thumbnailUrl ?? null,
+    thumbnailUrl: scene.thumbnailUrl ?? sceneJson?.thumbnail_url ?? null,
   }
 }
 
@@ -144,10 +159,16 @@ export default function useProducerScenes({
       const resolvedSceneName =
         sceneName.trim() || `Scene ${scenes.length + 1}`
 
-      const data = await api.saveScene(resolvedSceneName)
-
-      const savedSceneId = String(targetId ?? data?.scene?.id ?? crypto.randomUUID())
       const thumbnailUrl = captureSceneThumbnail?.() ?? null
+      const data = await api.saveScene({
+        name: resolvedSceneName,
+        sceneId: targetId,
+        previewBlocks: previewBlocks.map((block) => clonePreviewBlock(block)),
+        screenLayoutPreset,
+        thumbnailUrl,
+      })
+
+      const savedSceneId = String(data?.scene?.id ?? targetId ?? crypto.randomUUID())
 
       setLocalSceneSnapshots((prev) => {
         const next = prev.filter((s) => String(s.id) !== savedSceneId)
@@ -217,6 +238,12 @@ export default function useProducerScenes({
         }, 150)
 
         void preset
+      } else {
+        const serverScene = scenes.find((scene) => String(scene.id) === String(sceneId))
+        if (serverScene?.previewBlocks) {
+          setPreviewBlocks(serverScene.previewBlocks.map((block) => clonePreviewBlock(block)))
+          setSelectedBlockId(null)
+        }
       }
     } finally {
       setSceneBusy(false)
@@ -226,6 +253,8 @@ export default function useProducerScenes({
   async function deleteScene(sceneId: string) {
     try {
       setSceneBusy(true)
+
+      await api.deleteScene(sceneId)
 
       setDeletedSceneIds((prev) => {
         const next = new Set(prev)
@@ -247,10 +276,12 @@ export default function useProducerScenes({
     }
   }
 
-  function renameScene(sceneId: string, nextName: string) {
+  async function renameScene(sceneId: string, nextName: string) {
     const trimmedName = nextName.trim()
 
     if (!trimmedName) return
+
+    await api.renameScene(sceneId, trimmedName)
 
     setScenes((prev) =>
       prev.map((scene) =>

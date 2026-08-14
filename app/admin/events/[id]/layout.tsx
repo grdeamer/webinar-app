@@ -50,6 +50,8 @@ type EventWorkspaceContext = {
   endAt: string | null
   access: "open" | "closed"
   hasLiveSession: boolean
+  teamRole: "owner" | "administrator" | "event_admin" | "producer" | "viewer"
+  isGlobalAdmin: boolean
 }
 
 function formatEventDate(startAt: string | null, endAt: string | null): string {
@@ -241,6 +243,8 @@ export default function EventLayout({
     : eventContext?.access === "open"
       ? "Open"
       : "Closed"
+  const canConfigure = !eventContext || eventContext.isGlobalAdmin || eventContext.teamRole === "event_admin"
+  const canOperate = canConfigure || eventContext?.teamRole === "producer"
 
   return (
     <div
@@ -254,6 +258,7 @@ export default function EventLayout({
       <aside
         className={[
           EVENT_WORKSPACE_SHELL_CLASS,
+          "hidden xl:block",
           collapsed ? "p-2 pt-11" : "p-2.5",
         ].join(" ")}
       >
@@ -314,30 +319,30 @@ export default function EventLayout({
             <NavItem href={base} icon={<BarChart08 className="h-4 w-4" strokeWidth={1.75} />} label="Overview" collapsed={collapsed} exact>
               Overview
             </NavItem>
-            <NavItem href={`${base}/settings`} icon={<File04 className="h-4 w-4" strokeWidth={1.75} />} label="Event Details" collapsed={collapsed}>
+            {canConfigure ? <NavItem href={`${base}/settings`} icon={<File04 className="h-4 w-4" strokeWidth={1.75} />} label="Event Details" collapsed={collapsed}>
               Event Details
-            </NavItem>
-            <NavItem href={`${base}/attendees`} icon={<Users01 className="h-4 w-4" strokeWidth={1.75} />} label="People" collapsed={collapsed}>
+            </NavItem> : null}
+            {canConfigure ? <NavItem href={`${base}/attendees`} icon={<Users01 className="h-4 w-4" strokeWidth={1.75} />} label="People" collapsed={collapsed}>
               People
-            </NavItem>
-            <NavItem href={`${base}/sessions`} icon={<CalendarDate className="h-4 w-4" strokeWidth={1.75} />} label="Program" collapsed={collapsed}>
+            </NavItem> : null}
+            {canConfigure ? <NavItem href={`${base}/sessions`} icon={<CalendarDate className="h-4 w-4" strokeWidth={1.75} />} label="Program" collapsed={collapsed}>
               Program
-            </NavItem>
-            <NavItem href={`${base}/page-editor`} icon={<LayersThree01 className="h-4 w-4" strokeWidth={1.75} />} label="Experience" collapsed={collapsed}>
+            </NavItem> : null}
+            {canConfigure ? <NavItem href={`${base}/page-editor`} icon={<LayersThree01 className="h-4 w-4" strokeWidth={1.75} />} label="Experience" collapsed={collapsed}>
               Experience
-            </NavItem>
-            <NavItem href={`${base}/emails`} icon={<Mail02 className="h-4 w-4" strokeWidth={1.75} />} label="Communications" collapsed={collapsed}>
+            </NavItem> : null}
+            {canConfigure ? <NavItem href={`${base}/emails`} icon={<Mail02 className="h-4 w-4" strokeWidth={1.75} />} label="Communications" collapsed={collapsed}>
               Communications
-            </NavItem>
-            <NavItem href={`${base}/publishing`} icon={<UploadCloud01 className="h-4 w-4" strokeWidth={1.75} />} label="Publish" collapsed={collapsed}>
+            </NavItem> : null}
+            {canConfigure ? <NavItem href={`${base}/publishing`} icon={<UploadCloud01 className="h-4 w-4" strokeWidth={1.75} />} label="Publish" collapsed={collapsed}>
               Publish
-            </NavItem>
-            <NavItem href={`${base}/sponsors`} icon={<Image03 className="h-4 w-4" strokeWidth={1.75} />} label="Media & Sponsors" collapsed={collapsed}>
+            </NavItem> : null}
+            {canConfigure ? <NavItem href={`${base}/sponsors`} icon={<Image03 className="h-4 w-4" strokeWidth={1.75} />} label="Media & Sponsors" collapsed={collapsed}>
               Media & Sponsors
-            </NavItem>
+            </NavItem> : null}
           </NavGroup>
 
-          <NavGroup title="Live" collapsed={collapsed}>
+          {canOperate ? <NavGroup title="Live" collapsed={collapsed}>
             <NavItem
               href={`${base}/routing`}
               icon={<Signal02 className="h-4 w-4" strokeWidth={1.75} />}
@@ -362,7 +367,7 @@ export default function EventLayout({
             >
               Producer Room
             </NavItem>
-          </NavGroup>
+          </NavGroup> : null}
 
           <NavGroup title="Review" collapsed={collapsed}>
             <NavItem href={`${base}/analytics`} icon={<BarChart08 className="h-4 w-4" strokeWidth={1.75} />} label="Analytics" collapsed={collapsed}>
@@ -380,10 +385,44 @@ export default function EventLayout({
 
       <section className={EVENT_WORKSPACE_SECTION_CLASS}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.055] to-transparent" />
+        <details className="sticky top-16 z-40 border-b border-white/10 bg-[#050814]/95 px-4 py-3 backdrop-blur-2xl xl:hidden">
+          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm font-semibold text-white marker:hidden">
+            <span className="min-w-0 truncate">{eventContext?.title || `Event ${shortId}`}</span>
+            <span className="shrink-0 text-xs font-medium text-sky-300">Event menu ↓</span>
+          </summary>
+          <nav className="mt-3 grid grid-cols-2 gap-2 pb-1 text-sm">
+            <MobileEventLink href={base} label="Overview" />
+            {canConfigure ? <MobileEventLink href={`${base}/settings`} label="Event Details" /> : null}
+            {canConfigure ? <MobileEventLink href={`${base}/attendees`} label="People" /> : null}
+            {canConfigure ? <MobileEventLink href={`${base}/sessions`} label="Program" /> : null}
+            {canConfigure ? <MobileEventLink href={`${base}/page-editor`} label="Experience" /> : null}
+            {canConfigure ? <MobileEventLink href={`${base}/emails`} label="Communications" /> : null}
+            {canConfigure ? <MobileEventLink href={`${base}/publishing`} label="Publish" /> : null}
+            {canConfigure ? <MobileEventLink href={`${base}/sponsors`} label="Media & Sponsors" /> : null}
+            {canOperate ? <MobileEventLink href={`${base}/routing`} label="Run Event" /> : null}
+            {canOperate ? <MobileEventLink href={`${base}/agenda`} label="Run of Show" /> : null}
+            {canOperate ? <MobileEventLink href={`${base}/producer/room`} label="Producer Room" /> : null}
+            <MobileEventLink href={`${base}/analytics`} label="Analytics" />
+          </nav>
+        </details>
         <div className="relative min-w-0 p-0">
           {children}
         </div>
       </section>
     </div>
+  )
+}
+
+function MobileEventLink({ href, label }: { href: string; label: string }) {
+  const pathname = usePathname()
+  const active = isActive(pathname, href, href.split("/").length === 4)
+
+  return (
+    <Link
+      href={href}
+      className={`flex min-h-11 items-center rounded-xl border px-3 font-medium ${active ? "border-sky-400/45 bg-sky-400/10 text-white" : "border-white/8 bg-white/[0.025] text-white/65"}`}
+    >
+      {label}
+    </Link>
   )
 }

@@ -83,6 +83,20 @@ type RecordingSession = {
   status: "processing" | "ready" | "recording" | "failed"
 }
 
+type RecordingStatusRow = {
+  id: string
+  started_at?: string | null
+  ended_at?: string | null
+  status?: string | null
+  source?: string | null
+  destination?: string | null
+  quality?: string | null
+  egress_id?: string | null
+  file_name?: string | null
+  file_location?: string | null
+  file_size?: number | string | null
+}
+
 type RecordingSourceOption = {
   id: string
   label: string
@@ -2575,6 +2589,7 @@ export default function BottomAssetDock({
   hotkeySceneId,
   previewBlocks,
   localMicLevel,
+  eventId,
   recordingRoomName,
   onAddScene,
   onSaveScene,
@@ -2595,6 +2610,7 @@ export default function BottomAssetDock({
   hotkeySceneId: string | null
   previewBlocks: PreviewBlock[]
   localMicLevel?: number
+  eventId: string
   recordingRoomName: string
   slideDeckName?: string | null
   slideCount?: number
@@ -2656,6 +2672,7 @@ function handleSendSelectedMediaAssetToPreview(): void {
   setSelectedMediaAssetLabel(targetLabel)
   handleSelectMediaAssetForPreview(targetLabel)
 }
+
 function handleTakeAsset(): void {
   if (!previewMediaAssetLabel) return
 setTakeFlashAssetLabel(previewMediaAssetLabel)
@@ -2947,6 +2964,76 @@ function handleClearImportedAssets(): void {
   const [recordingQuality, setRecordingQuality] = useState("1080p Standard")
   const [activeEgressId, setActiveEgressId] = useState<string | null>(null)
   const [recordingError, setRecordingError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+
+    async function restoreRecordingState(): Promise<void> {
+      try {
+        const response = await fetch("/api/livekit/recording/status", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ eventId }),
+        })
+        const data = await response.json().catch((): null => null)
+        if (!response.ok || !data?.ok) {
+          throw new Error(data?.error || "Recording state could not be restored")
+        }
+        if (cancelled) return
+
+        const history: RecordingStatusRow[] = Array.isArray(data.recordings)
+          ? data.recordings
+          : []
+        setRecordings(history.map((recording, index): RecordingSession => {
+          const startedAt = String(recording.started_at || new Date().toISOString())
+          const endedAt = recording.ended_at ? String(recording.ended_at) : null
+          const durationSeconds = endedAt
+            ? Math.max(0, Math.floor((new Date(endedAt).getTime() - new Date(startedAt).getTime()) / 1000))
+            : 0
+          const status = String(recording.status || "")
+          return {
+            id: String(recording.id),
+            label: `Program Recording ${history.length - index}`,
+            startedAt,
+            endedAt,
+            durationSeconds,
+            source: String(recording.source || "Program Feed"),
+            destination: String(recording.destination || "Jupiter Cloud"),
+            quality: String(recording.quality || "1080p Standard"),
+            egressId: recording.egress_id ? String(recording.egress_id) : null,
+            file: recording.file_name ? String(recording.file_name) : null,
+            location: recording.file_location ? String(recording.file_location) : null,
+            size: recording.file_size == null ? null : String(recording.file_size),
+            status: status === "complete"
+              ? "ready"
+              : status === "starting" || status === "active" || status === "ending"
+                ? "recording"
+                : "failed",
+          }
+        }))
+
+        if (data.active && data.egressId) {
+          const active = history.find((recording) => recording.egress_id === data.egressId)
+          const startedAt = active?.started_at
+            ? new Date(active.started_at).getTime()
+            : Date.now()
+          setActiveEgressId(String(data.egressId))
+          setRecordingStartedAt(startedAt)
+          setRecordingNow(Date.now())
+          setRecordingStatus("recording")
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setRecordingError(error instanceof Error ? error.message : "Recording state could not be restored")
+        }
+      }
+    }
+
+    void restoreRecordingState()
+    return () => {
+      cancelled = true
+    }
+  }, [eventId])
   function isImportedMediaAsset(label: string): boolean {
   return importedMediaAssets.some((asset) => asset.label === label)
 }
@@ -3070,6 +3157,7 @@ function handleDeleteMediaAssetFromEdit(): void {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
+          eventId,
           roomName: recordingRoomName,
           source: recordingSource,
           destination: recordingDestination,
@@ -3125,7 +3213,7 @@ function handleDeleteMediaAssetFromEdit(): void {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ egressId }),
+        body: JSON.stringify({ eventId, egressId }),
       })
 
       const data = await response.json()
@@ -3178,6 +3266,7 @@ function handleDeleteMediaAssetFromEdit(): void {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
+            eventId,
             egressId: stoppedEgressId,
           }),
         })

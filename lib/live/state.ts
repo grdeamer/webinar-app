@@ -48,6 +48,17 @@ export async function ensureEventLiveProgramState(
     .select("*")
     .single()
 
+  if (insertError?.code === "23505") {
+    const { data: concurrent, error: concurrentError } = await supabaseAdmin
+      .from("event_live_program_state")
+      .select("*")
+      .eq("event_id", eventId)
+      .single()
+
+    if (concurrentError) throw new Error(concurrentError.message)
+    return concurrent
+  }
+
   if (insertError) {
     throw new Error(insertError.message)
   }

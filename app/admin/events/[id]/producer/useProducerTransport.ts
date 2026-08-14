@@ -11,7 +11,8 @@ type Params = {
   selectedSceneId: string | null
   previewBlocks: PreviewBlock[]
   stageState: StageState | null
-  commitPreviewToProgram?: () => void
+  setProgramSceneId: (value: string | null) => void
+  setProgramSlideLabel: (value: string | null) => void
   runTake: (
     mode: "cut" | "auto",
     transitionType?: CinematicTransitionType
@@ -24,12 +25,11 @@ export default function useProducerTransport({
   selectedSceneId,
   previewBlocks,
   stageState,
-  commitPreviewToProgram,
+  setProgramSceneId,
+  setProgramSlideLabel,
   runTake,
 }: Params) {
   const [lastTransportActionAt, setLastTransportActionAt] = useState<number | null>(null)
-  const [programSceneId, setProgramSceneId] = useState<string | null>(null)
-  const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(null)
 
   async function takeProgram(
     mode: "cut" | "auto",
@@ -44,7 +44,6 @@ export default function useProducerTransport({
       options?.transitionDurationMs ?? selectedTransitionDurationMs
 
     await runTake(mode, transitionType)
-    commitPreviewToProgram?.()
 
     broadcastPresenterProgramSource({
       mode,
@@ -63,10 +62,8 @@ export default function useProducerTransport({
   const transportState = useMemo(
     () => ({
       lastTransportActionAt,
-      programSceneId,
-      programSlideLabel,
     }),
-    [lastTransportActionAt, programSceneId, programSlideLabel]
+    [lastTransportActionAt]
   )
 
   return {

@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server"
 import { EgressClient } from "livekit-server-sdk"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
+import { getEventLiveRoom } from "@/lib/live/stageState"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 export const maxDuration = 60
 
 type StopRecordingRequest = {
+  eventId?: string
   egressId?: string
 }
 
@@ -38,7 +42,26 @@ function errorMessage(error: unknown): string {
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = (await request.json()) as StopRecordingRequest
+    const eventId = normalizeEgressId(body.eventId)
     const egressId = normalizeEgressId(body.egressId)
+
+    if (!eventId) {
+      return NextResponse.json(
+        { ok: false, error: "eventId is required" },
+        { status: 400 }
+      )
+    }
+
+    const access = await requireEventOperatorAccess(eventId)
+    if (access instanceof Response) return access as NextResponse
+    const room = await getEventLiveRoom(access.eventId)
+
+    if (!room) {
+      return NextResponse.json(
+        { ok: false, error: "Event live room not found" },
+        { status: 404 }
+      )
+    }
 
     console.log("[recording.stop] request", {
       egressId,
@@ -82,6 +105,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       )
     }
 
+    if (existingEgress.roomName !== room.room_name) {
+      return NextResponse.json(
+        { ok: false, error: "Recording does not belong to this event" },
+        { status: 403 }
+      )
+    }
+
 const existingStatus = Number(existingEgress.status)
 
 /**
@@ -101,6 +131,15 @@ if (
   existingStatus === 5 ||
   existingStatus === 6
 ){
+      await supabaseAdmin
+        .from("event_live_recordings")
+        .update({
+          status: existingStatus === 3 ? "complete" : existingStatus === 4 ? "failed" : "aborted",
+          ended_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq("event_id", access.eventId)
+        .eq("egress_id", existingEgress.egressId)
       console.log("[recording.stop] terminal egress", {
         egressId: existingEgress.egressId,
         status: existingEgress.status,
@@ -122,6 +161,12 @@ if (
     }
 
     const egressInfo = await egressClient.stopEgress(egressId)
+    const { error: updateError } = await supabaseAdmin
+      .from("event_live_recordings")
+      .update({ status: "ending", updated_at: new Date().toISOString() })
+      .eq("event_id", access.eventId)
+      .eq("egress_id", egressId)
+    if (updateError) throw new Error(updateError.message)
     console.log("[recording.stop] stopped egress", {
       egressId: egressInfo.egressId,
       status: egressInfo.status,

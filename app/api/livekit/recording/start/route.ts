@@ -5,11 +5,16 @@ import {
   EncodedFileType,
   S3Upload,
 } from "livekit-server-sdk"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
+import { getAppUrl } from "@/lib/email/resend"
+import { ensureEventLiveRoom } from "@/lib/live/stageState"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
 type StartRecordingRequest = {
+  eventId?: string
   roomName?: string
   layout?: string
   source?: string
@@ -54,7 +59,20 @@ function errorMessage(error: unknown): string {
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = (await request.json()) as StartRecordingRequest
-    const roomName = normalizeRoomName(body.roomName)
+    const eventId = normalizeRoomName(body.eventId)
+
+    if (!eventId) {
+      return NextResponse.json(
+        { ok: false, error: "eventId is required" },
+        { status: 400 }
+      )
+    }
+
+    const access = await requireEventOperatorAccess(eventId)
+    if (access instanceof Response) return access as NextResponse
+
+    const room = await ensureEventLiveRoom({ eventId: access.eventId })
+    const roomName = room.room_name
 
     console.log("[recording.start] request", {
       roomName,
@@ -62,13 +80,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       destination: body.destination,
       quality: body.quality,
     })
-
-    if (!roomName) {
-      return NextResponse.json(
-        { ok: false, error: "roomName is required" },
-        { status: 400 }
-      )
-    }
 
     const livekitUrl = requiredEnv("LIVEKIT_URL", "NEXT_PUBLIC_LIVEKIT_URL")
     const apiKey = requiredEnv("LIVEKIT_API_KEY")
@@ -81,6 +92,18 @@ export async function POST(request: Request): Promise<NextResponse> {
     })
 
     if (activeEgresses.length > 0) {
+      const existing = activeEgresses[0]
+      await supabaseAdmin.from("event_live_recordings").upsert({
+        event_id: access.eventId,
+        room_name: roomName,
+        egress_id: existing.egressId,
+        status: "active",
+        source: body.source ?? "Program Feed",
+        destination: body.destination ?? "Jupiter Cloud",
+        quality: body.quality ?? "1080p Standard",
+        started_by: access.user.id,
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "egress_id" })
       return NextResponse.json(
         {
           ok: false,
@@ -92,6 +115,7 @@ export async function POST(request: Request): Promise<NextResponse> {
     }
 
     const layout = body.layout ?? qualityToLayout(body.quality)
+    const customBaseUrl = `${getAppUrl()}/program-output/${encodeURIComponent(access.eventSlug)}`
     const filepath = `jupiter-recordings/{room_name}/{time}-{room_id}.mp4`
 
     const hasS3Output = Boolean(
@@ -115,8 +139,9 @@ export async function POST(request: Request): Promise<NextResponse> {
       return NextResponse.json({
         ok: true,
         dryRun: true,
-        roomName,
-        layout,
+      roomName,
+      layout,
+      customBaseUrl,
         filepath,
         storage: storageDiagnostics,
         source: body.source ?? "Program Feed",
@@ -163,10 +188,29 @@ export async function POST(request: Request): Promise<NextResponse> {
       fileOutput,
       {
         layout,
+        customBaseUrl,
         audioOnly: body.audioOnly ?? false,
         videoOnly: body.videoOnly ?? false,
       }
     )
+
+    const { error: recordingError } = await supabaseAdmin
+      .from("event_live_recordings")
+      .insert({
+        event_id: access.eventId,
+        room_name: roomName,
+        egress_id: egressInfo.egressId,
+        status: "starting",
+        source: body.source ?? "Program Feed",
+        destination: body.destination ?? "Jupiter Cloud",
+        quality: body.quality ?? "1080p Standard",
+        file_name: egressInfo.fileResults?.[0]?.filename ?? null,
+        started_by: access.user.id,
+      })
+    if (recordingError) {
+      await egressClient.stopEgress(egressInfo.egressId).catch((): null => null)
+      throw new Error(`Recording could not be registered: ${recordingError.message}`)
+    }
 
     console.log("[recording.start] egress created", {
       egressId: egressInfo.egressId,

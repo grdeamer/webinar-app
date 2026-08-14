@@ -1,6 +1,8 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import EventAccessActions from "./EventAccessActions"
+import { canManageEventAccess, getEventTeamAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -25,6 +27,8 @@ function monthYear(value: string | null) {
 
 export default async function AdminEventDashboardPage({ params }: PageProps) {
   const { id } = await params
+  const access = await getEventTeamAccess(id)
+  if (!access) notFound()
   const eventQuery = supabaseAdmin.from("events").select("id,slug,title,description,start_at")
   const { data } = isUuid(id) ? await eventQuery.eq("id", id).maybeSingle() : await eventQuery.eq("slug", id).maybeSingle()
   const event = data as EventRow | null
@@ -43,6 +47,7 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
   const roomCount = Math.max(1, (breakouts.count ?? 0) + (sessionCount > 0 ? 1 : 0))
   const liveNow = countLivePresence(presence.data ?? [])
   const isOpen = liveState.data?.status === "open"
+  const canOperate = access.isGlobalAdmin || access.role === "event_admin" || access.role === "producer"
 
   return (
     <main className="event-editorial-page">
@@ -54,7 +59,10 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
               <h1 className="editorial-title max-w-3xl">Prepare the room.<br />Shape the moment.</h1>
               <p className="mt-7 text-lg text-[#9aa8c5]">{event.title}</p>
             </div>
-            <Link href={`/admin/events/${event.id}/producer/room`} className="mt-5 min-h-11 rounded-full bg-[linear-gradient(90deg,#1b75ff,#7444ef)] px-8 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(58,71,255,.22)]">Open Producer Room</Link>
+            <div className="lg:text-right">
+              {canOperate ? <Link href={`/admin/events/${event.id}/producer/room`} className="mt-5 min-h-11 rounded-full bg-[linear-gradient(90deg,#1b75ff,#7444ef)] px-8 text-sm font-semibold text-white shadow-[0_12px_32px_rgba(58,71,255,.22)]">Open Producer Room</Link> : null}
+              {canManageEventAccess(access) ? <EventAccessActions eventId={event.id} eventTitle={event.title} /> : null}
+            </div>
           </div>
         </section>
 
@@ -81,12 +89,12 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
               <dt>Experience</dt><dd className="text-[#8f9bb5]">Published</dd>
             </dl>
           </div>
-          <aside className="rounded-[24px] border border-[#164e9d] bg-[linear-gradient(135deg,rgba(4,29,72,.8),rgba(31,10,53,.78))] p-7">
+          {canOperate ? <aside className="rounded-[24px] border border-[#164e9d] bg-[linear-gradient(135deg,rgba(4,29,72,.8),rgba(31,10,53,.78))] p-7">
             <div className="editorial-eyebrow">Next</div>
             <h2 className="mt-6 text-3xl font-semibold tracking-[-.035em]">Run a rehearsal</h2>
             <p className="mt-3 leading-6 text-[#9ca9c3]">Walk through the show before your audience arrives.</p>
             <Link href={`/admin/events/${event.id}/agenda`} className="mt-8 min-h-11 w-full rounded-full bg-[linear-gradient(90deg,#1b75ff,#7444ef)] px-6 text-sm font-semibold">Open Run of Show →</Link>
-          </aside>
+          </aside> : null}
         </section>
       </div>
     </main>

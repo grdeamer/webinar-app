@@ -39,18 +39,46 @@ export async function ensureEventLiveRoom(args: {
   audienceMode?: LiveAudienceMode
   enabled?: boolean
 }) {
+  const existing = await getEventLiveRoom(args.eventId)
+  if (existing) return existing
+
   const row = {
     event_id: args.eventId,
     provider: getLiveProvider(),
     room_name: buildEventRoomName(args.eventId),
     audience_mode: args.audienceMode ?? "embedded",
     enabled: args.enabled ?? true,
-    updated_at: new Date().toISOString(),
   }
 
   const { data, error } = await supabaseAdmin
     .from("event_live_rooms")
-    .upsert(row, { onConflict: "event_id" })
+    .insert(row)
+    .select("id,event_id,provider,room_name,audience_mode,enabled,created_at,updated_at")
+    .single()
+
+  if (error?.code === "23505") {
+    const concurrent = await getEventLiveRoom(args.eventId)
+    if (concurrent) return concurrent
+  }
+  if (error) throw new Error(error.message)
+  return data as EventLiveRoomRecord
+}
+
+export async function updateEventLiveRoom(args: {
+  eventId: string
+  audienceMode: LiveAudienceMode
+  enabled: boolean
+}) {
+  await ensureEventLiveRoom({ eventId: args.eventId })
+
+  const { data, error } = await supabaseAdmin
+    .from("event_live_rooms")
+    .update({
+      audience_mode: args.audienceMode,
+      enabled: args.enabled,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("event_id", args.eventId)
     .select("id,event_id,provider,room_name,audience_mode,enabled,created_at,updated_at")
     .single()
 
@@ -64,7 +92,7 @@ export async function getEventLiveStageState(
   const { data, error } = await supabaseAdmin
     .from("event_live_stage_state")
     .select(
-      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,updated_by,updated_at"
+      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,preview_blocks,last_command_id,updated_by,updated_at"
     )
     .eq("event_id", eventId)
     .maybeSingle()
@@ -83,6 +111,9 @@ export async function getEventLiveStageState(
 }
 
 export async function ensureEventLiveStageState(eventId: string) {
+  const existing = await getEventLiveStageState(eventId)
+  if (existing) return existing
+
   const room = await ensureEventLiveRoom({ eventId })
 
   const row: {
@@ -121,12 +152,16 @@ export async function ensureEventLiveStageState(eventId: string) {
 
   const { data, error } = await supabaseAdmin
     .from("event_live_stage_state")
-    .upsert(row, { onConflict: "event_id" })
+    .insert(row)
     .select(
-      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,updated_by,updated_at"
+      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,preview_blocks,last_command_id,updated_by,updated_at"
     )
     .single()
 
+  if (error?.code === "23505") {
+    const concurrent = await getEventLiveStageState(eventId)
+    if (concurrent) return concurrent
+  }
   if (error) throw new Error(error.message)
 
   return {
@@ -166,7 +201,7 @@ export async function setEventLiveLayout(args: {
     .from("event_live_stage_state")
     .upsert(patch, { onConflict: "event_id" })
     .select(
-      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,updated_by,updated_at"
+      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,preview_blocks,last_command_id,updated_by,updated_at"
     )
     .single()
 
@@ -181,11 +216,21 @@ export async function setEventLiveLayout(args: {
 export async function applyProducerStageAction(args: {
   eventId: string
   input: ProducerStageActionInput
+  expectedVersion?: number | null
+  commandId?: string | null
+  actorId?: string | null
   updatedBy?: string | null
 }) {
   const current =
     (await getEventLiveStageState(args.eventId)) ||
     (await ensureEventLiveStageState(args.eventId))
+
+  if (
+    args.expectedVersion != null &&
+    current.scene_version !== args.expectedVersion
+  ) {
+    throw new Error("Preview changed on another console. Refresh before continuing.")
+  }
 
   let stageIds = [...current.stage_participant_ids]
   let isLive = current.is_live
@@ -254,7 +299,6 @@ export async function applyProducerStageAction(args: {
   }
 
   const patch = {
-    event_id: args.eventId,
     room_id: current.room_id,
     is_live: isLive,
     auto_director_enabled: current.auto_director_enabled,
@@ -273,13 +317,18 @@ export async function applyProducerStageAction(args: {
 
   const { data, error } = await supabaseAdmin
     .from("event_live_stage_state")
-    .upsert(patch, { onConflict: "event_id" })
+    .update(patch)
+    .eq("event_id", args.eventId)
+    .eq("scene_version", current.scene_version)
     .select(
-      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,updated_by,updated_at"
+      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,preview_blocks,last_command_id,updated_by,updated_at"
     )
-    .single()
+    .maybeSingle()
 
   if (error) throw new Error(error.message)
+  if (!data) {
+    throw new Error("Preview changed on another console. Refresh before continuing.")
+  }
 
   // ---- Sync audience LIVE state (event_live_state.is_live) ----
   try {
@@ -301,18 +350,21 @@ export async function applyProducerStageAction(args: {
       updatedBy: args.updatedBy ?? null,
     }
 
-    if (args.input.action === "add_to_stage" || args.input.action === "go_live") {
+    if (args.input.action === "go_live") {
       await upsertEventLiveState({ ...base, isLive: true })
     }
 
-    if (args.input.action === "remove_from_stage" || args.input.action === "go_off_air") {
+    if (args.input.action === "go_off_air") {
       await upsertEventLiveState({ ...base, isLive: false })
     }
   } catch (e) {
     console.error("Failed syncing event_live_state.is_live", e)
   }
 
-  if (participantId) {
+  if (
+    participantId &&
+    (args.input.action === "add_to_stage" || args.input.action === "remove_from_stage")
+  ) {
     await supabaseAdmin
       .from("event_live_participants")
       .update({
@@ -323,9 +375,93 @@ export async function applyProducerStageAction(args: {
       .eq("external_participant_id", participantId)
   }
 
+  if (args.commandId) {
+    const { error: commandError } = await supabaseAdmin
+      .from("event_live_commands")
+      .insert({
+        event_id: args.eventId,
+        command_id: args.commandId,
+        command_type: args.input.action,
+        actor_id: args.actorId ?? null,
+        actor_label: args.updatedBy ?? null,
+        expected_version: args.expectedVersion ?? current.scene_version,
+        applied_version: data.scene_version,
+        payload: args.input,
+        result_state: data,
+      })
+
+    if (commandError && commandError.code !== "23505") {
+      throw new Error(commandError.message)
+    }
+  }
+
   return {
     ...(data as Omit<EventLiveStageStateRecord, "stage_participant_ids">),
     stage_participant_ids: normalizeStageIds((data as any).stage_participant_ids),
+  } satisfies EventLiveStageStateRecord
+}
+
+export async function setEventLivePreviewComposition(args: {
+  eventId: string
+  blocks: unknown[]
+  expectedVersion?: number | null
+  commandId: string
+  actorId: string
+  updatedBy: string
+}) {
+  const current =
+    (await getEventLiveStageState(args.eventId)) ||
+    (await ensureEventLiveStageState(args.eventId))
+
+  if (
+    args.expectedVersion != null &&
+    current.scene_version !== args.expectedVersion
+  ) {
+    throw new Error("Preview changed on another console. Reload the current composition before editing.")
+  }
+
+  const { data, error } = await supabaseAdmin
+    .from("event_live_stage_state")
+    .update({
+      preview_blocks: args.blocks,
+      scene_version: current.scene_version + 1,
+      last_command_id: args.commandId,
+      updated_by: args.updatedBy,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("event_id", args.eventId)
+    .eq("scene_version", current.scene_version)
+    .select(
+      "event_id,room_id,is_live,auto_director_enabled,layout,stage_participant_ids,primary_participant_id,pinned_participant_id,screen_share_participant_id,screen_share_track_id,scene_version,headline,message,preview_blocks,last_command_id,updated_by,updated_at"
+    )
+    .maybeSingle()
+
+  if (error) throw new Error(error.message)
+  if (!data) {
+    throw new Error("Preview changed on another console. Reload the current composition before editing.")
+  }
+
+  const { error: commandError } = await supabaseAdmin
+    .from("event_live_commands")
+    .insert({
+      event_id: args.eventId,
+      command_id: args.commandId,
+      command_type: "save_preview_composition",
+      actor_id: args.actorId,
+      actor_label: args.updatedBy,
+      expected_version: args.expectedVersion ?? current.scene_version,
+      applied_version: data.scene_version,
+      payload: { block_count: args.blocks.length },
+      result_state: data,
+    })
+
+  if (commandError && commandError.code !== "23505") {
+    throw new Error(commandError.message)
+  }
+
+  return {
+    ...(data as Omit<EventLiveStageStateRecord, "stage_participant_ids">),
+    stage_participant_ids: normalizeStageIds(data.stage_participant_ids),
   } satisfies EventLiveStageStateRecord
 }
 

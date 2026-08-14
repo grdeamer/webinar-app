@@ -1,33 +1,17 @@
 import { NextResponse } from "next/server"
 import { EgressClient } from "livekit-server-sdk"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
+import { getEventLiveRoom } from "@/lib/live/stageState"
+import { supabaseAdmin } from "@/lib/supabase/admin"
+import { egressStatusLabel, isTerminalEgressStatus } from "@/lib/live/producerControl"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 export const maxDuration = 60
 
 type RecordingStatusRequest = {
+  eventId?: string
   egressId?: string
-}
-
-function egressStatusLabel(status: number): string {
-  switch (status) {
-    case 0:
-      return "starting"
-    case 1:
-      return "active"
-    case 2:
-      return "ending"
-    case 3:
-      return "complete"
-    case 4:
-      return "failed"
-    case 5:
-      return "aborted"
-    case 6:
-      return "limit_reached"
-    default:
-      return "unknown"
-  }
 }
 
 function hasUsableFile(file: { size?: bigint | number | string | null; location?: string | null } | null): boolean {
@@ -66,17 +50,53 @@ function errorMessage(error: unknown): string {
 export async function POST(request: Request): Promise<NextResponse> {
   try {
     const body = (await request.json()) as RecordingStatusRequest
-    const egressId = normalizeEgressId(body.egressId)
+    const eventId = normalizeEgressId(body.eventId)
+    let egressId = normalizeEgressId(body.egressId)
+
+    if (!eventId) {
+      return NextResponse.json(
+        { ok: false, error: "eventId is required" },
+        { status: 400 }
+      )
+    }
+
+    const access = await requireEventOperatorAccess(eventId)
+    if (access instanceof Response) return access as NextResponse
+    const room = await getEventLiveRoom(access.eventId)
+
+    if (!room) {
+      return NextResponse.json(
+        { ok: false, error: "Event live room not found" },
+        { status: 404 }
+      )
+    }
 
     console.log("[recording.status] request", {
       egressId,
     })
 
     if (!egressId) {
-      return NextResponse.json(
-        { ok: false, error: "egressId is required" },
-        { status: 400 }
-      )
+      const { data: activeRecording, error: activeError } = await supabaseAdmin
+        .from("event_live_recordings")
+        .select("egress_id")
+        .eq("event_id", access.eventId)
+        .in("status", ["starting", "active", "ending"])
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle()
+      if (activeError) throw new Error(activeError.message)
+      egressId = activeRecording?.egress_id ?? null
+    }
+
+    if (!egressId) {
+      const { data: recordings, error: historyError } = await supabaseAdmin
+        .from("event_live_recordings")
+        .select("*")
+        .eq("event_id", access.eventId)
+        .order("started_at", { ascending: false })
+        .limit(50)
+      if (historyError) throw new Error(historyError.message)
+      return NextResponse.json({ ok: true, active: false, recordings: recordings ?? [] })
     }
 
     const livekitUrl = requiredEnv("LIVEKIT_URL", "NEXT_PUBLIC_LIVEKIT_URL")
@@ -101,11 +121,43 @@ export async function POST(request: Request): Promise<NextResponse> {
       )
     }
 
+    if (egressInfo.roomName !== room.room_name) {
+      return NextResponse.json(
+        { ok: false, error: "Recording does not belong to this event" },
+        { status: 403 }
+      )
+    }
+
     const status = Number(egressInfo.status)
-    const terminal = status === 3 || status === 4 || status === 5 || status === 6
+    const terminal = isTerminalEgressStatus(status)
     const statusLabel = egressStatusLabel(status)
     const file = egressInfo.fileResults?.[0] ?? null
     const uploaded = hasUsableFile(file)
+    const endedAt = terminal ? new Date().toISOString() : null
+    const { error: updateError } = await supabaseAdmin
+      .from("event_live_recordings")
+      .update({
+        status: statusLabel,
+        file_name: file?.filename ?? null,
+        file_location: file?.location ?? null,
+        file_size: file?.size ? Number(file.size) : null,
+        error_message:
+          (egressInfo as { error?: string }).error ||
+          (terminal && !uploaded ? "Recording finalized without a usable uploaded file" : null),
+        ended_at: endedAt,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("event_id", access.eventId)
+      .eq("egress_id", egressInfo.egressId)
+    if (updateError) throw new Error(updateError.message)
+
+    const { data: recordings, error: historyError } = await supabaseAdmin
+      .from("event_live_recordings")
+      .select("*")
+      .eq("event_id", access.eventId)
+      .order("started_at", { ascending: false })
+      .limit(50)
+    if (historyError) throw new Error(historyError.message)
     const detailedFileResults =
       egressInfo.fileResults?.map((result) => ({
         filename: result.filename,
@@ -129,6 +181,7 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     return NextResponse.json({
       ok: true,
+      active: !terminal,
       egressId: egressInfo.egressId,
       status: egressInfo.status,
       statusLabel,
@@ -143,6 +196,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       error:
         (egressInfo as { error?: string }).error ||
         (terminal && !uploaded ? "Recording finalized without a usable uploaded file" : null),
+      recordings: recordings ?? [],
     })
   } catch (error) {
     console.error("[recording.status] failed", error)

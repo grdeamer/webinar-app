@@ -323,7 +323,7 @@ function toggleSessionOpen(id: string) {
     setSessionNotice(id, null)
 
     try {
-const res = await fetch(`/api/admin/sessions/${id}`, {
+const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent(event.id)}`, {
   method: "DELETE",
 })
 

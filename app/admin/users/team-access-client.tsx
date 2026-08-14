@@ -39,6 +39,7 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
   const [name, setName] = useState("")
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [notice, setNotice] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
 
   const pendingCount = useMemo(() => members.filter((member) => member.invite_status === "pending").length, [members])
@@ -86,6 +87,23 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
     }
   }
 
+  async function sendPasswordReset(member: TeamMember) {
+    setBusy(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await fetch(`/api/admin/team/${member.id}/reset-password`, { method: "POST" })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Could not send the password reset link")
+      setNotice(`Password reset link sent to ${member.email}.`)
+      setMenuId(null)
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : "Could not send the password reset link")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="global-editorial-page mx-auto max-w-[1440px]">
       <header className="flex flex-col gap-6 border-b border-white/10 pb-8 sm:flex-row sm:items-start sm:justify-between">
@@ -95,6 +113,7 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
 
       <div className="py-7 text-sm text-white/52">{activeCount} active {activeCount === 1 ? "member" : "members"}<span className="mx-3 text-white/20">·</span>{pendingCount} pending {pendingCount === 1 ? "invitation" : "invitations"}</div>
       {error ? <div className="mb-5 rounded-xl border border-red-300/15 bg-red-400/[.07] px-4 py-3 text-sm text-red-100">{error}</div> : null}
+      {notice ? <div className="mb-5 rounded-xl border border-emerald-300/15 bg-emerald-400/[.07] px-4 py-3 text-sm text-emerald-100">{notice}</div> : null}
 
       <section className="overflow-x-auto border-y border-white/10">
         <div className="min-w-[920px]">
@@ -105,7 +124,7 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
             <div className="text-sm text-white/66">All events and administration</div>
             <div className="text-sm text-white/58">{member.invite_status === "pending" ? member.invited_at ? `Invited ${new Date(member.invited_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "Invite sent" : lastActive(member.last_active_at)}</div>
             <div className={`text-sm font-medium ${member.invite_status === "pending" ? "text-amber-200" : member.is_active ? "text-emerald-200" : "text-white/35"}`}>{member.invite_status === "pending" ? "Pending" : member.is_active ? "Active" : "Disabled"}</div>
-            <div className="relative flex justify-end">{member.team_role === "owner" ? <span title="Protected account"><Lock01 className="h-4 w-4 text-white/38" /></span> : canManage ? <><button type="button" aria-label={`Access options for ${member.email}`} onClick={() => setMenuId((current) => current === member.id ? null : member.id)} className="rounded-lg p-2 text-white/42 hover:bg-white/[.06] hover:text-white"><DotsHorizontal className="h-4 w-4" /></button>{menuId === member.id ? <div className="absolute right-0 top-10 z-20 w-44 rounded-xl border border-white/10 bg-[#0b101d] p-1.5 shadow-2xl"><button type="button" disabled={busy} onClick={() => void setActive(member, !member.is_active)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.is_active ? "Disable access" : "Restore access"}</button></div> : null}</> : null}</div>
+            <div className="relative flex justify-end">{canManage ? <><button type="button" aria-label={`Access options for ${member.email}`} onClick={() => setMenuId((current) => current === member.id ? null : member.id)} className="rounded-lg p-2 text-white/42 hover:bg-white/[.06] hover:text-white"><DotsHorizontal className="h-4 w-4" /></button>{menuId === member.id ? <div className="absolute right-0 top-10 z-20 w-52 rounded-xl border border-white/10 bg-[#0b101d] p-1.5 shadow-2xl"><button type="button" disabled={busy} onClick={() => void sendPasswordReset(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Send password reset</button>{member.team_role !== "owner" ? <button type="button" disabled={busy} onClick={() => void setActive(member, !member.is_active)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.is_active ? "Disable access" : "Restore access"}</button> : <div className="px-3 py-2 text-xs text-white/35">Owner access is protected</div>}</div> : null}</> : member.team_role === "owner" ? <span title="Protected account"><Lock01 className="h-4 w-4 text-white/38" /></span> : null}</div>
           </div>)}
           {members.length === 0 ? <div className="px-3 py-12 text-sm text-white/45">No administrators found.</div> : null}
         </div>

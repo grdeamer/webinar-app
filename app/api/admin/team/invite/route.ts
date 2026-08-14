@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const { data: actor } = await supabaseAdmin.from("profiles").select("team_role").eq("id", user.id).maybeSingle()
   if (actor?.team_role !== "owner") return NextResponse.json({ error: "Only the Owner can invite administrators." }, { status: 403 })
 
-  const body = await request.json().catch(() => null)
+  const body = await request.json().catch((): null => null)
   const email = String(body?.email ?? "").trim().toLowerCase()
   const name = String(body?.name ?? "").trim()
   if (!email || !email.includes("@")) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 })

@@ -1,11 +1,8 @@
 import { NextResponse } from "next/server"
 import { RoomServiceClient } from "livekit-server-sdk"
-import { requireAdmin } from "@/lib/requireAdmin"
-import { applyProducerStageAction } from "@/lib/live/stageState"
-import {
-  ensureEventLiveProgramState,
-  updateEventLiveProgramState,
-} from "@/lib/live/state"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
+import { applyProducerStageAction, ensureEventLiveRoom } from "@/lib/live/stageState"
+import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { ProducerStageActionInput } from "@/lib/types"
 
 export const runtime = "nodejs"
@@ -19,27 +16,46 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ): Promise<Response> {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   const { id } = await ctx.params
-  const body = (await req.json().catch((): null => null)) as ProducerStageActionInput | null
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
+  const body = (await req.json().catch((): null => null)) as
+    | (ProducerStageActionInput & {
+        commandId?: string
+        expectedPreviewVersion?: number | null
+      })
+    | null
 
   if (!body?.action) {
     return json({ error: "Missing action" }, 400)
   }
 
   try {
-    const state = await applyProducerStageAction({
-      eventId: id,
-      input: body,
-      updatedBy: auth.user.email ?? auth.user.id,
-    })
-
+    let state
     if (body.action === "go_live" || body.action === "go_off_air") {
-      await ensureEventLiveProgramState(id)
-      await updateEventLiveProgramState(id, {
-        is_live: body.action === "go_live",
+      const commandId = body.commandId ?? crypto.randomUUID()
+      const { data, error } = await supabaseAdmin.rpc("producer_set_live", {
+        p_event_id: auth.eventId,
+        p_command_id: commandId,
+        p_is_live: body.action === "go_live",
+        p_expected_preview_version: body.expectedPreviewVersion ?? null,
+        p_actor_id: auth.user.id,
+        p_actor_label: auth.user.email ?? auth.user.id,
+      })
+
+      if (error) {
+        const conflict = error.code === "40001" || error.message.includes("another console")
+        return json({ error: error.message }, conflict ? 409 : 500)
+      }
+      state = data?.preview ?? data
+    } else {
+      state = await applyProducerStageAction({
+        eventId: auth.eventId,
+        input: body,
+        expectedVersion: body.expectedPreviewVersion ?? null,
+        commandId: body.commandId ?? crypto.randomUUID(),
+        actorId: auth.user.id,
+        updatedBy: auth.user.email ?? auth.user.id,
       })
     }
 
@@ -49,11 +65,12 @@ export async function POST(
 
     if (livekitUrl && apiKey && apiSecret && body.participantId) {
       const roomService = new RoomServiceClient(livekitUrl, apiKey, apiSecret)
+      const room = await ensureEventLiveRoom({ eventId: auth.eventId })
 
       try {
         if (body.action === "add_to_stage") {
           await roomService.updateParticipant(
-            id,
+            room.room_name,
             body.participantId,
             JSON.stringify({ onStage: true })
           )
@@ -61,7 +78,7 @@ export async function POST(
 
         if (body.action === "remove_from_stage") {
           await roomService.updateParticipant(
-            id,
+            room.room_name,
             body.participantId,
             JSON.stringify({ onStage: false })
           )

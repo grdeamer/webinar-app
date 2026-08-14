@@ -1,6 +1,6 @@
 import "./globals.css"
 import { Inter, Geist } from "next/font/google"
-import type { Metadata } from "next"
+import type { Metadata, Viewport } from "next"
 import { cn } from "@/lib/utils";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
@@ -21,6 +21,13 @@ export const metadata: Metadata = {
   },
 }
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#030714",
+}
+
 export default function RootLayout({
   children,
 }: {
@@ -28,7 +35,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={cn("font-sans", geist.variable)}>
-      <body className="jupiter-space-site min-h-screen text-white antialiased">
+      <body className="jupiter-space-site min-h-dvh text-white antialiased">
         {children}
       </body>
     </html>

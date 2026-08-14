@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { getEventTeamAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -13,6 +14,8 @@ export async function GET(_request: Request, context: Params): Promise<Response>
   if (authResult instanceof Response) return authResult
 
   const { id } = await context.params
+  const teamAccess = await getEventTeamAccess(id)
+  if (!teamAccess) return NextResponse.json({ error: "Event access denied" }, { status: 403 })
 
   const [eventResult, liveStateResult, liveSessionResult, presenceResult] = await Promise.all([
     supabaseAdmin
@@ -76,5 +79,7 @@ export async function GET(_request: Request, context: Params): Promise<Response>
     access: liveStateResult.data?.status === "open" ? "open" : "closed",
     hasLiveSession: (liveSessionResult.data?.length ?? 0) > 0,
     liveAttendeeCount,
+    teamRole: teamAccess.role,
+    isGlobalAdmin: teamAccess.isGlobalAdmin,
   })
 }

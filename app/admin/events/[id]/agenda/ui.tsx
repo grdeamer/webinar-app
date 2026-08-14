@@ -376,7 +376,7 @@ export default function AdminAgendaEditor({
       const res = await fetch("/api/admin/event-agenda", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...patch }),
+        body: JSON.stringify({ id, event_id: eventId, ...patch }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")
@@ -410,7 +410,7 @@ export default function AdminAgendaEditor({
           const res = await fetch("/api/admin/event-agenda", {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ id: item.id, start_at: startAt, end_at: endAt }),
+            body: JSON.stringify({ id: item.id, event_id: eventId, start_at: startAt, end_at: endAt }),
           })
           const json = await res.json()
           if (!res.ok) throw new Error(json.error || `Failed to update ${item.title}`)
@@ -448,7 +448,7 @@ export default function AdminAgendaEditor({
         const res = await fetch("/api/admin/event-agenda", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ id: item.id, start_at: shift(item.start_at), end_at: shift(item.end_at) }),
+          body: JSON.stringify({ id: item.id, event_id: eventId, start_at: shift(item.start_at), end_at: shift(item.end_at) }),
         })
         const json = await res.json()
         if (!res.ok) throw new Error(json.error || `Failed to update ${item.title}`)
@@ -471,7 +471,7 @@ export default function AdminAgendaEditor({
       const res = await fetch("/api/admin/event-agenda", {
         method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id, event_id: eventId }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Failed")

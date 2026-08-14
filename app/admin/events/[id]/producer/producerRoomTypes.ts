@@ -46,6 +46,10 @@ export type StageState = {
   message: string | null
   updated_by: string | null
   updated_at: string
+  preview_blocks?: PreviewBlock[]
+  program_blocks?: PreviewBlock[]
+  transition_json?: Record<string, unknown>
+  last_command_id?: string | null
 }
 
 export type SceneSnapshot = {

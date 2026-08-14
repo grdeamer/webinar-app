@@ -28,6 +28,9 @@ type PublicStageState = {
   message: string | null
   updated_by: string | null
   updated_at: string
+  program_blocks?: ProgramSourceMessage["programBlocks"]
+  transition_json?: Record<string, unknown>
+  last_command_id?: string | null
 }
 
 type ProgramSourceMessage = {
@@ -54,6 +57,8 @@ type ProgramSourceMessage = {
     height: number
     zIndex: number
     opacity: number
+    content?: string | null
+    assignedParticipantId?: string | null
   }[]
 }
 
@@ -69,6 +74,8 @@ type RenderableProgramBlock = {
   height: number
   zIndex: number
   opacity: number
+  content: string | null
+  assignedParticipantId: string | null
 }
 
 
@@ -80,7 +87,7 @@ function clampPercent(value: number, fallback: number): number {
 function inferProgramBlockType(rawType: string, src: string | null): RenderableProgramBlock["type"] {
   const type = rawType.toLowerCase().replace(/[-_\s]+/g, "_")
 
-  if (["camera", "cam", "participant", "presenter", "speaker", "video_track"].includes(type)) {
+  if (["camera", "camera_slot", "cam", "participant", "presenter", "speaker", "video_track"].includes(type)) {
     return "camera"
   }
 
@@ -122,12 +129,14 @@ function normalizeProgramBlock(block: ProgramSourceMessage["programBlocks"] exte
     rawType,
     src,
     label: block.label,
-    x: clampPercent(block.x, 0),
-    y: clampPercent(block.y, 0),
-    width: clampPercent(block.width, 100),
-    height: clampPercent(block.height, 100),
+    x: clampPercent((block.x / 640) * 100, 0),
+    y: clampPercent((block.y / 360) * 100, 0),
+    width: clampPercent((block.width / 640) * 100, 100),
+    height: clampPercent((block.height / 360) * 100, 100),
     zIndex: Number.isFinite(block.zIndex) ? block.zIndex : 1,
     opacity: Number.isFinite(block.opacity) ? Math.max(0, Math.min(1, block.opacity)) : 1,
+    content: block.content ?? null,
+    assignedParticipantId: block.assignedParticipantId ?? null,
   }
 }
 
@@ -208,6 +217,17 @@ function ProgramMediaBlock({
         className="h-full w-full bg-white"
         title={label}
       />
+    )
+  }
+
+  if (block.rawType === "text" && block.content) {
+    return (
+      <div
+        style={style}
+        className="flex items-center justify-center overflow-hidden rounded-xl bg-black/65 px-4 text-center font-semibold text-white"
+      >
+        {block.content}
+      </div>
     )
   }
 
@@ -398,7 +418,7 @@ function AudienceStageTracks({
 
   function pickActiveSpeakerCamera(): TrackReference | null {
     const active = participants.find(
-      (p: any) => stageIds.has(p.identity) && p.isSpeaking
+      (participant) => stageIds.has(participant.identity) && participant.isSpeaking
     )
 
     if (!active) return null
@@ -583,6 +603,8 @@ function AudienceStageTracks({
         height: 100,
         zIndex: 1,
         opacity: 1,
+        content: null,
+        assignedParticipantId: null,
       }
 
       return (
@@ -609,6 +631,8 @@ function AudienceStageTracks({
       height: 100,
       zIndex: 1,
       opacity: 1,
+      content: null,
+      assignedParticipantId: null,
     }
 
     return (
@@ -706,7 +730,19 @@ function AudienceStageTracks({
    MAIN PLAYER
 ========================= */
 
-export default function StagePlayer({ slug, sessionId }: { slug: string; sessionId?: string }) {
+export default function StagePlayer({
+  slug,
+  sessionId,
+  egressToken,
+  egressServerUrl,
+  onConnected,
+}: {
+  slug: string
+  sessionId?: string
+  egressToken?: string | null
+  egressServerUrl?: string | null
+  onConnected?: () => void
+}) {
   const [token, setToken] = useState<string | null>(null)
   const [serverUrl, setServerUrl] = useState<string | null>(null)
   const [stageState, setStageState] = useState<PublicStageState | null>(null)
@@ -725,10 +761,45 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
     const data = await res.json().catch((): null => null)
 
     if (!res.ok) throw new Error(data?.error || "Failed to load state")
-    setStageState(data?.state ?? null)
+    const state = (data?.state ?? null) as PublicStageState | null
+    setStageState(state)
+
+    if (state?.program_blocks?.length) {
+      const firstMedia = state.program_blocks.find(
+        (block) => block.type === "image" || block.type === "video"
+      )
+      setProgramSource({
+        mode: state.transition_json?.type === "cut" ? "cut" : "auto",
+        transitionType: String(state.transition_json?.type ?? "none") as ProgramSourceMessage["transitionType"],
+        sourceType: firstMedia
+          ? "media"
+          : state.screen_share_participant_id
+            ? "screen"
+            : state.primary_participant_id
+              ? "camera"
+              : "empty",
+        participantIdentity: state.primary_participant_id,
+        screenShareParticipantIdentity: state.screen_share_participant_id,
+        screenShareTrackId: state.screen_share_track_id,
+        mediaUrl: firstMedia?.src ?? null,
+        mediaType: firstMedia?.type === "video" ? "video" : firstMedia ? "image" : null,
+        mediaLabel: firstMedia?.label ?? null,
+        layout: state.layout,
+        isLive: state.is_live,
+        updatedAt: new Date(state.updated_at).getTime(),
+        programBlocks: state.program_blocks,
+      })
+    } else {
+      setProgramSource(null)
+    }
   }
 
   async function loadToken() {
+    if (egressToken && egressServerUrl) {
+      setToken(egressToken)
+      setServerUrl(egressServerUrl)
+      return
+    }
     const res = await fetch(`/api/events/${slug}/live/audience-token`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -752,8 +823,8 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
         await loadState()
         if (!mounted) return
         await loadToken()
-      } catch (e: any) {
-        setError(e.message)
+      } catch (cause: unknown) {
+        setError(cause instanceof Error ? cause.message : "The live stage could not be loaded")
       }
     }
 
@@ -762,7 +833,7 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
     return () => {
       mounted = false
     }
-  }, [slug, sessionId])
+  }, [egressServerUrl, egressToken, slug, sessionId])
 
   useEffect(() => {
     const id = window.setInterval(() => {
@@ -773,6 +844,8 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
   }, [slug])
 
   useEffect(() => {
+    if (stageState?.program_blocks?.length) return
+
     const channelKey = sessionId ? `jupiter:program-source:${sessionId}` : null
     const fallbackPrefix = "jupiter:program-source:"
 
@@ -780,7 +853,7 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
       if (!raw) return null
       try {
         return JSON.parse(raw) as ProgramSourceMessage
-      } catch (_err) {
+      } catch {
         return null
       }
     }
@@ -831,7 +904,7 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
       channel?.close()
       window.removeEventListener("storage", onStorage)
     }
-  }, [sessionId])
+  }, [sessionId, stageState?.last_command_id, stageState?.program_blocks?.length])
 
   if (error) {
     return <div className="p-6 text-red-400">{error}</div>
@@ -876,7 +949,14 @@ export default function StagePlayer({ slug, sessionId }: { slug: string; session
   }
 
   return (
-    <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
+    <LiveKitRoom
+      token={token}
+      serverUrl={serverUrl}
+      connect
+      video={false}
+      audio={false}
+      onConnected={onConnected}
+    >
       <RoomAudioRenderer />
 
       <AudienceStageTracks

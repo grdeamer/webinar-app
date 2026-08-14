@@ -3,6 +3,7 @@
 import { useCallback, useEffect } from "react"
 import type useProducerRoomApi from "./useProducerRoomApi"
 import type { ProducerParticipant, StageState } from "./producerRoomTypes"
+import type { PreviewBlock } from "./useProducerBlocks"
 
 type Params = {
   api: ReturnType<typeof useProducerRoomApi>
@@ -15,6 +16,7 @@ type Params = {
   setParticipants: (participants: ProducerParticipant[]) => void
   setStageState: (state: StageState | null) => void
   setProgramState: (state: StageState | null) => void
+  setProgramBlocks: React.Dispatch<React.SetStateAction<PreviewBlock[]>>
   setLoadingText: (text: string) => void
   setError: (error: string | null) => void
   setSyncWarningText: (warning: string | null) => void
@@ -31,6 +33,7 @@ export default function useProducerRoomLifecycle({
   setParticipants,
   setStageState,
   setProgramState,
+  setProgramBlocks,
   setLoadingText,
   setError,
   setSyncWarningText,
@@ -49,8 +52,12 @@ export default function useProducerRoomLifecycle({
 
   const loadProgramState = useCallback(async () => {
     const data = await api.loadProgramState()
-    setProgramState(data?.state ?? null)
-  }, [api, setProgramState])
+    const state = data?.state ?? null
+    setProgramState(state)
+    if (Array.isArray(state?.program_blocks)) {
+      setProgramBlocks(state.program_blocks)
+    }
+  }, [api, setProgramBlocks, setProgramState])
 
   const loadStageState = useCallback(async () => {
     const data = await api.loadStageState()
@@ -116,13 +123,28 @@ export default function useProducerRoomLifecycle({
   ])
 
   useEffect(() => {
-    const id = window.setInterval(() => {
-      void refreshAll().catch(() => {
-        // refreshAll exposes a persistent warning until a later sync succeeds.
-      })
-    }, 3000)
+    let cancelled = false
+    let timeoutId: number | null = null
 
-    return () => window.clearInterval(id)
+    async function poll(): Promise<void> {
+      if (cancelled) return
+      if (document.visibilityState === "visible") {
+        await refreshAll().catch(() => {
+          // refreshAll exposes a persistent warning until a later sync succeeds.
+        })
+      }
+      if (!cancelled) timeoutId = window.setTimeout((): void => {
+        void poll()
+      }, 3000)
+    }
+
+    timeoutId = window.setTimeout((): void => {
+      void poll()
+    }, 3000)
+    return () => {
+      cancelled = true
+      if (timeoutId !== null) window.clearTimeout(timeoutId)
+    }
   }, [refreshAll])
 
   return {

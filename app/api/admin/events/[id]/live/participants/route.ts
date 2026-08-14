@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { ensureEventLiveRoom } from "@/lib/live/stageState"
 import { getLiveKitRoomService } from "@/lib/live/livekit/server"
 
@@ -25,10 +25,9 @@ export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
 
   try {
     const room = await ensureEventLiveRoom({ eventId: id })

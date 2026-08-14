@@ -15,7 +15,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!target) return NextResponse.json({ error: "Administrator not found." }, { status: 404 })
   if (target.team_role === "owner") return NextResponse.json({ error: "The Owner account is protected." }, { status: 400 })
 
-  const body = await request.json().catch(() => null)
+  const body = await request.json().catch((): null => null)
   if (typeof body?.is_active !== "boolean") return NextResponse.json({ error: "Invalid access state." }, { status: 400 })
   const { error } = await supabaseAdmin.from("profiles").update({ is_active: body.is_active, updated_at: new Date().toISOString() }).eq("id", id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })

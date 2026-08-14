@@ -17,6 +17,7 @@ import useProducerParticipantActions from "./useProducerParticipantActions";
 import useProducerTransport from "./useProducerTransport";
 import useProducerCanvasInteractions from "./useProducerCanvasInteractions";
 import useProducerPdfDeck from "./useProducerPdfDeck";
+import useProducerCompositionSync from "./useProducerCompositionSync";
 import CenterSwitcherColumn from "./CenterSwitcherColumn";
 import ProducerLeftRail from "./ProducerLeftRail";
 import ProducerRightRail from "./ProducerRightRail";
@@ -184,7 +185,6 @@ export default function ProducerRoomClient({
     useState<Record<string, ParticipantAppearanceOverride>>({});
   const [stageState, setStageState] = useState<StageState | null>(null);
   const latestStageStateRef = useRef<StageState | null>(null);
-  const latestCommittedProgramStateRef = useRef<StageState | null>(null);
   const manualStageParticipantIdsRef = useRef<Set<string>>(new Set());
   const manualPrimaryParticipantIdRef = useRef<string | null>(null);
   const [loadingText, setLoadingText] = useState("Connecting producer...");
@@ -196,9 +196,6 @@ export default function ProducerRoomClient({
   const [screenLayoutPreset, setScreenLayoutPreset] =
     useState<ScreenLayoutPreset>("classic");
   const [selectedTransitionDurationMs] = useState(600);
-  const [lastTransportActionAt, setLastTransportActionAt] = useState<
-    number | null
-  >(null);
   const [programSceneId, setProgramSceneId] = useState<string | null>(null);
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(
     null,
@@ -250,17 +247,7 @@ const updateStageState = useCallback(
   const updateProgramState = useCallback(
     (updater: StageState | null | ((current: StageState | null) => StageState | null)): void => {
       setProgramState((current) => {
-        const nextState = typeof updater === "function" ? updater(current) : updater;
-        const committedProgramState = latestCommittedProgramStateRef.current;
-
-        if (
-          committedProgramState &&
-          (!nextState || (nextState?.stage_participant_ids?.length ?? 0) === 0)
-        ) {
-          return committedProgramState;
-        }
-
-        return nextState;
+        return typeof updater === "function" ? updater(current) : updater;
       });
     },
     [],
@@ -465,6 +452,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const { handlePdfUpload, handleVideoUpload, handleImageUpload } =
     useProducerUploads({
+      eventId,
       setPreviewBlocks,
     });
 
@@ -479,6 +467,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
   } = useProducerTransitions({
     api,
     programState,
+    previewState: stageState,
     programBlocks,
     previewBlocks,
     setProgramState: updateProgramState,
@@ -510,8 +499,18 @@ updateShadowColor: updateSelectedBlockShadowColor,
     setParticipants,
     setStageState: updateStageState,
     setProgramState: updateProgramState,
+    setProgramBlocks,
     setLoadingText,
     setError,
+    setSyncWarningText,
+  });
+
+  useProducerCompositionSync({
+    api,
+    stageState,
+    previewBlocks,
+    setPreviewBlocks,
+    setStageState: updateStageState,
     setSyncWarningText,
   });
 
@@ -555,50 +554,17 @@ updateShadowColor: updateSelectedBlockShadowColor,
     captureSceneThumbnail,
   });
 
-  const commitPreviewToProgram = useCallback((): void => {
-    const previewState = latestStageStateRef.current ?? stageState;
-
-    if (previewState) {
-      const committedProgramState: StageState = {
-        ...previewState,
-        is_live: Boolean(previewState.is_live ?? programState?.is_live),
-      };
-
-      latestCommittedProgramStateRef.current = committedProgramState;
-      updateProgramState(committedProgramState);
-      setProgramBlocks(previewBlocks);
-
-      window.setTimeout(() => {
-        if (!latestCommittedProgramStateRef.current) return;
-        updateProgramState(latestCommittedProgramStateRef.current);
-        setProgramBlocks(previewBlocks);
-      }, 250);
-
-      window.setTimeout(() => {
-        if (!latestCommittedProgramStateRef.current) return;
-        updateProgramState(latestCommittedProgramStateRef.current);
-        setProgramBlocks(previewBlocks);
-      }, 900);
-    }
-
-    setLastTransportActionAt(Date.now());
-  }, [
-    previewBlocks,
-    programState?.is_live,
-    setProgramBlocks,
-    stageState,
-    updateProgramState,
-  ]);
-
-  const { takeProgram } = useProducerTransport({
+  const { takeProgram, transportState } = useProducerTransport({
     runTake,
     sessionId,
     stageState,
-    commitPreviewToProgram,
     previewBlocks,
     selectedSceneId,
     selectedTransitionDurationMs,
+    setProgramSceneId,
+    setProgramSlideLabel,
   });
+  const { lastTransportActionAt } = transportState;
 
   const applySceneAndTake = useCallback(
     async (sceneId: string): Promise<void> => {
@@ -1169,17 +1135,17 @@ updateShadowColor: updateSelectedBlockShadowColor,
   });
   const handleGoLive = useCallback((): void => {
     if (!window.confirm("Go live and send Program to attendees?")) return;
-    void api.goLive()
+    void api.goLive(stageState?.scene_version ?? null)
       .then((data) => updateStageState(data.state))
       .catch(handleAsyncError);
-  }, [api, handleAsyncError, updateStageState]);
+  }, [api, handleAsyncError, stageState?.scene_version, updateStageState]);
 
   const handleGoOffAir = useCallback((): void => {
     if (!window.confirm("Take the event off air? Attendees will return to holding.")) return;
-    void api.goOffAir()
+    void api.goOffAir(stageState?.scene_version ?? null)
       .then((data) => updateStageState(data.state))
       .catch(handleAsyncError);
-  }, [api, handleAsyncError, updateStageState]);
+  }, [api, handleAsyncError, stageState?.scene_version, updateStageState]);
 
   const getScreenTrackSid = useCallback(
     (participant: ProducerParticipant): string | null => {
@@ -1610,6 +1576,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       hotkeySceneId,
       previewBlocks,
       localMicLevel,
+      eventId,
       recordingRoomName: roomName ?? sessionId,
       slideDeckName: localPdfDeck?.name ?? null,
       slideCount: localPdfDeck?.pageCount ?? 8,
@@ -1639,6 +1606,7 @@ onSaveScene: () => {
       hotkeySceneId,
       previewBlocks,
       localMicLevel,
+      eventId,
       sessionId,
       roomName,
       localPdfDeck?.name,
@@ -1657,7 +1625,7 @@ onSaveScene: () => {
 
   if (!token || !serverUrl) {
     return (
-      <div className="relative flex h-[100dvh] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_20%_0%,rgba(125,211,252,0.060),transparent_34%),radial-gradient(circle_at_80%_14%,rgba(196,181,253,0.045),transparent_32%),linear-gradient(180deg,#07101f_0%,#050b16_52%,#02050b_100%)] p-8 text-white">
+      <div className="relative flex h-[100dvh] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_20%_0%,rgba(125,211,252,0.060),transparent_34%),radial-gradient(circle_at_80%_14%,rgba(196,181,253,0.045),transparent_32%),linear-gradient(180deg,#07101f_0%,#050b16_52%,#02050b_100%)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:p-8">
         <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_18px)]" />
         <div className="pointer-events-none absolute inset-x-[18%] top-0 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
 
@@ -1707,8 +1675,30 @@ onSaveScene: () => {
   }
 
   return (
-    <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
+    <LiveKitRoom
+      token={token}
+      serverUrl={serverUrl}
+      connect
+      video={false}
+      audio={false}
+      onConnected={() => setSyncWarningText(null)}
+      onDisconnected={() =>
+        setSyncWarningText("Live transport disconnected. Reconnecting the Producer Room…")
+      }
+      onError={(liveKitError) =>
+        setSyncWarningText(`Live transport error: ${liveKitError.message}`)
+      }
+    >
       <RoomAudioRenderer />
+
+      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#030714] px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] text-center text-white md:hidden">
+        <div className="max-w-sm">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-300/20 bg-sky-300/10 text-2xl" aria-hidden="true">↻</div>
+          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.22em] text-sky-200/60">Producer Room</p>
+          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Rotate your iPhone</h1>
+          <p className="mt-3 text-sm leading-6 text-white/60">The live switcher opens in landscape so Preview, Program, audio, and TAKE remain safely separated. For the full control surface, use an iPad or computer.</p>
+        </div>
+      </div>
 
       <div className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.13),transparent_34%),radial-gradient(circle_at_82%_2%,rgba(112,87,255,0.15),transparent_32%),radial-gradient(circle_at_50%_106%,rgba(214,92,158,0.07),transparent_40%),linear-gradient(180deg,#0b1024_0%,#070a19_48%,#040611_100%)] text-white">
         <ProducerRoomBackground />

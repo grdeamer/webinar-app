@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { getEventLiveStageState, ensureEventLiveStageState } from "@/lib/live/stageState"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
@@ -14,10 +14,9 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ): Promise<Response> {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
   const body = await req.json().catch((): null => null)
 
   if (typeof body?.enabled !== "boolean") {

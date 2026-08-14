@@ -11,7 +11,7 @@ import type {
 } from "@/lib/types"
 
 function canPublish(role: LiveParticipantRole) {
-  return role === "producer" || role === "host" || role === "speaker" || role === "guest"
+  return role === "producer" || role === "host" || role === "speaker"
 }
 
 function canSubscribe(role: LiveParticipantRole) {

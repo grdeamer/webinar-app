@@ -1,67 +1,70 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import {
-  ensureEventLiveProgramState,
-  updateEventLiveProgramState,
-} from "@/lib/live/state"
+  isProducerCompositionTooLarge,
+  isProducerConcurrencyError,
+  normalizeProducerBlocks,
+  parseExpectedProducerVersion,
+} from "@/lib/live/producerControl"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function normalizeStageIds(value: unknown): string[] {
-  if (!Array.isArray(value)) return []
-  return value.map(String).filter(Boolean)
+function isUuid(value: string): boolean {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
 export async function POST(
-  _req: Request,
+  req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   try {
     const { id } = await context.params
+    const auth = await requireEventOperatorAccess(id)
+    if (auth instanceof Response) return auth
+    const body = await req.json().catch((): null => null)
+    const commandId = isUuid(String(body?.commandId ?? ""))
+      ? String(body.commandId)
+      : crypto.randomUUID()
+    const expectedPreviewVersion = parseExpectedProducerVersion(body?.expectedPreviewVersion)
+    const programBlocks = normalizeProducerBlocks(body?.programBlocks) ?? []
+    const transition = body?.transition && typeof body.transition === "object"
+      ? body.transition
+      : {}
+
+    if (isProducerCompositionTooLarge(programBlocks)) {
+      return NextResponse.json(
+        { error: "Program composition is too large" },
+        { status: 413 }
+      )
+    }
 
     if (!id) {
       return NextResponse.json({ error: "Missing event id" }, { status: 400 })
     }
 
-    const { data: preview, error } = await supabaseAdmin
-      .from("event_live_stage_state")
-      .select("*")
-      .eq("event_id", id)
-      .maybeSingle()
+    const { data: program, error } = await supabaseAdmin.rpc("producer_take", {
+      p_event_id: auth.eventId,
+      p_command_id: commandId,
+      p_expected_preview_version: expectedPreviewVersion,
+      p_program_blocks: programBlocks,
+      p_transition: transition,
+      p_actor_id: auth.user.id,
+      p_actor_label: auth.user.email ?? auth.user.id,
+    })
 
     if (error) {
+      const conflict = isProducerConcurrencyError(error)
       return NextResponse.json(
-        { error: error.message || "Failed to load preview state" },
-        { status: 500 }
+        { error: error.message || "Failed to commit Program" },
+        { status: conflict ? 409 : 500 }
       )
     }
-
-    if (!preview) {
-      return NextResponse.json(
-        { error: "No preview state found" },
-        { status: 404 }
-      )
-    }
-
-    await ensureEventLiveProgramState(id)
-
-    const program = await updateEventLiveProgramState(id, {
-      layout: preview.layout,
-      stage_participant_ids: normalizeStageIds(preview.stage_participant_ids),
-      primary_participant_id: preview.primary_participant_id ?? null,
-      pinned_participant_id: preview.pinned_participant_id ?? null,
-      screen_share_participant_id: preview.screen_share_participant_id ?? null,
-      screen_share_track_id: preview.screen_share_track_id ?? null,
-      is_live: Boolean(preview.is_live),
-    })
 
     return NextResponse.json({
       ok: true,
+      commandId,
       state: program,
     })
   } catch (error: unknown) {

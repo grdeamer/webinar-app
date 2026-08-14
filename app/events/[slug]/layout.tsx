@@ -41,22 +41,22 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
       }
 
   return (
-    <div className="min-h-screen text-white" style={pageStyle}>
+    <div className="min-h-dvh text-white" style={pageStyle}>
       <EventLiveStateRedirect slug={slug} />
 
       <header className="border-b border-white/10 bg-black/30 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-6 py-5">
-          <div>
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
+          <div className="min-w-0">
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">
               Event portal
             </div>
-            <div className="mt-1 text-xl font-bold">{event.title}</div>
+            <div className="mt-1 truncate text-lg font-bold sm:text-xl">{event.title}</div>
           </div>
 
           <div className="flex items-center gap-3">
             {authed ? (
               <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 sm:block">
-                Signed in as {(authed.user as any).email}
+                Signed in as {authed.user.email}
               </div>
             ) : (
               <div className="hidden rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-white/55 sm:block">
@@ -64,13 +64,13 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
               </div>
             )}
 
-            <Link href="/events" className="text-sm text-white/70 hover:text-white">
-              All events →
+            <Link href="/events" className="flex min-h-11 shrink-0 items-center rounded-xl px-2 text-sm text-white/70 hover:bg-white/5 hover:text-white">
+              <span className="sm:hidden">Events →</span><span className="hidden sm:inline">All events →</span>
             </Link>
           </div>
         </div>
 
-        <nav className="mx-auto flex max-w-6xl flex-wrap gap-2 px-6 pb-4 text-sm">
+        <nav className="ios-scrollbar-none mx-auto flex max-w-6xl flex-nowrap gap-2 overflow-x-auto overscroll-x-contain px-4 pb-4 text-sm sm:px-6">
           <Nav href={`/events/${slug}`} label="Home" />
           <Nav href={`/events/${slug}/lobby`} label="Lobby" />
           <Nav href={`/events/${slug}/agenda`} label="Agenda" />
@@ -85,7 +85,7 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
 
       {theme?.brand_logo_url && (
         <div
-          className={`mx-auto mt-6 flex max-w-6xl px-6 ${
+          className={`mx-auto mt-5 flex max-w-6xl px-4 sm:mt-6 sm:px-6 ${
             theme.brand_logo_position === "center"
               ? "justify-center"
               : theme.brand_logo_position === "right"
@@ -96,12 +96,12 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
           <img
             src={theme.brand_logo_url}
             alt="Event logo"
-            className="h-14 w-auto max-w-[220px]"
+            className="h-12 w-auto max-w-[min(220px,80vw)] sm:h-14"
           />
         </div>
       )}
 
-      <main className="mx-auto max-w-6xl px-6 py-8">{props.children}</main>
+      <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">{props.children}</main>
     </div>
   )
 }
@@ -110,7 +110,7 @@ function Nav({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 hover:bg-white/10"
+      className="flex min-h-11 shrink-0 items-center rounded-xl border border-white/10 bg-white/5 px-3 py-2 hover:bg-white/10"
     >
       {label}
     </Link>

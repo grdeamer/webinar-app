@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
+import type { UploadedProducerAsset } from "./useProducerUploads"
 import {
   type LocalPdfDeck,
   estimatePdfPageCount,
@@ -19,7 +20,7 @@ type Params = {
   setProgramSlideLabel: (value: string | null) => void
   handlePdfUpload: (
     event: React.ChangeEvent<HTMLInputElement>
-  ) => void | Promise<void>
+  ) => Promise<UploadedProducerAsset | void>
   takeProgram: (
     mode: "cut" | "auto",
     transitionType?: any,
@@ -56,11 +57,10 @@ export default function useProducerPdfDeck({
   ) {
     const file = event.currentTarget.files?.[0] ?? null
 
-    await handlePdfUpload(event)
+    const uploaded = await handlePdfUpload(event)
 
-    if (!file) return
+    if (!file || !uploaded) return
 
-    const src = URL.createObjectURL(file)
     const name = file.name.replace(/\.pdf$/i, "")
 
     try {
@@ -69,13 +69,13 @@ export default function useProducerPdfDeck({
       setLocalPdfDeck({
         name,
         pageCount,
-        src,
+        src: uploaded.url,
       })
     } catch (_err: unknown) {
       setLocalPdfDeck({
         name,
         pageCount: 1,
-        src,
+        src: uploaded.url,
       })
     }
   }

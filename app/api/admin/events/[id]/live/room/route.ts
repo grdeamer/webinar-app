@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
-import { requireAdmin } from "@/lib/requireAdmin"
-import { ensureEventLiveRoom, getEventLiveRoom } from "@/lib/live/stageState"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
+import { getEventLiveRoom, updateEventLiveRoom } from "@/lib/live/stageState"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -13,10 +13,9 @@ export async function GET(
   _req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
 
   try {
     const room = await getEventLiveRoom(id)
@@ -30,14 +29,13 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
   const body = await req.json().catch(() => ({}))
 
   try {
-    const room = await ensureEventLiveRoom({
+    const room = await updateEventLiveRoom({
       eventId: id,
       audienceMode: body?.audience_mode || "embedded",
       enabled: body?.enabled ?? true,

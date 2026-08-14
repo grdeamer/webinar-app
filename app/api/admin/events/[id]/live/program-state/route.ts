@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { ensureEventLiveProgramState } from "@/lib/live/state"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -9,11 +9,10 @@ export async function GET(
   _req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   try {
     const { id } = await context.params
+    const auth = await requireEventOperatorAccess(id)
+    if (auth instanceof Response) return auth
 
     if (!id) {
       return NextResponse.json({ error: "Missing event id" }, { status: 400 })

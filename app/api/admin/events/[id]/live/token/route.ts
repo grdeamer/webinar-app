@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { createLiveKitToken } from "@/lib/live/livekit/token"
 import { ensureEventLiveRoom, ensureEventLiveStageState } from "@/lib/live/stageState"
 import type { LiveParticipantRole } from "@/lib/types"
@@ -23,21 +23,23 @@ export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
 ) {
-  const auth = await requireAdmin()
-  if (auth instanceof Response) return auth
-
   const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
   const body = await req.json().catch(() => ({}))
 
   const role = sanitizeRole(body?.role)
   const displayName =
     String(body?.display_name || auth.user.email || "Producer").trim().slice(0, 120) || "Producer"
+  const consoleId = String(body?.console_id ?? "")
+    .replace(/[^a-zA-Z0-9_-]/g, "")
+    .slice(0, 64) || crypto.randomUUID()
 
   try {
     const room = await ensureEventLiveRoom({ eventId: id })
     await ensureEventLiveStageState(id)
 
-    const identity = `${role}_${auth.user.id}`
+    const identity = `${role}_${auth.user.id}_${consoleId}`
 
     const token = await createLiveKitToken({
       roomName: room.room_name,
@@ -48,6 +50,7 @@ export async function POST(
         eventId: id,
         userId: auth.user.id,
         email: auth.user.email ?? null,
+        consoleId,
       },
     })
 
