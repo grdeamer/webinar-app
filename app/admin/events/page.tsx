@@ -20,19 +20,19 @@ export default async function AdminEventsPage() {
   if (error) throw new Error(error.message)
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="global-editorial-page mx-auto max-w-[1440px] space-y-8">
+      <div className="flex items-start justify-between gap-6 border-b border-white/10 pb-8">
 <div>
-  <div className="mb-3">
+  <div className="mb-5">
     <JupiterLogo className="text-white" markClassName="h-10 w-10" wordmarkClassName="text-xl font-semibold tracking-[0.18em]" />
   </div>
 
-  <h1 className="text-3xl font-bold">Events</h1>
-  <p className="mt-1 text-white/60">Create and manage full event experiences.</p>
+  <h1 className="text-5xl font-semibold tracking-[-.045em]">Events</h1>
+  <p className="mt-3 text-white/58">Create and manage full event experiences.</p>
 </div>
         <Link
           href="/admin/events/new"
-          className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-500"
+          className="rounded-xl bg-emerald-600 px-5 py-3 font-semibold hover:bg-emerald-500"
         >
           + New Event
         </Link>

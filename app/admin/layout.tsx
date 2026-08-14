@@ -90,6 +90,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const producerEventId = producerMatch?.[1]
   const isPageEditorWorkspace = pathname.startsWith("/admin/page-editor/event/")
   const isEventWorkspace = /^\/admin\/events\/[^/]+(?:\/.*)?$/.test(pathname) && !isProducerWorkspace
+  const isEventsDirectory = pathname === "/admin/events"
 
   if (isProducerWorkspace) {
     return (
@@ -146,6 +147,12 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"
         }`}
       >
+        {!isEventWorkspace && !isPageEditorWorkspace ? (
+          <div
+            aria-hidden="true"
+            className={`global-jupiter-backdrop ${isEventsDirectory ? "global-jupiter-backdrop--events" : ""}`}
+          />
+        ) : null}
         <aside
           className={`${
             isPageEditorWorkspace ? "h-full" : ""
@@ -200,7 +207,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
               <Section title="Administration" compact={isEventWorkspace}>
                 <NavLink compact={isEventWorkspace} href="/admin/users" icon={<Users01 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
-                  Users
+                  Team &amp; Access
                 </NavLink>
                 <NavLink compact={isEventWorkspace} href="/admin/dev-tools" icon={<Tool02 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Dev Tools
@@ -231,36 +238,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"
           }`}
         >
-          {!isEventWorkspace ? <header className="sticky top-0 z-20 shrink-0 border-b border-white/10 bg-slate-950/45 backdrop-blur-xl">
-            <div className="flex items-center justify-between gap-4 px-6 py-3.5 lg:px-8">
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.22em] text-white/35">
-                  Jupiter.events Admin
-                </div>
-                <div className="mt-0.5 text-xl font-semibold tracking-tight">
-                  Mission Control
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                <Link
-                  href="/access"
-                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm text-white/80 transition hover:bg-white/10 hover:text-white"
-                >
-                  Attendee Preview
-                </Link>
-                <Link
-                  href="/"
-                  className="rounded-xl border border-violet-300/20 bg-violet-300/10 px-4 py-2 text-sm text-violet-100 transition hover:bg-violet-300/15"
-                >
-                  Jupiter Home
-                </Link>
-              </div>
-            </div>
-          </header> : null}
-
           <main
-            className={`flex-1 ${isEventWorkspace ? "p-3" : "p-8 lg:p-10"} ${
+            className={`relative z-10 flex-1 ${isEventWorkspace ? "p-3" : "p-8 lg:p-10"} ${
               isPageEditorWorkspace ? "min-h-0 overflow-hidden" : ""
             }`}
           >

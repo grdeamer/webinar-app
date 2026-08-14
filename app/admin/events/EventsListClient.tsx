@@ -84,10 +84,10 @@ export default function EventsListClient({ initialEvents }: { initialEvents: Eve
 
       {error && !pending ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-x-8 gap-y-1 md:grid-cols-2">
         {visibleEvents.map((event) => (
-          <article key={event.id} className="relative rounded-2xl border border-white/10 bg-white/5 transition hover:bg-white/[.08]">
-            <Link href={`/admin/events/${event.id}`} className="block p-5 pr-16">
+          <article key={event.id} className="relative border-b border-white/10 transition hover:bg-white/[.025]">
+            <Link href={`/admin/events/${event.id}`} className="block px-1 py-6 pr-16">
               <div className="text-lg font-semibold">{event.title}</div>
               <div className="mt-1 text-sm text-white/60">/{event.slug}</div>
               <div className="mt-3 text-xs text-white/40">{event.start_label}</div>
