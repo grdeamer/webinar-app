@@ -819,13 +819,13 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 </div>
                   </div>
 
-<div className="flex shrink-0 items-center gap-3">
+<div className="flex shrink-0 items-center divide-x divide-white/[0.09] border border-white/[0.09] bg-black/20">
   <Link
     href={`/admin/events/${event.id}/sessions/${session.id}/producer`}
     target="_blank"
     rel="noreferrer"
     onClick={(e) => e.stopPropagation()}
-    className="rounded-lg border border-cyan-400/20 bg-cyan-400/10 px-3 py-1.5 text-sm font-medium text-cyan-200 transition hover:bg-cyan-400/20"
+    className="px-3 py-2 text-xs font-semibold text-cyan-200/80 transition hover:bg-cyan-400/[0.08] hover:text-cyan-100"
   >
     Produce
   </Link>
@@ -835,7 +835,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
     target="_blank"
     rel="noreferrer"
     onClick={(e) => e.stopPropagation()}
-    className="rounded-lg border border-violet-300/25 bg-violet-500/10 px-3 py-1.5 text-sm font-medium text-violet-200 transition hover:bg-violet-500/20"
+    className="px-3 py-2 text-xs font-semibold text-violet-200/70 transition hover:bg-violet-400/[0.08] hover:text-violet-100"
   >
     Presenter
   </Link>
@@ -845,7 +845,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
     target="_blank"
     rel="noreferrer"
     onClick={(e) => e.stopPropagation()}
-    className="rounded-lg border border-emerald-300/25 bg-emerald-500/10 px-3 py-1.5 text-sm font-medium text-emerald-200 transition hover:bg-emerald-500/20"
+    className="px-3 py-2 text-xs font-semibold text-emerald-200/70 transition hover:bg-emerald-400/[0.08] hover:text-emerald-100"
   >
     Attendee
   </Link>
@@ -857,12 +857,12 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       void deleteSession(session.id)
     }}
     disabled={deleting === session.id}
-    className="rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-1.5 text-sm font-medium text-red-200 transition hover:bg-red-500/20 disabled:opacity-60"
+    className="px-3 py-2 text-xs font-semibold text-red-200/68 transition hover:bg-red-400/[0.08] hover:text-red-100 disabled:opacity-60"
   >
     {deleting === session.id ? "Deleting..." : "Delete"}
   </button>
 
-  <div className="text-sm text-white/60">
+  <div className="px-3 py-2 text-xs font-semibold text-white/45">
     {isSessionOpen(session.id) ? "Hide ▲" : "Edit ▼"}
   </div>
 </div>
@@ -1278,7 +1278,7 @@ function HeaderBadge({
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium ${toneClass}`}
+      className={`inline-flex items-center gap-1.5 rounded-[5px] border px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.1em] ${toneClass}`}
     >
       {icon ? <span className="opacity-80">{icon}</span> : null}
       {children}
@@ -1288,8 +1288,8 @@ function HeaderBadge({
 function LiveDot() {
   return (
     <span className="relative flex h-2.5 w-2.5">
-      <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75" />
-      <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-red-500" />
+      <span className="absolute inline-flex h-full w-full animate-ping bg-red-400 opacity-60" />
+      <span className="relative inline-flex h-2.5 w-2.5 bg-red-500" />
     </span>
   )
 }
