@@ -19,6 +19,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
   ArrowRight,
   CalendarDays,
   Clock3,
@@ -180,6 +189,7 @@ export default function SessionsEditor({
   const [err, setErr] = useState<string | null>(null)
   const [openSessionIds, setOpenSessionIds] = useState<Record<string, boolean>>({})
   const [sessionNotices, setSessionNotices] = useState<Record<string, InlineNotice>>({})
+  const [deleteCandidate, setDeleteCandidate] = useState<SessionRow | null>(null)
 
   const nextSortOrder = useMemo(() => {
     if (!sessions.length) return 1
@@ -343,9 +353,6 @@ function toggleSessionOpen(id: string) {
   }
 
   async function deleteSession(id: string) {
-    const ok = window.confirm("Delete this session?")
-    if (!ok) return
-
     setDeleting(id)
     setErr(null)
     setMsg(null)
@@ -360,6 +367,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       if (!res.ok) throw new Error(json?.error || `Failed to delete session (${res.status})`)
 
       setSessions((prev) => prev.filter((s) => s.id !== id))
+      setDeleteCandidate(null)
       setMsg("Session deleted")
       setTimeout(() => setMsg(null), 1500)
     } catch (e) {
@@ -372,7 +380,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
   }
 
   return (
-    <div className="relative min-h-screen overflow-hidden pb-16 text-white">
+    <div className="relative min-h-screen overflow-x-hidden pb-16 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_4%,rgba(41,105,190,0.12),transparent_30%),radial-gradient(circle_at_34%_100%,rgba(112,42,34,0.12),transparent_34%)]" />
 
       <header className="relative border-b border-white/[0.09] px-5 py-9 sm:px-8 lg:px-12 lg:py-12">
@@ -717,12 +725,16 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           </Field>
         </div>
 
-        <div className="mt-4">
+        <div className="sticky bottom-4 z-30 mt-6 flex flex-col gap-3 rounded-[14px] border border-white/[0.13] bg-[#07101d]/94 px-4 py-3.5 shadow-[0_22px_70px_rgba(0,0,0,0.48)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <div className="text-xs font-semibold text-white/80">Ready to add this session?</div>
+            <div className="mt-0.5 text-[11px] text-white/38">Review the essentials, then add it to the program sequence.</div>
+          </div>
           <button
             type="button"
             onClick={createSession}
             disabled={busyCreate}
-            className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#1f6eff] px-5 text-sm font-semibold text-white transition hover:bg-[#3b80ff] disabled:opacity-60"
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-[9px] bg-[#1f6eff] px-5 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(31,110,255,0.24)] transition hover:bg-[#3b80ff] disabled:opacity-60"
           >
             <Plus className="h-4 w-4" /> {busyCreate ? "Creating..." : "Create session"}
           </button>
@@ -896,7 +908,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         <DropdownMenuItem
                           destructive
                           disabled={deleting === session.id}
-                          onSelect={() => void deleteSession(session.id)}
+                          onSelect={() => setDeleteCandidate(session)}
                         >
                           <Trash2 className="h-4 w-4" />
                           {deleting === session.id ? "Deleting…" : "Delete session"}
@@ -1228,24 +1240,30 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       </Field>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap gap-3">
+                    <div className="sticky bottom-4 z-20 mt-6 flex flex-col gap-3 rounded-[14px] border border-white/[0.13] bg-[#07101d]/94 px-4 py-3.5 shadow-[0_22px_70px_rgba(0,0,0,0.48)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+                      <div>
+                        <div className="text-xs font-semibold text-white/80">Session controls</div>
+                        <div className="mt-0.5 text-[11px] text-white/38">Save changes or remove this session from the program.</div>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
                       <button
                         type="button"
                         onClick={() => saveSession(session)}
                         disabled={saving === session.id}
-                        className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-500 disabled:opacity-60"
+                        className="inline-flex h-10 items-center justify-center rounded-[9px] bg-[#1f6eff] px-4 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(31,110,255,0.2)] transition hover:bg-[#3b80ff] disabled:opacity-60"
                       >
                         {saving === session.id ? "Saving..." : "Save Session"}
                       </button>
 
                       <button
                         type="button"
-                        onClick={() => deleteSession(session.id)}
+                        onClick={() => setDeleteCandidate(session)}
                         disabled={deleting === session.id}
-                        className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 font-semibold text-red-200 hover:bg-red-500/20 disabled:opacity-60"
+                        className="inline-flex h-10 items-center justify-center rounded-[9px] border border-red-400/25 bg-red-400/[0.07] px-4 text-sm font-semibold text-red-200 transition hover:bg-red-400/[0.12] disabled:opacity-60"
                       >
                         {deleting === session.id ? "Deleting..." : "Delete Session"}
                       </button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1256,6 +1274,55 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         )}
       </section>
       </div>
+
+      <Dialog
+        open={deleteCandidate !== null}
+        onOpenChange={(open) => {
+          if (!open && !deleting) setDeleteCandidate(null)
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="max-w-[440px] gap-0 overflow-hidden rounded-[18px] border border-white/[0.13] bg-[#07101d] p-0 text-white shadow-[0_36px_110px_rgba(0,0,0,0.7)] ring-1 ring-inset ring-white/[0.025]"
+        >
+          <DialogHeader className="px-6 pb-5 pt-6">
+            <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-[10px] border border-red-400/20 bg-red-400/[0.08] text-red-300">
+              <Trash2 className="h-4 w-4" />
+            </div>
+            <DialogTitle className="text-xl font-semibold tracking-[-0.025em] text-white">
+              Delete this session?
+            </DialogTitle>
+            <DialogDescription className="text-sm leading-6 text-white/52">
+              <span className="font-semibold text-white/76">
+                {deleteCandidate?.title || "Untitled session"}
+              </span>{" "}
+              will be removed from the program. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="m-0 flex-row justify-end gap-2 rounded-none border-t border-white/[0.09] bg-white/[0.025] px-6 py-4">
+            <DialogClose asChild>
+              <button
+                type="button"
+                disabled={Boolean(deleting)}
+                className="inline-flex h-10 items-center justify-center rounded-[9px] border border-white/[0.12] bg-white/[0.035] px-4 text-sm font-semibold text-white/70 transition hover:bg-white/[0.07] hover:text-white disabled:opacity-50"
+              >
+                Keep session
+              </button>
+            </DialogClose>
+            <button
+              type="button"
+              disabled={!deleteCandidate || Boolean(deleting)}
+              onClick={() => {
+                if (deleteCandidate) void deleteSession(deleteCandidate.id)
+              }}
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-[9px] bg-red-500 px-4 text-sm font-semibold text-white transition hover:bg-red-400 disabled:opacity-50"
+            >
+              <Trash2 className="h-4 w-4" />
+              {deleting ? "Deleting…" : "Delete session"}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
