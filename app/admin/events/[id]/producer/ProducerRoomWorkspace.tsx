@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from "react"
 
-const PRODUCER_BOTTOM_DOCK_STORAGE_KEY = "producer-bottom-dock-height"
-const DEFAULT_BOTTOM_DOCK_HEIGHT = 288
-const MIN_BOTTOM_DOCK_HEIGHT = 220
-const MAX_BOTTOM_DOCK_HEIGHT = 560
-const MAX_BOTTOM_DOCK_VIEWPORT_RATIO = 0.68
+const PRODUCER_BOTTOM_DOCK_STORAGE_KEY = "producer-bottom-dock-height-v2"
+const DEFAULT_BOTTOM_DOCK_HEIGHT = 260
+const MIN_BOTTOM_DOCK_HEIGHT = 210
+const MAX_BOTTOM_DOCK_HEIGHT = 480
+const MAX_BOTTOM_DOCK_VIEWPORT_RATIO = 0.58
 
-const PRODUCER_WORKSPACE_GRID_COLUMNS = "82px minmax(0,1fr) 272px"
+function clampBottomDockHeight(height: number, viewportHeight?: number): number {
+  const responsiveMaximum = viewportHeight
+    ? Math.min(MAX_BOTTOM_DOCK_HEIGHT, viewportHeight * MAX_BOTTOM_DOCK_VIEWPORT_RATIO)
+    : MAX_BOTTOM_DOCK_HEIGHT
 
-function clampBottomDockHeight(height: number): number {
-  return Math.min(MAX_BOTTOM_DOCK_HEIGHT, Math.max(MIN_BOTTOM_DOCK_HEIGHT, height))
+  return Math.min(responsiveMaximum, Math.max(MIN_BOTTOM_DOCK_HEIGHT, height))
 }
 
 type ProducerRoomWorkspaceProps = {
@@ -29,11 +31,12 @@ export default function ProducerRoomWorkspace({
     if (typeof window === "undefined") return DEFAULT_BOTTOM_DOCK_HEIGHT
 
     const saved = window.localStorage.getItem(PRODUCER_BOTTOM_DOCK_STORAGE_KEY)
-    const parsed = saved ? Number(saved) : DEFAULT_BOTTOM_DOCK_HEIGHT
+    const responsiveDefault = Math.min(DEFAULT_BOTTOM_DOCK_HEIGHT, window.innerHeight * 0.46)
+    const parsed = saved ? Number(saved) : responsiveDefault
 
     return Number.isFinite(parsed)
-      ? clampBottomDockHeight(parsed)
-      : DEFAULT_BOTTOM_DOCK_HEIGHT
+      ? clampBottomDockHeight(parsed, window.innerHeight)
+      : responsiveDefault
   })
 
   const dockResizeStartYRef = useRef(0)
@@ -95,23 +98,20 @@ export default function ProducerRoomWorkspace({
 
   return (
     <div
-      className="grid h-full min-h-0 w-full min-w-0 gap-2 overflow-hidden p-2"
-      style={{
-        gridTemplateColumns: PRODUCER_WORKSPACE_GRID_COLUMNS,
-        gridTemplateRows,
-      }}
+      className="grid h-full min-h-0 w-full min-w-0 grid-cols-[54px_minmax(0,1fr)_190px] gap-1 overflow-hidden p-1 sm:grid-cols-[58px_minmax(0,1fr)_200px] md:gap-1.5 md:p-1.5 lg:grid-cols-[66px_minmax(0,1fr)_228px] xl:grid-cols-[72px_minmax(0,1fr)_264px] 2xl:grid-cols-[76px_minmax(0,1fr)_292px] 2xl:gap-2 2xl:p-2"
+      style={{ gridTemplateRows }}
     >
       <div
-        className={`${bottomDock ? "row-span-3" : ""} ${railChromeClassName} rounded-[18px] border shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
+        className={`${bottomDock ? "row-span-3" : ""} ${railChromeClassName} rounded-[10px] border shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
       >
         {leftRail}
       </div>
 
-      <div className="relative min-h-0 min-w-0 w-full overflow-hidden rounded-[20px] border border-white/[0.055] bg-[radial-gradient(circle_at_top,rgba(112,87,255,0.055),transparent_38%),linear-gradient(180deg,rgba(11,16,36,0.94),rgba(5,8,20,0.98))] px-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <div className="relative min-h-0 min-w-0 w-full overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(10,15,28,0.97),rgba(4,7,15,0.99))] px-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         {centerColumn}
       </div>
 
-      <div className="row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden rounded-[18px] border border-white/[0.06] bg-[linear-gradient(180deg,rgba(17,23,44,0.96),rgba(8,11,25,0.99))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
+      <div className="row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(15,20,34,0.98),rgba(7,10,20,0.99))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
         {rightRail}
       </div>
 

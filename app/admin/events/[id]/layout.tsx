@@ -170,6 +170,8 @@ export default function EventLayout({
   const base = `/admin/events/${id}`
   const producerPath = `${base}/producer`
   const isProducerWorkspace = pathname === producerPath || pathname.startsWith(producerPath + "/")
+  const pageEditorPath = `${base}/page-editor`
+  const isPageEditorWorkspace = pathname === pageEditorPath || pathname.startsWith(pageEditorPath + "/")
 
   const shortId = id.length > 8 ? id.slice(0, 8) : id
   const [collapsed, setCollapsed] = useState(false)
@@ -253,6 +255,7 @@ export default function EventLayout({
         collapsed
           ? "xl:grid-cols-[72px_minmax(0,1fr)]"
           : "xl:grid-cols-[220px_minmax(0,1fr)]",
+        isPageEditorWorkspace ? "h-[calc(100dvh-4rem)] overflow-hidden" : "",
       ].join(" ")}
     >
       <aside
@@ -383,7 +386,7 @@ export default function EventLayout({
         )}
       </aside>
 
-      <section className={EVENT_WORKSPACE_SECTION_CLASS}>
+      <section className={`${EVENT_WORKSPACE_SECTION_CLASS} ${isPageEditorWorkspace ? "h-full min-h-0" : ""}`}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.055] to-transparent" />
         <details className="sticky top-16 z-40 border-b border-white/10 bg-[#050814]/95 px-4 py-3 backdrop-blur-2xl xl:hidden">
           <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm font-semibold text-white marker:hidden">
@@ -405,7 +408,7 @@ export default function EventLayout({
             <MobileEventLink href={`${base}/analytics`} label="Analytics" />
           </nav>
         </details>
-        <div className="relative min-w-0 p-0">
+        <div className={`relative min-w-0 p-0 ${isPageEditorWorkspace ? "h-full min-h-0" : ""}`}>
           {children}
         </div>
       </section>

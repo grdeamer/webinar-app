@@ -1,21 +1,12 @@
 import { NextResponse } from "next/server"
 import { canManageEventAccess, getEventTeamAccess, type EventTeamRole } from "@/lib/eventTeamAccess"
+import { buildJupiterInviteEmail } from "@/lib/email/invitations"
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
 
 const roles = new Set<EventTeamRole>(["event_admin", "producer", "viewer"])
-
-function escapeHtml(value: string) {
-  return value.replace(/[&<>'"]/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "'": "&#39;",
-    "\"": "&quot;",
-  })[character] ?? character)
-}
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const { id } = await context.params
@@ -38,20 +29,24 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (!event) return NextResponse.json({ error: "Event not found." }, { status: 404 })
 
   let authUser = authUsersResult.data.users.find((candidate) => candidate.email?.toLowerCase() === email) ?? null
-  let invitationSent = false
+  let invitationUrl: string | null = null
   const appUrl = getAppUrl().replace(/\/$/, "")
   const eventUrl = `${appUrl}/admin/events/${event.id}`
 
   if (!authUser) {
-    const inviteResult = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-      data: { full_name: name || undefined },
-      redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent(`/admin/events/${event.id}`)}`,
+    const inviteResult = await supabaseAdmin.auth.admin.generateLink({
+      type: "invite",
+      email,
+      options: {
+        data: { full_name: name || undefined },
+        redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent(`/admin/events/${event.id}`)}`,
+      },
     })
-    if (inviteResult.error || !inviteResult.data.user) {
-      return NextResponse.json({ error: inviteResult.error?.message || "Could not send the invitation." }, { status: 400 })
+    if (inviteResult.error || !inviteResult.data.user || !inviteResult.data.properties?.action_link) {
+      return NextResponse.json({ error: inviteResult.error?.message || "Could not create the invitation." }, { status: 400 })
     }
     authUser = inviteResult.data.user
-    invitationSent = true
+    invitationUrl = inviteResult.data.properties.action_link
   }
 
   const { data: existingProfile } = await supabaseAdmin
@@ -91,18 +86,20 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }, { onConflict: "event_id,user_id" }).select("id").single()
   if (membershipResult.error) return NextResponse.json({ error: membershipResult.error.message }, { status: 500 })
 
-  let notificationWarning: string | null = null
-  if (!invitationSent) {
-    const safeTitle = escapeHtml(event.title)
-    const safeUrl = escapeHtml(eventUrl)
-    const response = await getResendClient().emails.send({
-      from: getEmailFrom(),
-      to: email,
-      subject: `You have access to ${event.title}`,
-      html: `<div style="font-family:Arial,sans-serif;color:#111827;line-height:1.6"><h1 style="font-size:24px">You have been invited to ${safeTitle}</h1><p>Your Jupiter event role is <strong>${role === "event_admin" ? "Event Admin" : role === "producer" ? "Producer" : "Viewer"}</strong>.</p><p><a href="${safeUrl}" style="display:inline-block;border-radius:10px;background:#111827;color:white;padding:12px 18px;text-decoration:none">Open event</a></p><p>Sign in with this email address. If needed, use “Forgot password” on the sign-in page.</p></div>`,
-    })
-    if (response.error) notificationWarning = resendErrorMessage(response.error)
-  }
+  const invitation = buildJupiterInviteEmail({
+    inviteUrl: invitationUrl || eventUrl,
+    logoUrl: `${appUrl}/jupiter-email-logo.png?v=2`,
+    name: name || String(authUser.user_metadata?.full_name ?? "").trim(),
+    role,
+    eventTitle: event.title,
+    existingAccount: !invitationUrl,
+  })
+  const response = await getResendClient().emails.send({
+    from: getEmailFrom(),
+    to: email,
+    ...invitation,
+  })
+  const notificationWarning = response.error ? resendErrorMessage(response.error) : null
 
   return NextResponse.json({
     member: {

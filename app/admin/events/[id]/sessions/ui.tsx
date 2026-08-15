@@ -2,9 +2,12 @@
 
 import { useMemo, useState } from "react"
 import Link from "next/link"
-import AdminHeader from "@/components/admin/AdminHeader"
 import { detectMeetingPlatform } from "@/lib/meetingPlatform"
 import {
+  ArrowRight,
+  CalendarDays,
+  Clock3,
+  Plus,
   Video,
   Radio,
   Monitor,
@@ -161,6 +164,11 @@ export default function SessionsEditor({
     if (!sessions.length) return 1
     return Math.max(...sessions.map((s) => s.sort_order || 0)) + 1
   }, [sessions])
+
+  const liveSessionCount = useMemo(
+    () => sessions.filter((session) => session.runtime_status === "live").length,
+    [sessions]
+  )
 
 function patchSession(id: string, patch: Partial<SessionRow>) {
   setSessions((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)))
@@ -343,43 +351,68 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
   }
 
   return (
-    <div className="space-y-6">
-      <AdminHeader
-        title="Build the day."
-        subtitle={`Arrange the sessions ${event.title} will experience.`}
-        showNavigation={false}
-        actions={
-          <>
+    <div className="relative min-h-screen overflow-hidden pb-16 text-white">
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_4%,rgba(41,105,190,0.12),transparent_30%),radial-gradient(circle_at_34%_100%,rgba(112,42,34,0.12),transparent_34%)]" />
+
+      <header className="relative border-b border-white/[0.09] px-5 py-9 sm:px-8 lg:px-12 lg:py-12">
+        <div className="mx-auto flex max-w-[1500px] flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#63c9f5]">
+              Program / Editorial schedule
+            </div>
+            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white sm:text-5xl">
+              Build the day.
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#8f9bb3] sm:text-base">
+              Arrange the moments, destinations, and presenters {event.title} will experience.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
             <Link
               href={`/admin/events/${event.id}`}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10"
+              className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-white/[0.11] bg-white/[0.035] px-4 text-sm font-medium text-white/72 transition hover:bg-white/[0.07] hover:text-white"
             >
-              Event Overview
+              Event overview <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link
               href={`/admin/import?eventId=${event.id}`}
-              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm transition hover:bg-white/10"
+              className="inline-flex h-10 items-center rounded-[10px] border border-white/[0.11] bg-white/[0.035] px-4 text-sm font-medium text-white/72 transition hover:bg-white/[0.07] hover:text-white"
             >
               Import Registrants
             </Link>
-          </>
-        }
-      />
+          </div>
+        </div>
+
+        <div className="mx-auto mt-9 grid max-w-[1500px] grid-cols-2 border-y border-white/[0.08] sm:w-fit sm:grid-cols-3 sm:divide-x sm:divide-white/[0.08]">
+          <ProgramMetric icon={<CalendarDays className="h-4 w-4" />} value={String(sessions.length).padStart(2, "0")} label="Sessions" />
+          <ProgramMetric icon={<Clock3 className="h-4 w-4" />} value={String(liveSessionCount).padStart(2, "0")} label="Live now" />
+          <ProgramMetric icon={<Radio className="h-4 w-4" />} value={String(sessions.filter((session) => session.is_general_session).length).padStart(2, "0")} label="Main stage" />
+        </div>
+      </header>
+
+      <div className="relative mx-auto max-w-[1500px] space-y-12 px-5 py-10 sm:px-8 lg:px-12">
 
       {(err || msg) && (
-        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+        <div className="border-l-2 border-white/20 bg-white/[0.035] px-4 py-3">
           {err ? <div className="text-sm text-red-400">{err}</div> : null}
           {msg ? <div className="text-sm text-emerald-400">{msg}</div> : null}
         </div>
       )}
 
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 className="text-xl font-semibold">Add Session</h2>
+      <section className="border-y border-white/[0.09] py-8">
+        <div className="grid gap-7 xl:grid-cols-[220px_minmax(0,1fr)]">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">New moment</div>
+            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">Add a session</h2>
+            <p className="mt-2 text-sm leading-6 text-white/42">Define where it appears, who presents it, and how attendees enter.</p>
+          </div>
+          <div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Field label="Session Code">
             <input
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.code}
               onChange={(e) =>
                 setDraft((prev) => ({ ...prev, code: e.target.value.toUpperCase() }))
@@ -390,7 +423,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
           <Field label="Title">
             <input
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.title}
               onChange={(e) => setDraft((prev) => ({ ...prev, title: e.target.value }))}
               placeholder="Main Stage"
@@ -399,7 +432,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
           <Field label="Presenter">
             <input
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.presenter}
               onChange={(e) => setDraft((prev) => ({ ...prev, presenter: e.target.value }))}
               placeholder="Jane Smith"
@@ -408,7 +441,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
           <Field label="Session Kind">
             <select
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.session_kind}
               onChange={(e) => setDraft((prev) => ({ ...prev, session_kind: e.target.value }))}
             >
@@ -421,7 +454,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
           <Field label="Visibility">
             <select
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.visibility_mode}
               onChange={(e) =>
                 setDraft((prev) => ({ ...prev, visibility_mode: e.target.value }))
@@ -435,7 +468,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
           <Field label="Delivery Mode">
             <select
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.delivery_mode}
               onChange={(e) =>
                 setDraft((prev) => ({ ...prev, delivery_mode: e.target.value }))
@@ -450,7 +483,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
           <Field label="Runtime Status">
             <select
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.runtime_status}
               onChange={(e) =>
                 setDraft((prev) => ({ ...prev, runtime_status: e.target.value }))
@@ -466,7 +499,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <Field label="Start">
             <input
               type="datetime-local"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.starts_at}
               onChange={(e) => setDraft((prev) => ({ ...prev, starts_at: e.target.value }))}
             />
@@ -475,7 +508,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <Field label="End">
             <input
               type="datetime-local"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.ends_at}
               onChange={(e) => setDraft((prev) => ({ ...prev, ends_at: e.target.value }))}
             />
@@ -484,7 +517,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <Field label="Sort Order">
             <input
               type="number"
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.sort_order}
               onChange={(e) =>
                 setDraft((prev) => ({
@@ -496,7 +529,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           </Field>
 
           <Field label="Main Stage">
-            <label className="flex h-[42px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
               <input
                 type="checkbox"
                 checked={draft.is_general_session}
@@ -509,7 +542,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           </Field>
 
           <Field label="Manual Live">
-            <label className="flex h-[42px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+            <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
               <input
                 type="checkbox"
                 checked={draft.manual_live}
@@ -526,7 +559,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Field label="External Platform">
               <select
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.external_platform}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, external_platform: e.target.value }))
@@ -543,7 +576,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
             <Field label="External Join URL">
               <input
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.external_join_url}
                 onChange={(e) => {
                   const url = e.target.value
@@ -569,7 +602,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Live Provider">
               <select
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.live_provider}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, live_provider: e.target.value }))
@@ -581,7 +614,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
             <Field label="LiveKit Room Name">
               <input
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.live_room_name}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, live_room_name: e.target.value }))
@@ -596,7 +629,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Field label="Playback Type">
               <select
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.playback_type}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, playback_type: e.target.value }))
@@ -610,7 +643,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
             <Field label="Playback MP4 URL">
               <input
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.playback_mp4_url}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, playback_mp4_url: e.target.value }))
@@ -621,7 +654,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
             <Field label="Playback M3U8 URL">
               <input
-                className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.playback_m3u8_url}
                 onChange={(e) =>
                   setDraft((prev) => ({ ...prev, playback_m3u8_url: e.target.value }))
@@ -635,7 +668,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
           <Field label="Legacy Join Link">
             <input
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.join_link}
               onChange={(e) => setDraft((prev) => ({ ...prev, join_link: e.target.value }))}
               placeholder="https://..."
@@ -644,7 +677,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
           <Field label="Legacy Room Key">
             <input
-              className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.room_key}
               onChange={(e) => setDraft((prev) => ({ ...prev, room_key: e.target.value }))}
               placeholder="room-key"
@@ -655,7 +688,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         <div className="mt-4">
           <Field label="Description">
             <textarea
-              className="min-h-[110px] w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+              className="min-h-[110px] w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.description}
               onChange={(e) => setDraft((prev) => ({ ...prev, description: e.target.value }))}
               placeholder="Session description..."
@@ -668,29 +701,37 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             type="button"
             onClick={createSession}
             disabled={busyCreate}
-            className="rounded-xl bg-emerald-600 px-4 py-2 font-semibold hover:bg-emerald-500 disabled:opacity-60"
+            className="inline-flex h-11 items-center gap-2 rounded-[10px] bg-[#1f6eff] px-5 text-sm font-semibold text-white transition hover:bg-[#3b80ff] disabled:opacity-60"
           >
-            {busyCreate ? "Creating..." : "Create Session"}
+            <Plus className="h-4 w-4" /> {busyCreate ? "Creating..." : "Create session"}
           </button>
+        </div>
+          </div>
         </div>
       </section>
 
-      <section className="rounded-2xl border border-white/10 bg-white/5 p-6">
-        <h2 className="text-xl font-semibold">Existing Sessions</h2>
+      <section>
+        <div className="flex items-end justify-between gap-4 border-b border-white/[0.09] pb-5">
+          <div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">Program sequence</div>
+            <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">The day, in order</h2>
+          </div>
+          <div className="text-sm tabular-nums text-white/38">{sessions.length} total</div>
+        </div>
 
         {!sessions.length ? (
           <div className="mt-4 text-sm text-white/60">No sessions yet.</div>
         ) : (
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 divide-y divide-white/[0.075] border-y border-white/[0.075]">
             {sessions.map((session) => (
               <div
                 key={session.id}
-                className="overflow-hidden rounded-2xl border border-white/10 bg-black/20"
+                className="overflow-hidden bg-[#050a13]/48"
               >
                 <button
                   type="button"
                   onClick={() => toggleSessionOpen(session.id)}
-                  className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left hover:bg-white/5"
+                  className="flex w-full items-center justify-between gap-4 px-3 py-5 text-left transition hover:bg-white/[0.035] sm:px-5"
                 >
                   <div className="min-w-0">
 <div className="flex flex-wrap items-center gap-2">
@@ -857,7 +898,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       <Field label="Session Code">
                         <input
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.code || ""}
                           onChange={(e) =>
                             patchSession(session.id, { code: e.target.value.toUpperCase() })
@@ -867,7 +908,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                       <Field label="Title">
                         <input
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.title || ""}
                           onChange={(e) => patchSession(session.id, { title: e.target.value })}
                         />
@@ -875,7 +916,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                       <Field label="Presenter">
                         <input
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.presenter || ""}
                           onChange={(e) =>
                             patchSession(session.id, { presenter: e.target.value })
@@ -885,7 +926,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                       <Field label="Session Kind">
                         <select
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.session_kind || "session"}
                           onChange={(e) =>
                             patchSession(session.id, { session_kind: e.target.value })
@@ -900,7 +941,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                       <Field label="Visibility">
                         <select
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.visibility_mode || "assigned"}
                           onChange={(e) =>
                             patchSession(session.id, { visibility_mode: e.target.value })
@@ -914,7 +955,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                       <Field label="Delivery Mode">
                         <select
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.delivery_mode || "external"}
                           onChange={(e) =>
                             patchSession(session.id, { delivery_mode: e.target.value })
@@ -929,7 +970,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                       <Field label="Runtime Status">
                         <select
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.runtime_status || "holding"}
                           onChange={(e) =>
                             patchSession(session.id, { runtime_status: e.target.value })
@@ -945,7 +986,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       <Field label="Start">
                         <input
                           type="datetime-local"
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={toInputDateTime(session.starts_at)}
                           onChange={(e) =>
                             patchSession(session.id, {
@@ -958,7 +999,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       <Field label="End">
                         <input
                           type="datetime-local"
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={toInputDateTime(session.ends_at)}
                           onChange={(e) =>
                             patchSession(session.id, {
@@ -971,7 +1012,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       <Field label="Sort Order">
                         <input
                           type="number"
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.sort_order ?? 0}
                           onChange={(e) =>
                             patchSession(session.id, {
@@ -982,7 +1023,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       </Field>
 
                       <Field label="Main Stage">
-                        <label className="flex h-[42px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                        <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
                           <input
                             type="checkbox"
                             checked={!!session.is_general_session}
@@ -995,7 +1036,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       </Field>
 
                       <Field label="Manual Live">
-                        <label className="flex h-[42px] items-center gap-3 rounded-xl border border-white/10 bg-white/5 px-3 py-2">
+                        <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
                           <input
                             type="checkbox"
                             checked={!!session.manual_live}
@@ -1012,7 +1053,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         <Field label="External Platform">
                           <select
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                            className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.external_platform || ""}
                             onChange={(e) =>
                               patchSession(session.id, { external_platform: e.target.value })
@@ -1029,7 +1070,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                         <Field label="External Join URL">
                           <input
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                            className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.external_join_url || ""}
                             onChange={(e) => {
                               const url = e.target.value
@@ -1054,7 +1095,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         <Field label="Live Provider">
                           <select
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                            className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.live_provider || "livekit"}
                             onChange={(e) =>
                               patchSession(session.id, { live_provider: e.target.value })
@@ -1066,7 +1107,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                         <Field label="LiveKit Room Name">
                           <input
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                            className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.live_room_name || ""}
                             onChange={(e) =>
                               patchSession(session.id, { live_room_name: e.target.value })
@@ -1081,7 +1122,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         <Field label="Playback Type">
                           <select
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                            className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.playback_type || ""}
                             onChange={(e) =>
                               patchSession(session.id, { playback_type: e.target.value })
@@ -1095,7 +1136,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                         <Field label="Playback MP4 URL">
                           <input
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                            className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.playback_mp4_url || ""}
                             onChange={(e) =>
                               patchSession(session.id, { playback_mp4_url: e.target.value })
@@ -1105,7 +1146,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                         <Field label="Playback M3U8 URL">
                           <input
-                            className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                            className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.playback_m3u8_url || ""}
                             onChange={(e) =>
                               patchSession(session.id, { playback_m3u8_url: e.target.value })
@@ -1118,7 +1159,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                     <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                       <Field label="Legacy Join Link">
                         <input
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.join_link || ""}
                           onChange={(e) =>
                             patchSession(session.id, { join_link: e.target.value })
@@ -1128,7 +1169,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                       <Field label="Legacy Room Key">
                         <input
-                          className="w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.room_key || ""}
                           onChange={(e) =>
                             patchSession(session.id, { room_key: e.target.value })
@@ -1140,7 +1181,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                     <div className="mt-4">
                       <Field label="Description">
                         <textarea
-                          className="min-h-[100px] w-full rounded-xl border border-white/10 bg-white/5 px-3 py-2"
+                          className="min-h-[100px] w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.description || ""}
                           onChange={(e) =>
                             patchSession(session.id, { description: e.target.value })
@@ -1176,6 +1217,25 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           </div>
         )}
       </section>
+      </div>
+    </div>
+  )
+}
+
+function ProgramMetric({
+  icon,
+  value,
+  label,
+}: {
+  icon: React.ReactNode
+  value: string
+  label: string
+}) {
+  return (
+    <div className="flex min-w-[145px] items-center gap-3 px-4 py-3 sm:px-6">
+      <span className="text-[#69b8f4]">{icon}</span>
+      <span className="text-xl font-semibold tabular-nums tracking-[-0.03em]">{value}</span>
+      <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/36">{label}</span>
     </div>
   )
 }
@@ -1189,7 +1249,7 @@ function Field({
 }) {
   return (
     <div>
-      <div className="mb-1 text-sm text-white/70">{label}</div>
+      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7f90aa]">{label}</div>
       {children}
     </div>
   )

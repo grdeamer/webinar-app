@@ -8,6 +8,7 @@ type ProducerLeftRailProps = {
   takeBusy: boolean
   previewProgramDifferent: boolean
   isProgramLive: boolean
+  liveActionBusy: boolean
   onTake: () => void
   onGoLive: () => void
   onGoOffAir: () => void
@@ -33,6 +34,7 @@ export default function ProducerLeftRail({
   takeBusy,
   previewProgramDifferent,
   isProgramLive,
+  liveActionBusy,
   onTake,
   onGoLive,
   onGoOffAir,
@@ -79,17 +81,18 @@ export default function ProducerLeftRail({
 
         <button
           type="button"
+          disabled={liveActionBusy}
           onClick={isProgramLive ? onGoOffAir : onGoLive}
           className={`flex w-full flex-col items-center rounded-xl border px-1 py-3 transition ${
             isProgramLive
-              ? "border-red-300/22 bg-red-500/[0.10] text-red-100 hover:bg-red-500/[0.16]"
-              : "border-emerald-300/18 bg-emerald-400/[0.08] text-emerald-100 hover:bg-emerald-400/[0.14]"
+              ? "border-red-300/22 bg-red-500/[0.10] text-red-100 hover:bg-red-500/[0.16] disabled:opacity-40"
+              : "border-emerald-300/18 bg-emerald-400/[0.08] text-emerald-100 hover:bg-emerald-400/[0.14] disabled:opacity-40"
           }`}
           title={isProgramLive ? "Take the event off air" : "Send Program to attendees"}
         >
           <ShieldCheck size={16} />
           <span className="mt-1 text-[8px] font-black uppercase tracking-[0.09em]">
-            {isProgramLive ? "3 · Off Air" : "3 · Go Live"}
+            {liveActionBusy ? "Applying" : isProgramLive ? "3 · Off Air" : "3 · Go Live"}
           </span>
         </button>
       </div>

@@ -437,11 +437,17 @@ function EditorTrimPreview({
   )
 }
 
-export default function AdminEventPageEditorPreview() {
+export default function AdminEventPageEditorPreview({
+  eventSlug,
+  eventAdminId: eventAdminIdOverride,
+}: {
+  eventSlug?: string
+  eventAdminId?: string
+} = {}) {
 const params = useParams()
 const pathname = usePathname()
 const searchParams = useSearchParams()
-const slug = String(params.slug ?? "")
+const slug = eventSlug ?? String(params.slug ?? "")
 const isEmbedded =
   pathname.startsWith("/embed/") || searchParams.get("embed") === "1"
 
@@ -456,7 +462,9 @@ const isEmbedded =
   const [loadError, setLoadError] = useState<string | null>(null)
   const [loadAttempt, setLoadAttempt] = useState(0)
   const [loadedPageKey, setLoadedPageKey] = useState<string | null>(null)
-  const [eventAdminId, setEventAdminId] = useState<string | null>(null)
+  const [eventAdminId, setEventAdminId] = useState<string | null>(
+    eventAdminIdOverride ?? null
+  )
   const [saveMessage, setSaveMessage] = useState<string | null>(null)
   const [draggingSectionId, setDraggingSectionId] = useState<string | null>(null)
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)

@@ -21,10 +21,15 @@ import useProducerCompositionSync from "./useProducerCompositionSync";
 import CenterSwitcherColumn from "./CenterSwitcherColumn";
 import ProducerLeftRail from "./ProducerLeftRail";
 import ProducerRightRail from "./ProducerRightRail";
-import BottomAssetDock from "./BottomAssetDock";
+import BottomAssetDock, { type RecordingStatus } from "./BottomAssetDock";
 import ProducerRoomTopChrome from "./ProducerRoomTopChrome";
 import ProducerModeBar, { type ProducerWorkspaceMode } from "./ProducerModeBar";
+import ProducerHealthBar from "./ProducerHealthBar";
 import ProducerRoomWorkspace from "./ProducerRoomWorkspace";
+import ProducerNavigationRail from "./ProducerNavigationRail";
+import ProducerSafetyDialog, {
+  type ProducerSafetyAction,
+} from "./ProducerSafetyDialog";
 import {
   ProducerRoomBackground,
   ProducerRoomCenterColumn,
@@ -47,6 +52,10 @@ import {
   getHasProgramSource,
   previewProgramStatesDifferent,
 } from "./producerRoomStatusUtils";
+import {
+  getProducerHealthSnapshot,
+  type ProducerTransportHealth,
+} from "./producerHealthUtils";
 
 type ParticipantAccentId = "none" | "violet" | "cyan" | "green" | "amber" | "rose";
 type ParticipantGlowLevel = "low" | "med" | "high";
@@ -61,14 +70,13 @@ type ParticipantAppearanceOverride = {
 function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
   return (
     <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
-      <div className="absolute -right-[9vw] -top-[32vw] aspect-square w-[64vw] max-w-[1060px] rounded-full border border-blue-200/[0.12] bg-[radial-gradient(circle_at_35%_35%,rgba(112,157,255,0.42),transparent_25%),radial-gradient(circle_at_48%_54%,rgba(35,83,177,0.78),rgba(7,20,54,0.92)_56%,rgba(2,7,20,0.98)_76%)] opacity-70 shadow-[-30px_40px_90px_rgba(57,111,224,0.22),-80px_90px_180px_rgba(35,89,190,0.14)]" />
-      <div className="absolute -right-[8vw] top-[72px] h-[15vw] min-h-[110px] w-[58vw] max-w-[940px] rotate-[-7deg] rounded-[50%] border-t border-blue-200/[0.18] opacity-70 drop-shadow-[0_-10px_22px_rgba(66,128,245,0.14)]" />
+      <div className="absolute -right-[12vw] -top-[26vw] aspect-square w-[48vw] max-w-[760px] rounded-full border border-blue-200/[0.08] bg-[radial-gradient(circle_at_32%_32%,rgba(112,157,255,0.28),transparent_22%),radial-gradient(circle_at_48%_54%,rgba(35,83,177,0.54),rgba(7,20,54,0.78)_56%,rgba(2,7,20,0.92)_76%)] opacity-28 shadow-[-30px_40px_110px_rgba(57,111,224,0.12)]" />
       <div
         className={`absolute left-[-20%] top-[6%] h-[430px] w-[430px] rounded-full blur-3xl transition-opacity duration-1000 ${
           isLive ? "bg-red-300/[0.030] opacity-44" : "bg-sky-200/[0.036] opacity-40"
         } animate-[producerAtmosphereDrift_34s_ease-in-out_infinite]`}
       />
-      <div className="absolute right-[-18%] top-[26%] h-[460px] w-[460px] rounded-full bg-violet-200/[0.026] blur-3xl animate-[producerAtmosphereCounterDrift_38s_ease-in-out_infinite]" />
+      <div className="absolute right-[-18%] top-[26%] h-[460px] w-[460px] rounded-full bg-sky-200/[0.018] blur-3xl animate-[producerAtmosphereCounterDrift_38s_ease-in-out_infinite]" />
       <div className="absolute bottom-[-24%] left-[26%] h-[470px] w-[470px] rounded-full bg-cyan-200/[0.022] blur-3xl animate-[producerAtmosphereBloom_36s_ease-in-out_infinite]" />
 
       <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.003)_38%,transparent_62%)] animate-[producerTransmissionSheen_42s_ease-in-out_infinite]" />
@@ -205,6 +213,18 @@ export default function ProducerRoomClient({
   const [audienceOriginCollapsed, setAudienceOriginCollapsed] = useState(true);
   const [assetDockExpanded, setAssetDockExpanded] = useState(true);
   const [workspaceMode, setWorkspaceMode] = useState<ProducerWorkspaceMode>("show");
+  const [pendingSafetyAction, setPendingSafetyAction] =
+    useState<ProducerSafetyAction | null>(null);
+  const [liveActionBusy, setLiveActionBusy] = useState(false);
+  const [operatorNotice, setOperatorNotice] = useState<string | null>(null);
+  const [transportHealth, setTransportHealth] =
+    useState<ProducerTransportHealth>("connecting");
+  const [recoveryBusy, setRecoveryBusy] = useState(false);
+  const [liveKitRoomKey, setLiveKitRoomKey] = useState(0);
+  const [recordingHealth, setRecordingHealth] = useState<{
+    status: RecordingStatus;
+    error: string | null;
+  }>({ status: "idle", error: null });
 const updateStageState = useCallback(
   (updater: StageState | null | ((current: StageState | null) => StageState | null)): void => {
     setStageState((current) => {
@@ -505,6 +525,34 @@ updateShadowColor: updateSelectedBlockShadowColor,
     setSyncWarningText,
   });
 
+  const handleRecoverControlPlane = useCallback(async (): Promise<void> => {
+    if (recoveryBusy) return;
+
+    try {
+      setRecoveryBusy(true);
+      setTransportHealth("recovering");
+      setError(null);
+      setSyncWarningText(null);
+
+      const [tokenData] = await Promise.all([api.loadToken(), refreshAll()]);
+      setToken(tokenData.token);
+      setRoomName(tokenData.roomName ?? null);
+      setLiveKitRoomKey((current) => current + 1);
+      setTransportHealth("connecting");
+      setOperatorNotice("Control state refreshed. Reconnecting live transport…");
+    } catch (recoveryError: unknown) {
+      const message =
+        recoveryError instanceof Error
+          ? recoveryError.message
+          : "Producer recovery failed";
+      setTransportHealth("degraded");
+      setError(message);
+      setSyncWarningText(`Recovery failed: ${message}`);
+    } finally {
+      setRecoveryBusy(false);
+    }
+  }, [api, recoveryBusy, refreshAll]);
+
   useProducerCompositionSync({
     api,
     stageState,
@@ -554,6 +602,46 @@ updateShadowColor: updateSelectedBlockShadowColor,
     captureSceneThumbnail,
   });
 
+  const handleTransportCommitted = useCallback((mode: "cut" | "auto"): void => {
+    setOperatorNotice(
+      mode === "cut"
+        ? "CUT committed. Preview is now on Program."
+        : "Transition completed. Preview is now on Program.",
+    );
+  }, []);
+
+  const healthSnapshot = useMemo(
+    () =>
+      getProducerHealthSnapshot({
+        transportHealth,
+        syncWarning: syncWarningText,
+        participants,
+        previewState: stageState,
+        programState,
+        previewBlocks,
+        programBlocks,
+      }),
+    [
+      participants,
+      previewBlocks,
+      programBlocks,
+      programState,
+      stageState,
+      syncWarningText,
+      transportHealth,
+    ],
+  );
+
+  const validateTake = useCallback(
+    (): string | null => healthSnapshot.takeBlockReason,
+    [healthSnapshot.takeBlockReason],
+  );
+
+  const handleTakeBlocked = useCallback((reason: string): void => {
+    setError(reason);
+    setSyncWarningText(`TAKE blocked: ${reason}`);
+  }, []);
+
   const { takeProgram, transportState } = useProducerTransport({
     runTake,
     sessionId,
@@ -563,6 +651,9 @@ updateShadowColor: updateSelectedBlockShadowColor,
     selectedTransitionDurationMs,
     setProgramSceneId,
     setProgramSlideLabel,
+    onCommitted: handleTransportCommitted,
+    validateTake,
+    onBlocked: handleTakeBlocked,
   });
   const { lastTransportActionAt } = transportState;
 
@@ -681,8 +772,12 @@ updateShadowColor: updateSelectedBlockShadowColor,
   }, [takeProgram]);
 
   const handleCenterSwitcherTake = useCallback(
-    (mode: "cut" | "auto"): void => {
-      takeProgram(mode);
+    (
+      mode: "cut" | "auto",
+      transitionType?: CinematicTransitionType,
+      transitionDurationMs?: number,
+    ): void => {
+      takeProgram(mode, transitionType, { transitionDurationMs });
     },
     [takeProgram],
   );
@@ -765,11 +860,15 @@ updateShadowColor: updateSelectedBlockShadowColor,
   }, [clearScreenShare, handleAsyncError]);
 
   const handleUnpinParticipant = useCallback((): void => {
-    void unpinParticipant().catch(handleAsyncError);
+    void unpinParticipant()
+      .then(() => setOperatorNotice("Pinned stage source cleared."))
+      .catch(handleAsyncError);
   }, [unpinParticipant, handleAsyncError]);
 
   const handleClearPrimaryParticipant = useCallback((): void => {
-    void clearPrimaryParticipant().catch(handleAsyncError);
+    void clearPrimaryParticipant()
+      .then(() => setOperatorNotice("Primary stage source cleared."))
+      .catch(handleAsyncError);
   }, [clearPrimaryParticipant, handleAsyncError]);
 
   const handleUploadPdfClick = useCallback((): void => {
@@ -813,9 +912,13 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
       void api.setAutoDirector(false)
         .then(() => addToStage(identity))
+        .then(() => {
+          const participant = participants.find((item) => item.identity === identity);
+          setOperatorNotice(`${participant?.name || identity} was sent to stage.`);
+        })
         .catch(handleAsyncError);
     },
-    [addToStage, handleAsyncError, updateStageState, api],
+    [addToStage, handleAsyncError, participants, updateStageState, api],
   );
 
   const handleSetParticipantScreenShare = useCallback(
@@ -840,6 +943,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
       void api.setAutoDirector(false)
         .then(() => setScreenShare(participantId, trackId))
+        .then(() => setOperatorNotice("Screen share was routed to Preview."))
         .catch(handleAsyncError);
     },
     [handleAsyncError, setScreenShare, updateStageState, api],
@@ -865,14 +969,20 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
       void api.setAutoDirector(false)
         .then(() => setPrimaryParticipant(identity))
+        .then(() => {
+          const participant = participants.find((item) => item.identity === identity);
+          setOperatorNotice(`${participant?.name || identity} is now the primary stage source.`);
+        })
         .catch(handleAsyncError);
     },
-    [handleAsyncError, setPrimaryParticipant, updateStageState, api],
+    [handleAsyncError, participants, setPrimaryParticipant, updateStageState, api],
   );
 
   const handlePinParticipant = useCallback(
     (identity: string): void => {
-      void pinParticipant(identity).catch(handleAsyncError);
+      void pinParticipant(identity)
+        .then(() => setOperatorNotice("Participant pinned in the stage composition."))
+        .catch(handleAsyncError);
     },
     [pinParticipant, handleAsyncError],
   );
@@ -913,9 +1023,14 @@ updateShadowColor: updateSelectedBlockShadowColor,
         };
       });
 
-      void removeFromStage(identity).catch(handleAsyncError);
+      void removeFromStage(identity)
+        .then(() => {
+          const participant = participants.find((item) => item.identity === identity);
+          setOperatorNotice(`${participant?.name || identity} returned to backstage.`);
+        })
+        .catch(handleAsyncError);
     },
-    [handleAsyncError, removeFromStage, updateStageState],
+    [handleAsyncError, participants, removeFromStage, updateStageState],
   );
 
   const handleDockApplyScene = useCallback(
@@ -934,6 +1049,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const handleDockDeleteScene = useCallback(
     (sceneId: string): void => {
+      if (!window.confirm("Delete this scene preset? This cannot be undone.")) return;
       void sceneActions.deleteScene(sceneId);
     },
     [sceneActions],
@@ -944,7 +1060,10 @@ updateShadowColor: updateSelectedBlockShadowColor,
       const nextBlockId = `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       setPreviewBlocks((current) => {
-        const nextZIndex = current.reduce(
+        const baseBlocks = block.groupId === "source-route"
+          ? current.filter((currentBlock) => currentBlock.groupId !== "source-route")
+          : current;
+        const nextZIndex = baseBlocks.reduce(
           (highest, currentBlock) => Math.max(highest, currentBlock.zIndex ?? 0),
           block.zIndex ?? 0,
         ) + 1;
@@ -955,7 +1074,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
           zIndex: nextZIndex,
         };
 
-        return [...current, nextBlock];
+        return [...baseBlocks, nextBlock];
       });
 
       window.requestAnimationFrame(() => {
@@ -1134,18 +1253,12 @@ updateShadowColor: updateSelectedBlockShadowColor,
     setSnapGuideY,
   });
   const handleGoLive = useCallback((): void => {
-    if (!window.confirm("Go live and send Program to attendees?")) return;
-    void api.goLive(stageState?.scene_version ?? null)
-      .then((data) => updateStageState(data.state))
-      .catch(handleAsyncError);
-  }, [api, handleAsyncError, stageState?.scene_version, updateStageState]);
+    setPendingSafetyAction("go_live");
+  }, []);
 
   const handleGoOffAir = useCallback((): void => {
-    if (!window.confirm("Take the event off air? Attendees will return to holding.")) return;
-    void api.goOffAir(stageState?.scene_version ?? null)
-      .then((data) => updateStageState(data.state))
-      .catch(handleAsyncError);
-  }, [api, handleAsyncError, stageState?.scene_version, updateStageState]);
+    setPendingSafetyAction("go_off_air");
+  }, []);
 
   const getScreenTrackSid = useCallback(
     (participant: ProducerParticipant): string | null => {
@@ -1210,6 +1323,88 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const isProgramLive = Boolean(programState?.is_live);
 
+  const liveSafetyChecks = useMemo(() => {
+    if (pendingSafetyAction === "go_off_air") {
+      return [
+        {
+          label: "Audience is currently live",
+          detail: isProgramLive
+            ? "Program is visible to attendees."
+            : "The event is already in holding.",
+          ready: isProgramLive,
+          required: true,
+        },
+        {
+          label: "Producer Room remains connected",
+          detail: "Off Air changes the attendee destination; it does not close this console.",
+          ready: true,
+        },
+      ];
+    }
+
+    return [
+      {
+        label: "Program output exists",
+        detail: hasProgramSource
+          ? "A committed Program source is ready."
+          : "TAKE a source to Program before going live.",
+        ready: hasProgramSource,
+        required: true,
+      },
+      {
+        label: "Preview and Program are synchronized",
+        detail: previewProgramDifferent
+          ? "Preview contains unpublished changes. Program will go live unchanged."
+          : "Preview matches the committed Program output.",
+        ready: !previewProgramDifferent,
+      },
+      {
+        label: "Stage has a routed participant",
+        detail: onStageParticipants.length > 0
+          ? `${onStageParticipants.length} participant${onStageParticipants.length === 1 ? "" : "s"} routed to stage.`
+          : "No presenter is routed; Program may contain only media or graphics.",
+        ready: onStageParticipants.length > 0,
+      },
+    ];
+  }, [hasProgramSource, isProgramLive, onStageParticipants.length, pendingSafetyAction, previewProgramDifferent]);
+
+  const handleCancelSafetyAction = useCallback((): void => {
+    if (liveActionBusy) return;
+    setPendingSafetyAction(null);
+  }, [liveActionBusy]);
+
+  const handleConfirmSafetyAction = useCallback(async (): Promise<void> => {
+    if (!pendingSafetyAction || liveActionBusy) return;
+
+    try {
+      setLiveActionBusy(true);
+      setError(null);
+      const expectedVersion = stageState?.scene_version ?? null;
+      const data = pendingSafetyAction === "go_live"
+        ? await api.goLive(expectedVersion)
+        : await api.goOffAir(expectedVersion);
+
+      updateStageState(data.state ?? null);
+      updateProgramState(data.programState ?? data.state ?? null);
+      setOperatorNotice(
+        pendingSafetyAction === "go_live"
+          ? "Program is live to attendees."
+          : "Audience returned to holding. Producer controls remain connected.",
+      );
+      setPendingSafetyAction(null);
+    } catch (actionError: unknown) {
+      handleAsyncError(actionError);
+    } finally {
+      setLiveActionBusy(false);
+    }
+  }, [api, handleAsyncError, liveActionBusy, pendingSafetyAction, stageState?.scene_version, updateProgramState, updateStageState]);
+
+  useEffect(() => {
+    if (!operatorNotice) return;
+    const timeoutId = window.setTimeout(() => setOperatorNotice(null), 4200);
+    return () => window.clearTimeout(timeoutId);
+  }, [operatorNotice]);
+
 
   // Top chrome props
   const topChromeProps = useMemo(
@@ -1221,6 +1416,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       onStageCount: onStageParticipants.length,
       overlayCount: previewBlocks.length,
       isProgramLive,
+      liveActionBusy,
       scopeLabel: producerScopeLabel,
       takeBusy,
       selectedSceneLabel,
@@ -1244,6 +1440,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       onStageParticipants.length,
       previewBlocks.length,
       isProgramLive,
+      liveActionBusy,
       producerScopeLabel,
       takeBusy,
       selectedSceneLabel,
@@ -1418,6 +1615,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       takeBusy,
       previewProgramDifferent,
       isProgramLive,
+      liveActionBusy,
       onTake: handleLeftRailTake,
       onGoLive: handleGoLive,
       onGoOffAir: handleGoOffAir,
@@ -1442,6 +1640,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       takeBusy,
       previewProgramDifferent,
       isProgramLive,
+      liveActionBusy,
       handleLeftRailTake,
       handleGoLive,
       handleGoOffAir,
@@ -1566,6 +1765,18 @@ updateShadowColor: updateSelectedBlockShadowColor,
   );
 
   // Dock props
+  const handleRecordingHealthChange = useCallback(
+    (status: RecordingStatus, recordingError: string | null): void => {
+      setRecordingHealth((current) => {
+        if (current.status === status && current.error === recordingError) {
+          return current;
+        }
+        return { status, error: recordingError };
+      });
+    },
+    [],
+  );
+
   const bottomAssetDockProps = useMemo(
     () => ({
       workspaceMode,
@@ -1596,6 +1807,10 @@ onSaveScene: () => {
       onApplyScene: handleDockApplyScene,
       onDoubleClickScene: handleDockApplySceneAndTake,
       onDeleteScene: handleDockDeleteScene,
+      previewProgramDifferent,
+      takeBusy,
+      onTakeProgram: (mode: "cut" | "auto") => takeProgram(mode),
+      onRecordingHealthChange: handleRecordingHealthChange,
     }),
     [
       workspaceMode,
@@ -1618,6 +1833,10 @@ onSaveScene: () => {
       handleDockApplyScene,
       handleDockApplySceneAndTake,
       handleDockDeleteScene,
+      previewProgramDifferent,
+      takeBusy,
+      takeProgram,
+      handleRecordingHealthChange,
     ],
   );
 
@@ -1676,18 +1895,24 @@ onSaveScene: () => {
 
   return (
     <LiveKitRoom
+      key={liveKitRoomKey}
       token={token}
       serverUrl={serverUrl}
       connect
       video={false}
       audio={false}
-      onConnected={() => setSyncWarningText(null)}
-      onDisconnected={() =>
-        setSyncWarningText("Live transport disconnected. Reconnecting the Producer Room…")
-      }
-      onError={(liveKitError) =>
-        setSyncWarningText(`Live transport error: ${liveKitError.message}`)
-      }
+      onConnected={() => {
+        setTransportHealth("connected");
+        setSyncWarningText(null);
+      }}
+      onDisconnected={() => {
+        setTransportHealth("degraded");
+        setSyncWarningText("Live transport disconnected. Use Recover to reconnect safely.");
+      }}
+      onError={(liveKitError) => {
+        setTransportHealth("degraded");
+        setSyncWarningText(`Live transport error: ${liveKitError.message}`);
+      }}
     >
       <RoomAudioRenderer />
 
@@ -1700,7 +1925,7 @@ onSaveScene: () => {
         </div>
       </div>
 
-      <div className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.13),transparent_34%),radial-gradient(circle_at_82%_2%,rgba(112,87,255,0.15),transparent_32%),radial-gradient(circle_at_50%_106%,rgba(214,92,158,0.07),transparent_40%),linear-gradient(180deg,#0b1024_0%,#070a19_48%,#040611_100%)] text-white">
+      <div className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.08),transparent_32%),radial-gradient(circle_at_82%_2%,rgba(56,189,248,0.045),transparent_30%),linear-gradient(180deg,#080d19_0%,#050914_48%,#03060d_100%)] text-white">
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 
@@ -1715,6 +1940,25 @@ onSaveScene: () => {
           </div>
         ) : null}
 
+        {operatorNotice ? (
+          <div className="pointer-events-none absolute left-1/2 top-10 z-[998] w-[min(440px,calc(100vw-32px))] -translate-x-1/2 rounded-[14px] border border-emerald-300/16 bg-[linear-gradient(180deg,rgba(8,32,25,0.92),rgba(4,14,12,0.96))] px-4 py-3 text-center shadow-[0_14px_38px_rgba(0,0,0,0.38)] backdrop-blur-xl" role="status" aria-live="polite">
+            <div className="text-[8px] font-bold uppercase tracking-[0.18em] text-emerald-100/50">Operator action confirmed</div>
+            <div className="mt-1 text-[11px] font-semibold text-emerald-50/78">{operatorNotice}</div>
+          </div>
+        ) : null}
+
+        {pendingSafetyAction ? (
+          <ProducerSafetyDialog
+            action={pendingSafetyAction}
+            checks={liveSafetyChecks}
+            busy={liveActionBusy}
+            onCancel={handleCancelSafetyAction}
+            onConfirm={() => {
+              void handleConfirmSafetyAction();
+            }}
+          />
+        ) : null}
+
         <ProducerRoomContentStack>
           <ProducerUploadInputs
             pdfInputRef={pdfInputRef}
@@ -1725,35 +1969,50 @@ onSaveScene: () => {
             onImageUpload={handleImageUpload}
           />
 
-          <ProducerRoomTopChrome {...topChromeProps} />
-          <ProducerModeBar mode={workspaceMode} onModeChange={setWorkspaceMode} />
-          <ProducerRoomWorkspaceFrame>
-            <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-              <ProducerRoomGrid>
-                <ProducerRoomWorkspace
-                  leftRail={<ProducerLeftRail {...leftRailProps} />}
-                  centerColumn={centerColumn}
-                  rightRail={<ProducerRightRail {...rightRailProps} />}
-                  bottomDock={workspaceMode === "show" && !standardToolsOpen ? undefined : bottomDock}
-                />
-              </ProducerRoomGrid>
+          <div className="flex min-h-0 flex-1 overflow-hidden">
+            <ProducerNavigationRail eventId={eventId} isLive={isProgramLive} />
 
-              {workspaceMode === "show" ? (
-                <button
-                  type="button"
-                  onClick={() => setStandardToolsOpen((current) => !current)}
-                  aria-expanded={standardToolsOpen}
-                  className="absolute bottom-3 left-1/2 z-[85] flex -translate-x-1/2 items-center gap-2 rounded-full border border-violet-300/18 bg-[linear-gradient(180deg,rgba(25,31,61,0.96),rgba(10,13,30,0.98))] px-5 py-2 text-[10px] font-bold uppercase tracking-[0.12em] text-violet-50/82 shadow-[0_14px_34px_rgba(0,0,0,0.42),0_0_22px_rgba(112,87,255,0.10),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-xl transition hover:border-violet-200/30 hover:text-white"
-                >
-                  <span className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_10px_rgba(196,181,253,0.54)]" />
-                  {standardToolsOpen ? "Close Production Tools" : "Production Tools"}
-                  <span aria-hidden="true" className={`transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}>
-                    ▴
-                  </span>
-                </button>
-              ) : null}
-            </div>
-          </ProducerRoomWorkspaceFrame>
+            <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              <ProducerRoomTopChrome {...topChromeProps} />
+              <ProducerModeBar mode={workspaceMode} onModeChange={setWorkspaceMode} />
+              <ProducerHealthBar
+                snapshot={healthSnapshot}
+                transportHealth={transportHealth}
+                recordingStatus={recordingHealth.status}
+                recordingError={recordingHealth.error}
+                recoveryBusy={recoveryBusy}
+                onRecover={() => {
+                  void handleRecoverControlPlane();
+                }}
+              />
+              <ProducerRoomWorkspaceFrame>
+                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                  <ProducerRoomGrid>
+                    <ProducerRoomWorkspace
+                      leftRail={<ProducerLeftRail {...leftRailProps} />}
+                      centerColumn={centerColumn}
+                      rightRail={<ProducerRightRail {...rightRailProps} />}
+                      bottomDock={workspaceMode === "show" && !standardToolsOpen ? undefined : bottomDock}
+                    />
+                  </ProducerRoomGrid>
+
+                  {workspaceMode === "show" ? (
+                    <button
+                      type="button"
+                      onClick={() => setStandardToolsOpen((current) => !current)}
+                      aria-expanded={standardToolsOpen}
+                      className="absolute bottom-2 left-1/2 z-[85] flex -translate-x-1/2 items-center gap-2 rounded-[10px] border border-white/[0.10] bg-[#101522]/95 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.10em] text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.38)] backdrop-blur-xl transition hover:border-sky-200/25 hover:text-white"
+                    >
+                      {standardToolsOpen ? "Close Production Tools" : "Production Tools"}
+                      <span aria-hidden="true" className={`transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}>
+                        ▴
+                      </span>
+                    </button>
+                  ) : null}
+                </div>
+              </ProducerRoomWorkspaceFrame>
+            </main>
+          </div>
         </ProducerRoomContentStack>
       </div>
     </LiveKitRoom>

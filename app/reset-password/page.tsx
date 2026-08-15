@@ -25,7 +25,9 @@ export default function ResetPasswordPage() {
     async function initializeRecoverySession() {
       const url = new URL(window.location.href)
       const requestedNext = url.searchParams.get("next")
-      if (requestedNext?.startsWith("/admin/events/")) setNextPath(requestedNext)
+      if (requestedNext === "/admin" || requestedNext?.startsWith("/admin/events/")) {
+        setNextPath(requestedNext)
+      }
       const code = url.searchParams.get("code")
       const hash = new URLSearchParams(url.hash.slice(1))
       const accessToken = hash.get("access_token")

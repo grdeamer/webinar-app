@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { StageState } from "./producerRoomTypes"
+import type { CinematicTransitionType } from "./commandDeckTypes"
 
 type TakeMode = "cut" | "auto"
 
@@ -64,8 +65,12 @@ export default function useProducerTransitions({
 
   const takeProgram = useCallback(async (
     mode: TakeMode,
-    transitionType?: "fade" | "warp" | "curtain",
+    transitionType?: CinematicTransitionType,
+    transitionDurationMs = 620,
   ) => {
+    const resolvedDurationMs = mode === "cut"
+      ? 0
+      : Math.max(200, Math.min(2500, transitionDurationMs))
     const previousProgramState = programState ? { ...programState } : null
     const previousProgramBlocks = programBlocks.map((block) => ({ ...block }))
 
@@ -74,7 +79,7 @@ export default function useProducerTransitions({
       programBlocks: previewBlocks,
       transition: {
         type: mode === "cut" ? "none" : transitionType ?? "fade",
-        durationMs: mode === "cut" ? 0 : 620,
+        durationMs: resolvedDurationMs,
       },
     })
 
@@ -103,14 +108,22 @@ export default function useProducerTransitions({
       setTransitionFromState(null)
       setTransitionFromBlocks([])
       setTransitionFadingOut(false)
-    }, 620)
+    }, Math.max(80, resolvedDurationMs))
 
     return data?.state ?? null
   }, [api, previewState?.scene_version, programState, programBlocks, previewBlocks, setProgramBlocks, setProgramState])
 
   const runTake = useCallback(
-    async (mode: TakeMode = "cut", transitionType?: "fade" | "warp" | "curtain") => {
-      if (takeBusy) return
+    async (
+      mode: TakeMode = "cut",
+      transitionType?: CinematicTransitionType,
+      transitionDurationMs = 620,
+    ) => {
+      if (takeBusy) return false
+
+      const resolvedDurationMs = mode === "cut"
+        ? 0
+        : Math.max(200, Math.min(2500, transitionDurationMs))
 
       try {
         setTakeBusy(true)
@@ -121,14 +134,16 @@ export default function useProducerTransitions({
           type: transitionType ?? "fade",
           headline: "Stand by",
           message: "Preparing next live destination",
-          durationMs: 1600,
+          durationMs: resolvedDurationMs,
         })
-        await takeProgram(mode, transitionType)
+        await takeProgram(mode, transitionType, resolvedDurationMs)
         window.setTimeout(() => {
           void api.clearEventTransition?.()
-        }, 1400)
+        }, Math.max(120, resolvedDurationMs + 80))
+        return true
       } catch (error: unknown) {
         setError(error instanceof Error ? error.message : "Unexpected error")
+        return false
       } finally {
         setTakeBusy(false)
       }

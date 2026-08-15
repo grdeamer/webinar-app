@@ -13,10 +13,14 @@ type Params = {
   stageState: StageState | null
   setProgramSceneId: (value: string | null) => void
   setProgramSlideLabel: (value: string | null) => void
+  onCommitted?: (mode: "cut" | "auto") => void
+  validateTake?: () => string | null
+  onBlocked?: (reason: string) => void
   runTake: (
     mode: "cut" | "auto",
-    transitionType?: CinematicTransitionType
-  ) => Promise<void>
+    transitionType?: CinematicTransitionType,
+    transitionDurationMs?: number,
+  ) => Promise<boolean>
 }
 
 export default function useProducerTransport({
@@ -27,6 +31,9 @@ export default function useProducerTransport({
   stageState,
   setProgramSceneId,
   setProgramSlideLabel,
+  onCommitted,
+  validateTake,
+  onBlocked,
   runTake,
 }: Params) {
   const [lastTransportActionAt, setLastTransportActionAt] = useState<number | null>(null)
@@ -39,11 +46,19 @@ export default function useProducerTransport({
       slideLabel?: string | null
       transitionDurationMs?: number
     }
-  ): Promise<void> {
+  ): Promise<boolean> {
+    const blockedReason = validateTake?.() ?? null
+    if (blockedReason) {
+      onBlocked?.(blockedReason)
+      return false
+    }
+
     const durationMs =
       options?.transitionDurationMs ?? selectedTransitionDurationMs
 
-    await runTake(mode, transitionType)
+    const committed = await runTake(mode, transitionType, durationMs)
+
+    if (!committed) return false
 
     broadcastPresenterProgramSource({
       mode,
@@ -57,6 +72,8 @@ export default function useProducerTransport({
     setProgramSceneId(options?.sceneId ?? selectedSceneId)
     setProgramSlideLabel(options?.slideLabel ?? null)
     setLastTransportActionAt(Date.now())
+    onCommitted?.(mode)
+    return true
   }
 
   const transportState = useMemo(

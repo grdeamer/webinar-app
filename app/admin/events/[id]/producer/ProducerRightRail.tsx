@@ -1,4 +1,4 @@
-import { useRef, useState, type JSX } from "react"
+import { useEffect, useState, type JSX } from "react"
 import {
   Camera,
   Mic2,
@@ -93,23 +93,6 @@ const PARTICIPANT_OUTLINE_WEIGHTS: Array<{
   { id: "bold", label: "Bold" },
 ]
 
-const PARTICIPANT_GLOW_OPACITY: Record<ParticipantGlowLevel, number> = {
-  low: 0.18,
-  med: 0.36,
-  high: 0.62,
-}
-
-const PARTICIPANT_CARD_GLOW_OPACITY: Record<ParticipantGlowLevel, number> = {
-  low: 0.10,
-  med: 0.18,
-  high: 0.32,
-}
-
-const PARTICIPANT_OUTLINE_WIDTH: Record<ParticipantOutlineWeight, number> = {
-  soft: 1,
-  standard: 2,
-  bold: 3,
-}
 function InspectorParticipantRow({
   participant,
   role,
@@ -160,38 +143,38 @@ function InspectorParticipantRow({
     fallbackAccentStyle
   const glowLevel = selectedGlowLevel ?? "med"
   const outlineWeight = selectedOutlineWeight ?? "standard"
-  const glowOpacity = PARTICIPANT_GLOW_OPACITY[glowLevel]
-  const cardGlowOpacity = PARTICIPANT_CARD_GLOW_OPACITY[glowLevel]
-  const outlineWidth = PARTICIPANT_OUTLINE_WIDTH[outlineWeight]
   const [visualControlsOpen, setVisualControlsOpen] = useState(false)
 
   return (
     <div
-      className={`group/participant rounded-[16px] border bg-[linear-gradient(180deg,rgba(255,255,255,0.022),rgba(255,255,255,0.008))] px-2.5 py-2 transition hover:bg-white/[0.036] ${accentStyle.card}`}
+      className="group/participant rounded-[10px] border bg-[#0a101a] px-2.5 py-2.5 transition hover:bg-[#0d1623]"
       style={{
-        borderColor: `rgba(${accentStyle.rgb}, ${outlineWeight === "soft" ? 0.24 : 0.46})`,
-        borderWidth: outlineWidth,
-        boxShadow: `0 6px 18px rgba(0,0,0,0.12), inset 0 1px 0 rgba(255,255,255,0.012), 0 0 ${glowLevel === "high" ? 44 : glowLevel === "med" ? 30 : 18}px rgba(${accentStyle.rgb}, ${cardGlowOpacity})`,
+        borderColor: onStage
+          ? "rgba(125,211,252,0.26)"
+          : `rgba(${accentStyle.rgb}, 0.16)`,
+        borderWidth: 1,
+        boxShadow: onStage
+          ? "inset 3px 0 0 rgba(125,211,252,0.48)"
+          : "inset 0 1px 0 rgba(255,255,255,0.01)",
       }}
     >
       <div className="flex items-center justify-between gap-2">
         <div className="flex min-w-0 items-center gap-2">
           <div
-            className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full border bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,0.34),rgba(56,189,248,0.16)_38%,rgba(15,23,42,0.82)_80%)] text-[11px] font-black text-white/78 ${accentStyle.ring}`}
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] border bg-[linear-gradient(145deg,#182235,#0d1421)] text-[12px] font-semibold text-white/84 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
             style={{
-              borderColor: `rgba(${accentStyle.rgb}, ${outlineWeight === "soft" ? 0.42 : 0.78})`,
-              borderWidth: outlineWidth,
-              boxShadow: `0 0 ${glowLevel === "high" ? 34 : glowLevel === "med" ? 22 : 12}px rgba(${accentStyle.rgb}, ${glowOpacity})`,
+              borderColor: `rgba(${accentStyle.rgb}, 0.42)`,
+              borderWidth: 1,
             }}
           >
             {initials}
           </div>
 
           <div className="min-w-0">
-            <div className="truncate text-[12px] font-semibold tracking-[-0.02em] text-white/82">
+            <div className="truncate text-[12px] font-semibold tracking-[-0.01em] text-white/92">
               {participant.name || participant.identity}
             </div>
-            <div className="mt-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-white/34">
+            <div className="mt-0.5 text-[9px] font-medium uppercase tracking-[0.07em] text-white/46">
               {role}
             </div>
           </div>
@@ -207,13 +190,13 @@ function InspectorParticipantRow({
 
             onAddToStage(participant.identity)
           }}
-          className={`shrink-0 rounded-full border px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.10em] transition ${
+          className={`shrink-0 rounded-[8px] border px-3 py-1.5 text-[9px] font-semibold transition ${
             onStage
               ? "border-red-300/12 bg-red-400/[0.045] text-red-100/54 hover:bg-red-400/[0.08]"
               : "border-emerald-300/12 bg-emerald-400/[0.065] text-emerald-100/62 hover:bg-emerald-400/[0.11]"
           }`}
         >
-          {onStage ? "Remove" : "Stage"}
+          {onStage ? "Remove" : "Send to stage"}
         </button>
       </div>
 
@@ -227,12 +210,12 @@ function InspectorParticipantRow({
             <span
               className={`h-3 w-3 rounded-full border border-white/18 ${accentStyle.swatch}`}
             />
-            <span className="text-[7px] font-black uppercase tracking-[0.12em] text-white/34">
-              Visual Accent
+            <span className="text-[8px] font-medium text-white/38">
+              Appearance
             </span>
           </span>
 
-          <span className="text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
+            <span className="text-[8px] font-medium text-white/28">
             {visualControlsOpen ? "Hide" : "Edit"}
           </span>
         </button>
@@ -650,62 +633,63 @@ export default function ProducerRightRail({
   const participantRole = (index: number): string =>
     index === 0 ? "Host" : index === 1 ? "Presenter" : index === 2 ? "Speaker" : "Guest"
   const backstageCount = backstageParticipants.length
-  const defaultRailTab = previewBlocks.length > 0 || selectedBlock ? "Blocks" : "Stage"
-  const [activeRailTab, setActiveRailTab] = useState(defaultRailTab)
-  const blocksSectionRef = useRef<HTMLDivElement | null>(null)
-  const stageSectionRef = useRef<HTMLDivElement | null>(null)
-  const talentSectionRef = useRef<HTMLDivElement | null>(null)
+  type RailTab = "Stage" | "Backstage" | "Layers"
+  const defaultRailTab: RailTab = previewBlocks.length > 0 || selectedBlock
+    ? "Layers"
+    : onStageParticipants.length === 0 && backstageCount > 0
+      ? "Backstage"
+      : "Stage"
+  const [activeRailTab, setActiveRailTab] = useState<RailTab>(defaultRailTab)
+  const [railTabChosenByOperator, setRailTabChosenByOperator] = useState(false)
+  const railTabs: RailTab[] = ["Stage", "Backstage", "Layers"]
 
-  function scrollToRailSection(tab: "Stage" | "Talent" | "Blocks"): void {
-    setActiveRailTab(tab)
+  useEffect(() => {
+    if (
+      !railTabChosenByOperator &&
+      activeRailTab === "Stage" &&
+      onStageParticipants.length === 0 &&
+      backstageCount > 0
+    ) {
+      setActiveRailTab("Backstage")
+    }
+  }, [activeRailTab, backstageCount, onStageParticipants.length, railTabChosenByOperator])
 
-    const targetRef =
-      tab === "Blocks"
-        ? blocksSectionRef
-        : tab === "Talent"
-          ? talentSectionRef
-          : stageSectionRef
-
-    targetRef.current?.scrollIntoView({
-      behavior: "smooth",
-      block: "start",
-    })
-  }
   return (
-    <div className="group flex h-full min-w-0 flex-col gap-2 overflow-hidden border-l border-white/[0.055] bg-[linear-gradient(180deg,rgba(5,9,18,0.94),rgba(2,4,9,0.995))] p-2 shadow-[inset_1px_0_0_rgba(255,255,255,0.018)] backdrop-blur-2xl lg:col-start-3">
-      
-
-      <div className="min-h-0 flex-1 overflow-y-auto rounded-[20px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.72),rgba(3,7,15,0.92))] p-2.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)] scroll-smooth [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="sticky top-0 z-30 -mx-2.5 -mt-2.5 flex items-center justify-between gap-2 border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,24,0.96),rgba(7,12,24,0.86))] px-2.5 pb-2 pt-2.5 backdrop-blur-xl">
+    <aside className="flex h-full min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(5,9,18,0.98),rgba(2,4,9,1))]">
+      <header className="shrink-0 border-b border-white/[0.09] bg-[#070c15] px-3 pb-3 pt-3">
+        <div className="flex items-center justify-between">
           <div>
-            <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/52">
-              Right Rail
-            </div>
-            <div className="mt-1 grid grid-cols-3 gap-0.5 rounded-[10px] border border-white/[0.04] bg-white/[0.014] p-0.5">
-              {[
-                "Stage",
-                "Talent",
-                "Blocks",
-              ].map((tab, index) => (
-                <button
-                  key={`${tab}-${index}`}
-                  type="button"
-                  onClick={() => scrollToRailSection(tab as "Stage" | "Talent" | "Blocks")}
-                  className={`rounded-[8px] px-1.5 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition ${
-                    tab === activeRailTab
-                      ? "border border-sky-300/16 bg-sky-400/[0.12] text-sky-100 shadow-[0_0_12px_rgba(56,189,248,0.08)]"
-                      : "border border-white/[0.035] bg-white/[0.018] text-white/40 hover:bg-white/[0.035] hover:text-white/62"
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
+            <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/44">Stage desk</div>
+            <div className="mt-1 text-[14px] font-semibold text-white/92">
+              {onStageParticipants.length} on stage · {backstageCount} backstage
             </div>
           </div>
+          <ShieldCheck size={15} className="text-emerald-200/52" />
         </div>
+        <nav className="mt-3 grid grid-cols-3 gap-1" aria-label="Stage desk views">
+          {railTabs.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              onClick={() => {
+                setRailTabChosenByOperator(true)
+                setActiveRailTab(tab)
+              }}
+              className={`h-9 rounded-[7px] border text-[9px] font-semibold transition ${
+                activeRailTab === tab
+                  ? "border-sky-300/40 bg-[#102845] text-sky-50/92 shadow-[inset_0_-2px_0_rgba(56,189,248,0.55)]"
+                  : "border-white/[0.07] bg-white/[0.022] text-white/46 hover:bg-white/[0.05] hover:text-white/72"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </nav>
+      </header>
 
-        {selectedBlock || previewBlocks.length > 0 ? (
-          <div ref={blocksSectionRef} className="scroll-mt-16 border-t border-sky-300/[0.075] pt-3">
+      <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        {activeRailTab === "Layers" ? (
+          selectedBlock || previewBlocks.length > 0 ? (
             <RightInspectorRail
               selectedBlock={selectedBlock}
               previewBlocks={previewBlocks}
@@ -751,157 +735,65 @@ export default function ProducerRightRail({
               onRemoveFromStage={onRemoveFromStage}
               onError={onError}
             />
-          </div>
-        ) : null}
-
-        <div ref={stageSectionRef} className="scroll-mt-16 border-t border-white/[0.035] pt-3">
-          <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
-            Stage Status
-          </div>
-          <div className="mt-2 text-[13px] font-semibold tracking-[-0.03em] text-white/82">
-            {stageIds.size > 0 ? "Stage is live" : "Stage is offline"}
-          </div>
-          <div className="mt-px text-[10px] font-medium text-white/46">
-            {stageIds.size > 0 ? `${stageIds.size} source${stageIds.size === 1 ? "" : "s"} on stage` : "No one is on stage"}
-          </div>
-          <div className="mt-2 flex items-center gap-2 rounded-[10px] border border-white/[0.04] bg-white/[0.014] px-3 py-2 text-[9px] font-semibold text-white/38">
-            <ShieldCheck size={13} />
-            Route talent from the list below.
-          </div>
-        </div>
-
-        <div className="mt-5 border-t border-white/[0.05] pt-4">
-          <div className="flex items-end justify-between gap-2">
-            <div>
-              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
-                On Stage
-              </div>
-              <div className="mt-1 text-[20px] font-semibold tracking-[-0.05em] text-white/90">
-                {onStageParticipants.length} Ready
-              </div>
+          ) : (
+            <div className="rounded-[12px] border border-dashed border-white/[0.09] px-3 py-8 text-center text-[10px] text-white/32">
+              Add a source to Preview to manage its layers.
             </div>
-          </div>
-
-          <div className="mt-2 space-y-1.5">
-            {onStageParticipants.length > 0 ? (
-              onStageParticipants.slice(0, 4).map((participant, index) => (
-                <InspectorParticipantRow
-                  key={participant.identity}
-                  participant={participant}
-                  role={participantRole(index)}
-                  onStage
-                  screenTrackSid={getScreenTrackSid(participant)}
-                  selectedAccentId={participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null}
-                  selectedGlowLevel={participantAppearanceOverrides[participant.identity]?.glowLevel ?? null}
-                  selectedOutlineWeight={participantAppearanceOverrides[participant.identity]?.outlineWeight ?? null}
-                  onSetAccentColor={onSetParticipantAccentColor}
-                  onSetGlowLevel={onSetParticipantGlowLevel}
-                  onSetOutlineWeight={onSetParticipantOutlineWeight}
-                  onAddToStage={onAddToStage}
-                  onRemoveFromStage={onRemoveFromStage}
-                  onSetPrimary={onSetPrimary}
-                  onSetScreenShare={onSetScreenShare}
-                />
-              ))
-            ) : (
-              <div className="rounded-[13px] border border-white/[0.035] bg-white/[0.014] px-2 py-2 text-[10px] font-semibold text-white/34">
-                No talent is currently routed to stage.
+          )
+        ) : (
+          <>
+            <div className="mb-3">
+              <div className="text-[8px] font-semibold uppercase tracking-[0.14em] text-white/30">
+                {activeRailTab === "Stage" ? "Audience can see" : "Waiting room"}
               </div>
-            )}
-          </div>
-        </div>
-
-        <div ref={talentSectionRef} className="scroll-mt-16 border-t border-white/[0.045] pt-3">
-          <div className="flex items-end justify-between gap-2">
-            <div>
-              <div className="text-[9px] font-black uppercase tracking-[0.16em] text-white/42">
-                Talent / Backstage
+              <div className="mt-1 text-[20px] font-semibold tracking-[-0.035em] text-white/94">
+                {activeRailTab === "Stage"
+                  ? `${onStageParticipants.length} on stage`
+                  : `${backstageCount} backstage`}
               </div>
-              <div className="mt-1 text-[19px] font-semibold tracking-[-0.05em] text-white/88">
-                {backstageCount} In backstage
-              </div>
+              <p className="mt-1 text-[10px] leading-relaxed text-white/44">
+                {activeRailTab === "Stage"
+                  ? "Remove or promote the primary speaker without leaving this view."
+                  : "Check readiness, then send a presenter to stage."}
+              </p>
             </div>
-          </div>
 
-          <div className="mt-2 space-y-1.5">
-            {backstageParticipants.length > 0 ? (
-              backstageParticipants.slice(0, 5).map((participant, index) => (
-                <InspectorParticipantRow
-                  key={participant.identity}
-                  participant={participant}
-                  role={participantRole(index)}
-                  onStage={false}
-                  screenTrackSid={getScreenTrackSid(participant)}
-                  selectedAccentId={participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null}
-                  selectedGlowLevel={participantAppearanceOverrides[participant.identity]?.glowLevel ?? null}
-                  selectedOutlineWeight={participantAppearanceOverrides[participant.identity]?.outlineWeight ?? null}
-                  onSetAccentColor={onSetParticipantAccentColor}
-                  onSetGlowLevel={onSetParticipantGlowLevel}
-                  onSetOutlineWeight={onSetParticipantOutlineWeight}
-                  onAddToStage={onAddToStage}
-                  onRemoveFromStage={onRemoveFromStage}
-                  onSetPrimary={onSetPrimary}
-                  onSetScreenShare={onSetScreenShare}
-                />
-              ))
-            ) : participants.length > 0 ? (
-              <div className="rounded-[13px] border border-white/[0.035] bg-white/[0.014] px-2 py-2 text-[10px] font-semibold text-white/34">
-                Everyone is currently on stage.
-              </div>
-            ) : (
-              <div className="rounded-[13px] border border-white/[0.035] bg-white/[0.014] px-3 py-3 text-[10px] font-semibold leading-relaxed text-white/38">
-                No talent is connected. Share the presenter link, then connected speakers will appear here.
-              </div>
-            )}
-          </div>
-        </div>
-
-        <div className="hidden">
-          <div className="flex items-end justify-between gap-2">
-            <div>
-              <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
-                Engagement
-              </div>
-              <div className="mt-1 text-[16px] font-semibold tracking-[-0.05em] text-white/86">
-                92%
-              </div>
+            <div className="space-y-2">
+              {(activeRailTab === "Stage" ? onStageParticipants : backstageParticipants).length > 0 ? (
+                (activeRailTab === "Stage" ? onStageParticipants : backstageParticipants)
+                  .slice(0, 8)
+                  .map((participant, index) => (
+                    <InspectorParticipantRow
+                      key={participant.identity}
+                      participant={participant}
+                      role={participantRole(index)}
+                      onStage={activeRailTab === "Stage"}
+                      screenTrackSid={getScreenTrackSid(participant)}
+                      selectedAccentId={participant.accentColor ?? participantAppearanceOverrides[participant.identity]?.accentId ?? null}
+                      selectedGlowLevel={participantAppearanceOverrides[participant.identity]?.glowLevel ?? null}
+                      selectedOutlineWeight={participantAppearanceOverrides[participant.identity]?.outlineWeight ?? null}
+                      onSetAccentColor={onSetParticipantAccentColor}
+                      onSetGlowLevel={onSetParticipantGlowLevel}
+                      onSetOutlineWeight={onSetParticipantOutlineWeight}
+                      onAddToStage={onAddToStage}
+                      onRemoveFromStage={onRemoveFromStage}
+                      onSetPrimary={onSetPrimary}
+                      onSetScreenShare={onSetScreenShare}
+                    />
+                  ))
+              ) : (
+                <div className="rounded-[12px] border border-dashed border-white/[0.09] px-3 py-8 text-center text-[10px] leading-relaxed text-white/32">
+                  {participants.length === 0
+                    ? "No presenters are connected yet."
+                    : activeRailTab === "Stage"
+                      ? "Stage is clear. Open Backstage to choose a presenter."
+                      : "Everyone connected is already on stage."}
+                </div>
+              )}
             </div>
-            <div className="text-[9px] font-black text-emerald-200/62">
-              Active
-            </div>
-          </div>
-          <EngagementSparkline />
-          <div className="mt-1 flex justify-between text-[8px] font-semibold text-white/24">
-            <span>-60m</span>
-            <span>-30m</span>
-            <span>Now</span>
-          </div>
-        </div>
-
-        <div className="hidden">
-          <div className="text-[8px] font-black uppercase tracking-[0.14em] text-white/38">
-            Quick Actions
-          </div>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {[
-              "Send Announcement",
-              "Enable Applause",
-              "Toggle Chat",
-              "View Analytics",
-            ].map((label) => (
-              <button
-                key={label}
-                type="button"
-                className="rounded-[10px] border border-white/[0.04] bg-white/[0.020] px-2 py-2 text-[9px] font-semibold text-white/62 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)] hover:border-white/[0.08] hover:bg-white/[0.035] hover:text-white/82"
-              >
-                {label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Block inspector section removed as per instructions */}
+          </>
+        )}
       </div>
-    </div>
+    </aside>
   )
 }

@@ -32,6 +32,7 @@ export async function POST(
 
   try {
     let state
+    let programState = null
     if (body.action === "go_live" || body.action === "go_off_air") {
       const commandId = body.commandId ?? crypto.randomUUID()
       const { data, error } = await supabaseAdmin.rpc("producer_set_live", {
@@ -48,6 +49,7 @@ export async function POST(
         return json({ error: error.message }, conflict ? 409 : 500)
       }
       state = data?.preview ?? data
+      programState = data?.program ?? null
     } else {
       state = await applyProducerStageAction({
         eventId: auth.eventId,
@@ -88,7 +90,7 @@ export async function POST(
       }
     }
 
-    return json({ state })
+    return json({ state, programState })
   } catch (error) {
     return json(
       {

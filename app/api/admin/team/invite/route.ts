@@ -1,4 +1,6 @@
 import { NextResponse } from "next/server"
+import { buildJupiterInviteEmail } from "@/lib/email/invitations"
+import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
@@ -14,12 +16,18 @@ export async function POST(request: Request) {
   const name = String(body?.name ?? "").trim()
   if (!email || !email.includes("@")) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 })
 
-  const origin = new URL(request.url).origin
-  const { data, error } = await supabaseAdmin.auth.admin.inviteUserByEmail(email, {
-    data: { full_name: name || undefined },
-    redirectTo: `${origin}/admin/login?next=/admin`,
+  const appUrl = getAppUrl().replace(/\/$/, "")
+  const { data, error } = await supabaseAdmin.auth.admin.generateLink({
+    type: "invite",
+    email,
+    options: {
+      data: { full_name: name || undefined },
+      redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent("/admin")}`,
+    },
   })
-  if (error || !data.user) return NextResponse.json({ error: error?.message || "Could not create invitation." }, { status: 400 })
+  if (error || !data.user || !data.properties?.action_link) {
+    return NextResponse.json({ error: error?.message || "Could not create invitation." }, { status: 400 })
+  }
 
   const now = new Date().toISOString()
   const { error: profileError } = await supabaseAdmin.from("profiles").upsert({
@@ -35,6 +43,21 @@ export async function POST(request: Request) {
     updated_at: now,
   }, { onConflict: "id" })
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 })
+
+  const invitation = buildJupiterInviteEmail({
+    inviteUrl: data.properties.action_link,
+    logoUrl: `${appUrl}/jupiter-email-logo.png?v=2`,
+    name,
+    role: "administrator",
+  })
+  const response = await getResendClient().emails.send({
+    from: getEmailFrom(),
+    to: email,
+    ...invitation,
+  })
+  if (response.error) {
+    return NextResponse.json({ error: `The account was created, but Jupiter could not send the invitation: ${resendErrorMessage(response.error)}` }, { status: 502 })
+  }
 
   return NextResponse.json({ member: { id: data.user.id, email, name: name || null, team_role: "administrator", is_active: true, invite_status: "pending", invited_at: now, last_active_at: null, is_current: false } })
 }

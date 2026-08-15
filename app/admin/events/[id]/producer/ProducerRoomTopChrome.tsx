@@ -34,7 +34,7 @@ type ProducerRoomTopChromeProps = {
 }
 
 const TOP_CHROME_SHELL_CLASS =
-  "group/topchrome relative isolate z-[90] shrink-0 overflow-visible border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(3,6,12,0.94),rgba(4,7,14,0.72),rgba(2,4,9,0.36))] shadow-[0_10px_28px_rgba(0,0,0,0.22)]"
+  "group/topchrome relative isolate z-[90] shrink-0 overflow-visible border-b border-white/[0.07] bg-[#060a13] shadow-[0_8px_22px_rgba(0,0,0,0.18)]"
 
 const TOP_CHROME_TOP_EDGE_CLASS =
   "pointer-events-none absolute inset-x-0 top-0 z-0 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent"
@@ -43,7 +43,7 @@ const TOP_CHROME_BOTTOM_EDGE_CLASS =
   "pointer-events-none absolute inset-x-[18%] bottom-0 z-0 h-px bg-gradient-to-r from-transparent via-sky-100/[0.035] to-transparent"
 
 const TOP_CHROME_HUB_BUTTON_CLASS =
-  "relative z-[210] flex h-8 min-w-[92px] items-center justify-center gap-2 rounded-full border border-sky-200/[0.18] bg-sky-300/[0.090] px-4 text-[11px] font-black uppercase tracking-[0.12em] text-sky-50/84 shadow-[0_0_22px_rgba(56,189,248,0.08),inset_0_1px_0_rgba(255,255,255,0.040)] backdrop-blur-md transition duration-75 active:scale-[0.94] hover:border-sky-200/32 hover:bg-sky-300/[0.14] hover:text-sky-50"
+  "relative z-[210] flex h-8 min-w-[74px] items-center justify-center gap-2 rounded-[8px] border border-white/[0.11] bg-white/[0.04] px-3 text-[10px] font-bold uppercase tracking-[0.10em] text-white/70 backdrop-blur-md transition hover:border-white/20 hover:bg-white/[0.07] hover:text-white"
 
 const TOP_CHROME_HUB_MENU_CLASS =
   "absolute right-0 top-11 z-[220] w-72 origin-top-right overflow-hidden rounded-[18px] border border-white/[0.12] bg-[linear-gradient(180deg,rgba(6,10,18,0.992),rgba(2,4,9,0.998))] p-2 shadow-[0_28px_74px_rgba(0,0,0,0.68),inset_0_1px_0_rgba(255,255,255,0.036)] backdrop-blur-xl"
@@ -55,7 +55,7 @@ const TOP_CHROME_HUB_LINK_CLASS =
   "rounded-[12px] border border-white/[0.06] bg-white/[0.018] px-3 py-2 text-[12px] font-semibold text-white/58 transition hover:border-white/[0.11] hover:bg-white/[0.04] hover:text-white/84"
 
 const TOP_CHROME_STATUS_PILL_CLASS =
-  "pointer-events-none flex h-8 min-w-[108px] items-center justify-center gap-2 rounded-full border border-white/[0.09] bg-black/38 px-4 text-[11px] font-black uppercase tracking-[0.12em] text-white/54 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md"
+  "pointer-events-none flex h-8 min-w-[84px] items-center justify-center gap-2 rounded-[8px] border border-white/[0.10] bg-black/38 px-3 text-[10px] font-bold uppercase tracking-[0.10em] text-white/58 shadow-[inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-md"
 
 function TopChromeTransmissionShell({
   eventId,
@@ -105,10 +105,6 @@ function TopChromeTransmissionShell({
 
   return (
     <div className={TOP_CHROME_SHELL_CLASS}>
-      <div className="pointer-events-none absolute inset-0 z-[20] overflow-hidden">
-        <div className="absolute -right-20 top-[72px] h-[430px] w-[560px] rounded-[50%] border border-blue-100/25 bg-[radial-gradient(circle_at_28%_4%,rgba(139,181,255,0.38),transparent_22%),radial-gradient(circle_at_42%_30%,rgba(34,77,165,0.74),rgba(6,18,49,0.96)_55%,rgba(2,7,20,1)_78%)] opacity-80 shadow-[-26px_-18px_64px_rgba(66,125,239,0.28),-90px_6px_170px_rgba(35,87,188,0.18)]" />
-        <div className="absolute -right-24 top-[78px] h-[138px] w-[620px] rotate-[-6deg] rounded-[50%] border-t border-blue-100/35 opacity-75 drop-shadow-[0_-9px_22px_rgba(78,140,252,0.25)]" />
-      </div>
       <div
         className={`pointer-events-none absolute inset-x-0 top-0 z-[3] h-8 transition-opacity duration-700 ${
           isLive
@@ -120,24 +116,14 @@ function TopChromeTransmissionShell({
       <div className={`${TOP_CHROME_TOP_EDGE_CLASS} z-[4]`} />
       <div className={`${TOP_CHROME_BOTTOM_EDGE_CLASS} z-[4]`} />
 
-      <div className="absolute right-4 top-2.5 z-[120] flex items-center gap-2">
-        <button
-          type="button"
-          onClick={() => navigateFromProducer(`/admin/events/${eventId}`)}
-          className="flex h-8 items-center gap-2 rounded-full border border-white/[0.09] bg-white/[0.035] px-4 text-[11px] font-semibold text-white/68 transition hover:border-white/16 hover:bg-white/[0.07] hover:text-white"
-        >
-          <span aria-hidden="true">←</span>
-          Back to Event
-        </button>
-
+      <div className="absolute right-3 top-[18px] z-[120] flex items-center gap-2 xl:right-4">
         <div ref={hubRef} className="relative">
           <button
             type="button"
             onClick={() => setHubOpen((current) => !current)}
             className={TOP_CHROME_HUB_BUTTON_CLASS}
           >
-            <span className="h-1.5 w-1.5 rounded-full bg-sky-300/80 shadow-[0_0_8px_rgba(125,211,252,0.34)]" />
-            Jupiter Menu
+            Menu
             <span
               className={`text-[10px] text-sky-50/54 transition-transform duration-150 ${
                 hubOpen ? "rotate-180" : "rotate-0"
@@ -182,14 +168,10 @@ function TopChromeTransmissionShell({
           ) : null}
         </div>
 
-        <div className="h-5 w-px bg-gradient-to-b from-transparent via-white/[0.10] to-transparent" />
-
         <div className={TOP_CHROME_STATUS_PILL_CLASS}>
           <span
             className={`h-1.5 w-1.5 rounded-full ${
-              isLive
-                ? "bg-red-300/78 shadow-[0_0_8px_rgba(252,165,165,0.25)]"
-                : "animate-[producerStandbyPulse_2.6s_ease-in-out_infinite] bg-sky-300/70 shadow-[0_0_8px_rgba(125,211,252,0.18)]"
+              isLive ? "bg-red-300/78" : "bg-emerald-300/78"
             }`}
           />
 
@@ -197,7 +179,7 @@ function TopChromeTransmissionShell({
         </div>
       </div>
 
-      <div className="relative z-10 flex items-start justify-between gap-4 px-0 pb-0">
+      <div className="relative z-10 flex items-start justify-between gap-4 px-0">
         <div className="min-w-0 flex-1">
           {children}
         </div>
@@ -275,9 +257,7 @@ export default function ProducerRoomTopChrome({
   hasProgramSource,
   hasScreenShareRoute,
   lastTakeMode,
-  hotkeySceneLabelText,
   lastTransportActionAt,
-  onTake,
 }: ProducerRoomTopChromeProps): JSX.Element {
   return (
     <TopChromeTransmissionShell eventId={eventId} isLive={isProgramLive}>

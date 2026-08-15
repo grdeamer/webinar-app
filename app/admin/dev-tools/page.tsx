@@ -1,7 +1,17 @@
 import Link from "next/link"
+import type { ReactNode } from "react"
+import { ArrowRight, Check, ExternalLink, ShieldCheck } from "lucide-react"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
+
+const verificationSteps = [
+  "Create the seeded event once.",
+  "Open its attendee page and confirm the countdown.",
+  "Enter the assigned attendee email.",
+  "Review sponsors, agenda, breakouts, posters, and speakers.",
+  "Open the session and verify embedded playback.",
+]
 
 export default async function AdminDevToolsPage(props: {
   searchParams?: Promise<Record<string, string | string[] | undefined>>
@@ -13,158 +23,202 @@ export default async function AdminDevToolsPage(props: {
   const webinarTitle = first(searchParams.webinar) || "Welcome Session"
 
   return (
-    <main className="min-h-screen bg-slate-950 px-6 py-10 text-white lg:px-10">
-      <section className="overflow-hidden rounded-[32px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_28%),radial-gradient(circle_at_bottom_right,rgba(168,85,247,0.16),transparent_26%),linear-gradient(135deg,rgba(2,6,23,1),rgba(15,23,42,0.96),rgba(30,41,59,0.94))] p-7 shadow-2xl shadow-black/25">
-        <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
-          <div>
-            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/10 px-3 py-1 text-xs font-medium text-white/75">
-              Dev Tools · v6 seeding
+    <main className="global-editorial-page mx-auto max-w-[1440px] pb-12">
+      <header className="relative overflow-hidden border-b border-white/10 pb-9 pt-3">
+        <div className="pointer-events-none absolute -right-16 -top-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(70,117,205,.16),rgba(65,40,90,.06)_48%,transparent_72%)] blur-2xl" />
+        <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+          <div className="max-w-4xl">
+            <div className="text-[10px] font-semibold uppercase tracking-[.26em] text-sky-300/70">
+              System / Development tools
             </div>
-            <h1 className="mt-4 text-3xl font-bold tracking-tight lg:text-4xl">Seed a polished event portal flow</h1>
-            <p className="mt-3 max-w-3xl text-sm leading-7 text-white/68">
-              Create an event, attendee, webinar, poster art, autoplay-safe playback URLs, and access assignment in one shot.
-              This is the fastest way to verify the homepage-style landing page, conference portal lobby, and embedded session player.
+            <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-.045em] text-white sm:text-5xl lg:text-6xl">
+              Build the test.<br />Prove the experience.
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-7 text-white/52">
+              Create a complete event path for rehearsal—from attendee access and program content to artwork and playback.
             </p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-3">
-            <StatCard label="Creates" value="Event" />
-            <StatCard label="Seeds" value="Poster" />
-            <StatCard label="Tests" value="Playback" />
+          <div className="grid w-full max-w-md grid-cols-3 border-y border-white/10 py-4 lg:mb-1">
+            <Metric label="Creates" value="Event" />
+            <Metric label="Seeds" value="Portal" />
+            <Metric label="Verifies" value="Playback" />
           </div>
         </div>
-      </section>
+      </header>
 
       {seeded ? (
-        <section className="mt-6 rounded-3xl border border-emerald-400/20 bg-emerald-500/10 p-5 shadow-lg shadow-emerald-950/20">
-          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-            <div>
-              <div className="text-sm font-semibold text-emerald-200">Success — your v6 test flow is ready.</div>
-              <p className="mt-2 text-sm text-emerald-50/90">
-                Seeded event <span className="font-semibold">{eventSlug}</span>, attendee <span className="font-semibold">{userEmail}</span>, and session <span className="font-semibold">{decodeURIComponent(webinarTitle)}</span>.
-              </p>
-              <p className="mt-2 text-xs text-emerald-100/70">
-                Next step: open the event page, enter the attendee email, and verify the landing screen, lobby posters, speaker cards, and embedded watch-now behavior.
-              </p>
+        <section className="mt-6 border-y border-emerald-300/18 bg-emerald-300/[.035] px-1 py-5">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-center lg:justify-between">
+            <div className="flex gap-4">
+              <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-emerald-300/20 bg-emerald-300/[.08] text-emerald-200">
+                <Check size={15} />
+              </span>
+              <div>
+                <div className="font-semibold text-emerald-100">Test event ready</div>
+                <p className="mt-1 text-sm leading-6 text-white/52">
+                  <span className="text-white/80">{eventSlug}</span> is assigned to {userEmail}, with {decodeURIComponent(webinarTitle)} ready for review.
+                </p>
+              </div>
             </div>
-            <div className="flex flex-wrap gap-3">
-              <Link href={`/events/${eventSlug}`} className="rounded-xl bg-emerald-300 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-200">
-                Open seeded event
+            <div className="flex flex-wrap gap-2">
+              <Link href={`/events/${eventSlug}`} className="inline-flex items-center gap-2 rounded-xl bg-emerald-300 px-4 py-2.5 text-sm font-semibold text-[#03100c] transition hover:bg-emerald-200">
+                Open event <ExternalLink size={14} />
               </Link>
-              <Link href={`/events/${eventSlug}/lobby`} className="rounded-xl border border-white/10 bg-white/10 px-4 py-2 text-sm font-medium hover:bg-white/15">
-                Go to lobby
+              <Link href={`/events/${eventSlug}/lobby`} className="inline-flex items-center gap-2 rounded-xl border border-white/12 bg-white/[.035] px-4 py-2.5 text-sm font-medium text-white/72 transition hover:bg-white/[.07] hover:text-white">
+                View lobby
               </Link>
             </div>
           </div>
         </section>
       ) : null}
 
-      <section className="mt-6 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-        <form action="/api/admin/dev-tools/seed" method="post" className="rounded-3xl border border-white/10 bg-white/5 p-6 shadow-xl shadow-black/20">
-          <div className="flex items-start justify-between gap-4">
+      <div className="mt-8 grid gap-10 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <form action="/api/admin/dev-tools/seed" method="post" className="min-w-0">
+          <div className="flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h2 className="text-xl font-semibold">Create seeded event flow</h2>
-              <p className="mt-2 max-w-2xl text-sm text-white/60">
-                Existing event and user records are reused when possible, while a fresh webinar session is added for testing.
-                Add poster art and playback URLs here so your attendee experience feels close to production. v7 also seeds homepage sponsors, agenda, and breakout tiles when the event is empty.
-              </p>
+              <div className="text-[10px] font-semibold uppercase tracking-[.23em] text-white/34">Seed configuration</div>
+              <h2 className="mt-2 text-2xl font-semibold tracking-[-.025em] text-white">One controlled event flow</h2>
             </div>
-            <div className="hidden rounded-2xl border border-white/10 bg-black/20 px-4 py-3 text-right text-xs text-white/50 md:block">
-              Uses your current admin login cookie
+            <div className="flex items-center gap-2 text-xs text-white/38">
+              <ShieldCheck size={15} className="text-emerald-300/65" />
+              Uses your current admin session
             </div>
           </div>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2">
-            <Field label="Event slug" name="eventSlug" defaultValue="test-event" help="URL-friendly event path" />
-            <Field label="Event title" name="eventTitle" defaultValue="Test Event" help="Display name on the homepage and lobby" />
-            <Field label="User email" name="userEmail" defaultValue="attendee@testevent.com" help="Use this to enter the event" />
-            <Field label="Webinar title" name="webinarTitle" defaultValue="Welcome Session" help="Session title shown in the portal" />
-            <Field label="Speaker name(s)" name="speaker" defaultValue="Jane Doe - Keynote Speaker" help="Comma-separated is fine" className="md:col-span-2" />
-            <Field label="Poster / thumbnail URL" name="thumbnailUrl" placeholder="https://.../poster.jpg" help="Shown on the lobby and session page" className="md:col-span-2" />
-            <Field label="Embedded MP4 URL" name="playbackMp4Url" placeholder="https://.../session.mp4" help="Optional direct playback" className="md:col-span-2" />
-            <Field label="Embedded HLS .m3u8 URL" name="playbackM3u8Url" placeholder="https://.../master.m3u8" help="Preferred for live playback when available" className="md:col-span-2" />
-            <Field label="Optional join link" name="joinLink" placeholder="https://example.com/live-room" help="Paste a meeting, stream, or room URL" className="md:col-span-2" />
-          </div>
+          <FormSection number="01" title="Event identity" description="The public name and permanent attendee path.">
+            <Field label="Event title" name="eventTitle" defaultValue="Test Event" help="Displayed throughout the attendee experience" />
+            <Field label="Event slug" name="eventSlug" defaultValue="test-event" help="URL-friendly and permanent" />
+          </FormSection>
 
-          <div className="mt-6 flex flex-wrap gap-3">
-            <button className="rounded-xl bg-white px-5 py-3 text-sm font-semibold text-slate-950 hover:bg-slate-100">
-              Create test user + webinar + assignment
+          <FormSection number="02" title="People and program" description="Create the attendee access record and first session.">
+            <Field label="Attendee email" name="userEmail" defaultValue="attendee@testevent.com" help="Use this address to enter the event" />
+            <Field label="Session title" name="webinarTitle" defaultValue="Welcome Session" help="Shown in the program and portal" />
+            <Field label="Speaker name(s)" name="speaker" defaultValue="Jane Doe - Keynote Speaker" help="Separate multiple speakers with commas" className="md:col-span-2" />
+          </FormSection>
+
+          <FormSection number="03" title="Experience media" description="Optional production assets make the rehearsal behave like a live event.">
+            <Field label="Poster or thumbnail URL" name="thumbnailUrl" placeholder="https://…/poster.jpg" help="Used in the lobby and session detail" className="md:col-span-2" />
+            <Field label="MP4 playback URL" name="playbackMp4Url" placeholder="https://…/session.mp4" help="Direct embedded playback" />
+            <Field label="HLS playback URL" name="playbackM3u8Url" placeholder="https://…/master.m3u8" help="Preferred for live or adaptive playback" />
+            <Field label="Optional room link" name="joinLink" placeholder="https://example.com/live-room" help="Meeting, stream, or external room URL" className="md:col-span-2" />
+          </FormSection>
+
+          <div className="mt-8 flex flex-col gap-4 border-t border-white/10 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <p className="max-w-lg text-xs leading-5 text-white/34">
+              Existing event and attendee records are reused safely. Empty events also receive starter agenda, sponsor, and breakout content.
+            </p>
+            <button className="inline-flex shrink-0 items-center justify-center gap-3 rounded-xl bg-[linear-gradient(90deg,#2274ff,#7654ff)] px-6 py-3.5 text-sm font-semibold text-white shadow-[0_12px_34px_rgba(45,94,230,.22)] transition hover:brightness-110">
+              Build test event <ArrowRight size={16} />
             </button>
-            <Link href="/events/test-event" className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 text-sm hover:bg-white/10">
-              Open default test event
-            </Link>
-          </div>
-
-          <div className="mt-5 rounded-2xl border border-white/10 bg-black/20 p-4 text-xs leading-6 text-white/55">
-            This tool creates or reuses: <span className="text-white/85">event</span>, <span className="text-white/85">user</span>, <span className="text-white/85">global webinar assignment</span>, <span className="text-white/85">event-scoped webinar assignment</span>, seeded <span className="text-white/85">agenda/sponsor/breakout content</span>, and optional <span className="text-white/85">poster/playback fields</span>.
           </div>
         </form>
 
-        <aside className="space-y-4">
-          <InfoCard
-            title="Recommended v6 test flow"
-            items={[
-              "Run this seed once.",
-              "Open the event home page and confirm the countdown block.",
-              "Enter the seeded attendee email.",
-              "Confirm the homepage countdown, sponsor carousel, breakout tiles, lobby posters, and speaker cards.",
-              "Open the session page and test embedded playback.",
-            ]}
-          />
-          <InfoCard
-            title="Good default values"
-            items={[
-              "Event slug: test-event",
-              "Attendee email: attendee@testevent.com",
-              "Speaker: Jane Doe - Keynote Speaker",
-              "Add poster and MP4/HLS URLs when available",
-            ]}
-          />
+        <aside className="xl:border-l xl:border-white/10 xl:pl-8">
+          <div className="sticky top-8">
+            <div className="text-[10px] font-semibold uppercase tracking-[.23em] text-sky-300/62">Verification run</div>
+            <h2 className="mt-3 text-2xl font-semibold tracking-[-.025em] text-white">Follow the signal</h2>
+            <p className="mt-3 text-sm leading-6 text-white/45">A short operator path from seed to working playback.</p>
+
+            <ol className="relative mt-8 space-y-0 before:absolute before:bottom-5 before:left-[15px] before:top-5 before:w-px before:bg-gradient-to-b before:from-sky-400/45 before:via-white/12 before:to-transparent">
+              {verificationSteps.map((step, index) => (
+                <li key={step} className="relative flex gap-4 pb-6 last:pb-0">
+                  <span className="relative z-10 flex h-[31px] w-[31px] shrink-0 items-center justify-center rounded-full border border-sky-300/20 bg-[#07101f] text-[10px] font-semibold text-sky-200/78">
+                    {String(index + 1).padStart(2, "0")}
+                  </span>
+                  <span className="pt-1 text-sm leading-6 text-white/58">{step}</span>
+                </li>
+              ))}
+            </ol>
+
+            <div className="mt-10 border-t border-white/10 pt-6">
+              <div className="text-[10px] font-semibold uppercase tracking-[.22em] text-white/30">Default access</div>
+              <div className="mt-4 space-y-3 text-sm text-white/52">
+                <DetailRow label="Event" value="test-event" />
+                <DetailRow label="Attendee" value="attendee@testevent.com" />
+                <DetailRow label="Speaker" value="Jane Doe" />
+              </div>
+              <Link href="/events/test-event" className="mt-6 inline-flex items-center gap-2 text-sm font-semibold text-sky-300/78 transition hover:text-sky-200">
+                Open default event <ArrowRight size={14} />
+              </Link>
+            </div>
+          </div>
         </aside>
-      </section>
+      </div>
     </main>
   )
 }
 
-function first(v: string | string[] | undefined) {
-  return Array.isArray(v) ? v[0] : v
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
 }
 
-function StatCard({ label, value }: { label: string; value: string }) {
+function Metric({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/20 px-4 py-3">
-      <div className="text-[11px] uppercase tracking-[0.18em] text-white/45">{label}</div>
-      <div className="mt-1 text-lg font-semibold text-white">{value}</div>
+    <div className="border-l border-white/10 px-4 first:border-l-0 first:pl-0 last:pr-0">
+      <div className="text-[9px] font-semibold uppercase tracking-[.2em] text-white/28">{label}</div>
+      <div className="mt-2 text-sm font-semibold text-white/72">{value}</div>
     </div>
   )
 }
 
-function Field({ label, name, defaultValue, placeholder, help, className }: { label: string; name: string; defaultValue?: string; placeholder?: string; help?: string; className?: string }) {
+function FormSection({
+  number,
+  title,
+  description,
+  children,
+}: {
+  number: string
+  title: string
+  description: string
+  children: ReactNode
+}) {
   return (
-    <label className={`grid gap-2 text-sm ${className || ""}`}>
-      <span className="text-white/75">{label}</span>
+    <section className="grid gap-6 border-b border-white/[.08] py-8 lg:grid-cols-[190px_minmax(0,1fr)]">
+      <div>
+        <div className="text-[10px] font-semibold tracking-[.18em] text-sky-300/58">{number}</div>
+        <h3 className="mt-2 text-base font-semibold text-white/82">{title}</h3>
+        <p className="mt-2 text-xs leading-5 text-white/34">{description}</p>
+      </div>
+      <div className="grid gap-x-4 gap-y-5 md:grid-cols-2">{children}</div>
+    </section>
+  )
+}
+
+function Field({
+  label,
+  name,
+  defaultValue,
+  placeholder,
+  help,
+  className,
+}: {
+  label: string
+  name: string
+  defaultValue?: string
+  placeholder?: string
+  help?: string
+  className?: string
+}) {
+  return (
+    <label className={`grid content-start gap-2 ${className || ""}`}>
+      <span className="text-xs font-medium text-white/58">{label}</span>
       <input
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="rounded-2xl border border-white/10 bg-black/30 px-4 py-3 outline-none ring-0 transition focus:border-sky-400/40 focus:bg-black/40"
+        className="h-12 rounded-[11px] border border-white/[.11] bg-[#050a14]/70 px-4 text-sm text-white/86 outline-none transition placeholder:text-white/20 hover:border-white/[.17] focus:border-sky-400/55 focus:bg-[#060c18] focus:shadow-[0_0_0_3px_rgba(56,139,253,.08)]"
       />
-      {help ? <span className="text-xs text-white/45">{help}</span> : null}
+      {help ? <span className="text-[11px] leading-4 text-white/30">{help}</span> : null}
     </label>
   )
 }
 
-function InfoCard({ title, items }: { title: string; items: string[] }) {
+function DetailRow({ label, value }: { label: string; value: string }) {
   return (
-    <div className="rounded-3xl border border-white/10 bg-white/5 p-5 shadow-xl shadow-black/20">
-      <h3 className="text-sm font-semibold text-white/85">{title}</h3>
-      <ul className="mt-3 space-y-2 text-sm text-white/60">
-        {items.map((item) => (
-          <li key={item} className="rounded-xl border border-white/10 bg-black/20 px-3 py-2">
-            {item}
-          </li>
-        ))}
-      </ul>
+    <div className="flex items-baseline justify-between gap-4 border-b border-white/[.07] pb-3">
+      <span className="text-white/32">{label}</span>
+      <span className="truncate text-right font-medium text-white/64">{value}</span>
     </div>
   )
 }

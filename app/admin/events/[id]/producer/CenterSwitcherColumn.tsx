@@ -6,96 +6,43 @@ import type { PreviewBlock } from "./useProducerBlocks";
 import type { ProducerParticipant, StageState } from "./producerRoomTypes";
 import { renderPlacedBlocks } from "./producerRoomBlockHelpers";
 import type { ProducerWorkspaceMode } from "./ProducerModeBar";
+import type { CinematicTransitionType } from "./commandDeckTypes";
 function LiveProductionStatusPanel({
   programState,
   previewProgramDifferent,
   takeBusy,
   isAutoRunning,
-  onTake,
-  onAutoTransition,
 }: {
   programState: StageState | null;
   previewProgramDifferent: boolean;
   takeBusy: boolean;
   isAutoRunning: boolean;
-  onTake: (mode: "cut" | "auto") => void;
-  onAutoTransition: () => void;
 }): JSX.Element {
   const isLive = Boolean(programState?.is_live);
-  const statusValue = isLive ? "Live" : "Standby";
-  const programSourceCount =
-    (programState?.stage_participant_ids?.length ?? 0) +
-    (programState?.screen_share_participant_id ? 1 : 0);
-
-  const statusItems = [
-    { label: "Status", value: statusValue, tone: "red" },
-    {
-      label: "Preview",
-      value: previewProgramDifferent ? "Ready" : "Matched",
-      tone: previewProgramDifferent ? "neutral" : "green",
-    },
-    {
-      label: "Program",
-      value: programSourceCount > 0 ? `${programSourceCount} source${programSourceCount === 1 ? "" : "s"}` : "Waiting",
-      tone: programSourceCount > 0 ? "green" : "neutral",
-    },
-  ];
+  const transitionState = takeBusy || isAutoRunning ? "Transitioning" : "Ready";
 
   return (
-    <section className="relative overflow-hidden border-b border-white/[0.045] bg-[linear-gradient(180deg,rgba(7,12,22,0.74),rgba(3,6,12,0.88))] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-      <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.025)_0px,rgba(255,255,255,0.025)_1px,transparent_1px,transparent_28px)]" />
-
-      <div className="relative z-10 flex items-center gap-2">
-        <div className="flex shrink-0 items-center gap-2 rounded-full border border-white/[0.045] bg-white/[0.016] px-2.5 py-1">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,0.45)]" />
-          <span className="text-[8px] font-black uppercase tracking-[0.14em] text-white/48">
-            Live Production
-          </span>
+    <section className="shrink-0 border-b border-white/[0.08] bg-[#060a12] px-2 py-1.5">
+      <div className="grid grid-cols-[1fr_24px_1fr_24px_1fr] items-center rounded-[8px] border border-white/[0.09] bg-[#090e18] px-2 py-1.5 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+        <div className="min-w-0 px-2">
+          <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-sky-200/82">1 · Preview</div>
+          <div className="truncate text-[11px] font-semibold text-white/76">
+            {previewProgramDifferent ? "Prepared and ready" : "Matches Program"}
+          </div>
         </div>
-
-        <div className="grid min-w-0 flex-1 grid-cols-3 gap-1.5">
-          {statusItems.map((item) => (
-            <div
-              key={item.label}
-              className="flex min-w-0 items-center gap-1.5 rounded-[9px] border border-white/[0.04] bg-white/[0.014] px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.010)]"
-            >
-              <span
-                className={`h-1.5 w-1.5 shrink-0 rounded-full ${
-                  item.tone === "red"
-                    ? "bg-red-300 shadow-[0_0_6px_rgba(248,113,113,0.36)]"
-                    : item.tone === "green"
-                      ? "bg-emerald-300 shadow-[0_0_6px_rgba(52,211,153,0.30)]"
-                      : "bg-white/30"
-                }`}
-              />
-              <span className="truncate text-[7px] font-black uppercase tracking-[0.10em] text-white/24">
-                {item.label}
-              </span>
-              <span className="ml-auto truncate text-[9px] font-semibold tracking-[-0.03em] text-white/66">
-                {item.value}
-              </span>
-            </div>
-          ))}
+        <div className="text-center text-xs text-white/18" aria-hidden="true">→</div>
+        <div className="min-w-0 border-x border-white/[0.06] px-2 text-center">
+          <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/48">2 · Take</div>
+          <div className={`truncate text-[11px] font-semibold ${takeBusy || isAutoRunning ? "text-amber-200/88" : "text-white/76"}`}>
+            {transitionState}
+          </div>
         </div>
-
-        <div className="flex shrink-0 items-center gap-1.5">
-          <button
-            type="button"
-            onClick={() => onTake("cut")}
-            disabled={takeBusy || !previewProgramDifferent}
-            className="h-8 rounded-[10px] border border-red-300/18 bg-[linear-gradient(180deg,rgba(127,29,29,0.76),rgba(69,10,10,0.92))] px-3 text-[9px] font-black uppercase tracking-[0.10em] text-red-50/82 shadow-[0_0_16px_rgba(239,68,68,0.10),inset_0_1px_0_rgba(255,255,255,0.035)] transition hover:-translate-y-px disabled:opacity-40"
-          >
-            Cut
-          </button>
-
-          <button
-            type="button"
-            onClick={onAutoTransition}
-            disabled={takeBusy || isAutoRunning || !previewProgramDifferent}
-            className="h-8 rounded-[10px] border border-white/[0.06] bg-white/[0.020] px-3 text-[9px] font-black uppercase tracking-[0.10em] text-white/50 shadow-[inset_0_1px_0_rgba(255,255,255,0.014)] transition hover:-translate-y-px hover:bg-white/[0.035] disabled:opacity-40"
-          >
-            Auto
-          </button>
+        <div className="text-center text-xs text-white/18" aria-hidden="true">→</div>
+        <div className="min-w-0 px-2 text-right">
+          <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-red-200/84">3 · Program</div>
+          <div className={`truncate text-[11px] font-semibold ${isLive ? "text-red-100/92" : "text-white/68"}`}>
+            {isLive ? "Live to audience" : "Standing by"}
+          </div>
         </div>
       </div>
     </section>
@@ -242,28 +189,14 @@ function SwitcherSurfaceChrome({
 }): JSX.Element {
   return (
     <div
-      className={`relative flex h-full flex-col overflow-hidden rounded-[18px] border p-0.5 shadow-[0_14px_42px_rgba(0,0,0,0.24),inset_0_1px_0_rgba(255,255,255,0.030)] transition-all duration-700 xl:p-1 ${
+      className={`relative flex h-full flex-col overflow-hidden rounded-[10px] border shadow-[0_12px_32px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-300 ${
         live
-          ? "border-red-300/10 bg-[radial-gradient(circle_at_top,rgba(239,68,68,0.046),transparent_42%),linear-gradient(180deg,rgba(10,13,22,0.94),rgba(3,5,11,0.985))]"
+          ? "border-red-300/14 bg-[#05080f]"
           : armed
-            ? "border-amber-300/8 bg-[radial-gradient(circle_at_top,rgba(251,191,36,0.024),transparent_42%),linear-gradient(180deg,rgba(10,13,22,0.92),rgba(3,5,11,0.982))]"
-            : "border-white/5 bg-[linear-gradient(180deg,rgba(10,13,22,0.90),rgba(3,5,11,0.978))]"
+            ? "border-sky-300/13 bg-[#05080f]"
+            : "border-white/[0.07] bg-[#05080f]"
       }`}
     >
-      <div className="pointer-events-none absolute inset-x-8 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.004)_42%,transparent_64%)] animate-[switcherSurfaceSweep_42s_ease-in-out_infinite]" />
-      <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.012)_0px,rgba(255,255,255,0.012)_1px,transparent_1px,transparent_14px)]" />
-      <div className="pointer-events-none absolute inset-0 rounded-[22px] shadow-[inset_0_0_24px_rgba(0,0,0,0.18)]" />
-
-      {armed ? (
-        <div className="pointer-events-none absolute inset-x-12 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-200/16 to-transparent animate-[switcherArmedRail_4s_ease-in-out_infinite]" />
-      ) : null}
-
-      {live ? (
-        <div className="pointer-events-none absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/20 to-transparent animate-[switcherLiveRail_4s_ease-in-out_infinite]" />
-      ) : null}
-
-      <div className="pointer-events-none absolute left-1/2 top-0 h-full w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/5 to-transparent" />
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">{children}</div>
     </div>
   );
@@ -561,7 +494,11 @@ export default function CenterSwitcherColumn({
   previewProgramDifferent: boolean;
   takeBusy: boolean;
   lastTakeMode: "cut" | "auto";
-  onTake: (mode: "cut" | "auto") => void;
+  onTake: (
+    mode: "cut" | "auto",
+    transitionType?: CinematicTransitionType,
+    transitionDurationMs?: number,
+  ) => void;
   onPreviewCanvasMouseMove: (e: React.MouseEvent<HTMLDivElement>) => void;
   stopDraggingBlock: () => void;
   onClearSelectedBlock: () => void;
@@ -640,11 +577,16 @@ export default function CenterSwitcherColumn({
     type: PreviewBlock["type"];
   } | null>(null);
   const previewPaneRounded = Math.round(previewPanePercent);
-  const programPaneRounded = 100 - previewPaneRounded;
   const selectedTransition =
     SWITCHER_TRANSITION_PRESETS.find(
       (preset) => preset.value === selectedTransitionPreset,
     ) ?? SWITCHER_TRANSITION_PRESETS[0];
+  const selectedTransitionType: CinematicTransitionType =
+    selectedTransitionPreset === "warp"
+      ? "warp"
+      : selectedTransitionPreset === "dip"
+        ? "curtain"
+        : "fade";
 
   useEffect(() => {
     const storedValue = window.localStorage.getItem(
@@ -790,7 +732,7 @@ export default function CenterSwitcherColumn({
     setIsAutoRunning(true);
 
     window.setTimeout(() => {
-      onTake("auto");
+      onTake("auto", selectedTransitionType, transitionDuration * 1000);
     }, 260);
 
     window.setTimeout(() => {
@@ -888,23 +830,16 @@ export default function CenterSwitcherColumn({
         previewProgramDifferent={previewProgramDifferent}
         takeBusy={takeBusy}
         isAutoRunning={isAutoRunning}
-        onTake={onTake}
-        onAutoTransition={runAutoTransition}
       />
 
-      <div className="min-h-0 overflow-hidden">
+      <div className="flex min-h-0 flex-1 overflow-hidden">
         <SwitcherSurfaceChrome
           armed={previewProgramDifferent}
           live={Boolean(programState?.is_live)}
         >
-        <div className="relative mb-1 flex items-center justify-between gap-2 px-1 py-0.5">
+        <div className="relative flex h-7 shrink-0 items-center justify-between gap-2 border-b border-white/[0.07] px-2.5">
           <div className="relative z-10">
-            <div className="text-[8px] font-black uppercase tracking-[0.12em] text-white/18">
-              Live Production Switcher
-            </div>
-            <div className="mt-px text-[10px] font-semibold tracking-[-0.02em] text-white/24">
-              Preview, transition, and program output.
-            </div>
+            <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/54">Live switcher</div>
           </div>
 
           {workspaceMode !== "show" ? (
@@ -912,7 +847,7 @@ export default function CenterSwitcherColumn({
             <button
               type="button"
               onClick={() => setShowCompositionGuides((current) => !current)}
-              className={`rounded-full border px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] transition hover:-translate-y-px ${
+              className={`rounded-[6px] border px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] transition ${
                 showCompositionGuides
                   ? "border-sky-300/18 bg-sky-400/[0.06] text-sky-100/58 shadow-[0_0_10px_rgba(56,189,248,0.08)]"
                   : "border-white/5 bg-white/[0.018] text-white/28 hover:border-white/10 hover:text-white/44"
@@ -925,14 +860,14 @@ export default function CenterSwitcherColumn({
             <button
               type="button"
               onClick={addCameraSlotBlock}
-              className="rounded-full border border-violet-300/16 bg-violet-400/[0.07] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-violet-100/58 shadow-[0_0_10px_rgba(168,85,247,0.08)] transition hover:-translate-y-px hover:border-violet-200/24 hover:bg-violet-400/[0.10] hover:text-violet-50/76"
+              className="rounded-[6px] border border-white/[0.08] bg-white/[0.025] px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] text-white/48 transition hover:border-sky-200/18 hover:text-white/72"
               title="Add a persistent camera placeholder slot"
             >
               + Camera Slot
             </button>
 
             {workspaceMode === "advanced" ? (
-              <div className="rounded-full border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-white/28">
+              <div className="rounded-[6px] border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] text-white/28">
                 Monitor · {confidenceMonitorMode}
               </div>
             ) : null}
@@ -942,41 +877,30 @@ export default function CenterSwitcherColumn({
 
 <div
   ref={switcherGridRef}
-  className="relative grid h-[clamp(420px,62vh,980px)] min-h-0 items-stretch gap-0"
+  className="relative grid min-h-[380px] flex-1 items-stretch gap-2 p-2"
   style={{
-    gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) 92px minmax(0, ${100 - previewPanePercent}fr)`,
+    gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) clamp(104px,8vw,132px) minmax(0, ${100 - previewPanePercent}fr)`,
   }}
 >
-          <div className="pointer-events-none absolute inset-y-3 left-1/2 z-20 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/8 to-transparent" />
-          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-l-[18px] border-y border-l border-sky-300/16 bg-[linear-gradient(180deg,rgba(8,18,32,0.94),rgba(2,7,16,0.985))] p-0 shadow-[0_0_0_1px_rgba(56,189,248,0.035),0_10px_32px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.026)]">
-            <div className="flex h-9 items-center justify-between border-b border-sky-300/16 bg-[linear-gradient(180deg,rgba(56,189,248,0.055),rgba(2,7,16,0.10))] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-sky-200/78">
-              <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-sky-300/62 shadow-[0_0_6px_rgba(125,211,252,0.18)]" />
-                Preview
-              </span>
+          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[9px] border border-sky-300/42 bg-[#06101c] p-0 shadow-[0_0_0_1px_rgba(56,189,248,0.06),0_12px_32px_rgba(0,0,0,0.28)]">
+            <div className="flex h-10 items-center justify-between border-b border-sky-300/28 bg-[#081827] px-3 text-[11px] font-bold uppercase tracking-[0.11em] text-sky-100/92">
+              <span>Preview</span>
               <span
-                className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] ${
+                className={`inline-flex items-center rounded-[5px] border px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] ${
                   previewProgramDifferent
                     ? "border-amber-300/18 bg-amber-400/[0.06] text-amber-100/62"
                     : "border-sky-300/12 bg-sky-400/[0.04] text-sky-100/46"
                 }`}
               >
-                <span
-                  className={`h-1.5 w-1.5 rounded-full ${
-                    previewProgramDifferent
-                      ? "bg-amber-300/78 shadow-[0_0_6px_rgba(252,211,77,0.28)]"
-                      : "bg-sky-300/62 shadow-[0_0_5px_rgba(125,211,252,0.18)]"
-                  }`}
-                />
-                {previewProgramDifferent ? "Ready" : "Sync"}
+                {previewProgramDifferent ? "Ready to take" : "Matched"}
               </span>
             </div>
 
             <div
-              className={`relative min-h-0 flex-1 overflow-hidden rounded-b-[18px] border-0 bg-[radial-gradient(circle_at_50%_42%,rgba(24,36,58,0.94)_0%,rgba(9,17,32,0.985)_58%,rgba(2,7,16,0.998)_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-b-[18px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.040),transparent_13%,transparent_72%,rgba(255,255,255,0.018)),radial-gradient(circle_at_50%_0%,rgba(125,211,252,0.070),transparent_38%)] before:opacity-70 ${
+              className={`relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(20,30,48,0.94)_0%,rgba(7,14,27,0.99)_62%,rgba(2,6,13,1)_100%)] transition-shadow duration-300 ${
                 previewProgramDifferent
-                  ? "shadow-[0_0_0_1px_rgba(251,191,36,0.08),0_0_28px_rgba(251,191,36,0.08),0_22px_64px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.050)]"
-                  : "shadow-[0_0_0_1px_rgba(125,211,252,0.06),0_0_24px_rgba(56,189,248,0.06),0_20px_56px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.050)]"
+                  ? "shadow-[inset_0_0_0_1px_rgba(125,211,252,0.10)]"
+                  : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]"
               }`}
               onMouseMove={onPreviewCanvasMouseMove}
               onMouseUp={stopDraggingBlock}
@@ -991,7 +915,7 @@ export default function CenterSwitcherColumn({
               onClick={onClearSelectedBlock}
             >
               <div
-                className={`pointer-events-none absolute inset-0 z-[8] rounded-b-[18px] border transition-all duration-200 ${
+                className={`pointer-events-none absolute inset-0 z-[8] border transition-all duration-200 ${
                   previewDropActive
                     ? "border-sky-300/34 bg-sky-400/[0.035] shadow-[inset_0_0_44px_rgba(56,189,248,0.12),0_0_34px_rgba(56,189,248,0.08)]"
                     : "border-sky-300/0"
@@ -1034,7 +958,7 @@ export default function CenterSwitcherColumn({
                 snapGuideY={snapGuideY}
               />
 
-              <div className="pointer-events-none absolute inset-0 z-10 rounded-b-[18px] shadow-[inset_0_0_18px_rgba(0,0,0,0.58),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
+              <div className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_18px_rgba(0,0,0,0.58),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-10 bg-gradient-to-b from-black/22 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/22 to-transparent" />
 
@@ -1105,11 +1029,7 @@ export default function CenterSwitcherColumn({
             aria-valuemax={68}
             aria-valuenow={previewPaneRounded}
           >
-            <div className="relative flex w-full flex-col overflow-hidden rounded-[14px] border border-white/7 bg-[linear-gradient(180deg,rgba(15,23,36,0.86),rgba(4,7,13,0.965))] shadow-[0_10px_26px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.024)] backdrop-blur-md transition-all duration-300 group-hover:border-white/11">
-              <div className="pointer-events-none absolute inset-y-8 left-0 w-px bg-gradient-to-b from-transparent via-sky-300/16 to-transparent opacity-60" />
-              <div className="pointer-events-none absolute inset-y-8 right-0 w-px bg-gradient-to-b from-transparent via-red-300/16 to-transparent opacity-60" />
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.006)_42%,transparent_64%)] opacity-30 transition-opacity duration-300 group-hover:opacity-60" />
-              <div className="pointer-events-none absolute inset-y-10 left-1/2 z-0 w-px -translate-x-1/2 bg-gradient-to-b from-transparent via-white/8 to-transparent opacity-22" />
+              <div className="relative flex w-full flex-col overflow-hidden rounded-[9px] border border-white/[0.12] bg-[#0a101a] shadow-[0_12px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-200 group-hover:border-white/[0.20]">
               <div className="pointer-events-none absolute left-1/2 top-10 z-30 flex h-9 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-white/8 bg-white/[0.016] opacity-28 shadow-[0_0_10px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.014)] backdrop-blur-md transition-opacity duration-300 group-hover:opacity-60">
                 <div className="flex flex-col gap-1">
                   {Array.from({ length: 4 }).map((_, index) => (
@@ -1131,11 +1051,11 @@ export default function CenterSwitcherColumn({
                   ))}
                 </div>
               </div>
-              <div className="relative z-20 flex h-7 items-center justify-center border-b border-white/6 px-1 text-[7px] font-black uppercase tracking-[0.08em] text-sky-100/40">
-                <span className="relative z-10">Transition</span>
+              <div className="relative z-20 flex h-10 items-center justify-center border-b border-white/[0.08] px-1 text-[9px] font-bold uppercase tracking-[0.10em] text-white/60">
+                <span className="relative z-10">Take</span>
               </div>
 
-              <div className="relative z-20 flex flex-1 flex-col justify-center gap-3 px-2 py-3">
+              <div className="relative z-20 flex flex-1 flex-col justify-center gap-3 px-2.5 py-3">
                 <button
                   type="button"
                   onMouseDown={(event) => event.stopPropagation()}
@@ -1144,21 +1064,21 @@ export default function CenterSwitcherColumn({
                     runAutoTransition();
                   }}
                   disabled={takeBusy || isAutoRunning || !previewProgramDifferent}
-                  className={`relative min-h-[62px] rounded-[14px] border text-center transition-all duration-200 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 ${
+                  className={`relative min-h-[86px] rounded-[9px] border text-center transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
                     previewProgramDifferent
-                      ? "border-sky-300/22 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.12),transparent_56%),linear-gradient(180deg,rgba(255,255,255,0.060),rgba(255,255,255,0.018))] text-sky-100/82 shadow-[0_0_18px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.045)]"
-                      : "border-white/8 bg-white/[0.025] text-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.024)]"
+                      ? "border-sky-200/48 bg-[#0f4d91] text-white shadow-[0_0_22px_rgba(37,99,235,0.20),inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-[#145ca8]"
+                      : "border-white/10 bg-white/[0.035] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                   }`}
                 >
-                  <span className="block text-base font-semibold tracking-[-0.04em]">
+                  <span className="block text-xl font-bold tracking-[0.03em]">
                     {isAutoRunning ? "RUN" : "TAKE"}
                   </span>
-                  <span className="mt-0.5 block text-[9px] font-black uppercase tracking-[0.08em] text-sky-200/58">
-                    Auto
+                  <span className="mt-0.5 block text-[8px] font-bold uppercase tracking-[0.10em] text-sky-100/62">
+                    {selectedTransition.label}
                   </span>
                 </button>
 
-                <div className="h-1.5 overflow-hidden rounded-full bg-white/7">
+                <div className="h-1 overflow-hidden rounded-full bg-white/7">
                   <div
                     className={`h-full rounded-full bg-sky-300 shadow-[0_0_10px_rgba(56,189,248,0.28)] transition-all duration-700 ${
                       isAutoRunning ? "w-full" : "w-[46%]"
@@ -1166,7 +1086,7 @@ export default function CenterSwitcherColumn({
                   />
                 </div>
 
-                <label className="relative z-20 block rounded-[13px] border border-white/7 bg-white/[0.022] px-2.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] transition hover:border-white/11 hover:bg-white/[0.034]">
+                <label className="relative z-20 block rounded-[7px] border border-white/[0.08] bg-white/[0.025] px-2 py-2 text-left transition hover:border-white/[0.14] hover:bg-white/[0.04]">
                   <span className="pointer-events-none flex items-center justify-between gap-1">
                     <span className="text-[11px] font-semibold text-white/70">
                       {selectedTransition.label}
@@ -1271,10 +1191,10 @@ export default function CenterSwitcherColumn({
                   onMouseDown={(event) => event.stopPropagation()}
                   onClick={(event) => {
                     event.stopPropagation();
-                    onTake("cut");
+                    onTake("cut", undefined, 0);
                   }}
                   disabled={takeBusy || !previewProgramDifferent}
-                  className={`min-h-[46px] rounded-[12px] border text-sm font-semibold tracking-[-0.03em] transition-all duration-200 hover:-translate-y-px active:translate-y-0 disabled:cursor-not-allowed disabled:opacity-45 ${
+                  className={`min-h-[42px] rounded-[7px] border text-xs font-bold tracking-[0.04em] transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
                     previewProgramDifferent
                       ? "border-sky-300/18 bg-white/[0.045] text-sky-100/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
                       : "border-white/8 bg-white/[0.022] text-white/32"
@@ -1286,37 +1206,22 @@ export default function CenterSwitcherColumn({
             </div>
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-7 -translate-x-1/2 rounded-full bg-white/[0.010] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
           </div>
-          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-r-[18px] border-y border-r border-red-300/16 bg-[linear-gradient(180deg,rgba(33,14,18,0.92),rgba(8,3,7,0.985))] p-0 shadow-[0_0_0_1px_rgba(248,113,113,0.035),0_10px_32px_rgba(0,0,0,0.28),0_0_12px_rgba(239,68,68,0.028),inset_0_1px_0_rgba(255,255,255,0.026)]">
-            <div className="flex h-9 items-center justify-between border-b border-red-300/16 bg-[linear-gradient(180deg,rgba(248,113,113,0.046),rgba(16,4,8,0.10))] px-3 text-[10px] font-black uppercase tracking-[0.12em] text-red-200/82">
-              <span className="flex items-center gap-2">
-                <span className="h-1.5 w-1.5 rounded-full bg-red-300/70 shadow-[0_0_6px_rgba(248,113,113,0.20)]" />
-                Program
-              </span>
-              <span className="inline-flex items-center gap-1.5 rounded-full border border-red-300/14 bg-red-500/[0.055] px-2 py-0.5 text-[8px] font-black uppercase tracking-[0.08em] text-red-100/60">
-                <span className="relative flex h-1.5 w-1.5 items-center justify-center">
-                  {programState?.is_live ? (
-                    <span className="absolute inset-0 animate-ping rounded-full bg-red-300/50" />
-                  ) : null}
-                  <span
-                    className={`relative h-1.5 w-1.5 rounded-full ${
-                      programState?.is_live
-                        ? "bg-red-300/82 shadow-[0_0_6px_rgba(248,113,113,0.28)]"
-                        : "bg-white/28"
-                    }`}
-                  />
-                </span>
+          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[9px] border border-red-300/42 bg-[#14090d] p-0 shadow-[0_0_0_1px_rgba(248,113,113,0.05),0_12px_32px_rgba(0,0,0,0.28)]">
+            <div className="flex h-10 items-center justify-between border-b border-red-300/28 bg-[#1d0c12] px-3 text-[11px] font-bold uppercase tracking-[0.11em] text-red-100/94">
+              <span>Program</span>
+              <span className="inline-flex items-center rounded-[5px] border border-red-300/18 bg-red-500/[0.06] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-red-100/70">
                 {programState?.is_live ? "Live" : "Hold"}
               </span>
             </div>
 
             <div
-              className={`relative min-h-0 flex-1 overflow-hidden rounded-b-[18px] border-0 bg-[radial-gradient(circle_at_50%_44%,rgba(31,18,24,0.985)_0%,rgba(12,7,13,0.995)_62%,rgba(3,2,5,0.998)_100%)] transition-all duration-300 before:pointer-events-none before:absolute before:inset-0 before:z-[9] before:rounded-b-[18px] before:bg-[linear-gradient(180deg,rgba(255,255,255,0.042),transparent_14%,transparent_72%,rgba(255,255,255,0.018)),radial-gradient(circle_at_50%_0%,rgba(248,113,113,0.076),transparent_42%)] before:opacity-72 ${
+              className={`relative min-h-0 flex-1 overflow-hidden border-0 bg-[radial-gradient(circle_at_50%_44%,rgba(29,16,21,0.985)_0%,rgba(10,6,10,0.998)_65%,rgba(3,2,4,1)_100%)] transition-shadow duration-300 ${
                 isTransitioning
-                  ? "shadow-[0_0_0_1px_rgba(255,255,255,0.10),0_0_42px_rgba(255,255,255,0.07),0_22px_64px_rgba(0,0,0,0.62),inset_0_1px_0_rgba(255,255,255,0.052)]"
-                  : "shadow-[0_0_0_1px_rgba(248,113,113,0.075),0_0_30px_rgba(239,68,68,0.075),0_20px_56px_rgba(0,0,0,0.52),inset_0_1px_0_rgba(255,255,255,0.050)]"
+                  ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]"
+                  : "shadow-[inset_0_0_0_1px_rgba(248,113,113,0.08)]"
               }`}
             >
-              <div className="pointer-events-none absolute inset-0 z-10 rounded-b-[18px] shadow-[inset_0_0_36px_rgba(0,0,0,0.60),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
+              <div className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_30px_rgba(0,0,0,0.60),inset_0_0_0_1px_rgba(255,255,255,0.025)]" />
               {takeFlashVisible ? (
                 <div className="pointer-events-none absolute inset-0 z-[70] bg-white/38 mix-blend-screen animate-pulse" />
               ) : null}
@@ -1337,8 +1242,8 @@ export default function CenterSwitcherColumn({
               <div className="relative z-10 h-full">
                 {!programState?.stage_participant_ids?.length &&
                 !programBlocks.some((block) => !block.hidden) ? (
-                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-[radial-gradient(circle_at_center,rgba(248,113,113,0.08),transparent_48%)]">
-                    <div className="rounded-[18px] border border-red-200/12 bg-black/42 px-5 py-4 text-center shadow-[0_16px_44px_rgba(0,0,0,0.32),0_0_16px_rgba(248,113,113,0.06),inset_0_1px_0_rgba(255,255,255,0.032)] backdrop-blur-md">
+                  <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+                    <div className="rounded-[8px] border border-white/[0.10] bg-black/44 px-5 py-4 text-center shadow-[0_14px_36px_rgba(0,0,0,0.32)] backdrop-blur-md">
                       <div className="text-[9px] font-black uppercase tracking-[0.16em] text-red-100/42">
                         Program Idle
                       </div>
@@ -1461,47 +1366,6 @@ export default function CenterSwitcherColumn({
           }
         }
 
-        @keyframes switcherSurfaceSweep {
-          0%,
-          100% {
-            opacity: 0;
-            transform: translateX(-18%);
-          }
-
-          46% {
-            opacity: 0.035;
-          }
-
-          100% {
-            transform: translateX(18%);
-          }
-        }
-
-        @keyframes switcherArmedRail {
-          0%,
-          100% {
-            opacity: 0.2;
-            transform: scaleX(0.72);
-          }
-
-          50% {
-            opacity: 0.24;
-            transform: scaleX(1);
-          }
-        }
-
-        @keyframes switcherLiveRail {
-          0%,
-          100% {
-            opacity: 0.25;
-            transform: translateY(0);
-          }
-
-          50% {
-            opacity: 0.28;
-            transform: translateY(8px);
-          }
-        }
         @keyframes switcherRailSweep {
           0%,
           100% {

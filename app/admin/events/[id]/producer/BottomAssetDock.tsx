@@ -65,7 +65,7 @@ function AssetRundownStrip({ asset }: { asset: BroadcastAssetTelemetry }): JSX.E
   )
 }
 
-type RecordingStatus = "idle" | "armed" | "starting" | "recording" | "stopped"
+export type RecordingStatus = "idle" | "armed" | "starting" | "recording" | "stopped"
 
 type RecordingSession = {
   id: string
@@ -127,6 +127,9 @@ import {
 import type { ProducerWorkspaceMode } from "./ProducerModeBar"
 
 import type { PreviewBlock } from "./useProducerBlocks"
+import ProductionControlsDrawer, {
+  type ProductionDrawerTab,
+} from "./ProductionControlsDrawer"
 
 function percentToDb(level: number): number {
   const normalized = Math.max(0, Math.min(1, level / 100))
@@ -1044,6 +1047,106 @@ selected
       </div>
       <AssetHoverIntelligence asset={asset} />
     </button>
+  )
+}
+
+function SourceLibraryCard({
+  asset,
+  selected,
+  inPreview,
+  onSelect,
+  onSendToPreview,
+}: {
+  asset: BroadcastAssetTelemetry
+  selected: boolean
+  inPreview: boolean
+  onSelect: () => void
+  onSendToPreview?: () => void
+}): JSX.Element {
+  const icon =
+    asset.type === "video" ? (
+      <Video size={18} />
+    ) : asset.type === "audio" ? (
+      <Music2 size={18} />
+    ) : asset.type === "live" ? (
+      <Radio size={18} />
+    ) : (
+      <Image size={18} />
+    )
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      onDoubleClick={onSendToPreview}
+      title="Select source. Double-click to send directly to Preview."
+      className={`group flex min-h-[126px] min-w-0 flex-col overflow-hidden rounded-[10px] border text-left transition ${
+        selected
+          ? "border-sky-300/50 bg-sky-400/[0.09] shadow-[0_0_0_1px_rgba(125,211,252,0.10),0_8px_20px_rgba(0,0,0,0.22)]"
+          : "border-white/[0.09] bg-[#0a101b] hover:border-white/[0.18] hover:bg-[#0d1523]"
+      }`}
+    >
+      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.07] bg-[#070e18] text-white/34">
+        {asset.imageUrl ? (
+          <img
+            src={asset.imageUrl}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-82 transition duration-300 group-hover:scale-[1.02]"
+          />
+        ) : (
+          icon
+        )}
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-white/[0.025]" />
+        <span className="absolute bottom-1.5 left-1.5 rounded-[4px] border border-white/10 bg-black/70 px-1.5 py-0.5 text-[7px] font-semibold uppercase tracking-[0.08em] text-white/76">
+          {asset.type}
+        </span>
+        {inPreview ? (
+          <span className="absolute right-1.5 top-1.5 rounded-[4px] border border-sky-200/22 bg-sky-500/20 px-1.5 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] text-sky-50/90">
+            PVW
+          </span>
+        ) : null}
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate text-[10px] font-semibold tracking-[-0.01em] text-white/88">
+            {asset.label}
+          </span>
+          <span className="shrink-0 text-[8px] font-medium tabular-nums text-white/34">{asset.duration}</span>
+        </div>
+        <span className="mt-1 truncate text-[8px] text-white/38">
+          {asset.meta} · {asset.linkedScene === "Unassigned" ? "Ready" : asset.linkedScene}
+        </span>
+      </div>
+    </button>
+  )
+}
+
+function CompactAudioMeter({
+  label,
+  level,
+}: {
+  label: string
+  level: number
+}): JSX.Element {
+  const normalized = Math.max(2, Math.min(96, level))
+
+  return (
+    <div className="min-w-0 rounded-[9px] border border-white/[0.07] bg-[#080d16] px-2.5 py-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.018)]">
+      <div className="flex items-center justify-between gap-2">
+        <span className="truncate text-[8px] font-bold uppercase tracking-[0.10em] text-white/58">{label}</span>
+        <span className="text-[8px] font-medium tabular-nums text-white/36">{dbLabelFromPercent(normalized)}</span>
+      </div>
+      <div className="relative mt-2 h-2 overflow-hidden rounded-[3px] bg-white/[0.06]">
+        <div className="absolute inset-y-0 left-0 w-[72%] bg-emerald-400/[0.10]" />
+        <div className="absolute inset-y-0 left-[72%] w-[18%] bg-amber-300/[0.10]" />
+        <div className="absolute inset-y-0 right-0 w-[10%] bg-red-400/[0.12]" />
+        <div
+          className="absolute inset-y-0 left-0 rounded-[3px] bg-gradient-to-r from-emerald-500 via-emerald-300 via-[72%] to-amber-300 shadow-[0_0_10px_rgba(52,211,153,0.18)] transition-[width] duration-100"
+          style={{ width: `${normalized}%` }}
+        />
+      </div>
+    </div>
   )
 }
 
@@ -1987,12 +2090,15 @@ const [hoverPreviewAssetLabel, setHoverPreviewAssetLabel] = useState<string | nu
 const [transitioningAssetLabel, setTransitioningAssetLabel] = useState<string | null>(null)
 const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
 
-  function buildPreviewBlockFromAsset(asset: BroadcastAssetTelemetry): PreviewBlock {
+  function buildPreviewBlockFromAsset(
+    asset: BroadcastAssetTelemetry,
+    blockId: string,
+  ): PreviewBlock {
     const blockType: PreviewBlock["type"] =
       asset.type === "graphic" ? "image" : asset.type === "video" ? "video" : "text"
 
     return {
-      id: `drag-asset-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      id: blockId,
       type: blockType,
       x: 24,
       y: 24,
@@ -2078,7 +2184,10 @@ const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
   onDragStart={(event) => {
     if (asset.type === "audio" || asset.type === "live") return
 
-    const block = buildPreviewBlockFromAsset(asset)
+    const block = buildPreviewBlockFromAsset(
+      asset,
+      `drag-asset-${crypto.randomUUID()}`,
+    )
 
     event.dataTransfer.effectAllowed = "copy"
     event.dataTransfer.setData("application/x-jupiter-preview-block", JSON.stringify(block))
@@ -2601,6 +2710,10 @@ export default function BottomAssetDock({
   onDoubleClickScene,
   onDeleteScene,
   onRenameScene,
+  previewProgramDifferent,
+  takeBusy,
+  onTakeProgram,
+  onRecordingHealthChange,
 }: {
   workspaceMode: ProducerWorkspaceMode
   scenes: SceneSummary[]
@@ -2624,10 +2737,13 @@ export default function BottomAssetDock({
   onDoubleClickScene?: (sceneId: string) => void
   onDeleteScene?: (sceneId: string) => void
   onRenameScene?: (sceneId: string, nextName: string) => void
+  previewProgramDifferent: boolean
+  takeBusy: boolean
+  onTakeProgram?: (mode: "cut" | "auto") => Promise<boolean>
+  onRecordingHealthChange?: (status: RecordingStatus, error: string | null) => void
 }): JSX.Element {
   const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
-  const [expandedMixerOpen, setExpandedMixerOpen] = useState(false)
-  const [expandedRecordingOpen, setExpandedRecordingOpen] = useState(false)
+  const [productionDrawerTab, setProductionDrawerTab] = useState<ProductionDrawerTab | null>(null)
   const [expandedMediaOpen, setExpandedMediaOpen] = useState(false)
   const mediaImportInputRef = useRef<HTMLInputElement | null>(null)
   const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
@@ -2659,6 +2775,7 @@ const [mediaAssetEditDraft, setMediaAssetEditDraft] = useState<MediaAssetEditDra
   trigger: "",
 })
   const [takeFlashActive, setTakeFlashActive] = useState(false)
+  const [dockTakeBusy, setDockTakeBusy] = useState(false)
 function handleSendSelectedMediaAssetToPreview(): void {
   const targetLabel =
     selectedMediaAsset?.label ??
@@ -2673,10 +2790,19 @@ function handleSendSelectedMediaAssetToPreview(): void {
   handleSelectMediaAssetForPreview(targetLabel)
 }
 
-function handleTakeAsset(): void {
-  if (!previewMediaAssetLabel) return
-setTakeFlashAssetLabel(previewMediaAssetLabel)
-setTakeFlashProgramLabel(previewMediaAssetLabel)
+async function handleTakeAsset(): Promise<void> {
+  if (!previewProgramDifferent || takeBusy || dockTakeBusy) return
+
+  const nextProgramLabel = previewMediaAssetLabel
+  setDockTakeBusy(true)
+
+  try {
+    await onTakeProgram?.("auto")
+
+    if (!nextProgramLabel) return
+
+setTakeFlashAssetLabel(nextProgramLabel)
+setTakeFlashProgramLabel(nextProgramLabel)
 
 window.setTimeout(() => {
   setTakeFlashAssetLabel(null)
@@ -2685,17 +2811,20 @@ window.setTimeout(() => {
 window.setTimeout(() => {
   setTakeFlashProgramLabel(null)
 }, 650)
-  setProgramMediaAssetLabel(previewMediaAssetLabel)
+  setProgramMediaAssetLabel(nextProgramLabel)
   setPreviewMediaAssetLabel(null)
   setRuntimePaused(false)
   setMediaRuntimeByLabel((current) => ({
     ...current,
-    [previewMediaAssetLabel]: {
+    [nextProgramLabel]: {
       isPlaying: true,
       startedAtMs: Date.now(),
-      elapsedSeconds: current[previewMediaAssetLabel]?.elapsedSeconds ?? 0,
+      elapsedSeconds: current[nextProgramLabel]?.elapsedSeconds ?? 0,
     },
   }))
+  } finally {
+    setDockTakeBusy(false)
+  }
 }
 function handleResetProgramRuntime(): void {
   if (!programMediaAssetLabel) return
@@ -2742,6 +2871,7 @@ function handleSelectMediaAssetForPreview(label: string): void {
       height: 42.75,
       opacity: 1,
       zIndex: nextZIndex,
+      groupId: "source-route",
     })
   }
 
@@ -2964,6 +3094,10 @@ function handleClearImportedAssets(): void {
   const [recordingQuality, setRecordingQuality] = useState("1080p Standard")
   const [activeEgressId, setActiveEgressId] = useState<string | null>(null)
   const [recordingError, setRecordingError] = useState<string | null>(null)
+
+  useEffect(() => {
+    onRecordingHealthChange?.(recordingStatus, recordingError)
+  }, [onRecordingHealthChange, recordingError, recordingStatus])
 
   useEffect(() => {
     let cancelled = false
@@ -3253,6 +3387,7 @@ function handleDeleteMediaAssetFromEdit(): void {
 
   async function stopRecording(): Promise<void> {
     if (recordingStatus !== "recording" || !recordingStartedAt) return
+    if (!window.confirm("Stop the active recording? Jupiter will finalize and upload the captured file.")) return
 
     setRecordingError(null)
 
@@ -3431,38 +3566,6 @@ const previewMediaAsset =
     ["Videos", mediaRows.filter((asset) => asset.type === "video").length],
     ["Audio", mediaRows.filter((asset) => asset.type === "audio").length],
   ] as const
-  const channelLevels = useMemo<Record<MixerChannelKey, number>>(
-    () => ({
-      Program: programLevel,
-      Stage: stageLevel,
-      Music: musicLevel,
-      Mics: micLevelPercent,
-      SFX: sfxLevel,
-      Audience: audienceLevel,
-    }),
-    [audienceLevel, micLevelPercent, musicLevel, programLevel, sfxLevel, stageLevel]
-  )
-
-  const [peakLevels, setPeakLevels] = useState<Record<MixerChannelKey, number>>({
-    Program: 2,
-    Stage: 2,
-    Music: 2,
-    Mics: 2,
-    SFX: 2,
-    Audience: 2,
-  })
-
-  useEffect(() => {
-    setPeakLevels((current) => ({
-      Program: Math.max(channelLevels.Program, current.Program - 1.6),
-      Stage: Math.max(channelLevels.Stage, current.Stage - 1.6),
-      Music: Math.max(channelLevels.Music, current.Music - 1.2),
-      Mics: Math.max(channelLevels.Mics, current.Mics - 1.8),
-      SFX: Math.max(channelLevels.SFX, current.SFX - 1.2),
-      Audience: Math.max(channelLevels.Audience, current.Audience - 1.0),
-    }))
-  }, [channelLevels])
-
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(7,12,22,0.96),rgba(3,6,12,1))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.020)_0px,rgba(255,255,255,0.020)_1px,transparent_1px,transparent_28px)]" />
@@ -3478,247 +3581,203 @@ const previewMediaAsset =
           onClose={() => setActiveUtilityPanel(null)}
         />
       ) : null}
-      {expandedMixerOpen ? (
-        <ExpandedAudioMixerOverlay
-          micLevelPercent={micLevelPercent}
-          programLevel={programLevel}
-          stageLevel={stageLevel}
-          musicLevel={musicLevel}
-          sfxLevel={sfxLevel}
-          audienceLevel={audienceLevel}
-          soloChannel={soloChannel}
-          mutedChannels={mutedChannels}
-          peakLevels={peakLevels}
-          onToggleSolo={toggleSoloChannel}
-          onToggleMute={toggleMutedChannel}
-          onClose={() => setExpandedMixerOpen(false)}
-        />
-      ) : null}
-      {expandedRecordingOpen ? (
-        <ExpandedRecordingOverlay
+      {productionDrawerTab ? (
+        <ProductionControlsDrawer
+          activeTab={productionDrawerTab}
+          onTabChange={setProductionDrawerTab}
+          onClose={() => setProductionDrawerTab(null)}
+          audioChannels={[
+            ["Program", programLevel],
+            ["Stage", stageLevel],
+            ["Music", musicLevel],
+            ["Mics", micLevelPercent],
+            ["SFX", sfxLevel],
+            ["Audience", audienceLevel],
+          ].map(([id, level]) => ({
+            id: String(id),
+            label: String(id),
+            level: Number(level),
+            muted: mutedChannels[id as MixerChannelKey],
+            solo: soloChannel === id,
+          }))}
+          onToggleMute={(channel) => toggleMutedChannel(channel as MixerChannelKey)}
+          onToggleSolo={(channel) => toggleSoloChannel(channel as MixerChannelKey)}
           recordingStatus={recordingStatus}
           recordingElapsedSeconds={recordingElapsedSeconds}
           recordings={recordings}
+          recordingError={recordingError}
           recordingSource={recordingSource}
           recordingDestination={recordingDestination}
           recordingQuality={recordingQuality}
-          recordingError={recordingError}
           onRecordingSourceChange={setRecordingSource}
           onRecordingDestinationChange={setRecordingDestination}
           onRecordingQualityChange={setRecordingQuality}
           onArmRecording={armRecording}
           onStartRecording={startRecording}
           onStopRecording={stopRecording}
-          onClose={() => setExpandedRecordingOpen(false)}
         />
       ) : null}
       {expandedMediaOpen ? (
-        <div className="fixed inset-x-5 bottom-5 z-[999] h-[382px] overflow-hidden rounded-[24px] border border-sky-200/16 bg-[radial-gradient(circle_at_18%_0%,rgba(56,189,248,0.16),transparent_34%),radial-gradient(circle_at_86%_18%,rgba(14,165,233,0.08),transparent_28%),linear-gradient(180deg,rgba(6,11,22,0.992),rgba(2,5,11,0.998))] shadow-[0_28px_90px_rgba(0,0,0,0.58),0_0_34px_rgba(56,189,248,0.10),inset_0_1px_0_rgba(255,255,255,0.050)] backdrop-blur-2xl">
-          <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.030)_0px,rgba(255,255,255,0.030)_1px,transparent_1px,transparent_32px)]" />
-          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-sky-200/24 to-transparent" />
-
-          <div className="relative z-10 flex h-[54px] items-center justify-between gap-3 border-b border-white/[0.055] px-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-8 w-8 items-center justify-center rounded-[10px] border border-sky-300/14 bg-sky-400/[0.070] text-[10px] font-black uppercase tracking-[0.08em] text-sky-100/70 shadow-[0_0_18px_rgba(56,189,248,0.10)]">
-                EVS
+        <div className="fixed inset-x-5 bottom-5 z-[999] flex h-[430px] flex-col overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#050914]/[0.99] shadow-[0_28px_90px_rgba(0,0,0,0.68)] backdrop-blur-2xl">
+          <header className="flex h-[62px] shrink-0 items-center justify-between border-b border-white/[0.07] px-5">
+            <div>
+              <div className="text-[8px] font-semibold uppercase tracking-[0.18em] text-sky-200/55">
+                Source preparation
               </div>
-
-              <div className="min-w-0">
-                <div className="text-[7px] font-black uppercase tracking-[0.18em] text-sky-100/44">
-                  Broadcast Asset Orchestrator
-                </div>
-                <div className="mt-0.5 truncate text-[15px] font-semibold tracking-[-0.045em] text-white/90">
-                  Playback Workstation
-                </div>
-              </div>
+              <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.035em] text-white/92">
+                Choose a source, prepare it, then send it to Preview.
+              </h2>
             </div>
-
-            <div className="hidden min-w-0 flex-1 items-center gap-1.5 px-3 xl:flex">
-              {[
-                ["Inventory", `${orchestratedMediaRows.length}`],
-                ["Preview", previewMediaAssetLabel ?? "Idle"],
-                ["Program", programMediaAssetLabel ?? "Clear"],
-                ["Safe", `${orchestratedMediaRows.filter((asset) => asset.takeSafe !== false).length}`],
-              ].map(([label, value]) => (
-                <div
-                  key={label}
-                  className="flex min-w-0 flex-1 items-center justify-between rounded-full border border-white/[0.040] bg-white/[0.014] px-2 py-1"
-                >
-                  <span className="text-[6px] font-black uppercase tracking-[0.11em] text-white/22">
-                    {label}
-                  </span>
-                  <span className="truncate text-[7px] font-black uppercase tracking-[0.08em] text-white/54">
-                    {value}
-                  </span>
-                </div>
-              ))}
-            </div>
-
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => mediaImportInputRef.current?.click()}
-                className="rounded-full border border-emerald-300/14 bg-emerald-400/[0.055] px-3 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-emerald-100/62 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.090] hover:text-emerald-50"
+                className="h-9 rounded-[10px] border border-white/[0.10] bg-white/[0.045] px-4 text-[10px] font-semibold text-white/74 transition hover:bg-white/[0.08] hover:text-white"
               >
-                Import
+                Import source
               </button>
-
               <button
                 type="button"
                 onClick={() => setExpandedMediaOpen(false)}
-                className="rounded-full border border-white/[0.08] bg-white/[0.030] px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] text-white/58 transition hover:bg-white/[0.055] hover:text-white/82"
+                className="h-9 rounded-[10px] border border-white/[0.08] px-4 text-[10px] font-semibold text-white/48 transition hover:bg-white/[0.05] hover:text-white/80"
               >
                 Close
               </button>
             </div>
-          </div>
+          </header>
 
-          <div className="relative z-10 flex h-[38px] items-center justify-between gap-3 border-b border-white/[0.040] px-4">
-            <div className="flex items-center gap-1">
-              {[
-  ["assets", "Assets"],
-  ["take", "TAKE"],
-  ["routing", "Routing"],
-  ["overview", "Overview"],
-].map(([id, label]) => {
-                const active = activeMediaOrchestratorTab === id
+          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.7fr)_minmax(280px,0.65fr)]">
+            <section className="min-h-0 overflow-y-auto border-r border-white/[0.07] p-4">
+              <div className="mb-3 flex items-center justify-between">
+                <div>
+                  <h3 className="text-[12px] font-semibold text-white/78">Source library</h3>
+                  <p className="mt-0.5 text-[9px] text-white/34">
+                    {orchestratedMediaRows.length} available · select one to inspect
+                  </p>
+                </div>
+                <div className="flex items-center gap-4 text-[8px] font-medium text-white/32">
+                  <span>1 · Choose</span>
+                  <span>2 · Prepare</span>
+                  <span className="text-sky-200/65">3 · Preview</span>
+                </div>
+              </div>
 
-                return (
-                  <button
-                    key={id}
-                    type="button"
-                    onClick={() => setActiveMediaOrchestratorTab(id as MediaOrchestratorTab)}
-                    className={`rounded-full border px-3 py-1 text-[8px] font-black uppercase tracking-[0.10em] transition ${
-                      active
-                        ? "border-sky-300/20 bg-sky-400/[0.095] text-sky-100/80 shadow-[0_0_16px_rgba(56,189,248,0.10)]"
-                        : "border-white/[0.040] bg-black/14 text-white/38 hover:border-white/[0.075] hover:bg-white/[0.025] hover:text-white/68"
-                    }`}
-                  >
-                    {label}
-                  </button>
-                )
-              })}
-            </div>
-
-            <div className="flex min-w-0 flex-1 items-center gap-1.5">
-              {[
-                ["Countdown", "USED"],
-                ["Host Intro", "LIVE"],
-                ["Keynote", "NEXT"],
-                ["Closing", "SAFE"],
-              ].map(([label, state]) => (
-                <div
-                  key={label}
-                  className={`shrink-0 rounded-full border px-2 py-0.5 text-[6.5px] font-black uppercase tracking-[0.08em] ${
-                    state === "LIVE"
-                      ? "border-red-300/16 bg-red-400/[0.055] text-red-100/64"
-                      : state === "NEXT"
-                        ? "border-sky-300/16 bg-sky-400/[0.055] text-sky-100/64"
-                        : state === "SAFE"
-                          ? "border-emerald-300/12 bg-emerald-400/[0.045] text-emerald-100/50"
-                          : "border-white/[0.045] bg-black/20 text-white/34"
-                  }`}
+              {orchestratedMediaRows.length ? (
+                <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+                  {orchestratedMediaRows.map((asset) => (
+                    <SourceLibraryCard
+                      key={`${asset.label}-${asset.type}`}
+                      asset={asset}
+                      selected={selectedMediaAsset?.label === asset.label}
+                      inPreview={previewMediaAssetLabel === asset.label}
+                      onSelect={() => setSelectedMediaAssetLabel(asset.label)}
+                      onSendToPreview={() => handleSelectMediaAssetForPreview(asset.label)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => mediaImportInputRef.current?.click()}
+                  className="flex h-[220px] w-full items-center justify-center rounded-[14px] border border-dashed border-white/[0.12] text-[11px] font-medium text-white/40 transition hover:border-sky-300/30 hover:bg-sky-400/[0.025] hover:text-white/68"
                 >
-                  {label} · {state}
-                </div>
-              ))}
-            </div>
-          </div>
+                  Import your first video, image, audio file, or PDF
+                </button>
+              )}
+            </section>
 
-          <div className="relative z-10 h-[290px] overflow-hidden p-3">
-            <div className="mb-2 flex h-[30px] items-center gap-2 rounded-[12px] border border-sky-300/10 bg-sky-400/[0.018] px-2">
-              <div className="min-w-0 pr-2">
-                <div className="text-[6px] font-black uppercase tracking-[0.16em] text-sky-100/30">
-                  Selected Asset
-                </div>
-                <div className="truncate text-[9px] font-semibold tracking-[-0.02em] text-white/72">
-                  {selectedMediaAsset?.label ?? "Select an asset"}
-                </div>
+            <aside className="flex min-h-0 flex-col p-4">
+              <div className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/32">
+                Prepared source
               </div>
+              {selectedMediaAsset ? (
+                <>
+                  <div className="mt-3 flex min-h-[128px] items-center justify-center overflow-hidden rounded-[12px] border border-white/[0.08] bg-[#08101d] text-white/24">
+                    {selectedMediaAsset.imageUrl ? (
+                      <img
+                        src={selectedMediaAsset.imageUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : selectedMediaAsset.type === "video" ? (
+                      <Video size={28} />
+                    ) : selectedMediaAsset.type === "audio" ? (
+                      <Music2 size={28} />
+                    ) : (
+                      <Image size={28} />
+                    )}
+                  </div>
+                  <h3 className="mt-3 truncate text-[15px] font-semibold tracking-[-0.025em] text-white/88">
+                    {selectedMediaAsset.label}
+                  </h3>
+                  <p className="mt-1 text-[9px] leading-relaxed text-white/38">
+                    {selectedMediaAsset.type} · {selectedMediaAsset.duration} · {selectedMediaAsset.meta}
+                  </p>
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-y border-white/[0.06] py-3 text-[9px]">
+                    <div>
+                      <div className="text-white/28">Scene</div>
+                      <div className="mt-1 truncate text-white/62">{selectedMediaAsset.linkedScene}</div>
+                    </div>
+                    <div>
+                      <div className="text-white/28">Status</div>
+                      <div className="mt-1 text-white/62">
+                        {previewMediaAssetLabel === selectedMediaAsset.label ? "In Preview" : "Ready"}
+                      </div>
+                    </div>
+                  </div>
 
-              <AssetStatePill state={selectedMediaAsset?.state ?? "STANDBY"} />
-
-              <div className="ml-auto grid min-w-[650px] grid-cols-5 gap-1">
-                <button type="button" onClick={handleSendSelectedMediaAssetToPreview} className="rounded-[7px] border border-sky-300/14 bg-sky-400/[0.075] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-sky-100/72">
-                  ARM PVW
-                </button>
-                <button type="button" disabled={!selectedMediaAsset} onClick={() => selectedMediaAsset ? setProgramMediaAssetLabel(selectedMediaAsset.label) : undefined} className="rounded-[7px] border border-red-300/14 bg-red-400/[0.060] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/62 disabled:opacity-35">
-                  PGM DIRECT
-                </button>
-                <button type="button" disabled={!previewMediaAssetLabel} onClick={handleTakeAsset} className="rounded-[7px] border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/62 disabled:opacity-35">
-                  TAKE
-                </button>
-                <button type="button" onClick={() => setRuntimePaused((current) => !current)} disabled={!programMediaAssetLabel} className="rounded-[7px] border border-emerald-300/16 bg-emerald-400/[0.070] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/68 disabled:opacity-35">
-                  {runtimePaused ? "RESUME" : "PAUSE"}
-                </button>
-                <button type="button" onClick={handleResetProgramRuntime} disabled={!programMediaAssetLabel} className="rounded-[7px] border border-red-300/14 bg-red-400/[0.055] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.10em] text-red-100/60 disabled:opacity-35">
-                  RESET
-                </button>
-              </div>
-            </div>
-
-            <div className="min-h-0 overflow-hidden">
-              {activeMediaOrchestratorTab === "overview" ? (
-                <MediaOverviewWorkspace
-                  mediaRows={orchestratedMediaRows}
-                  recordingStatus={recordingStatus}
-                  recordingElapsedSeconds={recordingElapsedSeconds}
-                />
-              ) : activeMediaOrchestratorTab === "assets" ? (
-                <MediaAssetsWorkspace
-                  mediaRows={orchestratedMediaRows}
-                  assetTabStats={assetTabStats}
-                  selectedMediaAsset={selectedMediaAsset}
-previewMediaAsset={previewMediaAsset}
-onSelectAsset={setSelectedMediaAssetLabel}
-                  onArmPreviewAsset={handleSelectMediaAssetForPreview}
-                  onEditImportedAsset={handleOpenMediaAssetEdit}
-                  onDeleteImportedAsset={handleDeleteImportedAsset}
-                  isImportedAsset={isImportedMediaAsset}
-                  onRenameImportedAsset={handleRenameImportedAsset}
-                  takeFlashAssetLabel={takeFlashAssetLabel}
-                  takeFlashProgramLabel={takeFlashProgramLabel}
-                  
-                />
-              ) : activeMediaOrchestratorTab === "routing" ? (
-                <MediaRoutingWorkspace mediaRows={orchestratedMediaRows} />
-              ) : activeMediaOrchestratorTab === "take" ? (
-                <MediaTakeWorkspace
-                  mediaRows={orchestratedMediaRows}
-                  onPreload={handlePreloadAsset}
-                  onLockRoute={handleLockRoute}
-                  onRehearse={handleRehearseAsset}
-                  onReset={handleResetMediaOrchestration}
-                />
-              ) : null}
-            </div>
+                  <div className="mt-auto space-y-2 pt-4">
+                    <button
+                      type="button"
+                      onClick={handleSendSelectedMediaAssetToPreview}
+                      className="flex h-11 w-full items-center justify-center rounded-[11px] border border-sky-300/28 bg-sky-400/[0.13] text-[11px] font-semibold text-sky-50 transition hover:bg-sky-400/[0.20]"
+                    >
+                      {previewMediaAssetLabel === selectedMediaAsset.label
+                        ? "Refresh in Preview"
+                        : "Send to Preview"}
+                    </button>
+                    {isImportedMediaAsset(selectedMediaAsset.label) ? (
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenMediaAssetEdit(selectedMediaAsset.label)}
+                          className="h-8 rounded-[9px] border border-white/[0.08] text-[9px] font-medium text-white/45 hover:bg-white/[0.04] hover:text-white/72"
+                        >
+                          Edit details
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteImportedAsset(selectedMediaAsset.label)}
+                          className="h-8 rounded-[9px] border border-red-300/[0.10] text-[9px] font-medium text-red-100/38 hover:bg-red-400/[0.05] hover:text-red-100/70"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <div className="flex flex-1 items-center justify-center text-center text-[10px] leading-relaxed text-white/32">
+                  Select a source from the library to prepare it.
+                </div>
+              )}
+            </aside>
           </div>
         </div>
       ) : null}
       
       <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden pb-2 xl:grid-cols-[0.72fr_3.9fr]">
 <ConsolePanel
-  title="Scenes"
+  title="Scene presets"
   action={
-    <div className="flex items-center gap-1">
-      <button
-        type="button"
-        onClick={onSaveScene}
-        disabled={!onSaveScene}
-        className="rounded-full border border-emerald-300/14 bg-emerald-400/[0.060] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.10] disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        Save
-      </button>
-
-      <button
-        type="button"
-        onClick={onAddScene}
-        disabled={!onAddScene}
-        className="rounded-full border border-white/[0.055] bg-white/[0.020] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-white/46 transition hover:border-white/[0.085] hover:bg-white/[0.035] disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        New
-      </button>
-    </div>
+    <button
+      type="button"
+      onClick={onAddScene}
+      disabled={!onAddScene}
+      className="rounded-[8px] border border-white/[0.08] bg-white/[0.025] px-2.5 py-1 text-[8px] font-semibold text-white/52 transition hover:bg-white/[0.05] hover:text-white/78 disabled:cursor-not-allowed disabled:opacity-35"
+    >
+      New scene
+    </button>
   }
 >
   <div className="grid min-h-0 gap-2">
@@ -3836,30 +3895,21 @@ onSelectAsset={setSelectedMediaAssetLabel}
       </div>
     )}
 
-    <div className="grid grid-cols-2 gap-1">
+    <div>
       <button
         type="button"
         onClick={onSaveScene}
         disabled={!onSaveScene}
-        className="rounded-[10px] border border-emerald-300/14 bg-emerald-400/[0.055] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/62 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.10] disabled:cursor-not-allowed disabled:opacity-35"
+        className="w-full rounded-[9px] border border-sky-300/18 bg-sky-400/[0.075] px-2 py-2 text-[9px] font-semibold text-sky-100/72 transition hover:bg-sky-400/[0.12] disabled:cursor-not-allowed disabled:opacity-35"
       >
-        Save Current
-      </button>
-
-      <button
-        type="button"
-        onClick={onAddScene}
-        disabled={!onAddScene}
-        className="rounded-[10px] border border-sky-300/14 bg-sky-400/[0.055] px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] text-sky-100/62 transition hover:border-sky-300/24 hover:bg-sky-400/[0.10] disabled:cursor-not-allowed disabled:opacity-35"
-      >
-        New Scene
+        Save current Preview as a scene
       </button>
     </div>
   </div>
 </ConsolePanel>
 
 <ConsolePanel
-  title="Media"
+  title="Sources"
   action={
     <div className="flex items-center gap-1">
       <input
@@ -3874,102 +3924,93 @@ onSelectAsset={setSelectedMediaAssetLabel}
       <button
         type="button"
         onClick={() => mediaImportInputRef.current?.click()}
-        className="rounded-full border border-emerald-300/14 bg-emerald-400/[0.050] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-emerald-100/58 transition hover:border-emerald-300/24 hover:bg-emerald-400/[0.090] hover:text-emerald-50"
+        className="rounded-[8px] border border-white/[0.08] bg-white/[0.025] px-2.5 py-1 text-[8px] font-semibold text-white/52 transition hover:bg-white/[0.05] hover:text-white/78"
       >
         Import
       </button>
 
       <button
         type="button"
-        onClick={() => {
-  setActiveMediaOrchestratorTab("assets")
-  setExpandedMediaOpen(true)
-}}
-        className="rounded-full border border-sky-300/14 bg-sky-400/[0.055] px-2 py-0.5 text-[7px] font-black uppercase tracking-[0.12em] text-sky-100/58 transition hover:border-sky-300/24 hover:bg-sky-400/[0.090] hover:text-sky-50"
+        onClick={() => setExpandedMediaOpen(true)}
+        className="rounded-[8px] border border-sky-300/16 bg-sky-400/[0.06] px-2.5 py-1 text-[8px] font-semibold text-sky-100/64 transition hover:bg-sky-400/[0.11] hover:text-sky-50"
       >
-        Expand
+        Open library
       </button>
     </div>
   }
 >
-          <div>
-            <AssetIntelligenceHeader mediaRows={mediaRows} />
-            <SourceConfidenceStrip mediaRows={mediaRows} />
+          <div className="flex h-full min-h-0 flex-col">
+            <div className="mb-1.5 flex items-center justify-between border-b border-white/[0.065] pb-1.5">
+              <p className="text-[9px] font-medium text-white/48">Choose a source, then send it to Preview</p>
+              <span className="text-[8px] font-medium tabular-nums text-white/38">
+                {mediaRows.length} available
+              </span>
+            </div>
 
-            <div className="mb-1.5 flex items-center justify-between gap-2">
-              <div className="flex items-center gap-1.5">
-                {assetTabStats.map(([tab, count], index) => (
+            {mediaRows.length ? (
+              <div className="grid min-h-[126px] grid-flow-col auto-cols-[minmax(138px,1fr)] gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+                {mediaRows.slice(0, 6).map((asset) => (
+                  <SourceLibraryCard
+                    key={`${asset.label}-${asset.type}`}
+                    asset={asset}
+                    selected={selectedMediaAsset?.label === asset.label}
+                    inPreview={previewMediaAssetLabel === asset.label}
+                    onSelect={() => setSelectedMediaAssetLabel(asset.label)}
+                    onSendToPreview={() => handleSelectMediaAssetForPreview(asset.label)}
+                  />
+                ))}
+              </div>
+            ) : (
+              <div className="grid min-h-[126px] grid-cols-5 gap-2">
+                {["Camera", "Slides", "Video", "Holding", "Screen"].map((label, index) => (
                   <button
-                    key={tab}
+                    key={label}
                     type="button"
-                    className={`flex items-center gap-1 rounded-[9px] px-2 py-1 text-[9px] font-semibold transition ${
-                      index === 0
-                        ? "border border-sky-300/12 bg-sky-400/[0.12] text-sky-100"
-                        : "border border-white/[0.035] text-sky-100/52 hover:bg-white/[0.030] hover:text-white/76"
-                    }`}
+                    onClick={() => mediaImportInputRef.current?.click()}
+                    className="group relative flex min-w-0 flex-col overflow-hidden rounded-[10px] border border-dashed border-white/[0.10] bg-[#080d16] text-left transition hover:border-sky-300/28 hover:bg-[#0b1421]"
                   >
-                    <span>{tab}</span>
-                    <span className={`rounded-full px-1.5 py-0.5 text-[6px] font-black tabular-nums ${index === 0 ? "bg-sky-200/12 text-sky-50/58" : "bg-white/[0.035] text-white/28"}`}>
-                      {count}
-                    </span>
+                    <div className="flex aspect-video w-full items-center justify-center border-b border-white/[0.05] bg-[radial-gradient(circle_at_50%_35%,rgba(59,130,246,0.08),transparent_58%),#060b13] text-[18px] font-light text-white/18">
+                      {index + 1}
+                    </div>
+                    <div className="px-2.5 py-2">
+                      <div className="truncate text-[9px] font-semibold text-white/50">{label}</div>
+                      <div className="mt-0.5 text-[7px] uppercase tracking-[0.08em] text-white/24">Awaiting source</div>
+                    </div>
                   </button>
                 ))}
               </div>
+            )}
 
-              <div className="flex items-center gap-1 rounded-full border border-emerald-300/12 bg-emerald-400/[0.045] px-2 py-1 text-[7px] font-black uppercase tracking-[0.10em] text-emerald-100/46">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-200/60 shadow-[0_0_8px_rgba(167,243,208,0.26)]" />
-                <span>Rundown Linked</span>
-              </div>
-            </div>
-
-<div className="grid grid-cols-3 gap-2 2xl:grid-cols-4">
-  {mediaRows.slice(0, 4).map((asset) => (
-    <MediaRow
-      key={`${asset.label}-${asset.state}-${asset.type}`}
-      asset={asset}
-    />
-  ))}
-</div>
-
-{importedMediaAssets.length > 0 ? (
-  <div className="mt-2 rounded-[10px] border border-emerald-300/12 bg-emerald-400/[0.040] px-3 py-2">
-    <div className="flex items-center justify-between">
-      <span className="text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/52">
-        Imported Assets
-      </span>
-
-      <span className="text-[8px] font-black uppercase tracking-[0.10em] text-emerald-100/52">
-        {importedMediaAssets.length}
-      </span>
-    </div>
-
-    <div className="mt-1 text-[9px] text-white/48">
-      Latest: {importedMediaAssets[0]?.label}
-    </div>
-  </div>
-) : null}
-
-            <div className="mt-2 grid grid-cols-3 gap-1.5">
-              {[
-                ["Preview", "Armed"],
-                ["TAKE", "Safe"],
-                ["Open", "Orchestrator"],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-[9px] border border-white/[0.045] bg-[linear-gradient(180deg,rgba(255,255,255,0.018),rgba(255,255,255,0.010))] px-2 py-1.5 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.012)]">
-                  <div className="text-[7px] font-black uppercase tracking-[0.11em] text-white/24">{label}</div>
-                  <div className="mt-0.5 text-[9px] font-black uppercase tracking-[0.08em] text-white/54">{value}</div>
+            <div className="mt-auto grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 pt-1.5">
+              <div className="min-w-0">
+                <div className="truncate text-[10px] font-semibold text-white/68">
+                  {selectedMediaAsset?.label ?? "No source selected"}
                 </div>
-              ))}
+                <div className="mt-0.5 text-[8px] text-white/30">
+                  {selectedMediaAsset
+                    ? previewMediaAssetLabel === selectedMediaAsset.label
+                      ? "Currently in Preview"
+                      : "Ready to prepare"
+                    : "Open the library to browse all sources"}
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={!selectedMediaAsset}
+                onClick={handleSendSelectedMediaAssetToPreview}
+                className="h-9 rounded-[9px] border border-sky-300/24 bg-sky-400/[0.10] px-4 text-[9px] font-semibold text-sky-50/80 transition hover:bg-sky-400/[0.16] disabled:cursor-not-allowed disabled:opacity-30"
+              >
+                Send to Preview
+              </button>
+              <button
+                type="button"
+                disabled={!previewProgramDifferent || takeBusy || dockTakeBusy}
+                onClick={() => void handleTakeAsset()}
+                className="h-9 min-w-[76px] rounded-[9px] border border-red-300/28 bg-red-500/[0.11] px-4 text-[9px] font-bold tracking-[0.04em] text-red-50/88 transition hover:bg-red-500/[0.18] disabled:cursor-not-allowed disabled:border-white/[0.08] disabled:bg-white/[0.025] disabled:text-white/28"
+              >
+                {dockTakeBusy || takeBusy ? "TAKING" : "TAKE"}
+              </button>
             </div>
-
-            <button
-              type="button"
-              onClick={() => setExpandedMediaOpen(true)}
-              className="mt-2 flex w-full items-center justify-between rounded-[10px] border border-sky-300/10 bg-sky-400/[0.035] px-2.5 py-1.5 text-[9px] font-black uppercase tracking-[0.09em] text-sky-100/58 transition hover:border-sky-300/18 hover:bg-sky-400/[0.060] hover:text-sky-50/78"
-            >
-              <span>{importedMediaAssets.length > 0 ? `${importedMediaAssets.length} Imported · Open Orchestrator` : "Open Asset Orchestrator"}</span>
-              <span className="text-sky-100/38">⌘ Shift A</span>
-            </button>
           </div>
         </ConsolePanel>
 
@@ -3978,17 +4019,25 @@ onSelectAsset={setSelectedMediaAssetLabel}
       </div>
 
       {workspaceMode === "show" || workspaceMode === "advanced" ? (
-      <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.045] pt-1.5 xl:grid-cols-4">
-        <UtilityButton
-          icon={<CircleDot size={18} />}
-          label={recordingStatus === "recording" ? "Recording" : recordingStatus === "starting" ? "Starting" : "Record"}
-meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "starting" ? "Requesting egress" : recordingStatus === "armed" ? "Armed" : recordingStatus === "stopped" ? "Finalizing" : "Not recording"}
-danger={recordingStatus === "recording" || recordingStatus === "starting"}
-          onClick={() => setExpandedRecordingOpen(true)}
-        />
-        <UtilityButton icon={<Radio size={30} />} label="Streaming" meta="Configure" onClick={() => setActiveUtilityPanel("stream")} />
-        <UtilityButton icon={<Layers3 size={30} />} label="Overlays" meta="Manage" onClick={() => setActiveUtilityPanel("overlays")} />
-        <UtilityButton icon={<Volume2 size={30} />} label="Audio" meta="Open mixer" onClick={() => setExpandedMixerOpen(true)} />
+      <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.06] pt-1.5 xl:grid-cols-[minmax(0,1fr)_minmax(330px,0.62fr)]">
+        <div className="grid grid-cols-4 gap-1.5">
+          <CompactAudioMeter label="Program" level={programLevel} />
+          <CompactAudioMeter label="Stage" level={stageLevel} />
+          <CompactAudioMeter label="Mics" level={micLevelPercent} />
+          <CompactAudioMeter label="Playback" level={musicLevel} />
+        </div>
+        <div className="grid grid-cols-4 gap-1.5">
+          <UtilityButton
+            icon={<CircleDot size={15} />}
+            label={recordingStatus === "recording" ? "Recording" : "Record"}
+            meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "armed" ? "Armed" : "Off"}
+            danger={recordingStatus === "recording" || recordingStatus === "starting"}
+            onClick={() => setProductionDrawerTab("recording")}
+          />
+          <UtilityButton icon={<Radio size={16} />} label="Stream" meta="Setup" onClick={() => setActiveUtilityPanel("stream")} />
+          <UtilityButton icon={<Layers3 size={16} />} label="Media" meta="Manage" onClick={() => setActiveUtilityPanel("overlays")} />
+          <UtilityButton icon={<Volume2 size={16} />} label="Mixer" meta="Open" onClick={() => setProductionDrawerTab("audio")} />
+        </div>
       </div>
       ) : null}
     </div>
