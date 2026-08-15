@@ -13,7 +13,12 @@ export async function GET(req: Request): Promise<Response> {
     const { searchParams } = new URL(req.url)
     const room_key =
       String(searchParams.get("room_key") || "general").trim() || "general"
-    const admin = searchParams.get("admin") === "1"
+    const eventId = String(searchParams.get("event_id") || "").trim()
+    const isSessionRoom = room_key.startsWith("session:")
+
+    if (isSessionRoom && !eventId) {
+      return json({ error: "Missing event scope." }, 400)
+    }
 
     let query = supabaseAdmin
       .from("qa_messages")
@@ -23,9 +28,8 @@ export async function GET(req: Request): Promise<Response> {
       .order("upvotes", { ascending: false })
       .order("created_at", { ascending: false })
 
-    if (!admin) {
-      query = query.in("status", ["approved", "answered"])
-    }
+    query = query.in("status", ["approved", "answered"])
+    if (eventId) query = query.eq("event_id", eventId)
 
     const { data, error } = await query
 

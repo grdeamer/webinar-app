@@ -126,6 +126,7 @@ useEffect(() => {
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Type your question here..."
             rows={4}
+            maxLength={800}
             className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-sm text-white placeholder:text-white/30 focus:border-white/20 focus:outline-none"
           />
         </div>

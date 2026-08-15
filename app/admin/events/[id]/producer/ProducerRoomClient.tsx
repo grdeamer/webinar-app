@@ -288,6 +288,21 @@ const updateStageState = useCallback(
     setShowAudienceCue,
   } = useAudienceCue();
 
+  const handlePreviewQuestion = useCallback(
+    (question: string, region: string) => {
+      triggerAudienceCue({
+        region,
+        questionLabel: question,
+        durationMs: 12000,
+      });
+    },
+    [triggerAudienceCue],
+  );
+
+  const handleHideQuestion = useCallback(() => {
+    setShowAudienceCue(false);
+  }, [setShowAudienceCue]);
+
   useEffect(() => {
     latestStageStateRef.current = stageState;
   }, [stageState]);
@@ -1712,6 +1727,10 @@ updateShadowColor: updateSelectedBlockShadowColor,
       onPin: handlePinParticipant,
       onRemoveFromStage: handleRemoveParticipantFromStage,
       onError: setError,
+      eventId,
+      sessionId,
+      onPreviewQuestion: handlePreviewQuestion,
+      onHideQuestion: handleHideQuestion,
     }),
     [
       participants,
@@ -1760,6 +1779,10 @@ updateShadowColor: updateSelectedBlockShadowColor,
       handleUnpinParticipant,
       handlePinParticipant,
       handleRemoveParticipantFromStage,
+      eventId,
+      sessionId,
+      handlePreviewQuestion,
+      handleHideQuestion,
       setError,
     ],
   );

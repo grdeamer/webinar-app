@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from "react"
+import { useState, type JSX } from "react"
 import {
   Camera,
   Mic2,
@@ -6,7 +6,9 @@ import {
   ShieldCheck,
   ThumbsUp,
   Users,
+  MessageSquareText,
 } from "lucide-react"
+import ProducerQAModerationPanel from "./ProducerQAModerationPanel"
 const PARTICIPANT_ACCENT_STYLES = [
   {
     id: "none",
@@ -578,6 +580,10 @@ export default function ProducerRightRail({
   onPin,
   onRemoveFromStage,
   onError,
+  eventId,
+  sessionId,
+  onPreviewQuestion,
+  onHideQuestion,
 }: {
   participants: ProducerParticipant[]
   participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>
@@ -626,6 +632,10 @@ export default function ProducerRightRail({
   onPin: (identity: string) => void
   onRemoveFromStage: (identity: string) => void
   onError: (value: string | null) => void
+  eventId: string
+  sessionId: string
+  onPreviewQuestion: (question: string, region: string) => void
+  onHideQuestion: () => void
 }): JSX.Element {
   
   const onStageParticipants = participants.filter((participant) => stageIds.has(participant.identity))
@@ -633,26 +643,14 @@ export default function ProducerRightRail({
   const participantRole = (index: number): string =>
     index === 0 ? "Host" : index === 1 ? "Presenter" : index === 2 ? "Speaker" : "Guest"
   const backstageCount = backstageParticipants.length
-  type RailTab = "Stage" | "Backstage" | "Layers"
+  type RailTab = "Stage" | "Backstage" | "Layers" | "Q&A"
   const defaultRailTab: RailTab = previewBlocks.length > 0 || selectedBlock
     ? "Layers"
     : onStageParticipants.length === 0 && backstageCount > 0
       ? "Backstage"
       : "Stage"
   const [activeRailTab, setActiveRailTab] = useState<RailTab>(defaultRailTab)
-  const [railTabChosenByOperator, setRailTabChosenByOperator] = useState(false)
-  const railTabs: RailTab[] = ["Stage", "Backstage", "Layers"]
-
-  useEffect(() => {
-    if (
-      !railTabChosenByOperator &&
-      activeRailTab === "Stage" &&
-      onStageParticipants.length === 0 &&
-      backstageCount > 0
-    ) {
-      setActiveRailTab("Backstage")
-    }
-  }, [activeRailTab, backstageCount, onStageParticipants.length, railTabChosenByOperator])
+  const railTabs: RailTab[] = ["Stage", "Backstage", "Layers", "Q&A"]
 
   return (
     <aside className="flex h-full min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(5,9,18,0.98),rgba(2,4,9,1))]">
@@ -666,13 +664,12 @@ export default function ProducerRightRail({
           </div>
           <ShieldCheck size={15} className="text-emerald-200/52" />
         </div>
-        <nav className="mt-3 grid grid-cols-3 gap-1" aria-label="Stage desk views">
+        <nav className="mt-3 grid grid-cols-4 gap-1" aria-label="Stage desk views">
           {railTabs.map((tab) => (
             <button
               key={tab}
               type="button"
               onClick={() => {
-                setRailTabChosenByOperator(true)
                 setActiveRailTab(tab)
               }}
               className={`h-9 rounded-[7px] border text-[9px] font-semibold transition ${
@@ -681,14 +678,24 @@ export default function ProducerRightRail({
                   : "border-white/[0.07] bg-white/[0.022] text-white/46 hover:bg-white/[0.05] hover:text-white/72"
               }`}
             >
-              {tab}
+              <span className="flex items-center justify-center gap-1">
+                {tab === "Q&A" ? <MessageSquareText size={10} /> : null}
+                {tab}
+              </span>
             </button>
           ))}
         </nav>
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        {activeRailTab === "Layers" ? (
+        {activeRailTab === "Q&A" ? (
+          <ProducerQAModerationPanel
+            eventId={eventId}
+            sessionId={sessionId}
+            onPreviewQuestion={onPreviewQuestion}
+            onHideQuestion={onHideQuestion}
+          />
+        ) : activeRailTab === "Layers" ? (
           selectedBlock || previewBlocks.length > 0 ? (
             <RightInspectorRail
               selectedBlock={selectedBlock}
