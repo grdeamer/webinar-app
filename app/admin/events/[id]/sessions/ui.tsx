@@ -4,6 +4,12 @@ import { useMemo, useState } from "react"
 import Link from "next/link"
 import { detectMeetingPlatform } from "@/lib/meetingPlatform"
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import {
   ArrowRight,
   CalendarDays,
   Clock3,
@@ -12,6 +18,7 @@ import {
   Radio,
   Monitor,
   Users,
+  Info,
 } from "lucide-react"
 
 type EventRow = {
@@ -410,7 +417,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Field label="Session Code">
+          <Field label="Session Code" help="A short operator-facing identifier used in schedules, routing, and production views.">
             <input
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.code}
@@ -452,7 +459,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </select>
           </Field>
 
-          <Field label="Visibility">
+          <Field label="Visibility" help="Assigned limits access to selected attendees. All and Open make the session more broadly available.">
             <select
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.visibility_mode}
@@ -466,7 +473,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </select>
           </Field>
 
-          <Field label="Delivery Mode">
+          <Field label="Delivery Mode" help="Choose whether attendees enter an external meeting, native live room, video playback, or RTMP stream.">
             <select
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.delivery_mode}
@@ -481,7 +488,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </select>
           </Field>
 
-          <Field label="Runtime Status">
+          <Field label="Runtime Status" help="The operational state shown throughout Jupiter. Holding is the safe default before the session begins.">
             <select
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.runtime_status}
@@ -514,7 +521,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             />
           </Field>
 
-          <Field label="Sort Order">
+          <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
             <input
               type="number"
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
@@ -541,7 +548,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </label>
           </Field>
 
-          <Field label="Manual Live">
+          <Field label="Manual Live" help="Overrides scheduled timing and lets an operator explicitly mark this session live.">
             <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
               <input
                 type="checkbox"
@@ -557,7 +564,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
         {draft.delivery_mode === "external" && (
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="External Platform">
+            <Field label="External Platform" help="The meeting provider used by the external join link. Jupiter can detect common providers automatically.">
               <select
                 className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.external_platform}
@@ -574,7 +581,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
               </select>
             </Field>
 
-            <Field label="External Join URL">
+            <Field label="External Join URL" help="The secure destination attendees open when they enter this session.">
               <input
                 className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.external_join_url}
@@ -666,7 +673,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         )}
 
         <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <Field label="Legacy Join Link">
+          <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Prefer External Join URL for new sessions.">
             <input
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.join_link}
@@ -675,7 +682,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             />
           </Field>
 
-          <Field label="Legacy Room Key">
+          <Field label="Legacy Room Key" help="Compatibility identifier retained for older room integrations.">
             <input
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.room_key}
@@ -896,7 +903,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       ) : null}
 
                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                      <Field label="Session Code">
+                      <Field label="Session Code" help="A short operator-facing identifier used in schedules, routing, and production views.">
                         <input
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.code || ""}
@@ -939,7 +946,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </select>
                       </Field>
 
-                      <Field label="Visibility">
+                      <Field label="Visibility" help="Assigned limits access to selected attendees. All and Open make the session more broadly available.">
                         <select
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.visibility_mode || "assigned"}
@@ -953,7 +960,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </select>
                       </Field>
 
-                      <Field label="Delivery Mode">
+                      <Field label="Delivery Mode" help="Choose whether attendees enter an external meeting, native live room, video playback, or RTMP stream.">
                         <select
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.delivery_mode || "external"}
@@ -968,7 +975,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </select>
                       </Field>
 
-                      <Field label="Runtime Status">
+                      <Field label="Runtime Status" help="The operational state shown throughout Jupiter. Holding is the safe default before the session begins.">
                         <select
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.runtime_status || "holding"}
@@ -1009,7 +1016,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         />
                       </Field>
 
-                      <Field label="Sort Order">
+                      <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
                         <input
                           type="number"
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
@@ -1035,7 +1042,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </label>
                       </Field>
 
-                      <Field label="Manual Live">
+                      <Field label="Manual Live" help="Overrides scheduled timing and lets an operator explicitly mark this session live.">
                         <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
                           <input
                             type="checkbox"
@@ -1051,7 +1058,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                     {session.delivery_mode === "external" && (
                       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        <Field label="External Platform">
+                        <Field label="External Platform" help="The meeting provider used by the external join link. Jupiter can detect common providers automatically.">
                           <select
                             className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.external_platform || ""}
@@ -1068,7 +1075,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                           </select>
                         </Field>
 
-                        <Field label="External Join URL">
+                        <Field label="External Join URL" help="The secure destination attendees open when they enter this session.">
                           <input
                             className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.external_join_url || ""}
@@ -1157,7 +1164,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                     )}
 
                     <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                      <Field label="Legacy Join Link">
+                      <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Prefer External Join URL for new sessions.">
                         <input
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.join_link || ""}
@@ -1167,7 +1174,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         />
                       </Field>
 
-                      <Field label="Legacy Room Key">
+                      <Field label="Legacy Room Key" help="Compatibility identifier retained for older room integrations.">
                         <input
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.room_key || ""}
@@ -1242,14 +1249,34 @@ function ProgramMetric({
 
 function Field({
   label,
+  help,
   children,
 }: {
   label: string
+  help?: string
   children: React.ReactNode
 }) {
   return (
     <div>
-      <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7f90aa]">{label}</div>
+      <div className="mb-1.5 flex min-h-4 items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-[#7f90aa]">
+        <span>{label}</span>
+        {help ? (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <button
+                  type="button"
+                  className="inline-flex h-4 w-4 items-center justify-center rounded-full text-white/32 transition hover:bg-white/[0.07] hover:text-[#8fc7ff] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4c91ff]/55"
+                  aria-label={`About ${label}`}
+                >
+                  <Info className="h-3 w-3" strokeWidth={1.8} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent>{help}</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        ) : null}
+      </div>
       {children}
     </div>
   )
