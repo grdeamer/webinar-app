@@ -12,6 +12,19 @@ type ActivityRow = {
   updated_at: string
 }
 
+type QuestionSignal = {
+  id: string
+  name: string | null
+  question: string
+  status: "pending" | "approved" | "answered"
+  created_at: string
+  origin_region: string | null
+  origin_country: string | null
+  origin_city: string | null
+  origin_lat: number
+  origin_lng: number
+}
+
 type Destination = "Lobby" | "Main Stage" | "Session" | "Q&A"
 
 const supabase = createClient(
@@ -54,8 +67,32 @@ function pathBetween(destination: Destination) {
   return `M 435 300 C ${(435 + target.x) / 2} 300, ${(435 + target.x) / 2} ${target.y}, ${target.x} ${target.y}`
 }
 
-export default function ActivityTreeClient({ roomKey, eventTitle }: { roomKey: string; eventTitle: string }) {
+function questionPosition(question: QuestionSignal) {
+  return {
+    x: ((question.origin_lng + 180) / 360) * 880,
+    y: ((90 - question.origin_lat) / 180) * 600,
+  }
+}
+
+function questionLocation(question: QuestionSignal) {
+  if (question.origin_city && question.origin_region) {
+    return `${question.origin_city}, ${question.origin_region}`
+  }
+  return question.origin_city || question.origin_region || question.origin_country || "Approximate origin"
+}
+
+export default function ActivityTreeClient({
+  roomKey,
+  eventId,
+  eventTitle,
+}: {
+  roomKey: string
+  eventId: string | null
+  eventTitle: string
+}) {
   const [rows, setRows] = useState<ActivityRow[]>([])
+  const [questionSignals, setQuestionSignals] = useState<QuestionSignal[]>([])
+  const [selectedQuestionId, setSelectedQuestionId] = useState<string | null>(null)
   const [error, setError] = useState("")
   const [paused, setPaused] = useState(false)
   const [range, setRange] = useState<"now" | "hour" | "day">("now")
@@ -82,6 +119,22 @@ export default function ActivityTreeClient({ roomKey, eventTitle }: { roomKey: s
     setRows((data ?? []) as ActivityRow[])
   }, [cutoff, paused, roomKey])
 
+  const refreshQuestions = useCallback(async () => {
+    if (paused || !eventId) return
+    const response = await fetch(
+      `/api/admin/activity/questions?event_id=${encodeURIComponent(eventId)}`,
+      { cache: "no-store" }
+    )
+    const data = (await response.json().catch((): null => null)) as
+      | { items?: QuestionSignal[]; error?: string }
+      | null
+    if (!response.ok) {
+      setError(data?.error || "Unable to load question signals")
+      return
+    }
+    setQuestionSignals(Array.isArray(data?.items) ? data.items : [])
+  }, [eventId, paused])
+
   useEffect(() => {
     const initial = window.setTimeout(() => { void refresh() }, 0)
     const poll = window.setInterval(() => { void refresh() }, 10_000)
@@ -94,6 +147,15 @@ export default function ActivityTreeClient({ roomKey, eventTitle }: { roomKey: s
       void supabase.removeChannel(channel)
     }
   }, [refresh, roomKey])
+
+  useEffect(() => {
+    const initial = window.setTimeout(() => { void refreshQuestions() }, 0)
+    const poll = window.setInterval(() => { void refreshQuestions() }, 5_000)
+    return () => {
+      window.clearTimeout(initial)
+      window.clearInterval(poll)
+    }
+  }, [refreshQuestions])
 
   const counts = useMemo(() => {
     const next = new Map<Destination, number>()
@@ -123,7 +185,7 @@ export default function ActivityTreeClient({ roomKey, eventTitle }: { roomKey: s
           <svg viewBox="0 0 880 600" role="img" aria-label="Live audience activity constellation" className="absolute inset-x-0 bottom-3 h-[570px] w-full">
             <defs>
               <filter id="activity-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-              <style>{`.constellation-path{stroke-dasharray:4 11;animation:constellation-flow 2.8s linear infinite}@keyframes constellation-flow{to{stroke-dashoffset:-30}}@media(prefers-reduced-motion:reduce){.constellation-path{animation:none}}`}</style>
+              <style>{`.constellation-path{stroke-dasharray:4 11;animation:constellation-flow 2.8s linear infinite}.question-ping{transform-box:fill-box;transform-origin:center;animation:question-ping 2.4s ease-out infinite}@keyframes constellation-flow{to{stroke-dashoffset:-30}}@keyframes question-ping{0%{transform:scale(.45);opacity:.8}80%,100%{transform:scale(2.4);opacity:0}}@media(prefers-reduced-motion:reduce){.constellation-path,.question-ping{animation:none}}`}</style>
             </defs>
             <g aria-hidden="true">{fieldStars.map(([x, y, radius], index) => <circle key={`${x}-${y}`} cx={`${x}%`} cy={`${y}%`} r={radius} fill={index % 6 === 0 ? "#ffd79c" : index % 4 === 0 ? "#a9c7ff" : "white"} opacity={.18 + (index % 4) * .08} />)}</g>
             {(Object.keys(nodes) as Destination[]).map((destination) => {
@@ -137,11 +199,74 @@ export default function ActivityTreeClient({ roomKey, eventTitle }: { roomKey: s
               const count = counts.get(destination) ?? 0
               return <g key={destination} transform={`translate(${position.x},${position.y})`}><circle r={count ? 18 : 11} fill={count ? "#f2bd70" : "#737b8c"} opacity={count ? .15 : .08} filter={count ? "url(#activity-glow)" : undefined} /><circle r={count ? 6 : 4} fill={count ? "#ffe3aa" : "#7c8495"} opacity={count ? .9 : .45} /><text x="22" y="5" fill={count ? "white" : "rgba(255,255,255,.42)"} fontSize="14" fontWeight="500">{destination} · {count}</text></g>
             })}
+            {questionSignals.map((question) => {
+              const position = questionPosition(question)
+              const selected = selectedQuestionId === question.id
+              const fill = question.status === "pending" ? "#7dd3fc" : "#86efac"
+              return (
+                <g
+                  key={question.id}
+                  transform={`translate(${position.x},${position.y})`}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Question from ${questionLocation(question)}`}
+                  className="cursor-pointer outline-none"
+                  onClick={() => setSelectedQuestionId(question.id)}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault()
+                      setSelectedQuestionId(question.id)
+                    }
+                  }}
+                >
+                  <circle r={selected ? 20 : 15} fill={fill} opacity={selected ? .16 : .08} filter="url(#activity-glow)" />
+                  <circle className="question-ping" r="8" fill="none" stroke={fill} strokeWidth="1.2" />
+                  <circle r={selected ? 5 : 3.5} fill={fill} />
+                  {selected ? (
+                    <g transform="translate(12,-16)">
+                      <rect width="170" height="40" rx="8" fill="#070d18" stroke="rgba(255,255,255,.16)" />
+                      <text x="10" y="16" fill="white" fontSize="11" fontWeight="600">Question signal</text>
+                      <text x="10" y="31" fill="rgba(255,255,255,.56)" fontSize="10">{questionLocation(question)}</text>
+                    </g>
+                  ) : null}
+                </g>
+              )
+            })}
           </svg>
           <div className="absolute bottom-6 left-1 flex items-center gap-3 text-xs text-white/40"><span className="h-px w-9 bg-gradient-to-r from-amber-200 to-transparent shadow-[0_0_8px_rgba(253,230,138,.7)]" />Brighter paths indicate recent movement</div>
         </section>
 
         <aside className="px-0 py-7 xl:pl-8">
+          {questionSignals.length ? (
+            <section className="mb-8 border-b border-white/10 pb-7">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="text-sm font-semibold">Question signals</h2>
+                <span className="text-xs text-sky-200/58">{questionSignals.length} in 24 hours</span>
+              </div>
+              <div className="mt-4 space-y-2">
+                {questionSignals.slice(0, 5).map((question) => (
+                  <button
+                    key={question.id}
+                    type="button"
+                    onClick={() => setSelectedQuestionId(question.id)}
+                    className={`block w-full rounded-[10px] border px-3 py-3 text-left transition ${
+                      selectedQuestionId === question.id
+                        ? "border-sky-300/32 bg-sky-300/[.08]"
+                        : "border-white/[.08] bg-white/[.025] hover:bg-white/[.045]"
+                    }`}
+                  >
+                    <span className="flex items-center justify-between gap-3 text-[10px] font-semibold uppercase tracking-[.1em] text-white/38">
+                      <span>{questionLocation(question)}</span>
+                      <span>{question.status}</span>
+                    </span>
+                    <span className="mt-2 line-clamp-2 block text-sm leading-5 text-white/72">
+                      {question.question}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </section>
+          ) : null}
           <h2 className="text-sm font-semibold">Live signals</h2>
           <div className="mt-7 divide-y divide-white/[.085]">
             {rows.slice(0, 7).map((row, index) => <div key={`${row.session_id}-${row.updated_at}-${index}`} className="grid grid-cols-[32px_1fr_auto] items-start gap-3 py-5"><span className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full border ${index === 0 ? "border-amber-200/20 bg-amber-300/[.08] text-amber-100" : "border-white/10 bg-white/[.035] text-white/55"}`}>{destinationFor(row.current_path).slice(0,1)}</span><div><div className="text-sm font-medium">{row.user_email || "Attendee"}</div><div className="mt-1 text-sm text-white/45">{shortPath(row.current_path)}</div></div><time className="pt-1 text-xs text-white/35">{new Date(row.updated_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" })}</time></div>)}

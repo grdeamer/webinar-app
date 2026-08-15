@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { lookupGeoFromIp } from "@/lib/app/geo"
+import { lookupGeoFromHeaders } from "@/lib/app/geo"
 import { cleanName, cleanQuestion } from "@/lib/qa"
 
 export const runtime = "nodejs"
@@ -18,8 +18,6 @@ export async function POST(req: Request): Promise<Response> {
           event_id?: string
           name?: string
           question?: string
-          origin_lat?: number | null
-          origin_lng?: number | null
         }
       | null
 
@@ -56,33 +54,7 @@ export async function POST(req: Request): Promise<Response> {
       return NextResponse.json({ error: "Q&A is currently closed." }, { status: 403 })
     }
 
-    const forwardedFor = req.headers.get("x-forwarded-for")
-    const realIp = req.headers.get("x-real-ip")
-
-    const ip =
-      forwardedFor?.split(",")[0]?.trim() ||
-      realIp?.trim() ||
-      null
-
-    const hasBrowserLat =
-      typeof body.origin_lat === "number" && Number.isFinite(body.origin_lat)
-    const hasBrowserLng =
-      typeof body.origin_lng === "number" && Number.isFinite(body.origin_lng)
-
-    const browserLat = hasBrowserLat ? body.origin_lat : null
-    const browserLng = hasBrowserLng ? body.origin_lng : null
-
-    const geo =
-      browserLat !== null && browserLng !== null
-        ? {
-            region: null,
-            country: null,
-            city: null,
-            lat: browserLat,
-            lng: browserLng,
-            source: "browser",
-          }
-        : await lookupGeoFromIp(ip)
+    const geo = lookupGeoFromHeaders(req.headers)
 
     const { error } = await supabaseAdmin
       .from("qa_messages")

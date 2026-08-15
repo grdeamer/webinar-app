@@ -1,34 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 export default function QASubmitBox({ roomKey }: { roomKey: string }) {
   const [name, setName] = useState("")
   const [question, setQuestion] = useState("")
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
-  const [originLat, setOriginLat] = useState<number | null>(null)
-  const [originLng, setOriginLng] = useState<number | null>(null)
-
-  useEffect(() => {
-    if (!navigator.geolocation) return
-
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        setOriginLat(position.coords.latitude)
-        setOriginLng(position.coords.longitude)
-      },
-      () => {
-        setOriginLat(null)
-        setOriginLng(null)
-      },
-      {
-        enableHighAccuracy: false,
-        timeout: 5000,
-        maximumAge: 60000,
-      }
-    )
-  }, [])
 
   async function submit() {
     if (!question.trim()) return
@@ -46,8 +24,6 @@ export default function QASubmitBox({ roomKey }: { roomKey: string }) {
           room_key: roomKey,
           name,
           question,
-          origin_lat: originLat,
-          origin_lng: originLng,
         }),
       })
 

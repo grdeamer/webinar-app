@@ -6,6 +6,7 @@ import {
   Eye,
   EyeOff,
   Lock,
+  MapPin,
   MessageSquareText,
   Radio,
   RotateCcw,
@@ -48,6 +49,9 @@ const FILTERS: Array<{ id: "pending" | "approved" | "all"; label: string }> = [
 ]
 
 function locationLabel(item: QAItem) {
+  if (item.origin_city && item.origin_region) {
+    return `${item.origin_city}, ${item.origin_region}`
+  }
   return item.origin_city || item.origin_region || item.origin_country || "Audience"
 }
 
@@ -227,8 +231,11 @@ export default function ProducerQAModerationPanel({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <div className="truncate text-[9px] font-semibold text-white/50">
-                  {item.name?.trim() || "Anonymous"} · {locationLabel(item)}
+                <div className="flex min-w-0 items-center gap-2 text-[9px] font-semibold text-white/50">
+                  <span className="truncate">{item.name?.trim() || "Anonymous"}</span>
+                  <span className="inline-flex shrink-0 items-center gap-1 text-sky-100/48">
+                    <MapPin size={9} /> {locationLabel(item)}
+                  </span>
                 </div>
                 <div className="shrink-0 text-[8px] font-semibold uppercase tracking-[0.09em] text-white/28">
                   {item.upvotes ? `${item.upvotes} votes` : item.status}

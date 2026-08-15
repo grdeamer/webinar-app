@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useState } from "react"
 
 export default function AttendeeQASubmitBox({
   roomKey,
@@ -15,33 +15,6 @@ export default function AttendeeQASubmitBox({
   const [name, setName] = useState(attendeeName ?? "")
   const [submitting, setSubmitting] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
-  const [originLat, setOriginLat] = useState<number | null>(null)
-  const [originLng, setOriginLng] = useState<number | null>(null)
-
-useEffect(() => {
-  if (!navigator.geolocation) {
-    console.log("NO GEO SUPPORT")
-    return
-  }
-
-  navigator.geolocation.getCurrentPosition(
-    (position) => {
-      console.log("GEO SUCCESS", position.coords)
-      setOriginLat(position.coords.latitude)
-      setOriginLng(position.coords.longitude)
-    },
-    (error) => {
-      console.log("GEO ERROR", error)
-      setOriginLat(null)
-      setOriginLng(null)
-    },
-    {
-      enableHighAccuracy: false,
-      timeout: 20000,
-      maximumAge: 300000,
-    }
-  )
-}, [])
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -66,8 +39,6 @@ useEffect(() => {
           event_id: eventId,
           name: name.trim() || "Anonymous",
           question: trimmedQuestion,
-          origin_lat: originLat,
-          origin_lng: originLng,
         }),
       })
 
