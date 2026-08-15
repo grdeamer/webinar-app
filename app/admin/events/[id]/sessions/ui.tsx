@@ -400,7 +400,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         </div>
       )}
 
-      <section className="border-y border-white/[0.09] py-8">
+      <section className="rounded-[18px] border border-white/[0.13] bg-[linear-gradient(145deg,rgba(12,20,34,0.74),rgba(4,8,16,0.58))] px-5 py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_20px_70px_rgba(0,0,0,0.18)] ring-1 ring-inset ring-white/[0.018] sm:px-7 lg:px-8">
         <div className="grid gap-7 xl:grid-cols-[220px_minmax(0,1fr)]">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">New moment</div>
@@ -710,7 +710,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         </div>
       </section>
 
-      <section>
+      <section className="rounded-[18px] border border-white/[0.13] bg-[linear-gradient(145deg,rgba(12,20,34,0.70),rgba(4,8,16,0.54))] px-5 py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_20px_70px_rgba(0,0,0,0.16)] ring-1 ring-inset ring-white/[0.018] sm:px-7 lg:px-8">
         <div className="flex items-end justify-between gap-4 border-b border-white/[0.09] pb-5">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">Program sequence</div>
