@@ -10,6 +10,15 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   ArrowRight,
   CalendarDays,
   Clock3,
@@ -19,6 +28,11 @@ import {
   Monitor,
   Users,
   Info,
+  MoreHorizontal,
+  Pencil,
+  Presentation,
+  Trash2,
+  UserRound,
 } from "lucide-react"
 
 type EventRow = {
@@ -735,145 +749,162 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                 key={session.id}
                 className="overflow-hidden bg-[#050a13]/48"
               >
-                <button
-                  type="button"
-                  onClick={() => toggleSessionOpen(session.id)}
-                  className="flex w-full items-center justify-between gap-4 px-3 py-5 text-left transition hover:bg-white/[0.035] sm:px-5"
-                >
-                  <div className="min-w-0">
-<div className="flex flex-wrap items-center gap-2">
-  <HeaderBadge>{session.code || "—"}</HeaderBadge>
-{session.runtime_status === "live" ? (
-  <HeaderBadge tone="red" icon={<LiveDot />}>
-    LIVE
-  </HeaderBadge>
-) : null}
-  {session.is_general_session ? (
-    <HeaderBadge tone="sky" icon={<Users size={12} />}>
-      Main Stage
-    </HeaderBadge>
-  ) : null}
+                <div className="flex flex-col gap-5 px-3 py-5 transition hover:bg-white/[0.025] sm:flex-row sm:items-center sm:justify-between sm:px-5">
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <HeaderBadge>{session.code || "—"}</HeaderBadge>
+                      {session.runtime_status === "live" ? (
+                        <HeaderBadge tone="red" icon={<LiveDot />}>
+                          LIVE
+                        </HeaderBadge>
+                      ) : null}
+                      {session.is_general_session ? (
+                        <HeaderBadge tone="sky" icon={<Users size={12} />}>
+                          Main Stage
+                        </HeaderBadge>
+                      ) : null}
+                      {session.delivery_mode === "external" && session.external_platform === "zoom" ? (
+                        <HeaderBadge tone="blue" icon={<Video size={12} />}>
+                          Zoom
+                        </HeaderBadge>
+                      ) : null}
+                      {session.delivery_mode === "external" && session.external_platform === "teams" ? (
+                        <HeaderBadge tone="violet" icon={<Users size={12} />}>
+                          Teams
+                        </HeaderBadge>
+                      ) : null}
+                      {session.delivery_mode === "external" && session.external_platform === "webex" ? (
+                        <HeaderBadge tone="green" icon={<Monitor size={12} />}>
+                          Webex
+                        </HeaderBadge>
+                      ) : null}
+                      {session.delivery_mode === "external" &&
+                      session.external_platform &&
+                      !["zoom", "teams", "webex"].includes(session.external_platform) ? (
+                        <HeaderBadge icon={<Monitor size={12} />}>
+                          {session.external_platform}
+                        </HeaderBadge>
+                      ) : null}
+                      {session.delivery_mode === "livekit" ? (
+                        <HeaderBadge tone="sky" icon={<Radio size={12} />}>
+                          LiveKit
+                        </HeaderBadge>
+                      ) : null}
+                      {session.delivery_mode === "video" ? (
+                        <HeaderBadge icon={<Video size={12} />}>
+                          Video
+                        </HeaderBadge>
+                      ) : null}
+                      {session.delivery_mode === "rtmp" ? (
+                        <HeaderBadge icon={<Radio size={12} />}>
+                          RTMP
+                        </HeaderBadge>
+                      ) : null}
+                    </div>
 
-  {session.delivery_mode === "external" && session.external_platform === "zoom" ? (
-    <HeaderBadge tone="blue" icon={<Video size={12} />}>
-      Zoom
-    </HeaderBadge>
-  ) : null}
+                    <div className="mt-2 truncate text-base font-semibold text-white">
+                      {session.title || "Untitled Session"}
+                    </div>
 
-  {session.delivery_mode === "external" && session.external_platform === "teams" ? (
-    <HeaderBadge tone="violet" icon={<Users size={12} />}>
-      Teams
-    </HeaderBadge>
-  ) : null}
+                    <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/40">
+                      <span>ID: {session.id}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(session.id)
+                          setSessionNotice(session.id, { type: "success", text: "Session ID copied" })
+                          clearSessionNoticeLater(session.id)
+                        }}
+                        className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/60 transition hover:bg-white/10"
+                      >
+                        Copy ID
+                      </button>
+                    </div>
 
-  {session.delivery_mode === "external" && session.external_platform === "webex" ? (
-    <HeaderBadge tone="green" icon={<Monitor size={12} />}>
-      Webex
-    </HeaderBadge>
-  ) : null}
-
-  {session.delivery_mode === "external" &&
-  session.external_platform &&
-  !["zoom", "teams", "webex"].includes(session.external_platform) ? (
-    <HeaderBadge icon={<Monitor size={12} />}>
-      {session.external_platform}
-    </HeaderBadge>
-  ) : null}
-
-  {session.delivery_mode === "livekit" ? (
-    <HeaderBadge tone="sky" icon={<Radio size={12} />}>
-      LiveKit
-    </HeaderBadge>
-  ) : null}
-
-  {session.delivery_mode === "video" ? (
-    <HeaderBadge icon={<Video size={12} />}>
-      Video
-    </HeaderBadge>
-  ) : null}
-
-  {session.delivery_mode === "rtmp" ? (
-    <HeaderBadge icon={<Radio size={12} />}>
-      RTMP
-    </HeaderBadge>
-  ) : null}
-</div>
-
-<div className="mt-2 truncate text-base font-semibold text-white">
-  {session.title || "Untitled Session"}
-</div>
-
-<div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-white/40">
-  <span>ID: {session.id}</span>
-
-  <button
-    type="button"
-    onClick={(e) => {
-      e.stopPropagation()
-      void navigator.clipboard.writeText(session.id)
-      setSessionNotice(session.id, { type: "success", text: "Session ID copied" })
-      clearSessionNoticeLater(session.id)
-    }}
-    className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] uppercase tracking-[0.18em] text-white/60 transition hover:bg-white/10"
-    title="Copy session ID"
-  >
-    Copy ID
-  </button>
-</div>
-
-<div className="mt-1 text-sm text-white/50">
-  {session.visibility_mode || "assigned"} {" • "} {session.runtime_status || "holding"}
-</div>
+                    <div className="mt-1 text-sm text-white/50">
+                      {session.visibility_mode || "assigned"} {" • "} {session.runtime_status || "holding"}
+                    </div>
                   </div>
 
-<div className="flex shrink-0 items-center divide-x divide-white/[0.09] border border-white/[0.09] bg-black/20">
-  <Link
-    href={`/admin/events/${event.id}/sessions/${session.id}/producer`}
-    target="_blank"
-    rel="noreferrer"
-    onClick={(e) => e.stopPropagation()}
-    className="px-3 py-2 text-xs font-semibold text-cyan-200/80 transition hover:bg-cyan-400/[0.08] hover:text-cyan-100"
-  >
-    Produce
-  </Link>
+                  <div className="flex shrink-0 items-center gap-2">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Link
+                            href={`/admin/events/${event.id}/sessions/${session.id}/producer`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="inline-flex h-9 items-center gap-2 rounded-[9px] border border-cyan-300/20 bg-cyan-300/[0.08] px-3.5 text-xs font-semibold text-cyan-100 transition hover:border-cyan-200/30 hover:bg-cyan-300/[0.13]"
+                          >
+                            <Presentation className="h-3.5 w-3.5" />
+                            Produce
+                          </Link>
+                        </TooltipTrigger>
+                        <TooltipContent>Open this session’s production controls in a new tab.</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
 
-  <Link
-    href={`/presenter/${eventSlug}/sessions/${session.id}`}
-    target="_blank"
-    rel="noreferrer"
-    onClick={(e) => e.stopPropagation()}
-    className="px-3 py-2 text-xs font-semibold text-violet-200/70 transition hover:bg-violet-400/[0.08] hover:text-violet-100"
-  >
-    Presenter
-  </Link>
+                    <button
+                      type="button"
+                      onClick={() => toggleSessionOpen(session.id)}
+                      className="inline-flex h-9 items-center gap-2 rounded-[9px] border border-white/[0.11] bg-white/[0.035] px-3.5 text-xs font-semibold text-white/70 transition hover:border-white/[0.18] hover:bg-white/[0.065] hover:text-white"
+                      aria-expanded={isSessionOpen(session.id)}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                      {isSessionOpen(session.id) ? "Hide" : "Edit"}
+                    </button>
 
-  <Link
-    href={`/events/${eventSlug}`}
-    target="_blank"
-    rel="noreferrer"
-    onClick={(e) => e.stopPropagation()}
-    className="px-3 py-2 text-xs font-semibold text-emerald-200/70 transition hover:bg-emerald-400/[0.08] hover:text-emerald-100"
-  >
-    Attendee
-  </Link>
+                    <DropdownMenu>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <DropdownMenuTrigger asChild>
+                              <button
+                                type="button"
+                                className="inline-flex h-9 w-9 items-center justify-center rounded-[9px] border border-white/[0.11] bg-white/[0.035] text-white/55 transition hover:border-white/[0.18] hover:bg-white/[0.065] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#4c91ff]/55"
+                                aria-label={`More actions for ${session.title || "session"}`}
+                              >
+                                <MoreHorizontal className="h-4 w-4" />
+                              </button>
+                            </DropdownMenuTrigger>
+                          </TooltipTrigger>
+                          <TooltipContent>More session actions</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
 
-  <button
-    type="button"
-    onClick={(e) => {
-      e.stopPropagation()
-      void deleteSession(session.id)
-    }}
-    disabled={deleting === session.id}
-    className="px-3 py-2 text-xs font-semibold text-red-200/68 transition hover:bg-red-400/[0.08] hover:text-red-100 disabled:opacity-60"
-  >
-    {deleting === session.id ? "Deleting..." : "Delete"}
-  </button>
-
-  <div className="px-3 py-2 text-xs font-semibold text-white/45">
-    {isSessionOpen(session.id) ? "Hide ▲" : "Edit ▼"}
-  </div>
-</div>
-                </button>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Open session as</DropdownMenuLabel>
+                        <DropdownMenuGroup>
+                          <DropdownMenuItem asChild>
+                            <Link
+                              href={`/presenter/${eventSlug}/sessions/${session.id}`}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              <UserRound className="h-4 w-4 text-violet-300/75" />
+                              Presenter view
+                            </Link>
+                          </DropdownMenuItem>
+                          <DropdownMenuItem asChild>
+                            <Link href={`/events/${eventSlug}`} target="_blank" rel="noreferrer">
+                              <Users className="h-4 w-4 text-emerald-300/75" />
+                              Attendee view
+                            </Link>
+                          </DropdownMenuItem>
+                        </DropdownMenuGroup>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          destructive
+                          disabled={deleting === session.id}
+                          onSelect={() => void deleteSession(session.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                          {deleting === session.id ? "Deleting…" : "Delete session"}
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
 
 <div
   className={`grid overflow-hidden transition-all duration-300 ease-out ${
