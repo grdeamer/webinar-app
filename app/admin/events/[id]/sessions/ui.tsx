@@ -28,6 +28,12 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
+import {
   ArrowRight,
   CalendarDays,
   Clock3,
@@ -510,21 +516,6 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </select>
           </Field>
 
-          <Field label="Runtime Status" help="The operational state shown throughout Jupiter. Holding is the safe default before the session begins.">
-            <select
-              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
-              value={draft.runtime_status}
-              onChange={(e) =>
-                setDraft((prev) => ({ ...prev, runtime_status: e.target.value }))
-              }
-            >
-              <option value="holding">holding</option>
-              <option value="live">live</option>
-              <option value="paused">paused</option>
-              <option value="ended">ended</option>
-            </select>
-          </Field>
-
           <Field label="Start">
             <input
               type="datetime-local"
@@ -543,20 +534,6 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             />
           </Field>
 
-          <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
-            <input
-              type="number"
-              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
-              value={draft.sort_order}
-              onChange={(e) =>
-                setDraft((prev) => ({
-                  ...prev,
-                  sort_order: Number(e.target.value || 0),
-                }))
-              }
-            />
-          </Field>
-
           <Field label="Main Stage">
             <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
               <input
@@ -570,20 +547,13 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </label>
           </Field>
 
-          <Field label="Manual Live" help="Overrides scheduled timing and lets an operator explicitly mark this session live.">
-            <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
-              <input
-                type="checkbox"
-                checked={draft.manual_live}
-                onChange={(e) =>
-                  setDraft((prev) => ({ ...prev, manual_live: e.target.checked }))
-                }
-              />
-              <span className="text-sm text-white/80">Mark as live manually</span>
-            </label>
-          </Field>
         </div>
 
+        <SessionDisclosure
+          title="Delivery"
+          description="Configure the destination or playback source attendees will enter."
+          defaultOpen
+        >
         {draft.delivery_mode === "external" && (
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <Field label="External Platform" help="The meeting provider used by the external join link. Jupiter can detect common providers automatically.">
@@ -693,8 +663,60 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </Field>
           </div>
         )}
+        {draft.delivery_mode === "rtmp" ? (
+          <p className="text-sm leading-6 text-white/42">
+            RTMP delivery is controlled from the Producer Room when the session goes live.
+          </p>
+        ) : null}
+        </SessionDisclosure>
 
-        <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <SessionDisclosure
+          title="Advanced settings"
+          description="Operator state, ordering, manual overrides, and legacy compatibility."
+        >
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <Field label="Runtime Status" help="The operational state shown throughout Jupiter. Holding is the safe default before the session begins.">
+            <select
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
+              value={draft.runtime_status}
+              onChange={(e) =>
+                setDraft((prev) => ({ ...prev, runtime_status: e.target.value }))
+              }
+            >
+              <option value="holding">holding</option>
+              <option value="live">live</option>
+              <option value="paused">paused</option>
+              <option value="ended">ended</option>
+            </select>
+          </Field>
+
+          <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
+            <input
+              type="number"
+              className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
+              value={draft.sort_order}
+              onChange={(e) =>
+                setDraft((prev) => ({
+                  ...prev,
+                  sort_order: Number(e.target.value || 0),
+                }))
+              }
+            />
+          </Field>
+
+          <Field label="Manual Live" help="Overrides scheduled timing and lets an operator explicitly mark this session live.">
+            <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
+              <input
+                type="checkbox"
+                checked={draft.manual_live}
+                onChange={(e) =>
+                  setDraft((prev) => ({ ...prev, manual_live: e.target.checked }))
+                }
+              />
+              <span className="text-sm text-white/80">Mark as live manually</span>
+            </label>
+          </Field>
+
           <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Prefer External Join URL for new sessions.">
             <input
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
@@ -713,6 +735,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             />
           </Field>
         </div>
+        </SessionDisclosure>
 
         <div className="mt-4">
           <Field label="Description">
@@ -1018,21 +1041,6 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </select>
                       </Field>
 
-                      <Field label="Runtime Status" help="The operational state shown throughout Jupiter. Holding is the safe default before the session begins.">
-                        <select
-                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
-                          value={session.runtime_status || "holding"}
-                          onChange={(e) =>
-                            patchSession(session.id, { runtime_status: e.target.value })
-                          }
-                        >
-                          <option value="holding">holding</option>
-                          <option value="live">live</option>
-                          <option value="paused">paused</option>
-                          <option value="ended">ended</option>
-                        </select>
-                      </Field>
-
                       <Field label="Start">
                         <input
                           type="datetime-local"
@@ -1059,19 +1067,6 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         />
                       </Field>
 
-                      <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
-                        <input
-                          type="number"
-                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
-                          value={session.sort_order ?? 0}
-                          onChange={(e) =>
-                            patchSession(session.id, {
-                              sort_order: Number(e.target.value || 0),
-                            })
-                          }
-                        />
-                      </Field>
-
                       <Field label="Main Stage">
                         <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
                           <input
@@ -1085,20 +1080,13 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </label>
                       </Field>
 
-                      <Field label="Manual Live" help="Overrides scheduled timing and lets an operator explicitly mark this session live.">
-                        <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
-                          <input
-                            type="checkbox"
-                            checked={!!session.manual_live}
-                            onChange={(e) =>
-                              patchSession(session.id, { manual_live: e.target.checked })
-                            }
-                          />
-                          <span className="text-sm text-white/80">Mark as live manually</span>
-                        </label>
-                      </Field>
                     </div>
 
+                    <SessionDisclosure
+                      title="Delivery"
+                      description="Configure the destination or playback source attendees will enter."
+                      defaultOpen
+                    >
                     {session.delivery_mode === "external" && (
                       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                         <Field label="External Platform" help="The meeting provider used by the external join link. Jupiter can detect common providers automatically.">
@@ -1205,8 +1193,59 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </Field>
                       </div>
                     )}
+                    {session.delivery_mode === "rtmp" ? (
+                      <p className="text-sm leading-6 text-white/42">
+                        RTMP delivery is controlled from the Producer Room when the session goes live.
+                      </p>
+                    ) : null}
+                    </SessionDisclosure>
 
-                    <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <SessionDisclosure
+                      title="Advanced settings"
+                      description="Operator state, ordering, manual overrides, and legacy compatibility."
+                    >
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                      <Field label="Runtime Status" help="The operational state shown throughout Jupiter. Holding is the safe default before the session begins.">
+                        <select
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
+                          value={session.runtime_status || "holding"}
+                          onChange={(e) =>
+                            patchSession(session.id, { runtime_status: e.target.value })
+                          }
+                        >
+                          <option value="holding">holding</option>
+                          <option value="live">live</option>
+                          <option value="paused">paused</option>
+                          <option value="ended">ended</option>
+                        </select>
+                      </Field>
+
+                      <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
+                        <input
+                          type="number"
+                          className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
+                          value={session.sort_order ?? 0}
+                          onChange={(e) =>
+                            patchSession(session.id, {
+                              sort_order: Number(e.target.value || 0),
+                            })
+                          }
+                        />
+                      </Field>
+
+                      <Field label="Manual Live" help="Overrides scheduled timing and lets an operator explicitly mark this session live.">
+                        <label className="flex h-[42px] items-center gap-3 rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2">
+                          <input
+                            type="checkbox"
+                            checked={!!session.manual_live}
+                            onChange={(e) =>
+                              patchSession(session.id, { manual_live: e.target.checked })
+                            }
+                          />
+                          <span className="text-sm text-white/80">Mark as live manually</span>
+                        </label>
+                      </Field>
+
                       <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Prefer External Join URL for new sessions.">
                         <input
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
@@ -1227,6 +1266,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         />
                       </Field>
                     </div>
+                    </SessionDisclosure>
 
                     <div className="mt-4">
                       <Field label="Description">
@@ -1342,6 +1382,39 @@ function ProgramMetric({
       <span className="text-xl font-semibold tabular-nums tracking-[-0.03em]">{value}</span>
       <span className="text-[10px] font-semibold uppercase tracking-[0.16em] text-white/36">{label}</span>
     </div>
+  )
+}
+
+function SessionDisclosure({
+  title,
+  description,
+  defaultOpen = false,
+  children,
+}: {
+  title: string
+  description: string
+  defaultOpen?: boolean
+  children: React.ReactNode
+}) {
+  return (
+    <Accordion
+      type="single"
+      collapsible
+      defaultValue={defaultOpen ? "content" : undefined}
+      className="mt-4"
+    >
+      <AccordionItem value="content">
+        <AccordionTrigger>
+          <span>
+            <span className="block text-sm font-semibold text-white/88">{title}</span>
+            <span className="mt-1 block text-xs font-normal leading-5 text-white/38">
+              {description}
+            </span>
+          </span>
+        </AccordionTrigger>
+        <AccordionContent>{children}</AccordionContent>
+      </AccordionItem>
+    </Accordion>
   )
 }
 
