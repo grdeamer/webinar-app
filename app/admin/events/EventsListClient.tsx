@@ -72,11 +72,11 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
 
   return (
     <>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-white/45">
+      <div className="events-directory-toolbar">
+        <p className="events-directory-count">
           {showArchived ? `${archivedCount} archived ${archivedCount === 1 ? "event" : "events"}` : `${visibleEvents.length} active ${visibleEvents.length === 1 ? "event" : "events"}`}
         </p>
-        {canManage ? <button type="button" onClick={() => { setShowArchived((current) => !current); setOpenMenuId(null) }} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-4 py-2 text-sm font-semibold text-white/75 hover:bg-white/[.08]">
+        {canManage ? <button type="button" onClick={() => { setShowArchived((current) => !current); setOpenMenuId(null) }} className="events-directory-archive">
           {showArchived ? <ArchiveRestore size={15} /> : <Archive size={15} />}
           {showArchived ? "Back to active events" : `Archived events (${archivedCount})`}
         </button> : null}
@@ -84,16 +84,18 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
 
       {error && !pending ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="events-directory-list">
         {visibleEvents.map((event, index) => (
-          <article key={event.id} className={`event-directory-card event-directory-card--${index % 4}`}>
-            <Link href={`/admin/events/${event.id}`} className="event-directory-card__content block h-full px-7 py-6 pr-16">
-              <div className="event-directory-card__eyebrow">Event {String(index + 1).padStart(2, "0")}</div>
-              <div className="event-directory-card__title mt-4">{event.title}</div>
-              <div className="event-directory-card__slug mt-2 text-white/53">/{event.slug}</div>
-              <div className="event-directory-card__date mt-5">{event.start_label}</div>
+          <article key={event.id} className={`event-directory-item event-directory-item--${index === 0 ? "lead" : "row"} event-directory-item--accent-${index % 4}`}>
+            <Link href={`/admin/events/${event.id}`} className="event-directory-item__content">
+              <span className="event-directory-item__index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
+              <div className="event-directory-item__copy">
+                <div className="event-directory-item__title">{event.title}</div>
+                <div className="event-directory-item__slug">/{event.slug}</div>
+              </div>
+              <div className="event-directory-item__date">{event.start_label}</div>
             </Link>
-            {canManage ? <button type="button" aria-label={`Actions for ${event.title}`} aria-expanded={openMenuId === event.id} onClick={() => setOpenMenuId((current) => current === event.id ? null : event.id)} className="absolute right-5 top-5 z-10 rounded-full border border-white/10 bg-black/20 p-2 text-white/45 backdrop-blur-md hover:border-white/20 hover:bg-white/10 hover:text-white">
+            {canManage ? <button type="button" aria-label={`Actions for ${event.title}`} aria-expanded={openMenuId === event.id} onClick={() => setOpenMenuId((current) => current === event.id ? null : event.id)} className="event-directory-item__menu">
               <MoreHorizontal size={18} />
             </button> : null}
             {canManage && openMenuId === event.id ? <div className="absolute right-4 top-14 z-20 w-52 rounded-xl border border-white/10 bg-[#101522] p-1.5 shadow-2xl">
@@ -102,7 +104,7 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
             </div> : null}
           </article>
         ))}
-        {visibleEvents.length === 0 ? <div className="md:col-span-2 rounded-2xl border border-dashed border-white/10 bg-white/[.025] p-10 text-center text-sm text-white/45">{showArchived ? "No archived events." : "No active events yet."}</div> : null}
+        {visibleEvents.length === 0 ? <div className="events-directory-empty">{showArchived ? "No archived events." : "No active events yet."}</div> : null}
       </div>
 
       {pending ? <div role="dialog" aria-modal="true" aria-labelledby="event-action-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-5 backdrop-blur-sm"><div className={`w-full max-w-lg rounded-3xl border bg-[#0b101c] p-6 shadow-2xl ${pending.action === "delete" ? "border-red-300/15" : "border-white/10"}`}><div className="flex items-start justify-between gap-4"><div><div className={`text-[10px] font-black uppercase tracking-[.2em] ${pending.action === "delete" ? "text-red-200/55" : "text-violet-200/55"}`}>Event action</div><h2 id="event-action-title" className="mt-3 text-2xl font-semibold">{actionLabel}?</h2></div><button type="button" aria-label="Close event action" onClick={() => { setPending(null); setConfirmation(""); setError(null) }} className="rounded-lg border border-white/10 p-2 text-white/55 hover:bg-white/[.06]"><X size={17} /></button></div>
