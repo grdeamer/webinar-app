@@ -87,12 +87,13 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
       <div className="grid gap-4 md:grid-cols-2">
         {visibleEvents.map((event, index) => (
           <article key={event.id} className={`event-directory-card event-directory-card--${index % 4}`}>
-            <Link href={`/admin/events/${event.id}`} className="block h-full px-6 py-6 pr-16">
-              <div className="text-lg font-semibold">{event.title}</div>
-              <div className="mt-1 text-sm text-white/60">/{event.slug}</div>
-              <div className="mt-3 text-xs text-white/40">{event.start_label}</div>
+            <Link href={`/admin/events/${event.id}`} className="event-directory-card__content block h-full px-7 py-6 pr-16">
+              <div className="event-directory-card__eyebrow">Event {String(index + 1).padStart(2, "0")}</div>
+              <div className="event-directory-card__title mt-4">{event.title}</div>
+              <div className="event-directory-card__slug mt-2 text-white/53">/{event.slug}</div>
+              <div className="event-directory-card__date mt-5">{event.start_label}</div>
             </Link>
-            {canManage ? <button type="button" aria-label={`Actions for ${event.title}`} aria-expanded={openMenuId === event.id} onClick={() => setOpenMenuId((current) => current === event.id ? null : event.id)} className="absolute right-4 top-4 rounded-lg border border-white/10 bg-black/20 p-2 text-white/55 hover:bg-white/10 hover:text-white">
+            {canManage ? <button type="button" aria-label={`Actions for ${event.title}`} aria-expanded={openMenuId === event.id} onClick={() => setOpenMenuId((current) => current === event.id ? null : event.id)} className="absolute right-5 top-5 z-10 rounded-full border border-white/10 bg-black/20 p-2 text-white/45 backdrop-blur-md hover:border-white/20 hover:bg-white/10 hover:text-white">
               <MoreHorizontal size={18} />
             </button> : null}
             {canManage && openMenuId === event.id ? <div className="absolute right-4 top-14 z-20 w-52 rounded-xl border border-white/10 bg-[#101522] p-1.5 shadow-2xl">

@@ -1,5 +1,5 @@
 import "./globals.css"
-import { Inter, Geist } from "next/font/google"
+import { Geist, Inter, Manrope } from "next/font/google"
 import type { Metadata, Viewport } from "next"
 import { cn } from "@/lib/utils";
 
@@ -8,6 +8,11 @@ const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+})
+
+const manrope = Manrope({
+  subsets: ["latin"],
+  variable: "--font-events",
 })
 
 export const metadata: Metadata = {
@@ -34,7 +39,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="en" className={cn("font-sans", geist.variable, inter.variable, manrope.variable)}>
       <body className="jupiter-space-site min-h-dvh text-white antialiased">
         {children}
       </body>

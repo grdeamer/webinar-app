@@ -73,8 +73,8 @@ export default async function AdminDevToolsPage(props: {
         </section>
       ) : null}
 
-      <div className="mt-8 grid gap-10 xl:grid-cols-[minmax(0,1fr)_340px]">
-        <form action="/api/admin/dev-tools/seed" method="post" className="min-w-0">
+      <div className="dev-tools-workspace mt-8 grid xl:grid-cols-[minmax(0,1fr)_340px]">
+        <form action="/api/admin/dev-tools/seed" method="post" className="dev-tools-workspace__form min-w-0">
           <div className="flex flex-col gap-4 border-b border-white/10 pb-6 sm:flex-row sm:items-end sm:justify-between">
             <div>
               <div className="text-[10px] font-semibold uppercase tracking-[.23em] text-white/34">Seed configuration</div>
@@ -114,7 +114,7 @@ export default async function AdminDevToolsPage(props: {
           </div>
         </form>
 
-        <aside className="xl:border-l xl:border-white/10 xl:pl-8">
+        <aside className="dev-tools-workspace__verification">
           <div className="sticky top-8">
             <div className="text-[10px] font-semibold uppercase tracking-[.23em] text-sky-300/62">Verification run</div>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-.025em] text-white">Follow the signal</h2>
@@ -207,7 +207,7 @@ function Field({
         name={name}
         defaultValue={defaultValue}
         placeholder={placeholder}
-        className="h-12 rounded-[11px] border border-white/[.11] bg-[#050a14]/70 px-4 text-sm text-white/86 outline-none transition placeholder:text-white/20 hover:border-white/[.17] focus:border-sky-400/55 focus:bg-[#060c18] focus:shadow-[0_0_0_3px_rgba(56,139,253,.08)]"
+        className="dev-tools-field h-12 rounded-[11px] px-4 text-sm text-white/90 outline-none transition placeholder:text-white/22"
       />
       {help ? <span className="text-[11px] leading-4 text-white/30">{help}</span> : null}
     </label>
