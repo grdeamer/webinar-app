@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useMemo, useState } from "react"
-import { Activity, Archive, ArchiveRestore, Bell, CalendarDays, ChevronRight, CircleHelp, Clock3, MoreHorizontal, Radio, Search, Trash2, X } from "lucide-react"
+import { Activity, Archive, ArchiveRestore, Bell, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, Clock3, MoreHorizontal, Radio, Search, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 type EventRow = {
@@ -41,17 +41,29 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
   const scheduledEvents = useMemo(() => activeEvents
     .filter((event) => event.start_at)
     .sort((a, b) => new Date(a.start_at!).getTime() - new Date(b.start_at!).getTime()), [activeEvents])
-  const calendarDate = scheduledEvents[0]?.start_at ? new Date(scheduledEvents[0].start_at) : new Date()
-  const calendarYear = calendarDate.getFullYear()
-  const calendarMonth = calendarDate.getMonth()
+  const initialCalendarDate = scheduledEvents[0]?.start_at ? new Date(scheduledEvents[0].start_at) : new Date()
+  const [calendarCursor, setCalendarCursor] = useState(() => new Date(initialCalendarDate.getFullYear(), initialCalendarDate.getMonth(), 1))
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null)
+  const calendarYear = calendarCursor.getFullYear()
+  const calendarMonth = calendarCursor.getMonth()
   const calendarDays = new Date(calendarYear, calendarMonth + 1, 0).getDate()
   const calendarOffset = new Date(calendarYear, calendarMonth, 1).getDay()
-  const scheduledDays = new Set(scheduledEvents
-    .filter((event) => {
+  const calendarEventsByDay = useMemo(() => {
+    const eventsByDay = new Map<number, EventRow[]>()
+    scheduledEvents.forEach((event) => {
       const date = new Date(event.start_at!)
-      return date.getFullYear() === calendarYear && date.getMonth() === calendarMonth
+      if (date.getFullYear() !== calendarYear || date.getMonth() !== calendarMonth) return
+      const day = date.getDate()
+      eventsByDay.set(day, [...(eventsByDay.get(day) ?? []), event])
     })
-    .map((event) => new Date(event.start_at!).getDate()))
+    return eventsByDay
+  }, [calendarMonth, calendarYear, scheduledEvents])
+  const selectedCalendarEvents = selectedCalendarDay ? calendarEventsByDay.get(selectedCalendarDay) ?? [] : []
+
+  function changeCalendarMonth(offset: number) {
+    setCalendarCursor((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1))
+    setSelectedCalendarDay(null)
+  }
 
   function beginAction(event: EventRow, action: PendingAction["action"]) {
     setOpenMenuId(null)
@@ -157,17 +169,19 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
         </section>
 
         <aside className="events-insight-rail">
-          <section className="events-calendar-card">
-            <div className="events-rail-heading"><span>Upcoming events</span><Link href="/admin/events">View calendar <ChevronRight size={14} /></Link></div>
-            <h3>{calendarDate.toLocaleString("en-US", { month: "long" }).toUpperCase()} {calendarYear}</h3>
+          <section className="events-calendar-card" id="events-calendar">
+            <div className="events-rail-heading"><span>Upcoming events</span><button type="button" onClick={() => { const today = new Date(); setCalendarCursor(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedCalendarDay(today.getDate()) }}>Today</button></div>
+            <div className="events-calendar-month"><h3>{calendarCursor.toLocaleString("en-US", { month: "long" }).toUpperCase()} {calendarYear}</h3><div><Button type="button" variant="jupiterQuiet" size="icon-sm" onClick={() => changeCalendarMonth(-1)} aria-label="Previous month"><ChevronLeft size={16} /></Button><Button type="button" variant="jupiterQuiet" size="icon-sm" onClick={() => changeCalendarMonth(1)} aria-label="Next month"><ChevronRight size={16} /></Button></div></div>
             <div className="events-calendar-weekdays">{["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div>
             <div className="events-calendar-days">
               {Array.from({ length: calendarOffset }, (_, index) => <span key={`blank-${index}`} />)}
               {Array.from({ length: calendarDays }, (_, index) => {
                 const day = index + 1
-                return <span key={day} className={scheduledDays.has(day) ? "has-event" : ""}>{day}</span>
+                const dayEvents = calendarEventsByDay.get(day) ?? []
+                return dayEvents.length ? <button key={day} type="button" className={`events-calendar-day has-event ${selectedCalendarDay === day ? "is-selected" : ""}`} onClick={() => setSelectedCalendarDay(day)} aria-label={`${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"} on ${calendarCursor.toLocaleString("en-US", { month: "long" })} ${day}`} aria-pressed={selectedCalendarDay === day}>{day}</button> : <span key={day} className="events-calendar-day">{day}</span>
               })}
             </div>
+            {selectedCalendarDay ? <div className="events-calendar-selection"><p>{calendarCursor.toLocaleString("en-US", { month: "long" })} {selectedCalendarDay}</p>{selectedCalendarEvents.length ? selectedCalendarEvents.map((event) => <Link key={event.id} href={`/admin/events/${event.id}`}><span>{event.title}</span><ChevronRight size={14} /></Link>) : <small>No events scheduled.</small>}</div> : null}
           </section>
           <section className="events-activity-card">
             <div className="events-rail-heading"><span>Recent activity</span><Link href="/admin/activity">View all <ChevronRight size={14} /></Link></div>
