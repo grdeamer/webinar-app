@@ -162,12 +162,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"
         }`}
       >
-        <div className="fixed inset-x-0 top-0 z-[70] flex min-h-16 items-end justify-between border-b border-white/10 bg-[#050816]/95 px-4 pb-2 pt-[env(safe-area-inset-top)] backdrop-blur-2xl lg:hidden">
-          <JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-xs font-bold tracking-[0.18em]" />
+        <div className="jupiter-mobile-header fixed inset-x-0 top-0 z-[70] flex min-h-16 items-end justify-between border-b border-white/10 px-5 pb-2 pt-[env(safe-area-inset-top)] lg:hidden">
+          <Link href="/admin" aria-label="Jupiter Mission Control home" className="flex min-h-11 items-center">
+            <JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-xs font-bold tracking-[0.18em]" />
+          </Link>
           <button
             type="button"
             onClick={() => setMobileNavOpen((open) => !open)}
-            className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/10 bg-white/[0.06] text-white"
+            className="jupiter-mobile-menu-button flex h-11 w-11 items-center justify-center rounded-full border border-white/10 text-white"
             aria-label={mobileNavOpen ? "Close navigation" : "Open navigation"}
             aria-expanded={mobileNavOpen}
           >

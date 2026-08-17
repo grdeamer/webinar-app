@@ -388,10 +388,10 @@ export default function EventLayout({
 
       <section className={`${EVENT_WORKSPACE_SECTION_CLASS} ${isPageEditorWorkspace ? "h-full min-h-0" : ""}`}>
         <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.055] to-transparent" />
-        <details className="sticky top-16 z-40 border-b border-white/10 bg-[#050814]/95 px-4 py-3 backdrop-blur-2xl xl:hidden">
-          <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-3 text-sm font-semibold text-white marker:hidden">
+        <details className="event-mobile-navigation sticky top-16 z-40 px-4 py-3 xl:hidden">
+          <summary className="event-mobile-navigation__summary flex min-h-11 cursor-pointer list-none items-center justify-between gap-3 rounded-2xl border px-4 text-sm font-semibold text-white marker:hidden">
             <span className="min-w-0 truncate">{eventContext?.title || `Event ${shortId}`}</span>
-            <span className="shrink-0 text-xs font-medium text-sky-300">Event menu ↓</span>
+            <span className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.12em] text-sky-300">Menu <span aria-hidden>↓</span></span>
           </summary>
           <nav className="mt-3 grid grid-cols-2 gap-2 pb-1 text-sm">
             <MobileEventLink href={base} label="Overview" />

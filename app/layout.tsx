@@ -17,13 +17,26 @@ const instrumentSans = Instrument_Sans({
 })
 
 export const metadata: Metadata = {
-  title: "Jupiter.events",
+  metadataBase: new URL("https://jupiter.events"),
+  applicationName: "Jupiter",
+  title: {
+    default: "Jupiter — Events with gravity",
+    template: "%s | Jupiter",
+  },
   description:
     "Host events with gravity. Run webinars, summits, and live broadcasts on a platform built to scale.",
   icons: {
     icon: [{ url: "/jupiter-planet.svg", type: "image/svg+xml" }],
     shortcut: "/jupiter-planet.svg",
     apple: "/jupiter-planet.svg",
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Jupiter",
+  },
+  formatDetection: {
+    telephone: false,
   },
 }
 
