@@ -3,6 +3,8 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
+import { Button } from "@/components/ui/button"
+import { Check, Save } from "lucide-react"
 
 type EventSettingsRow = { id: string; slug: string; title: string; description: string | null; start_at: string | null; end_at: string | null }
 
@@ -65,7 +67,9 @@ export default function EventSettingsForm({ initial }: { initial: EventSettingsR
         <div className="editorial-rule border-t pt-6">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-sm text-[#7b88a2]">{error || message || "No unsaved changes"}</div>
-            <button type="button" onClick={save} disabled={saving} className="min-h-12 min-w-56 rounded-full bg-[linear-gradient(90deg,#1b75ff,#7444ef)] px-7 text-sm font-semibold disabled:opacity-50">{saving ? "Saving…" : "Save event details"}</button>
+            <Button type="button" variant="jupiterPrimary" size="lg" onClick={save} disabled={saving} className="min-w-56">
+              {message ? <Check aria-hidden="true" /> : <Save aria-hidden="true" />}{saving ? "Saving…" : message ? "Event details saved" : "Save event details"}
+            </Button>
           </div>
         </div>
       </div>

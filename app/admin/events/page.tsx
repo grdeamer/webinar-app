@@ -1,8 +1,9 @@
 import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createClient } from "@/lib/supabase/server"
-import JupiterLogo from "@/components/brand/JupiterLogo"
 import EventsListClient from "./EventsListClient"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
 
@@ -37,19 +38,13 @@ export default async function AdminEventsPage() {
     <div className="global-editorial-page events-editorial-page mx-auto max-w-[1440px]">
       <header className="events-editorial-header">
         <div>
-          <div className="events-editorial-brand">
-            <JupiterLogo className="text-white" markClassName="h-9 w-9" wordmarkClassName="text-[17px] font-semibold tracking-[0.17em]" />
-          </div>
           <p className="events-editorial-kicker">Event directory</p>
           <h1 className="events-editorial-title">Events</h1>
           <p className="events-editorial-description">Create, prepare, and return to every production from one place.</p>
         </div>
-        {isGlobalAdmin ? <Link
-          href="/admin/events/new"
-          className="events-editorial-create"
-        >
-          <span aria-hidden="true">＋</span> New event
-        </Link> : null}
+        {isGlobalAdmin ? <Button asChild variant="jupiterPrimary" size="lg" className="events-editorial-create">
+          <Link href="/admin/events/new"><Plus data-icon="inline-start" />New event</Link>
+        </Button> : null}
       </header>
 
       <EventsListClient canManage={isGlobalAdmin} initialEvents={(data || []).map((event) => ({
@@ -57,6 +52,7 @@ export default async function AdminEventsPage() {
         slug: event.slug,
         title: event.title,
         lifecycle_stage: event.lifecycle_stage,
+        start_at: event.start_at,
         start_label: event.start_at ? eventDateFormatter.format(new Date(event.start_at)) : "Date TBD",
       }))} />
     </div>
