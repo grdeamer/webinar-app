@@ -41,7 +41,11 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
   const scheduledEvents = useMemo(() => activeEvents
     .filter((event) => event.start_at)
     .sort((a, b) => new Date(a.start_at!).getTime() - new Date(b.start_at!).getTime()), [activeEvents])
-  const initialCalendarDate = scheduledEvents[0]?.start_at ? new Date(scheduledEvents[0].start_at) : new Date()
+  const initialCalendarDate = useMemo(() => {
+    const now = Date.now()
+    const nextEvent = scheduledEvents.find((event) => new Date(event.start_at!).getTime() >= now)
+    return nextEvent?.start_at ? new Date(nextEvent.start_at) : new Date()
+  }, [scheduledEvents])
   const [calendarCursor, setCalendarCursor] = useState(() => new Date(initialCalendarDate.getFullYear(), initialCalendarDate.getMonth(), 1))
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<number | null>(null)
   const calendarYear = calendarCursor.getFullYear()
@@ -63,6 +67,12 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
   function changeCalendarMonth(offset: number) {
     setCalendarCursor((current) => new Date(current.getFullYear(), current.getMonth() + offset, 1))
     setSelectedCalendarDay(null)
+  }
+
+  function selectToday() {
+    const today = new Date()
+    setCalendarCursor(new Date(today.getFullYear(), today.getMonth(), 1))
+    setSelectedCalendarDay(today.getDate())
   }
 
   function beginAction(event: EventRow, action: PendingAction["action"]) {
@@ -170,7 +180,7 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
 
         <aside className="events-insight-rail">
           <section className="events-calendar-card" id="events-calendar">
-            <div className="events-rail-heading"><span>Upcoming events</span><button type="button" onClick={() => { const today = new Date(); setCalendarCursor(new Date(today.getFullYear(), today.getMonth(), 1)); setSelectedCalendarDay(today.getDate()) }}>Today</button></div>
+            <div className="events-rail-heading"><span>Event calendar</span><button type="button" onClick={selectToday}>Today</button></div>
             <div className="events-calendar-month"><h3>{calendarCursor.toLocaleString("en-US", { month: "long" }).toUpperCase()} {calendarYear}</h3><div><Button type="button" variant="jupiterQuiet" size="icon-sm" onClick={() => changeCalendarMonth(-1)} aria-label="Previous month"><ChevronLeft size={16} /></Button><Button type="button" variant="jupiterQuiet" size="icon-sm" onClick={() => changeCalendarMonth(1)} aria-label="Next month"><ChevronRight size={16} /></Button></div></div>
             <div className="events-calendar-weekdays">{["S", "M", "T", "W", "T", "F", "S"].map((day, index) => <span key={`${day}-${index}`}>{day}</span>)}</div>
             <div className="events-calendar-days">
@@ -178,10 +188,21 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
               {Array.from({ length: calendarDays }, (_, index) => {
                 const day = index + 1
                 const dayEvents = calendarEventsByDay.get(day) ?? []
-                return dayEvents.length ? <button key={day} type="button" className={`events-calendar-day has-event ${selectedCalendarDay === day ? "is-selected" : ""}`} onClick={() => setSelectedCalendarDay(day)} aria-label={`${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"} on ${calendarCursor.toLocaleString("en-US", { month: "long" })} ${day}`} aria-pressed={selectedCalendarDay === day}>{day}</button> : <span key={day} className="events-calendar-day">{day}</span>
+                const monthName = calendarCursor.toLocaleString("en-US", { month: "long" })
+                return <button
+                  key={day}
+                  type="button"
+                  className={`events-calendar-day ${dayEvents.length ? "has-event" : ""} ${selectedCalendarDay === day ? "is-selected" : ""}`}
+                  onClick={() => setSelectedCalendarDay(day)}
+                  aria-label={dayEvents.length ? `${dayEvents.length} event${dayEvents.length === 1 ? "" : "s"} on ${monthName} ${day}` : `No events on ${monthName} ${day}`}
+                  aria-pressed={selectedCalendarDay === day}
+                >{day}</button>
               })}
             </div>
-            {selectedCalendarDay ? <div className="events-calendar-selection"><p>{calendarCursor.toLocaleString("en-US", { month: "long" })} {selectedCalendarDay}</p>{selectedCalendarEvents.length ? selectedCalendarEvents.map((event) => <Link key={event.id} href={`/admin/events/${event.id}`}><span>{event.title}</span><ChevronRight size={14} /></Link>) : <small>No events scheduled.</small>}</div> : null}
+            <div className="events-calendar-selection" aria-live="polite">
+              <p>{selectedCalendarDay ? `${calendarCursor.toLocaleString("en-US", { month: "long" })} ${selectedCalendarDay}` : "Select a date"}</p>
+              {selectedCalendarDay ? (selectedCalendarEvents.length ? selectedCalendarEvents.map((event) => <Link key={event.id} href={`/admin/events/${event.id}`}><span>{event.title}</span><ChevronRight size={14} /></Link>) : <small>No events scheduled for this date.</small>) : <small>Choose any day to review its schedule.</small>}
+            </div>
           </section>
           <section className="events-activity-card">
             <div className="events-rail-heading"><span>Recent activity</span><Link href="/admin/activity">View all <ChevronRight size={14} /></Link></div>
