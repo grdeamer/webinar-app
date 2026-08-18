@@ -27,7 +27,7 @@ export default async function AdminEventsPage() {
 
   let query = supabaseAdmin
     .from("events")
-    .select("id,slug,title,start_at,lifecycle_stage")
+    .select("id,slug,title,start_at,lifecycle_stage,accent_color")
     .order("created_at", { ascending: false })
   if (!isGlobalAdmin) query = eventIds.length ? query.in("id", eventIds) : query.in("id", ["00000000-0000-0000-0000-000000000000"])
   const { data, error } = await query
@@ -52,6 +52,7 @@ export default async function AdminEventsPage() {
         slug: event.slug,
         title: event.title,
         lifecycle_stage: event.lifecycle_stage,
+        accent_color: event.accent_color || "blue",
         start_at: event.start_at,
         start_label: event.start_at ? eventDateFormatter.format(new Date(event.start_at)) : "Date TBD",
       }))} />

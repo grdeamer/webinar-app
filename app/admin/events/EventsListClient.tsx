@@ -1,9 +1,22 @@
 "use client"
 
 import Link from "next/link"
-import { useMemo, useState } from "react"
-import { Activity, Archive, ArchiveRestore, Bell, CalendarDays, ChevronLeft, ChevronRight, CircleHelp, Clock3, MoreHorizontal, Radio, Search, Trash2, X } from "lucide-react"
+import { type CSSProperties, useMemo, useState } from "react"
+import { Activity, Archive, ArchiveRestore, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, MoreHorizontal, Pencil, Radio, Search, Trash2, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
+
+const EVENT_ACCENTS = {
+  blue: "79, 133, 255",
+  violet: "176, 105, 255",
+  cyan: "60, 209, 215",
+  orange: "239, 157, 72",
+  emerald: "61, 198, 151",
+  rose: "244, 83, 116",
+} as const
+
+type EventAccentColor = keyof typeof EVENT_ACCENTS
+
+const EVENT_ACCENT_OPTIONS = Object.entries(EVENT_ACCENTS) as [EventAccentColor, string][]
 
 type EventRow = {
   id: string
@@ -12,6 +25,7 @@ type EventRow = {
   start_label: string
   start_at: string | null
   lifecycle_stage: string
+  accent_color: EventAccentColor
 }
 
 type PendingAction = { event: EventRow; action: "archive" | "restore" | "delete" }
@@ -23,6 +37,7 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
   const [pending, setPending] = useState<PendingAction | null>(null)
   const [confirmation, setConfirmation] = useState("")
   const [busy, setBusy] = useState(false)
+  const [colorBusyId, setColorBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState("")
 
@@ -80,6 +95,28 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
     setConfirmation("")
     setError(null)
     setPending({ event, action })
+  }
+
+  async function setEventAccent(event: EventRow, accentColor: EventAccentColor) {
+    if (accentColor === event.accent_color) return
+    const previousColor = event.accent_color
+    setColorBusyId(event.id)
+    setError(null)
+    setEvents((current) => current.map((item) => item.id === event.id ? { ...item, accent_color: accentColor } : item))
+    try {
+      const response = await fetch(`/api/admin/events/${event.id}/accent`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ accent_color: accentColor }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Could not save event color")
+    } catch (accentError) {
+      setEvents((current) => current.map((item) => item.id === event.id ? { ...item, accent_color: previousColor } : item))
+      setError(accentError instanceof Error ? accentError.message : "Could not save event color")
+    } finally {
+      setColorBusyId(null)
+    }
   }
 
   async function applyAction() {
@@ -157,7 +194,12 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
             {visibleEvents.map((event, index) => {
               const isLive = event.lifecycle_stage === "live"
               const isUpcoming = Boolean(event.start_at && new Date(event.start_at).getTime() > Date.now())
-              return <article key={event.id} className={`event-directory-item event-directory-item--row event-directory-item--accent-${index % 4}`}>
+              const accentColor = event.accent_color in EVENT_ACCENTS ? event.accent_color : "blue"
+              return <article
+                key={event.id}
+                style={{ "--event-accent": EVENT_ACCENTS[accentColor] } as CSSProperties}
+                className={`event-directory-item event-directory-item--row ${openMenuId === event.id ? "is-menu-open" : ""}`}
+              >
                 <Link href={`/admin/events/${event.id}`} className="event-directory-item__content">
                   <span className="event-directory-item__index" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
                   <div className="event-directory-item__copy">
@@ -168,9 +210,26 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
                   <div className="event-directory-item__date">{event.start_label}</div>
                 </Link>
                 {canManage ? <Button type="button" variant="jupiterQuiet" size="icon-sm" aria-label={`Actions for ${event.title}`} aria-expanded={openMenuId === event.id} onClick={() => setOpenMenuId((current) => current === event.id ? null : event.id)} className="event-directory-item__menu"><MoreHorizontal size={18} /></Button> : null}
-                {canManage && openMenuId === event.id ? <div className="absolute right-4 top-14 z-20 w-52 rounded-xl border border-white/10 bg-[#101522] p-1.5 shadow-2xl">
+                {canManage && openMenuId === event.id ? <div className="event-directory-item__popover">
+                  <div className="event-color-picker">
+                    <p>Event color</p>
+                    <div>
+                      {EVENT_ACCENT_OPTIONS.map(([color, rgb]) => <button
+                        key={color}
+                        type="button"
+                        className={`event-color-swatch ${accentColor === color ? "is-selected" : ""}`}
+                        style={{ "--swatch-color": rgb } as CSSProperties}
+                        aria-label={`Use ${color} for ${event.title}`}
+                        aria-pressed={accentColor === color}
+                        disabled={colorBusyId === event.id}
+                        onClick={() => void setEventAccent(event, color)}
+                      >{accentColor === color ? <Check size={13} /> : null}</button>)}
+                    </div>
+                  </div>
+                  <div className="event-directory-item__popover-divider" />
+                  <Button asChild variant="jupiterQuiet" className="w-full justify-start"><Link href={`/admin/events/${event.id}/details`} onClick={() => setOpenMenuId(null)}><Pencil size={15} />Edit event</Link></Button>
                   {showArchived ? <Button type="button" variant="jupiterQuiet" onClick={() => beginAction(event, "restore")} className="w-full justify-start"><ArchiveRestore size={15} />Restore event</Button> : <Button type="button" variant="jupiterQuiet" onClick={() => beginAction(event, "archive")} className="w-full justify-start"><Archive size={15} />Archive event</Button>}
-                  <Button type="button" variant="destructive" onClick={() => beginAction(event, "delete")} className="w-full justify-start"><Trash2 size={15} />Delete permanently</Button>
+                  <Button type="button" variant="destructive" onClick={() => beginAction(event, "delete")} className="w-full justify-start"><Trash2 size={15} />Delete event</Button>
                 </div> : null}
               </article>
             })}
@@ -206,8 +265,8 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
           </section>
           <section className="events-activity-card">
             <div className="events-rail-heading"><span>Recent activity</span><Link href="/admin/activity">View all <ChevronRight size={14} /></Link></div>
-            <div className="events-activity-list">{activeEvents.slice(0, 4).map((event, index) => <Link href={`/admin/events/${event.id}`} key={event.id}>
-              <span className={`events-activity-icon event-directory-item--accent-${index % 4}`}><Activity size={15} /></span>
+            <div className="events-activity-list">{activeEvents.slice(0, 4).map((event) => <Link href={`/admin/events/${event.id}`} key={event.id}>
+              <span className="events-activity-icon" style={{ "--event-accent": EVENT_ACCENTS[event.accent_color in EVENT_ACCENTS ? event.accent_color : "blue"] } as CSSProperties}><Activity size={15} /></span>
               <span><strong>{event.title}</strong><small>{event.lifecycle_stage === "live" ? "Went live" : "Event workspace updated"}</small></span>
             </Link>)}</div>
           </section>

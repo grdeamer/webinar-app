@@ -7,6 +7,7 @@ create table if not exists public.events (
   id uuid primary key default gen_random_uuid(),
   slug text unique not null,
   title text not null,
+  accent_color text not null default 'blue' check (accent_color in ('blue', 'violet', 'cyan', 'orange', 'emerald', 'rose')),
   description text null,
   start_at timestamptz null,
   end_at timestamptz null,
