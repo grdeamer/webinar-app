@@ -45,6 +45,18 @@ function titleFromSlug(slug: string) {
     .slice(0, 200) || "New Event"
 }
 
+function externalPlatformFromUrl(value: string) {
+  try {
+    const hostname = new URL(value).hostname.toLowerCase()
+    if (hostname.endsWith("zoom.us")) return "zoom"
+    if (hostname.endsWith("teams.microsoft.com")) return "teams"
+    if (hostname.endsWith("webex.com")) return "webex"
+  } catch {
+    // CSV validation reports malformed links before this is reached.
+  }
+  return "other"
+}
+
 async function ensureEventsExist(
   rows: ParsedRegistrantImportRow[],
   eventMap: Map<string, EventRow>
@@ -357,6 +369,63 @@ export async function POST(req: Request) {
 
     for (const [eventId, codeSet] of eventToCodes.entries()) {
       await ensureEventSessionsExist(eventId, Array.from(codeSet), sessionMap)
+    }
+
+    const districtDefinitions = new Map<
+      string,
+      {
+        eventId: string
+        code: string
+        title: string
+        manager: string
+        meetingLink: string
+      }
+    >()
+
+    for (const row of prevalidatedRows) {
+      if (
+        !row.resolvedEventId ||
+        !row.districtCode ||
+        !row.districtName ||
+        !row.districtManager ||
+        !row.districtMeetingLink
+      ) {
+        continue
+      }
+
+      const code = normalizeSessionCode(row.districtCode)
+      districtDefinitions.set(`${row.resolvedEventId}::${code}`, {
+        eventId: row.resolvedEventId,
+        code,
+        title: row.districtName,
+        manager: row.districtManager,
+        meetingLink: row.districtMeetingLink,
+      })
+    }
+
+    for (const [key, district] of districtDefinitions.entries()) {
+      const session = sessionMap.get(key)
+      if (!session) throw new Error(`District session ${district.code} was not created`)
+
+      const { error: districtUpdateError } = await supabaseAdmin
+        .from("event_sessions")
+        .update({
+          title: district.title,
+          presenter: district.manager,
+          session_kind: "breakout",
+          visibility_mode: "assigned",
+          delivery_mode: "external",
+          external_platform: externalPlatformFromUrl(district.meetingLink),
+          external_join_url: district.meetingLink,
+        })
+        .eq("id", session.id)
+        .eq("event_id", district.eventId)
+
+      if (districtUpdateError) {
+        throw new Error(
+          `Failed to configure district ${district.code}: ${districtUpdateError.message}`
+        )
+      }
     }
 
     const validatedRows = prevalidatedRows.map((row) => {

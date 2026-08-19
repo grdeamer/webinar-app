@@ -1,0 +1,145 @@
+import { randomInt, randomUUID } from "node:crypto"
+import { NextResponse } from "next/server"
+import {
+  districtDigest,
+  getAssignedDistrictSession,
+  isDistrictEmail,
+  isDistrictLookupWindowOpen,
+  normalizeDistrictEmail,
+  requestIp,
+} from "@/lib/districtAccess"
+import { buildDistrictAccessEmail } from "@/lib/email/districtAccess"
+import { getEmailFrom, getResendClient } from "@/lib/email/resend"
+import { getEventBySlug } from "@/lib/events"
+import { publicEventHeaders } from "@/lib/publicEventCors"
+import { supabaseAdmin } from "@/lib/supabase/admin"
+
+export const runtime = "nodejs"
+export const dynamic = "force-dynamic"
+
+function json(request: Request, data: unknown, status = 200) {
+  return NextResponse.json(data, {
+    status,
+    headers: publicEventHeaders(request),
+  })
+}
+
+export async function OPTIONS(request: Request) {
+  return new Response(null, { status: 204, headers: publicEventHeaders(request) })
+}
+
+export async function POST(
+  request: Request,
+  context: { params: Promise<{ slug: string }> }
+) {
+  const startedAt = Date.now()
+  try {
+    const { slug } = await context.params
+    const body = await request.json().catch(() => ({}))
+    const email = normalizeDistrictEmail(body?.email)
+
+    if (!isDistrictEmail(email)) {
+      return json(request, { error: "Enter a valid email address." }, 400)
+    }
+
+    const event = await getEventBySlug(slug)
+    if (!(await isDistrictLookupWindowOpen(event.id))) {
+      return json(
+        request,
+        { error: "District room lookup is not open right now." },
+        409
+      )
+    }
+
+    const emailHash = districtDigest("email", email)
+    const ipHash = districtDigest("ip", requestIp(request))
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+
+    const [emailRate, ipRate] = await Promise.all([
+      supabaseAdmin
+        .from("event_district_access_challenges")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", event.id)
+        .eq("email_hash", emailHash)
+        .gte("created_at", oneHourAgo),
+      supabaseAdmin
+        .from("event_district_access_challenges")
+        .select("id", { count: "exact", head: true })
+        .eq("event_id", event.id)
+        .eq("ip_hash", ipHash)
+        .gte("created_at", oneHourAgo),
+    ])
+
+    if (emailRate.error) throw new Error(emailRate.error.message)
+    if (ipRate.error) throw new Error(ipRate.error.message)
+    if ((emailRate.count || 0) >= 5 || (ipRate.count || 0) >= 20) {
+      return json(
+        request,
+        { error: "Too many code requests. Please wait before trying again." },
+        429
+      )
+    }
+
+    const assignment = await getAssignedDistrictSession(event.id, email)
+    const requestId = randomUUID()
+    const code = String(randomInt(100000, 1000000))
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
+
+    const { error: insertError } = await supabaseAdmin
+      .from("event_district_access_challenges")
+      .insert({
+        id: requestId,
+        event_id: event.id,
+        registrant_id: assignment?.registrantId || null,
+        session_id: assignment?.session.id || null,
+        email_hash: emailHash,
+        ip_hash: ipHash,
+        code_digest: districtDigest("code", `${requestId}:${code}`),
+        delivery_status: assignment ? "pending" : "suppressed",
+        expires_at: expiresAt,
+      })
+
+    if (insertError) throw new Error(insertError.message)
+
+    if (assignment) {
+      const message = buildDistrictAccessEmail({ code, eventTitle: event.title })
+      const response = await getResendClient().emails.send({
+        from: getEmailFrom(),
+        to: email,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      })
+
+      await supabaseAdmin
+        .from("event_district_access_challenges")
+        .update({ delivery_status: response.error ? "failed" : "sent" })
+        .eq("id", requestId)
+
+      if (response.error) {
+        console.error("district access email failed", response.error)
+      }
+    }
+
+    const remainingDelay = 850 - (Date.now() - startedAt)
+    if (remainingDelay > 0) {
+      await new Promise((resolve) => setTimeout(resolve, remainingDelay))
+    }
+
+    return json(
+      request,
+      {
+        ok: true,
+        request_id: requestId,
+        message:
+          "If this email is assigned to a district room, a one-time code is on its way.",
+      },
+      202
+    )
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unable to request a code"
+    const status = message.startsWith("Event not found") ? 404 : 500
+    console.error("district access request error", error)
+    return json(request, { error: status === 404 ? message : "Unable to request a code." }, status)
+  }
+}

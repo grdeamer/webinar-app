@@ -1,30 +1,22 @@
 import { NextResponse } from "next/server"
 import { getEventBySlug } from "@/lib/events"
+import { isDistrictAgendaItem } from "@/lib/districtAccess"
+import { publicEventHeaders } from "@/lib/publicEventCors"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-const allowedOrigin = "https://letstrainonline.live"
-
-const responseHeaders = {
-  "Access-Control-Allow-Origin": allowedOrigin,
-  "Access-Control-Allow-Methods": "GET, OPTIONS",
-  "Access-Control-Allow-Headers": "Content-Type",
-  "Cache-Control": "no-store, no-cache, must-revalidate",
-  Vary: "Origin",
+function json(request: Request, data: unknown, status = 200): Response {
+  return NextResponse.json(data, { status, headers: publicEventHeaders(request) })
 }
 
-function json(data: unknown, status = 200): Response {
-  return NextResponse.json(data, { status, headers: responseHeaders })
-}
-
-export async function OPTIONS(): Promise<Response> {
-  return new Response(null, { status: 204, headers: responseHeaders })
+export async function OPTIONS(request: Request): Promise<Response> {
+  return new Response(null, { status: 204, headers: publicEventHeaders(request) })
 }
 
 export async function GET(
-  _req: Request,
+  request: Request,
   context: { params: Promise<{ slug: string }> }
 ): Promise<Response> {
   const { slug } = await context.params
@@ -50,11 +42,11 @@ export async function GET(
     ])
 
     if (liveStateResult.error) {
-      return json({ error: liveStateResult.error.message }, 500)
+      return json(request, { error: liveStateResult.error.message }, 500)
     }
 
     if (agendaResult.error) {
-      return json({ error: agendaResult.error.message }, 500)
+      return json(request, { error: agendaResult.error.message }, 500)
     }
 
     const agenda = [...(agendaResult.data || [])].sort((left, right) => {
@@ -94,8 +86,14 @@ export async function GET(
     const accessMode = liveStateResult.data?.status === "open" ? "open" : "closed"
     const agendaStartAt = agenda.find((item) => item.start_at)?.start_at ?? event.start_at
     const agendaEndAt = [...agenda].reverse().find((item) => item.end_at)?.end_at ?? event.end_at
+    const syncToken = [
+      liveStateResult.data?.updated_at,
+      ...agenda.map((item) => item.updated_at),
+    ]
+      .filter((value): value is string => Boolean(value))
+      .sort((left, right) => new Date(right).getTime() - new Date(left).getTime())[0] ?? null
 
-    return json({
+    return json(request, {
       event: {
         id: event.id,
         slug: event.slug,
@@ -104,7 +102,7 @@ export async function GET(
         start_at: agendaStartAt,
         end_at: agendaEndAt,
       },
-      sync_token: liveStateResult.data?.updated_at ?? null,
+      sync_token: syncToken,
       status: accessMode,
       mode: accessMode,
       routing_mode: liveStateResult.data?.mode ?? "lobby",
@@ -112,6 +110,9 @@ export async function GET(
       survey_url: liveStateResult.data?.survey_url ?? null,
       show_survey: liveStateResult.data?.show_survey === true,
       active_session: currentSession?.id ?? null,
+      district_lookup_enabled: currentSession
+        ? isDistrictAgendaItem(currentSession)
+        : false,
       current_session: currentSession,
       next_session: nextSession,
       button_text: currentSession?.button_text ?? null,
@@ -121,6 +122,6 @@ export async function GET(
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to load event runtime"
     const status = message.startsWith("Event not found") ? 404 : 500
-    return json({ error: message }, status)
+    return json(request, { error: message }, status)
   }
 }

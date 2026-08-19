@@ -16,6 +16,10 @@ export type ParsedRegistrantImportRow = {
   lastName: string | null
   tag: string | null
   notes: string | null
+  districtCode: string | null
+  districtName: string | null
+  districtManager: string | null
+  districtMeetingLink: string | null
   sessionCodes: string[]
   errors: string[]
 }
@@ -58,6 +62,20 @@ export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
 
   const headers = (parsed.meta.fields || []).map((h) => h.trim())
   const sessionHeaders = getSessionHeaders(headers)
+  const districtHeadersPresent = headers.some((header) =>
+    [
+      "district_code",
+      "districtcode",
+      "district_name",
+      "districtname",
+      "district_manager",
+      "district_manager_name",
+      "districtmanager",
+      "district_meeting_link",
+      "district_link",
+      "districtmeetinglink",
+    ].includes(header.toLowerCase())
+  )
 
   const rows: ParsedRegistrantImportRow[] = (parsed.data || []).map((rawRow, idx) => {
     const rowNumber = idx + 2
@@ -73,11 +91,33 @@ export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
     )
     const tag = normalizeNullableString(getFirstValue(rawRow, ["tag"]))
     const notes = normalizeNullableString(getFirstValue(rawRow, ["notes"]))
+    const districtCode = normalizeNullableString(
+      getFirstValue(rawRow, ["district_code", "districtCode"])
+    )
+    const districtName = normalizeNullableString(
+      getFirstValue(rawRow, ["district_name", "districtName"])
+    )
+    const districtManager = normalizeNullableString(
+      getFirstValue(rawRow, [
+        "district_manager",
+        "district_manager_name",
+        "districtManager",
+      ])
+    )
+    const districtMeetingLink = normalizeNullableString(
+      getFirstValue(rawRow, [
+        "district_meeting_link",
+        "district_link",
+        "districtMeetingLink",
+      ])
+    )
 
     const sessionCodes = Array.from(
       new Set(
-        sessionHeaders
-          .map((header) => normalizeSessionCode(rawRow[header]))
+        [
+          ...sessionHeaders.map((header) => normalizeSessionCode(rawRow[header])),
+          districtCode ? normalizeSessionCode(districtCode) : "",
+        ]
           .filter(Boolean)
       )
     )
@@ -94,6 +134,17 @@ export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
       errors.push("Missing event_slug")
     }
 
+    if (districtHeadersPresent) {
+      if (!districtCode) errors.push("Missing district_code")
+      if (!districtName) errors.push("Missing district_name")
+      if (!districtManager) errors.push("Missing district_manager")
+      if (!districtMeetingLink) {
+        errors.push("Missing district_meeting_link")
+      } else if (!/^https:\/\//i.test(districtMeetingLink)) {
+        errors.push("district_meeting_link must use HTTPS")
+      }
+    }
+
     return {
       rowNumber,
       eventSlug: eventSlugRaw || null,
@@ -102,10 +153,33 @@ export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
       lastName,
       tag,
       notes,
+      districtCode,
+      districtName,
+      districtManager,
+      districtMeetingLink,
       sessionCodes,
       errors,
     }
   })
+
+  const districtDefinitions = new Map<string, string>()
+  for (const row of rows) {
+    if (!row.districtCode) continue
+    const definition = JSON.stringify([
+      row.districtName,
+      row.districtManager,
+      row.districtMeetingLink,
+    ])
+    const key = `${row.eventSlug || ""}::${normalizeSessionCode(row.districtCode)}`
+    const existing = districtDefinitions.get(key)
+    if (existing && existing !== definition) {
+      row.errors.push(
+        "District code has conflicting name, manager, or meeting link in this file"
+      )
+    } else {
+      districtDefinitions.set(key, definition)
+    }
+  }
 
   return { headers, rows }
 }

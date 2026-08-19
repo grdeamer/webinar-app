@@ -18,6 +18,10 @@ type PreviewRow = {
   lastName: string | null;
   tag: string | null;
   notes: string | null;
+  districtCode: string | null;
+  districtName: string | null;
+  districtManager: string | null;
+  districtMeetingLink: string | null;
   sessionCodes: string[];
   resolvedSessionIds?: string[];
   missingSessionCodes?: string[];
@@ -1056,6 +1060,7 @@ export default function ImportRegistrantsClient({
                       <th className="px-3 py-2">Row</th>
                       <th className="px-3 py-2">Email</th>
                       <th className="px-3 py-2">Event</th>
+                      <th className="px-3 py-2">District</th>
                       <th className="px-3 py-2">Session Codes</th>
                       <th className="px-3 py-2">Errors</th>
                     </tr>
@@ -1069,6 +1074,9 @@ export default function ImportRegistrantsClient({
                         <td className="px-3 py-3">{row.rowNumber}</td>
                         <td className="px-3 py-3">{row.email || "—"}</td>
                         <td className="px-3 py-3">{row.eventSlug || "—"}</td>
+                        <td className="px-3 py-3">
+                          {[row.districtCode, row.districtName].filter(Boolean).join(" · ") || "—"}
+                        </td>
                         <td className="px-3 py-3">
                           {row.sessionCodes.length
                             ? row.sessionCodes.join(", ")
@@ -1098,6 +1106,7 @@ export default function ImportRegistrantsClient({
                       <th className="px-3 py-2">Email</th>
                       <th className="px-3 py-2">Name</th>
                       <th className="px-3 py-2">Event</th>
+                      <th className="px-3 py-2">District</th>
                       <th className="px-3 py-2">Session Codes</th>
                       <th className="px-3 py-2">Will auto-create</th>
                       <th className="px-3 py-2">Tag</th>
@@ -1117,6 +1126,12 @@ export default function ImportRegistrantsClient({
                             .join(" ") || "—"}
                         </td>
                         <td className="px-3 py-3">{row.eventSlug || "—"}</td>
+                        <td className="px-3 py-3">
+                          <div>{[row.districtCode, row.districtName].filter(Boolean).join(" · ") || "—"}</div>
+                          {row.districtManager ? (
+                            <div className="mt-1 text-xs text-white/45">{row.districtManager}</div>
+                          ) : null}
+                        </td>
                         <td className="px-3 py-3">
                           {row.sessionCodes.length
                             ? row.sessionCodes.join(", ")
