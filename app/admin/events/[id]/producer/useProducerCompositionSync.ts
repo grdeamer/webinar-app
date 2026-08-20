@@ -4,9 +4,11 @@ import { useCallback, useEffect, useRef } from "react"
 import type useProducerRoomApi from "./useProducerRoomApi"
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { StageState } from "./producerRoomTypes"
+import { normalizeProducerBlocks } from "./producerAssetUrls"
 
 export default function useProducerCompositionSync({
   api,
+  eventId,
   stageState,
   previewBlocks,
   setPreviewBlocks,
@@ -14,6 +16,7 @@ export default function useProducerCompositionSync({
   setSyncWarningText,
 }: {
   api: ReturnType<typeof useProducerRoomApi>
+  eventId: string
   stageState: StageState | null
   previewBlocks: PreviewBlock[]
   setPreviewBlocks: React.Dispatch<React.SetStateAction<PreviewBlock[]>>
@@ -37,7 +40,7 @@ export default function useProducerCompositionSync({
   useEffect(() => {
     if (!stageState) return
     const serverBlocks = Array.isArray(stageState.preview_blocks)
-      ? stageState.preview_blocks
+      ? normalizeProducerBlocks(eventId, stageState.preview_blocks)
       : []
     const serverJson = JSON.stringify(serverBlocks)
 
@@ -53,7 +56,7 @@ export default function useProducerCompositionSync({
       lastSavedJson.current = serverJson
       setPreviewBlocks(serverBlocks)
     }
-  }, [setPreviewBlocks, stageState])
+  }, [eventId, setPreviewBlocks, stageState])
 
   const flushComposition = useCallback(async (): Promise<void> => {
     const currentState = stageStateRef.current

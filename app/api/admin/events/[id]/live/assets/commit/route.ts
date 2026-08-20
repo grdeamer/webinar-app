@@ -100,3 +100,53 @@ export async function POST(
 
   return NextResponse.json({ asset: await withSignedUrl(data) })
 }
+
+export async function DELETE(
+  req: Request,
+  ctx: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
+
+  const body = await req.json().catch((): null => null)
+  const assetId = String(body?.assetId || "").trim()
+
+  if (!assetId) {
+    return NextResponse.json({ error: "Asset id is required" }, { status: 400 })
+  }
+
+  const { data: asset, error: findError } = await supabaseAdmin
+    .from("event_live_assets")
+    .select("id, storage_path")
+    .eq("event_id", id)
+    .eq("id", assetId)
+    .maybeSingle()
+
+  if (findError) {
+    return NextResponse.json({ error: findError.message }, { status: 500 })
+  }
+  if (!asset) {
+    return NextResponse.json({ error: "Asset was not found" }, { status: 404 })
+  }
+
+  const { error: storageError } = await supabaseAdmin.storage
+    .from(bucket)
+    .remove([asset.storage_path])
+
+  if (storageError) {
+    return NextResponse.json({ error: storageError.message }, { status: 500 })
+  }
+
+  const { error: deleteError } = await supabaseAdmin
+    .from("event_live_assets")
+    .delete()
+    .eq("event_id", id)
+    .eq("id", assetId)
+
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 })
+  }
+
+  return NextResponse.json({ deleted: true })
+}

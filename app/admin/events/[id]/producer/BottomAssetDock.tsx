@@ -123,6 +123,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
   TimerReset,
+  Trash2,
   Video,
   Volume2,
   Waves,
@@ -130,6 +131,7 @@ import {
 import type { ProducerWorkspaceMode } from "./ProducerModeBar"
 
 import type { PreviewBlock } from "./useProducerBlocks"
+import { buildProducerAssetUrl } from "./producerAssetUrls"
 import ProductionControlsDrawer, {
   type ProductionDrawerTab,
 } from "./ProductionControlsDrawer"
@@ -275,11 +277,8 @@ function PreparedSourceImage({
   src: string
   label: string
 }): JSX.Element {
-  const [failed, setFailed] = useState(false)
-
-  useEffect(() => {
-    setFailed(false)
-  }, [src])
+  const [failedSrc, setFailedSrc] = useState<string | null>(null)
+  const failed = failedSrc === src
 
   if (failed) {
     return (
@@ -298,7 +297,7 @@ function PreparedSourceImage({
       src={src}
       alt={`${label} preview`}
       className="h-full w-full object-contain"
-      onError={() => setFailed(true)}
+      onError={() => setFailedSrc(src)}
     />
   )
 }
@@ -1094,12 +1093,16 @@ function SourceLibraryCard({
   inPreview,
   onSelect,
   onSendToPreview,
+  onDelete,
+  deleting = false,
 }: {
   asset: BroadcastAssetTelemetry
   selected: boolean
   inPreview: boolean
   onSelect: () => void
   onSendToPreview?: () => void
+  onDelete?: () => void
+  deleting?: boolean
 }): JSX.Element {
   const icon =
     asset.type === "video" ? (
@@ -1113,18 +1116,25 @@ function SourceLibraryCard({
     )
 
   return (
-    <button
-      type="button"
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
       onDoubleClick={onSendToPreview}
+      onKeyDown={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          onSelect()
+        }
+      }}
       title="Select source. Double-click to send directly to Preview."
-      className={`group flex min-h-[126px] min-w-0 flex-col overflow-hidden rounded-[10px] border text-left transition ${
+      className={`group relative flex min-h-[112px] min-w-0 cursor-pointer flex-row overflow-hidden rounded-[10px] border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 sm:flex-col ${
         selected
           ? "border-sky-300/50 bg-sky-400/[0.09] shadow-[0_0_0_1px_rgba(125,211,252,0.10),0_8px_20px_rgba(0,0,0,0.22)]"
           : "border-white/[0.09] bg-[#0a101b] hover:border-white/[0.18] hover:bg-[#0d1523]"
       }`}
     >
-      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_42%,rgba(80,116,176,0.12),transparent_62%),#050a12] p-2 text-white/34">
+      <div className="relative flex h-[82px] w-[116px] shrink-0 items-center justify-center overflow-hidden border-r border-white/[0.07] bg-[radial-gradient(circle_at_50%_42%,rgba(80,116,176,0.12),transparent_62%),#050a12] p-2 text-white/34 sm:h-[78px] sm:w-full sm:border-b sm:border-r-0">
         {asset.imageUrl ? (
           <img
             src={asset.imageUrl}
@@ -1155,8 +1165,24 @@ function SourceLibraryCard({
         <span className="mt-1 truncate text-[8px] text-white/38">
           {asset.meta} · {asset.linkedScene === "Unassigned" ? "Ready" : asset.linkedScene}
         </span>
+        {onDelete ? (
+          <button
+            type="button"
+            disabled={deleting}
+            onClick={(event) => {
+              event.stopPropagation()
+              onDelete()
+            }}
+            className="mt-2 inline-flex h-6 w-fit items-center gap-1.5 rounded-[7px] border border-red-300/15 bg-red-400/[0.045] px-2 text-[8px] font-semibold text-red-100/58 transition hover:border-red-300/28 hover:bg-red-400/[0.10] hover:text-red-50 disabled:cursor-wait disabled:opacity-45"
+            aria-label={`Delete ${asset.label} permanently from the source library`}
+            title="Delete permanently from this event's source library"
+          >
+            <Trash2 size={10} aria-hidden="true" />
+            {deleting ? "Deleting…" : "Delete"}
+          </button>
+        ) : null}
       </div>
-    </button>
+    </div>
   )
 }
 
@@ -2787,6 +2813,7 @@ export default function BottomAssetDock({
   const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
   const [mediaImportBusy, setMediaImportBusy] = useState(false)
   const [mediaImportError, setMediaImportError] = useState<string | null>(null)
+  const [deletingMediaAssetId, setDeletingMediaAssetId] = useState<string | null>(null)
   const [activeMediaOrchestratorTab, setActiveMediaOrchestratorTab] = useState<MediaOrchestratorTab>("overview")
   const [selectedMediaAssetLabel, setSelectedMediaAssetLabel] = useState<string | null>(null)
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
@@ -2829,7 +2856,7 @@ export default function BottomAssetDock({
           lastPlayed: "Not Played",
           linkedScene: "Unassigned",
           imageUrl: asset.mime_type?.startsWith("image/")
-            ? asset.signed_url ?? asset.public_url ?? null
+            ? buildProducerAssetUrl(eventId, asset.storage_path)
             : null,
           storagePath: asset.storage_path,
           audioEmbedded: asset.asset_type === "video",
@@ -2967,6 +2994,8 @@ function handleSelectMediaAssetForPreview(label: string): void {
       type: blockType,
       label: targetAsset.label,
       src: targetAsset.imageUrl ?? "",
+      assetId: targetAsset.id ?? null,
+      storagePath: targetAsset.storagePath ?? null,
       x: 12,
       y: 12,
       width: 76,
@@ -3128,7 +3157,7 @@ async function handleImportMediaFiles(
 
       persistedAssets.push(createImportedMediaAsset(file, index, {
         id: String(committed.asset.id),
-        url: String(committed.asset.signed_url || committed.asset.public_url || ""),
+        url: buildProducerAssetUrl(eventId, String(committed.asset.storage_path)),
         path: String(committed.asset.storage_path),
       }))
     }
@@ -3141,10 +3170,32 @@ async function handleImportMediaFiles(
   }
 }
 
-function handleDeleteImportedAsset(label: string): void {
-  setImportedMediaAssets((current) => {
-    const removedAsset = current.find((asset) => asset.label === label)
+async function handleDeleteImportedAsset(label: string): Promise<void> {
+  const removedAsset = importedMediaAssets.find((asset) => asset.label === label)
+  if (!removedAsset) return
 
+  const confirmed = window.confirm(
+    `Delete “${label}” permanently from this event's source library? This cannot be undone.`,
+  )
+  if (!confirmed) return
+
+  setMediaImportError(null)
+  setDeletingMediaAssetId(removedAsset.id ?? label)
+
+  try {
+    if (removedAsset.id) {
+      const response = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
+        method: "DELETE",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ assetId: removedAsset.id }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) {
+        throw new Error(payload?.error || "The source could not be deleted")
+      }
+    }
+
+  setImportedMediaAssets((current) => {
     if (removedAsset?.imageUrl?.startsWith("blob:")) {
       URL.revokeObjectURL(removedAsset.imageUrl)
     }
@@ -3159,6 +3210,11 @@ function handleDeleteImportedAsset(label: string): void {
   if (selectedMediaAssetLabel === label) setSelectedMediaAssetLabel(null)
   if (previewMediaAssetLabel === label) setPreviewMediaAssetLabel(null)
   if (programMediaAssetLabel === label) setProgramMediaAssetLabel(null)
+  } catch (error) {
+    setMediaImportError(error instanceof Error ? error.message : "The source could not be deleted")
+  } finally {
+    setDeletingMediaAssetId(null)
+  }
 }
 function handleRenameImportedAsset(oldLabel: string, requestedLabel: string): void {
   const baseLabel = requestedLabel.trim()
@@ -3826,6 +3882,12 @@ const previewMediaAsset =
                       inPreview={previewMediaAssetLabel === asset.label}
                       onSelect={() => setSelectedMediaAssetLabel(asset.label)}
                       onSendToPreview={() => handleSelectMediaAssetForPreview(asset.label)}
+                      onDelete={
+                        isImportedMediaAsset(asset.label)
+                          ? () => void handleDeleteImportedAsset(asset.label)
+                          : undefined
+                      }
+                      deleting={deletingMediaAssetId === (asset.id ?? asset.label)}
                     />
                   ))}
                 </div>
@@ -3846,12 +3908,14 @@ const previewMediaAsset =
               </div>
               {selectedMediaAsset ? (
                 <>
-                  <div className="mt-3 flex min-h-[128px] items-center justify-center overflow-hidden rounded-[12px] border border-white/[0.08] bg-[#08101d] text-white/24">
+                  <div className="mt-3 flex h-[118px] w-full items-center justify-center overflow-hidden rounded-[12px] border border-white/[0.08] bg-[#08101d] p-2 text-white/24 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
                     {selectedMediaAsset.imageUrl ? (
-                      <PreparedSourceImage
-                        src={selectedMediaAsset.imageUrl}
-                        label={selectedMediaAsset.label}
-                      />
+                      <div className="flex h-full max-w-[190px] items-center justify-center overflow-hidden rounded-[8px] border border-white/[0.06] bg-black/25 px-1.5">
+                        <PreparedSourceImage
+                          src={selectedMediaAsset.imageUrl}
+                          label={selectedMediaAsset.label}
+                        />
+                      </div>
                     ) : selectedMediaAsset.type === "video" ? (
                       <Video size={28} />
                     ) : selectedMediaAsset.type === "audio" ? (
@@ -3900,10 +3964,14 @@ const previewMediaAsset =
                         </button>
                         <button
                           type="button"
-                          onClick={() => handleDeleteImportedAsset(selectedMediaAsset.label)}
-                          className="h-8 rounded-[9px] border border-red-300/[0.10] text-[9px] font-medium text-red-100/38 hover:bg-red-400/[0.05] hover:text-red-100/70"
+                          disabled={deletingMediaAssetId === (selectedMediaAsset.id ?? selectedMediaAsset.label)}
+                          onClick={() => void handleDeleteImportedAsset(selectedMediaAsset.label)}
+                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-[9px] border border-red-300/[0.14] bg-red-400/[0.035] text-[9px] font-medium text-red-100/52 hover:bg-red-400/[0.08] hover:text-red-100/82 disabled:cursor-wait disabled:opacity-45"
                         >
-                          Remove
+                          <Trash2 size={11} aria-hidden="true" />
+                          {deletingMediaAssetId === (selectedMediaAsset.id ?? selectedMediaAsset.label)
+                            ? "Deleting…"
+                            : "Delete from library"}
                         </button>
                       </div>
                     ) : null}
@@ -4110,6 +4178,12 @@ const previewMediaAsset =
                     inPreview={previewMediaAssetLabel === asset.label}
                     onSelect={() => setSelectedMediaAssetLabel(asset.label)}
                     onSendToPreview={() => handleSelectMediaAssetForPreview(asset.label)}
+                    onDelete={
+                      isImportedMediaAsset(asset.label)
+                        ? () => void handleDeleteImportedAsset(asset.label)
+                        : undefined
+                    }
+                    deleting={deletingMediaAssetId === (asset.id ?? asset.label)}
                   />
                 ))}
               </div>

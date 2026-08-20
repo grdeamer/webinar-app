@@ -371,6 +371,7 @@ export function renderPlacedBlocks({
   setSelectedBlockId,
   startDraggingBlock,
   startResizingBlock,
+  deleteBlock,
 }: {
   blocks: PreviewBlock[]
   opts?: {
@@ -383,6 +384,7 @@ export function renderPlacedBlocks({
   setSelectedBlockId: (value: string | null) => void
   startDraggingBlock: (e: React.MouseEvent<HTMLDivElement>, blockId: string) => void
   startResizingBlock: (e: React.MouseEvent<HTMLDivElement>, blockId: string) => void
+  deleteBlock?: (blockId: string) => void
 }): JSX.Element[] {
   return blocks
     .filter((block) => !block.hidden)
@@ -483,7 +485,26 @@ export function renderPlacedBlocks({
                   : block.label || block.type}
               </span>
             </div>
-            <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
+            <div className="flex shrink-0 items-center gap-1.5">
+              <span className="text-white/35">{opts?.selectable ? "Drag" : "Live"}</span>
+              {opts?.selectable && selectedBlockId === block.id && deleteBlock ? (
+                <button
+                  type="button"
+                  onMouseDown={(e) => {
+                    e.stopPropagation()
+                  }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    deleteBlock(block.id)
+                  }}
+                  className="grid h-6 w-6 place-items-center rounded-[7px] border border-white/12 bg-black/45 text-[15px] font-medium leading-none text-white/65 shadow-[0_4px_14px_rgba(0,0,0,0.3)] transition hover:border-red-300/35 hover:bg-red-500/20 hover:text-red-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70"
+                  title="Remove layer from Preview"
+                  aria-label={`Remove ${block.label || block.type} from Preview`}
+                >
+                  ×
+                </button>
+              ) : null}
+            </div>
           </div>
         ) : null}
 

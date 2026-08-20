@@ -3,6 +3,7 @@ import { useCallback, useMemo, useState } from "react"
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { SceneSummary, ScreenLayoutPreset } from "./assetDockTypes"
 import type { SceneSnapshot, StageState } from "./producerRoomTypes"
+import { normalizeProducerBlocks } from "./producerAssetUrls"
 
 type ProducerRoomApi = {
   saveScene: (input: {
@@ -69,21 +70,26 @@ function clonePreviewBlock(block: PreviewBlock): PreviewBlock {
   }
 }
 
-function normalizeSceneSummary(scene: RawSceneSummary): SceneSummary {
+function normalizeSceneSummary(eventId: string, scene: RawSceneSummary): SceneSummary {
   const sceneJson = scene.scene_json ?? null
+  const previewBlocks = scene.previewBlocks ?? sceneJson?.preview_blocks
   return {
     id: String(scene.id),
     name: scene.name ?? scene.title ?? "Scene",
     screenLayoutPreset:
       scene.screenLayoutPreset ?? sceneJson?.screen_layout_preset ?? null,
-    previewBlocks: (scene.previewBlocks ?? sceneJson?.preview_blocks)
-      ? (scene.previewBlocks ?? sceneJson?.preview_blocks ?? []).map((block) => clonePreviewBlock(block))
+    previewBlocks: previewBlocks
+      ? normalizeProducerBlocks(
+          eventId,
+          previewBlocks.map((block) => clonePreviewBlock(block)),
+        )
       : null,
     thumbnailUrl: scene.thumbnailUrl ?? sceneJson?.thumbnail_url ?? null,
   }
 }
 
 export default function useProducerScenes({
+  eventId,
   api,
   stageState,
   previewBlocks,
@@ -94,6 +100,7 @@ export default function useProducerScenes({
   refreshAll,
   captureSceneThumbnail,
 }: {
+  eventId: string
   api: ProducerRoomApi
   stageState: StageState | null
   previewBlocks: PreviewBlock[]
@@ -140,11 +147,13 @@ export default function useProducerScenes({
     const data = await api.loadScenes()
 
     const nextScenes: SceneSummary[] = Array.isArray(data?.scenes)
-      ? data.scenes.map((scene) => normalizeSceneSummary(scene as RawSceneSummary))
+      ? data.scenes.map((scene) =>
+          normalizeSceneSummary(eventId, scene as RawSceneSummary),
+        )
       : []
 
     setScenes(nextScenes.filter((scene) => !deletedSceneIds.has(scene.id)))
-  }, [api, deletedSceneIds])
+  }, [api, deletedSceneIds, eventId])
 
   async function saveScene() {
     if (!sceneName.trim() && !selectedSceneId) {

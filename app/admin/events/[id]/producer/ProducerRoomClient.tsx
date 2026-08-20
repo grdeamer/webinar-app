@@ -393,6 +393,29 @@ selectedBlock,
     return previewBlocks.find((block) => block.id === selectedBlockId) ?? null;
   }, [previewBlocks, selectedBlockId]);
 
+  useEffect(() => {
+    function handleSelectedLayerDelete(event: KeyboardEvent) {
+      if (event.key !== "Delete" && event.key !== "Backspace") return;
+      if (!selectedBlockId) return;
+
+      const target = event.target;
+      if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement ||
+        (target instanceof HTMLElement && target.isContentEditable)
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      deleteSelectedBlock();
+    }
+
+    window.addEventListener("keydown", handleSelectedLayerDelete);
+    return () => window.removeEventListener("keydown", handleSelectedLayerDelete);
+  }, [deleteSelectedBlock, selectedBlockId]);
+
   const captureSceneThumbnail = useCallback((): string | null => {
     const layoutLabel = (stageState?.layout ?? screenLayoutPreset ?? "classic")
       .replace("screen_speaker", "screen")
@@ -578,6 +601,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   useProducerCompositionSync({
     api,
+    eventId,
     stageState,
     previewBlocks,
     setPreviewBlocks,
@@ -685,6 +709,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     startNewScene,
     flashSceneHotkey,
   } = useProducerScenes({
+    eventId,
     api,
     stageState,
     previewBlocks,

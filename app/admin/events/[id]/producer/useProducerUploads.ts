@@ -1,6 +1,7 @@
 import { useCallback } from "react"
 import { createClient } from "@/lib/supabase/client"
 import type { PreviewBlock } from "./useProducerBlocks"
+import { buildProducerAssetUrl } from "./producerAssetUrls"
 
 export type UploadedProducerAsset = {
   id: string
@@ -13,10 +14,14 @@ function createUploadedBlock({
   url,
   label,
   type,
+  assetId,
+  storagePath,
 }: {
   url: string
   label: string
   type: "pdf" | "video" | "image"
+  assetId: string
+  storagePath: string
 }): PreviewBlock {
   if (type === "pdf") {
     return {
@@ -30,6 +35,8 @@ function createUploadedBlock({
       opacity: 1,
       label: label || "Uploaded PDF",
       src: url,
+      assetId,
+      storagePath,
       hidden: false,
     }
   }
@@ -46,6 +53,8 @@ function createUploadedBlock({
       opacity: 1,
       label: label || "Uploaded Video",
       src: url,
+      assetId,
+      storagePath,
       hidden: false,
     }
   }
@@ -61,6 +70,8 @@ function createUploadedBlock({
     opacity: 1,
     label: label || "Uploaded Image",
     src: url,
+    assetId,
+    storagePath,
     hidden: false,
   }
 }
@@ -113,7 +124,7 @@ export default function useProducerUploads({
 
     return {
       id: String(committed.asset.id),
-      url: String(committed.asset.public_url),
+      url: buildProducerAssetUrl(eventId, String(committed.asset.storage_path)),
       label,
       path: String(committed.asset.storage_path),
     }
@@ -127,7 +138,13 @@ export default function useProducerUploads({
         return [
           ...prev,
           {
-            ...createUploadedBlock({ url: asset.url, label: asset.label, type }),
+            ...createUploadedBlock({
+              url: asset.url,
+              label: asset.label,
+              type,
+              assetId: asset.id,
+              storagePath: asset.path,
+            }),
             zIndex: nextZIndex,
           },
         ]

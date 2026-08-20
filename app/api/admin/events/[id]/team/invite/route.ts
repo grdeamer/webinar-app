@@ -88,7 +88,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
   const invitation = buildJupiterInviteEmail({
     inviteUrl: invitationUrl || eventUrl,
-    logoUrl: `${appUrl}/jupiter-email-logo.png?v=3`,
+    logoUrl: `${appUrl}/jupiter-email-logo-email-safe.png?v=1`,
     name: name || String(authUser.user_metadata?.full_name ?? "").trim(),
     role,
     eventTitle: event.title,

@@ -100,7 +100,7 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
           <table role="presentation" class="shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;border:1px solid #202a42;border-radius:22px;background:#07101f;overflow:hidden;">
             <tr>
               <td class="pad" style="padding:34px 42px 26px;background:#080e1b;border-bottom:1px solid #202a42;">
-                <img src="${safeLogoUrl}" width="184" height="35" alt="Jupiter" style="display:block;width:184px;height:35px;max-width:100%;border:0;outline:none;object-fit:contain;">
+                <img src="${safeLogoUrl}" width="184" height="91" alt="Jupiter" style="display:block;width:184px;height:91px;max-width:100%;border:0;outline:none;">
               </td>
             </tr>
             <tr>

@@ -1084,6 +1084,7 @@ export default function CenterSwitcherColumn({
                 setSelectedBlockId,
                 startDraggingBlock,
                 startResizingBlock,
+                deleteBlock: () => deleteSelectedBlock(),
               })}
 
               <div className="pointer-events-none absolute bottom-2 left-2 z-30 rounded-[10px] border border-white/7 bg-black/40 px-2 py-1 text-left shadow-[0_6px_16px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.018)] backdrop-blur-md">

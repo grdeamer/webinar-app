@@ -4,6 +4,7 @@ import { useCallback, useEffect } from "react"
 import type useProducerRoomApi from "./useProducerRoomApi"
 import type { ProducerParticipant, StageState } from "./producerRoomTypes"
 import type { PreviewBlock } from "./useProducerBlocks"
+import { normalizeProducerBlocks } from "./producerAssetUrls"
 
 type Params = {
   api: ReturnType<typeof useProducerRoomApi>
@@ -58,9 +59,9 @@ export default function useProducerRoomLifecycle({
     const state = data?.state ?? null
     setProgramState(state)
     if (Array.isArray(state?.program_blocks)) {
-      setProgramBlocks(state.program_blocks)
+      setProgramBlocks(normalizeProducerBlocks(eventId, state.program_blocks))
     }
-  }, [api, setProgramBlocks, setProgramState])
+  }, [api, eventId, setProgramBlocks, setProgramState])
 
   const loadStageState = useCallback(async () => {
     const data = await api.loadStageState()

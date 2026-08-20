@@ -32,6 +32,8 @@ export type PreviewBlock = {
   shadowColor?: string
   label?: string | null
   src?: string | null
+  assetId?: string | null
+  storagePath?: string | null
   content?: string | null
   assignedParticipantId?: string | null
   assignedTrackSid?: string | null
