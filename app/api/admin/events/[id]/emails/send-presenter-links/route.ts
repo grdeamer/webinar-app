@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from "@/lib/email/campaigns"
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
+import { createPresenterAccessToken, type PresenterAccessSource } from "@/lib/presenterAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -44,19 +45,31 @@ function presenterLinksHtml({
   sessions,
   appUrl,
   eventSlug,
+  eventId,
+  presenterSource = "registrant",
 }: {
   eventTitle: string
   presenter: PresenterRegistrant
   sessions: SessionRow[]
   appUrl: string
   eventSlug: string
+  eventId: string
+  presenterSource?: PresenterAccessSource
 }): string {
   const name = fullName(presenter) || "there"
 
   const sessionItems = sessions.length
     ? sessions
         .map((session) => {
-          const href = `${appUrl}/presenter/${eventSlug}/sessions/${session.id}`
+          const accessToken = createPresenterAccessToken({
+            eventId,
+            sessionId: session.id,
+            presenterId: presenter.id,
+            source: presenterSource,
+            email: presenter.email.trim().toLowerCase(),
+            name: fullName(presenter) || "Presenter",
+          })
+          const href = `${appUrl}/presenter/${eventSlug}/sessions/${session.id}?access=${encodeURIComponent(accessToken)}`
 
           return `
             <div style="margin-bottom:18px;padding:14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">
@@ -198,6 +211,7 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
         sessions: assignedSessions,
         appUrl: getAppUrl().replace(/\/$/, ""),
         eventSlug: event.slug,
+        eventId,
       }),
     })
     if (response.error || !response.data?.id) {
@@ -277,6 +291,8 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
           sessions: assignedSessions,
           appUrl,
           eventSlug: event.slug,
+          eventId,
+          presenterSource: "attendee",
         }),
       })
       if (response.error || !response.data?.id) {
@@ -412,6 +428,7 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
           sessions: assignedSessions,
           appUrl,
           eventSlug: event.slug,
+          eventId,
         }),
       }, { idempotencyKey: `presenter-${eventId}-${requestKey}-${presenter.id}` })
 

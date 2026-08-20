@@ -1557,6 +1557,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
       duplicateSelectedBlock,
       bringSelectedBlockToFront,
       deleteSelectedBlock,
+      healthSnapshot,
+      transportHealth,
     }),
     [
       workspaceMode,
@@ -1615,6 +1617,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
       duplicateSelectedBlock,
       bringSelectedBlockToFront,
       deleteSelectedBlock,
+      healthSnapshot,
+      transportHealth,
     ],
   );
 

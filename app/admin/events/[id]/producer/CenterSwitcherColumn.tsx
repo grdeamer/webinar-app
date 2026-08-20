@@ -4,6 +4,10 @@ import AudienceOriginCue from "@/components/live/AudienceOriginCue";
 import StageVideoPreview from "./StageVideoPreview";
 import type { PreviewBlock } from "./useProducerBlocks";
 import type { ProducerParticipant, StageState } from "./producerRoomTypes";
+import type {
+  ProducerHealthSnapshot,
+  ProducerTransportHealth,
+} from "./producerHealthUtils";
 import { renderPlacedBlocks } from "./producerRoomBlockHelpers";
 import type { ProducerWorkspaceMode } from "./ProducerModeBar";
 import type { CinematicTransitionType } from "./commandDeckTypes";
@@ -198,6 +202,65 @@ function SwitcherSurfaceChrome({
       }`}
     >
       <div className="relative z-10 flex min-h-0 flex-1 flex-col">{children}</div>
+    </div>
+  );
+}
+
+function MonitorSignalMeter({
+  label,
+  sourceReady,
+  stageReady,
+  transportHealth,
+  live = false,
+}: {
+  label: string;
+  sourceReady: boolean;
+  stageReady: boolean;
+  transportHealth: ProducerTransportHealth;
+  live?: boolean;
+}): JSX.Element {
+  const transportReady = transportHealth === "connected";
+  const transportPending =
+    transportHealth === "connecting" || transportHealth === "recovering";
+  const activeBars = sourceReady
+    ? Number(transportReady) + 1 + Number(stageReady) + Number(live)
+    : 0;
+  const level = !sourceReady
+    ? "No source"
+    : !transportReady || !stageReady
+      ? transportPending
+        ? "Connecting"
+        : "Degraded"
+      : live
+        ? "Live and healthy"
+        : "Ready";
+  const activeClass =
+    !sourceReady || !transportReady
+      ? "bg-red-300/80 shadow-[0_0_5px_rgba(248,113,113,0.28)]"
+      : !stageReady
+        ? "bg-amber-300/82 shadow-[0_0_5px_rgba(252,211,77,0.26)]"
+        : "bg-emerald-300/82 shadow-[0_0_5px_rgba(110,231,183,0.22)]";
+
+  return (
+    <div
+      className="pointer-events-auto flex items-end gap-1.5 rounded-[10px] border border-white/7 bg-black/38 px-2 py-1 shadow-[0_6px_16px_rgba(0,0,0,0.2),inset_0_1px_0_rgba(255,255,255,0.018)] backdrop-blur-md"
+      title={`${label} signal: ${level}. Transport ${transportHealth}; source ${sourceReady ? "available" : "missing"}; stage routes ${stageReady ? "healthy" : "need attention"}.`}
+      aria-label={`${label} signal ${level}`}
+    >
+      <div className="flex h-6 items-end gap-0.5" aria-hidden="true">
+        {[8, 12, 17, 22].map((height, index) => (
+          <span
+            key={height}
+            className={`w-1 rounded-full transition-all duration-300 ${
+              index < activeBars ? activeClass : "bg-white/10"
+            }`}
+            style={{ height }}
+          />
+        ))}
+      </div>
+      <span className="text-[8px] font-bold uppercase tracking-[0.08em] text-white/48">
+        {level}
+      </span>
     </div>
   );
 }
@@ -482,6 +545,8 @@ export default function CenterSwitcherColumn({
   duplicateSelectedBlock,
   bringSelectedBlockToFront,
   deleteSelectedBlock,
+  healthSnapshot,
+  transportHealth,
 }: {
   workspaceMode: ProducerWorkspaceMode;
   triggerAudienceCue: (options?: {
@@ -555,6 +620,8 @@ export default function CenterSwitcherColumn({
   duplicateSelectedBlock: () => void;
   bringSelectedBlockToFront: () => void;
   deleteSelectedBlock: () => void;
+  healthSnapshot: ProducerHealthSnapshot;
+  transportHealth: ProducerTransportHealth;
 }): JSX.Element {
   const switcherGridRef = useRef<HTMLDivElement | null>(null);
   const isDraggingSplitRef = useRef(false);
@@ -993,17 +1060,13 @@ export default function CenterSwitcherColumn({
                 </div>
               </div>
 
-              <div className="pointer-events-none absolute bottom-2 right-2 z-30 flex items-end gap-1.5 rounded-[10px] border border-white/7 bg-black/34 px-2 py-1 shadow-[0_6px_16px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.016)] backdrop-blur-md">
-                <div className="flex h-6 items-end gap-0.5">
-                  {Array.from({ length: 7 }).map((_, index) => (
-                    <span
-                      key={index}
-                      className="w-1 rounded-full bg-emerald-300/76 shadow-[0_0_4px_rgba(110,231,183,0.16)]"
-                      style={{ height: `${8 + ((index * 5) % 20)}px` }}
-                    />
-                  ))}
-                </div>
-                <span className="text-white/58">◖</span>
+              <div className="absolute bottom-2 right-2 z-30">
+                <MonitorSignalMeter
+                  label="Preview"
+                  sourceReady={healthSnapshot.previewReady}
+                  stageReady={healthSnapshot.stageReady}
+                  transportHealth={transportHealth}
+                />
               </div>
               {confidenceMonitorMode === "confidence" ? (
                 <PresenterConfidenceCue variant="preview" />
@@ -1322,17 +1385,14 @@ export default function CenterSwitcherColumn({
                 </div>
               </div>
 
-              <div className="pointer-events-none absolute bottom-2 right-2 z-30 flex items-end gap-1.5 rounded-[10px] border border-white/7 bg-black/34 px-2 py-1 shadow-[0_6px_16px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.016)] backdrop-blur-md">
-                <div className="flex h-6 items-end gap-0.5">
-                  {Array.from({ length: 7 }).map((_, index) => (
-                    <span
-                      key={index}
-                      className="w-1 rounded-full bg-emerald-300/76 shadow-[0_0_4px_rgba(110,231,183,0.16)]"
-                      style={{ height: `${8 + ((index * 6) % 20)}px` }}
-                    />
-                  ))}
-                </div>
-                <span className="text-white/58">◖</span>
+              <div className="absolute bottom-2 right-2 z-30">
+                <MonitorSignalMeter
+                  label="Program"
+                  sourceReady={healthSnapshot.programReady}
+                  stageReady={healthSnapshot.stageReady}
+                  transportHealth={transportHealth}
+                  live={Boolean(programState?.is_live)}
+                />
               </div>
               {confidenceMonitorMode === "confidence" ? (
                 <PresenterConfidenceCue variant="program" />
