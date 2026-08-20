@@ -51,7 +51,7 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
     : "You’re on the event team."
   const introduction = isAdministrator
     ? "You now have administrator access to Jupiter—the workspace for shaping events from the first agenda item through the final live cue."
-    : `You’ve been invited to help manage <strong style="color:#ffffff;font-weight:650;">${safeEventTitle || "a Jupiter event"}</strong> as <strong style="color:#ffffff;font-weight:650;">${safeRole}</strong>.`
+    : `You’ve been invited to help manage <strong style="color:#111b32;font-weight:700;">${safeEventTitle || "a Jupiter event"}</strong> as <strong style="color:#111b32;font-weight:700;">${safeRole}</strong>.`
   const capabilities = isAdministrator
     ? [
         "Build programs and manage event teams",
@@ -73,7 +73,7 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
   const capabilityRows = capabilities.map((capability) => `
     <tr>
       <td width="22" valign="top" style="padding:0 0 13px 0;color:#67e8f9;font-size:15px;line-height:22px;">—</td>
-      <td valign="top" style="padding:0 0 13px 0;color:#dce4f4;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;">${escapeHtml(capability)}</td>
+      <td valign="top" style="padding:0 0 13px 0;color:#38465f;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:22px;">${escapeHtml(capability)}</td>
     </tr>`).join("")
 
   const html = `<!doctype html>
@@ -81,41 +81,42 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width,initial-scale=1">
-    <meta name="color-scheme" content="dark">
-    <meta name="supported-color-schemes" content="dark">
+    <meta name="color-scheme" content="light">
+    <meta name="supported-color-schemes" content="light">
     <title>${escapeHtml(subject)}</title>
     <style>
       @media only screen and (max-width: 620px) {
         .shell { width: 100% !important; }
         .pad { padding-left: 24px !important; padding-right: 24px !important; }
         .headline { font-size: 34px !important; line-height: 38px !important; }
+        .brand-logo { width: 270px !important; height: auto !important; }
       }
     </style>
   </head>
-  <body style="margin:0;padding:0;background:#030712;color:#ffffff;">
+  <body style="margin:0;padding:0;background:#e9edf4;color:#111b32;">
     <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent;">${escapeHtml(preview)}</div>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#030712;">
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;background:#e9edf4;">
       <tr>
         <td align="center" style="padding:30px 12px;">
-          <table role="presentation" class="shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;border:1px solid #202a42;border-radius:22px;background:#07101f;overflow:hidden;">
+          <table role="presentation" class="shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;border:1px solid #c9d3e4;border-radius:22px;background:#f3f6fb;overflow:hidden;">
             <tr>
-              <td class="pad" style="padding:34px 42px 26px;background:#080e1b;border-bottom:1px solid #202a42;">
-                <img src="${safeLogoUrl}" width="184" height="91" alt="Jupiter" style="display:block;width:184px;height:91px;max-width:100%;border:0;outline:none;">
+              <td align="center" style="padding:38px 24px;background:#050b18;border-bottom:1px solid #24304a;text-align:center;">
+                <img class="brand-logo" src="${safeLogoUrl}" width="300" alt="Jupiter" style="display:block;width:300px;height:auto;max-width:72%;margin:0 auto;border:0;outline:none;text-decoration:none;">
               </td>
             </tr>
             <tr>
-              <td class="pad" style="padding:42px 42px 18px;background:#07101f;">
-                <div style="margin:0 0 18px;color:#67e8f9;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:2.4px;line-height:16px;text-transform:uppercase;">Jupiter · Mission Control</div>
-                <h1 class="headline" style="margin:0;color:#f8fafc;font-family:Arial,Helvetica,sans-serif;font-size:42px;font-weight:650;letter-spacing:-1.5px;line-height:46px;">${heading}</h1>
-                <p style="margin:22px 0 0;color:#c0cadb;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:28px;">Hi ${safeName},</p>
-                <p style="margin:10px 0 0;color:#c0cadb;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:28px;">${introduction}</p>
+              <td class="pad" style="padding:42px 42px 18px;background:#f3f6fb;">
+                <div style="margin:0 0 18px;color:#0f6676;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:2.4px;line-height:16px;text-transform:uppercase;">Jupiter · Mission Control</div>
+                <h1 class="headline" style="margin:0;color:#111b32;font-family:Arial,Helvetica,sans-serif;font-size:42px;font-weight:700;letter-spacing:-1.5px;line-height:46px;">${heading}</h1>
+                <p style="margin:22px 0 0;color:#526078;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:28px;">Hi ${safeName},</p>
+                <p style="margin:10px 0 0;color:#526078;font-family:Arial,Helvetica,sans-serif;font-size:17px;line-height:28px;">${introduction}</p>
               </td>
             </tr>
             <tr>
               <td class="pad" style="padding:16px 42px 8px;">
-                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-top:1px solid #202a42;border-bottom:1px solid #202a42;">
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="width:100%;border-top:1px solid #cbd5e5;border-bottom:1px solid #cbd5e5;">
                   <tr>
-                    <td style="padding:24px 0 13px;color:#8ea0bd;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;line-height:16px;text-transform:uppercase;">What you can do now</td>
+                    <td style="padding:24px 0 13px;color:#65748e;font-family:Arial,Helvetica,sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;line-height:16px;text-transform:uppercase;">What you can do now</td>
                   </tr>
                   <tr>
                     <td style="padding:0 0 12px;">
@@ -129,17 +130,17 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
               <td class="pad" style="padding:28px 42px 42px;">
                 <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                   <tr>
-                    <td align="center" bgcolor="#356df3" style="border-radius:12px;background:#356df3;">
+                    <td align="center" bgcolor="#245fe5" style="border-radius:12px;background:#245fe5;box-shadow:0 8px 20px rgba(36,95,229,.22);">
                       <a href="${safeInviteUrl}" style="display:inline-block;padding:15px 24px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:15px;font-weight:700;line-height:20px;text-decoration:none;">${actionLabel}</a>
                     </td>
                   </tr>
                 </table>
-                <p style="margin:20px 0 0;color:#8190aa;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;">${footerNote}</p>
-                <p style="margin:12px 0 0;color:#5f6d86;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;word-break:break-all;">Button not working? <a href="${safeInviteUrl}" style="color:#94a3b8;text-decoration:underline;">Open the secure invitation</a>.</p>
+                <p style="margin:20px 0 0;color:#65748e;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:21px;">${footerNote}</p>
+                <p style="margin:12px 0 0;color:#7b879d;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:19px;word-break:break-all;">Button not working? <a href="${safeInviteUrl}" style="color:#526078;text-decoration:underline;">Open the secure invitation</a>.</p>
               </td>
             </tr>
             <tr>
-              <td class="pad" style="padding:22px 42px 28px;border-top:1px solid #202a42;background:#050b16;color:#66758f;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;">
+              <td class="pad" style="padding:22px 42px 28px;border-top:1px solid #24304a;background:#050b18;color:#93a1ba;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;">
                 Jupiter.events&nbsp;&nbsp;·&nbsp;&nbsp;Events with gravity.
               </td>
             </tr>
