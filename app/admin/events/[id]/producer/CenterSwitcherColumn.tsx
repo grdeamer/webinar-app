@@ -189,7 +189,7 @@ function SwitcherSurfaceChrome({
 }): JSX.Element {
   return (
     <div
-      className={`relative flex h-full flex-col overflow-hidden rounded-[10px] border shadow-[0_12px_32px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-300 ${
+      className={`relative flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border shadow-[0_12px_32px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-300 ${
         live
           ? "border-red-300/14 bg-[#05080f]"
           : armed

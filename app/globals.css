@@ -169,6 +169,25 @@ button, a, input, select, textarea {
 
 @media (max-width: 1080px) { .run-show-workspace, .run-show-workspace--editing { grid-template-columns: 1fr; }.run-show-panel--inspector { position: relative !important; top: auto !important; } }
 @media (max-width: 680px) { .run-show-panel__header { align-items: flex-start; flex-direction: column; }.run-show-toolbar { justify-content: flex-start; }.run-show-row { grid-template-columns: 3.8rem .75rem minmax(0,1fr) .75rem; gap: .55rem; padding-inline: .9rem; }.run-show-row__state { display: none; }.run-show-row__meta { font-size: .66rem; }.run-show-panel__footer { align-items: flex-start; flex-direction: column; gap: .2rem; } }
+
+/* Preserve broadcast-console density without making the room feel miniature on 4K/ultra-wide displays. */
+@media (min-width: 2200px) and (min-height: 1100px) {
+  .producer-room-shell {
+    font-size: 17px;
+  }
+
+  .producer-room-shell .text-\[7px\] { font-size: 9px; }
+  .producer-room-shell .text-\[8px\] { font-size: 10px; }
+  .producer-room-shell .text-\[9px\] { font-size: 11px; }
+  .producer-room-shell .text-\[10px\] { font-size: 12px; }
+  .producer-room-shell .text-\[11px\] { font-size: 13px; }
+
+  .producer-room-shell button,
+  .producer-room-shell input,
+  .producer-room-shell select {
+    letter-spacing: max(var(--producer-control-tracking, 0em), .01em);
+  }
+}
 .events-editorial-header { display: flex; min-height: 14.5rem; align-items: flex-start; justify-content: space-between; gap: 3rem; padding: 2.2rem 1rem 2.8rem; border-bottom: 1px solid rgba(184, 199, 226, .12); }
 .events-editorial-kicker { margin: 0 0 .85rem; color: rgba(200, 211, 230, .55); font-size: .67rem; font-weight: 500; letter-spacing: .11em; text-transform: uppercase; }
 .events-editorial-title { margin: 0; color: #f7f9ff; font-size: clamp(4.3rem, 7vw, 6.5rem); font-weight: 600; letter-spacing: -.055em; line-height: .88; }

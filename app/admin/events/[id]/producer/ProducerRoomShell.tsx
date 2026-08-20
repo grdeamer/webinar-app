@@ -141,7 +141,7 @@ export function ProducerRoomContentStack({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="relative z-10 flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0 font-['Source_Sans_3','Myriad_Pro',sans-serif]">
+    <div className="producer-room-shell relative z-10 flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0 font-['Source_Sans_3','Myriad_Pro',sans-serif]">
       {children}
     </div>
   )
