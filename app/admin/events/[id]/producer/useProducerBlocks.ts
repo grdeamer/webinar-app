@@ -226,7 +226,10 @@ export default function useProducerBlocks() {
     ])
   }
 
-  function addCameraSlotBlock() {
+  function addCameraSlotBlock(
+    participantId: string | null = null,
+    participantLabel: string | null = null,
+  ) {
     setPreviewBlocks((prev) => [
       ...prev,
       {
@@ -234,8 +237,8 @@ export default function useProducerBlocks() {
         type: "camera-slot",
         x: 96,
         y: 64,
-        width: 360,
-        height: 220,
+        width: 320,
+        height: 180,
         zIndex: prev.length + 1,
         opacity: 1,
         scale: 1,
@@ -246,12 +249,14 @@ export default function useProducerBlocks() {
         borderRadius: 28,
         shadowIntensity: 0.45,
         shadowColor: "#000000",
-        label: "Camera Slot",
-        assignedParticipantId: null,
+        label: participantLabel || "Camera Layer",
+        assignedParticipantId: participantId,
         assignedTrackSid: null,
         placeholderEmoji: "👤",
-        placeholderLabel: "Camera Slot",
-        placeholderSubLabel: "Assign presenter or attendee",
+        placeholderLabel: participantLabel || "Camera Layer",
+        placeholderSubLabel: participantId
+          ? "Live camera layer"
+          : "Assign presenter or attendee",
         placeholderStyle: "branded",
         hidden: false,
         locked: false,
@@ -742,10 +747,46 @@ export default function useProducerBlocks() {
           const nextWidth = e.clientX - previewCanvasRect.left - block.x
           const nextHeight = e.clientY - previewCanvasRect.top - block.y
 
+          if (block.type === "camera-slot") {
+            const aspectRatio = 16 / 9
+            const minimumWidth = 160
+            const maximumWidth = Math.max(
+              minimumWidth,
+              previewCanvasRect.width - block.x,
+            )
+            const maximumHeight = Math.max(
+              minimumWidth / aspectRatio,
+              previewCanvasRect.height - block.y,
+            )
+
+            let width = Math.max(
+              minimumWidth,
+              Math.min(maximumWidth, nextWidth),
+            )
+            let height = width / aspectRatio
+
+            if (height > maximumHeight) {
+              height = maximumHeight
+              width = height * aspectRatio
+            }
+
+            return {
+              ...block,
+              width,
+              height,
+            }
+          }
+
           return {
             ...block,
-            width: Math.max(80, nextWidth),
-            height: Math.max(60, nextHeight),
+            width: Math.max(
+              80,
+              Math.min(previewCanvasRect.width - block.x, nextWidth),
+            ),
+            height: Math.max(
+              60,
+              Math.min(previewCanvasRect.height - block.y, nextHeight),
+            ),
           }
         })
       )

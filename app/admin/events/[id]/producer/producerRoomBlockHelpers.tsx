@@ -529,9 +529,12 @@ export function renderPlacedBlocks({
               setSelectedBlockId(block.id)
               startResizingBlock(e, block.id)
             }}
-            className="absolute bottom-1 right-1 h-3 w-3 cursor-se-resize rounded-sm bg-white/70"
-            title="Resize block"
-          />
+            className="absolute bottom-1.5 right-1.5 grid h-6 w-6 cursor-se-resize place-items-center rounded-[7px] border border-white/30 bg-black/70 text-white/90 shadow-[0_4px_16px_rgba(0,0,0,0.45),0_0_0_1px_rgba(56,189,248,0.14)] backdrop-blur-md transition hover:border-sky-200/60 hover:bg-sky-400/20"
+            title={block.type === "camera-slot" ? "Resize camera (16:9)" : "Resize layer"}
+            aria-label={block.type === "camera-slot" ? "Resize camera" : "Resize layer"}
+          >
+            <span className="pointer-events-none translate-x-px translate-y-px text-[14px] leading-none">⌟</span>
+          </div>
         ) : null}
       </div>
     ))

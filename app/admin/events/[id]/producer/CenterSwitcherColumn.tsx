@@ -612,7 +612,10 @@ export default function CenterSwitcherColumn({
   addTestVideoBlock: () => void;
   addTestPdfBlock: () => void;
   addTestImageBlock: () => void;
-  addCameraSlotBlock: () => void;
+  addCameraSlotBlock: (
+    participantId?: string | null,
+    participantLabel?: string | null,
+  ) => void;
   onAddMediaAssetToPreview: (block: PreviewBlock) => void;
   onUploadPdf: () => void;
   onUploadVideo: () => void;
@@ -633,6 +636,26 @@ export default function CenterSwitcherColumn({
   const [selectedTransitionPreset, setSelectedTransitionPreset] =
     useState<SwitcherTransitionPreset>("smooth");
   const [transitionDuration, setTransitionDuration] = useState(1);
+  const defaultCameraParticipantId =
+    stageState?.pinned_participant_id ??
+    stageState?.primary_participant_id ??
+    stageState?.stage_participant_ids?.[0] ??
+    null;
+  const defaultCameraParticipant = onStageParticipants.find(
+    (participant) => participant.identity === defaultCameraParticipantId,
+  );
+  const previewHasCameraLayer = previewBlocks.some(
+    (block) =>
+      block.type === "camera-slot" &&
+      !block.hidden &&
+      Boolean(block.assignedParticipantId),
+  );
+  const programHasCameraLayer = programBlocks.some(
+    (block) =>
+      block.type === "camera-slot" &&
+      !block.hidden &&
+      Boolean(block.assignedParticipantId),
+  );
   const [showCompositionGuides, setShowCompositionGuides] = useState(true);
   const [previewDropActive, setPreviewDropActive] = useState(false);
   const [previewDropGhost, setPreviewDropGhost] = useState<{
@@ -909,8 +932,27 @@ export default function CenterSwitcherColumn({
             <div className="text-[9px] font-bold uppercase tracking-[0.12em] text-white/54">Live switcher</div>
           </div>
 
-          {workspaceMode !== "show" ? (
           <div className="relative z-10 hidden items-center gap-1.5 xl:flex">
+            <button
+              type="button"
+              onClick={() =>
+                addCameraSlotBlock(
+                  defaultCameraParticipantId,
+                  defaultCameraParticipant?.name || defaultCameraParticipantId,
+                )
+              }
+              className="rounded-[6px] border border-sky-300/16 bg-sky-400/[0.055] px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] text-sky-100/66 transition hover:border-sky-200/34 hover:bg-sky-400/[0.10] hover:text-white"
+              title={
+                defaultCameraParticipantId
+                  ? "Add the on-stage camera as a movable, resizable layer"
+                  : "Add a resizable camera layer, then assign a presenter"
+              }
+            >
+              + Camera Layer
+            </button>
+
+            {workspaceMode !== "show" ? (
+            <>
             <button
               type="button"
               onClick={() => setShowCompositionGuides((current) => !current)}
@@ -923,23 +965,14 @@ export default function CenterSwitcherColumn({
             >
               Guides {showCompositionGuides ? "On" : "Off"}
             </button>
-
-            <button
-              type="button"
-              onClick={addCameraSlotBlock}
-              className="rounded-[6px] border border-white/[0.08] bg-white/[0.025] px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] text-white/48 transition hover:border-sky-200/18 hover:text-white/72"
-              title="Add a persistent camera placeholder slot"
-            >
-              + Camera Slot
-            </button>
-
             {workspaceMode === "advanced" ? (
               <div className="rounded-[6px] border border-white/5 bg-white/[0.018] px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] text-white/28">
                 Monitor · {confidenceMonitorMode}
               </div>
             ) : null}
+            </>
+            ) : null}
           </div>
-          ) : null}
         </div>
 
 <div
@@ -1030,12 +1063,14 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/22 to-transparent" />
 
 
-<StageVideoPreview
-  stageState={stageState}
-  participantIds={stageState?.stage_participant_ids ?? []}
-  participantAppearanceOverrides={participantAppearanceOverrides}
-  screenLayoutPreset={screenLayoutPreset}
-/>
+              {!previewHasCameraLayer ? (
+                <StageVideoPreview
+                  stageState={stageState}
+                  participantIds={stageState?.stage_participant_ids ?? []}
+                  participantAppearanceOverrides={participantAppearanceOverrides}
+                  screenLayoutPreset={screenLayoutPreset}
+                />
+              ) : null}
 
               {renderPlacedBlocks({
                 blocks: previewBlocks,
@@ -1317,11 +1352,13 @@ export default function CenterSwitcherColumn({
                   </div>
                 ) : null}
 
-       <StageVideoPreview
-  stageState={programState}
-  participantIds={programState?.stage_participant_ids ?? []}
-  screenLayoutPreset={screenLayoutPreset}
-/>
+                {!programHasCameraLayer ? (
+                  <StageVideoPreview
+                    stageState={programState}
+                    participantIds={programState?.stage_participant_ids ?? []}
+                    screenLayoutPreset={screenLayoutPreset}
+                  />
+                ) : null}
 
                 {renderPlacedBlocks({
                   blocks: programBlocks,

@@ -5,6 +5,8 @@ import {
   ArrowDown,
   ArrowUp,
   Blend,
+  ChevronsDown,
+  ChevronsUp,
   Clock3,
   Eye,
   EyeOff,
@@ -159,6 +161,18 @@ export default function LayerStackPanel({
     resetDragState()
   }
 
+  function sendLayerToFront(blockId: string): void {
+    const nextOrder = sortedBlocks.filter((block) => block.id !== blockId)
+    nextOrder.unshift(sortedBlocks.find((block) => block.id === blockId)!)
+    onReorderLayers(nextOrder.map((block) => block.id))
+  }
+
+  function sendLayerToBack(blockId: string): void {
+    const nextOrder = sortedBlocks.filter((block) => block.id !== blockId)
+    nextOrder.push(sortedBlocks.find((block) => block.id === blockId)!)
+    onReorderLayers(nextOrder.map((block) => block.id))
+  }
+
   return (
     <div className="relative overflow-hidden rounded-[18px] border border-white/[0.055] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.026),transparent_34%),linear-gradient(180deg,rgba(10,14,25,0.84),rgba(4,6,12,0.95))] p-2 shadow-[0_9px_26px_rgba(0,0,0,0.18),inset_0_1px_0_rgba(255,255,255,0.022)]">
       <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.01)_42%,transparent_64%)] animate-[rightRailSignalSweep_18s_ease-in-out_infinite]" />
@@ -175,6 +189,11 @@ export default function LayerStackPanel({
               ? "No composition layers"
               : `${blocks.length} composition layer${blocks.length === 1 ? "" : "s"}`}
           </div>
+          {blocks.length > 0 ? (
+            <div className="mt-1 text-[9px] font-medium text-white/25">
+              Drag to reorder, or use the stack controls.
+            </div>
+          ) : null}
         </div>
 
         <div className="rounded-full border border-sky-300/10 bg-sky-400/[0.045] px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.12em] text-sky-100/42">
@@ -368,6 +387,20 @@ export default function LayerStackPanel({
                     type="button"
                     onClick={(event) => {
                       event.stopPropagation()
+                      sendLayerToFront(block.id)
+                    }}
+                    disabled={isTopLayer}
+                    className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-white/[0.022] text-white/34 transition hover:border-sky-300/18 hover:bg-sky-400/[0.065] hover:text-sky-100/68 disabled:cursor-not-allowed disabled:opacity-25"
+                    title="Send layer to front"
+                    aria-label={`Send ${block.label || layerTypeLabel} to front`}
+                  >
+                    <ChevronsUp size={12} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
                       onMoveLayerForward(block.id)
                     }}
                     disabled={isTopLayer}
@@ -388,6 +421,20 @@ export default function LayerStackPanel({
                     title="Move layer backward"
                   >
                     <ArrowDown size={12} />
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      sendLayerToBack(block.id)
+                    }}
+                    disabled={isBottomLayer}
+                    className="flex h-7 w-7 items-center justify-center rounded-xl border border-white/7 bg-white/[0.022] text-white/34 transition hover:border-sky-300/18 hover:bg-sky-400/[0.065] hover:text-sky-100/68 disabled:cursor-not-allowed disabled:opacity-25"
+                    title="Send layer to back"
+                    aria-label={`Send ${block.label || layerTypeLabel} to back`}
+                  >
+                    <ChevronsDown size={12} />
                   </button>
 
                   <button

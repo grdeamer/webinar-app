@@ -1086,12 +1086,12 @@ function SourceLibraryCard({
           : "border-white/[0.09] bg-[#0a101b] hover:border-white/[0.18] hover:bg-[#0d1523]"
       }`}
     >
-      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.07] bg-[#070e18] text-white/34">
+      <div className="relative flex aspect-video w-full items-center justify-center overflow-hidden border-b border-white/[0.07] bg-[radial-gradient(circle_at_50%_42%,rgba(80,116,176,0.12),transparent_62%),#050a12] p-2 text-white/34">
         {asset.imageUrl ? (
           <img
             src={asset.imageUrl}
-            alt=""
-            className="absolute inset-0 h-full w-full object-cover opacity-82 transition duration-300 group-hover:scale-[1.02]"
+            alt={`${asset.label} source preview`}
+            className="h-full w-full object-contain opacity-90 transition duration-300 group-hover:scale-[1.015] group-hover:opacity-100"
           />
         ) : (
           icon
@@ -3948,7 +3948,7 @@ const previewMediaAsset =
             </div>
 
             {mediaRows.length ? (
-              <div className="grid min-h-[126px] grid-flow-col auto-cols-[minmax(138px,1fr)] gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="grid min-h-[148px] grid-flow-col auto-cols-[220px] content-start justify-start gap-2 overflow-x-auto pb-1 pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(125,211,252,0.22)_transparent] 2xl:auto-cols-[240px]">
                 {mediaRows.slice(0, 6).map((asset) => (
                   <SourceLibraryCard
                     key={`${asset.label}-${asset.type}`}
