@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { EventAgendaItem, EventRecord } from "@/lib/types"
+import { Button } from "@/components/ui/button"
 import AdminAgendaEditor from "./ui"
 
 export const dynamic = "force-dynamic"
@@ -43,28 +44,20 @@ export default async function AdminEventAgendaPage(props: {
     <main className="event-editorial-page">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="editorial-eyebrow">Event &nbsp;/&nbsp; Run of Show</div>
-          <h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Run the day.</h1>
-          <div className="mt-1 text-white/60">Manage the live flow of your event.</div>
-          <div className="mt-1 text-sm text-white/40">{event.title}</div>
+          <div className="editorial-eyebrow">Live operations &nbsp;/&nbsp; Run of Show</div>
+          <h1 className="mt-6 text-5xl font-semibold tracking-[-.045em]">Direct the day.</h1>
+          <div className="mt-2 max-w-xl text-white/60">A broadcast rundown with one clear moment at a time.</div>
+          <div className="mt-2 text-sm font-medium text-cyan-100/55">{event.title}</div>
         </div>
 
         <div className="flex gap-2">
-          <Link
-            href={`/admin/events/${id}`}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 hover:bg-white/10"
-          >
-            Back
-          </Link>
+          <Button asChild variant="jupiterSecondary" size="lg">
+            <Link href={`/admin/events/${id}`}>Back to event</Link>
+          </Button>
 
-          <a
-            href={`/events/${event.slug}/agenda`}
-            target="_blank"
-            rel="noreferrer"
-            className="rounded-xl bg-indigo-600 px-4 py-2 font-semibold hover:bg-indigo-500"
-          >
-            View Agenda →
-          </a>
+          <Button asChild variant="jupiterPrimary" size="lg">
+            <a href={`/events/${event.slug}/agenda`} target="_blank" rel="noreferrer">View attendee agenda →</a>
+          </Button>
         </div>
       </div>
 

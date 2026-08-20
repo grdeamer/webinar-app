@@ -25,6 +25,7 @@ import {
 } from "lucide-react"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 import JupiterLogo from "@/components/brand/JupiterLogo"
+import { Button } from "@/components/ui/button"
 import {
   AGENDA_ICON_OPTIONS,
   type AgendaIconKey,
@@ -242,6 +243,53 @@ function StatusBadge({ status }: { status: AgendaStatus }) {
       {status === "live" ? <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.9)]" /> : null}
       {status}
     </span>
+  )
+}
+
+function RundownRow({
+  item,
+  active,
+  isNext,
+  onSelect,
+}: {
+  item: AgendaItem
+  active: boolean
+  isNext: boolean
+  onSelect: () => void
+}) {
+  const live = item.status === "live"
+  const muted = item.status === "complete" || item.status === "cancelled"
+  const state = live ? "live" : active ? "selected" : isNext ? "next" : muted ? item.status : "upcoming"
+  const stateLabel = live ? "Live" : active ? "Selected" : isNext ? "Up next" : item.status
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={active}
+      data-state={state}
+      className="run-show-row group"
+    >
+      <span className="run-show-row__rail" aria-hidden="true" />
+      <span className="run-show-row__time">{formatTime(item.start_at)}</span>
+      <span className="run-show-row__cue" aria-hidden="true" />
+      <span className="run-show-row__body">
+        <span className="run-show-row__title">
+          <AgendaIcon iconKey={item.icon_key} className="h-4 w-4 shrink-0" />
+          <span className="truncate">{item.title}</span>
+        </span>
+        <span className="run-show-row__meta">
+          {item.speaker || "Speaker not assigned"}
+          <span aria-hidden="true">·</span>
+          {formatDuration(item.start_at, item.end_at)}
+          <span className={item.is_visible ? "run-show-row__visible" : ""}>
+            {item.is_visible ? "Visible to attendees" : "Hidden from attendees"}
+          </span>
+        </span>
+      </span>
+      <span className="run-show-row__state">{stateLabel}</span>
+      <span className="run-show-row__chevron" aria-hidden="true">›</span>
+    </button>
   )
 }
 
@@ -1066,88 +1114,61 @@ export default function AdminAgendaEditor({
       {err ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">{err}</div> : null}
       {msg ? <div className="rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-200">{msg}</div> : null}
 
-      <div className={`grid items-start gap-5 ${editing ? "lg:grid-cols-[minmax(280px,0.75fr)_minmax(520px,1.25fr)]" : "lg:grid-cols-[minmax(0,1.15fr)_minmax(360px,0.85fr)]"}`}>
-        <section className="rounded-2xl border border-white/10 bg-white/[0.035] p-5 shadow-2xl backdrop-blur-xl">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className={`run-show-workspace ${editing ? "run-show-workspace--editing" : ""}`}>
+        <section className="run-show-panel run-show-panel--timeline">
+          <div className="run-show-panel__header">
             <div>
-              <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Production Timeline</div>
-              <h2 className="mt-1 text-xl font-semibold">Run of Show Timeline</h2>
+              <div className="run-show-overline">Production Timeline</div>
+              <h2>Run of Show Timeline</h2>
             </div>
-            <div className="flex flex-wrap gap-2">
-            <button
+            <div className="run-show-toolbar">
+            <Button
+              variant="jupiterSecondary"
+              size="lg"
               type="button"
               onClick={() => {
                 if (!syncDate) setSyncDate(dateInputValue(items.find((item) => item.start_at)?.start_at || null))
                 setSyncDateOpen(true)
               }}
               disabled={busy || items.length === 0}
-              className="inline-flex items-center gap-2 rounded-xl border border-indigo-300/20 bg-indigo-500/10 px-3 py-2 text-xs font-semibold text-indigo-100 hover:bg-indigo-500/20 disabled:opacity-40"
             >
               <CalendarDays aria-hidden="true" className="h-4 w-4" />
-              Change All Dates
-            </button>
-            <button type="button" onClick={() => setTimeShiftOpen(true)} disabled={busy || items.length === 0} className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/20 bg-cyan-500/10 px-3 py-2 text-xs font-semibold text-cyan-100 hover:bg-cyan-500/20 disabled:opacity-40">
+              Change all dates
+            </Button>
+            <Button variant="jupiterSecondary" size="lg" type="button" onClick={() => setTimeShiftOpen(true)} disabled={busy || items.length === 0}>
               <Clock3 aria-hidden="true" className="h-4 w-4" />
-              Adjust Agenda Time
-            </button>
+              Adjust agenda time
+            </Button>
             </div>
           </div>
 
-          <div className="space-y-0">
-            {items.map((item, index) => {
-              const active = selectedId === item.id
-              const live = item.status === "live"
-              const muted = item.status === "complete" || item.status === "cancelled"
-              return (
-                <div key={item.id} className="grid grid-cols-[68px_20px_minmax(0,1fr)] gap-2">
-                  <div className={`pt-5 text-right text-sm font-semibold tabular-nums ${muted ? "text-white/25" : "text-white/65"}`}>
-                    {formatTime(item.start_at)}
-                  </div>
-                  <div className="relative flex justify-center">
-                    {index > 0 ? <div className="absolute bottom-1/2 top-0 w-px bg-white/10" /> : null}
-                    {index < items.length - 1 ? <div className="absolute bottom-0 top-1/2 w-px bg-white/10" /> : null}
-                    <div className={`relative z-10 mt-6 h-2.5 w-2.5 rounded-full border-2 ${live ? "animate-pulse border-red-300 bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]" : muted ? "border-white/20 bg-zinc-700" : "border-sky-300 bg-sky-500"}`} />
-                  </div>
-                  <button
-                    onClick={() => selectItem(item)}
-                    className={`group relative mb-3 overflow-hidden rounded-2xl border p-4 text-left transition-all ${live ? "border-red-400/35 bg-red-500/[0.09] shadow-[0_0_34px_rgba(239,68,68,0.15)] hover:border-red-300/50" : active ? "border-indigo-400/40 bg-indigo-500/10 shadow-lg" : muted ? "border-white/[0.06] bg-black/20 opacity-60 hover:opacity-80" : "border-white/10 bg-white/[0.04] hover:border-white/20 hover:bg-white/[0.07]"}`}
-                  >
-                    {live ? <div className="pointer-events-none absolute inset-0 -translate-x-full animate-[pulse_3s_ease-in-out_infinite] bg-gradient-to-r from-transparent via-red-300/[0.05] to-transparent" /> : null}
-                    <div className="relative flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className={`flex min-w-0 items-center gap-2 text-base font-semibold ${muted ? "text-white/55" : "text-white"}`}>
-                          <AgendaIcon iconKey={item.icon_key} className="h-4 w-4 shrink-0 text-indigo-200/75" />
-                          <span className="truncate">{item.title}</span>
-                        </div>
-                        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-white/45">
-                          <span className="truncate">{item.speaker || "Speaker not assigned"}</span>
-                          <span className="inline-flex items-center gap-1 text-indigo-200/55">
-                            <Clock3 aria-hidden="true" className="h-3.5 w-3.5" />
-                            {formatDuration(item.start_at, item.end_at)}
-                          </span>
-                        </div>
-                      </div>
-                      <StatusBadge status={item.status} />
-                    </div>
-                    <div className="relative mt-3 flex items-center justify-between gap-3 text-xs">
-                      <span className={item.is_visible ? "text-emerald-300/80" : "text-white/30"}>{item.is_visible ? "● Visible to attendees" : "○ Hidden from attendees"}</span>
-                      {item.id === nextItemId && item.status === "upcoming" ? <span className="font-bold uppercase tracking-wider text-sky-300">Up next</span> : null}
-                    </div>
-                  </button>
-                </div>
-              )
-            })}
+          <div className="run-show-rundown">
+            {items.map((item) => (
+              <RundownRow
+                key={item.id}
+                item={item}
+                active={selectedId === item.id}
+                isNext={item.id === nextItemId && item.status === "upcoming"}
+                onSelect={() => selectItem(item)}
+              />
+            ))}
 
             {items.length === 0 ? (
-              <div className="rounded-2xl border border-dashed border-white/10 bg-black/10 px-6 py-12 text-center">
+              <div className="px-6 py-16 text-center">
                 <div className="text-lg font-semibold text-white/70">No sessions yet</div>
                 <div className="mt-1 text-sm text-white/35">Add the first session to build your run of show.</div>
               </div>
             ) : null}
           </div>
+          {items.length > 0 ? (
+            <div className="run-show-panel__footer">
+              <span>{items.length} moments</span>
+              <span>Hover to inspect · Select to control</span>
+            </div>
+          ) : null}
         </section>
 
-        <section className={`min-w-0 rounded-2xl border bg-white/[0.045] p-6 shadow-2xl backdrop-blur-xl ${editing ? "" : "lg:sticky lg:top-6"} ${selectedItem?.status === "live" ? "border-red-400/25 shadow-[0_0_50px_rgba(239,68,68,0.1)]" : "border-white/10"}`}>
+        <section className={`run-show-panel run-show-panel--inspector min-w-0 p-6 ${editing ? "" : "lg:sticky lg:top-6"} ${selectedItem?.status === "live" ? "is-live" : ""}`}>
           <div className="flex items-center justify-between gap-3">
             <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Current Session</div>
             {selectedItem ? <StatusBadge status={selectedItem.status} /> : null}
