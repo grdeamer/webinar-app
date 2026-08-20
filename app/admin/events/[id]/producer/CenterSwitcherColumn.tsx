@@ -189,7 +189,7 @@ function SwitcherSurfaceChrome({
 }): JSX.Element {
   return (
     <div
-      className={`relative flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border shadow-[0_12px_32px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-300 ${
+      className={`producer-switcher-surface relative flex h-full min-w-0 flex-1 flex-col overflow-hidden rounded-[10px] border shadow-[0_12px_32px_rgba(0,0,0,0.22),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-300 ${
         live
           ? "border-red-300/14 bg-[#05080f]"
           : armed
@@ -882,7 +882,7 @@ export default function CenterSwitcherColumn({
     gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) clamp(104px,8vw,132px) minmax(0, ${100 - previewPanePercent}fr)`,
   }}
 >
-          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[9px] border border-sky-300/42 bg-[#06101c] p-0 shadow-[0_0_0_1px_rgba(56,189,248,0.06),0_12px_32px_rgba(0,0,0,0.28)]">
+          <div className="producer-monitor producer-monitor--preview relative flex h-full min-w-0 flex-col overflow-hidden rounded-[9px] border border-sky-300/42 bg-[#06101c] p-0 shadow-[0_0_0_1px_rgba(56,189,248,0.06),0_12px_32px_rgba(0,0,0,0.28)]">
             <div className="flex h-10 items-center justify-between border-b border-sky-300/28 bg-[#081827] px-3 text-[11px] font-bold uppercase tracking-[0.11em] text-sky-100/92">
               <span>Preview</span>
               <span
@@ -1206,7 +1206,7 @@ export default function CenterSwitcherColumn({
             </div>
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-7 -translate-x-1/2 rounded-full bg-white/[0.010] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
           </div>
-          <div className="relative flex h-full min-w-0 flex-col overflow-hidden rounded-[9px] border border-red-300/42 bg-[#14090d] p-0 shadow-[0_0_0_1px_rgba(248,113,113,0.05),0_12px_32px_rgba(0,0,0,0.28)]">
+          <div className="producer-monitor producer-monitor--program relative flex h-full min-w-0 flex-col overflow-hidden rounded-[9px] border border-red-300/42 bg-[#14090d] p-0 shadow-[0_0_0_1px_rgba(248,113,113,0.05),0_12px_32px_rgba(0,0,0,0.28)]">
             <div className="flex h-10 items-center justify-between border-b border-red-300/28 bg-[#1d0c12] px-3 text-[11px] font-bold uppercase tracking-[0.11em] text-red-100/94">
               <span>Program</span>
               <span className="inline-flex items-center rounded-[5px] border border-red-300/18 bg-red-500/[0.06] px-2 py-0.5 text-[8px] font-bold uppercase tracking-[0.08em] text-red-100/70">

@@ -102,16 +102,16 @@ export default function ProducerRoomWorkspace({
       style={{ gridTemplateRows }}
     >
       <div
-        className={`${bottomDock ? "row-span-3" : ""} ${railChromeClassName} rounded-[10px] border shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
+        className={`producer-rail producer-rail--navigation ${bottomDock ? "row-span-3" : ""} ${railChromeClassName} rounded-[10px] border shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
       >
         {leftRail}
       </div>
 
-      <div className="relative min-h-0 min-w-0 w-full overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(10,15,28,0.97),rgba(4,7,15,0.99))] px-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <div className="producer-center-surface relative min-h-0 min-w-0 w-full overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(10,15,28,0.97),rgba(4,7,15,0.99))] px-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         {centerColumn}
       </div>
 
-      <div className="row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(15,20,34,0.98),rgba(7,10,20,0.99))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
+      <div className="producer-rail producer-rail--stage row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(15,20,34,0.98),rgba(7,10,20,0.99))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
         {rightRail}
       </div>
 
@@ -131,7 +131,7 @@ export default function ProducerRoomWorkspace({
 
           <div
             style={{ height: `${bottomDockHeight}px` }}
-            className="col-start-2 min-h-0 min-w-0 overflow-hidden border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(5,8,15,0.985),rgba(2,4,8,1))] px-0 py-0 shadow-[0_-12px_30px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.022)]"
+            className="producer-bottom-dock col-start-2 min-h-0 min-w-0 overflow-hidden border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(5,8,15,0.985),rgba(2,4,8,1))] px-0 py-0 shadow-[0_-12px_30px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.022)]"
           >
             {bottomDock}
           </div>

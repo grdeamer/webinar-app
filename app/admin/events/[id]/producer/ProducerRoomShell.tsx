@@ -152,7 +152,7 @@ export function ProducerRoomWorkspaceFrame({
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
     <div
-      className={`relative m-2 mt-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-white/[0.07] px-0 pb-0 pt-0 shadow-[0_18px_52px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] ${PRODUCER_FRAME_BACKGROUND_CLASS}`}
+      className={`producer-workspace-frame relative m-2 mt-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-white/[0.07] px-0 pb-0 pt-0 shadow-[0_18px_52px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] ${PRODUCER_FRAME_BACKGROUND_CLASS}`}
     >
       <div className={PRODUCER_FRAME_TOP_EDGE_CLASS} />
       <div className={PRODUCER_FRAME_BOTTOM_EDGE_CLASS} />
