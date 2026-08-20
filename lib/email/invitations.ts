@@ -89,7 +89,7 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
         .shell { width: 100% !important; }
         .pad { padding-left: 24px !important; padding-right: 24px !important; }
         .headline { font-size: 34px !important; line-height: 38px !important; }
-        .brand-logo { width: 270px !important; height: auto !important; }
+        .brand-logo { width: 100% !important; max-width: 100% !important; height: auto !important; }
       }
     </style>
   </head>
@@ -100,8 +100,8 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
         <td align="center" style="padding:30px 12px;">
           <table role="presentation" class="shell" width="600" cellspacing="0" cellpadding="0" border="0" style="width:600px;max-width:600px;border:1px solid #c9d3e4;border-radius:22px;background:#f3f6fb;overflow:hidden;">
             <tr>
-              <td align="center" style="padding:38px 24px;background:#050b18;border-bottom:1px solid #24304a;text-align:center;">
-                <img class="brand-logo" src="${safeLogoUrl}" width="300" alt="Jupiter" style="display:block;width:300px;height:auto;max-width:72%;margin:0 auto;border:0;outline:none;text-decoration:none;">
+              <td align="center" style="padding:0;background:#f3f6fb;border-bottom:1px solid #c9d3e4;text-align:center;">
+                <img class="brand-logo" src="${safeLogoUrl}" width="600" alt="Jupiter" style="display:block;width:100%;max-width:600px;height:auto;margin:0 auto;border:0;outline:none;text-decoration:none;">
               </td>
             </tr>
             <tr>
