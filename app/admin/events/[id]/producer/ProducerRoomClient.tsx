@@ -56,6 +56,10 @@ import {
   getProducerHealthSnapshot,
   type ProducerTransportHealth,
 } from "./producerHealthUtils";
+import {
+  clearStaleCameraSlotAssignments,
+  getStaleProducerRouteIds,
+} from "./producerRouteCleanupUtils";
 
 type ParticipantAccentId = "none" | "violet" | "cyan" | "green" | "amber" | "rose";
 type ParticipantGlowLevel = "low" | "med" | "high";
@@ -189,6 +193,7 @@ export default function ProducerRoomClient({
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [roomName, setRoomName] = useState<string | null>(null);
   const [participants, setParticipants] = useState<ProducerParticipant[]>([]);
+  const [participantsLoaded, setParticipantsLoaded] = useState(false);
   const [participantAppearanceOverrides, setParticipantAppearanceOverrides] =
     useState<Record<string, ParticipantAppearanceOverride>>({});
   const [stageState, setStageState] = useState<StageState | null>(null);
@@ -198,6 +203,8 @@ export default function ProducerRoomClient({
   const [loadingText, setLoadingText] = useState("Connecting producer...");
   const [error, setError] = useState<string | null>(null);
   const [syncWarningText, setSyncWarningText] = useState<string | null>(null);
+  const staleRouteSinceRef = useRef<Map<string, number>>(new Map());
+  const staleRouteCleanupBusyRef = useRef(false);
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true);
   const [standardToolsOpen, setStandardToolsOpen] = useState(false);
@@ -532,6 +539,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     setServerUrl,
     setRoomName,
     setParticipants,
+    setParticipantsLoaded,
     setStageState: updateStageState,
     setProgramState: updateProgramState,
     setProgramBlocks,
@@ -588,6 +596,77 @@ updateShadowColor: updateSelectedBlockShadowColor,
     api,
     setStageState: (state) => updateStageState(state),
   });
+
+  useEffect(() => {
+    if (!participantsLoaded || !stageState || staleRouteCleanupBusyRef.current) return;
+
+    const connectedParticipantIds = new Set(
+      participants.map((participant) => participant.identity),
+    );
+    const staleRouteIds = getStaleProducerRouteIds({
+      connectedParticipantIds,
+      previewState: stageState,
+      previewBlocks,
+    });
+    const staleRouteIdSet = new Set(staleRouteIds);
+    const now = Date.now();
+
+    for (const identity of staleRouteIds) {
+      if (!staleRouteSinceRef.current.has(identity)) {
+        staleRouteSinceRef.current.set(identity, now);
+      }
+    }
+
+    for (const identity of Array.from(staleRouteSinceRef.current.keys())) {
+      if (!staleRouteIdSet.has(identity)) {
+        staleRouteSinceRef.current.delete(identity);
+      }
+    }
+
+    const cleanupIds = staleRouteIds.filter(
+      (identity) => now - (staleRouteSinceRef.current.get(identity) ?? now) >= 10_000,
+    );
+    if (cleanupIds.length === 0) return;
+
+    staleRouteCleanupBusyRef.current = true;
+    const cleanupIdSet = new Set(cleanupIds);
+
+    for (const identity of cleanupIds) {
+      manualStageParticipantIdsRef.current.delete(identity);
+      if (manualPrimaryParticipantIdRef.current === identity) {
+        manualPrimaryParticipantIdRef.current = null;
+      }
+    }
+
+    void (async () => {
+      try {
+        for (const identity of cleanupIds) {
+          await removeFromStage(identity);
+          staleRouteSinceRef.current.delete(identity);
+        }
+        setPreviewBlocks((current) =>
+          clearStaleCameraSlotAssignments(current, cleanupIdSet),
+        );
+        setOperatorNotice(
+          `${cleanupIds.length} disconnected source${cleanupIds.length === 1 ? " was" : "s were"} removed from Preview automatically.`,
+        );
+      } catch (cleanupError: unknown) {
+        const message = cleanupError instanceof Error
+          ? cleanupError.message
+          : "Automatic route cleanup failed";
+        setSyncWarningText(`Automatic route cleanup needs attention: ${message}`);
+      } finally {
+        staleRouteCleanupBusyRef.current = false;
+      }
+    })();
+  }, [
+    participants,
+    participantsLoaded,
+    previewBlocks,
+    removeFromStage,
+    setPreviewBlocks,
+    stageState,
+  ]);
 
   const {
     scenes,

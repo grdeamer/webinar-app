@@ -14,6 +14,7 @@ type Params = {
   setServerUrl: (url: string | null) => void
   setRoomName: (roomName: string | null) => void
   setParticipants: (participants: ProducerParticipant[]) => void
+  setParticipantsLoaded: (loaded: boolean) => void
   setStageState: (state: StageState | null) => void
   setProgramState: (state: StageState | null) => void
   setProgramBlocks: React.Dispatch<React.SetStateAction<PreviewBlock[]>>
@@ -31,6 +32,7 @@ export default function useProducerRoomLifecycle({
   setServerUrl,
   setRoomName,
   setParticipants,
+  setParticipantsLoaded,
   setStageState,
   setProgramState,
   setProgramBlocks,
@@ -48,7 +50,8 @@ export default function useProducerRoomLifecycle({
   const loadParticipants = useCallback(async () => {
     const data = await api.loadParticipants()
     setParticipants(Array.isArray(data?.participants) ? data.participants : [])
-  }, [api, setParticipants])
+    setParticipantsLoaded(true)
+  }, [api, setParticipants, setParticipantsLoaded])
 
   const loadProgramState = useCallback(async () => {
     const data = await api.loadProgramState()
