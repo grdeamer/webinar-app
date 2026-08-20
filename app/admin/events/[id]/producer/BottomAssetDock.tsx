@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from "react"
+import { createClient } from "@/lib/supabase/client"
 type UtilityPanel = "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 type MediaOrchestratorTab = "overview" | "assets" | "routing" | "take"
 type MixerChannelKey = "Program" | "Stage" | "Music" | "Mics" | "SFX" | "Audience"
@@ -10,6 +11,7 @@ import {
 } from "./assetDockTypes"
 
 type BroadcastAssetTelemetry = {
+  id?: string
   label: string
   type: BroadcastAssetType
   state: BroadcastAssetState
@@ -19,6 +21,7 @@ type BroadcastAssetTelemetry = {
   lastPlayed: string
   linkedScene: string
   imageUrl?: string | null
+  storagePath?: string | null
   audioEmbedded?: boolean
   programSafe?: boolean
   destination?: "PREVIEW" | "PROGRAM" | "STANDBY"
@@ -262,6 +265,41 @@ function ScenePreviewTile({
         {label}
       </div>
     </button>
+  )
+}
+
+function PreparedSourceImage({
+  src,
+  label,
+}: {
+  src: string
+  label: string
+}): JSX.Element {
+  const [failed, setFailed] = useState(false)
+
+  useEffect(() => {
+    setFailed(false)
+  }, [src])
+
+  if (failed) {
+    return (
+      <div className="flex h-full min-h-[128px] w-full flex-col items-center justify-center px-5 text-center">
+        <Image size={25} className="text-white/28" aria-hidden="true" />
+        <div className="mt-3 text-[10px] font-semibold text-white/62">Source preview unavailable</div>
+        <div className="mt-1 max-w-[220px] text-[9px] leading-relaxed text-white/36">
+          Re-import {label} once to save it permanently to this event.
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <img
+      src={src}
+      alt={`${label} preview`}
+      className="h-full w-full object-contain"
+      onError={() => setFailed(true)}
+    />
   )
 }
 
@@ -2747,6 +2785,8 @@ export default function BottomAssetDock({
   const [expandedMediaOpen, setExpandedMediaOpen] = useState(false)
   const mediaImportInputRef = useRef<HTMLInputElement | null>(null)
   const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
+  const [mediaImportBusy, setMediaImportBusy] = useState(false)
+  const [mediaImportError, setMediaImportError] = useState<string | null>(null)
   const [activeMediaOrchestratorTab, setActiveMediaOrchestratorTab] = useState<MediaOrchestratorTab>("overview")
   const [selectedMediaAssetLabel, setSelectedMediaAssetLabel] = useState<string | null>(null)
   const [editingSceneId, setEditingSceneId] = useState<string | null>(null)
@@ -2758,6 +2798,68 @@ export default function BottomAssetDock({
   const [mediaRuntimeByLabel, setMediaRuntimeByLabel] = useState<Record<string, MediaAssetRuntimeState>>({})
   const [runtimePaused, setRuntimePaused] = useState(false)
   const [mediaRuntimeNowMs, setMediaRuntimeNowMs] = useState(Date.now())
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadSavedAssets(): Promise<void> {
+      const response = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
+        cache: "no-store",
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok || cancelled) return
+
+      const savedAssets: BroadcastAssetTelemetry[] = (payload?.assets ?? []).map(
+        (asset: {
+          id: string
+          asset_type: "image" | "video" | "pdf"
+          label: string
+          storage_path: string
+          signed_url?: string | null
+          public_url?: string | null
+          mime_type?: string | null
+          byte_size?: number | null
+        }, index: number) => ({
+          id: String(asset.id),
+          label: asset.label || `Saved source ${index + 1}`,
+          type: asset.asset_type === "video" ? "video" : "graphic",
+          state: "PRELOADED",
+          duration: asset.asset_type === "pdf" ? "PDF" : asset.asset_type === "image" ? "16:9" : "—",
+          meta: formatFileSize(Number(asset.byte_size || 0)),
+          route: "Saved",
+          lastPlayed: "Not Played",
+          linkedScene: "Unassigned",
+          imageUrl: asset.mime_type?.startsWith("image/")
+            ? asset.signed_url ?? asset.public_url ?? null
+            : null,
+          storagePath: asset.storage_path,
+          audioEmbedded: asset.asset_type === "video",
+          destination: "STANDBY",
+          takeSafe: true,
+          cueOrder: index + 1,
+          progress: 0,
+          scheduledIn: "Saved",
+          resetBehavior: "Manual",
+          cacheState: "HOT",
+          codecState: "OK",
+          routeLock: false,
+          hoverHint: "Saved to the event source library",
+          takeCompatibility: "Clean",
+          segment: "Imported",
+          trigger: "Manual",
+        }),
+      )
+
+      setImportedMediaAssets((current) => {
+        const currentIds = new Set(current.map((asset) => asset.id).filter(Boolean))
+        return [...current, ...savedAssets.filter((asset) => !currentIds.has(asset.id))]
+      })
+    }
+
+    void loadSavedAssets()
+    return () => {
+      cancelled = true
+    }
+  }, [eventId])
 useEffect(() => {
   if (!programMediaAssetLabel) return
 
@@ -2921,6 +3023,7 @@ setRuntimePaused(false)
 function createImportedMediaAsset(
   file: File,
   index: number,
+  persisted?: { id: string; url: string; path: string },
 ): BroadcastAssetTelemetry {
   const importedAt = new Date().toLocaleTimeString([], {
     hour: "numeric",
@@ -2943,6 +3046,7 @@ function createImportedMediaAsset(
         : "graphic"
 
   return {
+    id: persisted?.id,
     label:
       file.name.replace(/\.[^/.]+$/, "") ||
       `Imported Asset ${index + 1}`,
@@ -2953,7 +3057,8 @@ function createImportedMediaAsset(
     route: "Imported",
     lastPlayed: "Not Played",
     linkedScene: "Unassigned",
-    imageUrl: isImage ? URL.createObjectURL(file) : null,
+    imageUrl: isImage ? persisted?.url ?? URL.createObjectURL(file) : null,
+    storagePath: persisted?.path ?? null,
     audioEmbedded: type === "video",
     destination: "STANDBY",
     takeSafe: true,
@@ -2971,26 +3076,69 @@ function createImportedMediaAsset(
   }
 }
 
-function handleImportMediaFiles(
+async function handleImportMediaFiles(
   event: ChangeEvent<HTMLInputElement>,
-): void {
+): Promise<void> {
   const files = Array.from(event.target.files ?? [])
 
   if (!files.length) return
-
-  setImportedMediaAssets((current) => [
-    ...files.map((file, index) =>
-      createImportedMediaAsset(
-        file,
-        current.length + index,
-      ),
-    ),
-    ...current,
-  ])
-
   event.target.value = ""
+  setMediaImportBusy(true)
+  setMediaImportError(null)
   setActiveMediaOrchestratorTab("assets")
   setExpandedMediaOpen(true)
+
+  try {
+    const supabase = createClient()
+    const persistedAssets: BroadcastAssetTelemetry[] = []
+
+    for (const [index, file] of files.entries()) {
+      const assetType = file.type.startsWith("video/")
+        ? "video"
+        : file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
+          ? "pdf"
+          : "image"
+      const prepareRes = await fetch(`/api/admin/events/${eventId}/live/assets/prepare`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ fileName: file.name, mimeType: file.type, byteSize: file.size }),
+      })
+      const prepared = await prepareRes.json().catch((): null => null)
+      if (!prepareRes.ok) throw new Error(prepared?.error || `Could not prepare ${file.name}`)
+
+      const { error: uploadError } = await supabase.storage
+        .from(prepared.bucket)
+        .uploadToSignedUrl(prepared.path, prepared.token, file, { contentType: file.type })
+      if (uploadError) throw uploadError
+
+      const label = file.name.replace(/\.[^/.]+$/, "") || `Imported Asset ${index + 1}`
+      const commitRes = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          path: prepared.path,
+          label,
+          mimeType: file.type,
+          byteSize: file.size,
+          assetType,
+        }),
+      })
+      const committed = await commitRes.json().catch((): null => null)
+      if (!commitRes.ok) throw new Error(committed?.error || `Could not save ${file.name}`)
+
+      persistedAssets.push(createImportedMediaAsset(file, index, {
+        id: String(committed.asset.id),
+        url: String(committed.asset.signed_url || committed.asset.public_url || ""),
+        path: String(committed.asset.storage_path),
+      }))
+    }
+
+    setImportedMediaAssets((current) => [...persistedAssets, ...current])
+  } catch (error) {
+    setMediaImportError(error instanceof Error ? error.message : "The source could not be imported")
+  } finally {
+    setMediaImportBusy(false)
+  }
 }
 
 function handleDeleteImportedAsset(label: string): void {
@@ -3618,7 +3766,7 @@ const previewMediaAsset =
         />
       ) : null}
       {expandedMediaOpen ? (
-        <div className="fixed inset-x-5 bottom-5 z-[999] flex h-[430px] flex-col overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#050914]/[0.99] shadow-[0_28px_90px_rgba(0,0,0,0.68)] backdrop-blur-2xl">
+        <div className="fixed bottom-5 left-3 right-3 z-[999] flex h-[430px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#050914]/[0.99] shadow-[0_28px_90px_rgba(0,0,0,0.68)] backdrop-blur-2xl lg:left-[84px] lg:right-5 lg:max-w-[calc(100vw-104px)]">
           <header className="flex h-[62px] shrink-0 items-center justify-between border-b border-white/[0.07] px-5">
             <div>
               <div className="text-[8px] font-semibold uppercase tracking-[0.18em] text-sky-200/55">
@@ -3632,9 +3780,10 @@ const previewMediaAsset =
               <button
                 type="button"
                 onClick={() => mediaImportInputRef.current?.click()}
+                disabled={mediaImportBusy}
                 className="h-9 rounded-[10px] border border-white/[0.10] bg-white/[0.045] px-4 text-[10px] font-semibold text-white/74 transition hover:bg-white/[0.08] hover:text-white"
               >
-                Import source
+                {mediaImportBusy ? "Importing…" : "Import source"}
               </button>
               <button
                 type="button"
@@ -3646,7 +3795,12 @@ const previewMediaAsset =
             </div>
           </header>
 
-          <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1.7fr)_minmax(280px,0.65fr)]">
+          {mediaImportError ? (
+            <div className="border-b border-red-300/10 bg-red-400/[0.08] px-5 py-2 text-[10px] font-medium text-red-100/80">
+              {mediaImportError}
+            </div>
+          ) : null}
+          <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1.7fr)_minmax(280px,0.65fr)]">
             <section className="min-h-0 overflow-y-auto border-r border-white/[0.07] p-4">
               <div className="mb-3 flex items-center justify-between">
                 <div>
@@ -3694,10 +3848,9 @@ const previewMediaAsset =
                 <>
                   <div className="mt-3 flex min-h-[128px] items-center justify-center overflow-hidden rounded-[12px] border border-white/[0.08] bg-[#08101d] text-white/24">
                     {selectedMediaAsset.imageUrl ? (
-                      <img
+                      <PreparedSourceImage
                         src={selectedMediaAsset.imageUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
+                        label={selectedMediaAsset.label}
                       />
                     ) : selectedMediaAsset.type === "video" ? (
                       <Video size={28} />

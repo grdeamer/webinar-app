@@ -7,6 +7,43 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const bucket = "upload"
+const signedUrlLifetimeSeconds = 60 * 60 * 6
+
+async function withSignedUrl<T extends { storage_path: string; public_url?: string | null }>(
+  asset: T
+): Promise<T & { signed_url: string | null }> {
+  const { data } = await supabaseAdmin.storage
+    .from(bucket)
+    .createSignedUrl(asset.storage_path, signedUrlLifetimeSeconds)
+
+  return {
+    ...asset,
+    signed_url: data?.signedUrl ?? asset.public_url ?? null,
+  }
+}
+
+export async function GET(
+  _req: Request,
+  ctx: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id)
+  if (auth instanceof Response) return auth
+
+  const { data, error } = await supabaseAdmin
+    .from("event_live_assets")
+    .select("id, asset_type, label, storage_path, public_url, mime_type, byte_size, metadata, created_at")
+    .eq("event_id", id)
+    .order("created_at", { ascending: false })
+
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 })
+  }
+
+  return NextResponse.json({
+    assets: await Promise.all((data ?? []).map(withSignedUrl)),
+  })
+}
 
 export async function POST(
   req: Request,
@@ -61,5 +98,5 @@ export async function POST(
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  return NextResponse.json({ asset: data })
+  return NextResponse.json({ asset: await withSignedUrl(data) })
 }
