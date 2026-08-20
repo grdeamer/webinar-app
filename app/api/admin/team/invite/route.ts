@@ -46,7 +46,7 @@ export async function POST(request: Request) {
 
   const invitation = buildJupiterInviteEmail({
     inviteUrl: data.properties.action_link,
-    logoUrl: `${appUrl}/jupiter-email-logo.png?v=2`,
+    logoUrl: `${appUrl}/jupiter-email-logo.png?v=3`,
     name,
     role: "administrator",
   })

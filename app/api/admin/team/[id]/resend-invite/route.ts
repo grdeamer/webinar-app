@@ -36,7 +36,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
   const invitation = buildJupiterInviteEmail({
     inviteUrl: data.properties.action_link,
-    logoUrl: `${appUrl}/jupiter-email-logo.png?v=2`,
+    logoUrl: `${appUrl}/jupiter-email-logo.png?v=3`,
     name: target.full_name,
     role: "administrator",
     existingAccount: target.invite_status !== "pending",

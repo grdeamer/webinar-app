@@ -1684,6 +1684,12 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const rightRailProps = useMemo(
     () => ({
+      videoDevices,
+      audioDevices,
+      selectedVideoDeviceId,
+      selectedAudioDeviceId,
+      onSelectVideoDevice: setSelectedVideoDeviceId,
+      onSelectAudioDevice: setSelectedAudioDeviceId,
       participants,
       participantAppearanceOverrides,
       onSetParticipantAccentColor: handleSetParticipantAccentColor,
@@ -1737,6 +1743,12 @@ updateShadowColor: updateSelectedBlockShadowColor,
       onHideQuestion: handleHideQuestion,
     }),
     [
+      videoDevices,
+      audioDevices,
+      selectedVideoDeviceId,
+      selectedAudioDeviceId,
+      setSelectedVideoDeviceId,
+      setSelectedAudioDeviceId,
       participants,
       participantAppearanceOverrides,
       handleSetParticipantAccentColor,
@@ -1956,24 +1968,6 @@ onSaveScene: () => {
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 
-        {syncWarningText ? (
-          <div className="pointer-events-none absolute left-1/2 top-10 z-[999] w-[min(480px,calc(100vw-32px))] -translate-x-1/2 rounded-[15px] border border-amber-300/14 bg-[linear-gradient(180deg,rgba(35,23,8,0.86),rgba(10,7,4,0.92))] px-3.5 py-2.5 text-center shadow-[0_14px_38px_rgba(0,0,0,0.36),0_0_18px_rgba(251,191,36,0.055)] backdrop-blur-xl">
-            <div className="text-[8px] font-black uppercase tracking-[0.18em] text-amber-100/44">
-              Producer Sync Notice
-            </div>
-            <div className="mt-1 text-[11px] font-semibold text-amber-50/70">
-              {syncWarningText}
-            </div>
-          </div>
-        ) : null}
-
-        {operatorNotice ? (
-          <div className="pointer-events-none absolute left-1/2 top-10 z-[998] w-[min(440px,calc(100vw-32px))] -translate-x-1/2 rounded-[14px] border border-emerald-300/16 bg-[linear-gradient(180deg,rgba(8,32,25,0.92),rgba(4,14,12,0.96))] px-4 py-3 text-center shadow-[0_14px_38px_rgba(0,0,0,0.38)] backdrop-blur-xl" role="status" aria-live="polite">
-            <div className="text-[8px] font-bold uppercase tracking-[0.18em] text-emerald-100/50">Operator action confirmed</div>
-            <div className="mt-1 text-[11px] font-semibold text-emerald-50/78">{operatorNotice}</div>
-          </div>
-        ) : null}
-
         {pendingSafetyAction ? (
           <ProducerSafetyDialog
             action={pendingSafetyAction}
@@ -2002,6 +1996,22 @@ onSaveScene: () => {
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <ProducerRoomTopChrome {...topChromeProps} />
               <ProducerModeBar mode={workspaceMode} onModeChange={setWorkspaceMode} />
+              {syncWarningText ? (
+                <div className="relative z-[90] flex shrink-0 items-center justify-between gap-4 border-y border-amber-300/18 bg-[linear-gradient(90deg,rgba(46,30,8,0.94),rgba(18,12,5,0.98))] px-4 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.28)]" role="alert">
+                  <div className="min-w-0">
+                    <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-amber-100/55">Producer sync notice</span>
+                    <span className="ml-3 text-[10px] font-medium text-amber-50/78">{syncWarningText}</span>
+                  </div>
+                  <button type="button" disabled={recoveryBusy} onClick={() => void handleRecoverControlPlane()} className="shrink-0 rounded-[9px] border border-amber-200/20 bg-amber-100/[0.08] px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-50/78 transition hover:bg-amber-100/[0.14] disabled:opacity-45">
+                    {recoveryBusy ? "Recovering…" : "Recover"}
+                  </button>
+                </div>
+              ) : null}
+              {operatorNotice ? (
+                <div className="relative z-[89] shrink-0 border-y border-emerald-300/14 bg-emerald-400/[0.075] px-4 py-2 text-center text-[10px] font-medium text-emerald-50/76" role="status" aria-live="polite">
+                  {operatorNotice}
+                </div>
+              ) : null}
               <ProducerHealthBar
                 snapshot={healthSnapshot}
                 transportHealth={transportHealth}

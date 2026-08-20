@@ -1,4 +1,5 @@
 import { useState, type JSX } from "react"
+import { useRoomContext } from "@livekit/components-react"
 import {
   Camera,
   Mic2,
@@ -7,6 +8,7 @@ import {
   ThumbsUp,
   Users,
   MessageSquareText,
+  MonitorUp,
 } from "lucide-react"
 import ProducerQAModerationPanel from "./ProducerQAModerationPanel"
 const PARTICIPANT_ACCENT_STYLES = [
@@ -75,6 +77,123 @@ type ParticipantAppearanceOverride = {
   accentId?: ParticipantAccentId
   glowLevel?: ParticipantGlowLevel
   outlineWeight?: ParticipantOutlineWeight
+}
+
+function LocalMediaControls({
+  videoDevices,
+  audioDevices,
+  selectedVideoDeviceId,
+  selectedAudioDeviceId,
+  onSelectVideoDevice,
+  onSelectAudioDevice,
+}: {
+  videoDevices: MediaDeviceInfo[]
+  audioDevices: MediaDeviceInfo[]
+  selectedVideoDeviceId: string
+  selectedAudioDeviceId: string
+  onSelectVideoDevice: (deviceId: string) => void
+  onSelectAudioDevice: (deviceId: string) => void
+}): JSX.Element {
+  const room = useRoomContext()
+  const [cameraOn, setCameraOn] = useState(room.localParticipant.isCameraEnabled)
+  const [micOn, setMicOn] = useState(room.localParticipant.isMicrophoneEnabled)
+  const [screenOn, setScreenOn] = useState(room.localParticipant.isScreenShareEnabled)
+  const [busyControl, setBusyControl] = useState<"camera" | "mic" | "screen" | null>(null)
+  const [deviceError, setDeviceError] = useState<string | null>(null)
+
+  const explainDeviceError = (error: unknown): string => {
+    if (error instanceof DOMException && error.name === "NotAllowedError") {
+      return "Camera or microphone access is blocked. Allow access in your browser settings, then try again."
+    }
+    if (error instanceof DOMException && error.name === "NotFoundError") {
+      return "No matching camera or microphone was found."
+    }
+    return error instanceof Error ? error.message : "The browser could not start this device."
+  }
+
+  const toggleCamera = async () => {
+    try {
+      setBusyControl("camera")
+      setDeviceError(null)
+      await room.localParticipant.setCameraEnabled(!room.localParticipant.isCameraEnabled)
+      setCameraOn(room.localParticipant.isCameraEnabled)
+    } catch (error) {
+      setDeviceError(explainDeviceError(error))
+    } finally {
+      setBusyControl(null)
+    }
+  }
+
+  const toggleMic = async () => {
+    try {
+      setBusyControl("mic")
+      setDeviceError(null)
+      await room.localParticipant.setMicrophoneEnabled(!room.localParticipant.isMicrophoneEnabled)
+      setMicOn(room.localParticipant.isMicrophoneEnabled)
+    } catch (error) {
+      setDeviceError(explainDeviceError(error))
+    } finally {
+      setBusyControl(null)
+    }
+  }
+
+  const toggleScreen = async () => {
+    try {
+      setBusyControl("screen")
+      setDeviceError(null)
+      await room.localParticipant.setScreenShareEnabled(!room.localParticipant.isScreenShareEnabled)
+      setScreenOn(room.localParticipant.isScreenShareEnabled)
+    } catch (error) {
+      setDeviceError(explainDeviceError(error))
+    } finally {
+      setBusyControl(null)
+    }
+  }
+
+  const changeDevice = async (kind: "videoinput" | "audioinput", deviceId: string) => {
+    try {
+      setDeviceError(null)
+      await room.switchActiveDevice(kind, deviceId)
+      if (kind === "videoinput") onSelectVideoDevice(deviceId)
+      if (kind === "audioinput") onSelectAudioDevice(deviceId)
+    } catch (error) {
+      setDeviceError(explainDeviceError(error))
+    }
+  }
+
+  const controls = [
+    { id: "camera" as const, label: "Camera", icon: Camera, on: cameraOn, action: toggleCamera },
+    { id: "mic" as const, label: "Microphone", icon: Mic2, on: micOn, action: toggleMic },
+    { id: "screen" as const, label: "Share screen", icon: MonitorUp, on: screenOn, action: toggleScreen },
+  ]
+
+  return (
+    <section className="border-b border-white/[0.08] bg-[linear-gradient(180deg,rgba(12,20,34,0.98),rgba(6,11,20,0.98))] px-3 py-3" aria-label="Your camera and audio">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-100/55">Your camera &amp; audio</div>
+          <p className="mt-1 text-[10px] leading-4 text-white/45">Turn on your devices here, then use Stage to place yourself in Preview.</p>
+        </div>
+        <span className={`mt-0.5 h-2 w-2 rounded-full ${cameraOn || micOn || screenOn ? "bg-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.7)]" : "bg-white/20"}`} />
+      </div>
+      <div className="mt-3 grid grid-cols-3 gap-1.5">
+        {controls.map(({ id, label, icon: Icon, on, action }) => (
+          <button key={id} type="button" disabled={busyControl !== null} onClick={() => void action()} aria-pressed={on}
+            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-[11px] border px-1.5 py-2 text-[8px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-45 ${on ? "border-emerald-300/28 bg-emerald-400/[0.12] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(52,211,153,0.08)]" : "border-white/[0.09] bg-white/[0.035] text-white/58 hover:border-sky-200/20 hover:bg-sky-300/[0.07] hover:text-white"}`}>
+            <Icon size={13} />
+            <span>{busyControl === id ? "Starting…" : `${label} ${on ? "on" : "off"}`}</span>
+          </button>
+        ))}
+      </div>
+      {(videoDevices.length > 1 || audioDevices.length > 1) ? (
+        <div className="mt-2 grid gap-1.5">
+          {videoDevices.length > 1 ? <select aria-label="Camera" value={selectedVideoDeviceId} onChange={(event) => void changeDevice("videoinput", event.target.value)} className="h-8 rounded-[9px] border border-white/[0.08] bg-[#080d17] px-2 text-[9px] text-white/68 outline-none focus:border-sky-300/35">{videoDevices.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Camera ${index + 1}`}</option>)}</select> : null}
+          {audioDevices.length > 1 ? <select aria-label="Microphone" value={selectedAudioDeviceId} onChange={(event) => void changeDevice("audioinput", event.target.value)} className="h-8 rounded-[9px] border border-white/[0.08] bg-[#080d17] px-2 text-[9px] text-white/68 outline-none focus:border-sky-300/35">{audioDevices.map((device, index) => <option key={device.deviceId} value={device.deviceId}>{device.label || `Microphone ${index + 1}`}</option>)}</select> : null}
+        </div>
+      ) : null}
+      {deviceError ? <p className="mt-2 rounded-[9px] border border-amber-300/16 bg-amber-300/[0.07] px-2 py-1.5 text-[9px] leading-4 text-amber-50/75" role="alert">{deviceError}</p> : null}
+    </section>
+  )
 }
 
 const PARTICIPANT_GLOW_LEVELS: Array<{
@@ -302,57 +421,22 @@ function InspectorParticipantRow({
         ) : null}
       </div>
 
-      <div className="mt-2 grid grid-cols-3 gap-1.5">
-        <button
-          type="button"
-          onClick={() => {
-            onAddToStage(participant.identity)
-          }}
-          className={`flex items-center justify-center gap-1 rounded-[10px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] transition ${
-            cameraOn
-              ? "border-emerald-300/10 bg-emerald-400/[0.060] text-emerald-100/62 hover:bg-emerald-400/[0.10]"
-              : "border-white/[0.04] bg-white/[0.020] text-white/42 hover:bg-white/[0.035] hover:text-white/62"
-          }`}
-          title="Send participant camera to stage"
-        >
-          <Camera size={10} />
-          {cameraOn ? "Cam" : "Cam"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => onAddToStage(participant.identity)}
-          className={`flex items-center justify-center gap-1 rounded-[10px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] transition ${
-            micOn
-              ? "border-emerald-300/10 bg-emerald-400/[0.060] text-emerald-100/62 hover:bg-emerald-400/[0.10]"
-              : "border-white/[0.04] bg-white/[0.020] text-white/42 hover:bg-white/[0.035] hover:text-white/62"
-          }`}
-          title="Send participant audio to stage"
-        >
-          <Mic2 size={10} />
-          {micOn ? "Mic" : "Mic"}
-        </button>
-
-        <button
-          type="button"
-          onClick={() => {
-            onAddToStage(participant.identity)
-            if (screenTrackSid) {
-              window.setTimeout(() => {
-                onSetScreenShare(participant.identity, screenTrackSid)
-              }, 120)
-            }
-          }}
-          className={`flex items-center justify-center gap-1 rounded-[10px] border px-2 py-1.5 text-[8px] font-black uppercase tracking-[0.10em] transition ${
-            screenReady
-              ? "border-sky-300/10 bg-sky-400/[0.060] text-sky-100/62 hover:bg-sky-400/[0.10]"
-              : "border-white/[0.04] bg-white/[0.020] text-white/42 hover:bg-white/[0.035] hover:text-white/62"
-          }`}
-          title={screenTrackSid ? "Send screen share to stage" : "Send participant to stage"}
-        >
-          <ScreenShare size={10} />
-          Share
-        </button>
+      <div className="mt-2 grid grid-cols-3 gap-1.5" aria-label="Participant device status">
+        <span className={`flex items-center justify-center gap-1 rounded-[9px] border px-2 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] ${cameraOn ? "border-emerald-300/12 bg-emerald-400/[0.07] text-emerald-100/68" : "border-white/[0.05] bg-white/[0.02] text-white/30"}`}>
+          <Camera size={10} /> Cam {cameraOn ? "on" : "off"}
+        </span>
+        <span className={`flex items-center justify-center gap-1 rounded-[9px] border px-2 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] ${micOn ? "border-emerald-300/12 bg-emerald-400/[0.07] text-emerald-100/68" : "border-white/[0.05] bg-white/[0.02] text-white/30"}`}>
+          <Mic2 size={10} /> Mic {micOn ? "on" : "off"}
+        </span>
+        {screenTrackSid ? (
+          <button type="button" onClick={() => { onAddToStage(participant.identity); window.setTimeout(() => onSetScreenShare(participant.identity, screenTrackSid), 120) }} className="flex items-center justify-center gap-1 rounded-[9px] border border-sky-300/14 bg-sky-400/[0.08] px-2 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] text-sky-100/72 transition hover:bg-sky-400/[0.13]" title="Route this shared screen to Preview">
+            <ScreenShare size={10} /> Route share
+          </button>
+        ) : (
+          <span className={`flex items-center justify-center gap-1 rounded-[9px] border px-2 py-1.5 text-[8px] font-bold uppercase tracking-[0.08em] ${screenReady ? "border-sky-300/12 bg-sky-400/[0.07] text-sky-100/68" : "border-white/[0.05] bg-white/[0.02] text-white/30"}`}>
+            <ScreenShare size={10} /> No share
+          </span>
+        )}
       </div>
     </div>
   )
@@ -533,6 +617,12 @@ function RailDrawer({
 }
 
 export default function ProducerRightRail({
+  videoDevices,
+  audioDevices,
+  selectedVideoDeviceId,
+  selectedAudioDeviceId,
+  onSelectVideoDevice,
+  onSelectAudioDevice,
   participants,
   participantAppearanceOverrides,
   onSetParticipantAccentColor,
@@ -585,6 +675,12 @@ export default function ProducerRightRail({
   onPreviewQuestion,
   onHideQuestion,
 }: {
+  videoDevices: MediaDeviceInfo[]
+  audioDevices: MediaDeviceInfo[]
+  selectedVideoDeviceId: string
+  selectedAudioDeviceId: string
+  onSelectVideoDevice: (deviceId: string) => void
+  onSelectAudioDevice: (deviceId: string) => void
   participants: ProducerParticipant[]
   participantAppearanceOverrides: Record<string, ParticipantAppearanceOverride>
   onSetParticipantAccentColor: (identity: string, accentId: ParticipantAccentId) => void
@@ -654,6 +750,14 @@ export default function ProducerRightRail({
 
   return (
     <aside className="flex h-full min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(5,9,18,0.98),rgba(2,4,9,1))]">
+      <LocalMediaControls
+        videoDevices={videoDevices}
+        audioDevices={audioDevices}
+        selectedVideoDeviceId={selectedVideoDeviceId}
+        selectedAudioDeviceId={selectedAudioDeviceId}
+        onSelectVideoDevice={onSelectVideoDevice}
+        onSelectAudioDevice={onSelectAudioDevice}
+      />
       <header className="shrink-0 border-b border-white/[0.09] bg-[#070c15] px-3 pb-3 pt-3">
         <div className="flex items-center justify-between">
           <div>

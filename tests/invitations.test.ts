@@ -15,8 +15,8 @@ test("administrator invitations use Jupiter branding and describe admin access",
   assert.match(invitation.html, /You’re cleared for Mission Control/)
   assert.match(invitation.html, /Build programs and manage event teams/)
   assert.match(invitation.html, /jupiter-email-logo\.png/)
-  assert.match(invitation.html, /height:auto/)
-  assert.doesNotMatch(invitation.html, /height="64"/)
+  assert.match(invitation.html, /width="184" height="35"/)
+  assert.match(invitation.html, /object-fit:contain/)
   assert.match(invitation.text, /Accept invitation: https:\/\/example\.supabase\.co/)
 })
 
