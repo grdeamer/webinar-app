@@ -55,7 +55,9 @@ export async function POST(req: Request) {
     }
 
     const csvText = await file.text()
-    const parsed = parseRegistrantCsv(csvText)
+    const parsed = parseRegistrantCsv(csvText, {
+      requireEventSlug: !forcedEventId,
+    })
 
     if (!parsed.rows.length) {
       return NextResponse.json({ error: "CSV has no rows" }, { status: 400 })

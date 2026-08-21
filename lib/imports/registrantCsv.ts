@@ -48,7 +48,14 @@ function getSessionHeaders(headers: string[]) {
   )
 }
 
-export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
+export type ParseRegistrantCsvOptions = {
+  requireEventSlug?: boolean
+}
+
+export function parseRegistrantCsv(
+  csvText: string,
+  options: ParseRegistrantCsvOptions = {}
+): ParsedRegistrantCsv {
   const parsed = Papa.parse<CsvRow>(csvText, {
     header: true,
     skipEmptyLines: true,
@@ -130,7 +137,7 @@ export function parseRegistrantCsv(csvText: string): ParsedRegistrantCsv {
       errors.push("Invalid email")
     }
 
-    if (!eventSlugRaw) {
+    if (!eventSlugRaw && options.requireEventSlug !== false) {
       errors.push("Missing event_slug")
     }
 
