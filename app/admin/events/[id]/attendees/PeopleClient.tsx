@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Check, Download, Mail, Plus, RefreshCw, Search, Trash2, Upload, UserRound, Users, X } from "lucide-react"
+import { Check, CircleCheckBig, Download, Mail, Plus, RefreshCw, Search, Trash2, Upload, UserRound, Users, X } from "lucide-react"
 
 type Role = "registrant" | "presenter"
 type Person = {
@@ -17,6 +17,36 @@ type Person = {
   source: "event_registrants"
 }
 type Session = { id: string; code: string | null; title: string }
+type OperationProgress = {
+  state: "idle" | "running" | "complete" | "error"
+  percent: number
+  title: string
+  detail: string
+}
+
+const idleProgress = (): OperationProgress => ({ state: "idle", percent: 0, title: "", detail: "" })
+
+function OperationProgressPanel({ progress, destructive = false }: { progress: OperationProgress; destructive?: boolean }) {
+  if (progress.state === "idle") return null
+  const complete = progress.state === "complete"
+  const failed = progress.state === "error"
+  const accent = failed ? "bg-red-400" : destructive ? "bg-gradient-to-r from-red-400 to-amber-300" : "bg-gradient-to-r from-cyan-400 via-emerald-400 to-green-300"
+
+  return <div className={`mt-4 rounded-2xl border p-4 ${complete ? "border-emerald-300/25 bg-emerald-400/[.08]" : failed ? "border-red-300/20 bg-red-400/[.06]" : "border-white/10 bg-black/25"}`} aria-live="polite">
+    <div className="flex items-center gap-3">
+      <span className={`grid size-10 shrink-0 place-items-center rounded-full ${complete ? "bg-emerald-400/15 text-emerald-300" : failed ? "bg-red-400/15 text-red-300" : "bg-white/[.07] text-white/75"}`}>
+        {complete ? <CircleCheckBig size={22} strokeWidth={2.25} /> : failed ? <X size={20} /> : <RefreshCw size={19} className="animate-spin" />}
+      </span>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-baseline justify-between gap-3"><strong className="text-sm text-white">{progress.title}</strong><span className={`text-sm font-semibold tabular-nums ${complete ? "text-emerald-300" : "text-white/75"}`}>{progress.percent}%</span></div>
+        <p className="mt-1 text-xs leading-5 text-white/50">{progress.detail}</p>
+      </div>
+    </div>
+    <div className="mt-3 h-2 overflow-hidden rounded-full bg-white/[.08]" role="progressbar" aria-label={progress.title} aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress.percent}>
+      <div className={`h-full rounded-full transition-[width] duration-500 ease-out ${accent}`} style={{ width: `${progress.percent}%` }} />
+    </div>
+  </div>
+}
 
 function personName(person: Person) {
   return [person.first_name, person.last_name].filter(Boolean).join(" ").trim() || person.name || person.email
@@ -46,6 +76,8 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
   const [bulkSelection, setBulkSelection] = useState<Set<string>>(() => new Set())
   const [removeOpen, setRemoveOpen] = useState(false)
   const [confirmation, setConfirmation] = useState("")
+  const [importProgress, setImportProgress] = useState<OperationProgress>(idleProgress)
+  const [removeProgress, setRemoveProgress] = useState<OperationProgress>(idleProgress)
   const [newPerson, setNewPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role })
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -95,6 +127,24 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
     setBulkSelection(new Set())
     setRemoveOpen(false)
     setConfirmation("")
+    setRemoveProgress(idleProgress())
+  }
+
+  function openRemoveDialog() {
+    setConfirmation("")
+    setRemoveProgress(idleProgress())
+    setRemoveOpen(true)
+  }
+
+  function closeRemoveDialog() {
+    if (busy === "remove") return
+    setRemoveOpen(false)
+    setConfirmation("")
+    setRemoveProgress(idleProgress())
+    if (removeProgress.state === "complete") {
+      setBulkSelection(new Set())
+      setBulkMode(false)
+    }
   }
 
   function toggleBulkPerson(personId: string) {
@@ -117,8 +167,14 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
 
   async function removeSelectedPeople() {
     if (bulkSelection.size === 0) return
+    const removeCount = bulkSelection.size
+    let progressTimer: ReturnType<typeof setInterval> | null = null
     setBusy("remove")
     setError(null)
+    setRemoveProgress({ state: "running", percent: 5, title: "Removing selected people", detail: `Processing ${removeCount.toLocaleString()} record${removeCount === 1 ? "" : "s"}…` })
+    progressTimer = setInterval(() => setRemoveProgress((current) => current.state === "running"
+      ? { ...current, percent: Math.min(92, current.percent + Math.max(1, Math.ceil((92 - current.percent) * 0.12))) }
+      : current), 350)
     try {
       const response = await fetch(`/api/admin/events/${eventId}/attendees/bulk-remove`, {
         method: "POST",
@@ -127,14 +183,15 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
       })
       const payload = await response.json().catch((): null => null)
       if (!response.ok) throw new Error(payload?.error || "Could not remove people")
-      setBulkSelection(new Set())
-      setRemoveOpen(false)
-      setConfirmation("")
-      setBulkMode(false)
+      setRemoveProgress({ state: "running", percent: 96, title: "Refreshing the directory", detail: "The removal is complete. Updating the People page now…" })
       await load()
+      setRemoveProgress({ state: "complete", percent: 100, title: "Removal complete", detail: `${removeCount.toLocaleString()} ${removeCount === 1 ? "person was" : "people were"} removed successfully.` })
     } catch (removeError) {
-      setError(removeError instanceof Error ? removeError.message : "Could not remove people")
+      const message = removeError instanceof Error ? removeError.message : "Could not remove people"
+      setError(message)
+      setRemoveProgress({ state: "error", percent: 100, title: "Removal stopped", detail: message })
     } finally {
+      if (progressTimer) clearInterval(progressTimer)
       setBusy(null)
     }
   }
@@ -163,8 +220,13 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
   async function importCsv() {
     const file = fileInput.current?.files?.[0]
     if (!file) return
+    let progressTimer: ReturnType<typeof setInterval> | null = null
     setBusy("import")
     setError(null)
+    setImportProgress({ state: "running", percent: 4, title: "Uploading attendees", detail: `Reading ${file.name} and adding people to this event…` })
+    progressTimer = setInterval(() => setImportProgress((current) => current.state === "running"
+      ? { ...current, percent: Math.min(92, current.percent + Math.max(1, Math.ceil((92 - current.percent) * 0.12))) }
+      : current), 350)
     try {
       const form = new FormData()
       form.append("file", file)
@@ -172,12 +234,17 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
       const response = await fetch("/api/admin/events/import-registrants", { method: "POST", body: form })
       const payload = await response.json().catch((): null => null)
       if (!response.ok) throw new Error(payload?.error || "Import failed")
-      setImportOpen(false)
-      if (fileInput.current) fileInput.current.value = ""
+      setImportProgress({ state: "running", percent: 96, title: "Refreshing the directory", detail: "The upload is complete. Loading the updated attendee list…" })
       await load()
+      const imported = Number(payload?.imported ?? payload?.created ?? payload?.inserted ?? 0)
+      setImportProgress({ state: "complete", percent: 100, title: "Upload complete", detail: imported > 0 ? `${imported.toLocaleString()} attendee${imported === 1 ? "" : "s"} added successfully.` : "The attendee file was processed successfully." })
+      if (fileInput.current) fileInput.current.value = ""
     } catch (importError) {
-      setError(importError instanceof Error ? importError.message : "Import failed")
+      const message = importError instanceof Error ? importError.message : "Import failed"
+      setError(message)
+      setImportProgress({ state: "error", percent: 100, title: "Upload stopped", detail: message })
     } finally {
+      if (progressTimer) clearInterval(progressTimer)
       setBusy(null)
     }
   }
@@ -254,14 +321,14 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={toggleBulkMode} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${bulkMode ? "border-red-300/25 bg-red-500/10 text-red-100" : "border-white/10 bg-white/[.05] hover:bg-white/10"}`}>{bulkMode ? <X size={16} /> : <Check size={16} />}{bulkMode ? "Exit Bulk Select" : "Bulk Select"}</button>
             <button type="button" onClick={() => { setAddOpen(!addOpen); setImportOpen(false) }} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold hover:bg-violet-500"><Plus size={16} />Add Person</button>
-            <button type="button" onClick={() => { setImportOpen(!importOpen); setAddOpen(false) }} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/10"><Upload size={16} />Import CSV</button>
+            <button type="button" onClick={() => { setImportOpen(!importOpen); setImportProgress(idleProgress); setAddOpen(false) }} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/10"><Upload size={16} />Import CSV</button>
           </div>
         </div>
       </section>
 
       {addOpen ? <section className="rounded-2xl border border-violet-300/15 bg-violet-500/[.06] p-5"><div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr_1fr_1.5fr_1fr_auto]"><input aria-label="First name" placeholder="First name" value={newPerson.first_name} onChange={(event) => setNewPerson({ ...newPerson, first_name: event.target.value })} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none" /><input aria-label="Last name" placeholder="Last name" value={newPerson.last_name} onChange={(event) => setNewPerson({ ...newPerson, last_name: event.target.value })} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none" /><input aria-label="Email" placeholder="Email address" type="email" value={newPerson.email} onChange={(event) => setNewPerson({ ...newPerson, email: event.target.value })} className="rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm outline-none" /><select aria-label="Role" value={newPerson.role} onChange={(event) => setNewPerson({ ...newPerson, role: event.target.value as Role })} className="rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-3 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select><button type="button" disabled={!newPerson.email || busy === "add"} onClick={() => void addPerson()} className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold disabled:opacity-40">{busy === "add" ? "Adding…" : "Add"}</button></div></section> : null}
 
-      {importOpen ? <section className="rounded-2xl border border-white/10 bg-[#0c1420]/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,.28)]"><div className="flex flex-wrap items-center justify-between gap-4"><div><div className="font-semibold">Import people from CSV</div><div className="mt-1 max-w-2xl text-xs leading-5 text-white/50">Bulk add people to this event. Jupiter already knows which event you are editing, so your file only needs each person’s email and optional profile or district fields.</div></div><button type="button" onClick={() => download(`people_${eventSlug}.csv`, template)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2 text-xs hover:bg-white/[.08]"><Download size={14} />Download template</button></div><div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-white/[.08] bg-black/20 p-3"><input ref={fileInput} type="file" accept=".csv,text/csv" className="min-w-0 flex-1 text-sm text-white/65 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-white/15" /><button type="button" onClick={() => void importCsv()} disabled={busy === "import"} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold shadow-[0_10px_30px_rgba(5,150,105,.18)] hover:bg-emerald-500 disabled:opacity-40">{busy === "import" ? "Importing…" : "Import people"}</button></div></section> : null}
+      {importOpen ? <section className="rounded-2xl border border-white/10 bg-[#0c1420]/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,.28)]"><div className="flex flex-wrap items-center justify-between gap-4"><div><div className="font-semibold">Import people from CSV</div><div className="mt-1 max-w-2xl text-xs leading-5 text-white/50">Bulk add people to this event. Jupiter already knows which event you are editing, so your file only needs each person’s email and optional profile or district fields.</div></div><button type="button" onClick={() => download(`people_${eventSlug}.csv`, template)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2 text-xs hover:bg-white/[.08]"><Download size={14} />Download template</button></div><div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-white/[.08] bg-black/20 p-3"><input ref={fileInput} type="file" accept=".csv,text/csv" className="min-w-0 flex-1 text-sm text-white/65 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-white/15" /><button type="button" onClick={() => void importCsv()} disabled={busy === "import"} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold shadow-[0_10px_30px_rgba(5,150,105,.18)] hover:bg-emerald-500 disabled:opacity-40">{busy === "import" ? `Uploading ${importProgress.percent}%…` : "Import people"}</button></div><OperationProgressPanel progress={importProgress} /></section> : null}
 
       <section className="grid gap-3 sm:grid-cols-3">
         {([{ id: "everyone", label: "Everyone", value: counts.everyone }, { id: "registrant", label: "Registrants", value: counts.registrant }, { id: "presenter", label: "Presenters", value: counts.presenter }] as const).map((item) => <button type="button" key={item.id} onClick={() => setFilter(item.id)} className={`relative flex min-h-[112px] flex-col items-start justify-between overflow-hidden rounded-2xl border px-5 py-4 text-left shadow-[0_18px_50px_rgba(0,0,0,.22)] transition ${filter === item.id ? "border-violet-300/30 bg-[#17132b]" : "border-white/10 bg-[#0c131f] hover:border-white/15 hover:bg-[#111a28]"}`}><div className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/45">{item.label}</div><div className="mt-5 text-3xl font-semibold leading-none tabular-nums text-white">{item.value}</div></button>)}
@@ -281,7 +348,32 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
         </div>
       </section>
 
-      {removeOpen ? <div role="dialog" aria-modal="true" aria-labelledby="remove-people-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-3xl border border-red-300/15 bg-[#0b101c] p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-black uppercase tracking-[.2em] text-red-200/55">Confirm removal</div><h2 id="remove-people-title" className="mt-3 text-2xl font-semibold">Remove {bulkSelection.size} {bulkSelection.size === 1 ? "person" : "people"}?</h2></div><button type="button" aria-label="Close confirmation" onClick={() => { setRemoveOpen(false); setConfirmation("") }} className="rounded-lg border border-white/10 p-2 text-white/55 hover:bg-white/[.06]"><X size={17} /></button></div><p className="mt-4 text-sm leading-6 text-white/55">They will be removed from <span className="font-semibold text-white/80">{eventTitle}</span>, including their session assignments and event access. Their global Jupiter account will not be deleted.</p>{removingEveryone ? <label className="mt-5 block text-xs font-semibold text-white/60">Type <span className="text-white">{eventTitle}</span> to remove everyone<input autoFocus value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-2 w-full rounded-xl border border-red-300/15 bg-black/30 px-4 py-3 text-sm text-white outline-none focus:border-red-300/40" /></label> : null}<div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"><button type="button" onClick={() => { setRemoveOpen(false); setConfirmation("") }} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/[.05]">Cancel</button><button type="button" disabled={busy === "remove" || (removingEveryone && confirmation !== eventTitle)} onClick={() => void removeSelectedPeople()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />{busy === "remove" ? "Removing…" : `Remove ${bulkSelection.size} from event`}</button></div></div></div> : null}
+      {removeOpen ? (
+        <div role="dialog" aria-modal="true" aria-labelledby="remove-people-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-5 backdrop-blur-sm">
+          <div className="w-full max-w-lg rounded-3xl border border-red-300/15 bg-[#0b101c] p-6 shadow-2xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <div className="text-[10px] font-black uppercase tracking-[.2em] text-red-200/55">Confirm removal</div>
+                <h2 id="remove-people-title" className="mt-3 text-2xl font-semibold">Remove {bulkSelection.size} {bulkSelection.size === 1 ? "person" : "people"}?</h2>
+              </div>
+              <button type="button" aria-label="Close confirmation" disabled={busy === "remove"} onClick={closeRemoveDialog} className="rounded-lg border border-white/10 p-2 text-white/55 hover:bg-white/[.06] disabled:opacity-35"><X size={17} /></button>
+            </div>
+            <p className="mt-4 text-sm leading-6 text-white/55">They will be removed from <span className="font-semibold text-white/80">{eventTitle}</span>, including their session assignments and event access. Their global Jupiter account will not be deleted.</p>
+            {removingEveryone && removeProgress.state === "idle" ? (
+              <label className="mt-5 block text-xs font-semibold text-white/60">Type <span className="text-white">{eventTitle}</span> to remove everyone
+                <input autoFocus value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-2 w-full rounded-xl border border-red-300/15 bg-black/30 px-4 py-3 text-sm text-white outline-none focus:border-red-300/40" />
+              </label>
+            ) : null}
+            <OperationProgressPanel progress={removeProgress} />
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <button type="button" disabled={busy === "remove"} onClick={closeRemoveDialog} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/[.05] disabled:opacity-35">{removeProgress.state === "complete" ? "Done" : "Cancel"}</button>
+              {removeProgress.state !== "complete" ? (
+                <button type="button" disabled={busy === "remove" || (removingEveryone && confirmation !== eventTitle)} onClick={() => void removeSelectedPeople()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />{busy === "remove" ? `Removing ${removeProgress.percent}%…` : `Remove ${bulkSelection.size} from event`}</button>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }
