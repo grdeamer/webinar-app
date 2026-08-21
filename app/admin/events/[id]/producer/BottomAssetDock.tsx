@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type JSX } from "react"
 import { createClient } from "@/lib/supabase/client"
 type UtilityPanel = "stream" | "overlays" | "schedule" | "shortcuts" | "settings"
 type MediaOrchestratorTab = "overview" | "assets" | "routing" | "take"
@@ -117,6 +117,8 @@ import {
   FileImage,
   Keyboard,
   Layers3,
+  LayoutGrid,
+  List,
   Mic2,
   Music2,
   Radio,
@@ -135,6 +137,8 @@ import { buildProducerAssetUrl } from "./producerAssetUrls"
 import ProductionControlsDrawer, {
   type ProductionDrawerTab,
 } from "./ProductionControlsDrawer"
+
+type SourceLibraryView = "icons" | "list" | "blocks"
 
 function percentToDb(level: number): number {
   const normalized = Math.max(0, Math.min(1, level / 100))
@@ -1095,6 +1099,7 @@ function SourceLibraryCard({
   onSendToPreview,
   onDelete,
   deleting = false,
+  viewMode = "blocks",
 }: {
   asset: BroadcastAssetTelemetry
   selected: boolean
@@ -1103,7 +1108,10 @@ function SourceLibraryCard({
   onSendToPreview?: () => void
   onDelete?: () => void
   deleting?: boolean
+  viewMode?: SourceLibraryView
 }): JSX.Element {
+  const listView = viewMode === "list"
+  const iconView = viewMode === "icons"
   const icon =
     asset.type === "video" ? (
       <Video size={18} />
@@ -1128,13 +1136,25 @@ function SourceLibraryCard({
         }
       }}
       title="Select source. Double-click to send directly to Preview."
-      className={`group relative flex min-h-[112px] min-w-0 cursor-pointer flex-row overflow-hidden rounded-[10px] border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 sm:flex-col ${
+      className={`group relative flex min-w-0 cursor-pointer overflow-hidden rounded-[10px] border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 ${
+        listView
+          ? "min-h-[68px] flex-row"
+          : iconView
+            ? "min-h-[132px] flex-col"
+            : "min-h-[112px] flex-row sm:flex-col"
+      } ${
         selected
           ? "border-sky-300/50 bg-sky-400/[0.09] shadow-[0_0_0_1px_rgba(125,211,252,0.10),0_8px_20px_rgba(0,0,0,0.22)]"
           : "border-white/[0.09] bg-[#0a101b] hover:border-white/[0.18] hover:bg-[#0d1523]"
       }`}
     >
-      <div className="relative flex h-[82px] w-[116px] shrink-0 items-center justify-center overflow-hidden border-r border-white/[0.07] bg-[radial-gradient(circle_at_50%_42%,rgba(80,116,176,0.12),transparent_62%),#050a12] p-2 text-white/34 sm:h-[78px] sm:w-full sm:border-b sm:border-r-0">
+      <div className={`relative flex shrink-0 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(80,116,176,0.12),transparent_62%),#050a12] p-2 text-white/34 ${
+        listView
+          ? "h-[68px] w-[92px] border-r border-white/[0.07]"
+          : iconView
+            ? "h-[82px] w-full border-b border-white/[0.07]"
+            : "h-[82px] w-[116px] border-r border-white/[0.07] sm:h-[78px] sm:w-full sm:border-b sm:border-r-0"
+      }`}>
         {asset.imageUrl ? (
           <img
             src={asset.imageUrl}
@@ -1155,7 +1175,7 @@ function SourceLibraryCard({
         ) : null}
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col justify-center px-2.5 py-2">
+      <div className={`flex min-w-0 flex-1 flex-col justify-center px-2.5 ${listView ? "py-1.5" : "py-2"}`}>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[10px] font-semibold tracking-[-0.01em] text-white/88">
             {asset.label}
@@ -2809,6 +2829,7 @@ export default function BottomAssetDock({
   const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
   const [productionDrawerTab, setProductionDrawerTab] = useState<ProductionDrawerTab | null>(null)
   const [expandedMediaOpen, setExpandedMediaOpen] = useState(false)
+  const [sourceLibraryView, setSourceLibraryView] = useState<SourceLibraryView>("blocks")
   const mediaImportInputRef = useRef<HTMLInputElement | null>(null)
   const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
   const [mediaImportBusy, setMediaImportBusy] = useState(false)
@@ -2825,6 +2846,17 @@ export default function BottomAssetDock({
   const [mediaRuntimeByLabel, setMediaRuntimeByLabel] = useState<Record<string, MediaAssetRuntimeState>>({})
   const [runtimePaused, setRuntimePaused] = useState(false)
   const [mediaRuntimeNowMs, setMediaRuntimeNowMs] = useState(Date.now())
+  useEffect(() => {
+    const savedView = window.localStorage.getItem("jupiter:producer-source-library-view")
+    if (savedView === "icons" || savedView === "list" || savedView === "blocks") {
+      setSourceLibraryView(savedView)
+    }
+  }, [])
+
+  const updateSourceLibraryView = useCallback((view: SourceLibraryView) => {
+    setSourceLibraryView(view)
+    window.localStorage.setItem("jupiter:producer-source-library-view", view)
+  }, [])
   useEffect(() => {
     let cancelled = false
 
@@ -3865,15 +3897,36 @@ const previewMediaAsset =
                     {orchestratedMediaRows.length} available · select one to inspect
                   </p>
                 </div>
-                <div className="flex items-center gap-4 text-[8px] font-medium text-white/32">
-                  <span>1 · Choose</span>
-                  <span>2 · Prepare</span>
-                  <span className="text-sky-200/65">3 · Preview</span>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center rounded-[9px] border border-white/[0.08] bg-black/20 p-0.5" aria-label="Source library layout">
+                    {([
+                      ["icons", LayoutGrid, "Icon view"],
+                      ["list", List, "List view"],
+                      ["blocks", Layers3, "Block view"],
+                    ] as const).map(([view, Icon, label]) => (
+                      <button
+                        key={view}
+                        type="button"
+                        onClick={() => updateSourceLibraryView(view)}
+                        className={`grid h-7 w-8 place-items-center rounded-[7px] transition ${sourceLibraryView === view ? "bg-sky-400/15 text-sky-100 shadow-[inset_0_0_0_1px_rgba(125,211,252,0.18)]" : "text-white/34 hover:bg-white/[0.06] hover:text-white/68"}`}
+                        title={label}
+                        aria-label={label}
+                        aria-pressed={sourceLibraryView === view}
+                      >
+                        <Icon size={13} aria-hidden="true" />
+                      </button>
+                    ))}
+                  </div>
+                  <div className="hidden items-center gap-3 text-[8px] font-medium text-white/32 xl:flex">
+                    <span>1 · Choose</span>
+                    <span>2 · Prepare</span>
+                    <span className="text-sky-200/65">3 · Preview</span>
+                  </div>
                 </div>
               </div>
 
               {orchestratedMediaRows.length ? (
-                <div className="grid gap-2 sm:grid-cols-2 2xl:grid-cols-3">
+                <div className={`grid gap-2 ${sourceLibraryView === "icons" ? "grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5" : sourceLibraryView === "list" ? "grid-cols-1" : "sm:grid-cols-2 2xl:grid-cols-3"}`}>
                   {orchestratedMediaRows.map((asset) => (
                     <SourceLibraryCard
                       key={`${asset.label}-${asset.type}`}
@@ -3888,6 +3941,7 @@ const previewMediaAsset =
                           : undefined
                       }
                       deleting={deletingMediaAssetId === (asset.id ?? asset.label)}
+                      viewMode={sourceLibraryView}
                     />
                   ))}
                 </div>

@@ -42,11 +42,16 @@ export function requestIp(request: Request) {
 }
 
 export function isDistrictAgendaItem(item: {
+  district_lookup_enabled?: boolean | null
   title?: string | null
   icon_key?: string | null
   track?: string | null
   location?: string | null
 }) {
+  if (item.district_lookup_enabled != null) {
+    return item.district_lookup_enabled
+  }
+
   const searchable = [item.title, item.icon_key, item.track, item.location]
     .filter(Boolean)
     .join(" ")
@@ -58,7 +63,7 @@ export function isDistrictAgendaItem(item: {
 export async function isDistrictLookupWindowOpen(eventId: string) {
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
-    .select("id,title,icon_key,track,location")
+    .select("id,district_lookup_enabled,title,icon_key,track,location")
     .eq("event_id", eventId)
     .eq("is_visible", true)
     .eq("status", "live")
@@ -108,4 +113,3 @@ export async function getAssignedDistrictSession(eventId: string, email: string)
   if (validSessions.length !== 1) return null
   return { registrantId: registrant.id as string, session: validSessions[0] }
 }
-

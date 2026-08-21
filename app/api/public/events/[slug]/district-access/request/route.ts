@@ -1,4 +1,4 @@
-import { randomInt, randomUUID } from "node:crypto"
+import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import {
   districtDigest,
@@ -8,8 +8,6 @@ import {
   normalizeDistrictEmail,
   requestIp,
 } from "@/lib/districtAccess"
-import { buildDistrictAccessEmail } from "@/lib/email/districtAccess"
-import { getEmailFrom, getResendClient } from "@/lib/email/resend"
 import { getEventBySlug } from "@/lib/events"
 import { publicEventHeaders } from "@/lib/publicEventCors"
 import { supabaseAdmin } from "@/lib/supabase/admin"
@@ -75,14 +73,14 @@ export async function POST(
     if ((emailRate.count || 0) >= 5 || (ipRate.count || 0) >= 20) {
       return json(
         request,
-        { error: "Too many code requests. Please wait before trying again." },
+        { error: "Too many lookup attempts. Please wait before trying again." },
         429
       )
     }
 
     const assignment = await getAssignedDistrictSession(event.id, email)
     const requestId = randomUUID()
-    const code = String(randomInt(100000, 1000000))
+    const auditToken = randomUUID()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
 
     const { error: insertError } = await supabaseAdmin
@@ -94,52 +92,35 @@ export async function POST(
         session_id: assignment?.session.id || null,
         email_hash: emailHash,
         ip_hash: ipHash,
-        code_digest: districtDigest("code", `${requestId}:${code}`),
-        delivery_status: assignment ? "pending" : "suppressed",
+        code_digest: districtDigest("code", `${requestId}:${auditToken}`),
+        delivery_status: assignment ? "sent" : "suppressed",
         expires_at: expiresAt,
       })
 
     if (insertError) throw new Error(insertError.message)
-
-    if (assignment) {
-      const message = buildDistrictAccessEmail({ code, eventTitle: event.title })
-      const response = await getResendClient().emails.send({
-        from: getEmailFrom(),
-        to: email,
-        subject: message.subject,
-        html: message.html,
-        text: message.text,
-      })
-
-      await supabaseAdmin
-        .from("event_district_access_challenges")
-        .update({ delivery_status: response.error ? "failed" : "sent" })
-        .eq("id", requestId)
-
-      if (response.error) {
-        console.error("district access email failed", response.error)
-      }
-    }
 
     const remainingDelay = 850 - (Date.now() - startedAt)
     if (remainingDelay > 0) {
       await new Promise((resolve) => setTimeout(resolve, remainingDelay))
     }
 
-    return json(
-      request,
-      {
-        ok: true,
-        request_id: requestId,
-        message:
-          "If this email is assigned to a district room, a one-time code is on its way.",
+    if (!assignment) {
+      return json(request, { error: "We could not find a district room for that email." }, 404)
+    }
+
+    return json(request, {
+      ok: true,
+      district: {
+        code: assignment.session.code,
+        name: assignment.session.title,
+        manager: assignment.session.presenter,
+        meeting_link: assignment.session.external_join_url,
       },
-      202
-    )
+    })
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Unable to request a code"
+    const message = error instanceof Error ? error.message : "Unable to find a district room"
     const status = message.startsWith("Event not found") ? 404 : 500
     console.error("district access request error", error)
-    return json(request, { error: status === 404 ? message : "Unable to request a code." }, status)
+    return json(request, { error: status === 404 ? message : "Unable to find a district room." }, status)
   }
 }

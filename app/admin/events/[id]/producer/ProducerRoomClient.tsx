@@ -1601,6 +1601,18 @@ updateShadowColor: updateSelectedBlockShadowColor,
     };
   }, [setShowAudienceCue, stopLocalPreviewStream]);
 
+  const removeProgramBlock = useCallback(
+    (blockId: string) => {
+      if (!programBlocks.some((block) => block.id === blockId)) return;
+      const confirmed = window.confirm(
+        "Remove this layer from Program now?\n\nThis immediately changes what the audience is seeing.",
+      );
+      if (!confirmed) return;
+      setProgramBlocks((current) => current.filter((block) => block.id !== blockId));
+    },
+    [programBlocks, setProgramBlocks],
+  );
+
   // Center workspace props
   const centerSwitcherProps = useMemo(
     () => ({
@@ -1626,6 +1638,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       startResizingBlock,
       programState,
       programBlocks,
+      onRemoveProgramBlock: removeProgramBlock,
       renderCameraSlotContent,
       screenLayoutPreset,
       showAudienceCue,
@@ -1686,6 +1699,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       startResizingBlock,
       programState,
       programBlocks,
+      removeProgramBlock,
       renderCameraSlotContent,
       screenLayoutPreset,
       showAudienceCue,

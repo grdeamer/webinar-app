@@ -510,6 +510,7 @@ export default function CenterSwitcherColumn({
   startResizingBlock,
   programState,
   programBlocks,
+  onRemoveProgramBlock,
   renderCameraSlotContent,
   screenLayoutPreset,
   showAudienceCue,
@@ -585,6 +586,7 @@ export default function CenterSwitcherColumn({
   ) => void;
   programState: StageState | null;
   programBlocks: PreviewBlock[];
+  onRemoveProgramBlock: (blockId: string) => void;
   renderCameraSlotContent?: (block: PreviewBlock) => JSX.Element | null;
   screenLayoutPreset: ScreenLayoutPreset;
   showAudienceCue: boolean;
@@ -1366,12 +1368,14 @@ export default function CenterSwitcherColumn({
                   opts: {
                     selectable: false,
                     showChrome: false,
+                    liveRemove: true,
                     renderCameraSlotContent,
                   },
                   selectedBlockId,
                   setSelectedBlockId,
                   startDraggingBlock,
                   startResizingBlock,
+                  deleteBlock: onRemoveProgramBlock,
                 })}
 
                 <div className="absolute inset-0 z-30 pointer-events-none p-4">

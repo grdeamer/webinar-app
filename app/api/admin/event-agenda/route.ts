@@ -8,7 +8,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const agendaSelect =
-  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,speakers,show_session_details,show_speaker_photo,resources,show_resources,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,speakers,show_session_details,show_speaker_photo,resources,show_resources,district_lookup_enabled,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
 
 function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
@@ -105,6 +105,7 @@ export async function POST(req: Request): Promise<Response> {
     show_speaker_photo: body.show_speaker_photo !== false,
     resources: normalizeResources(body.resources),
     show_resources: body.show_resources !== false,
+    district_lookup_enabled: body.district_lookup_enabled === true,
     icon_key: normalizeAgendaIconKey(body.icon_key),
     start_at: body.start_at || null,
     end_at: body.end_at || null,
@@ -180,6 +181,9 @@ export async function PUT(req: Request): Promise<Response> {
   }
   if (body.show_resources !== undefined) {
     patch.show_resources = Boolean(body.show_resources)
+  }
+  if (body.district_lookup_enabled !== undefined) {
+    patch.district_lookup_enabled = Boolean(body.district_lookup_enabled)
   }
   if (body.icon_key !== undefined) {
     patch.icon_key = normalizeAgendaIconKey(body.icon_key)

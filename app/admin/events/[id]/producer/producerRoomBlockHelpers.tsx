@@ -377,6 +377,7 @@ export function renderPlacedBlocks({
   opts?: {
     selectable?: boolean
     showChrome?: boolean
+    liveRemove?: boolean
     selectedBlockId?: string | null
     renderCameraSlotContent?: (block: PreviewBlock) => JSX.Element | null
   }
@@ -506,6 +507,22 @@ export function renderPlacedBlocks({
               ) : null}
             </div>
           </div>
+        ) : null}
+
+        {opts?.liveRemove && deleteBlock ? (
+          <button
+            type="button"
+            onMouseDown={(event) => event.stopPropagation()}
+            onClick={(event) => {
+              event.stopPropagation()
+              deleteBlock(block.id)
+            }}
+            className="absolute right-2 top-2 z-40 grid h-7 w-7 place-items-center rounded-[8px] border border-red-200/25 bg-[#180b12]/90 text-[16px] font-medium leading-none text-red-50/80 shadow-[0_6px_18px_rgba(0,0,0,0.42)] backdrop-blur-md transition hover:border-red-200/50 hover:bg-red-500/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-200/70"
+            title="Remove this layer from Program now"
+            aria-label={`Remove ${block.label || block.type} from Program now`}
+          >
+            ×
+          </button>
         ) : null}
 
         <div

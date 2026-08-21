@@ -79,6 +79,7 @@ export interface EventAgendaItem {
   show_speaker_photo: boolean
   resources: EventAgendaResource[]
   show_resources: boolean
+  district_lookup_enabled: boolean
   icon_key: AgendaIconKey | null
   start_at: string | null
   end_at: string | null

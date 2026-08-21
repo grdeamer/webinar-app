@@ -73,6 +73,7 @@ type AgendaItem = {
   show_speaker_photo: boolean
   resources: AgendaResource[]
   show_resources: boolean
+  district_lookup_enabled: boolean
   icon_key: AgendaIconKey | null
   sort_index: number
   status: AgendaStatus
@@ -98,6 +99,7 @@ const emptyDraft: Partial<AgendaItem> = {
   show_speaker_photo: true,
   resources: [],
   show_resources: true,
+  district_lookup_enabled: false,
   icon_key: null,
   description: "",
   sort_index: 0,
@@ -1201,6 +1203,7 @@ export default function AdminAgendaEditor({
                     <InfoBlock label="Visibility" value={selectedItem.is_visible ? "Visible to attendees" : "Hidden from attendees"} />
                     <InfoBlock label="Session Details" value={selectedItem.show_session_details ? "Shown" : "Hidden"} />
                     <InfoBlock label="Resources" value={`${selectedItem.resources?.length || 0} ${selectedItem.show_resources ? "shown" : "hidden"}`} />
+                    <InfoBlock label="Find Your District" value={selectedItem.district_lookup_enabled ? "Enabled while live" : "Off"} />
                   </div>
 
                   <div className="mt-3 rounded-xl border border-white/[0.07] bg-black/20 p-3">
@@ -1618,6 +1621,26 @@ function SessionFields({
           </label>
         </div>
         {resourceError ? <div className="mt-2 text-sm text-red-300">{resourceError}</div> : null}
+      </div>
+
+      <div className="sm:col-span-2">
+        <div className={labelClass}>District Breakout Access</div>
+        <label className={`mt-1 flex cursor-pointer items-start justify-between gap-4 rounded-2xl border p-4 transition ${value.district_lookup_enabled ? "border-cyan-300/35 bg-cyan-400/[0.10] shadow-[0_12px_32px_rgba(6,182,212,0.08)]" : "border-white/10 bg-white/[0.035] hover:border-white/20 hover:bg-white/[0.055]"}`}>
+          <span>
+            <span className="block text-sm font-semibold text-white">Enable Find Your District during this session</span>
+            <span className="mt-1 block max-w-2xl text-xs leading-relaxed text-white/40">Connects this Run of Show item to the LETS district finder. It appears only while this item is live.</span>
+          </span>
+          <span className={`relative mt-0.5 h-6 w-11 shrink-0 rounded-full border transition ${value.district_lookup_enabled ? "border-cyan-200/50 bg-cyan-400/35" : "border-white/15 bg-black/30"}`}>
+            <input
+              type="checkbox"
+              className="peer sr-only"
+              checked={value.district_lookup_enabled === true}
+              onChange={(event) => onChange({ ...value, district_lookup_enabled: event.target.checked })}
+              disabled={busy}
+            />
+            <span className={`absolute top-0.5 h-[18px] w-[18px] rounded-full bg-white shadow transition ${value.district_lookup_enabled ? "left-[21px]" : "left-0.5"}`} />
+          </span>
+        </label>
       </div>
 
       <div className="sm:col-span-2">
