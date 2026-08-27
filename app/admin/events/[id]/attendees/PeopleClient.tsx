@@ -16,7 +16,7 @@ type Person = {
   created_at: string | null
   source: "event_registrants"
 }
-type Session = { id: string; code: string | null; title: string }
+type Session = { id: string; code: string | null; title: string; starts_at: string | null; ends_at: string | null }
 type OperationProgress = {
   state: "idle" | "running" | "complete" | "error"
   percent: number
@@ -61,13 +61,25 @@ function download(filename: string, text: string) {
   URL.revokeObjectURL(url)
 }
 
-export default function PeopleClient({ eventId, eventSlug, eventTitle }: { eventId: string; eventSlug: string; eventTitle: string }) {
-  const [people, setPeople] = useState<Person[]>([])
-  const [sessions, setSessions] = useState<Session[]>([])
+export default function PeopleClient({ 
+  eventId, 
+  eventSlug, 
+  eventTitle,
+  initialAttendees = [],
+  initialSessions = []
+}: { 
+  eventId: string; 
+  eventSlug: string; 
+  eventTitle: string;
+  initialAttendees?: Person[];
+  initialSessions?: Session[];
+}) {
+  const [people, setPeople] = useState<Person[]>(initialAttendees)
+  const [sessions, setSessions] = useState<Session[]>(initialSessions)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"everyone" | Role>("everyone")
   const [search, setSearch] = useState("")
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoading] = useState(false) // Start with false since we have initial data
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [addOpen, setAddOpen] = useState(false)
@@ -94,13 +106,26 @@ export default function PeopleClient({ eventId, eventSlug, eventTitle }: { event
       setSessions(payload.sessions || [])
       setSelectedId((current) => current && rows.some((person) => person.id === current) ? current : rows[0]?.id || null)
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "Could not load people")
+      // Fallback to initial data if API fails
+      console.warn("API load failed, using initial data:", loadError)
+      if (initialAttendees.length > 0) {
+        setPeople(initialAttendees)
+        setSessions(initialSessions)
+        setSelectedId((current) => current && initialAttendees.some((person) => person.id === current) ? current : initialAttendees[0]?.id || null)
+      } else {
+        setError(loadError instanceof Error ? loadError.message : "Could not load people")
+      }
     } finally {
       setLoading(false)
     }
-  }, [eventId])
+  }, [eventId, initialAttendees, initialSessions])
 
-  useEffect(() => { void load() }, [load])
+  useEffect(() => {
+    // Only load from API if we don't have initial data
+    if (initialAttendees.length === 0) {
+      void load()
+    }
+  }, [load, initialAttendees.length])
 
   const counts = useMemo(() => ({
     everyone: people.length,
