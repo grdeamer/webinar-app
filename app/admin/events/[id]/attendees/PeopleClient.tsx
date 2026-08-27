@@ -90,6 +90,8 @@ export default function PeopleClient({
   const [importProgress, setImportProgress] = useState<OperationProgress>(idleProgress)
   const [removeProgress, setRemoveProgress] = useState<OperationProgress>(idleProgress)
   const [newPerson, setNewPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role })
+  const [editMode, setEditMode] = useState(false)
+  const [editPerson, setEditPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role })
   const fileInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -184,6 +186,49 @@ export default function PeopleClient({
       else visiblePeople.forEach((person) => next.add(person.id))
       return next
     })
+  }
+
+  function startEditing() {
+    if (!selected) return
+    setEditPerson({
+      first_name: selected.first_name || "",
+      last_name: selected.last_name || "",
+      email: selected.email,
+      role: selected.role
+    })
+    setEditMode(true)
+  }
+
+  function cancelEditing() {
+    setEditMode(false)
+    setEditPerson({ first_name: "", last_name: "", email: "", role: "registrant" })
+  }
+
+  async function savePersonEdit() {
+    if (!selected || !editPerson.email) return
+    setBusy("edit")
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/attendees/${selected.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          first_name: editPerson.first_name,
+          last_name: editPerson.last_name,
+          email: editPerson.email,
+          role: editPerson.role
+        })
+      })
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: "Failed to update person" }))
+        throw new Error(error.error || "Failed to update person")
+      }
+      await load()
+      setEditMode(false)
+    } catch (error) {
+      setError(error instanceof Error ? error.message : "Failed to update person")
+    } finally {
+      setBusy("idle")
+    }
   }
 
   async function removeSelectedPeople() {

@@ -128,3 +128,46 @@ export async function GET(
     return json({ error: err instanceof Error ? err.message : "Server error" }, 500)
   }
 }
+
+export async function PATCH(
+  request: Request,
+  context: { params: Promise<{ id: string }> }
+): Promise<Response> {
+  try {
+    const auth = await requireAdmin()
+    if (auth instanceof Response) return auth
+
+    const { id: eventId } = await context.params
+    const body = await request.json()
+    const { registrantId, first_name, last_name, email, role } = body
+
+    if (!registrantId) {
+      return json({ error: "registrantId is required" }, 400)
+    }
+
+    const updateData: Record<string, unknown> = {}
+    if (first_name !== undefined) updateData.first_name = first_name
+    if (last_name !== undefined) updateData.last_name = last_name
+    if (email !== undefined) updateData.email = email
+    if (role !== undefined) {
+      updateData.tag = role === "presenter" ? "presenter" : null
+    }
+
+    const { data, error } = await supabaseAdmin
+      .from("event_registrants")
+      .update(updateData)
+      .eq("id", registrantId)
+      .eq("event_id", eventId)
+      .select("id,email,first_name,last_name,tag")
+      .single()
+
+    if (error) {
+      return json({ error: error.message }, 400)
+    }
+
+    return json({ success: true, data })
+  } catch (err) {
+    console.error("Update attendee error:", err)
+    return json({ error: err instanceof Error ? err.message : "Server error" }, 500)
+  }
+}
