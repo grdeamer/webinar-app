@@ -183,8 +183,8 @@ export default function PeopleClient({
   // The matrix assigns either district rooms (one per person) or any other
   // session (many per person); both render from the same column shape.
   const matrixColumns = useMemo<MatrixColumn[]>(() => matrixMode === "district"
-    ? districts.map((district) => ({ id: district.id, code: district.code, title: district.title, subtitle: district.presenter }))
-    : sessions.filter((session) => !districtById.has(session.id)).map((session) => ({ id: session.id, code: session.code, title: session.title, subtitle: null })),
+    ? districts.map((district): MatrixColumn => ({ id: district.id, code: district.code, title: district.title, subtitle: district.presenter }))
+    : sessions.filter((session) => !districtById.has(session.id)).map((session): MatrixColumn => ({ id: session.id, code: session.code, title: session.title, subtitle: null })),
     [districtById, districts, matrixMode, sessions])
 
   const columnCounts = useMemo(() => {
