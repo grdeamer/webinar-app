@@ -93,8 +93,12 @@ export default function ImportAttendeesUI({
   const [attendeesError, setAttendeesError] = useState<string | null>(null)
 
   const [selectedAttendeeId, setSelectedAttendeeId] = useState<string | null>(null)
+  const [selectedAttendeeIds, setSelectedAttendeeIds] = useState<Set<string>>(new Set())
   const [search, setSearch] = useState("")
   const [savingSessionId, setSavingSessionId] = useState<string | null>(null)
+  const [bulkEditModalOpen, setBulkEditModalOpen] = useState(false)
+  const [bulkDeleteModalOpen, setBulkDeleteModalOpen] = useState(false)
+  const [viewMode, setViewMode] = useState<"list" | "matrix">("list")
 
   const fileRef = useRef<HTMLInputElement | null>(null)
   const quickEmailRef = useRef<HTMLInputElement | null>(null)
@@ -180,6 +184,109 @@ export default function ImportAttendeesUI({
       return haystack.includes(q)
     })
   }, [attendees, search, sessionTitleMap])
+
+  // Toggle individual attendee selection
+  function toggleAttendeeSelection(id: string) {
+    setSelectedAttendeeIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
+  // Toggle all attendees
+  function toggleSelectAll() {
+    if (selectedAttendeeIds.size === filteredAttendees.length) {
+      setSelectedAttendeeIds(new Set())
+    } else {
+      setSelectedAttendeeIds(new Set(filteredAttendees.map((a) => a.id)))
+    }
+  }
+
+  // Clear selection
+  function clearSelection() {
+    setSelectedAttendeeIds(new Set())
+  }
+
+  // Bulk delete attendees
+  async function handleBulkDelete() {
+    if (selectedAttendeeIds.size === 0) {
+      alert("Please select attendees to delete")
+      return
+    }
+
+    const confirmed = window.confirm(
+      `Are you sure you want to remove ${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? "" : "s"} from this event? This action cannot be undone.`
+    )
+
+    if (!confirmed) return
+
+    try {
+      setBusy(true)
+      setError(null)
+
+      const res = await fetch(`/api/admin/events/${eventId}/attendees/bulk-delete`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attendee_ids: Array.from(selectedAttendeeIds),
+        }),
+      })
+
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok) throw new Error(json.error || "Failed to delete attendees")
+
+      await loadAttendees()
+      clearSelection()
+      setBulkDeleteModalOpen(false)
+      alert(`Successfully removed ${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? "" : "s"}`)
+    } catch (e: any) {
+      alert(e.message || "Failed to delete attendees")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  // Bulk edit sessions
+  async function handleBulkEdit(sessionIdsToAdd: string[], sessionIdsToRemove: string[]) {
+    if (selectedAttendeeIds.size === 0) {
+      alert("Please select attendees to edit")
+      return
+    }
+
+    try {
+      setBusy(true)
+      setError(null)
+
+      const res = await fetch(`/api/admin/events/${eventId}/attendees/bulk-edit-sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attendee_ids: Array.from(selectedAttendeeIds),
+          add_session_ids: sessionIdsToAdd,
+          remove_session_ids: sessionIdsToRemove,
+        }),
+      })
+
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok) throw new Error(json.error || "Failed to update attendees")
+
+      await loadAttendees()
+      clearSelection()
+      setBulkEditModalOpen(false)
+      alert(`Successfully updated ${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? "" : "s"}`)
+    } catch (e: any) {
+      alert(e.message || "Failed to update attendees")
+    } finally {
+      setBusy(false)
+    }
+  }
 
   const selectedAttendee =
     attendees.find((a) => a.id === selectedAttendeeId) ||
@@ -410,23 +517,72 @@ export default function ImportAttendeesUI({
             </div>
           </div>
 
-          <button
-            onClick={() => loadAttendees()}
-            disabled={attendeesBusy}
-            className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 disabled:opacity-60"
-          >
-            {attendeesBusy ? "Refreshing..." : "Refresh"}
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              onClick={() => setViewMode(viewMode === "list" ? "matrix" : "list")}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10"
+            >
+              {viewMode === "list" ? "Matrix View" : "List View"}
+            </button>
+            <button
+              onClick={() => loadAttendees()}
+              disabled={attendeesBusy}
+              className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10 disabled:opacity-60"
+            >
+              {attendeesBusy ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
         </div>
+
+        {/* Bulk Action Bar */}
+        {selectedAttendeeIds.size > 0 && (
+          <div className="mt-4 rounded-xl border border-sky-400/30 bg-sky-400/10 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-sm text-white">
+                <span className="font-semibold">{selectedAttendeeIds.size}</span> attendee{selectedAttendeeIds.size === 1 ? "" : "s"} selected
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => setBulkEditModalOpen(true)}
+                  className="rounded-xl bg-sky-600 px-4 py-2 text-sm font-semibold text-white hover:bg-sky-500"
+                >
+                  Edit Sessions
+                </button>
+                <button
+                  onClick={() => setBulkDeleteModalOpen(true)}
+                  className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500"
+                >
+                  Delete
+                </button>
+                <button
+                  onClick={clearSelection}
+                  className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10"
+                >
+                  Clear Selection
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="mt-4 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, email, or assigned session"
-              className="mb-4 w-full rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-            />
+            <div className="mb-4 flex items-center gap-3">
+              <input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search by name, email, or assigned session"
+                className="flex-1 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
+              />
+              {viewMode === "list" && (
+                <button
+                  onClick={toggleSelectAll}
+                  className="rounded-xl border border-white/10 bg-white/5 px-3 py-3 text-sm hover:bg-white/10"
+                >
+                  {selectedAttendeeIds.size === filteredAttendees.length ? "Deselect All" : "Select All"}
+                </button>
+              )}
+            </div>
 
             {attendeesError ? (
               <div className="rounded-xl border border-rose-400/20 bg-rose-500/10 p-3 text-sm text-rose-200">
@@ -440,40 +596,69 @@ export default function ImportAttendeesUI({
               </div>
             ) : null}
 
-            <div className="space-y-2">
-              {filteredAttendees.map((attendee) => {
-                const isSelected = selectedAttendeeId === attendee.id
+            {viewMode === "list" ? (
+              <div className="space-y-2">
+                {filteredAttendees.map((attendee) => {
+                  const isSelected = selectedAttendeeId === attendee.id
+                  const isBulkSelected = selectedAttendeeIds.has(attendee.id)
 
-                return (
-                  <button
-                    key={attendee.id}
-                    type="button"
-                    onClick={() => setSelectedAttendeeId(attendee.id)}
-                    className={`w-full rounded-xl border p-3 text-left transition ${
-                      isSelected
-                        ? "border-sky-400/40 bg-sky-400/10"
-                        : "border-white/10 bg-white/5 hover:bg-white/10"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-white">
-                          {formatPersonName(attendee)}
+                  return (
+                    <button
+                      key={attendee.id}
+                      type="button"
+                      onClick={() => setSelectedAttendeeId(attendee.id)}
+                      className={`w-full rounded-xl border p-3 text-left transition ${
+                        isSelected
+                          ? "border-sky-400/40 bg-sky-400/10"
+                          : "border-white/10 bg-white/5 hover:bg-white/10"
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <input
+                          type="checkbox"
+                          checked={isBulkSelected}
+                          onChange={(e) => {
+                            e.stopPropagation()
+                            toggleAttendeeSelection(attendee.id)
+                          }}
+                          className="mt-1 h-4 w-4 shrink-0"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-semibold text-white">
+                            {formatPersonName(attendee)}
+                          </div>
+                          <div className="mt-1 truncate text-xs text-white/50">
+                            {attendee.email}
+                          </div>
                         </div>
-                        <div className="mt-1 truncate text-xs text-white/50">
-                          {attendee.email}
-                        </div>
+
+                        <span className="shrink-0 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px] text-white/60">
+                          {attendee.session_ids.length} session
+                          {attendee.session_ids.length === 1 ? "" : "s"}
+                        </span>
                       </div>
-
-                      <span className="shrink-0 rounded-full border border-white/10 bg-black/20 px-2.5 py-1 text-[11px] text-white/60">
-                        {attendee.session_ids.length} session
-                        {attendee.session_ids.length === 1 ? "" : "s"}
-                      </span>
-                    </div>
-                  </button>
-                )
-              })}
-            </div>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <MatrixView
+                attendees={filteredAttendees}
+                sessions={sessions}
+                sessionTitleMap={sessionTitleMap}
+                selectedAttendeeId={selectedAttendeeId}
+                setSelectedAttendeeId={setSelectedAttendeeId}
+                selectedAttendeeIds={selectedAttendeeIds}
+                toggleAttendeeSelection={toggleAttendeeSelection}
+                onAttendeeDrop={async (attendeeId, sessionId) => {
+                  // Handle drop - add session to attendee
+                  const attendee = attendees.find(a => a.id === attendeeId)
+                  if (attendee && attendee.source === "event_registrants") {
+                    await handleToggleSession(sessionId, !attendee.session_ids.includes(sessionId))
+                  }
+                }}
+              />
+            )}
           </div>
 
           <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
@@ -575,6 +760,289 @@ export default function ImportAttendeesUI({
           </div>
         </div>
       </section>
+
+      {/* Bulk Edit Modal */}
+      {bulkEditModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-lg rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div className="mb-4 text-lg font-semibold text-white">
+              Edit Sessions for {selectedAttendeeIds.size} Attendee{selectedAttendeeIds.size === 1 ? "" : "s"}
+            </div>
+            <div className="mb-4 text-sm text-white/60">
+              Select the sessions to add or remove for the selected attendees.
+            </div>
+
+            <div className="mb-4 space-y-2">
+              {sessions.map((session) => (
+                <label
+                  key={session.id}
+                  className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/20 px-3 py-3"
+                >
+                  <div className="min-w-0">
+                    <div className="text-sm font-medium text-white">
+                      {session.title}
+                    </div>
+                    <div className="text-xs text-white/45">
+                      {session.code || "No code"}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Add to all selected
+                        handleBulkEdit([session.id], [])
+                      }}
+                      className="rounded-lg bg-emerald-600 px-3 py-1 text-xs font-semibold text-white hover:bg-emerald-500"
+                    >
+                      Add
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        // Remove from all selected
+                        handleBulkEdit([], [session.id])
+                      }}
+                      className="rounded-lg bg-rose-600 px-3 py-1 text-xs font-semibold text-white hover:bg-rose-500"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setBulkEditModalOpen(false)}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Bulk Delete Confirmation Modal */}
+      {bulkDeleteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-white/10 bg-white/5 p-6">
+            <div className="mb-4 text-lg font-semibold text-white">
+              Confirm Delete
+            </div>
+            <div className="mb-4 text-sm text-white/60">
+              Are you sure you want to remove {selectedAttendeeIds.size} attendee{selectedAttendeeIds.size === 1 ? "" : "s"} from this event? This action cannot be undone.
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setBulkDeleteModalOpen(false)}
+                className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleBulkDelete}
+                disabled={busy}
+                className="rounded-xl bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-500 disabled:opacity-60"
+              >
+                {busy ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Matrix View Component for Visual Drag-and-Drop
+function MatrixView({
+  attendees,
+  sessions,
+  sessionTitleMap,
+  selectedAttendeeId,
+  setSelectedAttendeeId,
+  selectedAttendeeIds,
+  toggleAttendeeSelection,
+  onAttendeeDrop,
+}: {
+  attendees: EventAttendee[]
+  sessions: EventSession[]
+  sessionTitleMap: Map<string, string>
+  selectedAttendeeId: string | null
+  setSelectedAttendeeId: (id: string | null) => void
+  selectedAttendeeIds: Set<string>
+  toggleAttendeeSelection: (id: string) => void
+  onAttendeeDrop: (attendeeId: string, sessionId: string) => Promise<void>
+}) {
+  const [draggedAttendee, setDraggedAttendee] = useState<string | null>(null)
+  const [highlightedSession, setHighlightedSession] = useState<string | null>(null)
+
+  // Group attendees by their primary session
+  const sessionGroups = useMemo(() => {
+    const groups = new Map<string, EventAttendee[]>()
+    
+    // Initialize with all sessions
+    sessions.forEach(session => {
+      groups.set(session.id, [])
+    })
+    
+    // Add "Unassigned" group
+    groups.set("unassigned", [])
+    
+    // Assign attendees to their primary session
+    attendees.forEach(attendee => {
+      const primarySessionId = attendee.session_ids[0] || "unassigned"
+      const current = groups.get(primarySessionId) || []
+      current.push(attendee)
+      groups.set(primarySessionId, current)
+    })
+    
+    return groups
+  }, [attendees, sessions])
+
+  function handleDragStart(attendeeId: string) {
+    setDraggedAttendee(attendeeId)
+  }
+
+  function handleDragEnd() {
+    setDraggedAttendee(null)
+    setHighlightedSession(null)
+  }
+
+  function handleDragOver(sessionId: string) {
+    setHighlightedSession(sessionId)
+  }
+
+  function handleDragLeave() {
+    setHighlightedSession(null)
+  }
+
+  async function handleDrop(sessionId: string) {
+    if (draggedAttendee && sessionId !== "unassigned") {
+      await onAttendeeDrop(draggedAttendee, sessionId)
+    }
+    setDraggedAttendee(null)
+    setHighlightedSession(null)
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="text-sm text-white/60">
+        Drag attendees between districts to reassign them. Click an attendee to select them for bulk operations.
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {/* Unassigned */}
+        <div
+          className={`rounded-xl border-2 border-dashed p-4 transition ${
+            highlightedSession === "unassigned"
+              ? "border-sky-400 bg-sky-400/10"
+              : "border-white/10 bg-black/20"
+          }`}
+          onDragOver={() => handleDragOver("unassigned")}
+          onDragLeave={handleDragLeave}
+          onDrop={() => handleDrop("unassigned")}
+        >
+          <div className="mb-3 text-sm font-semibold text-white">
+            Unassigned ({sessionGroups.get("unassigned")?.length || 0})
+          </div>
+          <div className="space-y-2">
+            {(sessionGroups.get("unassigned") || []).map((attendee) => (
+              <div
+                key={attendee.id}
+                draggable
+                onDragStart={() => handleDragStart(attendee.id)}
+                onDragEnd={handleDragEnd}
+                onClick={() => setSelectedAttendeeId(attendee.id)}
+                className={`cursor-grab rounded-lg border p-2 text-left transition ${
+                  selectedAttendeeId === attendee.id
+                    ? "border-sky-400 bg-sky-400/10"
+                    : "border-white/10 bg-white/5 hover:bg-white/10"
+                } ${draggedAttendee === attendee.id ? "opacity-50" : ""}`}
+              >
+                <div className="flex items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={selectedAttendeeIds.has(attendee.id)}
+                    onChange={(e) => {
+                      e.stopPropagation()
+                      toggleAttendeeSelection(attendee.id)
+                    }}
+                    className="mt-0.5 h-3 w-3 shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-xs font-semibold text-white">
+                      {formatPersonName(attendee)}
+                    </div>
+                    <div className="truncate text-[10px] text-white/50">
+                      {attendee.email}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Sessions/Districts */}
+        {sessions.map((session) => (
+          <div
+            key={session.id}
+            className={`rounded-xl border-2 p-4 transition ${
+              highlightedSession === session.id
+                ? "border-sky-400 bg-sky-400/10"
+                : "border-white/10 bg-black/20"
+            }`}
+            onDragOver={() => handleDragOver(session.id)}
+            onDragLeave={handleDragLeave}
+            onDrop={() => handleDrop(session.id)}
+          >
+            <div className="mb-3 text-sm font-semibold text-white">
+              {session.title} ({sessionGroups.get(session.id)?.length || 0})
+            </div>
+            <div className="space-y-2">
+              {(sessionGroups.get(session.id) || []).map((attendee) => (
+                <div
+                  key={attendee.id}
+                  draggable
+                  onDragStart={() => handleDragStart(attendee.id)}
+                  onDragEnd={handleDragEnd}
+                  onClick={() => setSelectedAttendeeId(attendee.id)}
+                  className={`cursor-grab rounded-lg border p-2 text-left transition ${
+                    selectedAttendeeId === attendee.id
+                      ? "border-sky-400 bg-sky-400/10"
+                      : "border-white/10 bg-white/5 hover:bg-white/10"
+                  } ${draggedAttendee === attendee.id ? "opacity-50" : ""}`}
+                >
+                  <div className="flex items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={selectedAttendeeIds.has(attendee.id)}
+                      onChange={(e) => {
+                        e.stopPropagation()
+                        toggleAttendeeSelection(attendee.id)
+                      }}
+                      className="mt-0.5 h-3 w-3 shrink-0"
+                    />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-xs font-semibold text-white">
+                        {formatPersonName(attendee)}
+                      </div>
+                      <div className="truncate text-[10px] text-white/50">
+                        {attendee.email}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   )
 }
