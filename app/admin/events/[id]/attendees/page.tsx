@@ -14,7 +14,7 @@ type Person = {
   created_at: string | null
   source: "event_registrants"
 }
-type Session = { id: string; code: string | null; title: string; starts_at: string | null; ends_at: string | null }
+type Session = { id: string; code: string | null; title: string; starts_at: string | null; ends_at: string | null; external_join_url: string | null }
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -32,7 +32,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
   // Load attendees and sessions server-side to avoid API call issues
   const { data: sessions, error: sessionsError } = await supabaseAdmin
     .from("event_sessions")
-    .select("id,code,title,starts_at,ends_at")
+    .select("id,code,title,starts_at,ends_at,external_join_url")
     .eq("event_id", id)
     .order("sort_order", { ascending: true })
     .order("starts_at", { ascending: true, nullsFirst: false })

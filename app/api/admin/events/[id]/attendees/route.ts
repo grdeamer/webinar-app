@@ -16,6 +16,7 @@ type EventSessionRow = {
   title: string
   starts_at: string | null
   ends_at: string | null
+  external_join_url: string | null
 }
 
 type RegistrantRow = {
@@ -57,7 +58,7 @@ export async function GET(
 
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from("event_sessions")
-      .select("id,event_id,code,title,starts_at,ends_at")
+      .select("id,event_id,code,title,starts_at,ends_at,external_join_url")
       .eq("event_id", eventId)
       .order("sort_order", { ascending: true })
       .order("starts_at", { ascending: true, nullsFirst: false })
@@ -73,6 +74,7 @@ export async function GET(
       title: session.title,
       starts_at: session.starts_at,
       ends_at: session.ends_at,
+      external_join_url: session.external_join_url,
     }))
 
     const { data: registrants, error: registrantsError } = await supabaseAdmin
