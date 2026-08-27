@@ -6,7 +6,6 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const MAX_BULK_REMOVE = 500
 
 function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
@@ -29,9 +28,6 @@ export async function POST(
     ))
 
     if (attendeeIds.length === 0) return json({ error: "Select at least one person" }, 400)
-    if (attendeeIds.length > MAX_BULK_REMOVE) {
-      return json({ error: `Remove no more than ${MAX_BULK_REMOVE} people at a time` }, 400)
-    }
 
     const [{ data: event, error: eventError }, { count: totalPeople, error: countError }] = await Promise.all([
       supabaseAdmin.from("events").select("id,title").eq("id", eventId).maybeSingle(),
