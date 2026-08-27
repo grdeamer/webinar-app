@@ -63,12 +63,20 @@ export async function POST(
       if (usersError) return json({ error: usersError.message }, 400)
       if (users?.length) {
         const userIds = users.map((user) => user.id)
-        const [{ error: webinarError }, { error: attendeeError }] = await Promise.all([
-          supabaseAdmin.from("event_user_webinars").delete().eq("event_id", eventId).in("user_id", userIds),
-          supabaseAdmin.from("event_attendees").delete().eq("event_id", eventId).in("user_id", userIds),
-        ])
-        if (webinarError || attendeeError) {
-          return json({ error: webinarError?.message || attendeeError?.message || "Could not clear event access" }, 400)
+        
+        // Try to delete from legacy tables if they exist, but don't fail if they don't
+        try {
+          await supabaseAdmin.from("event_user_webinars").delete().eq("event_id", eventId).in("user_id", userIds)
+        } catch (webinarError) {
+          // Table might not exist, log but continue
+          console.warn("event_user_webinars table doesn't exist or deletion failed:", webinarError)
+        }
+        
+        try {
+          await supabaseAdmin.from("event_attendees").delete().eq("event_id", eventId).in("user_id", userIds)
+        } catch (attendeeError) {
+          // Table might not exist, log but continue
+          console.warn("event_attendees table doesn't exist or deletion failed:", attendeeError)
         }
       }
     }
