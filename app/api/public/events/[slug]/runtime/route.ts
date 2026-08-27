@@ -110,9 +110,9 @@ export async function GET(
       survey_url: liveStateResult.data?.survey_url ?? null,
       show_survey: liveStateResult.data?.show_survey === true,
       active_session: currentSession?.id ?? null,
-      district_lookup_enabled: currentSession
-        ? isDistrictAgendaItem(currentSession)
-        : false,
+      district_lookup_enabled:
+        accessMode === "open" ||
+        (currentSession ? isDistrictAgendaItem(currentSession) : false),
       current_session: currentSession,
       next_session: nextSession,
       button_text: currentSession?.button_text ?? null,

@@ -85,15 +85,25 @@ export function isDistrictAgendaItem(item: {
 }
 
 export async function isDistrictLookupWindowOpen(eventId: string) {
-  const { data, error } = await supabaseAdmin
-    .from("event_agenda_items")
-    .select("id,district_lookup_enabled,title,icon_key,track,location")
-    .eq("event_id", eventId)
-    .eq("is_visible", true)
-    .eq("status", "live")
+  const [liveStateResult, agendaResult] = await Promise.all([
+    supabaseAdmin
+      .from("event_live_state")
+      .select("status")
+      .eq("event_id", eventId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("event_agenda_items")
+      .select("id,district_lookup_enabled,title,icon_key,track,location")
+      .eq("event_id", eventId)
+      .eq("is_visible", true)
+      .eq("status", "live"),
+  ])
 
-  if (error) throw new Error(error.message)
-  return (data || []).some(isDistrictAgendaItem)
+  if (liveStateResult.error) throw new Error(liveStateResult.error.message)
+  if (agendaResult.error) throw new Error(agendaResult.error.message)
+
+  if (liveStateResult.data?.status === "open") return true
+  return (agendaResult.data || []).some(isDistrictAgendaItem)
 }
 
 export type DistrictRegistrant = {
