@@ -51,6 +51,11 @@ function externalPlatformFromUrl(value: string) {
     if (hostname.endsWith("zoom.us")) return "zoom"
     if (hostname.endsWith("teams.microsoft.com")) return "teams"
     if (hostname.endsWith("webex.com")) return "webex"
+    if (hostname.endsWith("gotomeeting.com") || hostname.endsWith("gotowebinar.com")) return "goto"
+    if (hostname.endsWith("meet.google.com")) return "google-meet"
+    if (hostname.endsWith("ringcentral.com")) return "ringcentral"
+    if (hostname.endsWith("chime.aws")) return "chime"
+    if (hostname.endsWith("bluejeans.com")) return "bluejeans"
   } catch {
     // CSV validation reports malformed links before this is reached.
   }
