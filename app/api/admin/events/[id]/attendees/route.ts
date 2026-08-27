@@ -124,7 +124,7 @@ export async function GET(
     }
     return json({ attendees: [], sessions: safeSessions })
   } catch (err) {
-    console.error(err)
-    return json({ error: "Server error" }, 500)
+    console.error("Attendees API error:", err)
+    return json({ error: err instanceof Error ? err.message : "Server error" }, 500)
   }
 }

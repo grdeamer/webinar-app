@@ -142,7 +142,10 @@ export default function ImportAttendeesUI({
         error?: string
       }
 
-      if (!res.ok) throw new Error(json.error || "Failed to load attendees")
+      if (!res.ok) {
+        console.error("Attendees API error:", json)
+        throw new Error(json.error || `Failed to load attendees (status: ${res.status})`)
+      }
 
       const deduped = dedupeAttendees(Array.isArray(json.attendees) ? json.attendees : [])
       setAttendees(deduped)
