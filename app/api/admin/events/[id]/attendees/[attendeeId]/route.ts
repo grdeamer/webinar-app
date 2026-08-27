@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { setRegistrantDistrictMeetingUrl } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
 
@@ -41,25 +42,20 @@ export async function PATCH(
       return json({ error: error.message }, 400)
     }
 
-    // Update district session meeting URL if provided and attendee has a session
-    if (district_meeting_url !== undefined) {
-      const { data: assignments, error: assignmentsError } = await supabaseAdmin
-        .from("event_registrant_sessions")
-        .select("session_id")
-        .eq("registrant_id", attendeeId)
-        .eq("event_id", eventId)
+    const districtMeetingUrl = String(district_meeting_url || "").trim()
+    if (districtMeetingUrl) {
+      if (!/^https:\/\//i.test(districtMeetingUrl)) {
+        return json({ error: "District meeting URL must use HTTPS" }, 400)
+      }
 
-      if (!assignmentsError && assignments && assignments.length > 0) {
-        const sessionId = assignments[0].session_id
-        const { error: sessionError } = await supabaseAdmin
-          .from("event_sessions")
-          .update({ external_join_url: district_meeting_url })
-          .eq("id", sessionId)
-          .eq("event_id", eventId)
-
-        if (sessionError) {
-          return json({ error: sessionError.message }, 400)
-        }
+      try {
+        await setRegistrantDistrictMeetingUrl(eventId, attendeeId, districtMeetingUrl)
+      } catch (districtError) {
+        const message =
+          districtError instanceof Error
+            ? districtError.message
+            : "Could not save the district meeting URL"
+        return json({ error: message }, 400)
       }
     }
 
