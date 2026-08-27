@@ -87,7 +87,6 @@ export default function PeopleClient({
   const [bulkMode, setBulkMode] = useState(false)
   const [bulkSelection, setBulkSelection] = useState<Set<string>>(() => new Set())
   const [removeOpen, setRemoveOpen] = useState(false)
-  const [confirmation, setConfirmation] = useState("")
   const [importProgress, setImportProgress] = useState<OperationProgress>(idleProgress)
   const [removeProgress, setRemoveProgress] = useState<OperationProgress>(idleProgress)
   const [newPerson, setNewPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role })
@@ -151,12 +150,10 @@ export default function PeopleClient({
     setBulkMode((current) => !current)
     setBulkSelection(new Set())
     setRemoveOpen(false)
-    setConfirmation("")
     setRemoveProgress(idleProgress())
   }
 
   function openRemoveDialog() {
-    setConfirmation("")
     setRemoveProgress(idleProgress())
     setRemoveOpen(true)
   }
@@ -164,7 +161,6 @@ export default function PeopleClient({
   function closeRemoveDialog() {
     if (busy === "remove") return
     setRemoveOpen(false)
-    setConfirmation("")
     setRemoveProgress(idleProgress())
     if (removeProgress.state === "complete") {
       setBulkSelection(new Set())
@@ -204,7 +200,7 @@ export default function PeopleClient({
       const response = await fetch(`/api/admin/events/${eventId}/attendees/bulk-remove`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendee_ids: [...bulkSelection], confirmation }),
+        body: JSON.stringify({ attendee_ids: [...bulkSelection] }),
       })
       const payload = await response.json().catch((): null => null)
       if (!response.ok) throw new Error(payload?.error || "Could not remove people")
@@ -384,16 +380,11 @@ export default function PeopleClient({
               <button type="button" aria-label="Close confirmation" disabled={busy === "remove"} onClick={closeRemoveDialog} className="rounded-lg border border-white/10 p-2 text-white/55 hover:bg-white/[.06] disabled:opacity-35"><X size={17} /></button>
             </div>
             <p className="mt-4 text-sm leading-6 text-white/55">They will be removed from <span className="font-semibold text-white/80">{eventTitle}</span>, including their session assignments and event access. Their global Jupiter account will not be deleted.</p>
-            {removingEveryone && removeProgress.state === "idle" ? (
-              <label className="mt-5 block text-xs font-semibold text-white/60">Type <span className="text-white">{eventTitle}</span> to remove everyone
-                <input autoFocus value={confirmation} onChange={(event) => setConfirmation(event.target.value)} className="mt-2 w-full rounded-xl border border-red-300/15 bg-black/30 px-4 py-3 text-sm text-white outline-none focus:border-red-300/40" />
-              </label>
-            ) : null}
             <OperationProgressPanel progress={removeProgress} />
             <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
               <button type="button" disabled={busy === "remove"} onClick={closeRemoveDialog} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/[.05] disabled:opacity-35">{removeProgress.state === "complete" ? "Done" : "Cancel"}</button>
               {removeProgress.state !== "complete" ? (
-                <button type="button" disabled={busy === "remove" || (removingEveryone && confirmation !== eventTitle)} onClick={() => void removeSelectedPeople()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />{busy === "remove" ? `Removing ${removeProgress.percent}%…` : `Remove ${bulkSelection.size} from event`}</button>
+                <button type="button" disabled={busy === "remove"} onClick={() => void removeSelectedPeople()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />{busy === "remove" ? `Removing ${removeProgress.percent}%…` : `Remove ${bulkSelection.size} from event`}</button>
               ) : null}
             </div>
           </div>

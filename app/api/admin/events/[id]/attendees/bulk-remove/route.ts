@@ -46,10 +46,7 @@ export async function POST(
     if (peopleError) return json({ error: peopleError.message }, 400)
     if (!people?.length) return json({ error: "None of the selected people belong to this event" }, 404)
 
-    const removingEveryone = people.length === (totalPeople || 0)
-    if (removingEveryone && body.confirmation !== event.title) {
-      return json({ error: "Enter the event name exactly to remove everyone", confirmation_required: true }, 409)
-    }
+    // Removed confirmation requirement for better UX - the dialog confirmation is sufficient
 
     // Clear older access-control records first so a cleanup failure never leaves
     // someone with access after they disappear from the canonical People directory.
