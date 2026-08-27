@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { externalPlatformFromUrl } from "@/lib/districtAccess"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { parseRegistrantCsv, type ParsedRegistrantImportRow } from "@/lib/imports/registrantCsv"
@@ -43,23 +44,6 @@ function titleFromSlug(slug: string) {
     .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(" ")
     .slice(0, 200) || "New Event"
-}
-
-function externalPlatformFromUrl(value: string) {
-  try {
-    const hostname = new URL(value).hostname.toLowerCase()
-    if (hostname.endsWith("zoom.us")) return "zoom"
-    if (hostname.endsWith("teams.microsoft.com")) return "teams"
-    if (hostname.endsWith("webex.com")) return "webex"
-    if (hostname.endsWith("gotomeeting.com") || hostname.endsWith("gotowebinar.com")) return "goto"
-    if (hostname.endsWith("meet.google.com")) return "google-meet"
-    if (hostname.endsWith("ringcentral.com")) return "ringcentral"
-    if (hostname.endsWith("chime.aws")) return "chime"
-    if (hostname.endsWith("bluejeans.com")) return "bluejeans"
-  } catch {
-    // CSV validation reports malformed links before this is reached.
-  }
-  return "other"
 }
 
 async function ensureEventsExist(
