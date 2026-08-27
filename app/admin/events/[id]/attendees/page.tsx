@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation"
+import { listDistrictSessions } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import PeopleClient from "./PeopleClient"
 
@@ -36,6 +37,8 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
     .eq("event_id", id)
     .order("sort_order", { ascending: true })
     .order("starts_at", { ascending: true, nullsFirst: false })
+
+  const districts = await listDistrictSessions(id)
 
   const { data: registrants, error: registrantsError } = await supabaseAdmin
     .from("event_registrants")
@@ -80,6 +83,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
         eventTitle={event.title}
         initialAttendees={attendees}
         initialSessions={sessions || []}
+        initialDistricts={districts}
       />
     </main>
   )
