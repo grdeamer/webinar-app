@@ -122,11 +122,7 @@ export function parseRegistrantCsv(
 
     const sessionCodes = Array.from(
       new Set(
-        [
-          ...sessionHeaders.map((header) => normalizeSessionCode(rawRow[header])),
-          districtCode ? normalizeSessionCode(districtCode) : "",
-        ]
-          .filter(Boolean)
+        sessionHeaders.map((header) => normalizeSessionCode(rawRow[header])).filter(Boolean)
       )
     )
 
