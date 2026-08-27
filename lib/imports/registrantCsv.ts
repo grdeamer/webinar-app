@@ -122,7 +122,12 @@ export function parseRegistrantCsv(
 
     const sessionCodes = Array.from(
       new Set(
-        sessionHeaders.map((header) => normalizeSessionCode(rawRow[header])).filter(Boolean)
+        [
+          ...sessionHeaders.map((header) => normalizeSessionCode(rawRow[header])),
+          // Only add district code as a session if there are no explicit session columns
+          sessionHeaders.length === 0 && districtCode ? normalizeSessionCode(districtCode) : "",
+        ]
+          .filter(Boolean)
       )
     )
 
