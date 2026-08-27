@@ -25,17 +25,49 @@ export async function POST(
       return NextResponse.json({ error: "add_session_ids or remove_session_ids array required" }, { status: 400 })
     }
 
-    const addIds = Array.isArray(add_session_ids) ? add_session_ids : []
-    const removeIds = Array.isArray(remove_session_ids) ? remove_session_ids : []
+    const addIds = (Array.isArray(add_session_ids) ? add_session_ids : []).map((value: unknown) => String(value)).filter(Boolean)
+    const removeIds = (Array.isArray(remove_session_ids) ? remove_session_ids : []).map((value: unknown) => String(value)).filter(Boolean)
+    const attendeeIds = attendee_ids.map((value: unknown) => String(value)).filter(Boolean)
+
+    const { data: eventSessions, error: sessionsError } = await supabaseAdmin
+      .from("event_sessions")
+      .select("id")
+      .eq("event_id", eventId)
+      .in("id", [...new Set([...addIds, ...removeIds])])
+
+    if (sessionsError) {
+      return NextResponse.json({ error: sessionsError.message }, { status: 500 })
+    }
+
+    const eventSessionIds = new Set((eventSessions || []).map((session) => session.id))
+    if ([...addIds, ...removeIds].some((sessionId) => !eventSessionIds.has(sessionId))) {
+      return NextResponse.json({ error: "A session does not belong to this event" }, { status: 400 })
+    }
+
+    const { data: eventRegistrants, error: registrantsError } = await supabaseAdmin
+      .from("event_registrants")
+      .select("id")
+      .eq("event_id", eventId)
+      .in("id", attendeeIds)
+
+    if (registrantsError) {
+      return NextResponse.json({ error: registrantsError.message }, { status: 500 })
+    }
+
+    const eventAttendeeIds = (eventRegistrants || []).map((registrant) => registrant.id)
+    if (eventAttendeeIds.length !== new Set(attendeeIds).size) {
+      return NextResponse.json({ error: "An attendee does not belong to this event" }, { status: 400 })
+    }
 
     let updatedCount = 0
 
     // Add sessions to attendees
     if (addIds.length > 0) {
       const insertData = []
-      for (const attendeeId of attendee_ids) {
+      for (const attendeeId of eventAttendeeIds) {
         for (const sessionId of addIds) {
           insertData.push({
+            event_id: eventId,
             registrant_id: attendeeId,
             session_id: sessionId,
           })
@@ -46,7 +78,7 @@ export async function POST(
       const { data: existingAssignments, error: checkError } = await supabaseAdmin
         .from("event_registrant_sessions")
         .select("registrant_id, session_id")
-        .in("registrant_id", attendee_ids)
+        .in("registrant_id", eventAttendeeIds)
         .in("session_id", addIds)
 
       if (checkError) {
@@ -73,7 +105,7 @@ export async function POST(
         }
       }
 
-      updatedCount += attendee_ids.length
+      updatedCount += eventAttendeeIds.length
     }
 
     // Remove sessions from attendees
@@ -81,7 +113,7 @@ export async function POST(
       const { error: removeError } = await supabaseAdmin
         .from("event_registrant_sessions")
         .delete()
-        .in("registrant_id", attendee_ids)
+        .in("registrant_id", eventAttendeeIds)
         .in("session_id", removeIds)
 
       if (removeError) {
@@ -89,7 +121,7 @@ export async function POST(
         return NextResponse.json({ error: removeError.message }, { status: 500 })
       }
 
-      updatedCount += attendee_ids.length
+      updatedCount += eventAttendeeIds.length
     }
 
     return NextResponse.json({ 
