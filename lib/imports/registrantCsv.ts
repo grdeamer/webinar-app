@@ -60,6 +60,7 @@ export function parseRegistrantCsv(
     header: true,
     skipEmptyLines: true,
     transformHeader: (h) => h.trim(),
+    delimiter: ",", // Explicitly specify comma delimiter to avoid auto-detection issues
   })
 
   if (parsed.errors?.length) {
