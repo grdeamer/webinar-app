@@ -43,6 +43,22 @@ export function externalPlatformFromUrl(value: string) {
   return "other"
 }
 
+const PLATFORM_LABELS: Record<string, string> = {
+  zoom: "Zoom",
+  teams: "Microsoft Teams",
+  webex: "Webex",
+  goto: "GoTo",
+  "google-meet": "Google Meet",
+  ringcentral: "RingCentral",
+  chime: "Amazon Chime",
+  bluejeans: "BlueJeans",
+}
+
+/** Human-readable name of the meeting platform behind a join link. */
+export function districtPlatformLabel(value: string) {
+  return PLATFORM_LABELS[externalPlatformFromUrl(value)] || "Meeting link"
+}
+
 export function isDistrictEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) && value.length <= 320
 }

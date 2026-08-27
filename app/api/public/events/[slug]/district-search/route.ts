@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
-import { findDistrictAssignmentByQuery, isDistrictLookupWindowOpen } from "@/lib/districtAccess"
+import {
+  districtPlatformLabel,
+  externalPlatformFromUrl,
+  findDistrictAssignmentByQuery,
+  isDistrictLookupWindowOpen,
+} from "@/lib/districtAccess"
 import { getEventBySlug } from "@/lib/events"
 import { publicEventHeaders } from "@/lib/publicEventCors"
 
@@ -58,6 +63,8 @@ export async function GET(
       district_code: assignment.session.code,
       manager: assignment.session.presenter,
       meeting_link: assignment.session.external_join_url,
+      platform: externalPlatformFromUrl(assignment.session.external_join_url),
+      platform_label: districtPlatformLabel(assignment.session.external_join_url),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to search district rooms"

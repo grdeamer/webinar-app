@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import {
   districtDigest,
   districtDigestMatches,
+  districtPlatformLabel,
+  externalPlatformFromUrl,
   getAssignedDistrictSession,
   isDistrictEmail,
   isDistrictLookupWindowOpen,
@@ -129,6 +131,8 @@ export async function POST(
         name: assignment.session.title,
         manager: assignment.session.presenter,
         meeting_link: assignment.session.external_join_url,
+        platform: externalPlatformFromUrl(assignment.session.external_join_url),
+        platform_label: districtPlatformLabel(assignment.session.external_join_url),
       },
     })
   } catch (error) {
