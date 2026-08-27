@@ -243,6 +243,64 @@ export async function findDistrictAssignmentByQuery(
   }
 }
 
+/** Every district breakout room configured on an event, in agenda order. */
+export async function listDistrictSessions(eventId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("event_sessions")
+    .select("id,code,title,presenter,external_join_url")
+    .eq("event_id", eventId)
+    .eq("session_kind", "breakout")
+    .eq("visibility_mode", "assigned")
+    .eq("delivery_mode", "external")
+    .order("sort_order", { ascending: true })
+    .order("code", { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return (data || []) as Array<Omit<DistrictSession, "external_join_url"> & {
+    external_join_url: string | null
+  }>
+}
+
+/**
+ * Moves attendees into `sessionId`, or out of every district room when it is
+ * null. An attendee only ever holds one district assignment, so the previous
+ * one is removed rather than added to.
+ */
+export async function assignRegistrantsToDistrict(
+  eventId: string,
+  registrantIds: string[],
+  sessionId: string | null
+) {
+  const ids = [...new Set(registrantIds.filter(Boolean))]
+  if (!ids.length) return { assigned: 0 }
+
+  const districts = await listDistrictSessions(eventId)
+  const districtIds = districts.map((district) => district.id)
+
+  if (sessionId && !districtIds.includes(sessionId)) {
+    throw new Error("That district room does not belong to this event")
+  }
+
+  if (districtIds.length) {
+    const { error } = await supabaseAdmin
+      .from("event_registrant_sessions")
+      .delete()
+      .in("registrant_id", ids)
+      .in("session_id", districtIds)
+
+    if (error) throw new Error(error.message)
+  }
+
+  if (!sessionId) return { assigned: 0 }
+
+  const { error: insertError } = await supabaseAdmin
+    .from("event_registrant_sessions")
+    .insert(ids.map((registrantId) => ({ event_id: eventId, registrant_id: registrantId, session_id: sessionId })))
+
+  if (insertError) throw new Error(insertError.message)
+  return { assigned: ids.length }
+}
+
 /**
  * Points an attendee's district assignment at `meetingUrl`, creating and
  * assigning a district breakout session when the attendee has none yet.

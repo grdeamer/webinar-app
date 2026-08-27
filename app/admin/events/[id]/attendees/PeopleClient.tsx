@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Check, CircleCheckBig, Download, Mail, Plus, RefreshCw, Search, Trash2, Upload, UserRound, Users, X } from "lucide-react"
+import { Check, CircleCheckBig, Download, Grid3x3, Mail, Plus, RefreshCw, Search, Trash2, Upload, UserRound, Users, X } from "lucide-react"
 
 type Role = "registrant" | "presenter"
 type Person = {
@@ -17,6 +17,7 @@ type Person = {
   source: "event_registrants"
 }
 type Session = { id: string; code: string | null; title: string; starts_at: string | null; ends_at: string | null; external_join_url: string | null }
+type District = { id: string; code: string | null; title: string; presenter: string | null; external_join_url: string | null }
 type OperationProgress = {
   state: "idle" | "running" | "complete" | "error"
   percent: number
@@ -66,16 +67,21 @@ export default function PeopleClient({
   eventSlug, 
   eventTitle,
   initialAttendees = [],
-  initialSessions = []
+  initialSessions = [],
+  initialDistricts = []
 }: { 
   eventId: string; 
   eventSlug: string; 
   eventTitle: string;
   initialAttendees?: Person[];
   initialSessions?: Session[];
+  initialDistricts?: District[];
 }) {
   const [people, setPeople] = useState<Person[]>(initialAttendees)
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
+  const [districts, setDistricts] = useState<District[]>(initialDistricts)
+  const [matrixOpen, setMatrixOpen] = useState(false)
+  const [drag, setDrag] = useState<{ districtId: string; start: number; end: number } | null>(null)
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"everyone" | Role>("everyone")
   const [search, setSearch] = useState("")
@@ -91,7 +97,7 @@ export default function PeopleClient({
   const [removeProgress, setRemoveProgress] = useState<OperationProgress>(idleProgress)
   const [newPerson, setNewPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role })
   const [editMode, setEditMode] = useState(false)
-  const [editPerson, setEditPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role, district_meeting_url: "" })
+  const [editPerson, setEditPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role, district_meeting_url: "", district_session_id: "" })
   const fileInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -105,6 +111,7 @@ export default function PeopleClient({
       rows.sort((a, b) => personName(a).localeCompare(personName(b)))
       setPeople(rows)
       setSessions(payload.sessions || [])
+      setDistricts(payload.districts || [])
       setSelectedId((current) => current && rows.some((person) => person.id === current) ? current : rows[0]?.id || null)
     } catch (loadError) {
       // Fallback to initial data if API fails
@@ -112,6 +119,7 @@ export default function PeopleClient({
       if (initialAttendees.length > 0) {
         setPeople(initialAttendees)
         setSessions(initialSessions)
+        setDistricts(initialDistricts)
         setSelectedId((current) => current && initialAttendees.some((person) => person.id === current) ? current : initialAttendees[0]?.id || null)
       } else {
         setError(loadError instanceof Error ? loadError.message : "Could not load people")
@@ -119,7 +127,7 @@ export default function PeopleClient({
     } finally {
       setLoading(false)
     }
-  }, [eventId, initialAttendees, initialSessions])
+  }, [eventId, initialAttendees, initialSessions, initialDistricts])
 
   useEffect(() => {
     // Only load from API if we don't have initial data
@@ -142,6 +150,13 @@ export default function PeopleClient({
       return `${personName(person)} ${person.email}`.toLowerCase().includes(query)
     })
   }, [filter, people, search])
+
+  const districtById = useMemo(() => new Map(districts.map((district) => [district.id, district])), [districts])
+
+  const districtOf = useCallback(
+    (person: Person) => person.session_ids.map((id) => districtById.get(id)).find(Boolean) || null,
+    [districtById]
+  )
 
   const selected = people.find((person) => person.id === selectedId) || null
   const selectedPeople = people.filter((person) => bulkSelection.has(person.id))
@@ -190,22 +205,21 @@ export default function PeopleClient({
 
   function startEditing() {
     if (!selected) return
-    const assignedSession = selected.session_ids.length > 0
-      ? sessions.find((session) => session.id === selected.session_ids[0])
-      : null
+    const district = districtOf(selected)
     setEditPerson({
       first_name: selected.first_name || "",
       last_name: selected.last_name || "",
       email: selected.email,
       role: selected.role,
-      district_meeting_url: assignedSession?.external_join_url || ""
+      district_meeting_url: district?.external_join_url || "",
+      district_session_id: district?.id || ""
     })
     setEditMode(true)
   }
 
   function cancelEditing() {
     setEditMode(false)
-    setEditPerson({ first_name: "", last_name: "", email: "", role: "registrant", district_meeting_url: "" })
+    setEditPerson({ first_name: "", last_name: "", email: "", role: "registrant", district_meeting_url: "", district_session_id: "" })
   }
 
   async function savePersonEdit() {
@@ -220,7 +234,8 @@ export default function PeopleClient({
           last_name: editPerson.last_name,
           email: editPerson.email,
           role: editPerson.role,
-          district_meeting_url: editPerson.district_meeting_url
+          district_meeting_url: editPerson.district_meeting_url,
+          district_session_id: editPerson.district_session_id || null
         })
       })
       if (!response.ok) {
@@ -235,6 +250,49 @@ export default function PeopleClient({
       setBusy("idle")
     }
   }
+
+  const assignDistrict = useCallback(async (personIds: string[], districtSessionId: string | null) => {
+    const ids = [...new Set(personIds)]
+    if (!ids.length) return
+    const previous = people
+    setPeople((current) => current.map((person) => {
+      if (!ids.includes(person.id)) return person
+      const withoutDistricts = person.session_ids.filter((id) => !districtById.has(id))
+      return { ...person, session_ids: districtSessionId ? [...withoutDistricts, districtSessionId] : withoutDistricts }
+    }))
+    setBusy("district")
+    setError(null)
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/attendees/bulk-district`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendee_ids: ids, district_session_id: districtSessionId }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Could not update district assignments")
+    } catch (districtError) {
+      setPeople(previous)
+      setError(districtError instanceof Error ? districtError.message : "Could not update district assignments")
+    } finally {
+      setBusy(null)
+    }
+  }, [districtById, eventId, people])
+
+  useEffect(() => {
+    if (!drag) return
+    const range = drag
+    function commitDrag() {
+      const from = Math.min(range.start, range.end)
+      const to = Math.max(range.start, range.end)
+      const rows = visiblePeople.slice(from, to + 1)
+      setDrag(null)
+      if (!rows.length) return
+      const clearing = rows.length === 1 && rows[0].session_ids.includes(range.districtId)
+      void assignDistrict(rows.map((person) => person.id), clearing ? null : range.districtId)
+    }
+    window.addEventListener("mouseup", commitDrag)
+    return () => window.removeEventListener("mouseup", commitDrag)
+  }, [assignDistrict, drag, visiblePeople])
 
   async function removeSelectedPeople() {
     if (bulkSelection.size === 0) return
@@ -391,6 +449,7 @@ export default function PeopleClient({
           <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; People</div><h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Bring everyone together.</h1><p className="mt-3 text-base text-white/55">Add and manage everyone connected to {eventTitle}.</p></div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={toggleBulkMode} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${bulkMode ? "border-red-300/25 bg-red-500/10 text-red-100" : "border-white/10 bg-white/[.05] hover:bg-white/10"}`}>{bulkMode ? <X size={16} /> : <Check size={16} />}{bulkMode ? "Exit Bulk Select" : "Bulk Select"}</button>
+            <button type="button" onClick={() => setMatrixOpen((current) => !current)} disabled={districts.length === 0} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold disabled:opacity-35 ${matrixOpen ? "border-violet-300/30 bg-violet-500/15 text-violet-100" : "border-white/10 bg-white/[.05] hover:bg-white/10"}`}><Grid3x3 size={16} />District Matrix</button>
             <button type="button" onClick={() => { setAddOpen(!addOpen); setImportOpen(false) }} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold hover:bg-violet-500"><Plus size={16} />Add Person</button>
             <button type="button" onClick={() => { setImportOpen(!importOpen); setImportProgress(idleProgress); setAddOpen(false) }} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/10"><Upload size={16} />Import CSV</button>
           </div>
@@ -407,6 +466,56 @@ export default function PeopleClient({
 
       {error ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
 
+      {matrixOpen && districts.length > 0 ? (
+        <section className="rounded-3xl border border-white/10 bg-white/[.03] p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="text-xs uppercase tracking-[.16em] text-white/35">District matrix</div>
+              <p className="mt-2 max-w-2xl text-sm text-white/50">Click a cell to move someone into that district, click it again to clear them, or drag down a column to lasso a run of people. Use the search box to narrow the rows first.</p>
+            </div>
+            <div className="text-xs text-white/40">{busy === "district" ? "Saving…" : `${visiblePeople.filter((person) => districtOf(person)).length} of ${visiblePeople.length} assigned`}</div>
+          </div>
+          <div className="mt-4 max-h-[560px] overflow-auto rounded-2xl border border-white/[.07]">
+            <table className="w-full select-none border-separate border-spacing-0 text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 top-0 z-20 bg-[#0c131f] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-white/40">Person</th>
+                  {districts.map((district) => <th key={district.id} title={district.title} className="sticky top-0 z-10 bg-[#0c131f] px-3 py-3 text-xs font-semibold text-white/55">{district.code || district.title}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {visiblePeople.map((person, rowIndex) => {
+                  const assigned = districtOf(person)
+                  return <tr key={person.id}>
+                    <th scope="row" className="sticky left-0 z-10 max-w-[260px] bg-[#0b111c] px-4 py-2 text-left font-normal">
+                      <div className="truncate text-sm">{personName(person)}</div>
+                      <div className="truncate text-xs text-white/35">{assigned ? assigned.title : "Unassigned"}</div>
+                    </th>
+                    {districts.map((district) => {
+                      const isAssigned = assigned?.id === district.id
+                      const inDrag = drag?.districtId === district.id
+                        && rowIndex >= Math.min(drag.start, drag.end)
+                        && rowIndex <= Math.max(drag.start, drag.end)
+                      return <td key={district.id} className="border-t border-white/[.05] p-1">
+                        <button
+                          type="button"
+                          aria-pressed={isAssigned}
+                          aria-label={`Assign ${personName(person)} to ${district.title}`}
+                          onMouseDown={() => setDrag({ districtId: district.id, start: rowIndex, end: rowIndex })}
+                          onMouseEnter={() => setDrag((current) => current && current.districtId === district.id ? { ...current, end: rowIndex } : current)}
+                          className={`flex h-7 w-full items-center justify-center rounded-lg border ${isAssigned ? "border-emerald-300/40 bg-emerald-500/25 text-emerald-100" : inDrag ? "border-violet-300/40 bg-violet-500/25" : "border-white/[.07] bg-black/20 hover:bg-white/[.08]"}`}
+                        >{isAssigned ? <Check size={13} /> : null}</button>
+                      </td>
+                    })}
+                  </tr>
+                })}
+                {visiblePeople.length === 0 ? <tr><td colSpan={districts.length + 1} className="p-8 text-center text-sm text-white/40">No people match this view.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
+
       <section className="grid min-h-[520px] gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.85fr)]">
         <div className="rounded-3xl border border-white/10 bg-white/[.03] p-5">
           <div className="flex items-center gap-3"><div className="relative flex-1"><Search className="absolute left-3 top-3.5 text-white/30" size={16} /><input aria-label="Search people" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Search people" className="w-full rounded-xl border border-white/10 bg-black/20 py-3 pl-10 pr-4 text-sm outline-none" /></div><button type="button" aria-label="Refresh people" onClick={() => void load()} className="rounded-xl border border-white/10 p-3 text-white/60"><RefreshCw className={loading ? "animate-spin" : ""} size={16} /></button></div>
@@ -415,7 +524,7 @@ export default function PeopleClient({
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[.03] p-5">
-          {bulkMode ? <div className="flex h-full min-h-[300px] flex-col"><div className="text-xs uppercase tracking-[.16em] text-white/35">Bulk selection</div><div className="mt-4 text-4xl font-semibold">{bulkSelection.size}</div><div className="mt-1 text-sm text-white/50">people selected</div><div className="mt-6 grid grid-cols-2 gap-3"><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Registrants</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "registrant").length}</div></div><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Presenters</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "presenter").length}</div></div></div><div className="mt-6 rounded-xl border border-amber-300/10 bg-amber-500/[.05] p-4 text-xs leading-5 text-amber-50/65">Removal applies only to this event. It also clears the selected people’s session assignments and event access.</div><button type="button" disabled={bulkSelection.size === 0} onClick={() => setRemoveOpen(true)} className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />Remove {bulkSelection.size || "selected"} from event</button></div> : !selected ? <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center text-white/40"><Users size={28} /><p className="mt-3 text-sm">Select a person to manage their role and access.</p></div> : <div className="space-y-5">{editMode ? <div className="space-y-4"><div className="text-xs uppercase tracking-[.16em] text-white/35">Edit person</div><div className="grid gap-3 md:grid-cols-2"><div><label className="text-xs font-semibold text-white/50">First name<input aria-label="First name" value={editPerson.first_name} onChange={(event) => setEditPerson({ ...editPerson, first_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Last name<input aria-label="Last name" value={editPerson.last_name} onChange={(event) => setEditPerson({ ...editPerson, last_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">Email<input aria-label="Email" type="email" value={editPerson.email} onChange={(event) => setEditPerson({ ...editPerson, email: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">District meeting URL<input aria-label="District meeting URL" type="url" value={editPerson.district_meeting_url} onChange={(event) => setEditPerson({ ...editPerson, district_meeting_url: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Role<select aria-label="Role" value={editPerson.role} onChange={(event) => setEditPerson({ ...editPerson, role: event.target.value as Role })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div></div><div className="flex gap-2"><button type="button" disabled={busy === "edit" || !editPerson.email} onClick={() => void savePersonEdit()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-35">{busy === "edit" ? "Saving…" : "Save changes"}</button><button type="button" disabled={busy === "edit"} onClick={cancelEditing} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/[.10]">Cancel</button></div></div> : <><div><div className="flex items-center justify-between"><div className="text-xs uppercase tracking-[.16em] text-white/35">Person details</div><button type="button" onClick={startEditing} className="text-xs font-semibold text-violet-200 hover:text-violet-100">Edit</button></div><h2 className="mt-2 text-xl font-semibold">{personName(selected)}</h2><p className="mt-1 text-sm text-white/50">{selected.email}</p></div><div><label className="text-xs font-semibold text-white/50">Role<select value={selected.role} disabled={busy === "role"} onChange={(event) => void updateRole(event.target.value as Role)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-3 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div><div><div className="text-xs font-semibold text-white/50">Session access</div><div className="mt-2 space-y-2">{sessions.filter(session => selected.session_ids.includes(session.id)).map((session) => { const checked = selected.session_ids.includes(session.id); return <label key={session.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-black/15 p-3"><div><div className="text-sm font-medium">{session.title}</div>{session.code ? <div className="text-xs text-white/35">{session.code}</div> : null}</div><input type="checkbox" checked={checked} disabled={busy === `session:${session.id}`} onChange={(event) => void toggleSession(session.id, event.target.checked)} className="h-4 w-4" /></label>})}{selected.session_ids.length === 0 ? <div className="text-sm text-white/40">No sessions assigned to this person.</div> : null}</div></div>{selected.role === "presenter" ? <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void sendPresenterLink()} disabled={busy === "send" || selected.session_ids.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Mail size={15} />{busy === "send" ? "Sending…" : "Send Access"}</button><button type="button" disabled={selected.session_ids.length !== 1} onClick={() => selected.session_ids[0] && navigator.clipboard.writeText(`${window.location.origin}/presenter/${eventSlug}/sessions/${selected.session_ids[0]}`)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Check size={15} />Copy Link</button></div> : <div className="rounded-xl border border-sky-300/10 bg-sky-500/[.05] p-3 text-xs leading-5 text-sky-100/65">Change this person to Presenter to enable presenter-room access.</div>}<Link href={`/admin/events/${eventId}/emails`} className="block text-center text-xs font-semibold text-sky-200/70 hover:text-sky-100">Manage Emails →</Link></>}</div>}
+          {bulkMode ? <div className="flex h-full min-h-[300px] flex-col"><div className="text-xs uppercase tracking-[.16em] text-white/35">Bulk selection</div><div className="mt-4 text-4xl font-semibold">{bulkSelection.size}</div><div className="mt-1 text-sm text-white/50">people selected</div><div className="mt-6 grid grid-cols-2 gap-3"><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Registrants</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "registrant").length}</div></div><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Presenters</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "presenter").length}</div></div></div><div className="mt-6 rounded-xl border border-amber-300/10 bg-amber-500/[.05] p-4 text-xs leading-5 text-amber-50/65">Removal applies only to this event. It also clears the selected people’s session assignments and event access.</div><button type="button" disabled={bulkSelection.size === 0} onClick={() => setRemoveOpen(true)} className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />Remove {bulkSelection.size || "selected"} from event</button></div> : !selected ? <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center text-white/40"><Users size={28} /><p className="mt-3 text-sm">Select a person to manage their role and access.</p></div> : <div className="space-y-5">{editMode ? <div className="space-y-4"><div className="text-xs uppercase tracking-[.16em] text-white/35">Edit person</div><div className="grid gap-3 md:grid-cols-2"><div><label className="text-xs font-semibold text-white/50">First name<input aria-label="First name" value={editPerson.first_name} onChange={(event) => setEditPerson({ ...editPerson, first_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Last name<input aria-label="Last name" value={editPerson.last_name} onChange={(event) => setEditPerson({ ...editPerson, last_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">Email<input aria-label="Email" type="email" value={editPerson.email} onChange={(event) => setEditPerson({ ...editPerson, email: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">District<select aria-label="District" value={editPerson.district_session_id} onChange={(event) => { const district = districts.find((item) => item.id === event.target.value); setEditPerson({ ...editPerson, district_session_id: event.target.value, district_meeting_url: district?.external_join_url || "" }) }} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="">No district</option>{districts.map((district) => <option key={district.id} value={district.id}>{[district.code, district.title].filter(Boolean).join(" · ")}</option>)}</select></label>{districts.length === 0 ? <p className="mt-1.5 text-xs text-white/35">No district rooms exist yet — saving a meeting URL below creates one.</p> : null}</div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">District meeting URL<input aria-label="District meeting URL" type="url" value={editPerson.district_meeting_url} onChange={(event) => setEditPerson({ ...editPerson, district_meeting_url: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Role<select aria-label="Role" value={editPerson.role} onChange={(event) => setEditPerson({ ...editPerson, role: event.target.value as Role })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div></div><div className="flex gap-2"><button type="button" disabled={busy === "edit" || !editPerson.email} onClick={() => void savePersonEdit()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-35">{busy === "edit" ? "Saving…" : "Save changes"}</button><button type="button" disabled={busy === "edit"} onClick={cancelEditing} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/[.10]">Cancel</button></div></div> : <><div><div className="flex items-center justify-between"><div className="text-xs uppercase tracking-[.16em] text-white/35">Person details</div><button type="button" onClick={startEditing} className="text-xs font-semibold text-violet-200 hover:text-violet-100">Edit</button></div><h2 className="mt-2 text-xl font-semibold">{personName(selected)}</h2><p className="mt-1 text-sm text-white/50">{selected.email}</p><p className="mt-2 text-xs text-white/40">District: {(() => { const district = districtOf(selected); return district ? [district.code, district.title].filter(Boolean).join(" · ") : "Unassigned" })()}</p></div><div><label className="text-xs font-semibold text-white/50">Role<select value={selected.role} disabled={busy === "role"} onChange={(event) => void updateRole(event.target.value as Role)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-3 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div><div><div className="text-xs font-semibold text-white/50">Session access</div><div className="mt-2 space-y-2">{sessions.filter(session => selected.session_ids.includes(session.id)).map((session) => { const checked = selected.session_ids.includes(session.id); return <label key={session.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-black/15 p-3"><div><div className="text-sm font-medium">{session.title}</div>{session.code ? <div className="text-xs text-white/35">{session.code}</div> : null}</div><input type="checkbox" checked={checked} disabled={busy === `session:${session.id}`} onChange={(event) => void toggleSession(session.id, event.target.checked)} className="h-4 w-4" /></label>})}{selected.session_ids.length === 0 ? <div className="text-sm text-white/40">No sessions assigned to this person.</div> : null}</div></div>{selected.role === "presenter" ? <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void sendPresenterLink()} disabled={busy === "send" || selected.session_ids.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Mail size={15} />{busy === "send" ? "Sending…" : "Send Access"}</button><button type="button" disabled={selected.session_ids.length !== 1} onClick={() => selected.session_ids[0] && navigator.clipboard.writeText(`${window.location.origin}/presenter/${eventSlug}/sessions/${selected.session_ids[0]}`)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Check size={15} />Copy Link</button></div> : <div className="rounded-xl border border-sky-300/10 bg-sky-500/[.05] p-3 text-xs leading-5 text-sky-100/65">Change this person to Presenter to enable presenter-room access.</div>}<Link href={`/admin/events/${eventId}/emails`} className="block text-center text-xs font-semibold text-sky-200/70 hover:text-sky-100">Manage Emails →</Link></>}</div>}
         </div>
       </section>
 

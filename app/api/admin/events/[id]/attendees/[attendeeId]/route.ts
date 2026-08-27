@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { setRegistrantDistrictMeetingUrl } from "@/lib/districtAccess"
+import { assignRegistrantsToDistrict, setRegistrantDistrictMeetingUrl } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
 
@@ -20,7 +20,7 @@ export async function PATCH(
 
     const { id: eventId, attendeeId } = await context.params
     const body = await request.json()
-    const { first_name, last_name, email, role, district_meeting_url } = body
+    const { first_name, last_name, email, role, district_meeting_url, district_session_id } = body
 
     const updateData: Record<string, unknown> = {}
     if (first_name !== undefined) updateData.first_name = first_name
@@ -40,6 +40,22 @@ export async function PATCH(
 
     if (error) {
       return json({ error: error.message }, 400)
+    }
+
+    if (district_session_id !== undefined) {
+      try {
+        await assignRegistrantsToDistrict(
+          eventId,
+          [attendeeId],
+          district_session_id ? String(district_session_id) : null
+        )
+      } catch (districtError) {
+        const message =
+          districtError instanceof Error
+            ? districtError.message
+            : "Could not save the district assignment"
+        return json({ error: message }, 400)
+      }
     }
 
     const districtMeetingUrl = String(district_meeting_url || "").trim()
