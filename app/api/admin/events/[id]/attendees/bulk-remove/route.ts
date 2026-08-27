@@ -45,21 +45,43 @@ export async function POST(
     if (eventError || !event) return json({ error: eventError?.message || "Event not found" }, 404)
     if (countError) return json({ error: countError.message }, 400)
 
-    const { data: people, error: peopleError } = await supabaseAdmin
-      .from("event_registrants")
-      .select("id,email")
-      .eq("event_id", eventId)
-      .in("id", attendeeIds)
+    // Batch the initial people lookup to avoid Supabase limits
+    const idBatches = []
+    for (let i = 0; i < attendeeIds.length; i += BATCH_SIZE) {
+      idBatches.push(attendeeIds.slice(i, i + BATCH_SIZE))
+    }
+    
+    console.log(`Looking up people in ${idBatches.length} batches`)
+    
+    let allPeople: Array<{ id: string; email: string }> = []
+    let lastLookupError: Error | null = null
+    
+    for (const idBatch of idBatches) {
+      const { data: people, error: peopleError } = await supabaseAdmin
+        .from("event_registrants")
+        .select("id,email")
+        .eq("event_id", eventId)
+        .in("id", idBatch)
 
-    console.log("People found for deletion:", { count: people?.length, peopleError })
+      if (peopleError) {
+        console.error("Batch lookup error:", peopleError)
+        lastLookupError = peopleError
+        // Continue with other batches even if one fails
+      } else if (people?.length) {
+        allPeople.push(...people)
+        console.log(`Batch lookup successful: ${people.length} people`)
+      }
+    }
 
-    if (peopleError) return json({ error: peopleError.message }, 400)
-    if (!people?.length) return json({ error: "None of the selected people belong to this event" }, 404)
+    console.log("People found for deletion:", { count: allPeople.length, lastLookupError })
+
+    if (lastLookupError && allPeople.length === 0) return json({ error: lastLookupError.message }, 400)
+    if (allPeople.length === 0) return json({ error: "None of the selected people belong to this event" }, 404)
     
     // Break into batches to avoid Supabase query limits
     const batches = []
-    for (let i = 0; i < people.length; i += BATCH_SIZE) {
-      batches.push(people.slice(i, i + BATCH_SIZE))
+    for (let i = 0; i < allPeople.length; i += BATCH_SIZE) {
+      batches.push(allPeople.slice(i, i + BATCH_SIZE))
     }
     
     console.log(`Processing ${batches.length} batches of people`)
@@ -68,7 +90,7 @@ export async function POST(
 
     // Clear older access-control records first so a cleanup failure never leaves
     // someone with access after they disappear from the canonical People directory.
-    const emails = people.map((person) => String(person.email || "").trim().toLowerCase()).filter(Boolean)
+    const emails = allPeople.map((person) => String(person.email || "").trim().toLowerCase()).filter(Boolean)
     console.log("Processing user cleanup for emails:", emails.length)
     
     if (emails.length > 0) {
@@ -129,7 +151,7 @@ export async function POST(
     }
 
     // Assignment rows are removed by the database's ON DELETE CASCADE rule.
-    console.log("Attempting main deletion of event_registrants in batches:", people.length)
+    console.log("Attempting main deletion of event_registrants in batches:", allPeople.length)
     
     let totalRemoved = 0
     let lastError: Error | null = null
