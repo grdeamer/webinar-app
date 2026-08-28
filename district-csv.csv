@@ -1,0 +1,21 @@
+event,email,first_name,last_name,district_code,district_name,district_manager,district_meeting_link
+caplyta-september-poa-meeting,attendee0001.test@example.com,Test0001,Attendee0001,D001,District 001,Manager 001,https://teams.microsoft.com/l/meetup-join/001/example@contoso.com
+caplyta-september-poa-meeting,attendee0002.test@example.com,Test0002,Attendee0002,D002,District 002,Manager 002,https://teams.microsoft.com/l/meetup-join/002/example@contoso.com
+caplyta-september-poa-meeting,attendee0003.test@example.com,Test0003,Attendee0003,D003,District 003,Manager 003,https://teams.microsoft.com/l/meetup-join/003/example@contoso.com
+caplyta-september-poa-meeting,attendee0004.test@example.com,Test0004,Attendee0004,D004,District 004,Manager 004,https://teams.microsoft.com/l/meetup-join/004/example@contoso.com
+caplyta-september-poa-meeting,attendee0005.test@example.com,Test0005,Attendee0005,D005,District 005,Manager 005,https://teams.microsoft.com/l/meetup-join/005/example@contoso.com
+caplyta-september-poa-meeting,attendee0006.test@example.com,Test0006,Attendee0006,D006,District 006,Manager 006,https://teams.microsoft.com/l/meetup-join/006/example@contoso.com
+caplyta-september-poa-meeting,attendee0007.test@example.com,Test0007,Attendee0007,D007,District 007,Manager 007,https://teams.microsoft.com/l/meetup-join/007/example@contoso.com
+caplyta-september-poa-meeting,attendee0008.test@example.com,Test0008,Attendee0008,D008,District 008,Manager 008,https://teams.microsoft.com/l/meetup-join/008/example@contoso.com
+caplyta-september-poa-meeting,attendee0009.test@example.com,Test0009,Attendee0009,D009,District 009,Manager 009,https://teams.microsoft.com/l/meetup-join/009/example@contoso.com
+caplyta-september-poa-meeting,attendee0010.test@example.com,Test0010,Attendee0010,D010,District 010,Manager 010,https://teams.microsoft.com/l/meetup-join/010/example@contoso.com
+caplyta-september-poa-meeting,attendee0011.test@example.com,Test0011,Attendee0011,D001,District 001,Manager 001,https://teams.microsoft.com/l/meetup-join/001/example@contoso.com
+caplyta-september-poa-meeting,attendee0012.test@example.com,Test0012,Attendee0012,D002,District 002,Manager 002,https://teams.microsoft.com/l/meetup-join/002/example@contoso.com
+caplyta-september-poa-meeting,attendee0013.test@example.com,Test0013,Attendee0013,D003,District 003,Manager 003,https://teams.microsoft.com/l/meetup-join/003/example@contoso.com
+caplyta-september-poa-meeting,attendee0014.test@example.com,Test0014,Attendee0014,D004,District 004,Manager 004,https://teams.microsoft.com/l/meetup-join/004/example@contoso.com
+caplyta-september-poa-meeting,attendee0015.test@example.com,Test0015,Attendee0015,D005,District 005,Manager 005,https://teams.microsoft.com/l/meetup-join/005/example@contoso.com
+caplyta-september-poa-meeting,attendee0016.test@example.com,Test0016,Attendee0016,D006,District 006,Manager 006,https://teams.microsoft.com/l/meetup-join/006/example@contoso.com
+caplyta-september-poa-meeting,attendee0017.test@example.com,Test0017,Attendee0017,D007,District 007,Manager 007,https://teams.microsoft.com/l/meetup-join/007/example@contoso.com
+caplyta-september-poa-meeting,attendee0018.test@example.com,Test0018,Attendee0018,D008,District 008,Manager 008,https://teams.microsoft.com/l/meetup-join/008/example@contoso.com
+caplyta-september-poa-meeting,attendee0019.test@example.com,Test0019,Attendee0019,D009,District 009,Manager 009,https://teams.microsoft.com/l/meetup-join/009/example@contoso.com
+caplyta-september-poa-meeting,attendee0020.test@example.com,Test0020,Attendee0020,D010,District 010,Manager 010,https://teams.microsoft.com/l/meetup-join/010/example@contoso.com
