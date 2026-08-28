@@ -325,7 +325,7 @@ export default function EventLayout({
             {canConfigure ? <NavItem href={`${base}/settings`} icon={<File04 className="h-4 w-4" strokeWidth={1.75} />} label="Event Details" collapsed={collapsed}>
               Event Details
             </NavItem> : null}
-            {canConfigure ? <NavItem href={`${base}/attendees`} icon={<Users01 className="h-4 w-4" strokeWidth={1.75} />} label="People" collapsed={collapsed}>
+            {canConfigure ? <NavItem href={`${base}/import-attendees`} icon={<Users01 className="h-4 w-4" strokeWidth={1.75} />} label="People" collapsed={collapsed}>
               People
             </NavItem> : null}
             {canConfigure ? <NavItem href={`${base}/sessions`} icon={<CalendarDate className="h-4 w-4" strokeWidth={1.75} />} label="Program" collapsed={collapsed}>
@@ -396,7 +396,7 @@ export default function EventLayout({
           <nav className="mt-3 grid grid-cols-2 gap-2 pb-1 text-sm">
             <MobileEventLink href={base} label="Overview" />
             {canConfigure ? <MobileEventLink href={`${base}/settings`} label="Event Details" /> : null}
-            {canConfigure ? <MobileEventLink href={`${base}/attendees`} label="People" /> : null}
+            {canConfigure ? <MobileEventLink href={`${base}/import-attendees`} label="People" /> : null}
             {canConfigure ? <MobileEventLink href={`${base}/sessions`} label="Program" /> : null}
             {canConfigure ? <MobileEventLink href={`${base}/page-editor`} label="Experience" /> : null}
             {canConfigure ? <MobileEventLink href={`${base}/emails`} label="Communications" /> : null}
