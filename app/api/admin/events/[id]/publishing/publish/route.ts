@@ -35,7 +35,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     deploymentId = deployment.id
 
     const jupiterOrigin = process.env.NEXT_PUBLIC_SITE_URL || "https://app.jupiter.events"
-    const artifacts = await buildLetsPublishArtifacts({ eventSlug: event.slug, jupiterOrigin })
+    const artifacts = await buildLetsPublishArtifacts({ eventSlug: event.slug, jupiterOrigin, eventId: event.id })
     const result = await publishArtifacts({ connection, deploymentId: deployment.id, artifacts })
     const completedAt = new Date().toISOString()
 
