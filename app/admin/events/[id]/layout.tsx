@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
-import { CSSProperties, ReactNode, useCallback, useEffect, useMemo, useState } from "react"
+import { CSSProperties, ReactNode, useCallback, useEffect, useState } from "react"
 import { Activity, CalendarDate, File04, Home03, LayersThree01, List, Mail02, Signal02, Tool02, UploadCloud01, Users01, VideoRecorder } from "@untitledui/icons"
 import { Menu, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
@@ -16,21 +16,6 @@ type EventWorkspaceContext = {
   teamRole: "owner" | "administrator" | "event_admin" | "producer" | "viewer"
   isGlobalAdmin: boolean
 }
-
-type PageIdentity = { title: string; description: string }
-
-const pageIdentity: Array<{ match: RegExp; value: PageIdentity }> = [
-  { match: /\/attendees|\/import-attendees/, value: { title: "People", description: "Build the audience and prepare every person for their role." } },
-  { match: /\/sessions(?:\/|$)/, value: { title: "Program", description: "Shape the schedule, sessions, and presenter flow." } },
-  { match: /\/page-editor(?:\/|$)/, value: { title: "Experience", description: "Design the pages and moments your audience will experience." } },
-  { match: /\/emails(?:\/|$)/, value: { title: "Communications", description: "Prepare, test, and deliver every event message." } },
-  { match: /\/publishing(?:\/|$)/, value: { title: "Publish", description: "Validate the experience and release it with confidence." } },
-  { match: /\/settings(?:\/|$)/, value: { title: "Event details", description: "Manage the event identity, schedule, and access." } },
-  { match: /\/agenda(?:\/|$)/, value: { title: "Run of Show", description: "Direct the sequence before the audience arrives." } },
-  { match: /\/routing(?:\/|$)/, value: { title: "Run Event", description: "Monitor audience movement and live destinations." } },
-  { match: /\/analytics(?:\/|$)/, value: { title: "Analytics", description: "Understand attendance, attention, and outcomes." } },
-  { match: /\/sponsors(?:\/|$)/, value: { title: "Media & Sponsors", description: "Manage the visual assets that support the experience." } },
-]
 
 function active(pathname: string, href: string, exact = false) {
   return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`)
@@ -50,10 +35,10 @@ function NavLink({ href, label, icon, exact = false, badge, iconTone }: { href: 
   return <Link href={href} className={`jv1-nav-item ${selected ? "jv1-nav-item--selected" : ""}`} aria-current={selected ? "page" : undefined}><span className="jv1-nav-dot" style={iconStyle}>{icon}</span><span className="min-w-0 flex-1 truncate">{label}</span>{badge ? <span className="jv1-nav-badge">{badge}</span> : null}</Link>
 }
 
-function TopLink({ href, label, exact = false }: { href: string; label: string; exact?: boolean }) {
+function TopLink({ href, label, icon, exact = false }: { href: string; label: string; icon: ReactNode; exact?: boolean }) {
   const pathname = usePathname()
   const selected = active(pathname, href, exact)
-  return <Link href={href} className={`jv1-top-link ${selected ? "jv1-top-link--selected" : ""}`}>{label}</Link>
+  return <Link href={href} className={`jv1-top-link ${selected ? "jv1-top-link--selected" : ""}`} aria-current={selected ? "page" : undefined}><span className="jv1-top-link-icon">{icon}</span><span>{label}</span></Link>
 }
 
 export default function EventLayout({ children }: { children: ReactNode }) {
@@ -81,11 +66,6 @@ export default function EventLayout({ children }: { children: ReactNode }) {
     return () => { controller.abort(); window.clearTimeout(initialLoad); window.clearInterval(interval) }
   }, [loadContext])
 
-  const identity = useMemo(() => {
-    if (pathname === base) return { title: "Overview", description: "See what is ready, what needs attention, and what happens next." }
-    return pageIdentity.find((item) => item.match.test(pathname))?.value ?? { title: "Event workspace", description: "Prepare and operate the event." }
-  }, [base, pathname])
-
   if (isProducer) return <>{children}</>
 
   const canConfigure = !eventContext || eventContext.isGlobalAdmin || eventContext.teamRole === "event_admin"
@@ -97,21 +77,26 @@ export default function EventLayout({ children }: { children: ReactNode }) {
       <header className="jv1-atmospheric-header">
         <div className="jv1-header-veil" />
         <div className="jv1-header-brand"><JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-[18px] font-semibold tracking-[.18em]" /></div>
-        <nav className="jv1-top-navigation" aria-label="Event workspace">
-          <TopLink href={base} label="Overview" exact />
-          {canConfigure ? <TopLink href={`${base}/settings`} label="Event Details" /> : null}
-          {canConfigure ? <TopLink href={`${base}/attendees`} label="People" /> : null}
-          {canConfigure ? <TopLink href={`${base}/sessions`} label="Program" /> : null}
-          {canConfigure ? <TopLink href={`${base}/page-editor`} label="Experience" /> : null}
-          {canConfigure ? <TopLink href={`${base}/emails`} label="Communications" /> : null}
-          {canConfigure ? <TopLink href={`${base}/publishing`} label="Publish" /> : null}
-          {canOperate ? <TopLink href={`${base}/routing`} label="Run Event" /> : null}
-          {canOperate ? <TopLink href={`${base}/agenda`} label="Run of Show" /> : null}
-          {canOperate ? <TopLink href={`${base}/producer/room`} label="Producer Room" /> : null}
-        </nav>
+        <div className="jv1-header-workspace-bar">
+          <div className="jv1-header-event-context">
+            <span className="jv1-header-event-thumbnail" aria-hidden="true" />
+            <span className="jv1-header-event-copy"><strong>{eventTitle}</strong><span>{formatEventDate(eventContext?.startAt ?? null)} <i /> {eventContext?.access === "closed" ? "Closed" : "Open"}</span></span>
+          </div>
+          <nav className="jv1-top-navigation" aria-label="Event workspace">
+            <TopLink href={base} label="Overview" icon={<Home03 />} exact />
+            {canConfigure ? <TopLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}
+            {canOperate ? <TopLink href={`${base}/routing`} label="Run Event" icon={<Signal02 />} /> : null}
+            {canOperate ? <TopLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}
+            {canOperate ? <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}
+          </nav>
+        </div>
         <div className="jv1-live-badge"><span />{eventContext?.hasLiveSession ? "EVENT LIVE" : "LIVE READY"}</div>
         <button className="jv1-mobile-menu" onClick={() => setMobileOpen((open) => !open)} aria-label="Toggle event navigation">{mobileOpen ? <X size={19} /> : <Menu size={19} />}</button>
-        <div className="jv1-header-copy"><div className="jv1-header-eyebrow">EVENTS&nbsp;&nbsp;/&nbsp;&nbsp;{eventTitle.toUpperCase()}</div><h1>{identity.title}</h1><p>{identity.description}</p></div>
       </header>
 
       <div className={`jv1-workspace ${mobileOpen ? "jv1-workspace--open" : ""}`} onClick={(event) => { if (mobileOpen && (event.target as HTMLElement).closest("a")) setMobileOpen(false) }}>
