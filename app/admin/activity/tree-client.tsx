@@ -96,6 +96,12 @@ export default function ActivityTreeClient({
   const [error, setError] = useState("")
   const [paused, setPaused] = useState(false)
   const [range, setRange] = useState<"now" | "hour" | "day">("now")
+  const [rangeMotionKey, setRangeMotionKey] = useState(0)
+
+  const selectRange = useCallback((value: "now" | "hour" | "day") => {
+    setRange(value)
+    setRangeMotionKey((current) => current + 1)
+  }, [])
 
   const cutoff = useCallback(() => {
     const age = range === "now" ? 45_000 : range === "hour" ? 3_600_000 : 86_400_000
@@ -173,7 +179,7 @@ export default function ActivityTreeClient({
     <div className="global-editorial-page mx-auto max-w-[1440px]">
       <header className="flex flex-col gap-6 border-b border-white/10 pb-7 lg:flex-row lg:items-start lg:justify-between">
         <div><div className="text-[11px] font-semibold uppercase tracking-[.24em] text-white/36">Jupiter.events Admin</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Live Activity</h1><p className="mt-3 text-base text-white/58">See where audiences are gathering across every active event.</p></div>
-        <div className="flex flex-wrap items-center gap-4"><div className="inline-flex overflow-hidden rounded-xl border border-white/12">{(["now", "hour", "day"] as const).map((value) => <button key={value} type="button" onClick={() => setRange(value)} className={`min-w-20 px-4 py-2.5 text-sm transition ${range === value ? "bg-white/[.09] text-white" : "text-white/48 hover:bg-white/[.04]"}`}>{value === "now" ? "Now" : value === "hour" ? "1 hour" : "24 hours"}</button>)}</div><button type="button" onClick={() => setPaused((current) => !current)} className="inline-flex items-center gap-2 text-sm text-white/60 hover:text-white"><PauseCircle className="h-4 w-4" />{paused ? "Resume updates" : "Pause updates"}</button></div>
+        <div className="flex flex-wrap items-center gap-4"><div className="activity-range-control">{(["now", "hour", "day"] as const).map((value) => <button key={value} type="button" onClick={() => selectRange(value)} className={`activity-range-option ${range === value ? "is-selected" : ""}`} aria-pressed={range === value}>{value === "now" ? "Now" : value === "hour" ? "1 hour" : "24 hours"}</button>)}</div><button type="button" onClick={() => setPaused((current) => !current)} className="inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"><PauseCircle className="h-4 w-4" />{paused ? "Resume updates" : "Pause updates"}</button></div>
       </header>
 
       <div className="flex items-center gap-3 border-b border-white/10 py-6 text-lg text-white/72"><span className="h-2.5 w-2.5 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.55)]" /><strong className="font-semibold text-white">{liveTotal}</strong> people live across {liveTotal ? "1 event" : "the platform"}</div>
@@ -185,9 +191,27 @@ export default function ActivityTreeClient({
           <svg viewBox="0 0 880 600" role="img" aria-label="Live audience activity constellation" className="absolute inset-x-0 bottom-3 h-[570px] w-full">
             <defs>
               <filter id="activity-glow" x="-80%" y="-80%" width="260%" height="260%"><feGaussianBlur stdDeviation="5" result="blur" /><feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
-              <style>{`.constellation-path{stroke-dasharray:4 11;animation:constellation-flow 2.8s linear infinite}.question-ping{transform-box:fill-box;transform-origin:center;animation:question-ping 2.4s ease-out infinite}@keyframes constellation-flow{to{stroke-dashoffset:-30}}@keyframes question-ping{0%{transform:scale(.45);opacity:.8}80%,100%{transform:scale(2.4);opacity:0}}@media(prefers-reduced-motion:reduce){.constellation-path,.question-ping{animation:none}}`}</style>
+              <filter id="range-orbit-glow" x="-100%" y="-100%" width="300%" height="300%"><feGaussianBlur stdDeviation="3.5" result="rangeBlur" /><feMerge><feMergeNode in="rangeBlur" /><feMergeNode in="SourceGraphic" /></feMerge></filter>
+              <linearGradient id="range-history-gradient" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stopColor="#6fa8ff" stopOpacity=".08" /><stop offset=".45" stopColor="#8d74ff" stopOpacity=".9" /><stop offset="1" stopColor="#ffd486" stopOpacity=".95" /></linearGradient>
+              <style>{`.constellation-path{stroke-dasharray:4 11;animation:constellation-flow 2.8s linear infinite}.question-ping{transform-box:fill-box;transform-origin:center;animation:question-ping 2.4s ease-out infinite}.range-history-path{stroke-dasharray:11 23;stroke-dashoffset:180;animation:range-path-arrive 1.25s cubic-bezier(.2,.75,.2,1) forwards,range-path-drift 3.2s linear 1.25s infinite}.range-orbit-sweep{stroke-dasharray:14 20;stroke-dashoffset:180;animation:range-sweep 1.1s cubic-bezier(.2,.8,.2,1) forwards}.range-pulse-ring{transform-box:fill-box;transform-origin:center;animation:range-ring 1.35s ease-out forwards}.range-node-ring{transform-box:fill-box;transform-origin:center;animation:range-node 1.1s ease-out forwards}.range-timeline{opacity:0;animation:range-fade .7s ease .35s forwards}@keyframes constellation-flow{to{stroke-dashoffset:-30}}@keyframes question-ping{0%{transform:scale(.45);opacity:.8}80%,100%{transform:scale(2.4);opacity:0}}@keyframes range-path-arrive{0%{stroke-dashoffset:180;opacity:0}20%{opacity:.9}100%{stroke-dashoffset:0;opacity:.9}}@keyframes range-path-drift{to{stroke-dashoffset:-68}}@keyframes range-sweep{0%{stroke-dashoffset:180;opacity:0}15%{opacity:1}100%{stroke-dashoffset:0;opacity:.85}}@keyframes range-ring{0%{transform:scale(.35);opacity:.9}100%{transform:scale(2.4);opacity:0}}@keyframes range-node{0%{transform:scale(.4);opacity:.9}100%{transform:scale(1.8);opacity:0}}@keyframes range-fade{to{opacity:1}}@media(prefers-reduced-motion:reduce){.constellation-path,.question-ping,.range-history-path,.range-orbit-sweep,.range-pulse-ring,.range-node-ring,.range-timeline{animation:none;opacity:.72}}`}</style>
             </defs>
             <g aria-hidden="true">{fieldStars.map(([x, y, radius], index) => <circle key={`${x}-${y}`} cx={`${x}%`} cy={`${y}%`} r={radius} fill={index % 6 === 0 ? "#ffd79c" : index % 4 === 0 ? "#a9c7ff" : "white"} opacity={.18 + (index % 4) * .08} />)}</g>
+            {range !== "now" ? <g key={`range-history-${range}-${rangeMotionKey}`} aria-hidden="true">
+              <g className="range-timeline">
+                <path d="M 330 88 A 118 118 0 0 1 555 88" fill="none" stroke="rgba(141,116,255,.28)" strokeWidth="1" strokeDasharray="2 8" />
+                <path className="range-orbit-sweep" d="M 330 88 A 118 118 0 0 1 555 88" fill="none" stroke="url(#range-history-gradient)" strokeWidth="2" filter="url(#range-orbit-glow)" />
+                <text x="442" y="43" textAnchor="middle" fill="rgba(216,224,255,.76)" fontSize="10" fontWeight="650" letterSpacing="2">{range === "day" ? "24-HOUR ORBIT" : "1-HOUR ORBIT"}</text>
+                <text x="330" y="106" textAnchor="middle" fill="rgba(255,255,255,.34)" fontSize="9">-{range === "day" ? "24h" : "60m"}</text>
+                <text x="442" y="74" textAnchor="middle" fill="rgba(255,255,255,.34)" fontSize="9">-{range === "day" ? "12h" : "30m"}</text>
+                <text x="555" y="106" textAnchor="middle" fill="rgba(255,255,255,.62)" fontSize="9">Now</text>
+              </g>
+              {(Object.keys(nodes) as Destination[]).map((destination, index) => <g key={`history-${destination}`}>
+                <path d={pathBetween(destination)} fill="none" stroke="url(#range-history-gradient)" strokeOpacity={range === "day" ? .78 : .58} strokeWidth={range === "day" ? 1.8 : 1.45} className="range-history-path" style={{ animationDelay: `${index * 90}ms, ${1250 + index * 90}ms` }} filter="url(#range-orbit-glow)" />
+                <circle cx={nodes[destination].x} cy={nodes[destination].y} r="17" fill="none" stroke={index % 2 ? "#ffd486" : "#83aaff"} strokeOpacity=".62" className="range-node-ring" style={{ animationDelay: `${420 + index * 100}ms` }} />
+              </g>)}
+              <circle cx="435" cy="300" r="18" fill="none" stroke="#ffd486" strokeWidth="1.4" className="range-pulse-ring" filter="url(#range-orbit-glow)" />
+              <circle cx="435" cy="300" r="28" fill="none" stroke="#8d74ff" strokeWidth="1" className="range-pulse-ring" style={{ animationDelay: "140ms" }} />
+            </g> : null}
             {(Object.keys(nodes) as Destination[]).map((destination) => {
               const count = counts.get(destination) ?? 0
               const intensity = count / maxCount

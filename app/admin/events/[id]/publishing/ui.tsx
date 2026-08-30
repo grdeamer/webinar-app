@@ -95,12 +95,12 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
   const selected = destinations.find((destination) => destination.id === selectedId) || null
 
   return (
-    <main className="event-editorial-page">
-      <div className="mx-auto max-w-6xl space-y-5">
-        <header className="border-b border-[#33405a] pb-7">
+    <main className="text-white">
+      <div className="space-y-6">
+        <header className="border-b border-[#273348] pb-7">
           <div className="flex items-start justify-between gap-6">
-            <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; Publish</div><h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Deliver the experience.</h1><p className="mt-3 max-w-2xl text-base leading-6 text-white/50">Deploy the attendee experience to an external FTP or FTPS destination. Credentials are encrypted and remain server-side.</p></div>
-            <Link href={`/admin/events/${eventId}/page-editor`} className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-2 text-sm font-semibold text-white/70 hover:bg-white/10">Open Experience</Link>
+            <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; Publish</div><h1 className="editorial-title mt-5">Publish</h1><p className="mt-3 max-w-2xl text-base leading-6 text-white/50">Review changes, validate destinations, and release the attendee experience.</p></div>
+            <Link href={`/admin/events/${eventId}/page-editor`} className="rounded-xl bg-[#3974df] px-4 py-2.5 text-sm font-semibold text-white hover:bg-[#4f82e3]">Preview changes →</Link>
           </div>
         </header>
 

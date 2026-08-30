@@ -72,8 +72,8 @@ export default async function AdminDashboardPage() {
     : 0
 
   return (
-    <div className="global-editorial-page mx-auto max-w-[1440px] space-y-5">
-      <header className="flex flex-col gap-5 border-b border-white/10 pb-8 sm:flex-row sm:items-start sm:justify-between">
+    <div className="global-editorial-page dashboard-editorial-page mx-auto max-w-[1440px] space-y-5">
+      <header className="dashboard-atmospheric-header flex flex-col gap-5 sm:flex-row sm:justify-between">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[.24em] text-white/36">Jupiter.events Admin</div>
           <h1 className="mt-3 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Mission Control</h1>

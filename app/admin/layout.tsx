@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ReactNode, useEffect, useState } from "react"
+import { CSSProperties, ReactNode, useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import {
   Activity,
@@ -29,13 +29,12 @@ function navClass(active: boolean) {
   ].join(" ")
 }
 
-function iconWrapClass(active: boolean) {
-  return [
-    "flex h-8 w-8 items-center justify-center rounded-lg transition-all duration-200",
-    active
-      ? "bg-[#142548] text-white"
-      : "bg-white/[0.035] text-white/48 group-hover:bg-white/[0.07] group-hover:text-white/80",
-  ].join(" ")
+const NAV_ICON_TONES: Record<string, string> = {
+  "/admin": "112 169 255",
+  "/admin/events": "174 108 255",
+  "/admin/activity": "83 229 168",
+  "/admin/users": "91 211 255",
+  "/admin/dev-tools": "241 188 104",
 }
 
 function NavLink({
@@ -51,6 +50,7 @@ function NavLink({
 }) {
   const pathname = usePathname()
   const active = matches(pathname, href)
+  const iconStyle = { "--nav-icon-rgb": NAV_ICON_TONES[href] ?? "130 151 255" } as CSSProperties
 
   return (
     <Link
@@ -59,7 +59,7 @@ function NavLink({
       className={`${navClass(active)} ${compact ? "flex-col justify-center gap-1 px-1 py-3 text-[10px]" : ""}`}
     >
       {active ? <span className="absolute inset-y-2 left-0 w-px rounded-full bg-[#63a1ff]" /> : null}
-      <span className={iconWrapClass(active)}>{icon}</span>
+      <span className={`main-nav-icon ${active ? "main-nav-icon--active" : ""}`} style={iconStyle}>{icon}</span>
       <span className={compact ? "truncate text-[9px] font-medium text-white/55" : "flex-1 truncate"}>{children}</span>
     </Link>
   )
@@ -92,6 +92,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isPageEditorWorkspace = pathname.startsWith("/admin/page-editor/event/")
   const isEventWorkspace = /^\/admin\/events\/[^/]+(?:\/.*)?$/.test(pathname) && !isProducerWorkspace
   const isEventsDirectory = pathname === "/admin/events"
+  const isDashboard = pathname === "/admin"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const compactNavigation = isEventWorkspace && !mobileNavOpen
@@ -99,7 +100,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   useEffect(() => {
     const controller = new AbortController()
     void fetch("/api/admin/access-context", { cache: "no-store", signal: controller.signal })
-      .then((response) => response.ok ? response.json() : null)
+      .then((response) => response.ok && response.headers.get("content-type")?.includes("application/json") ? response.json() : null)
       .then((payload) => setIsEventMember(payload?.isEventMember === true))
       .catch((error: unknown) => {
         if (!(error instanceof DOMException && error.name === "AbortError")) console.error("Access context failed to load", error)
@@ -151,6 +152,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     )
   }
 
+  if (isEventWorkspace) {
+    return <div className="min-h-dvh bg-[#030714] text-white">{children}</div>
+  }
+
   return (
     <div
       className={`${
@@ -177,7 +182,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
         {mobileNavOpen ? <button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} className="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm lg:hidden" /> : null}
-        {!isEventWorkspace && !isPageEditorWorkspace ? (
+        {!isEventWorkspace && !isPageEditorWorkspace && !isDashboard ? (
           <div
             aria-hidden="true"
             className={`global-jupiter-backdrop ${isEventsDirectory ? "global-jupiter-backdrop--events" : ""}`}
@@ -272,7 +277,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           }`}
         >
           <main
-            className={`relative z-10 flex-1 ${isEventWorkspace ? "p-0 sm:p-3" : "p-4 sm:p-6 lg:p-10"} ${
+            className={`relative z-10 flex-1 ${isEventWorkspace || isEventsDirectory ? "p-0" : "p-4 sm:p-6 lg:p-10"} ${
               isPageEditorWorkspace ? "min-h-0 overflow-hidden" : ""
             }`}
           >

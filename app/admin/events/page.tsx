@@ -35,10 +35,10 @@ export default async function AdminEventsPage() {
   if (error) throw new Error(error.message)
 
   return (
-    <div className="global-editorial-page events-editorial-page mx-auto max-w-[1440px]">
+    <div className="global-editorial-page events-editorial-page">
       <header className="events-editorial-header">
         <div>
-          <p className="events-editorial-kicker">Event directory</p>
+          <p className="events-editorial-kicker">Jupiter &nbsp;/&nbsp; Event directory</p>
           <h1 className="events-editorial-title">Events</h1>
           <p className="events-editorial-description">Create, prepare, and return to every production from one place.</p>
         </div>

@@ -389,44 +389,42 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
     <div className="relative min-h-screen overflow-x-hidden pb-16 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_4%,rgba(41,105,190,0.12),transparent_30%),radial-gradient(circle_at_34%_100%,rgba(112,42,34,0.12),transparent_34%)]" />
 
-      <header className="relative border-b border-white/[0.09] px-5 py-9 sm:px-8 lg:px-12 lg:py-12">
-        <div className="mx-auto flex max-w-[1500px] flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+      <header className="relative border-b border-[#273348] px-0 pb-7 pt-0">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-[#63c9f5]">
-              Program / Editorial schedule
+            <div className="editorial-eyebrow">
+              Event &nbsp;/&nbsp; Program
             </div>
-            <h1 className="mt-4 text-4xl font-semibold tracking-[-0.045em] text-white sm:text-5xl">
-              Build the day.
-            </h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#8f9bb3] sm:text-base">
-              Arrange the moments, destinations, and presenters {event.title} will experience.
+            <h1 className="editorial-title mt-5 text-white">Program</h1>
+            <p className="mt-3 max-w-2xl text-sm leading-6 text-[#9aa6bb] sm:text-base">
+              {sessions.length} {sessions.length === 1 ? "session" : "sessions"} in the event schedule. Build the agenda, assign presenters, and prepare every session.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
             <Link
-              href={`/admin/events/${event.id}`}
-              className="inline-flex h-10 items-center gap-2 rounded-[10px] border border-white/[0.11] bg-white/[0.035] px-4 text-sm font-medium text-white/72 transition hover:bg-white/[0.07] hover:text-white"
+              href={`/admin/import?eventId=${event.id}`}
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#3974df] px-4 text-sm font-semibold text-white transition hover:bg-[#4f82e3]"
             >
-              Event overview <ArrowRight className="h-3.5 w-3.5" />
+              Import agenda <ArrowRight className="h-3.5 w-3.5" />
             </Link>
             <Link
-              href={`/admin/import?eventId=${event.id}`}
-              className="inline-flex h-10 items-center rounded-[10px] border border-white/[0.11] bg-white/[0.035] px-4 text-sm font-medium text-white/72 transition hover:bg-white/[0.07] hover:text-white"
+              href="#new-session"
+              className="inline-flex h-10 items-center gap-2 rounded-xl bg-[#6750d3] px-4 text-sm font-semibold text-white transition hover:bg-[#765fe0]"
             >
-              Import Registrants
+              Add session <Plus className="h-3.5 w-3.5" />
             </Link>
           </div>
         </div>
 
-        <div className="mx-auto mt-9 grid max-w-[1500px] grid-cols-2 border-y border-white/[0.08] sm:w-fit sm:grid-cols-3 sm:divide-x sm:divide-white/[0.08]">
+        <div className="mt-7 grid grid-cols-2 gap-4 sm:grid-cols-3">
           <ProgramMetric icon={<CalendarDays className="h-4 w-4" />} value={String(sessions.length).padStart(2, "0")} label="Sessions" />
           <ProgramMetric icon={<Clock3 className="h-4 w-4" />} value={String(liveSessionCount).padStart(2, "0")} label="Live now" />
           <ProgramMetric icon={<Radio className="h-4 w-4" />} value={String(sessions.filter((session) => session.is_general_session).length).padStart(2, "0")} label="Main stage" />
         </div>
       </header>
 
-      <div className="relative mx-auto max-w-[1500px] space-y-12 px-5 py-10 sm:px-8 lg:px-12">
+      <div className="relative space-y-8 py-7">
 
       {(err || msg) && (
         <div className="border-l-2 border-white/20 bg-white/[0.035] px-4 py-3">
@@ -435,7 +433,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         </div>
       )}
 
-      <section className="rounded-[18px] border border-white/[0.13] bg-[linear-gradient(145deg,rgba(12,20,34,0.74),rgba(4,8,16,0.58))] px-5 py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.045),0_20px_70px_rgba(0,0,0,0.18)] ring-1 ring-inset ring-white/[0.018] sm:px-7 lg:px-8">
+      <section id="new-session" className="scroll-mt-8 rounded-[18px] border border-[#273348] bg-[#0a101c] px-5 py-7 shadow-[0_20px_70px_rgba(0,0,0,0.18)] sm:px-7 lg:px-8">
         <div className="grid gap-7 xl:grid-cols-[220px_minmax(0,1fr)]">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">New moment</div>

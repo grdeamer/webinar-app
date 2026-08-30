@@ -1,5 +1,5 @@
 import "./globals.css"
-import { Geist, Instrument_Sans, Inter } from "next/font/google"
+import { Geist, Instrument_Sans, Inter, Space_Grotesk } from "next/font/google"
 import type { Metadata, Viewport } from "next"
 import { cn } from "@/lib/utils";
 
@@ -14,6 +14,11 @@ const instrumentSans = Instrument_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600"],
   variable: "--font-instrument",
+})
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
 })
 
 export const metadata: Metadata = {
@@ -53,7 +58,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable, inter.variable, instrumentSans.variable)}>
+    <html lang="en" className={cn("font-sans", geist.variable, inter.variable, instrumentSans.variable, spaceGrotesk.variable)}>
       <body className="jupiter-space-site min-h-dvh text-white antialiased">
         {children}
       </body>
