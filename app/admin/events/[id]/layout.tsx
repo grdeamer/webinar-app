@@ -97,8 +97,17 @@ export default function EventLayout({ children }: { children: ReactNode }) {
       <header className="jv1-atmospheric-header">
         <div className="jv1-header-veil" />
         <div className="jv1-header-brand"><JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-[18px] font-semibold tracking-[.18em]" /></div>
-        <nav className="jv1-top-navigation" aria-label="Event sections">
-          <TopLink href={base} label="Overview" exact /><TopLink href={`${base}/attendees`} label="People" /><TopLink href={`${base}/sessions`} label="Program" /><TopLink href={`${base}/page-editor`} label="Experience" /><TopLink href={`${base}/emails`} label="Communications" /><TopLink href={`${base}/publishing`} label="Publish" />
+        <nav className="jv1-top-navigation" aria-label="Event workspace">
+          <TopLink href={base} label="Overview" exact />
+          {canConfigure ? <TopLink href={`${base}/settings`} label="Event Details" /> : null}
+          {canConfigure ? <TopLink href={`${base}/attendees`} label="People" /> : null}
+          {canConfigure ? <TopLink href={`${base}/sessions`} label="Program" /> : null}
+          {canConfigure ? <TopLink href={`${base}/page-editor`} label="Experience" /> : null}
+          {canConfigure ? <TopLink href={`${base}/emails`} label="Communications" /> : null}
+          {canConfigure ? <TopLink href={`${base}/publishing`} label="Publish" /> : null}
+          {canOperate ? <TopLink href={`${base}/routing`} label="Run Event" /> : null}
+          {canOperate ? <TopLink href={`${base}/agenda`} label="Run of Show" /> : null}
+          {canOperate ? <TopLink href={`${base}/producer/room`} label="Producer Room" /> : null}
         </nav>
         <div className="jv1-live-badge"><span />{eventContext?.hasLiveSession ? "EVENT LIVE" : "LIVE READY"}</div>
         <button className="jv1-mobile-menu" onClick={() => setMobileOpen((open) => !open)} aria-label="Toggle event navigation">{mobileOpen ? <X size={19} /> : <Menu size={19} />}</button>
@@ -118,7 +127,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
           <div className="jv1-rail-section-label jv1-rail-section-label--administration">Administration</div>
           <nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin/users" label="Team & Access" icon={<Users01 />} iconTone="91 211 255" /><NavLink href="/admin/dev-tools" label="Dev Tools" icon={<Tool02 />} iconTone="241 188 104" /></nav>
         </aside>
-        <aside className="jv1-event-rail">
+        <aside className="jv1-event-rail" aria-label="Mobile event workspace">
           <div className="jv1-event-rail-label"><span /> Event workspace</div>
           <div className="jv1-event-context"><h2>{eventTitle}</h2><p>{formatEventDate(eventContext?.startAt ?? null)} · {eventContext?.access === "closed" ? "Closed" : "Open"}</p></div>
           <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Run Event" icon={<Signal02 />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}</nav>
