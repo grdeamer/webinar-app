@@ -24,7 +24,10 @@ export async function POST(
     const auth = await requireEventOperatorAccess(id)
     if (auth instanceof Response) return auth
     const body = await req.json().catch((): null => null)
-    const commandId = isUuid(String(body?.commandId ?? ""))
+    if (!body || typeof body !== "object") {
+      return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+    }
+    const commandId = isUuid(String((body as Record<string, unknown>).commandId ?? ""))
       ? String(body.commandId)
       : crypto.randomUUID()
     const expectedPreviewVersion = parseExpectedProducerVersion(body?.expectedPreviewVersion)

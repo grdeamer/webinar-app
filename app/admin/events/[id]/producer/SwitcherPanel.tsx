@@ -306,8 +306,8 @@ export default function SwitcherPanel({
               setTakeBusy(true)
               setError(null)
               await takeProgram()
-            } catch (e: any) {
-              setError(e.message)
+            } catch (e: unknown) {
+              setError(e instanceof Error ? e.message : "Take failed")
             } finally {
               setTakeBusy(false)
             }

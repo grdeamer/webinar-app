@@ -7,6 +7,7 @@ import { LiveKitRoom, RoomAudioRenderer, VideoTrack, useTracks } from "@livekit/
 import { Track } from "livekit-client";
 
 import useProducerRoomApi from "./useProducerRoomApi";
+import ProducerRoomClientUI from "./ProducerRoomClientUI";
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks";
 import useProducerBlockEditor from "./useProducerBlockEditor";
 import useProducerUploads from "./useProducerUploads";
@@ -70,94 +71,6 @@ type ParticipantAppearanceOverride = {
   glowLevel?: ParticipantGlowLevel;
   outlineWeight?: ParticipantOutlineWeight;
 };
-
-function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
-  return (
-    <div className="pointer-events-none absolute inset-0 z-[1] overflow-hidden">
-      <div className="absolute -right-[12vw] -top-[26vw] aspect-square w-[48vw] max-w-[760px] rounded-full border border-blue-200/[0.08] bg-[radial-gradient(circle_at_32%_32%,rgba(112,157,255,0.28),transparent_22%),radial-gradient(circle_at_48%_54%,rgba(35,83,177,0.54),rgba(7,20,54,0.78)_56%,rgba(2,7,20,0.92)_76%)] opacity-28 shadow-[-30px_40px_110px_rgba(57,111,224,0.12)]" />
-      <div
-        className={`absolute left-[-20%] top-[6%] h-[430px] w-[430px] rounded-full blur-3xl transition-opacity duration-1000 ${
-          isLive ? "bg-red-300/[0.030] opacity-44" : "bg-sky-200/[0.036] opacity-40"
-        } animate-[producerAtmosphereDrift_34s_ease-in-out_infinite]`}
-      />
-      <div className="absolute right-[-18%] top-[26%] h-[460px] w-[460px] rounded-full bg-sky-200/[0.018] blur-3xl animate-[producerAtmosphereCounterDrift_38s_ease-in-out_infinite]" />
-      <div className="absolute bottom-[-24%] left-[26%] h-[470px] w-[470px] rounded-full bg-cyan-200/[0.022] blur-3xl animate-[producerAtmosphereBloom_36s_ease-in-out_infinite]" />
-
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.003)_38%,transparent_62%)] animate-[producerTransmissionSheen_42s_ease-in-out_infinite]" />
-      <div className="absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.008)_0px,rgba(255,255,255,0.008)_1px,transparent_1px,transparent_16px)] opacity-[0.018]" />
-
-      {isLive ? (
-        <div className="absolute inset-x-12 top-0 h-px bg-gradient-to-r from-transparent via-red-200/24 to-transparent animate-[producerLiveScan_4.6s_ease-in-out_infinite]" />
-      ) : null}
-
-      <style jsx global>{`
-        @keyframes producerAtmosphereDrift {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
-
-          50% {
-            transform: translate3d(26px, 16px, 0) scale(1.04);
-          }
-        }
-
-        @keyframes producerAtmosphereCounterDrift {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
-
-          50% {
-            transform: translate3d(-22px, 12px, 0) scale(1.035);
-          }
-        }
-
-        @keyframes producerAtmosphereBloom {
-          0%,
-          100% {
-            opacity: 0.18;
-            transform: scale(1);
-          }
-
-          50% {
-            opacity: 0.32;
-            transform: scale(1.04);
-          }
-        }
-
-        @keyframes producerTransmissionSheen {
-          0%,
-          100% {
-            opacity: 0;
-            transform: translateX(-18%);
-          }
-
-          45% {
-            opacity: 0.14;
-          }
-
-          100% {
-            transform: translateX(18%);
-          }
-        }
-
-        @keyframes producerLiveScan {
-          0%,
-          100% {
-            opacity: 0.15;
-            transform: translateY(0);
-          }
-
-          50% {
-            opacity: 0.28;
-            transform: translateY(6px);
-          }
-        }
-      `}</style>
-    </div>
-  );
-}
 
 function CameraSlotLiveContent({ block }: { block: PreviewBlock }): JSX.Element | null {
   const cameraTracks = useTracks([Track.Source.Camera], {
@@ -1011,6 +924,11 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const handleAddParticipantToStage = useCallback(
     (identity: string): void => {
+      const previousManualIds = new Set(manualStageParticipantIdsRef.current);
+      const previousManualPrimary = manualPrimaryParticipantIdRef.current;
+      const previousAutoDirector = autoDirectorEnabled;
+      const previousStageState = latestStageStateRef.current;
+
       manualStageParticipantIdsRef.current.add(identity);
       manualPrimaryParticipantIdRef.current = manualPrimaryParticipantIdRef.current ?? identity;
       setAutoDirectorEnabled(false);
@@ -1035,9 +953,15 @@ updateShadowColor: updateSelectedBlockShadowColor,
           const participant = participants.find((item) => item.identity === identity);
           setOperatorNotice(`${participant?.name || identity} was sent to stage.`);
         })
-        .catch(handleAsyncError);
+        .catch((error) => {
+          manualStageParticipantIdsRef.current = previousManualIds;
+          manualPrimaryParticipantIdRef.current = previousManualPrimary;
+          setAutoDirectorEnabled(previousAutoDirector);
+          updateStageState(previousStageState);
+          handleAsyncError(error);
+        });
     },
-    [addToStage, handleAsyncError, participants, updateStageState, api],
+    [addToStage, autoDirectorEnabled, handleAsyncError, participants, updateStageState, api],
   );
 
   const handleSetParticipantScreenShare = useCallback(
@@ -1070,6 +994,9 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const handleSetPrimaryParticipant = useCallback(
     (identity: string): void => {
+      const previousAutoDirector = autoDirectorEnabled;
+      const previousStageState = latestStageStateRef.current;
+
       setAutoDirectorEnabled(false);
       updateStageState((current) => {
         if (!current) return current;
@@ -1092,9 +1019,13 @@ updateShadowColor: updateSelectedBlockShadowColor,
           const participant = participants.find((item) => item.identity === identity);
           setOperatorNotice(`${participant?.name || identity} is now the primary stage source.`);
         })
-        .catch(handleAsyncError);
+        .catch((error) => {
+          setAutoDirectorEnabled(previousAutoDirector);
+          updateStageState(previousStageState);
+          handleAsyncError(error);
+        });
     },
-    [handleAsyncError, participants, setPrimaryParticipant, updateStageState, api],
+    [autoDirectorEnabled, handleAsyncError, participants, setPrimaryParticipant, updateStageState, api],
   );
 
   const handlePinParticipant = useCallback(
@@ -1108,6 +1039,10 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const handleRemoveParticipantFromStage = useCallback(
     (identity: string): void => {
+      const previousManualIds = new Set(manualStageParticipantIdsRef.current);
+      const previousManualPrimary = manualPrimaryParticipantIdRef.current;
+      const previousStageState = latestStageStateRef.current;
+
       manualStageParticipantIdsRef.current.delete(identity);
       if (manualPrimaryParticipantIdRef.current === identity) {
         manualPrimaryParticipantIdRef.current = Array.from(manualStageParticipantIdsRef.current)[0] ?? null;
@@ -1147,7 +1082,12 @@ updateShadowColor: updateSelectedBlockShadowColor,
           const participant = participants.find((item) => item.identity === identity);
           setOperatorNotice(`${participant?.name || identity} returned to backstage.`);
         })
-        .catch(handleAsyncError);
+        .catch((error) => {
+          manualStageParticipantIdsRef.current = previousManualIds;
+          manualPrimaryParticipantIdRef.current = previousManualPrimary;
+          updateStageState(previousStageState);
+          handleAsyncError(error);
+        });
     },
     [handleAsyncError, participants, removeFromStage, updateStageState],
   );
@@ -1176,7 +1116,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const handleAddMediaAssetToPreview = useCallback(
     (block: PreviewBlock): void => {
-      const nextBlockId = `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const nextBlockId = crypto.randomUUID();
 
       setPreviewBlocks((current) => {
         const baseBlocks = block.groupId === "source-route"
@@ -1525,8 +1465,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
   }, [operatorNotice]);
 
 
-  // Top chrome props
-  const topChromeProps = useMemo(
+  // Top chrome state
+  const topChromeState = useMemo(
     () => ({
       eventId,
       headline: sessionTitle || stageState?.headline || "Live Production",
@@ -1548,7 +1488,6 @@ updateShadowColor: updateSelectedBlockShadowColor,
       lastTakeMode,
       hotkeySceneLabelText,
       lastTransportActionAt,
-      onTake: handleCommandDeckTake,
     }),
     [
       eventId,
@@ -1571,8 +1510,11 @@ updateShadowColor: updateSelectedBlockShadowColor,
       lastTakeMode,
       hotkeySceneLabelText,
       lastTransportActionAt,
-      handleCommandDeckTake,
     ],
+  );
+
+  const topChromeNode = (
+    <ProducerRoomTopChrome {...topChromeState} onTake={handleCommandDeckTake} />
   );
 
   useEffect(() => {
@@ -1586,13 +1528,13 @@ updateShadowColor: updateSelectedBlockShadowColor,
         // Future: we will refine positioning via blocks
         // For now, this ensures layout actually changes
       } catch (e: unknown) {
-        console.error("Failed applying screen preset", e);
+        setError(e instanceof Error ? e.message : "Failed applying screen preset");
       }
     }
 
     // Only react when preset changes
     void applyPreset();
-  }, [screenLayoutPreset]);
+  }, [screenLayoutPreset, setError, setLayout]);
 
   useEffect(() => {
     return () => {
@@ -1613,19 +1555,13 @@ updateShadowColor: updateSelectedBlockShadowColor,
     [programBlocks, setProgramBlocks],
   );
 
-  // Center workspace props
-  const centerSwitcherProps = useMemo(
+  // Center workspace state
+  const centerSwitcherState = useMemo(
     () => ({
       workspaceMode,
-      triggerAudienceCue,
-      onHideAudienceCue: handleHideAudienceCue,
       previewProgramDifferent,
       takeBusy,
       lastTakeMode,
-      onTake: handleCenterSwitcherTake,
-      onPreviewCanvasMouseMove,
-      stopDraggingBlock,
-      onClearSelectedBlock: handleClearSelectedBlock,
       stageState,
       onStageParticipants,
       participantAppearanceOverrides,
@@ -1633,12 +1569,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
       selectedBlockId,
       snapGuideX,
       snapGuideY,
-      setSelectedBlockId,
-      startDraggingBlock,
-      startResizingBlock,
       programState,
       programBlocks,
-      onRemoveProgramBlock: removeProgramBlock,
       renderCameraSlotContent,
       screenLayoutPreset,
       showAudienceCue,
@@ -1646,60 +1578,31 @@ updateShadowColor: updateSelectedBlockShadowColor,
       audienceCueMoonMode,
       audienceCueQuestionLabel,
       audienceOriginCollapsed,
-      onToggleAudienceOriginCollapsed: handleToggleAudienceOriginCollapsed,
       isTransitioning,
       transitionFromState,
       transitionFromBlocks,
       transitionFadingOut,
       sceneName,
-      onSceneNameChange: setSceneName,
-      onSaveScene: saveScene,
       sceneBusy,
       scenes,
       selectedSceneId,
       selectedSceneLabel,
-      onApplyScene: handleApplyScene,
-      onClearScreenShare: handleClearScreenShare,
-      onUnpin: handleUnpinParticipant,
-      onClearPrimary: handleClearPrimaryParticipant,
-      addTestTextBlock,
-      addTestVideoBlock,
-      addTestPdfBlock,
-      addTestImageBlock,
-      addCameraSlotBlock,
-      onAddMediaAssetToPreview: handleAddMediaAssetToPreview,
-      onUploadPdf: handleUploadPdfClick,
-      onUploadVideo: handleUploadVideoClick,
-      onUploadImage: handleUploadImageClick,
-      duplicateSelectedBlock,
-      bringSelectedBlockToFront,
-      deleteSelectedBlock,
       healthSnapshot,
       transportHealth,
     }),
     [
       workspaceMode,
-      triggerAudienceCue,
-      handleHideAudienceCue,
       previewProgramDifferent,
       takeBusy,
       lastTakeMode,
-      handleCenterSwitcherTake,
-      onPreviewCanvasMouseMove,
-      stopDraggingBlock,
-      handleClearSelectedBlock,
       stageState,
       onStageParticipants,
       previewBlocks,
       selectedBlockId,
       snapGuideX,
       snapGuideY,
-      setSelectedBlockId,
-      startDraggingBlock,
-      startResizingBlock,
       programState,
       programBlocks,
-      removeProgramBlock,
       renderCameraSlotContent,
       screenLayoutPreset,
       showAudienceCue,
@@ -1707,34 +1610,15 @@ updateShadowColor: updateSelectedBlockShadowColor,
       audienceCueMoonMode,
       audienceCueQuestionLabel,
       audienceOriginCollapsed,
-      handleToggleAudienceOriginCollapsed,
       isTransitioning,
       transitionFromState,
       transitionFromBlocks,
       transitionFadingOut,
       sceneName,
-      setSceneName,
-      saveScene,
       sceneBusy,
       scenes,
       selectedSceneId,
       selectedSceneLabel,
-      handleApplyScene,
-      handleClearScreenShare,
-      handleUnpinParticipant,
-      handleClearPrimaryParticipant,
-      addTestTextBlock,
-      addTestVideoBlock,
-      addTestPdfBlock,
-      addTestImageBlock,
-      addCameraSlotBlock,
-      handleAddMediaAssetToPreview,
-      handleUploadPdfClick,
-      handleUploadVideoClick,
-      handleUploadImageClick,
-      duplicateSelectedBlock,
-      bringSelectedBlockToFront,
-      deleteSelectedBlock,
       healthSnapshot,
       transportHealth,
     ],
@@ -1742,183 +1626,174 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const centerColumn = (
     <ProducerRoomCenterColumn>
-      <CenterSwitcherColumn {...centerSwitcherProps} />
+      <CenterSwitcherColumn
+        {...centerSwitcherState}
+        triggerAudienceCue={triggerAudienceCue}
+        onHideAudienceCue={handleHideAudienceCue}
+        onTake={handleCenterSwitcherTake}
+        onPreviewCanvasMouseMove={onPreviewCanvasMouseMove}
+        stopDraggingBlock={stopDraggingBlock}
+        onClearSelectedBlock={handleClearSelectedBlock}
+        setSelectedBlockId={setSelectedBlockId}
+        startDraggingBlock={startDraggingBlock}
+        startResizingBlock={startResizingBlock}
+        onRemoveProgramBlock={removeProgramBlock}
+        onToggleAudienceOriginCollapsed={handleToggleAudienceOriginCollapsed}
+        onSceneNameChange={setSceneName}
+        onSaveScene={saveScene}
+        onApplyScene={handleApplyScene}
+        onClearScreenShare={handleClearScreenShare}
+        onUnpin={handleUnpinParticipant}
+        onClearPrimary={handleClearPrimaryParticipant}
+        addTestTextBlock={addTestTextBlock}
+        addTestVideoBlock={addTestVideoBlock}
+        addTestPdfBlock={addTestPdfBlock}
+        addTestImageBlock={addTestImageBlock}
+        addCameraSlotBlock={addCameraSlotBlock}
+        onAddMediaAssetToPreview={handleAddMediaAssetToPreview}
+        onUploadPdf={handleUploadPdfClick}
+        onUploadVideo={handleUploadVideoClick}
+        onUploadImage={handleUploadImageClick}
+        duplicateSelectedBlock={duplicateSelectedBlock}
+        bringSelectedBlockToFront={bringSelectedBlockToFront}
+        deleteSelectedBlock={deleteSelectedBlock}
+      />
     </ProducerRoomCenterColumn>
   );
 
-  // Rail props
-  const leftRailProps = useMemo(
+  // Rail state
+  const leftRailState = useMemo(
     () => ({
       takeBusy,
       previewProgramDifferent,
       isProgramLive,
       liveActionBusy,
-      onTake: handleLeftRailTake,
-      onGoLive: handleGoLive,
-      onGoOffAir: handleGoOffAir,
       layout: stageState?.layout,
-      onSetLayout: handleSetLayout,
       autoDirectorEnabled,
       screenLayoutPreset,
-      onSetScreenLayoutPreset: setScreenLayoutPreset,
-      onToggleAutoDirector: handleToggleAutoDirector,
       localMicLevel,
       monitorHeight,
-      onMonitorHeightChange: setMonitorHeight,
       deviceAccessReady,
       videoDevices,
       audioDevices,
       selectedVideoDeviceId,
       selectedAudioDeviceId,
-      onSelectVideoDevice: setSelectedVideoDeviceId,
-      onSelectAudioDevice: setSelectedAudioDeviceId,
     }),
     [
       takeBusy,
       previewProgramDifferent,
       isProgramLive,
       liveActionBusy,
-      handleLeftRailTake,
-      handleGoLive,
-      handleGoOffAir,
       stageState?.layout,
-      handleSetLayout,
       autoDirectorEnabled,
       screenLayoutPreset,
-      setScreenLayoutPreset,
-      handleToggleAutoDirector,
       localMicLevel,
       monitorHeight,
-      setMonitorHeight,
       deviceAccessReady,
       videoDevices,
       audioDevices,
       selectedVideoDeviceId,
       selectedAudioDeviceId,
-      setSelectedVideoDeviceId,
-      setSelectedAudioDeviceId,
     ],
   );
 
-  const rightRailProps = useMemo(
+  const leftRailNode = (
+    <ProducerLeftRail
+      {...leftRailState}
+      onTake={handleLeftRailTake}
+      onGoLive={handleGoLive}
+      onGoOffAir={handleGoOffAir}
+      onSetLayout={handleSetLayout}
+      onSetScreenLayoutPreset={setScreenLayoutPreset}
+      onToggleAutoDirector={handleToggleAutoDirector}
+      onMonitorHeightChange={setMonitorHeight}
+      onSelectVideoDevice={setSelectedVideoDeviceId}
+      onSelectAudioDevice={setSelectedAudioDeviceId}
+    />
+  );
+
+  const rightRailState = useMemo(
     () => ({
       videoDevices,
       audioDevices,
       selectedVideoDeviceId,
       selectedAudioDeviceId,
-      onSelectVideoDevice: setSelectedVideoDeviceId,
-      onSelectAudioDevice: setSelectedAudioDeviceId,
       participants,
       participantAppearanceOverrides,
-      onSetParticipantAccentColor: handleSetParticipantAccentColor,
-      onSetParticipantGlowLevel: handleSetParticipantGlowLevel,
-      onSetParticipantOutlineWeight: handleSetParticipantOutlineWeight,
       stageIds,
       selectedBlock: resolvedSelectedBlock,
       previewBlocks,
       selectedBlockId,
-      onSelectBlock: setSelectedBlockId,
-      onToggleLayerHidden: handleToggleLayerHidden,
-      onMoveLayerForward: handleMoveLayerForward,
-      onMoveLayerBackward: handleMoveLayerBackward,
-      onReorderLayers: handleReorderLayers,
-      onToggleHidden: toggleSelectedBlockHidden,
-      onToggleLocked: toggleSelectedBlockLocked,
-      onUpdateOpacity: updateSelectedBlockOpacity,
-      onUpdateScale: updateSelectedBlockScale,
-      onUpdateRotation: updateSelectedBlockRotation,
-      onUpdateBlur: updateSelectedBlockBlur,
-      onUpdateGlow: updateSelectedBlockGlow,
-      onUpdateGlowColor: updateSelectedBlockGlowColor,
-      onUpdateBorderRadius: updateSelectedBlockBorderRadius,
-      onUpdateShadowIntensity: updateSelectedBlockShadowIntensity,
-      onUpdateShadowColor: updateSelectedBlockShadowColor,
-      onUpdateLabel: updateSelectedBlockLabel,
-      onUpdateBlendMode: updateSelectedBlockBlendMode,
-      onUpdateGroupId: updateSelectedBlockGroupId,
-      onUpdateTimelineStart: updateSelectedBlockTimelineStart,
-      onUpdateTimelineDuration: updateSelectedBlockTimelineDuration,
-      onUpdateAnimationType: updateSelectedBlockAnimationType,
-      onUpdateAnimationProgress: updateSelectedBlockAnimationProgress,
-      onUpdatePosition: updateSelectedBlockPosition,
-      onUpdateSize: updateSelectedBlockSize,
-      onUpdateSrc: updateSelectedBlockSrc,
-      onUpdateTextContent: updateSelectedTextBlockContent,
-      onAssignParticipantToCameraSlot: handleAssignParticipantToCameraSlot,
       stageState,
       getScreenTrackSid,
-      onAddToStage: handleAddParticipantToStage,
-      onSetScreenShare: handleSetParticipantScreenShare,
-      onClearPrimary: handleClearPrimaryParticipant,
-      onSetPrimary: handleSetPrimaryParticipant,
-      onUnpin: handleUnpinParticipant,
-      onPin: handlePinParticipant,
-      onRemoveFromStage: handleRemoveParticipantFromStage,
-      onError: setError,
       eventId,
       sessionId,
-      onPreviewQuestion: handlePreviewQuestion,
-      onHideQuestion: handleHideQuestion,
     }),
     [
       videoDevices,
       audioDevices,
       selectedVideoDeviceId,
       selectedAudioDeviceId,
-      setSelectedVideoDeviceId,
-      setSelectedAudioDeviceId,
       participants,
       participantAppearanceOverrides,
-      handleSetParticipantAccentColor,
-      handleSetParticipantGlowLevel,
-      handleSetParticipantOutlineWeight,
       stageIds,
       resolvedSelectedBlock,
       previewBlocks,
       selectedBlockId,
-      setSelectedBlockId,
-      handleToggleLayerHidden,
-      handleMoveLayerForward,
-      handleMoveLayerBackward,
-      handleReorderLayers,
-      toggleSelectedBlockHidden,
-      toggleSelectedBlockLocked,
-      updateSelectedBlockOpacity,
-      updateSelectedBlockScale,
-      updateSelectedBlockRotation,
-      updateSelectedBlockBlur,
-      updateSelectedBlockGlow,
-      updateSelectedBlockGlowColor,
-      updateSelectedBlockBorderRadius,
-      updateSelectedBlockShadowIntensity,
-      updateSelectedBlockShadowColor,
-      updateSelectedBlockLabel,
-      updateSelectedBlockBlendMode,
-      updateSelectedBlockGroupId,
-      updateSelectedBlockTimelineStart,
-      updateSelectedBlockTimelineDuration,
-      updateSelectedBlockAnimationType,
-      updateSelectedBlockAnimationProgress,
-      updateSelectedBlockPosition,
-      updateSelectedBlockSize,
-      updateSelectedBlockSrc,
-      updateSelectedTextBlockContent,
-      handleAssignParticipantToCameraSlot,
       stageState,
       getScreenTrackSid,
-      handleAddParticipantToStage,
-      handleSetParticipantScreenShare,
-      handleClearPrimaryParticipant,
-      handleSetPrimaryParticipant,
-      handleUnpinParticipant,
-      handlePinParticipant,
-      handleRemoveParticipantFromStage,
       eventId,
       sessionId,
-      handlePreviewQuestion,
-      handleHideQuestion,
-      setError,
     ],
+  );
+
+  const rightRailNode = (
+    <ProducerRightRail
+      {...rightRailState}
+      onSelectVideoDevice={setSelectedVideoDeviceId}
+      onSelectAudioDevice={setSelectedAudioDeviceId}
+      onSetParticipantAccentColor={handleSetParticipantAccentColor}
+      onSetParticipantGlowLevel={handleSetParticipantGlowLevel}
+      onSetParticipantOutlineWeight={handleSetParticipantOutlineWeight}
+      onSelectBlock={setSelectedBlockId}
+      onToggleLayerHidden={handleToggleLayerHidden}
+      onMoveLayerForward={handleMoveLayerForward}
+      onMoveLayerBackward={handleMoveLayerBackward}
+      onReorderLayers={handleReorderLayers}
+      onToggleHidden={toggleSelectedBlockHidden}
+      onToggleLocked={toggleSelectedBlockLocked}
+      onUpdateOpacity={updateSelectedBlockOpacity}
+      onUpdateScale={updateSelectedBlockScale}
+      onUpdateRotation={updateSelectedBlockRotation}
+      onUpdateBlur={updateSelectedBlockBlur}
+      onUpdateGlow={updateSelectedBlockGlow}
+      onUpdateGlowColor={updateSelectedBlockGlowColor}
+      onUpdateBorderRadius={updateSelectedBlockBorderRadius}
+      onUpdateShadowIntensity={updateSelectedBlockShadowIntensity}
+      onUpdateShadowColor={updateSelectedBlockShadowColor}
+      onUpdateLabel={updateSelectedBlockLabel}
+      onUpdateBlendMode={updateSelectedBlockBlendMode}
+      onUpdateGroupId={updateSelectedBlockGroupId}
+      onUpdateTimelineStart={updateSelectedBlockTimelineStart}
+      onUpdateTimelineDuration={updateSelectedBlockTimelineDuration}
+      onUpdateAnimationType={updateSelectedBlockAnimationType}
+      onUpdateAnimationProgress={updateSelectedBlockAnimationProgress}
+      onUpdatePosition={updateSelectedBlockPosition}
+      onUpdateSize={updateSelectedBlockSize}
+      onUpdateSrc={updateSelectedBlockSrc}
+      onUpdateTextContent={updateSelectedTextBlockContent}
+      onAssignParticipantToCameraSlot={handleAssignParticipantToCameraSlot}
+      onAddToStage={handleAddParticipantToStage}
+      onSetScreenShare={handleSetParticipantScreenShare}
+      onClearPrimary={handleClearPrimaryParticipant}
+      onSetPrimary={handleSetPrimaryParticipant}
+      onUnpin={handleUnpinParticipant}
+      onPin={handlePinParticipant}
+      onRemoveFromStage={handleRemoveParticipantFromStage}
+      onError={setError}
+      onPreviewQuestion={handlePreviewQuestion}
+      onHideQuestion={handleHideQuestion}
+    />
   );
 
   // Dock props
@@ -1934,7 +1809,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     [],
   );
 
-  const bottomAssetDockProps = useMemo(
+  const bottomAssetDockState = useMemo(
     () => ({
       workspaceMode,
       scenes,
@@ -1948,26 +1823,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
       recordingRoomName: roomName ?? sessionId,
       slideDeckName: localPdfDeck?.name ?? null,
       slideCount: localPdfDeck?.pageCount ?? 8,
-onAddScene: () => {
-  console.log("New Scene")
-  startNewScene()
-},
-
-onSaveScene: () => {
-  console.log("Save Scene")
-  saveScene()
-},
-      onAddMediaAssetToPreview: handleAddMediaAssetToPreview,
-      onUploadPdf: handleUploadPdfClick,
-      onSendSlideToPreview: transportActions.sendSlideToPreview,
-      onTakeSlide: transportActions.takeSlide,
-      onApplyScene: handleDockApplyScene,
-      onDoubleClickScene: handleDockApplySceneAndTake,
-      onDeleteScene: handleDockDeleteScene,
       previewProgramDifferent,
       takeBusy,
-      onTakeProgram: (mode: "cut" | "auto") => takeProgram(mode),
-      onRecordingHealthChange: handleRecordingHealthChange,
     }),
     [
       workspaceMode,
@@ -1983,81 +1840,64 @@ onSaveScene: () => {
       roomName,
       localPdfDeck?.name,
       localPdfDeck?.pageCount,
-      sceneActions,
-      handleAddMediaAssetToPreview,
-      handleUploadPdfClick,
-      transportActions,
-      handleDockApplyScene,
-      handleDockApplySceneAndTake,
-      handleDockDeleteScene,
       previewProgramDifferent,
       takeBusy,
-      takeProgram,
-      handleRecordingHealthChange,
     ],
   );
 
-  const bottomDock = <BottomAssetDock {...bottomAssetDockProps} />;
-
-  if (!token || !serverUrl) {
-    return (
-      <div className="relative flex h-[100dvh] items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_20%_0%,rgba(125,211,252,0.060),transparent_34%),radial-gradient(circle_at_80%_14%,rgba(196,181,253,0.045),transparent_32%),linear-gradient(180deg,#07101f_0%,#050b16_52%,#02050b_100%)] p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] text-white sm:p-8">
-        <div className="pointer-events-none absolute inset-0 opacity-[0.018] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.018)_0px,rgba(255,255,255,0.018)_1px,transparent_1px,transparent_18px)]" />
-        <div className="pointer-events-none absolute inset-x-[18%] top-0 h-px bg-gradient-to-r from-transparent via-white/[0.10] to-transparent" />
-
-        <div className="relative w-[min(560px,calc(100vw-48px))] overflow-hidden rounded-[26px] border border-white/[0.08] bg-[linear-gradient(180deg,rgba(9,14,26,0.88),rgba(3,6,13,0.96))] p-6 text-center shadow-[0_28px_90px_rgba(0,0,0,0.48),inset_0_1px_0_rgba(255,255,255,0.030)] backdrop-blur-xl">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full border border-sky-200/[0.12] bg-sky-300/[0.045] shadow-[0_0_28px_rgba(56,189,248,0.10)]">
-            <span className="h-2.5 w-2.5 rounded-full bg-sky-300/70 shadow-[0_0_12px_rgba(125,211,252,0.30)]" />
-          </div>
-
-          <div className="mt-5 text-[10px] font-black uppercase tracking-[0.22em] text-sky-100/38">
-            Jupiter Producer Room
-          </div>
-
-          <div className="mt-2 text-xl font-semibold tracking-[-0.02em] text-white/86">
-            {error ? "Connection interrupted" : "Connecting producer console"}
-          </div>
-
-          <div className="mx-auto mt-2 max-w-md text-sm leading-6 text-white/48">
-            {error
-              ? "The production surface could not complete its initial sync. Your route is still intact; retry the connection or return to the session overview."
-              : loadingText}
-          </div>
-
-          {error ? (
-            <div className="mt-4 rounded-[16px] border border-amber-300/12 bg-amber-300/[0.035] px-4 py-3 text-left text-xs font-semibold text-amber-50/62">
-              {error}
-            </div>
-          ) : null}
-
-          <div className="mt-5 flex flex-wrap justify-center gap-2">
-            <button
-              type="button"
-              onClick={() => window.location.reload()}
-              className="rounded-full border border-sky-200/14 bg-sky-300/[0.070] px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-sky-50/78 transition hover:bg-sky-300/[0.12]"
-            >
-              Retry
-            </button>
-            <a
-              href="../"
-              className="rounded-full border border-white/[0.07] bg-white/[0.030] px-4 py-2 text-[10px] font-black uppercase tracking-[0.12em] text-white/54 transition hover:bg-white/[0.055] hover:text-white/78"
-            >
-              Exit Producer
-            </a>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const bottomDock = (
+    <BottomAssetDock
+      {...bottomAssetDockState}
+      onAddScene={startNewScene}
+      onSaveScene={saveScene}
+      onAddMediaAssetToPreview={handleAddMediaAssetToPreview}
+      onUploadPdf={handleUploadPdfClick}
+      onSendSlideToPreview={transportActions.sendSlideToPreview}
+      onTakeSlide={transportActions.takeSlide}
+      onApplyScene={handleDockApplyScene}
+      onDoubleClickScene={handleDockApplySceneAndTake}
+      onDeleteScene={handleDockDeleteScene}
+      onTakeProgram={takeProgram}
+      onRecordingHealthChange={handleRecordingHealthChange}
+    />
+  );
 
   return (
-    <LiveKitRoom
-      key={liveKitRoomKey}
+    <ProducerRoomClientUI
       token={token}
       serverUrl={serverUrl}
-      connect
-      video={false}
-      audio={false}
+      liveKitRoomKey={liveKitRoomKey}
+      error={error}
+      loadingText={loadingText}
+      isProgramLive={isProgramLive}
+      pendingSafetyAction={pendingSafetyAction}
+      liveSafetyChecks={liveSafetyChecks}
+      liveActionBusy={liveActionBusy}
+      handleCancelSafetyAction={handleCancelSafetyAction}
+      handleConfirmSafetyAction={handleConfirmSafetyAction}
+      syncWarningText={syncWarningText}
+      recoveryBusy={recoveryBusy}
+      handleRecoverControlPlane={handleRecoverControlPlane}
+      operatorNotice={operatorNotice}
+      healthSnapshot={healthSnapshot}
+      transportHealth={transportHealth}
+      recordingHealth={recordingHealth}
+      workspaceMode={workspaceMode}
+      setWorkspaceMode={setWorkspaceMode}
+      standardToolsOpen={standardToolsOpen}
+      setStandardToolsOpen={setStandardToolsOpen}
+      eventId={eventId}
+      topChromeNode={topChromeNode}
+      leftRailNode={leftRailNode}
+      centerColumn={centerColumn}
+      rightRailNode={rightRailNode}
+      bottomDock={bottomDock}
+      pdfInputRef={pdfInputRef}
+      videoInputRef={videoInputRef}
+      imageInputRef={imageInputRef}
+      handleProducerPdfInputChange={handleProducerPdfInputChange}
+      handleVideoUpload={handleVideoUpload}
+      handleImageUpload={handleImageUpload}
       onConnected={() => {
         setTransportHealth("connected");
         setSyncWarningText(null);
@@ -2066,110 +1906,10 @@ onSaveScene: () => {
         setTransportHealth("degraded");
         setSyncWarningText("Live transport disconnected. Use Recover to reconnect safely.");
       }}
-      onError={(liveKitError) => {
+      onError={(liveKitError: Error) => {
         setTransportHealth("degraded");
         setSyncWarningText(`Live transport error: ${liveKitError.message}`);
       }}
-    >
-      <RoomAudioRenderer />
-
-      <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#030714] px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] text-center text-white md:hidden">
-        <div className="max-w-sm">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl border border-sky-300/20 bg-sky-300/10 text-2xl" aria-hidden="true">↻</div>
-          <p className="mt-5 text-[10px] font-bold uppercase tracking-[0.22em] text-sky-200/60">Producer Room</p>
-          <h1 className="mt-2 text-2xl font-semibold tracking-tight">Rotate your iPhone</h1>
-          <p className="mt-3 text-sm leading-6 text-white/60">The live switcher opens in landscape so Preview, Program, audio, and TAKE remain safely separated. For the full control surface, use an iPad or computer.</p>
-        </div>
-      </div>
-
-      <div className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.08),transparent_32%),radial-gradient(circle_at_82%_2%,rgba(56,189,248,0.045),transparent_30%),linear-gradient(180deg,#080d19_0%,#050914_48%,#03060d_100%)] text-white">
-        <ProducerRoomBackground />
-        <ProducerRoomAtmosphere isLive={isProgramLive} />
-
-        {pendingSafetyAction ? (
-          <ProducerSafetyDialog
-            action={pendingSafetyAction}
-            checks={liveSafetyChecks}
-            busy={liveActionBusy}
-            onCancel={handleCancelSafetyAction}
-            onConfirm={() => {
-              void handleConfirmSafetyAction();
-            }}
-          />
-        ) : null}
-
-        <ProducerRoomContentStack>
-          <ProducerUploadInputs
-            pdfInputRef={pdfInputRef}
-            videoInputRef={videoInputRef}
-            imageInputRef={imageInputRef}
-            onPdfUpload={handleProducerPdfInputChange}
-            onVideoUpload={handleVideoUpload}
-            onImageUpload={handleImageUpload}
-          />
-
-          <div className="flex min-h-0 flex-1 overflow-hidden">
-            <ProducerNavigationRail eventId={eventId} isLive={isProgramLive} />
-
-            <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <ProducerRoomTopChrome {...topChromeProps} />
-              <ProducerModeBar mode={workspaceMode} onModeChange={setWorkspaceMode} />
-              {syncWarningText ? (
-                <div className="relative z-[90] flex shrink-0 items-center justify-between gap-4 border-y border-amber-300/18 bg-[linear-gradient(90deg,rgba(46,30,8,0.94),rgba(18,12,5,0.98))] px-4 py-2 shadow-[0_8px_24px_rgba(0,0,0,0.28)]" role="alert">
-                  <div className="min-w-0">
-                    <span className="text-[8px] font-bold uppercase tracking-[0.16em] text-amber-100/55">Producer sync notice</span>
-                    <span className="ml-3 text-[10px] font-medium text-amber-50/78">{syncWarningText}</span>
-                  </div>
-                  <button type="button" disabled={recoveryBusy} onClick={() => void handleRecoverControlPlane()} className="shrink-0 rounded-[9px] border border-amber-200/20 bg-amber-100/[0.08] px-3 py-1.5 text-[8px] font-bold uppercase tracking-[0.12em] text-amber-50/78 transition hover:bg-amber-100/[0.14] disabled:opacity-45">
-                    {recoveryBusy ? "Recovering…" : "Recover"}
-                  </button>
-                </div>
-              ) : null}
-              {operatorNotice ? (
-                <div className="relative z-[89] shrink-0 border-y border-emerald-300/14 bg-emerald-400/[0.075] px-4 py-2 text-center text-[10px] font-medium text-emerald-50/76" role="status" aria-live="polite">
-                  {operatorNotice}
-                </div>
-              ) : null}
-              <ProducerHealthBar
-                snapshot={healthSnapshot}
-                transportHealth={transportHealth}
-                recordingStatus={recordingHealth.status}
-                recordingError={recordingHealth.error}
-                recoveryBusy={recoveryBusy}
-                onRecover={() => {
-                  void handleRecoverControlPlane();
-                }}
-              />
-              <ProducerRoomWorkspaceFrame>
-                <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <ProducerRoomGrid>
-                    <ProducerRoomWorkspace
-                      leftRail={<ProducerLeftRail {...leftRailProps} />}
-                      centerColumn={centerColumn}
-                      rightRail={<ProducerRightRail {...rightRailProps} />}
-                      bottomDock={workspaceMode === "show" && !standardToolsOpen ? undefined : bottomDock}
-                    />
-                  </ProducerRoomGrid>
-
-                  {workspaceMode === "show" ? (
-                    <button
-                      type="button"
-                      onClick={() => setStandardToolsOpen((current) => !current)}
-                      aria-expanded={standardToolsOpen}
-                      className="absolute bottom-2 left-1/2 z-[85] flex -translate-x-1/2 items-center gap-2 rounded-[10px] border border-white/[0.10] bg-[#101522]/95 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.10em] text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.38)] backdrop-blur-xl transition hover:border-sky-200/25 hover:text-white"
-                    >
-                      {standardToolsOpen ? "Close Production Tools" : "Production Tools"}
-                      <span aria-hidden="true" className={`transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}>
-                        ▴
-                      </span>
-                    </button>
-                  ) : null}
-                </div>
-              </ProducerRoomWorkspaceFrame>
-            </main>
-          </div>
-        </ProducerRoomContentStack>
-      </div>
-    </LiveKitRoom>
+    />
   );
 }

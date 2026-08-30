@@ -1,13 +1,13 @@
 "use client"
 
 import { useCallback, useEffect } from "react"
-import type useProducerRoomApi from "./useProducerRoomApi"
+import type { ProducerRoomApi } from "@/lib/producer/producerRoomApi"
 import type { ProducerParticipant, StageState } from "./producerRoomTypes"
 import type { PreviewBlock } from "./useProducerBlocks"
 import { normalizeProducerBlocks } from "./producerAssetUrls"
 
 type Params = {
-  api: ReturnType<typeof useProducerRoomApi>
+  api: ProducerRoomApi
   eventId: string
   sessionId: string
   loadMediaDevices: () => Promise<void>

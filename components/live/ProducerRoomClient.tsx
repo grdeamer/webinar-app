@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useMemo, useState, type ReactNode } from "react"
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import {
   LiveKitRoom,
   RoomAudioRenderer,
@@ -13,6 +13,7 @@ import type {
   TrackReferenceOrPlaceholder,
 } from "@livekit/components-core"
 import ProgramMomentOverlay from "@/components/live/ProgramMomentOverlay"
+import usePublicProducerRoomApi from "@/lib/producer/usePublicProducerRoomApi"
 import {
   Activity,
   Clapperboard,
@@ -27,26 +28,7 @@ import {
 type StageLayout = "solo" | "grid" | "screen_speaker"
 type StageTransitionType = "cut" | "fade" | "dip_to_black"
 
-type StageStateResponse = {
-  state?: {
-    session_id: string
-    preview_layout?: StageLayout
-    preview_stage_participant_ids?: string[]
-    preview_primary_participant_id?: string | null
-    program_layout?: StageLayout
-    program_stage_participant_ids?: string[]
-    program_primary_participant_id?: string | null
-    transition_type?: StageTransitionType
-    transition_started_at?: string | null
-    qa_origin_cue_visible?: boolean
-    qa_origin_region?: string | null
-    qa_origin_moon_mode?: boolean
-    qa_origin_question_label?: string | null
-    qa_origin_treatment?: "default" | "qa_origin_blend" | null
-    qa_origin_lat?: number | null
-    qa_origin_lng?: number | null
-  }
-}
+
 
 type ParticipantRecord = {
   identity: string
@@ -745,10 +727,18 @@ function ProgramMonitor({
 function ProducerRoomInner({
   stageEndpoint,
   sessionId,
+  eventId,
+  roomName,
+  token,
 }: {
   stageEndpoint: string
   sessionId: string
+  eventId: string
+  roomName: string
+  token: string
 }) {
+  const api = usePublicProducerRoomApi({ eventId, roomName, stageEndpoint, token })
+
   const trackRefs = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: false },
@@ -859,6 +849,7 @@ useEffect(() => {
   const [programTransitionOverlay, setProgramTransitionOverlay] =
     useState<StageTransitionType | null>(null)
   const [saving, setSaving] = useState(false)
+  const savingRef = useRef(false)
 const [isTakingLive, setIsTakingLive] = useState(false)
 
 const [clockMode, setClockMode] = useState<"elapsed" | "countdown">("elapsed")
@@ -869,7 +860,6 @@ const [now, setNow] = useState(() => Date.now())
 const [scenes, setScenes] = useState<SceneRecord[]>([])
   const [sceneName, setSceneName] = useState("")
 
-const scenesEndpoint = `${stageEndpoint}/scenes`
 const qaRoomKey = `session:${sessionId}`
 
 useEffect(() => {
@@ -885,34 +875,37 @@ useEffect(() => {
 
     async function loadStageState() {
       try {
-        const res = await fetch(stageEndpoint, { cache: "no-store" })
-        const data = (await res.json().catch((): null => null)) as StageStateResponse | null
+        if (cancelled || savingRef.current) return
 
-        if (!res.ok || cancelled || !data?.state) return
+        const { state } = await api.loadStageState()
 
-        setLayout(data.state.preview_layout || "solo")
-        setStageIds(data.state.preview_stage_participant_ids || [])
-        setPrimaryId(data.state.preview_primary_participant_id || null)
+        if (cancelled || savingRef.current || !state) return
 
-        setProgramLayout(data.state.program_layout || "solo")
-        setProgramStageIds(data.state.program_stage_participant_ids || [])
-        setProgramPrimaryId(data.state.program_primary_participant_id || null)
+        setLayout(state.layout || "solo")
+        setStageIds(state.stage_participant_ids || [])
+        setPrimaryId(state.primary_participant_id ?? null)
 
-        setShowAudienceCue(Boolean(data.state.qa_origin_cue_visible))
-        setAudienceCueRegion(data.state.qa_origin_region || "Europe")
-        setAudienceCueMoonMode(Boolean(data.state.qa_origin_moon_mode))
+        setProgramLayout(state.program_layout || state.layout || "solo")
+        setProgramStageIds(state.program_stage_participant_ids || state.stage_participant_ids || [])
+        setProgramPrimaryId(
+          state.program_primary_participant_id ?? state.primary_participant_id ?? null
+        )
+
+        setShowAudienceCue(Boolean(state.qa_origin_cue_visible))
+        setAudienceCueRegion(state.qa_origin_region || "Europe")
+        setAudienceCueMoonMode(Boolean(state.qa_origin_moon_mode))
         setAudienceCueQuestionLabel(
-          data.state.qa_origin_question_label ||
+          state.qa_origin_question_label ||
             "How are outcomes differing across regions?"
         )
         setAudienceCueLat(
-          typeof data.state.qa_origin_lat === "number" ? data.state.qa_origin_lat : null
+          typeof state.qa_origin_lat === "number" ? state.qa_origin_lat : null
         )
         setAudienceCueLng(
-          typeof data.state.qa_origin_lng === "number" ? data.state.qa_origin_lng : null
+          typeof state.qa_origin_lng === "number" ? state.qa_origin_lng : null
         )
         setAudienceCueTreatment(
-          data.state.qa_origin_treatment === "qa_origin_blend"
+          state.qa_origin_treatment === "qa_origin_blend"
             ? "qa_origin_blend"
             : "default"
         )
@@ -923,13 +916,10 @@ useEffect(() => {
 
     async function loadScenes() {
       try {
-        const res = await fetch(scenesEndpoint, { cache: "no-store" })
-        const data = (await res.json().catch((): null => null)) as
-          | { scenes?: SceneRecord[] }
-          | null
+        const { scenes } = await api.loadScenes()
 
-        if (!res.ok || cancelled) return
-        setScenes(data?.scenes || [])
+        if (cancelled) return
+        setScenes(Array.isArray(scenes) ? (scenes as SceneRecord[]) : [])
       } catch {
         // ignore
       }
@@ -983,16 +973,14 @@ useEffect(() => {
       cancelled = true
       window.clearInterval(intervalId)
     }
-  }, [stageEndpoint, scenesEndpoint, qaRoomKey])
+  }, [api, qaRoomKey])
 
   async function refreshScenes() {
-    const res = await fetch(scenesEndpoint, { cache: "no-store" })
-    const data = (await res.json().catch((): null => null)) as
-      | { scenes?: SceneRecord[] }
-      | null
-
-    if (res.ok) {
-      setScenes(data?.scenes || [])
+    try {
+      const { scenes } = await api.loadScenes()
+      setScenes(Array.isArray(scenes) ? (scenes as SceneRecord[]) : [])
+    } catch {
+      // ignore
     }
   }
 
@@ -1011,35 +999,31 @@ useEffect(() => {
           : nextStageIds[0] || null
 
     setSaving(true)
+    savingRef.current = true
 
     try {
-      const res = await fetch(stageEndpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
+      const { state } = await api.savePreviewState({
+        layout: nextLayout,
+        stageParticipantIds: nextStageIds,
+        primaryParticipantId: nextPrimaryId,
+        qaOrigin: {
+          cueVisible: showAudienceCue,
+          region: audienceCueRegion,
+          moonMode: audienceCueMoonMode,
+          questionLabel: audienceCueQuestionLabel,
+          treatment: audienceCueTreatment,
+          lat: audienceCueLat,
+          lng: audienceCueLng,
         },
-        body: JSON.stringify({
-          layout: nextLayout,
-          stage_participant_ids: nextStageIds,
-          primary_participant_id: nextPrimaryId,
-        }),
       })
 
-      const data = (await res.json().catch((): null => null)) as
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to save stage state")
-      }
-
-      setLayout(nextLayout)
-      setStageIds(nextStageIds)
-      setPrimaryId(nextPrimaryId)
+      setLayout(state.layout)
+      setStageIds(state.stage_participant_ids)
+      setPrimaryId(state.primary_participant_id)
     } catch (error) {
-      console.error("Failed to save stage state", error)
       alert(error instanceof Error ? error.message : "Failed to save stage state")
     } finally {
+      savingRef.current = false
       setSaving(false)
     }
   }
@@ -1085,32 +1069,21 @@ useEffect(() => {
         }, takeTransition === "dip_to_black" ? 950 : 650)
       }
 
-      const shouldTriggerCue = showAudienceCue
-
-      const res = await fetch(`${stageEndpoint}/take`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          transition_type: takeTransition,
-          live_moment_type: shouldTriggerCue ? "audience_origin" : null,
-        }),
+      const { state } = await api.takeProgram({
+        expectedPreviewVersion: null,
+        programBlocks: [],
+        transition: { type: takeTransition },
+        liveMomentType: showAudienceCue ? "audience_origin" : null,
       })
 
-      const data = (await res.json().catch((): null => null)) as
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to take program live")
+      if (state) {
+        setProgramLayout(state.program_layout || state.layout)
+        setProgramStageIds(state.program_stage_participant_ids || state.stage_participant_ids)
+        setProgramPrimaryId(
+          state.program_primary_participant_id ?? state.primary_participant_id ?? null
+        )
       }
-
-      setProgramLayout(layout)
-      setProgramStageIds(stageIds)
-      setProgramPrimaryId(primaryId)
     } catch (error) {
-      console.error("Failed to take live", error)
       alert(error instanceof Error ? error.message : "Failed to take program live")
     } finally {
       setIsTakingLive(false)
@@ -1131,28 +1104,20 @@ useEffect(() => {
         primaryId: null,
       })
 
-      const res = await fetch(`${stageEndpoint}/take`, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          transition_type: takeTransition,
-        }),
+      const { state } = await api.takeProgram({
+        expectedPreviewVersion: null,
+        programBlocks: [],
+        transition: { type: takeTransition },
       })
 
-      const data = (await res.json().catch((): null => null)) as
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to clear and take live")
+      if (state) {
+        setProgramLayout(state.program_layout || state.layout)
+        setProgramStageIds(state.program_stage_participant_ids || state.stage_participant_ids)
+        setProgramPrimaryId(
+          state.program_primary_participant_id ?? state.primary_participant_id ?? null
+        )
       }
-
-      setProgramStageIds([])
-      setProgramPrimaryId(null)
     } catch (error) {
-      console.error("Failed to clear and take live", error)
       alert(error instanceof Error ? error.message : "Failed to clear and take live")
     }
   }
@@ -1184,31 +1149,16 @@ useEffect(() => {
 
   async function saveCurrentScene() {
     try {
-      const res = await fetch(scenesEndpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-        },
-        body: JSON.stringify({
-          name: sceneName || "Untitled Scene",
-          layout,
-          stage_participant_ids: stageIds,
-          primary_participant_id: primaryId,
-        }),
+      await api.saveScene({
+        name: sceneName || "Untitled Scene",
+        screenLayoutPreset: layout,
+        previewBlocks: [],
+        thumbnailUrl: null,
       })
-
-      const data = (await res.json().catch((): null => null)) as
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to save scene")
-      }
 
       setSceneName("")
       await refreshScenes()
     } catch (error) {
-      console.error("Failed to save scene", error)
       alert(error instanceof Error ? error.message : "Failed to save scene")
     }
   }
@@ -1223,21 +1173,9 @@ useEffect(() => {
 
   async function deleteScene(sceneId: string) {
     try {
-      const res = await fetch(`${scenesEndpoint}/${sceneId}`, {
-        method: "DELETE",
-      })
-
-      const data = (await res.json().catch((): null => null)) as
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to delete scene")
-      }
-
+      await api.deleteScene(sceneId)
       await refreshScenes()
     } catch (error) {
-      console.error("Failed to delete scene", error)
       alert(error instanceof Error ? error.message : "Failed to delete scene")
     }
   }
@@ -1298,42 +1236,31 @@ useEffect(() => {
     setAudienceCueLat(options?.lat ?? null)
     setAudienceCueLng(options?.lng ?? null)
     setShowAudienceCue(true)
+    savingRef.current = true
 
     try {
-      const res = await fetch(stageEndpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
+      await api.savePreviewState({
+        layout,
+        stageParticipantIds: stageIds,
+        primaryParticipantId: primaryId,
+        qaOrigin: {
+          cueVisible: true,
+          region,
+          moonMode,
+          questionLabel,
+          treatment,
+          lat: options?.lat ?? null,
+          lng: options?.lng ?? null,
         },
-        body: JSON.stringify({
-          layout,
-          stage_participant_ids: stageIds,
-          primary_participant_id: primaryId,
-          qa_origin_cue_visible: true,
-          qa_origin_region: region,
-          qa_origin_moon_mode: moonMode,
-          qa_origin_question_label: questionLabel,
-          qa_origin_treatment: treatment,
-          qa_origin_lat: options?.lat ?? null,
-          qa_origin_lng: options?.lng ?? null,
-        }),
       })
-
-      const data = (await res.json().catch((): null => null)) as
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to save audience origin cue")
-      }
     } catch (error) {
-      console.error("Failed to save audience origin cue", error)
-
       alert(
         error instanceof Error
           ? error.message
           : "Failed to save audience origin cue"
       )
+    } finally {
+      savingRef.current = false
     }
   }
 
@@ -1356,42 +1283,31 @@ useEffect(() => {
     setAudienceCueLat(null)
     setAudienceCueLng(null)
     setAudienceCueTreatment("default")
+    savingRef.current = true
 
     try {
-      const res = await fetch(stageEndpoint, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
+      await api.savePreviewState({
+        layout,
+        stageParticipantIds: stageIds,
+        primaryParticipantId: primaryId,
+        qaOrigin: {
+          cueVisible: false,
+          region: null,
+          moonMode: false,
+          questionLabel: null,
+          treatment: null,
+          lat: null,
+          lng: null,
         },
-        body: JSON.stringify({
-          layout,
-          stage_participant_ids: stageIds,
-          primary_participant_id: primaryId,
-          qa_origin_cue_visible: false,
-          qa_origin_region: null,
-          qa_origin_moon_mode: false,
-          qa_origin_question_label: null,
-          qa_origin_treatment: null,
-          qa_origin_lat: null,
-          qa_origin_lng: null,
-        }),
       })
-
-      const data = (await res.json().catch((): null => null)) as
-        | { error?: string }
-        | null
-
-      if (!res.ok) {
-        throw new Error(data?.error || "Failed to clear audience cue")
-      }
     } catch (error) {
-      console.error("Failed to clear audience cue", error)
-
       alert(
         error instanceof Error
           ? error.message
           : "Failed to clear audience cue"
       )
+    } finally {
+      savingRef.current = false
     }
   }
 const elapsedSeconds = Math.max(0, Math.floor((now - clockStartedAt) / 1000))
@@ -2200,11 +2116,15 @@ export default function ProducerRoomClient({
   serverUrl,
   stageEndpoint,
   sessionId,
+  eventId,
+  roomName,
 }: {
   token: string
   serverUrl: string
   stageEndpoint: string
   sessionId: string
+  eventId: string
+  roomName: string
 }) {
   return (
     <LiveKitRoom
@@ -2216,7 +2136,13 @@ export default function ProducerRoomClient({
       className="contents"
     >
       <RoomAudioRenderer />
-      <ProducerRoomInner stageEndpoint={stageEndpoint} sessionId={sessionId} />
+      <ProducerRoomInner
+        stageEndpoint={stageEndpoint}
+        sessionId={sessionId}
+        eventId={eventId}
+        roomName={roomName}
+        token={token}
+      />
     </LiveKitRoom>
   )
 }

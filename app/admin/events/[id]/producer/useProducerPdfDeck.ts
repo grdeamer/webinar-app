@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import type { CinematicTransitionType } from "./commandDeckTypes"
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { UploadedProducerAsset } from "./useProducerUploads"
 import {
@@ -23,7 +24,7 @@ type Params = {
   ) => Promise<UploadedProducerAsset | void>
   takeProgram: (
     mode: "cut" | "auto",
-    transitionType?: any,
+    transitionType?: CinematicTransitionType,
     options?: {
       sceneId?: string | null
       slideLabel?: string | null

@@ -897,14 +897,13 @@ export default function CenterSwitcherColumn({
 
       onAddMediaAssetToPreview({
         ...block,
-        id: `drop-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        id: crypto.randomUUID(),
         x: Math.round(nextX),
         y: Math.round(nextY),
         width: blockWidth,
         height: blockHeight,
       });
-    } catch (error) {
-      console.error("Failed to drop media asset into preview", error);
+    } catch {
     }
   }
 

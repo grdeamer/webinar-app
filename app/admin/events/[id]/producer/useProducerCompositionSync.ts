@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useRef } from "react"
-import type useProducerRoomApi from "./useProducerRoomApi"
+import type { ProducerRoomApi } from "@/lib/producer/producerRoomApi"
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { StageState } from "./producerRoomTypes"
 import { normalizeProducerBlocks } from "./producerAssetUrls"
@@ -15,7 +15,7 @@ export default function useProducerCompositionSync({
   setStageState,
   setSyncWarningText,
 }: {
-  api: ReturnType<typeof useProducerRoomApi>
+  api: ProducerRoomApi
   eventId: string
   stageState: StageState | null
   previewBlocks: PreviewBlock[]
@@ -38,7 +38,7 @@ export default function useProducerCompositionSync({
   }, [stageState])
 
   useEffect(() => {
-    if (!stageState) return
+    if (!stageState || saveInFlight.current) return
     const serverBlocks = Array.isArray(stageState.preview_blocks)
       ? normalizeProducerBlocks(eventId, stageState.preview_blocks)
       : []
