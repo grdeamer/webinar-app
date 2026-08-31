@@ -1077,3 +1077,56 @@ button, a, input, select, textarea {
     @apply font-sans;
   }
 }
+
+@keyframes producerAtmosphereDrift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(26px, 16px, 0) scale(1.04);
+  }
+}
+
+@keyframes producerAtmosphereCounterDrift {
+  0%, 100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(-22px, 12px, 0) scale(1.035);
+  }
+}
+
+@keyframes producerAtmosphereBloom {
+  0%, 100% {
+    opacity: 0.18;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.32;
+    transform: scale(1.04);
+  }
+}
+
+@keyframes producerTransmissionSheen {
+  0%, 100% {
+    opacity: 0;
+    transform: translateX(-18%);
+  }
+  45% {
+    opacity: 0.14;
+  }
+  100% {
+    transform: translateX(18%);
+  }
+}
+
+@keyframes producerLiveScan {
+  0%, 100% {
+    opacity: 0.15;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 0.28;
+    transform: translateY(6px);
+  }
+}

@@ -35,8 +35,8 @@ async function readJson<T>(res: Response): Promise<T> {
 export default function useProducerRoomApi(
   eventId: string,
   sessionId: string
-) {
-  return useMemo(() => {
+): ProducerRoomApi {
+  return useMemo<ProducerRoomApi>(() => {
   const scoped = (path: string) =>
     `${path}${path.includes("?") ? "&" : "?"}session_id=${encodeURIComponent(
       sessionId
@@ -259,6 +259,7 @@ export default function useProducerRoomApi(
     expectedPreviewVersion: number | null
     programBlocks: unknown[]
     transition: Record<string, unknown>
+    liveMomentType?: "audience_origin" | null
   }) {
     const res = await fetch(`/api/admin/events/${eventId}/live/take`, {
       method: "POST",
@@ -271,10 +272,17 @@ export default function useProducerRoomApi(
         expectedPreviewVersion: input.expectedPreviewVersion,
         programBlocks: input.programBlocks,
         transition: input.transition,
+        live_moment_type: input.liveMomentType,
       }),
     })
 
     return readJson<Record<string, unknown>>(res)
+  }
+
+  async function savePreviewState(
+    _input: Parameters<ProducerRoomApi["savePreviewState"]>[0]
+  ): Promise<{ state: StageState }> {
+    throw new Error("savePreviewState is not implemented for admin sessions")
   }
 
   async function saveScene(input: {
@@ -386,6 +394,7 @@ export default function useProducerRoomApi(
       clearScreenShare,
       setLayout,
       setAutoDirector,
+      savePreviewState,
       savePreviewComposition,
       takeProgram,
       saveScene,

@@ -50,7 +50,6 @@ export default function useProducerDevices() {
 
       setDeviceAccessReady(videos.length > 0 || audios.length > 0)
     } catch (error) {
-      console.error("Failed to load media devices", error)
       setDeviceAccessReady(false)
       setVideoDevices([])
       setAudioDevices([])
@@ -96,8 +95,7 @@ export default function useProducerDevices() {
 
         localPreviewStreamRef.current = stream
         setMeterStreamVersion((version) => version + 1)
-      } catch (error) {
-        console.error("Preview start failed", error)
+      } catch {
       }
     }
 

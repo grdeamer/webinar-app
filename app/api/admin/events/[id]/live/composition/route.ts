@@ -20,7 +20,10 @@ export async function POST(
   if (access instanceof Response) return access
 
   const body = await request.json().catch((): null => null)
-  const blocks = normalizeProducerBlocks(body?.blocks)
+  if (!body || typeof body !== "object") {
+    return NextResponse.json({ error: "Invalid request body" }, { status: 400 })
+  }
+  const blocks = normalizeProducerBlocks((body as Record<string, unknown>).blocks)
   if (!blocks) {
     return NextResponse.json({ error: "blocks must be an array" }, { status: 400 })
   }
@@ -32,7 +35,7 @@ export async function POST(
     const state = await setEventLivePreviewComposition({
       eventId: access.eventId,
       blocks,
-      expectedVersion: parseExpectedProducerVersion(body?.expectedVersion),
+      expectedVersion: parseExpectedProducerVersion((body as Record<string, unknown>).expectedVersion),
       commandId: crypto.randomUUID(),
       actorId: access.user.id,
       updatedBy: access.user.email ?? access.user.id,

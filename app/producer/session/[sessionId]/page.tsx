@@ -70,6 +70,8 @@ export default async function ProducerSessionPage(props: {
       serverUrl={wsUrl}
       stageEndpoint={`/api/events/${event.slug}/sessions/${session.id}/stage`}
       sessionId={session.id}
+      eventId={session.event_id}
+      roomName={roomName}
     />
   )
 }

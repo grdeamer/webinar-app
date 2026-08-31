@@ -48,6 +48,19 @@ export type StageState = {
   updated_at: string
   preview_blocks?: PreviewBlock[]
   program_blocks?: PreviewBlock[]
+  program_layout?: "solo" | "grid" | "screen_speaker" | null
+  program_stage_participant_ids?: string[]
+  program_primary_participant_id?: string | null
+  qa_origin_cue_visible?: boolean
+  qa_origin_region?: string | null
+  qa_origin_moon_mode?: boolean
+  qa_origin_question_label?: string | null
+  qa_origin_treatment?: "default" | "qa_origin_blend" | null
+  qa_origin_lat?: number | null
+  qa_origin_lng?: number | null
+  live_moment_type?: string | null
+  transition_type?: string | null
+  transition_started_at?: string | null
   transition_json?: Record<string, unknown>
   last_command_id?: string | null
 }

@@ -1,9 +1,7 @@
 import { useCallback } from "react"
 
-import type useProducerRoomApi from "./useProducerRoomApi"
+import type { ProducerRoomApi } from "@/lib/producer/producerRoomApi"
 import type { StageState } from "./producerRoomTypes"
-
-type ProducerRoomApi = ReturnType<typeof useProducerRoomApi>
 
 type Params = {
   api: ProducerRoomApi

@@ -8,6 +8,60 @@ import type { ProducerStageActionInput } from "@/lib/types"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
+const ALLOWED_ACTIONS: ProducerStageActionInput["action"][] = [
+  "add_to_stage",
+  "remove_from_stage",
+  "pin_participant",
+  "unpin_participant",
+  "set_primary",
+  "clear_primary",
+  "set_screen_share",
+  "clear_screen_share",
+  "go_live",
+  "go_off_air",
+]
+
+type StageRequestBody = ProducerStageActionInput & {
+  commandId?: string
+  expectedPreviewVersion?: number | null
+}
+
+function parseStageBody(raw: unknown): StageRequestBody | null {
+  if (!raw || typeof raw !== "object") return null
+
+  const record = raw as Record<string, unknown>
+  const action = record.action
+  if (typeof action !== "string" || !ALLOWED_ACTIONS.includes(action as ProducerStageActionInput["action"])) {
+    return null
+  }
+
+  const participantId = record.participantId === undefined || record.participantId === null
+    ? null
+    : record.participantId
+  if (participantId !== null && typeof participantId !== "string") return null
+
+  const trackId = record.trackId === undefined || record.trackId === null
+    ? null
+    : record.trackId
+  if (trackId !== null && typeof trackId !== "string") return null
+
+  const commandId = record.commandId === undefined ? undefined : record.commandId
+  if (commandId !== undefined && typeof commandId !== "string") return null
+
+  const expectedPreviewVersion = record.expectedPreviewVersion === undefined || record.expectedPreviewVersion === null
+    ? null
+    : record.expectedPreviewVersion
+  if (expectedPreviewVersion !== null && typeof expectedPreviewVersion !== "number") return null
+
+  return {
+    action: action as ProducerStageActionInput["action"],
+    participantId: participantId as string | null,
+    trackId: trackId as string | null,
+    ...(commandId !== undefined && { commandId: commandId as string }),
+    expectedPreviewVersion: expectedPreviewVersion as number | null,
+  }
+}
+
 function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
 }
@@ -19,15 +73,11 @@ export async function POST(
   const { id } = await ctx.params
   const auth = await requireEventOperatorAccess(id)
   if (auth instanceof Response) return auth
-  const body = (await req.json().catch((): null => null)) as
-    | (ProducerStageActionInput & {
-        commandId?: string
-        expectedPreviewVersion?: number | null
-      })
-    | null
+  const raw = await req.json().catch((): null => null)
+  const body = parseStageBody(raw)
 
-  if (!body?.action) {
-    return json({ error: "Missing action" }, 400)
+  if (!body) {
+    return json({ error: "Invalid request body" }, 400)
   }
 
   try {
@@ -69,24 +119,20 @@ export async function POST(
       const roomService = new RoomServiceClient(livekitUrl, apiKey, apiSecret)
       const room = await ensureEventLiveRoom({ eventId: auth.eventId })
 
-      try {
-        if (body.action === "add_to_stage") {
-          await roomService.updateParticipant(
-            room.room_name,
-            body.participantId,
-            JSON.stringify({ onStage: true })
-          )
-        }
+      if (body.action === "add_to_stage") {
+        await roomService.updateParticipant(
+          room.room_name,
+          body.participantId,
+          JSON.stringify({ onStage: true })
+        )
+      }
 
-        if (body.action === "remove_from_stage") {
-          await roomService.updateParticipant(
-            room.room_name,
-            body.participantId,
-            JSON.stringify({ onStage: false })
-          )
-        }
-      } catch (error) {
-        console.error("LiveKit metadata update failed", error)
+      if (body.action === "remove_from_stage") {
+        await roomService.updateParticipant(
+          room.room_name,
+          body.participantId,
+          JSON.stringify({ onStage: false })
+        )
       }
     }
 
