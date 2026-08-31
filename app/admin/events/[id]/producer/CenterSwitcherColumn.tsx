@@ -534,10 +534,6 @@ export default function CenterSwitcherColumn({
   onClearScreenShare,
   onUnpin,
   onClearPrimary,
-  addTestTextBlock,
-  addTestVideoBlock,
-  addTestPdfBlock,
-  addTestImageBlock,
   addCameraSlotBlock,
   onAddMediaAssetToPreview,
   onUploadPdf,
@@ -610,10 +606,6 @@ export default function CenterSwitcherColumn({
   onClearScreenShare: () => void;
   onUnpin: () => void;
   onClearPrimary: () => void;
-  addTestTextBlock: () => void;
-  addTestVideoBlock: () => void;
-  addTestPdfBlock: () => void;
-  addTestImageBlock: () => void;
   addCameraSlotBlock: (
     participantId?: string | null,
     participantLabel?: string | null,
