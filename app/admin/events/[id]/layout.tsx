@@ -9,6 +9,7 @@ import JupiterLogo from "@/components/brand/JupiterLogo"
 
 type EventWorkspaceContext = {
   title: string
+  badgeImageUrl: string | null
   startAt: string | null
   endAt: string | null
   access: "open" | "closed"
@@ -63,7 +64,9 @@ export default function EventLayout({ children }: { children: ReactNode }) {
     const controller = new AbortController()
     const initialLoad = window.setTimeout(() => { void loadContext(controller.signal) }, 0)
     const interval = window.setInterval((): void => { void loadContext(controller.signal) }, 30_000)
-    return () => { controller.abort(); window.clearTimeout(initialLoad); window.clearInterval(interval) }
+    const refreshContext = () => { void loadContext(controller.signal) }
+    window.addEventListener("jupiter:event-context-updated", refreshContext)
+    return () => { controller.abort(); window.clearTimeout(initialLoad); window.clearInterval(interval); window.removeEventListener("jupiter:event-context-updated", refreshContext) }
   }, [loadContext])
 
   if (isProducer) return <>{children}</>
@@ -79,7 +82,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
         <div className="jv1-header-brand"><JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-[18px] font-semibold tracking-[.18em]" /></div>
         <div className="jv1-header-workspace-bar">
           <div className="jv1-header-event-context">
-            <span className="jv1-header-event-thumbnail" aria-hidden="true" />
+            {eventContext?.badgeImageUrl ? <img className="jv1-header-event-thumbnail" src={eventContext.badgeImageUrl} alt="" /> : <span className="jv1-header-event-thumbnail jv1-header-event-thumbnail--default" aria-hidden="true" />}
             <span className="jv1-header-event-copy"><strong>{eventTitle}</strong><span>{formatEventDate(eventContext?.startAt ?? null)} <i /> {eventContext?.access === "closed" ? "Closed" : "Open"}</span></span>
           </div>
           <nav className="jv1-top-navigation" aria-label="Event workspace">

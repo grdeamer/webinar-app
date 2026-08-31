@@ -8,12 +8,15 @@ create table if not exists public.events (
   slug text unique not null,
   title text not null,
   accent_color text not null default 'blue' check (accent_color in ('blue', 'violet', 'cyan', 'orange', 'emerald', 'rose')),
+  badge_image_url text null,
   description text null,
   start_at timestamptz null,
   end_at timestamptz null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+alter table public.events add column if not exists badge_image_url text null;
 
 create table if not exists public.event_agenda_items (
   id uuid primary key default gen_random_uuid(),

@@ -20,7 +20,7 @@ export async function GET(_request: Request, context: Params): Promise<Response>
   const [eventResult, liveStateResult, liveSessionResult, presenceResult] = await Promise.all([
     supabaseAdmin
       .from("events")
-      .select("title,start_at,end_at")
+      .select("title,badge_image_url,start_at,end_at")
       .eq("id", id)
       .maybeSingle(),
     supabaseAdmin
@@ -74,6 +74,7 @@ export async function GET(_request: Request, context: Params): Promise<Response>
 
   return NextResponse.json({
     title: eventResult.data.title,
+    badgeImageUrl: eventResult.data.badge_image_url,
     startAt: eventResult.data.start_at,
     endAt: eventResult.data.end_at,
     access: liveStateResult.data?.status === "open" ? "open" : "closed",
