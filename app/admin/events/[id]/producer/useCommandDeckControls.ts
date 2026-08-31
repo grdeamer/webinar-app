@@ -18,12 +18,13 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 export function useRuntimeLabel(): string {
-  const startedAtRef = useRef(Date.now())
+  const startedAtRef = useRef<number | null>(null)
   const [runtimeSeconds, setRuntimeSeconds] = useState(0)
 
   useEffect(() => {
+    startedAtRef.current = Date.now()
     const interval = setInterval(() => {
-      setRuntimeSeconds(Math.floor((Date.now() - startedAtRef.current) / 1000))
+      setRuntimeSeconds(Math.floor((Date.now() - (startedAtRef.current ?? 0)) / 1000))
     }, 1000)
 
     return () => clearInterval(interval)

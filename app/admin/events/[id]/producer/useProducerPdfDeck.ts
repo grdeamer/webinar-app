@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useState } from "react"
+import type { CinematicTransitionType } from "./commandDeckTypes"
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { UploadedProducerAsset } from "./useProducerUploads"
 import {
@@ -23,7 +24,7 @@ type Params = {
   ) => Promise<UploadedProducerAsset | void>
   takeProgram: (
     mode: "cut" | "auto",
-    transitionType?: any,
+    transitionType?: CinematicTransitionType,
     options?: {
       sceneId?: string | null
       slideLabel?: string | null
@@ -43,8 +44,29 @@ export default function useProducerPdfDeck({
   handlePdfUpload,
   takeProgram,
 }: Params) {
-  const [localPdfDeck, setLocalPdfDeck] =
-    useState<LocalPdfDeck | null>(null)
+  const [localPdfDeck, setLocalPdfDeck] = useState<LocalPdfDeck | null>(() => {
+    try {
+      const rawDeck = window.localStorage.getItem(
+        `jupiter:producer:${eventId}:${sessionId}:pdfDeck`
+      )
+
+      if (!rawDeck) return null
+
+      const parsedDeck: Partial<LocalPdfDeck> = JSON.parse(rawDeck)
+
+      if (!parsedDeck.name || typeof parsedDeck.pageCount !== "number") {
+        return null
+      }
+
+      return {
+        name: parsedDeck.name,
+        pageCount: Math.max(1, parsedDeck.pageCount),
+        src: null,
+      }
+    } catch {
+      return null
+    }
+  })
 
   const localPdfDeckStorageKey = useMemo(
     () =>
@@ -71,7 +93,7 @@ export default function useProducerPdfDeck({
         pageCount,
         src: uploaded.url,
       })
-    } catch (_err: unknown) {
+    } catch {
       setLocalPdfDeck({
         name,
         pageCount: 1,
@@ -79,36 +101,6 @@ export default function useProducerPdfDeck({
       })
     }
   }
-
-  useEffect(() => {
-    try {
-      const rawDeck =
-        window.localStorage.getItem(
-          localPdfDeckStorageKey
-        )
-
-      if (!rawDeck) return
-
-      const parsedDeck = JSON.parse(
-        rawDeck
-      ) as Partial<LocalPdfDeck>
-
-      if (
-        !parsedDeck.name ||
-        typeof parsedDeck.pageCount !== "number"
-      ) {
-        return
-      }
-
-      setLocalPdfDeck({
-        name: parsedDeck.name,
-        pageCount: Math.max(1, parsedDeck.pageCount),
-        src: null,
-      })
-    } catch (_err: unknown) {
-      // Ignore corrupted cache
-    }
-  }, [localPdfDeckStorageKey])
 
   useEffect(() => {
     try {
@@ -127,7 +119,7 @@ export default function useProducerPdfDeck({
           pageCount: localPdfDeck.pageCount,
         })
       )
-    } catch (_err: unknown) {
+    } catch {
       // Ignore storage failures
     }
   }, [localPdfDeck, localPdfDeckStorageKey])
