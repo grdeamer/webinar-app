@@ -349,15 +349,12 @@ function PresenterConfidenceCue({
 }): JSX.Element {
   const isProgram = variant === "program";
 
-  const [countdownSeconds, setCountdownSeconds] = useState(5);
+  const [countdownSeconds, setCountdownSeconds] = useState(
+    isProgram ? 0 : 5,
+  );
 
   useEffect(() => {
-    if (isProgram) {
-      setCountdownSeconds(0);
-      return;
-    }
-
-    setCountdownSeconds(5);
+    if (isProgram) return;
 
     const id = window.setInterval(() => {
       setCountdownSeconds((value) => Math.max(0, value - 1));
@@ -622,14 +619,44 @@ export default function CenterSwitcherColumn({
 }): JSX.Element {
   const switcherGridRef = useRef<HTMLDivElement | null>(null);
   const isDraggingSplitRef = useRef(false);
-  const [previewPanePercent, setPreviewPanePercent] = useState(50);
+  const [previewPanePercent, setPreviewPanePercent] = useState(() => {
+    const storedValue = window.localStorage.getItem("producer-preview-pane-percent");
+    const parsedValue = storedValue ? Number(storedValue) : NaN;
+    return Number.isFinite(parsedValue) ? Math.max(32, Math.min(68, parsedValue)) : 50;
+  });
   const [isAutoRunning, setIsAutoRunning] = useState(false);
   const [takeFlashVisible, setTakeFlashVisible] = useState(false);
   const [confidenceMonitorMode, setConfidenceMonitorMode] =
-    useState<ConfidenceMonitorMode>("standard");
+    useState<ConfidenceMonitorMode>(() => {
+      const storedValue = window.localStorage.getItem("producer-confidence-monitor-mode");
+      if (
+        storedValue === "standard" ||
+        storedValue === "confidence" ||
+        storedValue === "multiview"
+      ) {
+        return storedValue;
+      }
+      return "standard";
+    });
   const [selectedTransitionPreset, setSelectedTransitionPreset] =
-    useState<SwitcherTransitionPreset>("smooth");
-  const [transitionDuration, setTransitionDuration] = useState(1);
+    useState<SwitcherTransitionPreset>(() => {
+      const storedValue = window.localStorage.getItem("producer-transition-preset");
+      if (
+        storedValue === "smooth" ||
+        storedValue === "fast" ||
+        storedValue === "dip" ||
+        storedValue === "blur" ||
+        storedValue === "warp"
+      ) {
+        return storedValue;
+      }
+      return "smooth";
+    });
+  const [transitionDuration, setTransitionDuration] = useState(() => {
+    const storedValue = window.localStorage.getItem("producer-transition-duration");
+    const parsedValue = storedValue ? Number(storedValue) : NaN;
+    return Number.isFinite(parsedValue) ? Math.max(0.2, Math.min(2.5, parsedValue)) : 1;
+  });
   const defaultCameraParticipantId =
     stageState?.pinned_participant_id ??
     stageState?.primary_participant_id ??
@@ -673,67 +700,19 @@ export default function CenterSwitcherColumn({
         : "fade";
 
   useEffect(() => {
-    const storedValue = window.localStorage.getItem(
-      "producer-preview-pane-percent",
-    );
-    const parsedValue = storedValue ? Number(storedValue) : NaN;
+    const onId = window.setTimeout(() => {
+      setTakeFlashVisible(isTransitioning);
+    }, 0);
+    const offId = isTransitioning
+      ? window.setTimeout(() => {
+          setTakeFlashVisible(false);
+        }, 620)
+      : null;
 
-    if (Number.isFinite(parsedValue)) {
-      setPreviewPanePercent(Math.max(32, Math.min(68, parsedValue)));
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedValue = window.localStorage.getItem(
-      "producer-confidence-monitor-mode",
-    );
-
-    if (
-      storedValue === "standard" ||
-      storedValue === "confidence" ||
-      storedValue === "multiview"
-    ) {
-      setConfidenceMonitorMode(storedValue);
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedValue = window.localStorage.getItem(
-      "producer-transition-preset",
-    );
-
-    if (
-      storedValue === "smooth" ||
-      storedValue === "fast" ||
-      storedValue === "dip" ||
-      storedValue === "blur" ||
-      storedValue === "warp"
-    ) {
-      setSelectedTransitionPreset(storedValue);
-    }
-  }, []);
-
-  useEffect(() => {
-    const storedValue = window.localStorage.getItem(
-      "producer-transition-duration",
-    );
-    const parsedValue = storedValue ? Number(storedValue) : NaN;
-
-    if (Number.isFinite(parsedValue)) {
-      setTransitionDuration(Math.max(0.2, Math.min(2.5, parsedValue)));
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isTransitioning) return;
-
-    setTakeFlashVisible(true);
-
-    const id = window.setTimeout(() => {
-      setTakeFlashVisible(false);
-    }, 620);
-
-    return () => window.clearTimeout(id);
+    return () => {
+      window.clearTimeout(onId);
+      if (offId) window.clearTimeout(offId);
+    };
   }, [isTransitioning, lastTakeMode]);
 
   useEffect(() => {
@@ -1099,7 +1078,7 @@ export default function CenterSwitcherColumn({
                 />
               </div>
               {confidenceMonitorMode === "confidence" ? (
-                <PresenterConfidenceCue variant="preview" />
+                <PresenterConfidenceCue key="preview" variant="preview" />
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
@@ -1429,7 +1408,7 @@ export default function CenterSwitcherColumn({
                 />
               </div>
               {confidenceMonitorMode === "confidence" ? (
-                <PresenterConfidenceCue variant="program" />
+                <PresenterConfidenceCue key="program" variant="program" />
               ) : null}
 
               {confidenceMonitorMode === "multiview" ? (
