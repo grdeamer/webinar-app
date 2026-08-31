@@ -1,25 +1,35 @@
 "use client"
 
 import { useMemo } from "react"
+import type { CinematicTransitionType } from "./commandDeckTypes"
+import type {
+  ProducerParticipant,
+  SceneSnapshot,
+  StageState,
+} from "./producerRoomTypes"
 
 type StageLayout = "solo" | "grid" | "screen_speaker"
-type CinematicTransitionType = "fade" | "warp" | "curtain" | "none"
 
 type EventTransitionPayload = {
   active: boolean
-  type?: CinematicTransitionType
+  type?: CinematicTransitionType | "none"
   headline?: string
   message?: string
   durationMs?: number
 }
-async function readJson(res: Response) {
-  const data = await res.json().catch((): null => null)
+async function readJson<T>(res: Response): Promise<T> {
+  const data: unknown = await res.json().catch((): null => null)
+  const record = data as Record<string, unknown> | null
 
   if (!res.ok) {
-    throw new Error(data?.error || "Request failed")
+    throw new Error(
+      record && typeof record.error === "string"
+        ? record.error
+        : "Request failed"
+    )
   }
 
-  return data
+  return data as T
 }
 
 export default function useProducerRoomApi(
@@ -53,7 +63,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson(res)
+    return readJson<{ token: string; roomName?: string | null }>(res)
   }
 
   async function loadParticipants() {
@@ -64,7 +74,7 @@ export default function useProducerRoomApi(
       }
     )
 
-    return readJson(res)
+    return readJson<{ participants: ProducerParticipant[] }>(res)
   }
 
   async function loadStageState() {
@@ -75,7 +85,7 @@ export default function useProducerRoomApi(
       }
     )
 
-    return readJson(res)
+    return readJson<{ state: StageState | null }>(res)
   }
 
   async function loadProgramState() {
@@ -86,7 +96,7 @@ export default function useProducerRoomApi(
       }
     )
 
-    return readJson(res)
+    return readJson<{ state: StageState | null }>(res)
   }
 
   async function loadScenes() {
@@ -97,13 +107,13 @@ export default function useProducerRoomApi(
       }
     )
 
-    return readJson(res)
+    return readJson<{ scenes?: SceneSnapshot[] }>(res)
   }
 
-  async function postStage(
+  async function postStage<T = { state: StageState }>(
     payload: Record<string, unknown>,
     expectedPreviewVersion?: number | null
-  ) {
+  ): Promise<T> {
     const res = await fetch(`/api/admin/events/${eventId}/live/stage`, {
       method: "POST",
       headers: {
@@ -117,7 +127,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson(res)
+    return readJson<T>(res)
   }
 
   async function addToStage(participantId: string) {
@@ -161,13 +171,19 @@ export default function useProducerRoomApi(
   }
 
   async function goLive(expectedPreviewVersion?: number | null) {
-    return postStage({
+    return postStage<{
+      state: StageState
+      programState: StageState | null
+    }>({
       action: "go_live",
     }, expectedPreviewVersion)
   }
 
   async function goOffAir(expectedPreviewVersion?: number | null) {
-    return postStage({
+    return postStage<{
+      state: StageState
+      programState: StageState | null
+    }>({
       action: "go_off_air",
     }, expectedPreviewVersion)
   }
@@ -201,7 +217,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson(res)
+    return readJson<{ state: StageState }>(res)
   }
 
   async function setAutoDirector(enabled: boolean) {
@@ -219,7 +235,7 @@ export default function useProducerRoomApi(
       }
     )
 
-    return readJson(res)
+    return readJson<{ state: StageState }>(res)
   }
 
   async function savePreviewComposition(
@@ -236,7 +252,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson(res)
+    return readJson<{ state: StageState }>(res)
   }
 
   async function takeProgram(input: {
@@ -258,7 +274,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson(res)
+    return readJson<Record<string, unknown>>(res)
   }
 
   async function saveScene(input: {
@@ -279,7 +295,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson(res)
+    return readJson<{ scene?: { id: string } }>(res)
   }
 
   async function applyScene(sceneId: string) {
@@ -296,7 +312,7 @@ export default function useProducerRoomApi(
       }
     )
 
-    return readJson(res)
+    return readJson<{ state: StageState }>(res)
   }
 
   async function renameScene(sceneId: string, name: string) {
@@ -308,7 +324,7 @@ export default function useProducerRoomApi(
         body: JSON.stringify({ name }),
       }
     )
-    return readJson(res)
+    return readJson<Record<string, unknown>>(res)
   }
 
   async function deleteScene(sceneId: string) {
@@ -316,7 +332,7 @@ export default function useProducerRoomApi(
       `/api/admin/events/${eventId}/live/scenes/${sceneId}`,
       { method: "DELETE" }
     )
-    return readJson(res)
+    return readJson<Record<string, unknown>>(res)
   }
   async function setEventTransition({
     active,
@@ -340,7 +356,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson(res)
+    return readJson<Record<string, unknown>>(res)
   }
 
   async function clearEventTransition() {
