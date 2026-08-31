@@ -1,0 +1,31 @@
+@theme {
+  /* Producer color palette */
+  --color-producer-canvas: #030714;
+  --color-producer-surface: #070c16;
+  --color-producer-raised: #1a2231;
+  --color-producer-border: #1a2231;
+  --color-producer-border-strong: #252d3c;
+  --color-producer-text: #f7f9ff;
+  --color-producer-secondary: #9aa6bb;
+  --color-producer-muted: #68758c;
+  --color-producer-primary: #6750d3;
+  --color-producer-success: #54e5a5;
+  --color-producer-warning: #f0bc67;
+  --color-producer-focus: #4f8cff;
+
+  /* Producer radii */
+  --radius-producer-sm: 8px;
+  --radius-producer-md: 12px;
+  --radius-producer-lg: 16px;
+  --radius-producer-xl: 20px;
+
+  /* Producer shadow tokens */
+  --shadow-producer-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+  --shadow-producer-md: 0 8px 24px rgba(0, 0, 0, 0.22);
+  --shadow-producer-lg: 0 16px 44px rgba(0, 0, 0, 0.32);
+
+  /* Producer z-index tokens */
+  --z-producer-overlay: 40;
+  --z-producer-dropdown: 200;
+  --z-producer-toast: 300;
+}

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
+@import "./producer-tokens.css";
 
 :root { --jv1-canvas:#030714; --jv1-navigation:#070c16; --jv1-surface:#070c16; --jv1-subtle:#111827; --jv1-raised:#1a2231; --jv1-border:#1a2231; --jv1-border-strong:#252d3c; --jv1-text:#f7f9ff; --jv1-secondary:#9aa6bb; --jv1-muted:#68758c; --jv1-primary:#6750d3; --jv1-secondary-action:#3974df; --jv1-focus:#4f8cff; --jv1-success:#54e5a5; --jv1-warning:#f0bc67; }
 .jv1-shell { min-height:100dvh; background:var(--jv1-canvas); color:var(--jv1-text); font-family:var(--font-inter),sans-serif; }
