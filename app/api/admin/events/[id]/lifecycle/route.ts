@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { recordAuditEvent } from "@/lib/cloud/audit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -45,6 +46,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
       if (deleteError) return json({ error: deleteError.message }, 400)
       if (!deleted) return json({ error: "Event was not deleted" }, 409)
+      await recordAuditEvent({ actorId: auth.user.id, actorEmail: auth.user.email, category: "event", action: "event.deleted", summary: `Deleted event ${event.title}`, targetType: "event", targetId: eventId, metadata: { deletedEventId: eventId } })
       return json({ success: true, action: "delete" })
     }
 
@@ -58,6 +60,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 
     if (updateError) return json({ error: updateError.message }, 400)
     if (!updated) return json({ error: "Event was not updated" }, 409)
+    await recordAuditEvent({ eventId, actorId: auth.user.id, actorEmail: auth.user.email, category: "event", action: `event.${action}d`, summary: `${action === "archive" ? "Archived" : "Restored"} event ${event.title}`, targetType: "event", targetId: eventId })
     return json({ success: true, action, lifecycle_stage: lifecycleStage })
   } catch (error) {
     console.error("event lifecycle error:", error)

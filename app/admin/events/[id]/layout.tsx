@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { CSSProperties, ReactNode, useCallback, useEffect, useState } from "react"
 import { Activity, CalendarDate, File04, Home03, LayersThree01, List, Mail02, Signal02, Tool02, UploadCloud01, Users01, VideoRecorder } from "@untitledui/icons"
-import { Menu, X } from "lucide-react"
+import { Cloud, Menu, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 
 type EventWorkspaceContext = {
@@ -93,6 +93,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
             {canConfigure ? <TopLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}
             {canConfigure ? <TopLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}
             {canConfigure ? <TopLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/infrastructure`} label="Cloud" icon={<Cloud />} /> : null}
             {canOperate ? <TopLink href={`${base}/routing`} label="Run Event" icon={<Signal02 />} /> : null}
             {canOperate ? <TopLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}
             {canOperate ? <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}
@@ -118,7 +119,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
         <aside className="jv1-event-rail" aria-label="Mobile event workspace">
           <div className="jv1-event-rail-label"><span /> Event workspace</div>
           <div className="jv1-event-context"><h2>{eventTitle}</h2><p>{formatEventDate(eventContext?.startAt ?? null)} · {eventContext?.access === "closed" ? "Closed" : "Open"}</p></div>
-          <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Run Event" icon={<Signal02 />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}</nav>
+          <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}{canConfigure ? <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<Cloud />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Run Event" icon={<Signal02 />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}</nav>
         </aside>
         <main className="jv1-content">{children}</main>
       </div>

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { loadPublishDestination } from "@/lib/external-publishing/destinations"
 import { buildLetsPublishArtifacts } from "@/lib/external-publishing/letsTemplate"
 import { publishArtifacts } from "@/lib/external-publishing/ftpPublisher"
+import { recordAuditEvent } from "@/lib/cloud/audit"
 
 export const runtime = "nodejs"
 export const maxDuration = 60
@@ -43,6 +44,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       supabaseAdmin.from("event_publish_deployments").update({ status: "published", files: result.files, backup_path: result.backupPath, completed_at: completedAt }).eq("id", deployment.id),
       supabaseAdmin.from("event_publish_destinations").update({ last_published_at: completedAt, last_status: "published", last_error: null, updated_at: completedAt }).eq("id", row.id),
     ])
+    await recordAuditEvent({ eventId: id, actorId: admin.user.id, actorEmail: admin.user.email, category: "delivery", action: "experience.published", summary: "Published the event experience", targetType: "deployment", targetId: deployment.id, metadata: { destinationId: row.id, publicUrl: row.public_url } })
 
     return NextResponse.json({ ok: true, deployment_id: deployment.id, published_at: completedAt, public_url: row.public_url })
   } catch (error) {
@@ -56,6 +58,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
         ? supabaseAdmin.from("event_publish_destinations").update({ last_status: "failed", last_error: message, updated_at: failedAt }).eq("id", destinationId)
         : Promise.resolve(),
     ])
+    await recordAuditEvent({ eventId: id, actorId: admin.user.id, actorEmail: admin.user.email, category: "delivery", action: "experience.publish_failed", summary: `Event experience publish failed: ${message}`, targetType: "deployment", targetId: deploymentId, metadata: { destinationId } })
     return NextResponse.json({ error: message }, { status: 400 })
   }
 }

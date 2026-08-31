@@ -5,6 +5,7 @@ import {
   updateLegacyEventLiveStateSchema,
 } from "@/lib/validators/liveRouting"
 import { updateEventLiveState } from "@/lib/services/admin/updateEventLiveState"
+import { recordAuditEvent } from "@/lib/cloud/audit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -70,6 +71,21 @@ export async function POST(req: Request, ctx: Params): Promise<Response> {
 
   try {
     const liveState = await updateEventLiveState(parsed.data)
+    await recordAuditEvent({
+      eventId,
+      actorId: authResult.user.id,
+      actorEmail: authResult.user.email,
+      category: "broadcast",
+      action: "event.routing.updated",
+      summary: `Updated audience routing to ${parsed.data.mode}`,
+      targetType: "event_live_state",
+      targetId: eventId,
+      metadata: {
+        mode: parsed.data.mode,
+        breakoutId: parsed.data.breakoutId,
+        forceRedirect: parsed.data.forceRedirect,
+      },
+    })
     return json({ ok: true, liveState })
   } catch (error) {
     return json(

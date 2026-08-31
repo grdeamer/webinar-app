@@ -4,6 +4,7 @@ import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import EventAccessActions from "./EventAccessActions"
 import { canManageEventAccess, getEventTeamAccess } from "@/lib/eventTeamAccess"
+import { getEventInfrastructureSnapshot } from "@/lib/cloud/status"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -42,6 +43,7 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
     supabaseAdmin.from("event_live_state").select("status").eq("event_id", event.id).maybeSingle(),
     supabaseAdmin.from("event_presence").select("last_seen").eq("event_id", event.id),
   ])
+  const infrastructure = await getEventInfrastructureSnapshot(event.id)
 
   const sessionCount = sessions.count ?? 0
   const peopleCount = people.count ?? 0
@@ -68,6 +70,11 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
       <div className="flex items-center justify-between"><div className="text-[9px] font-bold tracking-[.16em] text-[#68758c]">EVENT READINESS</div><Status tone="success">READY FOR REHEARSAL</Status></div>
       <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><Metric value={peopleCount} label="People" note="Audience verified" /><Metric value={sessionCount} label="Sessions" note="Program built" /><Metric value={roomCount} label="Rooms" note="Routing assigned" /><Metric value={liveNow} label="Live now" note={isOpen ? "Audience connected" : "Broadcast offline"} /></div>
     </section>
+
+    <Link href={`/admin/events/${event.id}/infrastructure`} className="group flex flex-col gap-4 rounded-2xl border border-blue-300/15 bg-[radial-gradient(circle_at_88%_20%,rgba(74,111,255,.15),transparent_32%),#070c16] p-4 transition hover:border-blue-300/30 sm:flex-row sm:items-center sm:justify-between">
+      <div><div className="text-[9px] font-bold tracking-[.16em] text-blue-300/65">JUPITER CLOUD</div><div className="mt-2 text-lg font-semibold">Infrastructure readiness</div><div className="mt-1 text-xs text-[#8290a8]">{infrastructure.checks.filter((check) => check.state === "ready").length} of {infrastructure.checks.length} services ready · {infrastructure.region}</div></div>
+      <div className="flex items-center gap-4"><div className={`grid h-14 w-14 place-items-center rounded-full border-2 text-sm font-semibold ${infrastructure.readiness >= 85 ? "border-emerald-300/60 text-emerald-200" : "border-amber-300/60 text-amber-200"}`}>{infrastructure.readiness}%</div><span className="text-sm font-semibold text-blue-300 transition group-hover:translate-x-1">Inspect cloud →</span></div>
+    </Link>
 
     <section className="grid gap-4 lg:grid-cols-[minmax(0,1.65fr)_minmax(280px,1fr)]">
       <div className="rounded-2xl border border-[#1a2231] bg-[#070c16] p-4"><div className="flex items-start justify-between gap-4"><div><h2 className="text-lg font-semibold">Launch checklist</h2><p className="mt-1 text-xs text-[#9aa6bb]">Four foundations for a confident rehearsal.</p></div><Status tone="success">{completeCount} OF 4 COMPLETE</Status></div><div className="mt-4 space-y-2">{checklist.map((item) => <div key={item.label} className="flex min-h-[52px] items-center justify-between gap-4 rounded-[10px] bg-[#1a2231] px-3 py-2"><div><div className="text-xs font-medium">{item.label}</div><div className="mt-1 text-[11px] text-[#9aa6bb]">{item.detail}</div></div><Status tone={item.complete ? "success" : "warning"}>{item.complete ? "COMPLETE" : "ACTION NEEDED"}</Status></div>)}</div></div>

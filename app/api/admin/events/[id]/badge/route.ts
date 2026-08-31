@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import { canManageEventAccess, getEventTeamAccess } from "@/lib/eventTeamAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { recordAuditEvent } from "@/lib/cloud/audit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -82,6 +83,8 @@ export async function POST(request: Request, context: Params): Promise<Response>
       return NextResponse.json({ error: updateError.message }, { status: 500 })
     }
 
+    await recordAuditEvent({ eventId: access.eventId, actorId: access.user.id, actorEmail: access.user.email, category: "experience", action: "event.badge.updated", summary: "Updated event workspace badge", targetType: "event", targetId: access.eventId })
+
     return NextResponse.json({ ok: true, badgeImageUrl: data.publicUrl })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Badge upload failed." }, { status: 500 })
@@ -99,5 +102,6 @@ export async function DELETE(_request: Request, context: Params): Promise<Respon
     .eq("id", access.eventId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  await recordAuditEvent({ eventId: access.eventId, actorId: access.user.id, actorEmail: access.user.email, category: "experience", action: "event.badge.reset", summary: "Restored the default Jupiter event badge", targetType: "event", targetId: access.eventId })
   return NextResponse.json({ ok: true, badgeImageUrl: null })
 }

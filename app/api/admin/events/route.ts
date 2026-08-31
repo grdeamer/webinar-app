@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { recordAuditEvent } from "@/lib/cloud/audit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -141,6 +142,17 @@ export async function PUT(req: Request) {
   if (syncError) {
     return json({ error: `Event saved, but display sync failed: ${syncError.message}` }, 500)
   }
+
+  await recordAuditEvent({
+    eventId: String(body.id),
+    actorId: authResult.user.id,
+    actorEmail: authResult.user.email,
+    category: "event",
+    action: "event.details.updated",
+    summary: `Updated event details for ${patch.title || "event"}`,
+    targetType: "event",
+    targetId: String(body.id),
+  })
 
   return json({ ok: true })
 }

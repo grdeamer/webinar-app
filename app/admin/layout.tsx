@@ -12,7 +12,7 @@ import {
   Tool02,
   Users01,
 } from "@untitledui/icons"
-import { Menu, X } from "lucide-react"
+import { Cloud, Menu, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 
 function matches(pathname: string, href: string) {
@@ -33,6 +33,7 @@ const NAV_ICON_TONES: Record<string, string> = {
   "/admin": "112 169 255",
   "/admin/events": "174 108 255",
   "/admin/activity": "83 229 168",
+  "/admin/cloud": "118 165 255",
   "/admin/users": "91 211 255",
   "/admin/dev-tools": "241 188 104",
 }
@@ -240,6 +241,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </NavLink>
                 {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/activity" icon={<Activity className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Live Activity
+                </NavLink> : null}
+                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/cloud" icon={<Cloud className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                  Jupiter Cloud
                 </NavLink> : null}
               </Section>
 
