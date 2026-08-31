@@ -2,6 +2,7 @@
 
 import { useMemo } from "react"
 import type { CinematicTransitionType } from "./commandDeckTypes"
+import type { ProducerRoomApi } from "@/lib/producer/producerRoomApi"
 import type {
   ProducerParticipant,
   SceneSnapshot,
@@ -35,8 +36,8 @@ async function readJson<T>(res: Response): Promise<T> {
 export default function useProducerRoomApi(
   eventId: string,
   sessionId: string
-): ProducerRoomApi {
-  return useMemo<ProducerRoomApi>(() => {
+) {
+  return useMemo(() => {
   const scoped = (path: string) =>
     `${path}${path.includes("?") ? "&" : "?"}session_id=${encodeURIComponent(
       sessionId
@@ -107,7 +108,7 @@ export default function useProducerRoomApi(
       }
     )
 
-    return readJson<{ scenes?: SceneSnapshot[] }>(res)
+    return readJson<{ scenes: unknown[] }>(res)
   }
 
   async function postStage<T = { state: StageState }>(
@@ -276,7 +277,7 @@ export default function useProducerRoomApi(
       }),
     })
 
-    return readJson<Record<string, unknown>>(res)
+    return readJson<{ state: StageState | null }>(res)
   }
 
   async function savePreviewState(
