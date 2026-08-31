@@ -6,13 +6,19 @@ import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 import { Button } from "@/components/ui/button"
 import { Check, ImageUp, RotateCcw, Save } from "lucide-react"
 
-type EventSettingsRow = { id: string; slug: string; title: string; badge_image_url: string | null; description: string | null; start_at: string | null; end_at: string | null }
+const EVENT_ACCENTS = {
+  blue: "79,133,255", violet: "176,105,255", cyan: "60,209,215",
+  orange: "239,157,72", emerald: "61,198,151", rose: "244,83,116",
+} as const
+type EventAccentColor = keyof typeof EVENT_ACCENTS
+type EventSettingsRow = { id: string; slug: string; title: string; badge_image_url: string | null; description: string | null; start_at: string | null; end_at: string | null; accent_color: string }
 
 export default function EventSettingsForm({ initial }: { initial: EventSettingsRow }) {
   const router = useRouter()
   const [event, setEvent] = useState(initial)
   const [saving, setSaving] = useState(false)
   const [uploadingBadge, setUploadingBadge] = useState(false)
+  const [savingAccent, setSavingAccent] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const badgeInput = useRef<HTMLInputElement>(null)
@@ -70,6 +76,22 @@ export default function EventSettingsForm({ initial }: { initial: EventSettingsR
     } finally { setSaving(false) }
   }
 
+  async function setAccent(accent_color: EventAccentColor) {
+    const previous = event.accent_color
+    setEvent((current) => ({ ...current, accent_color })); setSavingAccent(true); setError(null); setMessage(null)
+    try {
+      const response = await fetch(`/api/admin/events/${event.id}/accent`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ accent_color }) })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Could not save event color")
+      setMessage("Event production color updated.")
+      window.dispatchEvent(new Event("jupiter:event-context-updated"))
+      router.refresh()
+    } catch (accentError) {
+      setEvent((current) => ({ ...current, accent_color: previous }))
+      setError(accentError instanceof Error ? accentError.message : "Could not save event color")
+    } finally { setSavingAccent(false) }
+  }
+
   return (
     <main className="event-editorial-page">
       <div className="mx-auto max-w-[1180px]">
@@ -99,6 +121,16 @@ export default function EventSettingsForm({ initial }: { initial: EventSettingsR
                     {event.badge_image_url ? <Button type="button" variant="ghost" size="sm" disabled={uploadingBadge} onClick={() => void restoreDefaultBadge()}><RotateCcw aria-hidden="true" />Use Jupiter default</Button> : null}
                   </div>
                 </div>
+              </div>
+            </div>
+            <div className="editorial-rule mt-8 border-t pt-6">
+              <div className="editorial-eyebrow !text-[#8d9ab4]">Production atmosphere</div>
+              <p className="mt-3 max-w-lg text-sm leading-6 text-[#8793ab]">Choose the event color used for Producer Room ambience and branded holding surfaces. Preview, Program, healthy, and warning safety colors remain fixed.</p>
+              <div className="mt-4 flex flex-wrap gap-3" aria-label="Event production color">
+                {(Object.entries(EVENT_ACCENTS) as [EventAccentColor, string][]).map(([color, rgb]) => {
+                  const selected = event.accent_color === color
+                  return <button key={color} type="button" disabled={savingAccent} onClick={() => void setAccent(color)} aria-pressed={selected} aria-label={`${color} event color`} className={`group flex h-12 w-12 items-center justify-center rounded-2xl border transition ${selected ? "border-white/60 bg-white/10 shadow-[0_0_26px_rgba(var(--swatch),.35)]" : "border-white/10 bg-white/[.03] hover:border-white/30"}`} style={{ "--swatch": rgb } as React.CSSProperties}><span className="h-6 w-6 rounded-full shadow-[0_0_18px_rgba(var(--swatch),.55)]" style={{ backgroundColor: `rgb(${rgb})` }} /></button>
+                })}
               </div>
             </div>
             <div className="editorial-rule mt-8 border-t pt-6"><div className="editorial-eyebrow !text-[#8d9ab4]">Permanent event URL</div><div className="mt-4 text-[#aeb9d0]">jupiter.events/events/{event.slug}</div><p className="mt-2 text-xs text-[#6e7b95]">Stable after creation so existing invitations never break.</p></div>

@@ -4,6 +4,7 @@ import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { getEventLiveRoom } from "@/lib/live/stageState"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { egressStatusLabel, isTerminalEgressStatus } from "@/lib/live/producerControl"
+import { sanitizeBroadcastError } from "@/lib/broadcast/config"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -43,8 +44,7 @@ function normalizeEgressId(value: unknown): string | null {
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  return "Unknown recording status error"
+  return sanitizeBroadcastError(error)
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -142,7 +142,7 @@ export async function POST(request: Request): Promise<NextResponse> {
         file_location: file?.location ?? null,
         file_size: file?.size ? Number(file.size) : null,
         error_message:
-          (egressInfo as { error?: string }).error ||
+          ((egressInfo as { error?: string }).error ? sanitizeBroadcastError((egressInfo as { error?: string }).error) : null) ||
           (terminal && !uploaded ? "Recording finalized without a usable uploaded file" : null),
         ended_at: endedAt,
         updated_at: new Date().toISOString(),
@@ -176,7 +176,7 @@ export async function POST(request: Request): Promise<NextResponse> {
       startedAt: egressInfo.startedAt?.toString() ?? null,
       endedAt: egressInfo.endedAt?.toString() ?? null,
       fileResults: detailedFileResults,
-      error: (egressInfo as { error?: string }).error ?? null,
+      error: (egressInfo as { error?: string }).error ? sanitizeBroadcastError((egressInfo as { error?: string }).error) : null,
     })
 
     return NextResponse.json({
@@ -194,12 +194,12 @@ export async function POST(request: Request): Promise<NextResponse> {
       location: file?.location ?? null,
       fileResults: detailedFileResults,
       error:
-        (egressInfo as { error?: string }).error ||
+        ((egressInfo as { error?: string }).error ? sanitizeBroadcastError((egressInfo as { error?: string }).error) : null) ||
         (terminal && !uploaded ? "Recording finalized without a usable uploaded file" : null),
       recordings: recordings ?? [],
     })
   } catch (error) {
-    console.error("[recording.status] failed", error)
+    console.error("[recording.status] failed", errorMessage(error))
     return NextResponse.json(
       {
         ok: false,

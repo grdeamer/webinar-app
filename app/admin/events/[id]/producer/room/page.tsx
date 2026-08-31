@@ -18,24 +18,30 @@ export default async function AdminProducerRoomPage(props: {
   const { id } = await props.params
 
   let eventId = id
+  let eventTitle = "Event"
+  let eventAccent = "blue"
   if (!isUuid(id)) {
     const { data: event } = await supabaseAdmin
       .from("events")
-      .select("id, slug")
+      .select("id, slug, title, accent_color")
       .eq("slug", id)
       .maybeSingle()
 
     if (!event?.id) notFound()
 
     eventId = event.id
+    eventTitle = event.title || eventTitle
+    eventAccent = event.accent_color || eventAccent
   } else {
     const { data: event } = await supabaseAdmin
       .from("events")
-      .select("id, slug")
+      .select("id, slug, title, accent_color")
       .eq("id", id)
       .maybeSingle()
 
     if (!event?.id) notFound()
+    eventTitle = event.title || eventTitle
+    eventAccent = event.accent_color || eventAccent
   }
 
   const { data: session, error: sessionError } = await supabaseAdmin
@@ -59,6 +65,8 @@ export default async function AdminProducerRoomPage(props: {
       eventId={eventId}
       sessionId={session.id}
       sessionTitle={session.title}
+      eventTitle={eventTitle}
+      eventAccent={eventAccent}
     />
   )
 }

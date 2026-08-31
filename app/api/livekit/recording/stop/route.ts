@@ -3,6 +3,7 @@ import { EgressClient } from "livekit-server-sdk"
 import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { getEventLiveRoom } from "@/lib/live/stageState"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { sanitizeBroadcastError } from "@/lib/broadcast/config"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -35,8 +36,7 @@ function normalizeEgressId(value: unknown): string | null {
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  return "Unknown recording stop error"
+  return sanitizeBroadcastError(error)
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -161,12 +161,32 @@ if (
     }
 
     const egressInfo = await egressClient.stopEgress(egressId)
+    const endedAt = new Date().toISOString()
     const { error: updateError } = await supabaseAdmin
       .from("event_live_recordings")
-      .update({ status: "ending", updated_at: new Date().toISOString() })
+      .update({ status: "ending", updated_at: endedAt })
       .eq("event_id", access.eventId)
       .eq("egress_id", egressId)
     if (updateError) throw new Error(updateError.message)
+    const { data: broadcastRun } = await supabaseAdmin
+      .from("event_broadcast_runs")
+      .select("id")
+      .eq("event_id", access.eventId)
+      .eq("egress_id", egressId)
+      .maybeSingle()
+    if (broadcastRun) {
+      await Promise.all([
+        supabaseAdmin
+          .from("event_broadcast_runs")
+          .update({ status: "ending", ended_at: endedAt, updated_at: endedAt })
+          .eq("id", broadcastRun.id),
+        supabaseAdmin
+          .from("event_broadcast_run_destinations")
+          .update({ status: "stopped", ended_at: endedAt, updated_at: endedAt })
+          .eq("run_id", broadcastRun.id)
+          .in("status", ["starting", "active"]),
+      ])
+    }
     console.log("[recording.stop] stopped egress", {
       egressId: egressInfo.egressId,
       status: egressInfo.status,
@@ -186,7 +206,7 @@ if (
       error: (egressInfo as { error?: string }).error ?? null,
     })
   } catch (error) {
-    console.error("[recording.stop] failed", error)
+    console.error("[recording.stop] failed", errorMessage(error))
     return NextResponse.json(
       {
         ok: false,

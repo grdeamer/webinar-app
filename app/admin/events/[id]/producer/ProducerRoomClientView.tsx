@@ -14,7 +14,8 @@ import ProducerModeBar, {
 } from "./ProducerModeBar";
 import ProducerHealthBar from "./ProducerHealthBar";
 import ProducerRoomWorkspace from "./ProducerRoomWorkspace";
-import ProducerNavigationRail from "./ProducerNavigationRail";
+import { ProducerAdvancedWorkspace, ProducerPrepareWorkspace } from "./ProducerOperationalWorkspaces";
+import { getProducerThemeStyle } from "./producerTheme";
 import ProducerSafetyDialog, {
   type ProducerSafetyAction,
 } from "./ProducerSafetyDialog";
@@ -41,6 +42,8 @@ export type ProducerRoomClientViewProps = {
   setSyncWarningText: React.Dispatch<React.SetStateAction<string | null>>;
   isProgramLive: boolean;
   eventId: string;
+  eventTitle: string;
+  eventAccent: string;
   pendingSafetyAction: ProducerSafetyAction | null;
   liveSafetyChecks: {
     label: string;
@@ -77,6 +80,7 @@ export type ProducerRoomClientViewProps = {
   leftRailProps: React.ComponentProps<typeof ProducerLeftRail>;
   rightRailProps: React.ComponentProps<typeof ProducerRightRail>;
   bottomDock: React.ReactNode;
+  operationalWorkspaceProps: React.ComponentProps<typeof ProducerPrepareWorkspace>;
 };
 
 export default function ProducerRoomClientView(
@@ -89,7 +93,8 @@ export default function ProducerRoomClientView(
     setTransportHealth,
     setSyncWarningText,
     isProgramLive,
-    eventId,
+    eventTitle,
+    eventAccent,
     pendingSafetyAction,
     liveSafetyChecks,
     liveActionBusy,
@@ -119,6 +124,7 @@ export default function ProducerRoomClientView(
     leftRailProps,
     rightRailProps,
     bottomDock,
+    operationalWorkspaceProps,
   } = props;
 
   if (!token || !serverUrl) {
@@ -216,7 +222,11 @@ export default function ProducerRoomClientView(
         </div>
       </div>
 
-      <div className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(59,130,246,0.08),transparent_32%),radial-gradient(circle_at_82%_2%,rgba(56,189,248,0.045),transparent_30%),linear-gradient(180deg,#080d19_0%,#050914_48%,#03060d_100%)] text-white">
+      <div
+        className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(var(--producer-brand-primary),0.13),transparent_34%),radial-gradient(circle_at_82%_2%,rgba(var(--producer-brand-secondary),0.08),transparent_31%),linear-gradient(180deg,#080d19_0%,#050914_48%,#03060d_100%)] text-white"
+        style={getProducerThemeStyle(eventAccent)}
+        data-event-title={eventTitle}
+      >
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />
 
@@ -243,8 +253,6 @@ export default function ProducerRoomClientView(
           />
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
-            <ProducerNavigationRail eventId={eventId} isLive={isProgramLive} />
-
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <ProducerRoomTopChrome {...topChromeProps} />
               <ProducerModeBar
@@ -295,18 +303,20 @@ export default function ProducerRoomClientView(
               />
               <ProducerRoomWorkspaceFrame>
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-                  <ProducerRoomGrid>
-                    <ProducerRoomWorkspace
-                      leftRail={<ProducerLeftRail {...leftRailProps} />}
-                      centerColumn={centerColumn}
-                      rightRail={<ProducerRightRail {...rightRailProps} />}
-                      bottomDock={
-                        workspaceMode === "show" && !standardToolsOpen
-                          ? undefined
-                          : bottomDock
-                      }
-                    />
-                  </ProducerRoomGrid>
+                  {workspaceMode === "show" ? (
+                    <ProducerRoomGrid>
+                      <ProducerRoomWorkspace
+                        leftRail={<ProducerLeftRail {...leftRailProps} />}
+                        centerColumn={centerColumn}
+                        rightRail={<ProducerRightRail {...rightRailProps} />}
+                        bottomDock={!standardToolsOpen ? undefined : bottomDock}
+                      />
+                    </ProducerRoomGrid>
+                  ) : workspaceMode === "prepare" ? (
+                    <ProducerPrepareWorkspace {...operationalWorkspaceProps} />
+                  ) : (
+                    <ProducerAdvancedWorkspace {...operationalWorkspaceProps} />
+                  )}
 
                   {workspaceMode === "show" ? (
                     <button
@@ -315,7 +325,7 @@ export default function ProducerRoomClientView(
                         setStandardToolsOpen((current) => !current)
                       }
                       aria-expanded={standardToolsOpen}
-                      className="absolute bottom-2 left-1/2 z-[85] flex -translate-x-1/2 items-center gap-2 rounded-[10px] border border-white/[0.10] bg-[#101522]/95 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.10em] text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.38)] backdrop-blur-xl transition hover:border-sky-200/25 hover:text-white"
+                      className="absolute right-3 top-3 z-[85] flex items-center gap-2 rounded-[10px] border border-white/[0.10] bg-[#101522]/95 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.10em] text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.38)] backdrop-blur-xl transition hover:border-sky-200/25 hover:text-white"
                     >
                       {standardToolsOpen
                         ? "Close Production Tools"

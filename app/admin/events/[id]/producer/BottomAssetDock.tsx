@@ -61,6 +61,7 @@ import {
   formatRecordingDuration
 } from "./BottomAssetDockWorkspaceParts"
 import ProductionControlsDrawer from "./ProductionControlsDrawer"
+import BroadcastDestinationsPanel from "./BroadcastDestinationsPanel"
 function formatFileSize(bytes: number): string {
   if (bytes <= 0) return "0 KB"
   const units = ["B", "KB", "MB", "GB"]
@@ -1016,7 +1017,12 @@ const previewMediaAsset =
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(7,12,22,0.96),rgba(3,6,12,1))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.020)_0px,rgba(255,255,255,0.020)_1px,transparent_1px,transparent_28px)]" />
-      {activeUtilityPanel ? (
+      {activeUtilityPanel === "stream" ? (
+        <BroadcastDestinationsPanel
+          eventId={eventId}
+          onClose={() => setActiveUtilityPanel(null)}
+        />
+      ) : activeUtilityPanel ? (
         <UtilityOverlay
           activePanel={activeUtilityPanel}
           recordingStatus={recordingStatus}
@@ -1505,7 +1511,7 @@ const previewMediaAsset =
             onClick={() => setProductionDrawerTab("recording")}
           />
           <UtilityButton icon={<Radio size={16} />} label="Stream" meta="Setup" onClick={() => setActiveUtilityPanel("stream")} />
-          <UtilityButton icon={<Layers3 size={16} />} label="Media" meta="Manage" onClick={() => setActiveUtilityPanel("overlays")} />
+          <UtilityButton icon={<Layers3 size={16} />} label="Media" meta="Manage" onClick={() => setExpandedMediaOpen(true)} />
           <UtilityButton icon={<Volume2 size={16} />} label="Mixer" meta="Open" onClick={() => setProductionDrawerTab("audio")} />
         </div>
       </div>

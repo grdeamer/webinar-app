@@ -9,6 +9,8 @@ import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { getAppUrl } from "@/lib/email/resend"
 import { ensureEventLiveRoom } from "@/lib/live/stageState"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { sanitizeBroadcastError } from "@/lib/broadcast/config"
+import { createBroadcastStreamOutput } from "@/lib/broadcast/server"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -52,8 +54,7 @@ function qualityToLayout(quality: string | undefined): string {
 }
 
 function errorMessage(error: unknown): string {
-  if (error instanceof Error) return error.message
-  return "Unknown recording start error"
+  return sanitizeBroadcastError(error)
 }
 
 export async function POST(request: Request): Promise<NextResponse> {
@@ -185,7 +186,10 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const egressInfo = await egressClient.startRoomCompositeEgress(
       roomName,
-      fileOutput,
+      {
+        file: fileOutput,
+        stream: createBroadcastStreamOutput([]),
+      },
       {
         layout,
         customBaseUrl,
@@ -217,7 +221,6 @@ export async function POST(request: Request): Promise<NextResponse> {
       status: egressInfo.status,
       roomName,
       fileResults: egressInfo.fileResults,
-      streamResults: egressInfo.streamResults,
       startedAt: egressInfo.startedAt?.toString() ?? null,
       endedAt: egressInfo.endedAt?.toString() ?? null,
       error: (egressInfo as { error?: string }).error ?? null,
@@ -233,14 +236,13 @@ export async function POST(request: Request): Promise<NextResponse> {
       file: egressInfo.fileResults?.[0]?.filename ?? null,
       fileResults: egressInfo.fileResults ?? [],
       storage: storageDiagnostics,
-      streamResults: egressInfo.streamResults ?? [],
       error: (egressInfo as { error?: string }).error ?? null,
       source: body.source ?? "Program Feed",
       destination: body.destination ?? "Jupiter Cloud",
       quality: body.quality ?? "1080p Standard",
     })
   } catch (error) {
-    console.error("[recording.start] failed", error)
+    console.error("[recording.start] failed", errorMessage(error))
     return NextResponse.json(
       {
         ok: false,

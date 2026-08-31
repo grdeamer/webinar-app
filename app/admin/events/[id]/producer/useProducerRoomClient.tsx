@@ -59,10 +59,14 @@ export function useProducerRoomClient({
   eventId,
   sessionId,
   sessionTitle,
+  eventTitle,
+  eventAccent,
 }: {
   eventId: string;
   sessionId: string;
   sessionTitle?: string;
+  eventTitle?: string;
+  eventAccent?: string;
 }): ProducerRoomClientViewProps {
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
@@ -82,7 +86,7 @@ export function useProducerRoomClient({
   const staleRouteCleanupBusyRef = useRef(false);
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true);
-  const [standardToolsOpen, setStandardToolsOpen] = useState(false);
+  const [standardToolsOpen, setStandardToolsOpen] = useState(true);
   const [screenLayoutPreset, setScreenLayoutPreset] =
     useState<ScreenLayoutPreset>("classic");
   const [selectedTransitionDurationMs] = useState(600);
@@ -1864,6 +1868,8 @@ onSaveScene: saveScene,
     setSyncWarningText,
     isProgramLive,
     eventId,
+    eventTitle: eventTitle || sessionTitle || "Event",
+    eventAccent: eventAccent || "blue",
     pendingSafetyAction,
     liveSafetyChecks,
     liveActionBusy,
@@ -1893,6 +1899,17 @@ onSaveScene: saveScene,
     leftRailProps,
     rightRailProps,
     bottomDock,
+    operationalWorkspaceProps: {
+      participantCount: participants.length,
+      sceneCount: scenes.length,
+      mediaCount: previewBlocks.length,
+      healthSnapshot,
+      transportHealth,
+      recordingStatus: recordingHealth.status,
+      recoveryBusy,
+      onRecover: () => { void handleRecoverControlPlane(); },
+      onOpenShow: () => setWorkspaceMode("show"),
+    },
   };
 
   return viewProps;

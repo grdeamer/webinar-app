@@ -17,6 +17,7 @@ type EventSettingsRow = {
   description: string | null
   start_at: string | null
   end_at: string | null
+  accent_color: string
 }
 
 function isUuid(value: string) {
@@ -29,7 +30,7 @@ export default async function EventSettingsPage({ params }: PageProps) {
   const { id } = await params
   const query = supabaseAdmin
     .from("events")
-    .select("id,slug,title,badge_image_url,description,start_at,end_at")
+    .select("id,slug,title,badge_image_url,description,start_at,end_at,accent_color")
 
   const { data, error } = isUuid(id)
     ? await query.eq("id", id).maybeSingle()
