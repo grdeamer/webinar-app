@@ -4,6 +4,11 @@ import { getEventLiveRoom } from "@/lib/live/stageState"
 import { isBroadcastEncryptionConfigured } from "@/lib/broadcast/credentials"
 import { normalizeDestinationIds, prepareBroadcastDestinations } from "@/lib/broadcast/prepare"
 import { isBroadcastRecordingConfigured, isLiveKitBroadcastConfigured } from "@/lib/broadcast/server"
+import {
+  broadcastOutputProfileLabel,
+  getBroadcastOutputProfile,
+  normalizeBroadcastOutputProfileId,
+} from "@/lib/broadcast/outputProfiles"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -18,6 +23,8 @@ export async function POST(request: Request, context: Params): Promise<Response>
   const body = await request.json().catch((): null => null) as Record<string, unknown> | null
   const destinationIds = normalizeDestinationIds(body?.destinationIds)
   const recordingEnabled = body?.recordingEnabled !== false
+  const qualityProfile = normalizeBroadcastOutputProfileId(body?.qualityProfile)
+  const outputProfile = getBroadcastOutputProfile(qualityProfile)
   const room = await getEventLiveRoom(access.eventId)
   const checks = [
     { id: "livekit", label: "LiveKit egress", ready: isLiveKitBroadcastConfigured(), required: true, detail: isLiveKitBroadcastConfigured() ? "Media service credentials available" : "LiveKit server credentials are missing" },
@@ -40,7 +47,8 @@ export async function POST(request: Request, context: Params): Promise<Response>
     ok: true,
     ready,
     roomName: room?.room_name ?? null,
-    profile: "Universal 720p30 · H.264/AAC · 3.5 Mbps",
+    profile: qualityProfile,
+    output: `${broadcastOutputProfileLabel(outputProfile)} · H.264/AAC · ${(outputProfile.videoBitrateKbps / 1000).toFixed(1)} Mbps`,
     checks,
     note: "Preflight validates Jupiter configuration. Confirm the incoming preview in each platform before making that platform public.",
   })

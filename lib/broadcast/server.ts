@@ -13,6 +13,10 @@ import {
   VideoCodec,
   type EncodedOutputs,
 } from "livekit-server-sdk"
+import {
+  getBroadcastOutputProfile,
+  type BroadcastOutputProfileId,
+} from "./outputProfiles"
 
 export function requiredBroadcastEnv(name: string, fallbackName?: string): string {
   const value = process.env[name] ?? (fallbackName ? process.env[fallbackName] : undefined)
@@ -78,17 +82,21 @@ export function createBroadcastOutputs(urls: string[], recordingEnabled: boolean
   }
 }
 
-export function universalBroadcastEncoding(): EncodingOptions {
+export function universalBroadcastEncoding(
+  profileId?: BroadcastOutputProfileId,
+): EncodingOptions {
+  const profile = getBroadcastOutputProfile(profileId)
+
   return new EncodingOptions({
-    width: 1280,
-    height: 720,
+    width: profile.width,
+    height: profile.height,
     depth: 24,
-    framerate: 30,
+    framerate: profile.frameRate,
     audioCodec: AudioCodec.AAC,
     audioBitrate: 128,
     audioFrequency: 48000,
     videoCodec: VideoCodec.H264_BASELINE,
-    videoBitrate: 3500,
+    videoBitrate: profile.videoBitrateKbps,
     keyFrameInterval: 2,
   })
 }

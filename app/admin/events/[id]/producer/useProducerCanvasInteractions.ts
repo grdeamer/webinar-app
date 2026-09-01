@@ -79,6 +79,9 @@ export default function useProducerCanvasInteractions({
       const block = previewBlocks.find((b) => b.id === blockId)
       if (!block) return
 
+      const logicalPointerX = (e.clientX - rect.left) * (PRODUCER_BLOCK_CANVAS_WIDTH / rect.width)
+      const logicalPointerY = (e.clientY - rect.top) * (PRODUCER_BLOCK_CANVAS_HEIGHT / rect.height)
+
       setPreviewCanvasRect(rect)
       setDraggingBlockId(blockId)
       setSelectedBlockId(blockId)
@@ -86,8 +89,8 @@ export default function useProducerCanvasInteractions({
       setSnapGuideY(null)
 
       setDragOffset({
-        x: e.clientX - rect.left - block.x,
-        y: e.clientY - rect.top - block.y,
+        x: logicalPointerX - block.x,
+        y: logicalPointerY - block.y,
       })
     },
     [
@@ -128,15 +131,16 @@ export default function useProducerCanvasInteractions({
       if (!previewCanvasRect) return
 
       if (resizingBlockId) {
+        const logicalPointerX = (e.clientX - previewCanvasRect.left) * (PRODUCER_BLOCK_CANVAS_WIDTH / previewCanvasRect.width)
+        const logicalPointerY = (e.clientY - previewCanvasRect.top) * (PRODUCER_BLOCK_CANVAS_HEIGHT / previewCanvasRect.height)
+
         setPreviewBlocks((prev) =>
           prev.map((block) => {
             if (block.id !== resizingBlockId) return block
 
-            const nextWidth =
-              e.clientX - previewCanvasRect.left - block.x
+            const nextWidth = logicalPointerX - block.x
 
-            const nextHeight =
-              e.clientY - previewCanvasRect.top - block.y
+            const nextHeight = logicalPointerY - block.y
 
             return {
               ...block,
@@ -151,12 +155,15 @@ export default function useProducerCanvasInteractions({
 
       if (!draggingBlockId) return
 
+      const logicalPointerX = (e.clientX - previewCanvasRect.left) * (PRODUCER_BLOCK_CANVAS_WIDTH / previewCanvasRect.width)
+      const logicalPointerY = (e.clientY - previewCanvasRect.top) * (PRODUCER_BLOCK_CANVAS_HEIGHT / previewCanvasRect.height)
+
       setPreviewBlocks((prev) => {
         const activeBlock = prev.find((block) => block.id === draggingBlockId)
         if (!activeBlock) return prev
 
-        const rawX = e.clientX - previewCanvasRect.left - dragOffset.x
-        const rawY = e.clientY - previewCanvasRect.top - dragOffset.y
+        const rawX = logicalPointerX - dragOffset.x
+        const rawY = logicalPointerY - dragOffset.y
 
         const blockWidth = activeBlock.width
         const blockHeight = activeBlock.height

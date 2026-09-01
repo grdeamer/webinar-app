@@ -31,6 +31,13 @@ import type { CinematicTransitionType } from "./commandDeckTypes";
 import type { ScreenLayoutPreset } from "./assetDockTypes";
 import { broadcastPresenterProgramSource } from "./programTransportUtils";
 import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider";
+import {
+  BROADCAST_OUTPUT_PROFILE_STORAGE_KEY,
+  DEFAULT_BROADCAST_OUTPUT_PROFILE_ID,
+  getBroadcastOutputProfile,
+  normalizeBroadcastOutputProfileId,
+  type BroadcastOutputProfileId,
+} from "@/lib/broadcast/outputProfiles";
 
 import {
   getHasProgramSource,
@@ -91,6 +98,13 @@ export function useProducerRoomClient({
   const [standardToolsOpen, setStandardToolsOpen] = useState(false);
   const [screenLayoutPreset, setScreenLayoutPreset] =
     useState<ScreenLayoutPreset>("classic");
+  const [outputProfileId, setOutputProfileId] = useState<BroadcastOutputProfileId>(() => {
+    if (typeof window === "undefined") return DEFAULT_BROADCAST_OUTPUT_PROFILE_ID;
+    return normalizeBroadcastOutputProfileId(
+      window.localStorage.getItem(BROADCAST_OUTPUT_PROFILE_STORAGE_KEY),
+    );
+  });
+  const outputProfile = getBroadcastOutputProfile(outputProfileId);
   const [selectedTransitionDurationMs] = useState(600);
   const [programSceneId, setProgramSceneId] = useState<string | null>(null);
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(
@@ -113,6 +127,10 @@ export function useProducerRoomClient({
     status: RecordingStatus;
     error: string | null;
   }>({ status: "idle", error: null });
+
+  useEffect(() => {
+    window.localStorage.setItem(BROADCAST_OUTPUT_PROFILE_STORAGE_KEY, outputProfileId);
+  }, [outputProfileId]);
 const updateStageState = useCallback(
   (updater: StageState | null | ((current: StageState | null) => StageState | null)): void => {
     setStageState((current) => {
@@ -1564,6 +1582,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       deleteSelectedBlock,
       healthSnapshot,
       transportHealth,
+      outputProfile,
     }),
     [
       workspaceMode,
@@ -1621,6 +1640,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       deleteSelectedBlock,
       healthSnapshot,
       transportHealth,
+      outputProfile,
     ],
   );
 
@@ -1831,6 +1851,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       previewBlocks,
       localMicLevel,
       eventId,
+      outputProfileId,
       recordingRoomName: roomName ?? sessionId,
       slideDeckName: localPdfDeck?.name ?? null,
       slideCount: localPdfDeck?.pageCount ?? 8,
@@ -1860,6 +1881,7 @@ onSaveScene: saveScene,
       previewBlocks,
       localMicLevel,
       eventId,
+      outputProfileId,
       sessionId,
       roomName,
       localPdfDeck?.name,
@@ -1929,6 +1951,8 @@ onSaveScene: saveScene,
       recoveryBusy,
       onRecover: () => { void handleRecoverControlPlane(); },
       onOpenShow: () => setWorkspaceMode("show"),
+      outputProfileId,
+      onOutputProfileChange: setOutputProfileId,
     },
   };
 

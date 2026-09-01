@@ -7,6 +7,11 @@ import { recordAuditEvent } from "@/lib/cloud/audit"
 import { normalizeDestinationIds, prepareBroadcastDestinations } from "@/lib/broadcast/prepare"
 import { sanitizeBroadcastError } from "@/lib/broadcast/config"
 import { createBroadcastEgressClient, createBroadcastOutputs, isBroadcastRecordingConfigured, universalBroadcastEncoding } from "@/lib/broadcast/server"
+import {
+  broadcastOutputProfileLabel,
+  getBroadcastOutputProfile,
+  normalizeBroadcastOutputProfileId,
+} from "@/lib/broadcast/outputProfiles"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -22,6 +27,8 @@ export async function POST(request: Request, context: Params): Promise<Response>
   const body = await request.json().catch((): null => null) as Record<string, unknown> | null
   const destinationIds = normalizeDestinationIds(body?.destinationIds)
   const recordingEnabled = body?.recordingEnabled !== false
+  const qualityProfile = normalizeBroadcastOutputProfileId(body?.qualityProfile)
+  const outputProfile = getBroadcastOutputProfile(qualityProfile)
   let egressId: string | null = null
   let createdEgress = false
   let attachedUrls: string[] = []
@@ -39,6 +46,26 @@ export async function POST(request: Request, context: Params): Promise<Response>
     attachedUrls = destinations.map((destination) => destination.outputUrl)
 
     if (egressInfo) {
+      const { data: activeRun } = await supabaseAdmin
+        .from("event_broadcast_runs")
+        .select("quality_profile")
+        .eq("event_id", access.eventId)
+        .eq("egress_id", egressInfo.egressId)
+        .maybeSingle()
+      const activeProfile = activeRun?.quality_profile
+        ? normalizeBroadcastOutputProfileId(activeRun.quality_profile)
+        : qualityProfile
+
+      if (activeProfile !== qualityProfile) {
+        return NextResponse.json(
+          {
+            ok: false,
+            error: `The active output is ${broadcastOutputProfileLabel(getBroadcastOutputProfile(activeProfile))}. Stop it before changing resolution.`,
+          },
+          { status: 409 },
+        )
+      }
+
       egressId = egressInfo.egressId
       egressInfo = await egressClient.updateStream(egressInfo.egressId, attachedUrls, [])
     } else {
@@ -48,7 +75,7 @@ export async function POST(request: Request, context: Params): Promise<Response>
         {
           layout: "speaker-dark",
           customBaseUrl: `${getAppUrl()}/program-output/${encodeURIComponent(access.eventSlug)}`,
-          encodingOptions: universalBroadcastEncoding(),
+          encodingOptions: universalBroadcastEncoding(qualityProfile),
         },
       )
       egressId = egressInfo.egressId
@@ -69,7 +96,7 @@ export async function POST(request: Request, context: Params): Promise<Response>
     } else {
       const { data: run, error } = await supabaseAdmin
         .from("event_broadcast_runs")
-        .insert({ event_id: access.eventId, room_name: room.room_name, egress_id: egressInfo.egressId, status: Number(egressInfo.status) === 1 ? "active" : "starting", quality_profile: "universal-720p30", recording_enabled: recordingEnabled, started_by: access.user.id })
+        .insert({ event_id: access.eventId, room_name: room.room_name, egress_id: egressInfo.egressId, status: Number(egressInfo.status) === 1 ? "active" : "starting", quality_profile: qualityProfile, recording_enabled: recordingEnabled, started_by: access.user.id })
         .select("id")
         .single()
       if (error) throw new Error(error.message)
@@ -105,13 +132,13 @@ export async function POST(request: Request, context: Params): Promise<Response>
     if (destinationError) throw new Error(destinationError.message)
 
     if (createdEgress && recordingEnabled) {
-      const { error: recordingError } = await supabaseAdmin.from("event_live_recordings").insert({ event_id: access.eventId, room_name: room.room_name, egress_id: egressInfo.egressId, status: "starting", source: "Program Feed", destination: "Jupiter Cloud + Simulcast", quality: "720p Universal", file_name: egressInfo.fileResults?.[0]?.filename ?? null, started_by: access.user.id })
+      const { error: recordingError } = await supabaseAdmin.from("event_live_recordings").insert({ event_id: access.eventId, room_name: room.room_name, egress_id: egressInfo.egressId, status: "starting", source: "Program Feed", destination: "Jupiter Cloud + Simulcast", quality: outputProfile.label, file_name: egressInfo.fileResults?.[0]?.filename ?? null, started_by: access.user.id })
       if (recordingError) throw new Error(recordingError.message)
     }
 
-    await recordAuditEvent({ eventId: access.eventId, actorId: access.user.id, actorEmail: access.user.email, category: "broadcast", action: "broadcast.started", summary: `Started outbound broadcast to ${destinations.length} destination${destinations.length === 1 ? "" : "s"}`, targetType: "event_broadcast_run", targetId: runId, metadata: { destinationIds, recordingEnabled, egressId: egressInfo.egressId, profile: "universal-720p30" } })
+    await recordAuditEvent({ eventId: access.eventId, actorId: access.user.id, actorEmail: access.user.email, category: "broadcast", action: "broadcast.started", summary: `Started outbound broadcast to ${destinations.length} destination${destinations.length === 1 ? "" : "s"}`, targetType: "event_broadcast_run", targetId: runId, metadata: { destinationIds, recordingEnabled, egressId: egressInfo.egressId, profile: qualityProfile, output: broadcastOutputProfileLabel(outputProfile) } })
 
-    return NextResponse.json({ ok: true, runId, egressId: egressInfo.egressId, status: Number(egressInfo.status), recordingEnabled, attachedToExistingEgress: !createdEgress, destinations: destinations.map(({ id: destinationId, provider, label }) => ({ id: destinationId, provider, label, status: "starting" })) })
+    return NextResponse.json({ ok: true, runId, egressId: egressInfo.egressId, status: Number(egressInfo.status), recordingEnabled, qualityProfile, output: broadcastOutputProfileLabel(outputProfile), attachedToExistingEgress: !createdEgress, destinations: destinations.map(({ id: destinationId, provider, label }) => ({ id: destinationId, provider, label, status: "starting" })) })
   } catch (error) {
     const message = sanitizeBroadcastError(error, attachedUrls)
     if (egressId && attachedUrls.length > 0) {

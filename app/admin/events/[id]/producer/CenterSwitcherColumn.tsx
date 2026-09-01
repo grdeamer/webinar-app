@@ -13,6 +13,10 @@ import type {
 import { renderPlacedBlocks } from "./producerRoomBlockHelpers";
 import type { ProducerWorkspaceMode } from "./ProducerModeBar";
 import type { CinematicTransitionType } from "./commandDeckTypes";
+import {
+  broadcastOutputProfileLabel,
+  type BroadcastOutputProfile,
+} from "@/lib/broadcast/outputProfiles";
 function LiveProductionStatusPanel({
   programState,
   previewProgramDifferent,
@@ -466,7 +470,7 @@ function PreviewSnapGuides({
       {snapGuideX !== null ? (
         <div
           className="absolute top-0 h-full w-px -translate-x-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
-          style={{ left: snapGuideX }}
+          style={{ left: `${(snapGuideX / 640) * 100}%` }}
         >
           <div className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
           <div className="absolute bottom-2 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
@@ -476,7 +480,7 @@ function PreviewSnapGuides({
       {snapGuideY !== null ? (
         <div
           className="absolute left-0 h-px w-full -translate-y-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
-          style={{ top: snapGuideY }}
+          style={{ top: `${(snapGuideY / 360) * 100}%` }}
         >
           <div className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
           <div className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
@@ -543,6 +547,7 @@ export default function CenterSwitcherColumn({
   deleteSelectedBlock,
   healthSnapshot,
   transportHealth,
+  outputProfile,
 }: {
   workspaceMode: ProducerWorkspaceMode;
   triggerAudienceCue: (options?: {
@@ -618,6 +623,7 @@ export default function CenterSwitcherColumn({
   deleteSelectedBlock: () => void;
   healthSnapshot: ProducerHealthSnapshot;
   transportHealth: ProducerTransportHealth;
+  outputProfile: BroadcastOutputProfile;
 }): JSX.Element {
   const switcherGridRef = useRef<HTMLDivElement | null>(null);
   const transitionPopoverRef = useRef<HTMLDivElement | null>(null);
@@ -840,6 +846,8 @@ export default function CenterSwitcherColumn({
 
     const rawPayload = event.dataTransfer.getData("application/x-jupiter-preview-block");
     const rect = event.currentTarget.getBoundingClientRect();
+    const logicalPointerX = (event.clientX - rect.left) * (640 / rect.width);
+    const logicalPointerY = (event.clientY - rect.top) * (360 / rect.height);
 
     let ghostWidth = 320;
     let ghostHeight = 180;
@@ -858,8 +866,8 @@ export default function CenterSwitcherColumn({
       }
     }
 
-    const nextX = Math.max(0, event.clientX - rect.left - ghostWidth / 2);
-    const nextY = Math.max(0, event.clientY - rect.top - ghostHeight / 2);
+    const nextX = Math.max(0, logicalPointerX - ghostWidth / 2);
+    const nextY = Math.max(0, logicalPointerY - ghostHeight / 2);
 
     setPreviewDropActive(true);
     setPreviewDropGhost({
@@ -888,10 +896,12 @@ export default function CenterSwitcherColumn({
     try {
       const block = JSON.parse(rawPayload) as PreviewBlock;
       const rect = event.currentTarget.getBoundingClientRect();
+      const logicalPointerX = (event.clientX - rect.left) * (640 / rect.width);
+      const logicalPointerY = (event.clientY - rect.top) * (360 / rect.height);
       const blockWidth = block.width ?? 320;
       const blockHeight = block.height ?? 180;
-      const nextX = Math.max(0, event.clientX - rect.left - blockWidth / 2);
-      const nextY = Math.max(0, event.clientY - rect.top - blockHeight / 2);
+      const nextX = Math.max(0, logicalPointerX - blockWidth / 2);
+      const nextY = Math.max(0, logicalPointerY - blockHeight / 2);
 
       onAddMediaAssetToPreview({
         ...block,
@@ -983,7 +993,15 @@ export default function CenterSwitcherColumn({
 >
           <div className="producer-monitor producer-monitor--preview relative flex h-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-blue-500 bg-[#06101c] p-0 shadow-[0_0_22px_rgba(37,99,235,0.18)]">
             <div className="producer-monitor__header flex h-14 items-center justify-between border-b border-blue-400/35 bg-[#07182b] px-5 text-[16px] font-semibold uppercase tracking-[0.10em] text-blue-400">
-              <span>Preview</span>
+              <div className="flex items-center gap-3">
+                <span>Preview</span>
+                <span
+                  className="whitespace-nowrap rounded-full border border-sky-300/14 bg-black/24 px-2 py-1 text-[8px] font-bold normal-case tracking-[0.04em] text-sky-100/52"
+                  title={`Actual output: ${broadcastOutputProfileLabel(outputProfile)}`}
+                >
+                  {outputProfile.height}p{outputProfile.frameRate} · {outputProfile.aspectRatio}
+                </span>
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -1015,7 +1033,8 @@ export default function CenterSwitcherColumn({
             </div>
 
             <div
-              className={`relative min-h-0 flex-1 overflow-hidden bg-black transition-shadow duration-300 ${
+              data-output-canvas="preview"
+              className={`relative my-auto aspect-video w-full flex-none overflow-hidden bg-black ring-1 ring-inset ring-white/[0.06] transition-shadow duration-300 ${
                 previewProgramDifferent
                   ? "shadow-[inset_0_0_0_1px_rgba(125,211,252,0.10)]"
                   : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]"
@@ -1263,14 +1282,23 @@ export default function CenterSwitcherColumn({
           </div>
           <div className="producer-monitor producer-monitor--program relative flex h-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-red-500 bg-[#14090d] p-0 shadow-[0_0_22px_rgba(239,68,68,0.15)]">
             <div className="producer-monitor__header flex h-14 items-center justify-between border-b border-red-400/35 bg-[#211018] px-5 text-[16px] font-semibold uppercase tracking-[0.10em] text-red-400">
-              <span>Program</span>
+              <div className="flex items-center gap-3">
+                <span>Program</span>
+                <span
+                  className="whitespace-nowrap rounded-full border border-red-300/14 bg-black/24 px-2 py-1 text-[8px] font-bold normal-case tracking-[0.04em] text-red-100/50"
+                  title={`Actual output: ${broadcastOutputProfileLabel(outputProfile)}`}
+                >
+                  {outputProfile.height}p{outputProfile.frameRate} · {outputProfile.aspectRatio}
+                </span>
+              </div>
               <span className="inline-flex items-center rounded-[8px] border border-red-400/25 bg-red-500/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-red-300">
                 {programState?.is_live ? "Live" : "Idle"}
               </span>
             </div>
 
             <div
-              className={`relative min-h-0 flex-1 overflow-hidden border-0 bg-black transition-shadow duration-300 ${
+              data-output-canvas="program"
+              className={`relative my-auto aspect-video w-full flex-none overflow-hidden border-0 bg-black ring-1 ring-inset ring-white/[0.06] transition-shadow duration-300 ${
                 isTransitioning
                   ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]"
                   : "shadow-[inset_0_0_0_1px_rgba(248,113,113,0.08)]"

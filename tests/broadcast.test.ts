@@ -8,6 +8,11 @@ import {
   normalizeBroadcastServerUrl,
   sanitizeBroadcastError,
 } from "../lib/broadcast/config.ts"
+import {
+  broadcastOutputProfileLabel,
+  getBroadcastOutputProfile,
+  normalizeBroadcastOutputProfileId,
+} from "../lib/broadcast/outputProfiles.ts"
 
 test("broadcast providers accept only the supported Phase 1 set", () => {
   assert.equal(isBroadcastProvider("youtube"), true)
@@ -52,4 +57,19 @@ test("broadcast errors redact complete RTMP destinations and explicit secrets", 
   )
   assert.equal(sanitized, "LiveKit rejected [redacted RTMP destination] while connecting")
   assert.doesNotMatch(sanitized, /super-secret-key/)
+})
+
+test("broadcast output profiles normalize unknown values to the safe 720p default", () => {
+  assert.equal(normalizeBroadcastOutputProfileId("high-1080p30"), "high-1080p30")
+  assert.equal(normalizeBroadcastOutputProfileId("4k-unsupported"), "universal-720p30")
+  assert.equal(normalizeBroadcastOutputProfileId(null), "universal-720p30")
+})
+
+test("broadcast output profiles expose the actual encoded canvas", () => {
+  const profile = getBroadcastOutputProfile("high-1080p30")
+
+  assert.equal(profile.width, 1920)
+  assert.equal(profile.height, 1080)
+  assert.equal(profile.aspectRatio, "16:9")
+  assert.equal(broadcastOutputProfileLabel(profile), "1920×1080 · 16:9 · 30 fps")
 })

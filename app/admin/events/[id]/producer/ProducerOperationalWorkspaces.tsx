@@ -4,6 +4,12 @@ import { Activity, AlertTriangle, Check, ChevronRight, Cloud, ListChecks, Monito
 import type { JSX } from "react"
 
 import type { ProducerHealthSnapshot, ProducerTransportHealth } from "./producerHealthUtils"
+import {
+  BROADCAST_OUTPUT_PROFILES,
+  broadcastOutputProfileLabel,
+  getBroadcastOutputProfile,
+  type BroadcastOutputProfileId,
+} from "@/lib/broadcast/outputProfiles"
 
 type SharedProps = {
   participantCount: number
@@ -15,6 +21,8 @@ type SharedProps = {
   recoveryBusy: boolean
   onRecover: () => void
   onOpenShow: () => void
+  outputProfileId: BroadcastOutputProfileId
+  onOutputProfileChange: (profileId: BroadcastOutputProfileId) => void
 }
 
 const PANEL = "rounded-[14px] border border-white/10 bg-[#081522]/74 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
@@ -112,6 +120,61 @@ function ReadinessCard({ icon, label, value, tone }: { icon: JSX.Element; label:
   </div>
 }
 
+function OutputFormatControl({
+  profileId,
+  onChange,
+}: {
+  profileId: BroadcastOutputProfileId
+  onChange: (profileId: BroadcastOutputProfileId) => void
+}): JSX.Element {
+  const activeProfile = getBroadcastOutputProfile(profileId)
+
+  return (
+    <div className="mt-4 rounded-[12px] border border-sky-300/12 bg-sky-400/[0.035] p-3">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-100/46">Actual Program Output</div>
+          <div className="mt-1 text-[14px] font-semibold text-white/88">{broadcastOutputProfileLabel(activeProfile)}</div>
+        </div>
+        <span className="rounded-full border border-emerald-300/16 bg-emerald-400/[0.07] px-2 py-1 text-[8px] font-bold uppercase tracking-[0.09em] text-emerald-100/66">Canvas linked</span>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        {Object.values(BROADCAST_OUTPUT_PROFILES).map((profile) => (
+          <button
+            key={profile.id}
+            type="button"
+            onClick={() => onChange(profile.id)}
+            aria-pressed={profile.id === profileId}
+            className={`rounded-[9px] border px-3 py-2 text-left transition ${
+              profile.id === profileId
+                ? "border-sky-300/30 bg-sky-400/[0.12] text-sky-50"
+                : "border-white/[0.07] bg-black/16 text-white/52 hover:border-white/14 hover:text-white/78"
+            }`}
+          >
+            <span className="block text-[11px] font-semibold">{profile.label}</span>
+            <span className="mt-0.5 block text-[8px] text-current opacity-55">{profile.width}×{profile.height} · {profile.frameRate} fps</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-3 border-t border-white/[0.07] pt-3">
+        <div className="flex items-center justify-between text-[9px] text-white/42">
+          <span>Aspect ratio</span>
+          <b className="font-semibold text-white/72">16:9 Landscape</b>
+        </div>
+        <div className="mt-2 grid grid-cols-3 gap-1.5">
+          <span className="rounded-[7px] border border-violet-300/22 bg-violet-400/[0.09] px-2 py-1.5 text-center text-[8px] font-bold text-violet-100/76">16:9 Active</span>
+          <span className="rounded-[7px] border border-white/[0.06] bg-white/[0.018] px-2 py-1.5 text-center text-[8px] font-bold text-white/26">9:16 Planned</span>
+          <span className="rounded-[7px] border border-white/[0.06] bg-white/[0.018] px-2 py-1.5 text-center text-[8px] font-bold text-white/26">1:1 Planned</span>
+        </div>
+      </div>
+
+      <p className="mt-3 text-[8px] leading-4 text-white/32">Resolution applies to the next broadcast or recording start. Existing 16:9 scenes remain framed identically.</p>
+    </div>
+  )
+}
+
 export function ProducerPrepareWorkspace(props: SharedProps): JSX.Element {
   const connected = props.transportHealth === "connected"
   const readiness = [
@@ -146,6 +209,7 @@ export function ProducerPrepareWorkspace(props: SharedProps): JSX.Element {
 
 export function ProducerAdvancedWorkspace(props: SharedProps): JSX.Element {
   const connected = props.transportHealth === "connected"
+  const outputProfile = getBroadcastOutputProfile(props.outputProfileId)
   const signals = [
     { label: "Preview Bus", detail: "Preview pipeline", ready: props.healthSnapshot.previewReady, readyLabel: "Active", idleLabel: "Check", tone: "blue" as const, icon: <MonitorCheck size={20} /> },
     { label: "Program Bus", detail: "Program pipeline", ready: props.healthSnapshot.programReady, readyLabel: "On Air", idleLabel: "Idle", tone: "red" as const, icon: <MonitorCheck size={20} /> },
@@ -161,7 +225,7 @@ export function ProducerAdvancedWorkspace(props: SharedProps): JSX.Element {
       <div className="mt-5 grid min-h-0 flex-1 gap-4 lg:grid-cols-[1.1fr_1fr_.82fr]">
         <div className="grid min-h-0 grid-rows-[1fr_auto] gap-4"><section className={`${PANEL} p-4`}><h3 className="text-[16px] font-semibold tracking-[-0.015em] text-white/90">Signal routing</h3><div className="mt-3 space-y-2">{signals.map((signal)=><SignalRoutingRow key={signal.label} {...signal} />)}</div></section><section className={`${PANEL} p-4`}><h3 className="text-[16px] font-semibold">Recovery controls</h3><div className="mt-4 grid grid-cols-3 gap-3"><button type="button" disabled={props.recoveryBusy} onClick={props.onRecover} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><RefreshCw className={`mx-auto mb-3 ${props.recoveryBusy?"animate-spin":""}`} size={24}/>Reconnect transport</button><button type="button" onClick={props.onRecover} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><Activity className="mx-auto mb-3" size={24}/>Refresh room state</button><button type="button" onClick={props.onOpenShow} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><Play className="mx-auto mb-3" size={24}/>Restart preview</button></div><button type="button" className="mt-4 w-full rounded-xl border border-red-400/70 bg-red-400/[0.05] py-3 text-[14px] font-medium text-red-300">End all outputs</button></section></div>
 
-        <section className={`${PANEL} p-5`}><h3 className="text-[17px] font-semibold">Transport &amp; encoding</h3><div className="mt-5 grid grid-cols-[1fr_118px] gap-5"><div>{[["LiveKit",connected?"Connected":"Degraded"],["Region","US East"],["Video","720p30"],["Codec","H.264"],["Audio","48 kHz Stereo"],["Bitrate","4.5 Mbps"],["Packet loss",connected?"0.1%":"—"],["Round trip",connected?"42 ms":"—"]].map(([label,value])=><div key={label} className="flex justify-between border-b border-white/9 py-2.5 text-[14px] text-white/55"><span>{label}</span><b className={`${label==="LiveKit"||label==="Packet loss"||label==="Round trip"?(connected?"text-emerald-300":"text-amber-300"):"text-white/88"} font-medium`}>{value}</b></div>)}</div><div className="grid grid-cols-3 gap-3 pt-4">{[72,66,62].map((level,index)=><div key={index}><div className="mb-3 text-center text-[10px] uppercase text-white/48">{index===0?"Video":index===1?"L":"R"}</div><div className="flex h-[260px] items-end rounded-md bg-black/30 p-1"><div className="w-full rounded-sm bg-[repeating-linear-gradient(to_top,#5bd57a_0_5px,transparent_5px_8px)]" style={{height:`${level}%`}}/></div></div>)}</div></div></section>
+        <section className={`${PANEL} p-5`}><h3 className="text-[17px] font-semibold">Transport &amp; encoding</h3><OutputFormatControl profileId={props.outputProfileId} onChange={props.onOutputProfileChange} /><div className="mt-5 grid grid-cols-[1fr_118px] gap-5"><div>{[["LiveKit",connected?"Connected":"Degraded"],["Region","US East"],["Video",`${outputProfile.height}p${outputProfile.frameRate}`],["Canvas",outputProfile.aspectRatio],["Codec","H.264"],["Audio","48 kHz Stereo"],["Bitrate",`${(outputProfile.videoBitrateKbps / 1000).toFixed(1)} Mbps`],["Packet loss",connected?"0.1%":"—"],["Round trip",connected?"42 ms":"—"]].map(([label,value])=><div key={label} className="flex justify-between border-b border-white/9 py-2.5 text-[14px] text-white/55"><span>{label}</span><b className={`${label==="LiveKit"||label==="Packet loss"||label==="Round trip"?(connected?"text-emerald-300":"text-amber-300"):"text-white/88"} font-medium`}>{value}</b></div>)}</div><div className="grid grid-cols-3 gap-3 pt-4">{[72,66,62].map((level,index)=><div key={index}><div className="mb-3 text-center text-[10px] uppercase text-white/48">{index===0?"Video":index===1?"L":"R"}</div><div className="flex h-[260px] items-end rounded-md bg-black/30 p-1"><div className="w-full rounded-sm bg-[repeating-linear-gradient(to_top,#5bd57a_0_5px,transparent_5px_8px)]" style={{height:`${level}%`}}/></div></div>)}</div></div></section>
 
         <div className="grid min-h-0 grid-rows-[auto_1fr] gap-4"><section className={`${PANEL} p-5`}><h3 className="text-[17px] font-semibold">Output destinations</h3><div className="mt-4 space-y-3"><div className="flex items-center gap-4 rounded-xl border border-white/9 p-4"><Youtube className="text-red-400" size={34}/><div className="flex-1"><b className="text-[16px]">YouTube</b><div className={`mt-1 text-[13px] ${connected?"text-emerald-300":"text-amber-300"}`}>{connected?"Ready":"Check connection"}</div></div><span>›</span></div><div className="flex items-center gap-4 rounded-xl border border-white/9 p-4"><Cloud className="text-blue-300" size={34}/><div className="flex-1"><b className="text-[16px]">Cloud Recording</b><div className="mt-1 text-[13px] text-emerald-300">Ready</div></div><span>›</span></div><button type="button" className="w-full rounded-xl border border-dashed border-blue-400/45 py-4 text-[14px] text-blue-300">＋ Add destination</button></div></section><section className={`${PANEL} min-h-0 overflow-hidden`}><div className="flex items-center gap-2 border-b border-white/9 px-5 py-4"><Server size={18}/><h3 className="text-[17px] font-semibold">System log</h3></div><div className="p-4 font-mono text-[12px] text-white/68">{log.map((item,index)=><div key={item} className="grid grid-cols-[18px_74px_1fr] gap-2 border-b border-white/8 py-2.5"><span className={`h-2.5 w-2.5 rounded-full ${index===3?"bg-amber-300":"bg-emerald-300"}`}/><span>{`10:24:${31-index*4}`}</span><span>{item}</span></div>)}</div><div className="m-4 flex items-center gap-3 rounded-xl border border-emerald-300/18 bg-emerald-300/[0.06] p-4 text-[13px] text-emerald-200"><ShieldCheck size={20}/>Control plane healthy</div></section></div>
       </div>

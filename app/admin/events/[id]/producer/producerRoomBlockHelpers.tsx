@@ -1,5 +1,9 @@
 import type { CSSProperties, JSX } from "react"
-import type { PreviewBlock } from "./useProducerBlocks"
+import {
+  PRODUCER_BLOCK_CANVAS_HEIGHT,
+  PRODUCER_BLOCK_CANVAS_WIDTH,
+  type PreviewBlock,
+} from "./useProducerBlocks"
 
 type CameraSlotAccentTone = {
   rgb: string
@@ -189,10 +193,10 @@ export function getSharedBlockStyle({
 
   return {
     position: "absolute",
-    left: x,
-    top: y,
-    width,
-    height,
+    left: `${(x / PRODUCER_BLOCK_CANVAS_WIDTH) * 100}%`,
+    top: `${(y / PRODUCER_BLOCK_CANVAS_HEIGHT) * 100}%`,
+    width: `${(width / PRODUCER_BLOCK_CANVAS_WIDTH) * 100}%`,
+    height: `${(height / PRODUCER_BLOCK_CANVAS_HEIGHT) * 100}%`,
     zIndex: 40 + (zIndex ?? 0),
     opacity: animatedOpacity,
     transform: `translate3d(${animationTranslateX}px, ${animationTranslateY}px, 0) scale(${scale ?? 1}) rotate(${rotation ?? 0}deg)`,

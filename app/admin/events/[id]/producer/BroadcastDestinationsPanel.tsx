@@ -4,6 +4,11 @@ import { useCallback, useEffect, useMemo, useState, type JSX } from "react"
 import { CheckCircle2, Eye, KeyRound, Plus, Radio, RefreshCw, Satellite, ShieldCheck, Trash2, TriangleAlert, X } from "lucide-react"
 import { broadcastProviders, providerLabels, type BroadcastDestination, type BroadcastProvider, type BroadcastRun } from "@/lib/broadcast/config"
 import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
+import {
+  broadcastOutputProfileLabel,
+  getBroadcastOutputProfile,
+  type BroadcastOutputProfileId,
+} from "@/lib/broadcast/outputProfiles"
 
 type PreflightCheck = { id: string; label: string; ready: boolean; required: boolean; detail: string }
 type PreflightResult = { ready: boolean; profile: string; checks: PreflightCheck[]; note: string }
@@ -49,7 +54,7 @@ async function readJson(response: Response): Promise<BroadcastApiResponse | null
   return response.json().catch((): null => null) as Promise<BroadcastApiResponse | null>
 }
 
-export default function BroadcastDestinationsPanel({ eventId, onClose }: { eventId: string; onClose: () => void }): JSX.Element {
+export default function BroadcastDestinationsPanel({ eventId, outputProfileId, onClose }: { eventId: string; outputProfileId: BroadcastOutputProfileId; onClose: () => void }): JSX.Element {
   const { confirm: confirmNotice } = useJupiterNotice()
   const baseUrl = `/api/admin/events/${eventId}/broadcast`
   const [destinations, setDestinations] = useState<BroadcastDestination[]>([])
@@ -63,6 +68,7 @@ export default function BroadcastDestinationsPanel({ eventId, onClose }: { event
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const outputProfile = getBroadcastOutputProfile(outputProfileId)
 
   const loadDestinations = useCallback(async (): Promise<void> => {
     const response = await fetch(`${baseUrl}/destinations`, { cache: "no-store" })
@@ -155,7 +161,7 @@ export default function BroadcastDestinationsPanel({ eventId, onClose }: { event
     setError(null)
     setNotice(null)
     try {
-      const response = await fetch(`${baseUrl}/preflight`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ destinationIds: selectedIds, recordingEnabled }) })
+      const response = await fetch(`${baseUrl}/preflight`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ destinationIds: selectedIds, recordingEnabled, qualityProfile: outputProfileId }) })
       const data = await readJson(response)
       if (!response.ok || !data?.ok) throw new Error(data?.error || "Preflight could not be completed.")
       const result: PreflightResult = {
@@ -183,7 +189,7 @@ export default function BroadcastDestinationsPanel({ eventId, onClose }: { event
     setBusy("start")
     setError(null)
     try {
-      const response = await fetch(`${baseUrl}/start`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ destinationIds: selectedIds, recordingEnabled }) })
+      const response = await fetch(`${baseUrl}/start`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ destinationIds: selectedIds, recordingEnabled, qualityProfile: outputProfileId }) })
       const data = await readJson(response)
       if (!response.ok || !data?.ok) throw new Error(data?.error || "Broadcast could not be started.")
       setNotice("Outputs started. Check the preview inside every destination platform before making the event public.")
@@ -249,7 +255,7 @@ export default function BroadcastDestinationsPanel({ eventId, onClose }: { event
         })}{destinations.length === 0 ? <div className="rounded-[13px] border border-dashed border-white/8 px-4 py-8 text-center text-[10px] text-white/32">Add YouTube or another RTMP destination to begin.</div> : null}</div>
       </section>
 
-      <section className="flex flex-col gap-3"><div className="rounded-[16px] border border-white/[.06] bg-white/[.022] p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[10px] font-semibold text-white/70"><ShieldCheck size={15} className="text-cyan-300" />Broadcast preflight</div><span className="rounded-full border border-white/8 px-2 py-1 text-[7px] font-black uppercase tracking-[.09em] text-white/36">Universal 720p30</span></div><label className="mt-3 flex items-center justify-between rounded-[10px] border border-white/6 bg-black/14 px-3 py-2 text-[10px] text-white/55"><span>Record simultaneously to Jupiter Cloud</span><input type="checkbox" checked={recordingEnabled} onChange={(event) => { setRecordingEnabled(event.target.checked); setPreflight(null) }} disabled={runActive} /></label><div className="mt-3 grid gap-1.5">{preflight?.checks.map((check) => <div key={check.id} className="flex items-start gap-2 rounded-[9px] bg-black/15 px-3 py-2"><span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${check.ready ? "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,.55)]" : "bg-amber-300"}`} /><div><div className="text-[9px] font-semibold text-white/62">{check.label}</div><div className="mt-0.5 text-[8px] text-white/30">{check.detail}</div></div></div>) ?? <div className="py-4 text-center text-[9px] text-white/30">Run preflight to validate media, credentials, storage and destinations.</div>}</div><button type="button" onClick={() => void runPreflight()} disabled={busy !== null || selectedIds.length === 0 || runActive} className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[9px] border border-cyan-300/16 bg-cyan-400/7 text-[9px] font-black uppercase tracking-[.11em] text-cyan-100/66 disabled:opacity-30"><RefreshCw size={13} className={busy === "preflight" ? "animate-spin" : ""} />Run preflight</button></div>
+      <section className="flex flex-col gap-3"><div className="rounded-[16px] border border-white/[.06] bg-white/[.022] p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[10px] font-semibold text-white/70"><ShieldCheck size={15} className="text-cyan-300" />Broadcast preflight</div><span className="rounded-full border border-white/8 px-2 py-1 text-[7px] font-black uppercase tracking-[.09em] text-white/36">{broadcastOutputProfileLabel(outputProfile)}</span></div><label className="mt-3 flex items-center justify-between rounded-[10px] border border-white/6 bg-black/14 px-3 py-2 text-[10px] text-white/55"><span>Record simultaneously to Jupiter Cloud</span><input type="checkbox" checked={recordingEnabled} onChange={(event) => { setRecordingEnabled(event.target.checked); setPreflight(null) }} disabled={runActive} /></label><div className="mt-3 grid gap-1.5">{preflight?.checks.map((check) => <div key={check.id} className="flex items-start gap-2 rounded-[9px] bg-black/15 px-3 py-2"><span className={`mt-0.5 h-2 w-2 shrink-0 rounded-full ${check.ready ? "bg-emerald-300 shadow-[0_0_8px_rgba(110,231,183,.55)]" : "bg-amber-300"}`} /><div><div className="text-[9px] font-semibold text-white/62">{check.label}</div><div className="mt-0.5 text-[8px] text-white/30">{check.detail}</div></div></div>) ?? <div className="py-4 text-center text-[9px] text-white/30">Run preflight to validate media, credentials, storage and destinations.</div>}</div><button type="button" onClick={() => void runPreflight()} disabled={busy !== null || selectedIds.length === 0 || runActive} className="mt-3 inline-flex h-9 w-full items-center justify-center gap-2 rounded-[9px] border border-cyan-300/16 bg-cyan-400/7 text-[9px] font-black uppercase tracking-[.11em] text-cyan-100/66 disabled:opacity-30"><RefreshCw size={13} className={busy === "preflight" ? "animate-spin" : ""} />Run preflight</button></div>
 
         <div className="rounded-[16px] border border-white/[.06] bg-white/[.022] p-4"><div className="flex items-center justify-between"><div className="flex items-center gap-2 text-[10px] font-semibold text-white/70"><Satellite size={15} className={runActive ? "text-emerald-300" : "text-violet-300"} />Outbound state</div><span className={`rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[.09em] ${runActive ? "border-emerald-300/18 bg-emerald-400/8 text-emerald-100/68" : "border-white/8 text-white/34"}`}>{runActive ? "Sending" : run?.status ?? "Idle"}</span></div>{run ? <div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-[10px] bg-black/16 px-3 py-2"><div className="text-[7px] uppercase tracking-[.1em] text-white/25">Outputs</div><div className="mt-1 text-lg font-semibold text-white/76">{run.destinations.filter((destination) => destination.status === "active" || destination.status === "starting").length}</div></div><div className="rounded-[10px] bg-black/16 px-3 py-2"><div className="text-[7px] uppercase tracking-[.1em] text-white/25">Recording</div><div className="mt-1 text-[11px] font-semibold text-white/68">{run.recordingEnabled ? "Jupiter Cloud" : "Off"}</div></div></div> : <div className="mt-3 rounded-[10px] bg-black/16 px-3 py-4 text-[9px] leading-4 text-white/30">No outbound run has started for this event.</div>}<div className="mt-3 flex gap-2">{runActive ? <button type="button" onClick={() => void stopAll()} disabled={busy !== null} className="h-9 flex-1 rounded-[9px] border border-rose-300/18 bg-rose-400/7 text-[9px] font-black uppercase tracking-[.1em] text-rose-100/66">Stop all outputs</button> : <button type="button" onClick={() => void startBroadcast()} disabled={busy !== null || !preflight?.ready || enabledSelected.length === 0} className="inline-flex h-9 flex-1 items-center justify-center gap-2 rounded-[9px] bg-gradient-to-r from-blue-500 to-violet-500 text-[9px] font-black uppercase tracking-[.1em] text-white disabled:opacity-30"><Radio size={13} />Start outputs</button>}</div></div>
 

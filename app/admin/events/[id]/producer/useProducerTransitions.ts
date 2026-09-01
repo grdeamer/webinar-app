@@ -129,17 +129,28 @@ export default function useProducerTransitions({
         setTakeBusy(true)
         setLastTakeMode(mode)
         setError(null)
-        await api.setEventTransition?.({
-          active: true,
-          type: transitionType ?? "fade",
-          headline: "Stand by",
-          message: "Preparing next live destination",
-          durationMs: resolvedDurationMs,
-        })
+
+        // A hard cut must commit Program directly. Coupling CUT to the
+        // audience-transition overlay made the switch dependent on a second
+        // request that is only needed for animated AUTO transitions.
+        if (mode === "auto") {
+          await api.setEventTransition?.({
+            active: true,
+            type: transitionType ?? "fade",
+            headline: "Stand by",
+            message: "Preparing next live destination",
+            durationMs: resolvedDurationMs,
+          })
+        }
+
         await takeProgram(mode, transitionType, resolvedDurationMs)
-        window.setTimeout(() => {
-          void api.clearEventTransition?.()
-        }, Math.max(120, resolvedDurationMs + 80))
+
+        if (mode === "auto") {
+          window.setTimeout(() => {
+            void api.clearEventTransition?.()
+          }, Math.max(120, resolvedDurationMs + 80))
+        }
+
         return true
       } catch (error: unknown) {
         setError(error instanceof Error ? error.message : "Unexpected error")

@@ -63,6 +63,7 @@ import {
 import ProductionControlsDrawer from "./ProductionControlsDrawer"
 import BroadcastDestinationsPanel from "./BroadcastDestinationsPanel"
 import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
+import type { BroadcastOutputProfileId } from "@/lib/broadcast/outputProfiles"
 function formatFileSize(bytes: number): string {
   if (bytes <= 0) return "0 KB"
   const units = ["B", "KB", "MB", "GB"]
@@ -142,6 +143,7 @@ export default function BottomAssetDock({
   previewBlocks,
   localMicLevel,
   eventId,
+  outputProfileId,
   recordingRoomName,
   onAddScene,
   onSaveScene,
@@ -169,6 +171,7 @@ export default function BottomAssetDock({
   previewBlocks: PreviewBlock[]
   localMicLevel?: number
   eventId: string
+  outputProfileId: BroadcastOutputProfileId
   recordingRoomName: string
   slideDeckName?: string | null
   slideCount?: number
@@ -1153,6 +1156,7 @@ const previewMediaAsset =
       {activeUtilityPanel === "stream" ? (
         <BroadcastDestinationsPanel
           eventId={eventId}
+          outputProfileId={outputProfileId}
           onClose={() => setActiveUtilityPanel(null)}
         />
       ) : activeUtilityPanel ? (
