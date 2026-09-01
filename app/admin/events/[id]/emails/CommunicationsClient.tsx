@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { type ReactNode, useMemo, useState } from "react"
 import { AlertTriangle, ArrowUpRight, CheckCircle2, ChevronRight, Clock3, KeyRound, Mail, MailCheck, Send, TestTube2, UserCheck, UsersRound, UserX } from "lucide-react"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type Campaign = "confirmations" | "presenters"
 type Result = { sent: number; failed: number; test: boolean }
@@ -14,6 +15,7 @@ export default function CommunicationsClient({ eventId, eventTitle, counts, hist
   counts: { everyone: number; sendable: number; presenters: number; presentersMissingSessions: number; missingEmails: number }
   history: CampaignHistory[]
 }) {
+  const { confirm: confirmNotice } = useJupiterNotice()
   const [campaign, setCampaign] = useState<Campaign>("confirmations")
   const [testEmail, setTestEmail] = useState("")
   const [busy, setBusy] = useState<"test" | "send" | null>(null)
@@ -35,7 +37,10 @@ export default function CommunicationsClient({ eventId, eventTitle, counts, hist
       setError("Enter an email address for the test message.")
       return
     }
-    if (mode === "send" && !window.confirm(`Send ${campaignName} to ${recipientCount} recipient${recipientCount === 1 ? "" : "s"}?`)) return
+    if (mode === "send") {
+      const confirmed = await confirmNotice({ title: `Send ${campaignName}?`, message: `Jupiter will deliver this message to ${recipientCount} recipient${recipientCount === 1 ? "" : "s"}.`, confirmLabel: "Send message", tone: "warning" })
+      if (!confirmed) return
+    }
 
     setBusy(mode)
     setError(null)

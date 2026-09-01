@@ -2,6 +2,7 @@ import "./globals.css"
 import { Geist, Instrument_Sans, Inter, Space_Grotesk } from "next/font/google"
 import type { Metadata, Viewport } from "next"
 import { cn } from "@/lib/utils";
+import { JupiterNotificationProvider } from "@/components/ui/JupiterNotificationProvider"
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 
@@ -60,7 +61,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", geist.variable, inter.variable, instrumentSans.variable, spaceGrotesk.variable)}>
       <body className="jupiter-space-site min-h-dvh text-white antialiased">
-        {children}
+        <JupiterNotificationProvider>{children}</JupiterNotificationProvider>
       </body>
     </html>
   )

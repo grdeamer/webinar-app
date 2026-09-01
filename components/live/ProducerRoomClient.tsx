@@ -14,6 +14,7 @@ import type {
 } from "@livekit/components-core"
 import ProgramMomentOverlay from "@/components/live/ProgramMomentOverlay"
 import usePublicProducerRoomApi from "@/lib/producer/usePublicProducerRoomApi"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 import {
   Activity,
   Clapperboard,
@@ -738,6 +739,7 @@ function ProducerRoomInner({
   token: string
 }) {
   const api = usePublicProducerRoomApi({ eventId, roomName, stageEndpoint, token })
+  const { alert: showNotice } = useJupiterNotice()
 
   const trackRefs = useTracks(
     [
@@ -1021,7 +1023,7 @@ useEffect(() => {
       setStageIds(state.stage_participant_ids)
       setPrimaryId(state.primary_participant_id)
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to save stage state")
+      void showNotice({ title: "Stage state not saved", message: error instanceof Error ? error.message : "Failed to save stage state", tone: "danger" })
     } finally {
       savingRef.current = false
       setSaving(false)
@@ -1084,7 +1086,7 @@ useEffect(() => {
         )
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to take program live")
+      void showNotice({ title: "Program TAKE failed", message: error instanceof Error ? error.message : "Failed to take program live", tone: "danger" })
     } finally {
       setIsTakingLive(false)
     }
@@ -1118,7 +1120,7 @@ useEffect(() => {
         )
       }
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to clear and take live")
+      void showNotice({ title: "Program update failed", message: error instanceof Error ? error.message : "Failed to clear and take live", tone: "danger" })
     }
   }
 
@@ -1159,7 +1161,7 @@ useEffect(() => {
       setSceneName("")
       await refreshScenes()
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to save scene")
+      void showNotice({ title: "Scene not saved", message: error instanceof Error ? error.message : "Failed to save scene", tone: "danger" })
     }
   }
 
@@ -1176,7 +1178,7 @@ useEffect(() => {
       await api.deleteScene(sceneId)
       await refreshScenes()
     } catch (error) {
-      alert(error instanceof Error ? error.message : "Failed to delete scene")
+      void showNotice({ title: "Scene not deleted", message: error instanceof Error ? error.message : "Failed to delete scene", tone: "danger" })
     }
   }
 
@@ -1254,11 +1256,7 @@ useEffect(() => {
         },
       })
     } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Failed to save audience origin cue"
-      )
+      void showNotice({ title: "Audience cue not saved", message: error instanceof Error ? error.message : "Failed to save audience origin cue", tone: "danger" })
     } finally {
       savingRef.current = false
     }
@@ -1301,11 +1299,7 @@ useEffect(() => {
         },
       })
     } catch (error) {
-      alert(
-        error instanceof Error
-          ? error.message
-          : "Failed to clear audience cue"
-      )
+      void showNotice({ title: "Audience cue not cleared", message: error instanceof Error ? error.message : "Failed to clear audience cue", tone: "danger" })
     } finally {
       savingRef.current = false
     }

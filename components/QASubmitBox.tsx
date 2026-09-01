@@ -1,8 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 export default function QASubmitBox({ roomKey }: { roomKey: string }) {
+  const { alert: showNotice } = useJupiterNotice()
   const [name, setName] = useState("")
   const [question, setQuestion] = useState("")
   const [sending, setSending] = useState(false)
@@ -38,9 +40,7 @@ export default function QASubmitBox({ roomKey }: { roomKey: string }) {
       setQuestion("")
       setSent(true)
     } catch (error) {
-      alert(
-        error instanceof Error ? error.message : "Failed to submit question"
-      )
+      await showNotice({ title: "Question not submitted", message: error instanceof Error ? error.message : "Failed to submit question", tone: "warning" })
     } finally {
       setSending(false)
     }

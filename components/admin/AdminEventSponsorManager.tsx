@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type Sponsor = {
   id: string
@@ -14,6 +15,7 @@ type Sponsor = {
 }
 
 export default function AdminEventSponsorManager({ eventId, initialSponsors }: { eventId: string; initialSponsors: Sponsor[] }) {
+  const { confirm: confirmNotice } = useJupiterNotice()
   const [sponsors, setSponsors] = useState<Sponsor[]>(initialSponsors || [])
   const [draft, setDraft] = useState({ name: "", logo_url: "", website_url: "", tier: "", description: "", sort_index: 0 })
   const [msg, setMsg] = useState<string | null>(null)
@@ -61,7 +63,8 @@ export default function AdminEventSponsorManager({ eventId, initialSponsors }: {
   }
 
   async function deleteSponsor(id: string) {
-    if (!confirm("Delete this sponsor?")) return
+    const confirmed = await confirmNotice({ title: "Delete this sponsor?", message: "The sponsor and its event placement will be removed.", confirmLabel: "Delete sponsor", tone: "danger" })
+    if (!confirmed) return
     const res = await fetch(`/api/admin/event-sponsors`, {
       method: "DELETE",
       headers: { "Content-Type": "application/json" },

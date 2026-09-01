@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState, type JSX } from "react"
 import { CheckCircle2, Eye, KeyRound, Plus, Radio, RefreshCw, Satellite, ShieldCheck, Trash2, TriangleAlert, X } from "lucide-react"
 import { broadcastProviders, providerLabels, type BroadcastDestination, type BroadcastProvider, type BroadcastRun } from "@/lib/broadcast/config"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type PreflightCheck = { id: string; label: string; ready: boolean; required: boolean; detail: string }
 type PreflightResult = { ready: boolean; profile: string; checks: PreflightCheck[]; note: string }
@@ -49,6 +50,7 @@ async function readJson(response: Response): Promise<BroadcastApiResponse | null
 }
 
 export default function BroadcastDestinationsPanel({ eventId, onClose }: { eventId: string; onClose: () => void }): JSX.Element {
+  const { confirm: confirmNotice } = useJupiterNotice()
   const baseUrl = `/api/admin/events/${eventId}/broadcast`
   const [destinations, setDestinations] = useState<BroadcastDestination[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
@@ -133,7 +135,8 @@ export default function BroadcastDestinationsPanel({ eventId, onClose }: { event
   }
 
   async function removeDestination(destination: BroadcastDestination) {
-    if (!window.confirm(`Remove ${destination.label}? Its stored stream key will be deleted.`)) return
+    const confirmed = await confirmNotice({ title: `Remove ${destination.label}?`, message: "Its encrypted stream key will be permanently deleted.", confirmLabel: "Remove destination", tone: "danger" })
+    if (!confirmed) return
     setBusy(destination.id)
     try {
       const response = await fetch(`${baseUrl}/destinations/${destination.id}`, { method: "DELETE" })
@@ -175,7 +178,8 @@ export default function BroadcastDestinationsPanel({ eventId, onClose }: { event
       setError("Run a successful preflight before starting external outputs.")
       return
     }
-    if (!window.confirm(`Start sending the Program feed to ${enabledSelected.length} destination${enabledSelected.length === 1 ? "" : "s"}? Verify each platform preview before clicking Go Live there.`)) return
+    const confirmed = await confirmNotice({ title: "Start external outputs?", message: `Jupiter will send Program to ${enabledSelected.length} destination${enabledSelected.length === 1 ? "" : "s"}.`, detail: "Verify each platform preview before clicking Go Live there.", confirmLabel: "Start outputs", tone: "warning" })
+    if (!confirmed) return
     setBusy("start")
     setError(null)
     try {
@@ -192,7 +196,8 @@ export default function BroadcastDestinationsPanel({ eventId, onClose }: { event
   }
 
   async function stopAll() {
-    if (!window.confirm("Stop every external destination? Jupiter Cloud recording will continue when enabled.")) return
+    const confirmed = await confirmNotice({ title: "Stop every destination?", message: "All external outputs will end.", detail: "Jupiter Cloud recording continues when enabled.", confirmLabel: "Stop outputs", tone: "danger" })
+    if (!confirmed) return
     setBusy("stop")
     try {
       const response = await fetch(`${baseUrl}/stop`, { method: "POST" })

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { createClient } from "@supabase/supabase-js"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type QAItem = {
   id: string
@@ -24,6 +25,7 @@ function supabaseBrowser() {
 }
 
 export default function GeneralSessionQAModeration() {
+  const { confirm: confirmNotice } = useJupiterNotice()
   const [status, setStatus] = useState<(typeof STATUSES)[number]>("pending")
   const [items, setItems] = useState<QAItem[]>([])
   const [err, setErr] = useState("")
@@ -58,19 +60,14 @@ export default function GeneralSessionQAModeration() {
   async function act(action: string, id?: string) {
     setErr("")
 
-    // Confirm destructive actions
-    if (action === "delete") {
-      if (!confirm("Delete this question?")) return
+    const confirmations: Record<string, { title: string; message: string; label: string; tone: "danger" | "warning" }> = {
+      delete: { title: "Delete this question?", message: "The question will be permanently removed.", label: "Delete question", tone: "danger" },
+      clear_answered: { title: "Delete all answered questions?", message: "Every answered question will be permanently removed.", label: "Delete answered", tone: "danger" },
+      clear_featured: { title: "Clear the featured question?", message: "The audience will no longer see a featured question.", label: "Clear featured", tone: "warning" },
+      lock: { title: "Lock Q&A?", message: "Attendees will not be able to submit new questions.", label: "Lock Q&A", tone: "warning" },
     }
-    if (action === "clear_answered") {
-      if (!confirm("Delete ALL answered questions?")) return
-    }
-    if (action === "clear_featured") {
-      if (!confirm("Clear the featured question?")) return
-    }
-    if (action === "lock") {
-      if (!confirm("Lock Q&A? (Attendees will not be able to submit)")) return
-    }
+    const confirmation = confirmations[action]
+    if (confirmation && !(await confirmNotice({ ...confirmation, confirmLabel: confirmation.label }))) return
 
     setBusy(true)
     try {

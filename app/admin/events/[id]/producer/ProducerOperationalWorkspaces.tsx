@@ -1,6 +1,6 @@
 "use client"
 
-import { Activity, AlertTriangle, Check, Cloud, ListChecks, Monitor, Play, RefreshCw, Route, Server, ShieldCheck, Users, Youtube } from "lucide-react"
+import { Activity, AlertTriangle, Check, ChevronRight, Cloud, ListChecks, Monitor, MonitorCheck, Play, Radio, RefreshCw, Server, ShieldCheck, Users, Youtube } from "lucide-react"
 import type { JSX } from "react"
 
 import type { ProducerHealthSnapshot, ProducerTransportHealth } from "./producerHealthUtils"
@@ -18,6 +18,86 @@ type SharedProps = {
 }
 
 const PANEL = "rounded-[14px] border border-white/10 bg-[#081522]/74 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]"
+
+type SignalTone = "blue" | "red" | "violet" | "amber"
+
+const SIGNAL_TONES: Record<SignalTone, { icon: string; line: string; dot: string }> = {
+  blue: {
+    icon: "border-blue-300/15 bg-blue-500/18 text-blue-200",
+    line: "from-blue-400/25 via-blue-400 to-blue-300/40",
+    dot: "bg-blue-400 shadow-[0_0_9px_rgba(59,130,246,0.82)]",
+  },
+  red: {
+    icon: "border-red-300/15 bg-red-500/16 text-red-200",
+    line: "from-red-400/25 via-red-400 to-red-300/40",
+    dot: "bg-red-400 shadow-[0_0_9px_rgba(248,113,113,0.80)]",
+  },
+  violet: {
+    icon: "border-violet-300/15 bg-violet-500/17 text-violet-200",
+    line: "from-violet-400/25 via-violet-400 to-violet-300/40",
+    dot: "bg-violet-400 shadow-[0_0_9px_rgba(167,139,250,0.80)]",
+  },
+  amber: {
+    icon: "border-amber-300/15 bg-amber-500/16 text-amber-100",
+    line: "from-amber-400/25 via-amber-400 to-amber-300/40",
+    dot: "bg-amber-400 shadow-[0_0_9px_rgba(251,191,36,0.78)]",
+  },
+}
+
+function SignalRoutingRow({
+  icon,
+  label,
+  detail,
+  ready,
+  readyLabel,
+  idleLabel,
+  tone,
+}: {
+  icon: JSX.Element
+  label: string
+  detail: string
+  ready: boolean
+  readyLabel: string
+  idleLabel: string
+  tone: SignalTone
+}): JSX.Element {
+  const style = SIGNAL_TONES[tone]
+  const programOnAir = ready && tone === "red"
+
+  return (
+    <button
+      type="button"
+      aria-label={`${label}: ${ready ? readyLabel : idleLabel}`}
+      className="group grid min-h-[58px] w-full grid-cols-[42px_minmax(112px,1fr)_minmax(74px,112px)_90px_14px] items-center gap-2.5 rounded-[11px] border border-white/[0.085] bg-[linear-gradient(90deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] px-2.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] transition hover:border-white/[0.15] hover:bg-white/[0.045]"
+    >
+      <span className={`flex h-10 w-10 items-center justify-center rounded-[9px] border ${style.icon}`}>
+        {icon}
+      </span>
+      <span className="min-w-0">
+        <b className="block truncate text-[14px] font-medium leading-5 text-white/88">{label}</b>
+        <small className="block truncate text-[11px] leading-4 text-white/40">{detail}</small>
+      </span>
+      <span className="flex min-w-0 items-center" aria-hidden="true">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
+        <span className={`h-px min-w-0 flex-1 bg-gradient-to-r ${style.line}`} />
+        <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
+      </span>
+      <span
+        className={`inline-flex h-8 items-center justify-center gap-2 rounded-[8px] border px-2 text-[10px] font-bold uppercase tracking-[0.08em] ${
+          ready
+            ? programOnAir
+              ? "border-red-300/22 bg-red-400/[0.10] text-red-200"
+              : "border-emerald-300/20 bg-emerald-400/[0.09] text-emerald-200"
+            : "border-amber-300/20 bg-amber-400/[0.08] text-amber-200"
+        }`}
+      >
+        <span className={`h-2 w-2 rounded-full ${ready ? (programOnAir ? "bg-red-400" : "bg-emerald-300") : "bg-amber-300"}`} />
+        {ready ? readyLabel : idleLabel}
+      </span>
+      <ChevronRight size={16} className="text-white/35 transition group-hover:translate-x-0.5 group-hover:text-white/65" />
+    </button>
+  )
+}
 
 function ReadinessCard({ icon, label, value, tone }: { icon: JSX.Element; label: string; value: string; tone: "violet" | "blue" | "green" | "amber" }): JSX.Element {
   const tones = {
@@ -66,14 +146,20 @@ export function ProducerPrepareWorkspace(props: SharedProps): JSX.Element {
 
 export function ProducerAdvancedWorkspace(props: SharedProps): JSX.Element {
   const connected = props.transportHealth === "connected"
-  const signals = [["Preview Bus","Preview pipeline",props.healthSnapshot.previewReady,"blue"],["Program Bus","Program pipeline",props.healthSnapshot.programReady,"red"],["Main Stage","Stage feed",props.healthSnapshot.stageReady,"violet"],["Stream Outputs","Live destinations",connected,"blue"],["Cloud Recording","Backup recording",props.recordingStatus !== "starting","amber"]] as const
+  const signals = [
+    { label: "Preview Bus", detail: "Preview pipeline", ready: props.healthSnapshot.previewReady, readyLabel: "Active", idleLabel: "Check", tone: "blue" as const, icon: <MonitorCheck size={20} /> },
+    { label: "Program Bus", detail: "Program pipeline", ready: props.healthSnapshot.programReady, readyLabel: "On Air", idleLabel: "Idle", tone: "red" as const, icon: <MonitorCheck size={20} /> },
+    { label: "Main Stage", detail: "Stage feed", ready: props.healthSnapshot.stageReady, readyLabel: "Connected", idleLabel: "Offline", tone: "violet" as const, icon: <Users size={20} /> },
+    { label: "Stream Outputs", detail: "Live destinations", ready: connected, readyLabel: "Ready", idleLabel: "Check", tone: "blue" as const, icon: <Radio size={20} /> },
+    { label: "Cloud Recording", detail: "Backup recording", ready: props.recordingStatus !== "starting", readyLabel: "Ready", idleLabel: "Starting", tone: "amber" as const, icon: <Cloud size={20} /> },
+  ]
   const log = ["Transport connected to LiveKit (US East)","Program bus is ON AIR","Stream outputs are ready","Preview reconnect detected, recovered","Room state synchronized"]
 
   return <div className="flex h-full min-h-0 flex-col overflow-y-auto p-4 pt-3">
     <div className={`${PANEL} flex min-h-0 flex-1 flex-col p-5`}>
       <div><h2 className="text-[27px] font-semibold tracking-[-0.035em]">Advanced production</h2><p className="mt-1 text-[15px] text-white/58">Routing, transport, encoding and recovery controls.</p></div>
       <div className="mt-5 grid min-h-0 flex-1 gap-4 lg:grid-cols-[1.1fr_1fr_.82fr]">
-        <div className="grid min-h-0 grid-rows-[1fr_auto] gap-4"><section className={`${PANEL} p-4`}><h3 className="text-[17px] font-semibold">Signal routing</h3><div className="mt-4 space-y-2">{signals.map(([label,detail,ready,tone])=><button key={label} type="button" className="grid w-full grid-cols-[46px_1fr_100px_86px_18px] items-center rounded-xl border border-white/9 bg-white/[0.025] p-3 text-left hover:bg-white/[0.05]"><span className={`flex h-10 w-10 items-center justify-center rounded-lg ${tone==="red"?"bg-red-400/14 text-red-300":tone==="amber"?"bg-amber-400/14 text-amber-300":tone==="violet"?"bg-violet-400/14 text-violet-300":"bg-blue-400/14 text-blue-300"}`}><Route size={20}/></span><span><b className="block text-[15px] font-medium">{label}</b><small className="text-[12px] text-white/48">{detail}</small></span><span className="h-px bg-gradient-to-r from-blue-400 to-blue-500"/><span className={`rounded-lg border px-2 py-1.5 text-center text-[11px] font-semibold uppercase ${ready?"border-emerald-300/25 bg-emerald-300/10 text-emerald-300":"border-amber-300/25 bg-amber-300/10 text-amber-300"}`}>{ready?"Ready":"Check"}</span><span className="text-white/48">›</span></button>)}</div></section><section className={`${PANEL} p-4`}><h3 className="text-[16px] font-semibold">Recovery controls</h3><div className="mt-4 grid grid-cols-3 gap-3"><button type="button" disabled={props.recoveryBusy} onClick={props.onRecover} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><RefreshCw className={`mx-auto mb-3 ${props.recoveryBusy?"animate-spin":""}`} size={24}/>Reconnect transport</button><button type="button" onClick={props.onRecover} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><Activity className="mx-auto mb-3" size={24}/>Refresh room state</button><button type="button" onClick={props.onOpenShow} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><Play className="mx-auto mb-3" size={24}/>Restart preview</button></div><button type="button" className="mt-4 w-full rounded-xl border border-red-400/70 bg-red-400/[0.05] py-3 text-[14px] font-medium text-red-300">End all outputs</button></section></div>
+        <div className="grid min-h-0 grid-rows-[1fr_auto] gap-4"><section className={`${PANEL} p-4`}><h3 className="text-[16px] font-semibold tracking-[-0.015em] text-white/90">Signal routing</h3><div className="mt-3 space-y-2">{signals.map((signal)=><SignalRoutingRow key={signal.label} {...signal} />)}</div></section><section className={`${PANEL} p-4`}><h3 className="text-[16px] font-semibold">Recovery controls</h3><div className="mt-4 grid grid-cols-3 gap-3"><button type="button" disabled={props.recoveryBusy} onClick={props.onRecover} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><RefreshCw className={`mx-auto mb-3 ${props.recoveryBusy?"animate-spin":""}`} size={24}/>Reconnect transport</button><button type="button" onClick={props.onRecover} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><Activity className="mx-auto mb-3" size={24}/>Refresh room state</button><button type="button" onClick={props.onOpenShow} className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-[13px] font-medium hover:bg-white/[0.07]"><Play className="mx-auto mb-3" size={24}/>Restart preview</button></div><button type="button" className="mt-4 w-full rounded-xl border border-red-400/70 bg-red-400/[0.05] py-3 text-[14px] font-medium text-red-300">End all outputs</button></section></div>
 
         <section className={`${PANEL} p-5`}><h3 className="text-[17px] font-semibold">Transport &amp; encoding</h3><div className="mt-5 grid grid-cols-[1fr_118px] gap-5"><div>{[["LiveKit",connected?"Connected":"Degraded"],["Region","US East"],["Video","720p30"],["Codec","H.264"],["Audio","48 kHz Stereo"],["Bitrate","4.5 Mbps"],["Packet loss",connected?"0.1%":"—"],["Round trip",connected?"42 ms":"—"]].map(([label,value])=><div key={label} className="flex justify-between border-b border-white/9 py-2.5 text-[14px] text-white/55"><span>{label}</span><b className={`${label==="LiveKit"||label==="Packet loss"||label==="Round trip"?(connected?"text-emerald-300":"text-amber-300"):"text-white/88"} font-medium`}>{value}</b></div>)}</div><div className="grid grid-cols-3 gap-3 pt-4">{[72,66,62].map((level,index)=><div key={index}><div className="mb-3 text-center text-[10px] uppercase text-white/48">{index===0?"Video":index===1?"L":"R"}</div><div className="flex h-[260px] items-end rounded-md bg-black/30 p-1"><div className="w-full rounded-sm bg-[repeating-linear-gradient(to_top,#5bd57a_0_5px,transparent_5px_8px)]" style={{height:`${level}%`}}/></div></div>)}</div></div></section>
 

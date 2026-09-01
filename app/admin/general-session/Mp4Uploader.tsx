@@ -2,6 +2,7 @@
 
 import React from "react"
 import { createClient } from "@supabase/supabase-js"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -16,6 +17,7 @@ type Settings = {
 }
 
 export default function Mp4Uploader() {
+  const { prompt: promptNotice } = useJupiterNotice()
   const [file, setFile] = React.useState<File | null>(null)
   const [busy, setBusy] = React.useState(false)
   const [msg, setMsg] = React.useState<string>("")
@@ -93,10 +95,12 @@ export default function Mp4Uploader() {
 
   async function setStream(type: "m3u8" | "rtmp") {
     setMsg("")
-    const url =
-      type === "m3u8"
-        ? prompt("Paste your .m3u8 URL")
-        : prompt("Paste your RTMP URL (rtmp://...)")
+    const url = await promptNotice({
+      title: type === "m3u8" ? "Add HLS source" : "Add RTMP source",
+      message: type === "m3u8" ? "Paste the .m3u8 URL Jupiter should use." : "Paste the RTMP or RTMPS URL Jupiter should use.",
+      placeholder: type === "m3u8" ? "https://…/stream.m3u8" : "rtmps://…",
+      confirmLabel: "Use source",
+    })
 
     if (!url) return
 

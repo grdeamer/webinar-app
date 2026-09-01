@@ -97,12 +97,14 @@ export function UtilityButton({
   label,
   meta,
   danger,
+  active,
   onClick,
 }: {
   icon: JSX.Element
   label: string
   meta: string
   danger?: boolean
+  active?: boolean
   onClick?: () => void
 }): JSX.Element {
   return (
@@ -112,10 +114,12 @@ export function UtilityButton({
       className={`group flex min-h-[56px] items-center gap-4 rounded-[11px] border px-5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
         danger
           ? "border-red-300/22 bg-[linear-gradient(180deg,rgba(185,28,28,0.76),rgba(127,29,29,0.92))] shadow-[0_0_22px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.050)]"
+          : active
+            ? "border-violet-300/38 bg-[linear-gradient(135deg,rgba(76,29,149,0.64),rgba(67,56,202,0.48))] shadow-[0_0_26px_rgba(139,92,246,0.18),inset_0_1px_0_rgba(255,255,255,0.055)]"
           : "border-white/[0.055] bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.016)] hover:border-white/[0.09] hover:bg-white/[0.035]"
       }`}
     >
-      <span className={danger ? "text-red-300" : "text-white/72"}>{icon}</span>
+      <span className={danger ? "text-red-300" : active ? "text-violet-100" : "text-white/72"}>{icon}</span>
       <span className="min-w-0">
         <span className="block text-[15px] font-medium text-white/90">
           {label}

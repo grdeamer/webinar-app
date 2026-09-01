@@ -30,6 +30,7 @@ import { type ProducerParticipant, type StageState } from "./producerRoomTypes";
 import type { CinematicTransitionType } from "./commandDeckTypes";
 import type { ScreenLayoutPreset } from "./assetDockTypes";
 import { broadcastPresenterProgramSource } from "./programTransportUtils";
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider";
 
 import {
   getHasProgramSource,
@@ -68,6 +69,7 @@ export function useProducerRoomClient({
   eventTitle?: string;
   eventAccent?: string;
 }): ProducerRoomClientViewProps {
+  const { confirm: confirmNotice } = useJupiterNotice();
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string | null>(null);
   const [roomName, setRoomName] = useState<string | null>(null);
@@ -1043,10 +1045,18 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const handleDockDeleteScene = useCallback(
     (sceneId: string): void => {
-      if (!window.confirm("Delete this scene preset? This cannot be undone.")) return;
-      void sceneActions.deleteScene(sceneId);
+      void (async () => {
+        const confirmed = await confirmNotice({
+          title: "Delete scene preset?",
+          message: "This scene will be removed from the Producer Room.",
+          detail: "This action cannot be undone.",
+          confirmLabel: "Delete scene",
+          tone: "danger",
+        });
+        if (confirmed) await sceneActions.deleteScene(sceneId);
+      })();
     },
-    [sceneActions],
+    [confirmNotice, sceneActions],
   );
 
   const handleAddMediaAssetToPreview = useCallback(
@@ -1479,13 +1489,20 @@ updateShadowColor: updateSelectedBlockShadowColor,
   const removeProgramBlock = useCallback(
     (blockId: string) => {
       if (!programBlocks.some((block) => block.id === blockId)) return;
-      const confirmed = window.confirm(
-        "Remove this layer from Program now?\n\nThis immediately changes what the audience is seeing.",
-      );
-      if (!confirmed) return;
-      setProgramBlocks((current) => current.filter((block) => block.id !== blockId));
+      void (async () => {
+        const confirmed = await confirmNotice({
+          title: "Remove layer from Program?",
+          message: "This immediately changes what the audience is seeing.",
+          detail: "Preview is not affected.",
+          confirmLabel: "Remove layer",
+          tone: "danger",
+        });
+        if (confirmed) {
+          setProgramBlocks((current) => current.filter((block) => block.id !== blockId));
+        }
+      })();
     },
-    [programBlocks, setProgramBlocks],
+    [confirmNotice, programBlocks, setProgramBlocks],
   );
 
   // Center workspace props

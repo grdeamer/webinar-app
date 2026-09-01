@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useMemo, useRef, useState } from "react"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type EventSession = {
   id: string
@@ -84,6 +85,7 @@ export default function ImportAttendeesUI({
   eventId: string
   eventSlug: string
 }) {
+  const { alert: showNotice, confirm: confirmNotice } = useJupiterNotice()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -218,13 +220,11 @@ export default function ImportAttendeesUI({
   // Bulk delete attendees
   async function handleBulkDelete() {
     if (selectedAttendeeIds.size === 0) {
-      alert("Please select attendees to delete")
+      await showNotice({ title: "Select attendees", message: "Choose at least one attendee to remove.", tone: "warning" })
       return
     }
 
-    const confirmed = window.confirm(
-      `Are you sure you want to remove ${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? "" : "s"} from this event? This action cannot be undone.`
-    )
+    const confirmed = await confirmNotice({ title: `Remove ${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? "" : "s"}?`, message: "They will lose access to this event.", detail: "This action cannot be undone.", confirmLabel: "Remove attendees", tone: "danger" })
 
     if (!confirmed) return
 
@@ -247,9 +247,9 @@ export default function ImportAttendeesUI({
       await loadAttendees()
       clearSelection()
       setBulkDeleteModalOpen(false)
-      alert(`Successfully removed ${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? "" : "s"}`)
+      await showNotice({ title: "Attendees removed", message: `${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? " was" : "s were"} removed successfully.`, tone: "success" })
     } catch (e: any) {
-      alert(e.message || "Failed to delete attendees")
+      await showNotice({ title: "Attendees not removed", message: e.message || "Failed to delete attendees", tone: "danger" })
     } finally {
       setBusy(false)
     }
@@ -258,7 +258,7 @@ export default function ImportAttendeesUI({
   // Bulk edit sessions
   async function handleBulkEdit(sessionIdsToAdd: string[], sessionIdsToRemove: string[]) {
     if (selectedAttendeeIds.size === 0) {
-      alert("Please select attendees to edit")
+      await showNotice({ title: "Select attendees", message: "Choose at least one attendee to edit.", tone: "warning" })
       return
     }
 
@@ -283,9 +283,9 @@ export default function ImportAttendeesUI({
       await loadAttendees()
       clearSelection()
       setBulkEditModalOpen(false)
-      alert(`Successfully updated ${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? "" : "s"}`)
+      await showNotice({ title: "Attendees updated", message: `${selectedAttendeeIds.size} attendee${selectedAttendeeIds.size === 1 ? " was" : "s were"} updated successfully.`, tone: "success" })
     } catch (e: any) {
-      alert(e.message || "Failed to update attendees")
+      await showNotice({ title: "Attendees not updated", message: e.message || "Failed to update attendees", tone: "danger" })
     } finally {
       setBusy(false)
     }
@@ -302,7 +302,7 @@ export default function ImportAttendeesUI({
     const last_name = quickLastRef.current?.value?.trim() || ""
 
     if (!email) {
-      alert("Email required")
+      await showNotice({ title: "Email required", message: "Enter an email address before adding this attendee.", tone: "warning" })
       return
     }
 
@@ -325,7 +325,7 @@ export default function ImportAttendeesUI({
 
       await loadAttendees()
     } catch (e: any) {
-      alert(e.message || "Failed to add attendee")
+      await showNotice({ title: "Attendee not added", message: e.message || "Failed to add attendee", tone: "danger" })
     } finally {
       setBusy(false)
     }
@@ -334,7 +334,7 @@ export default function ImportAttendeesUI({
   async function handleImport() {
     const f = fileRef.current?.files?.[0]
     if (!f) {
-      alert("Choose a CSV file")
+      await showNotice({ title: "Choose a CSV file", message: "Select an attendee CSV before starting the import.", tone: "warning" })
       return
     }
 
@@ -355,7 +355,7 @@ export default function ImportAttendeesUI({
       if (!res.ok) throw new Error(json.error || "Import failed")
 
       await loadAttendees()
-      alert("Import complete")
+      await showNotice({ title: "Import complete", message: "The attendee list has been refreshed with the imported records.", tone: "success" })
     } catch (e: any) {
       setError(e.message || "Import failed")
     } finally {
@@ -367,9 +367,7 @@ export default function ImportAttendeesUI({
     if (!selectedAttendee) return
 
     if (selectedAttendee.source !== "event_registrants") {
-      alert(
-        "This attendee only exists in the legacy event_attendees table. Assign sessions by adding them as a registrant first, or re-import them through the current registrant flow."
-      )
+      await showNotice({ title: "Registrant record required", message: "This attendee only exists in the legacy attendee table.", detail: "Add them as a registrant or re-import them through the current registrant flow before assigning sessions.", tone: "warning" })
       return
     }
 
@@ -438,7 +436,7 @@ export default function ImportAttendeesUI({
       )
 
       setError(e.message || "Failed to update session assignment")
-      alert(e.message || "Failed to update session assignment")
+      await showNotice({ title: "Session assignment not updated", message: e.message || "Failed to update session assignment", tone: "danger" })
     } finally {
       setSavingSessionId(null)
     }

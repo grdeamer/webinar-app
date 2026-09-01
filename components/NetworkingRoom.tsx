@@ -1,6 +1,7 @@
 "use client"
 
 import React from "react"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type Profile = {
   id: string
@@ -24,6 +25,7 @@ function getSessionId() {
 }
 
 export default function NetworkingRoom({ eventSlug }: { eventSlug: string }) {
+  const { alert: showNotice } = useJupiterNotice()
   const sessionId = React.useMemo(() => getSessionId(), [])
   const [me, setMe] = React.useState({ name: "", title: "", company: "", bio: "", interests: "" })
   const [profiles, setProfiles] = React.useState<Profile[]>([])
@@ -42,7 +44,10 @@ export default function NetworkingRoom({ eventSlug }: { eventSlug: string }) {
   }, [eventSlug])
 
   async function save() {
-    if (!me.name.trim()) return alert("Name is required")
+    if (!me.name.trim()) {
+      await showNotice({ title: "Add your name", message: "A name is required before your networking profile can be shared.", tone: "warning" })
+      return
+    }
     setBusy(true)
     try {
       await fetch(`/api/events/${eventSlug}/networking`, {

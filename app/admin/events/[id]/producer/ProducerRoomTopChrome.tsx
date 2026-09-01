@@ -5,6 +5,7 @@ import OperationsSyncStrip from "./OperationsSyncStrip"
 import ProducerRoomHeader from "./ProducerRoomHeader"
 import type { CinematicTransitionType } from "./commandDeckTypes"
 import type { StageState } from "./producerRoomTypes"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type ProducerRoomTopChromeProps = {
   eventId: string
@@ -68,15 +69,18 @@ function TopChromeTransmissionShell({
 }): JSX.Element {
   const [hubOpen, setHubOpen] = useState(false)
   const router = useRouter()
+  const { confirm: confirmNotice } = useJupiterNotice()
 
   const hubRef = useRef<HTMLDivElement | null>(null)
 
   function navigateFromProducer(destination: string): void {
-    if (isLive && !window.confirm("Leave the Producer Room while the event is live? The broadcast will continue running.")) {
-      return
-    }
-
-    router.push(destination)
+    void (async () => {
+      if (isLive) {
+        const confirmed = await confirmNotice({ title: "Leave the live Producer Room?", message: "The broadcast will continue running while you navigate away.", confirmLabel: "Leave room", tone: "warning" })
+        if (!confirmed) return
+      }
+      router.push(destination)
+    })()
   }
 
   useEffect(() => {

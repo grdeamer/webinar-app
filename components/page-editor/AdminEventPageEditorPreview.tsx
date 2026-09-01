@@ -43,6 +43,7 @@ import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import PageEditorToolbar from "./PageEditorToolbar"
 import { createSystemComponentPreviewRegistry } from "./SystemComponentPreviewRegistry"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 import {
   createDefaultEventHomeSections,
@@ -444,6 +445,7 @@ export default function AdminEventPageEditorPreview({
   eventSlug?: string
   eventAdminId?: string
 } = {}) {
+const { alert: showNotice, prompt: promptNotice } = useJupiterNotice()
 const params = useParams()
 const pathname = usePathname()
 const searchParams = useSearchParams()
@@ -2126,7 +2128,7 @@ function addRegistrationFormSection() {
   }
 
   async function saveCurrentTemplate() {
-    const name = prompt("Template name?")
+    const name = await promptNotice({ title: "Save page template", message: "Give this reusable Jupiter template a clear name.", placeholder: "Template name", confirmLabel: "Save template" })
     if (!name) return
 
     await fetch("/api/admin/page-editor/templates", {
@@ -2141,7 +2143,7 @@ function addRegistrationFormSection() {
       }),
     })
 
-    alert("Template saved")
+    await showNotice({ title: "Template saved", message: `“${name}” is now available in the page editor.`, tone: "success" })
   }
 
   async function uploadSelectedImage(file: File) {

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type Breakout = {
   id: string
@@ -36,6 +37,7 @@ export default function AdminBreakoutsEditor({
   eventSlug: string
   initialItems: Breakout[]
 }) {
+  const { confirm: confirmNotice } = useJupiterNotice()
   const [items, setItems] = useState<Breakout[]>(initialItems || [])
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<string | null>(null)
@@ -130,7 +132,8 @@ export default function AdminBreakoutsEditor({
   }
 
   async function deleteItem(id: string) {
-    if (!confirm("Delete this breakout?")) return
+    const confirmed = await confirmNotice({ title: "Delete this breakout?", message: "The room and its event placement will be removed.", confirmLabel: "Delete breakout", tone: "danger" })
+    if (!confirmed) return
 
     setBusy(true)
     setErr(null)

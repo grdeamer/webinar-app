@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
 type RemoteEntry = {
   name: string
@@ -40,6 +41,7 @@ function joinPath(parent: string, name: string) {
 }
 
 export default function RemoteFileBrowser({ eventId, destinationId }: { eventId: string; destinationId: string }) {
+  const { confirm: confirmNotice } = useJupiterNotice()
   const [isOpen, setIsOpen] = useState(false)
   const [path, setPath] = useState("")
   const [files, setFiles] = useState<RemoteEntry[]>([])
@@ -130,7 +132,7 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
       let commitResponse = await commitUpload(file, stagingPath, false)
       let result = await commitResponse.json().catch((): null => null)
       if (commitResponse.status === 409 && result?.conflict) {
-        const replace = window.confirm(`${file.name} already exists in this folder. Replace it? A backup will be kept by Jupiter.`)
+        const replace = await confirmNotice({ title: "Replace existing file?", message: `${file.name} already exists in this folder.`, detail: "Jupiter will retain a backup of the current file.", confirmLabel: "Replace file", tone: "warning" })
         if (!replace) {
           await discardStagedUpload(stagingPath)
           setUploads((current) => current.filter((item) => item.name !== file.name))

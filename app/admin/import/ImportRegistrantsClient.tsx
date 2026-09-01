@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider";
 
 type EventOption = {
   id: string;
@@ -105,6 +106,7 @@ export default function ImportRegistrantsClient({
   initialEvents: EventOption[];
   initialSelectedEventId?: string;
 }) {
+  const { confirm: confirmNotice } = useJupiterNotice();
   const [selectedEventId, setSelectedEventId] = useState<string>(
     initialSelectedEventId,
   );
@@ -431,9 +433,7 @@ export default function ImportRegistrantsClient({
 
     const confirmed = dryRun
       ? true
-      : window.confirm(
-          "Send confirmation emails to all imported registrants for this event?"
-        );
+      : await confirmNotice({ title: "Send confirmation emails?", message: "Jupiter will email every imported registrant for this event.", confirmLabel: "Send emails", tone: "warning" });
 
     if (!confirmed) return;
 
@@ -524,9 +524,7 @@ export default function ImportRegistrantsClient({
 
     const confirmed = test
       ? true
-      : window.confirm(
-          "Send presenter links to all registrants tagged Presenter for this event?"
-        );
+      : await confirmNotice({ title: "Send presenter links?", message: "Jupiter will email every registrant tagged Presenter for this event.", confirmLabel: "Send links", tone: "warning" });
 
     if (!confirmed) return;
 
