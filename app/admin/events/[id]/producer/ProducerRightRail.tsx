@@ -168,7 +168,7 @@ function LocalMediaControls({
   ]
 
   return (
-    <section className="border-b border-white/[0.10] bg-[#07111d]/92 px-5 py-5" aria-label="Your camera and audio">
+    <section className="producer-stage-media border-b border-white/[0.10] bg-[#07111d]/92 px-5 py-5" aria-label="Your camera and audio">
       <div className="flex items-start justify-between gap-3">
         <div>
           <div className="text-[16px] font-semibold text-white/94">Your Camera &amp; Audio</div>
@@ -749,7 +749,7 @@ export default function ProducerRightRail({
   const railTabs: RailTab[] = ["Stage", "Backstage", "Layers", "Q&A"]
 
   return (
-    <aside className="flex h-full min-w-0 flex-col overflow-hidden bg-[#07111d]/90">
+    <aside className="producer-stage-rail flex h-full min-w-0 flex-col overflow-hidden bg-[#07111d]/90">
       <LocalMediaControls
         videoDevices={videoDevices}
         audioDevices={audioDevices}
@@ -758,7 +758,7 @@ export default function ProducerRightRail({
         onSelectVideoDevice={onSelectVideoDevice}
         onSelectAudioDevice={onSelectAudioDevice}
       />
-      <header className="shrink-0 border-b border-white/[0.09] bg-[#07111d] px-5 pb-4 pt-5">
+      <header className="producer-stage-desk shrink-0 border-b border-white/[0.09] bg-[#07111d] px-5 pb-4 pt-5">
         <div className="flex items-center justify-between">
           <div>
             <div className="text-[16px] font-semibold text-white/94">Stage Desk</div>

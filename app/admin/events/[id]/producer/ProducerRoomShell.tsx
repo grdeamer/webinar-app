@@ -65,74 +65,11 @@ export function ProducerUploadInputs({
 export function ProducerRoomBackground(): JSX.Element {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden">
-      <div className="absolute left-[-12%] top-[-20%] h-[460px] w-[460px] rounded-full bg-sky-200/[0.038] blur-3xl animate-[producerShellDriftA_34s_ease-in-out_infinite]" />
-
-      <div className="absolute right-[-14%] top-[6%] h-[460px] w-[460px] rounded-full bg-indigo-200/[0.032] blur-3xl animate-[producerShellDriftB_38s_ease-in-out_infinite]" />
-
-      <div className="absolute bottom-[-22%] left-[32%] h-[480px] w-[480px] rounded-full bg-amber-100/[0.012] blur-3xl animate-[producerShellBloom_32s_ease-in-out_infinite]" />
-
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.024),transparent_56%)]" />
-
-      <div className="absolute inset-0 bg-[linear-gradient(115deg,transparent,rgba(255,255,255,0.004)_42%,transparent_62%)] animate-[producerShellTransmission_36s_ease-in-out_infinite]" />
-
-      <div className="absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.010)_0px,rgba(255,255,255,0.010)_1px,transparent_1px,transparent_14px)]" />
-
-      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-
-      <div className="absolute bottom-0 left-[14%] right-[14%] h-px bg-gradient-to-r from-transparent via-sky-100/6 to-transparent" />
-
-      <style jsx global>{`
-        @keyframes producerShellDriftA {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
-
-          50% {
-            transform: translate3d(38px, 24px, 0) scale(1.06);
-          }
-        }
-
-        @keyframes producerShellDriftB {
-          0%,
-          100% {
-            transform: translate3d(0, 0, 0) scale(1);
-          }
-
-          50% {
-            transform: translate3d(-42px, 18px, 0) scale(1.08);
-          }
-        }
-
-        @keyframes producerShellBloom {
-          0%,
-          100% {
-            opacity: 0.5;
-            transform: scale(1);
-          }
-
-          50% {
-            opacity: 0.55;
-            transform: scale(1.08);
-          }
-        }
-
-        @keyframes producerShellTransmission {
-          0%,
-          100% {
-            opacity: 0;
-            transform: translateX(-18%);
-          }
-
-          45% {
-            opacity: 0.36;
-          }
-
-          100% {
-            transform: translateX(18%);
-          }
-        }
-      `}</style>
+      <div className="absolute inset-0 bg-[linear-gradient(145deg,#06101e_0%,#050b16_42%,#030711_100%)]" />
+      <div className="absolute inset-x-[18%] top-[-18%] h-[360px] rounded-full bg-blue-500/[0.07] blur-[110px]" />
+      <div className="absolute right-[-10%] top-[8%] h-[420px] w-[420px] rounded-full bg-indigo-500/[0.035] blur-[120px]" />
+      <div className="absolute inset-0 bg-[linear-gradient(110deg,rgba(255,255,255,0.012),transparent_28%,transparent_72%,rgba(95,131,201,0.016))]" />
+      <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
     </div>
   )
 }
@@ -141,7 +78,7 @@ export function ProducerRoomContentStack({
   children,
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
-    <div className="producer-room-shell relative z-10 flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0 font-['Source_Sans_3','Myriad_Pro',sans-serif]">
+    <div className="producer-room-shell producer-room--cms relative z-10 flex h-[100dvh] min-h-0 flex-col overflow-hidden p-0 font-[var(--font-instrument),var(--font-sans),sans-serif]">
       {children}
     </div>
   )
@@ -152,7 +89,7 @@ export function ProducerRoomWorkspaceFrame({
 }: ProducerRoomLayoutProps): JSX.Element {
   return (
     <div
-      className={`producer-workspace-frame relative m-2 mt-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[12px] border border-white/[0.07] px-0 pb-0 pt-0 shadow-[0_18px_52px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] ${PRODUCER_FRAME_BACKGROUND_CLASS}`}
+      className={`producer-workspace-frame relative m-3 mt-0 flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-white/[0.07] px-0 pb-0 pt-0 shadow-[0_18px_52px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] ${PRODUCER_FRAME_BACKGROUND_CLASS}`}
     >
       <div className={PRODUCER_FRAME_TOP_EDGE_CLASS} />
       <div className={PRODUCER_FRAME_BOTTOM_EDGE_CLASS} />

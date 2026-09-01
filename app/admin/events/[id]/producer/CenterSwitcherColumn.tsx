@@ -954,8 +954,8 @@ export default function CenterSwitcherColumn({
     gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) clamp(132px,9vw,160px) minmax(0, ${100 - previewPanePercent}fr)`,
   }}
 >
-          <div className="producer-monitor producer-monitor--preview relative flex h-full min-w-0 flex-col overflow-hidden rounded-[14px] border-2 border-blue-500 bg-[#06101c] p-0 shadow-[0_0_22px_rgba(37,99,235,0.18)]">
-            <div className="flex h-14 items-center justify-between border-b border-blue-400/35 bg-[#07182b] px-5 text-[16px] font-semibold uppercase tracking-[0.10em] text-blue-400">
+          <div className="producer-monitor producer-monitor--preview relative flex h-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-blue-500 bg-[#06101c] p-0 shadow-[0_0_22px_rgba(37,99,235,0.18)]">
+            <div className="producer-monitor__header flex h-14 items-center justify-between border-b border-blue-400/35 bg-[#07182b] px-5 text-[16px] font-semibold uppercase tracking-[0.10em] text-blue-400">
               <span>Preview</span>
               <span
                 className={`inline-flex items-center rounded-[8px] border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${
@@ -1106,7 +1106,7 @@ export default function CenterSwitcherColumn({
             aria-valuemax={68}
             aria-valuenow={previewPaneRounded}
           >
-              <div className="relative flex w-full flex-col overflow-hidden rounded-[9px] border border-white/[0.12] bg-[#0a101a] shadow-[0_12px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-200 group-hover:border-white/[0.20]">
+              <div className="producer-take-console relative flex w-full flex-col overflow-hidden rounded-[10px] border border-white/[0.12] bg-[#0a101a] shadow-[0_12px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-200 group-hover:border-white/[0.20]">
               <div className="pointer-events-none absolute left-1/2 top-10 z-30 flex h-9 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-white/8 bg-white/[0.016] opacity-28 shadow-[0_0_10px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.014)] backdrop-blur-md transition-opacity duration-300 group-hover:opacity-60">
                 <div className="flex flex-col gap-1">
                   {Array.from({ length: 4 }).map((_, index) => (
@@ -1283,8 +1283,8 @@ export default function CenterSwitcherColumn({
             </div>
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-7 -translate-x-1/2 rounded-full bg-white/[0.010] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
           </div>
-          <div className="producer-monitor producer-monitor--program relative flex h-full min-w-0 flex-col overflow-hidden rounded-[14px] border-2 border-red-500 bg-[#14090d] p-0 shadow-[0_0_22px_rgba(239,68,68,0.15)]">
-            <div className="flex h-14 items-center justify-between border-b border-red-400/35 bg-[#211018] px-5 text-[16px] font-semibold uppercase tracking-[0.10em] text-red-400">
+          <div className="producer-monitor producer-monitor--program relative flex h-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-red-500 bg-[#14090d] p-0 shadow-[0_0_22px_rgba(239,68,68,0.15)]">
+            <div className="producer-monitor__header flex h-14 items-center justify-between border-b border-red-400/35 bg-[#211018] px-5 text-[16px] font-semibold uppercase tracking-[0.10em] text-red-400">
               <span>Program</span>
               <span className="inline-flex items-center rounded-[8px] border border-red-400/25 bg-red-500/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-red-300">
                 {programState?.is_live ? "Live" : "Idle"}

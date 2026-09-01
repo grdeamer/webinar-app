@@ -101,20 +101,20 @@ export default function ProducerRoomWorkspace({
 
   return (
     <div
-      className="grid h-full min-h-0 w-full min-w-0 grid-cols-[104px_minmax(0,1fr)_300px] gap-3 overflow-hidden p-4 pt-3"
+      className="producer-show-grid grid h-full min-h-0 w-full min-w-0 grid-cols-[104px_minmax(0,1fr)_300px] gap-3 overflow-hidden p-4 pt-3"
       style={{ gridTemplateRows }}
     >
       <div
-        className={`producer-rail producer-rail--navigation ${bottomDock ? "row-span-3" : ""} ${railChromeClassName} rounded-[10px] border shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
+        className={`producer-rail producer-rail--navigation ${bottomDock ? "row-span-3" : ""} ${railChromeClassName} rounded-[12px] border shadow-[inset_-1px_0_0_rgba(255,255,255,0.028)]`}
       >
         {leftRail}
       </div>
 
-      <div className="producer-center-surface relative min-h-0 min-w-0 w-full overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(10,15,28,0.97),rgba(4,7,15,0.99))] px-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
+      <div className="producer-center-surface relative min-h-0 min-w-0 w-full overflow-hidden rounded-[12px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(10,15,28,0.97),rgba(4,7,15,0.99))] px-0 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
         {centerColumn}
       </div>
 
-      <div className="producer-rail producer-rail--stage row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden rounded-[10px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(15,20,34,0.98),rgba(7,10,20,0.99))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
+      <div className="producer-rail producer-rail--stage row-span-3 col-start-3 row-start-1 min-h-0 min-w-0 overflow-hidden rounded-[12px] border border-white/[0.07] bg-[linear-gradient(180deg,rgba(15,20,34,0.98),rgba(7,10,20,0.99))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)]">
         {rightRail}
       </div>
 

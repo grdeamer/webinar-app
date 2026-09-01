@@ -111,7 +111,7 @@ export function UtilityButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex min-h-[56px] items-center gap-4 rounded-[11px] border px-5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
+      className={`producer-utility-button group flex min-h-[56px] items-center gap-4 rounded-[11px] border px-5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
         danger
           ? "border-red-300/22 bg-[linear-gradient(180deg,rgba(185,28,28,0.76),rgba(127,29,29,0.92))] shadow-[0_0_22px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.050)]"
           : active

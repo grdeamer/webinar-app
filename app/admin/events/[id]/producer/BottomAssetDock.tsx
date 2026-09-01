@@ -1490,7 +1490,7 @@ const previewMediaAsset =
         </ConsolePanel>
       </div> : null}
       {workspaceMode === "show" || workspaceMode === "advanced" ? (
-      <div className="relative z-20 mt-auto grid h-[76px] shrink-0 grid-cols-[280px_minmax(0,1fr)] items-center gap-5 border-t border-white/[0.08] px-5">
+      <div className="producer-bottom-dock__toolbar relative z-20 mt-auto grid h-[76px] shrink-0 grid-cols-[280px_minmax(0,1fr)] items-center gap-5 border-t border-white/[0.08] px-5">
         <button type="button" onClick={onToggleStandardTools} aria-expanded={standardToolsOpen} className="flex h-12 items-center justify-between border-r border-white/14 pr-8 text-left text-[17px] font-semibold text-white/90">
           <span>Production Tools</span><span className={`text-white/70 transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}>⌃</span>
         </button>

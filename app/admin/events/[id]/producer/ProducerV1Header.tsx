@@ -48,10 +48,10 @@ export default function ProducerV1Header({
   const connected = transportHealth === "connected"
 
   return (
-    <header className="relative z-[100] shrink-0 px-4 pt-4 lg:px-6 lg:pt-5">
-      <div className="pointer-events-none absolute inset-x-[22%] -top-16 h-44 bg-[radial-gradient(ellipse_at_center,rgba(var(--producer-brand-primary),0.24),transparent_68%)] blur-2xl" />
+    <header className="producer-v1-header relative z-[100] shrink-0 px-5 pt-4 lg:px-7 lg:pt-5">
+      <div className="pointer-events-none absolute inset-x-[28%] -top-16 h-40 bg-[radial-gradient(ellipse_at_center,rgba(var(--producer-brand-primary),0.13),transparent_70%)] blur-3xl" />
       <div className="relative flex min-h-[70px] items-center justify-between gap-5">
-        <div className="flex min-w-0 items-center gap-6">
+        <div className="producer-v1-header__identity flex min-w-0 items-center gap-6">
           <JupiterLogo
             className="shrink-0 text-white"
             markClassName="h-10 w-10"
@@ -68,7 +68,7 @@ export default function ProducerV1Header({
           </div>
         </div>
 
-        <nav className="grid shrink-0 grid-cols-3 overflow-hidden rounded-[12px] border border-white/14 bg-[#07111f]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]" aria-label="Producer workspace mode">
+        <nav className="producer-v1-header__modes grid shrink-0 grid-cols-3 overflow-hidden rounded-[12px] border border-white/14 bg-[#07111f]/90 shadow-[inset_0_1px_0_rgba(255,255,255,0.045)]" aria-label="Producer workspace mode">
           {MODES.map(({ id, label, icon: Icon }) => {
             const active = id === mode
             return (
@@ -77,7 +77,7 @@ export default function ProducerV1Header({
                 type="button"
                 onClick={() => onModeChange(id)}
                 aria-pressed={active}
-                className={`flex h-14 min-w-[142px] items-center justify-center gap-3 border-r border-white/10 px-5 text-[13px] font-semibold uppercase tracking-[0.08em] transition last:border-r-0 ${
+                className={`flex h-14 min-w-[132px] items-center justify-center gap-3 border-r border-white/10 px-5 text-[13px] font-semibold uppercase tracking-[0.08em] transition last:border-r-0 ${
                   active
                     ? "bg-[linear-gradient(180deg,rgba(var(--producer-brand-primary),0.34),rgba(var(--producer-brand-primary),0.16))] text-white shadow-[inset_0_-2px_0_rgb(var(--producer-brand-secondary))]"
                     : "text-white/72 hover:bg-white/[0.045] hover:text-white"
@@ -91,7 +91,7 @@ export default function ProducerV1Header({
         </nav>
       </div>
 
-      <div className="relative mt-2 flex min-h-[58px] items-center justify-between rounded-[14px] border border-white/10 bg-[#07111d]/78 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
+      <div className="producer-v1-header__status relative mt-2 flex min-h-[58px] items-center justify-between rounded-[12px] border border-white/10 bg-[#07111d]/78 px-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.035)] backdrop-blur-xl">
         <div className="flex items-center gap-5">
           <div className="flex items-center gap-3 text-[13px] font-medium uppercase tracking-[0.09em] text-white/62">
             <HeartPulse size={19} strokeWidth={1.7} />
