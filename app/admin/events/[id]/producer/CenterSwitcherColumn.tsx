@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
+import { ScanLine } from "lucide-react";
 import AudienceOriginCue from "@/components/live/AudienceOriginCue";
 import StageVideoPreview from "./StageVideoPreview";
 import type { PreviewBlock } from "./useProducerBlocks";
@@ -618,6 +619,7 @@ export default function CenterSwitcherColumn({
   transportHealth: ProducerTransportHealth;
 }): JSX.Element {
   const switcherGridRef = useRef<HTMLDivElement | null>(null);
+  const transitionPopoverRef = useRef<HTMLDivElement | null>(null);
   const isDraggingSplitRef = useRef(false);
   const [previewPanePercent, setPreviewPanePercent] = useState(() => {
     const storedValue = window.localStorage.getItem("producer-preview-pane-percent");
@@ -657,6 +659,7 @@ export default function CenterSwitcherColumn({
     const parsedValue = storedValue ? Number(storedValue) : NaN;
     return Number.isFinite(parsedValue) ? Math.max(0.2, Math.min(2.5, parsedValue)) : 1;
   });
+  const [transitionPopoverOpen, setTransitionPopoverOpen] = useState(false);
   const defaultCameraParticipantId =
     stageState?.pinned_participant_id ??
     stageState?.primary_participant_id ??
@@ -677,7 +680,9 @@ export default function CenterSwitcherColumn({
       !block.hidden &&
       Boolean(block.assignedParticipantId),
   );
-  const [showCompositionGuides, setShowCompositionGuides] = useState(true);
+  const [showCompositionGuides, setShowCompositionGuides] = useState(
+    () => window.localStorage.getItem("producer-composition-guides") === "true",
+  );
   const [previewDropActive, setPreviewDropActive] = useState(false);
   const [previewDropGhost, setPreviewDropGhost] = useState<{
     x: number;
@@ -688,16 +693,35 @@ export default function CenterSwitcherColumn({
     type: PreviewBlock["type"];
   } | null>(null);
   const previewPaneRounded = Math.round(previewPanePercent);
-  const selectedTransition =
-    SWITCHER_TRANSITION_PRESETS.find(
-      (preset) => preset.value === selectedTransitionPreset,
-    ) ?? SWITCHER_TRANSITION_PRESETS[0];
   const selectedTransitionType: CinematicTransitionType =
     selectedTransitionPreset === "warp"
       ? "warp"
       : selectedTransitionPreset === "dip"
         ? "curtain"
         : "fade";
+
+  useEffect(() => {
+    if (!transitionPopoverOpen) return;
+
+    const closeTransitionPopover = (event: PointerEvent) => {
+      if (
+        transitionPopoverRef.current &&
+        !transitionPopoverRef.current.contains(event.target as Node)
+      ) {
+        setTransitionPopoverOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setTransitionPopoverOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeTransitionPopover);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeTransitionPopover);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [transitionPopoverOpen]);
 
   useEffect(() => {
     const onId = window.setTimeout(() => {
@@ -760,15 +784,6 @@ export default function CenterSwitcherColumn({
     window.localStorage.setItem("producer-preview-pane-percent", "50");
   }
 
-  function setSplitPreset(value: number) {
-    const clampedPercent = Math.max(32, Math.min(68, value));
-    setPreviewPanePercent(clampedPercent);
-    window.localStorage.setItem(
-      "producer-preview-pane-percent",
-      String(Math.round(clampedPercent)),
-    );
-  }
-
   function setMonitorMode(value: ConfidenceMonitorMode) {
     setConfidenceMonitorMode(value);
     window.localStorage.setItem("producer-confidence-monitor-mode", value);
@@ -777,6 +792,17 @@ export default function CenterSwitcherColumn({
   function setTransitionPreset(value: SwitcherTransitionPreset) {
     setSelectedTransitionPreset(value);
     window.localStorage.setItem("producer-transition-preset", value);
+  }
+
+  function toggleCompositionGuides() {
+    setShowCompositionGuides((current) => {
+      const nextValue = !current;
+      window.localStorage.setItem(
+        "producer-composition-guides",
+        String(nextValue),
+      );
+      return nextValue;
+    });
   }
 
   function updateTransitionDuration(value: number) {
@@ -927,7 +953,7 @@ export default function CenterSwitcherColumn({
             <>
             <button
               type="button"
-              onClick={() => setShowCompositionGuides((current) => !current)}
+              onClick={toggleCompositionGuides}
               className={`rounded-[6px] border px-2 py-0.5 text-[7px] font-bold uppercase tracking-[0.10em] transition ${
                 showCompositionGuides
                   ? "border-sky-300/18 bg-sky-400/[0.06] text-sky-100/58 shadow-[0_0_10px_rgba(56,189,248,0.08)]"
@@ -951,21 +977,40 @@ export default function CenterSwitcherColumn({
   ref={switcherGridRef}
   className="relative grid min-h-[430px] flex-1 items-stretch gap-3 p-0"
   style={{
-    gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) clamp(132px,9vw,160px) minmax(0, ${100 - previewPanePercent}fr)`,
+    gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) clamp(88px,5.8vw,96px) minmax(0, ${100 - previewPanePercent}fr)`,
   }}
 >
           <div className="producer-monitor producer-monitor--preview relative flex h-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-blue-500 bg-[#06101c] p-0 shadow-[0_0_22px_rgba(37,99,235,0.18)]">
             <div className="producer-monitor__header flex h-14 items-center justify-between border-b border-blue-400/35 bg-[#07182b] px-5 text-[16px] font-semibold uppercase tracking-[0.10em] text-blue-400">
               <span>Preview</span>
-              <span
-                className={`inline-flex items-center rounded-[8px] border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${
-                  previewProgramDifferent
-                    ? "border-amber-300/18 bg-amber-400/[0.06] text-amber-100/62"
-                    : "border-sky-300/12 bg-sky-400/[0.04] text-sky-100/46"
-                }`}
-              >
-                {previewProgramDifferent ? "Ready to take" : "Matched"}
-              </span>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={toggleCompositionGuides}
+                  aria-pressed={showCompositionGuides}
+                  aria-label={`${showCompositionGuides ? "Hide" : "Show"} title-safe and action-safe guides`}
+                  title={`${showCompositionGuides ? "Hide" : "Show"} title-safe and action-safe guides`}
+                  className={`group/safe relative grid h-8 w-8 place-items-center rounded-[8px] border transition-all duration-150 active:scale-95 ${
+                    showCompositionGuides
+                      ? "border-sky-300/32 bg-sky-400/[0.12] text-sky-100 shadow-[0_0_14px_rgba(56,189,248,0.14),inset_0_1px_0_rgba(255,255,255,0.06)]"
+                      : "border-white/[0.09] bg-white/[0.025] text-white/38 hover:border-sky-300/22 hover:bg-sky-400/[0.06] hover:text-sky-100/76"
+                  }`}
+                >
+                  <ScanLine aria-hidden="true" className="h-[15px] w-[15px]" strokeWidth={1.7} />
+                  {showCompositionGuides ? (
+                    <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-sky-300 shadow-[0_0_7px_rgba(125,211,252,0.9)]" />
+                  ) : null}
+                </button>
+                <span
+                  className={`inline-flex items-center rounded-[8px] border px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] ${
+                    previewProgramDifferent
+                      ? "border-amber-300/18 bg-amber-400/[0.06] text-amber-100/62"
+                      : "border-sky-300/12 bg-sky-400/[0.04] text-sky-100/46"
+                  }`}
+                >
+                  {previewProgramDifferent ? "Ready to take" : "Matched"}
+                </span>
+              </div>
             </div>
 
             <div
@@ -1018,12 +1063,7 @@ export default function CenterSwitcherColumn({
                 </div>
               ) : null}
 
-              <PreviewCompositionGuides
-                visible={
-                  showCompositionGuides &&
-                  (previewDropActive || Boolean(selectedBlockId))
-                }
-              />
+              <PreviewCompositionGuides visible={showCompositionGuides} />
 
               <PreviewSnapGuides
                 snapGuideX={snapGuideX}
@@ -1098,7 +1138,7 @@ export default function CenterSwitcherColumn({
             </div>
           </div>
           <div
-            className="group relative z-[999] flex h-full min-h-full cursor-col-resize items-stretch justify-center self-stretch select-none overflow-hidden"
+            className="group relative z-[999] flex h-full min-h-full cursor-col-resize items-stretch justify-center self-stretch select-none overflow-visible"
             onMouseDown={startSplitDrag}
             onDoubleClick={resetSplit}
             role="separator"
@@ -1108,181 +1148,111 @@ export default function CenterSwitcherColumn({
             aria-valuemax={68}
             aria-valuenow={previewPaneRounded}
           >
-              <div className="producer-take-console relative flex w-full flex-col overflow-hidden rounded-[10px] border border-white/[0.12] bg-[#0a101a] shadow-[0_12px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-200 group-hover:border-white/[0.20]">
-              <div className="pointer-events-none absolute left-1/2 top-10 z-30 flex h-9 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-white/8 bg-white/[0.016] opacity-28 shadow-[0_0_10px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.014)] backdrop-blur-md transition-opacity duration-300 group-hover:opacity-60">
-                <div className="flex flex-col gap-1">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <span
-                      key={index}
-                      className="h-0.5 w-1.5 rounded-full bg-white/48"
-                    />
-                  ))}
+              <div className="producer-take-console relative flex w-full flex-col overflow-visible rounded-[10px] border border-white/[0.12] bg-[#0a101a] shadow-[0_12px_28px_rgba(0,0,0,0.28),inset_0_1px_0_rgba(255,255,255,0.025)] transition-colors duration-200 group-hover:border-white/[0.20]">
+                <div className="relative z-20 flex h-12 items-center justify-center border-b border-white/[0.06] px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/48">
+                  Take
                 </div>
-              </div>
 
-              <div className="pointer-events-none absolute bottom-10 left-1/2 z-30 flex h-9 w-5 -translate-x-1/2 items-center justify-center rounded-full border border-white/8 bg-white/[0.016] opacity-28 shadow-[0_0_10px_rgba(255,255,255,0.025),inset_0_1px_0_rgba(255,255,255,0.014)] backdrop-blur-md transition-opacity duration-300 group-hover:opacity-60">
-                <div className="flex flex-col gap-1">
-                  {Array.from({ length: 4 }).map((_, index) => (
-                    <span
-                      key={index}
-                      className="h-0.5 w-1.5 rounded-full bg-white/48"
-                    />
-                  ))}
-                </div>
-              </div>
-              <div className="relative z-20 flex h-14 items-center justify-center border-b border-white/[0.08] px-1 text-[15px] font-semibold uppercase tracking-[0.10em] text-white/90">
-                <span className="relative z-10">Take</span>
-              </div>
-
-              <div className="relative z-20 flex flex-1 flex-col justify-center gap-3 px-2.5 py-3">
-                <button
-                  type="button"
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    runAutoTransition();
-                  }}
-                  disabled={takeBusy || isAutoRunning || !previewProgramDifferent}
-                  className={`relative min-h-[136px] rounded-[12px] border text-center transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
-                    previewProgramDifferent
-                      ? "border-sky-200/48 bg-[#0f4d91] text-white shadow-[0_0_22px_rgba(37,99,235,0.20),inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-[#145ca8]"
-                      : "border-white/10 bg-white/[0.035] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
-                  }`}
-                >
-                  <span className="block text-[25px] font-semibold tracking-[0.03em]">
-                    {isAutoRunning ? "RUN" : "TAKE"}
-                  </span>
-                  <span className="mt-1 block text-[10px] font-semibold uppercase tracking-[0.10em] text-sky-100/62">
-                    {selectedTransition.label}
-                  </span>
-                </button>
-
-                <div className="h-1 overflow-hidden rounded-full bg-white/7">
-                  <div
-                    className={`h-full rounded-full bg-sky-300 shadow-[0_0_10px_rgba(56,189,248,0.28)] transition-all duration-700 ${
-                      isAutoRunning ? "w-full" : "w-[46%]"
+                <div className="relative z-20 flex flex-1 flex-col items-center justify-center gap-2 px-1.5 py-3">
+                  <button
+                    type="button"
+                    onMouseDown={(event) => event.stopPropagation()}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      runAutoTransition();
+                    }}
+                    disabled={takeBusy || isAutoRunning || !previewProgramDifferent}
+                    className={`relative flex h-[92px] w-[78px] flex-col items-center justify-center rounded-[13px] border text-center transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 ${
+                      previewProgramDifferent
+                        ? "border-sky-200/55 bg-[#0f4d91] text-white shadow-[0_0_24px_rgba(37,99,235,0.24),inset_0_1px_0_rgba(255,255,255,0.14)] hover:bg-[#145ca8]"
+                        : "border-white/10 bg-white/[0.035] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                     }`}
-                  />
-                </div>
-
-                <label className="relative z-20 block rounded-[7px] border border-white/[0.08] bg-white/[0.025] px-2 py-2 text-left transition hover:border-white/[0.14] hover:bg-white/[0.04]">
-                  <span className="pointer-events-none flex items-center justify-between gap-1">
-                    <span className="text-[11px] font-semibold text-white/70">
-                      {selectedTransition.label}
+                  >
+                    <span aria-hidden="true" className="mb-1 text-[24px] font-light leading-none text-sky-100/90">→</span>
+                    <span className="block text-[15px] font-semibold tracking-[0.06em]">
+                      {isAutoRunning ? "RUN" : "TAKE"}
                     </span>
-                    <span className="text-white/54">⌄</span>
-                  </span>
+                  </button>
 
-                  <span className="pointer-events-none mt-px block truncate text-[9px] text-white/30">
-                    {selectedTransition.durationLabel}
-                  </span>
-
-                  <div className="relative z-20 mt-2.5 flex items-center gap-2">
-                    <span className="text-[7px] font-black uppercase tracking-[0.08em] text-white/26">
-                      Rate
-                    </span>
-
-                    <div className="relative flex-1">
-                      <div className="absolute inset-y-1/2 left-0 right-0 h-px -translate-y-1/2 bg-white/10" />
-                      <div
-                        className="absolute inset-y-1/2 left-0 h-px -translate-y-1/2 bg-sky-300/60 shadow-[0_0_6px_rgba(56,189,248,0.28)]"
-                        style={{
-                          width: `${
-                            ((transitionDuration - 0.2) / (2.5 - 0.2)) * 100
-                          }%`,
-                        }}
-                      />
-
-                      <input
-                        type="range"
-                        min={0.2}
-                        max={2.5}
-                        step={0.1}
-                        value={transitionDuration}
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onClick={(event) => event.stopPropagation()}
-                        onChange={(event) => {
-                          event.stopPropagation();
-                          updateTransitionDuration(Number(event.target.value));
-                        }}
-                        className="relative z-10 h-3 w-full cursor-pointer appearance-none bg-transparent [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-sky-200 [&::-webkit-slider-thumb]:shadow-[0_0_8px_rgba(125,211,252,0.55)]"
-                        aria-label="Transition duration"
-                      />
-                    </div>
-
-                    <span className="w-[32px] text-right text-[8px] font-black uppercase tracking-[0.06em] text-sky-100/48">
+                  <div ref={transitionPopoverRef} className="relative">
+                    <button
+                      type="button"
+                      aria-expanded={transitionPopoverOpen}
+                      aria-haspopup="dialog"
+                      aria-label={`Transition details, ${transitionDuration.toFixed(1)} seconds`}
+                      onMouseDown={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        setTransitionPopoverOpen((current) => !current);
+                      }}
+                      className={`flex h-8 min-w-[64px] items-center justify-center gap-1 rounded-full border px-2 text-[11px] font-semibold tracking-[0.02em] transition ${
+                        transitionPopoverOpen
+                          ? "border-sky-300/35 bg-sky-400/[0.10] text-sky-100"
+                          : "border-white/10 bg-white/[0.035] text-sky-100/72 hover:border-white/18 hover:bg-white/[0.055]"
+                      }`}
+                    >
                       {transitionDuration.toFixed(1)}s
-                    </span>
+                      <span aria-hidden="true" className="text-[10px] text-white/45">⌄</span>
+                    </button>
+
+                    {transitionPopoverOpen ? (
+                      <div
+                        role="dialog"
+                        aria-label="Transition details"
+                        onMouseDown={(event) => event.stopPropagation()}
+                        className="absolute left-1/2 top-10 z-[120] w-[210px] -translate-x-1/2 rounded-[12px] border border-white/[0.14] bg-[#09121f]/98 p-3 text-left shadow-[0_18px_48px_rgba(0,0,0,0.58),0_0_24px_rgba(37,99,235,0.12)] backdrop-blur-xl"
+                      >
+                        <div className="mb-2 flex items-center justify-between">
+                          <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-white/48">Transition</span>
+                          <span className="text-[11px] font-semibold text-sky-200/86">{transitionDuration.toFixed(1)}s</span>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {SWITCHER_TRANSITION_PRESETS.map((preset) => (
+                            <button
+                              key={preset.value}
+                              type="button"
+                              onClick={() => setTransitionPreset(preset.value)}
+                              className={`rounded-[7px] border px-2 py-1.5 text-[10px] font-medium transition ${
+                                selectedTransitionPreset === preset.value
+                                  ? "border-sky-300/32 bg-sky-400/[0.10] text-sky-100"
+                                  : "border-white/[0.07] bg-white/[0.025] text-white/52 hover:border-white/[0.13] hover:text-white/76"
+                              }`}
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+                        <div className="mt-3 flex items-center gap-2">
+                          <span className="text-[8px] font-bold uppercase tracking-[0.10em] text-white/30">Rate</span>
+                          <input
+                            type="range"
+                            min={0.2}
+                            max={2.5}
+                            step={0.1}
+                            value={transitionDuration}
+                            onChange={(event) => updateTransitionDuration(Number(event.target.value))}
+                            className="h-4 min-w-0 flex-1 cursor-pointer accent-sky-300"
+                            aria-label="Transition duration"
+                          />
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
 
-                  <select
-                    value={selectedTransitionPreset}
+                  <button
+                    type="button"
                     onMouseDown={(event) => event.stopPropagation()}
-                    onClick={(event) => event.stopPropagation()}
-                    onChange={(event) => {
+                    onClick={(event) => {
                       event.stopPropagation();
-                      setTransitionPreset(
-                        event.target.value as SwitcherTransitionPreset,
-                      );
+                      onTake("cut", undefined, 0);
                     }}
-                    className="absolute inset-x-0 top-0 h-9 cursor-pointer opacity-0"
-                    aria-label="Transition preset"
+                    disabled={takeBusy || !previewProgramDifferent}
+                    className="mt-auto min-h-9 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/34 transition hover:text-white/66 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
                   >
-                    {SWITCHER_TRANSITION_PRESETS.map((preset) => (
-                      <option key={preset.value} value={preset.value}>
-                        {preset.label} · {preset.durationLabel}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <div className="hidden grid-cols-3 gap-1 2xl:grid">
-                  {[
-                    { label: "PVW", value: 60 },
-                    { label: "50", value: 50 },
-                    { label: "PGM", value: 40 },
-                  ].map((preset) => {
-                    const active = Math.round(previewPanePercent) === preset.value;
-
-                    return (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onMouseDown={(event) => event.stopPropagation()}
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          setSplitPreset(preset.value);
-                        }}
-                        className={`rounded-[9px] border px-1 py-1 text-[7px] font-black uppercase tracking-[0.08em] transition hover:-translate-y-px active:translate-y-0 ${
-                          active
-                            ? "border-sky-300/18 bg-sky-400/[0.06] text-sky-100/62 shadow-[0_0_8px_rgba(56,189,248,0.08)]"
-                            : "border-white/7 bg-white/[0.020] text-white/28 hover:border-white/11 hover:bg-white/[0.035] hover:text-white/50"
-                        }`}
-                      >
-                        {preset.label}
-                      </button>
-                    );
-                  })}
+                    CUT
+                  </button>
                 </div>
-
-                <button
-                  type="button"
-                  onMouseDown={(event) => event.stopPropagation()}
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    onTake("cut", undefined, 0);
-                  }}
-                  disabled={takeBusy || !previewProgramDifferent}
-                  className={`min-h-[42px] rounded-[7px] border text-xs font-bold tracking-[0.04em] transition-all duration-150 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-40 ${
-                    previewProgramDifferent
-                      ? "border-sky-300/18 bg-white/[0.045] text-sky-100/78 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]"
-                      : "border-white/8 bg-white/[0.022] text-white/32"
-                  }`}
-                >
-                  CUT
-                </button>
               </div>
-            </div>
             <div className="pointer-events-none absolute inset-y-0 left-1/2 w-7 -translate-x-1/2 rounded-full bg-white/[0.010] opacity-0 blur-md transition-opacity duration-300 group-hover:opacity-100" />
           </div>
           <div className="producer-monitor producer-monitor--program relative flex h-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-red-500 bg-[#14090d] p-0 shadow-[0_0_22px_rgba(239,68,68,0.15)]">

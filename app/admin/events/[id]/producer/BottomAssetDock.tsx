@@ -36,6 +36,7 @@ import {
   Palette,
   Radio,
   Search,
+  SlidersHorizontal,
   Trash2,
   Upload,
   Video,
@@ -1205,8 +1206,8 @@ const previewMediaAsset =
       />
       {expandedMediaOpen ? (
         <div className="relative z-10 flex min-h-0 flex-1 flex-col overflow-hidden pb-3">
-          <div className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-[14px] border border-white/[0.11] bg-[radial-gradient(circle_at_82%_0%,rgba(59,130,246,0.07),transparent_32%),linear-gradient(150deg,rgba(10,20,34,0.98),rgba(3,8,16,0.99))] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_48px_rgba(0,0,0,0.20)]">
-          <header className="flex min-h-[54px] shrink-0 flex-wrap items-center gap-3 border-b border-white/[0.09] px-5 py-2.5">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain rounded-[14px] border border-white/[0.11] bg-[radial-gradient(circle_at_82%_0%,rgba(59,130,246,0.07),transparent_32%),linear-gradient(150deg,rgba(10,20,34,0.98),rgba(3,8,16,0.99))] shadow-[inset_0_1px_0_rgba(255,255,255,0.035),0_18px_48px_rgba(0,0,0,0.20)] [scrollbar-color:rgba(125,211,252,0.28)_rgba(255,255,255,0.025)] [scrollbar-width:thin]">
+          <header className="sticky top-0 z-30 flex min-h-[54px] shrink-0 flex-wrap items-center gap-3 border-b border-white/[0.09] bg-[#08111e]/95 px-5 py-2.5 shadow-[0_8px_22px_rgba(0,0,0,0.24)] backdrop-blur-xl">
             <h2 className="shrink-0 text-[17px] font-semibold tracking-[-0.02em] text-white/92">
               Media Library <span className="ml-2 text-[12px] font-normal text-white/40">{orchestratedMediaRows.length} items</span>
             </h2>
@@ -1293,8 +1294,8 @@ const previewMediaAsset =
               {mediaImportError}
             </div>
           ) : null}
-          <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden xl:grid-cols-[minmax(0,1fr)_300px]">
-            <section className="flex min-h-0 flex-col overflow-hidden border-r border-white/[0.07] p-3.5">
+          <div className="grid min-h-[330px] min-w-0 shrink-0 grid-cols-1 xl:grid-cols-[minmax(0,1fr)_300px]">
+            <section className="flex min-h-[300px] flex-col border-r border-white/[0.07] p-3.5">
               <div className="mb-2.5 flex shrink-0 items-center gap-1 border-b border-white/[0.07] pb-2">
                 {assetTabStats.map(([filter, label, count]) => (
                   <button
@@ -1312,7 +1313,7 @@ const previewMediaAsset =
                   </button>
                 ))}
               </div>
-              <div className="min-h-0 flex-1 overflow-y-auto pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(125,211,252,0.20)_transparent]">
+              <div className="min-h-[180px] flex-1 pr-1">
               {filteredMediaRows.length ? (
                 <div className="grid grid-cols-1 gap-2 2xl:grid-cols-2">
                   {filteredMediaRows.map((asset) => (
@@ -1341,7 +1342,7 @@ const previewMediaAsset =
               )}
               </div>
             </section>
-            <aside className="flex min-h-0 flex-col overflow-y-auto p-3.5">
+            <aside className="flex min-h-[300px] flex-col p-3.5">
               {selectedMediaAsset ? (
                 <>
                   <div className="flex aspect-video w-full items-center justify-center overflow-hidden rounded-[10px] border border-white/[0.09] bg-[#07101d] p-1.5 text-white/24 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
@@ -1381,24 +1382,33 @@ const previewMediaAsset =
                         : "Send to Preview"}
                     </button>
                     {isImportedMediaAsset(selectedMediaAsset.label) ? (
-                      <div className="grid grid-cols-2 gap-2">
+                      <div className="flex items-center gap-2 border-t border-white/[0.07] pt-2">
                         <button
                           type="button"
                           onClick={() => handleOpenMediaAssetEdit(selectedMediaAsset.label)}
-                          className="h-8 rounded-[8px] border border-white/[0.08] text-[9px] font-medium text-white/45 hover:bg-white/[0.04] hover:text-white/72"
+                          className="group flex min-h-10 min-w-0 flex-1 items-center gap-2.5 rounded-[9px] border border-white/[0.075] bg-white/[0.018] px-2.5 text-left transition hover:border-sky-300/18 hover:bg-sky-400/[0.045]"
                         >
-                          Edit details
+                          <span className="grid h-7 w-7 shrink-0 place-items-center rounded-[7px] border border-white/[0.08] bg-black/24 text-white/38 transition group-hover:border-sky-300/18 group-hover:text-sky-100/72">
+                            <SlidersHorizontal size={13} aria-hidden="true" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block truncate text-[9px] font-semibold text-white/70 transition group-hover:text-white/90">Configure source</span>
+                            <span className="mt-0.5 block truncate text-[7px] font-medium uppercase tracking-[0.08em] text-white/28">Name · Scene · Cue</span>
+                          </span>
                         </button>
                         <button
                           type="button"
                           disabled={deletingMediaAssetId === (selectedMediaAsset.id ?? selectedMediaAsset.label)}
                           onClick={() => void handleDeleteImportedAsset(selectedMediaAsset.label)}
-                          className="inline-flex h-8 items-center justify-center gap-1.5 rounded-[8px] border border-red-300/[0.14] bg-red-400/[0.035] text-[9px] font-medium text-red-100/52 hover:bg-red-400/[0.08] hover:text-red-100/82 disabled:cursor-wait disabled:opacity-45"
+                          aria-label={`Remove ${selectedMediaAsset.label} from the library`}
+                          title="Remove from library"
+                          className="grid h-10 w-10 shrink-0 place-items-center rounded-[9px] border border-white/[0.07] bg-white/[0.015] text-white/28 transition hover:border-red-300/24 hover:bg-red-400/[0.065] hover:text-red-100/78 disabled:cursor-wait disabled:opacity-45"
                         >
-                          <Trash2 size={11} aria-hidden="true" />
-                          {deletingMediaAssetId === (selectedMediaAsset.id ?? selectedMediaAsset.label)
-                            ? "Deleting…"
-                            : "Delete from library"}
+                          <Trash2
+                            size={14}
+                            aria-hidden="true"
+                            className={deletingMediaAssetId === (selectedMediaAsset.id ?? selectedMediaAsset.label) ? "animate-pulse" : ""}
+                          />
                         </button>
                       </div>
                     ) : null}
