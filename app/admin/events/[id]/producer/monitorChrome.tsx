@@ -23,16 +23,7 @@ const STATUS_PILL_BASE_CLASS =
   "inline-flex items-center rounded-full border px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.14em] backdrop-blur-md"
 
 const ROUTED_MONITOR_FRAME_BASE_CLASS =
-  "group relative overflow-hidden rounded-[24px] border border-white/8 bg-[#020308] opacity-0 shadow-[0_22px_72px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_-18px_40px_rgba(0,0,0,0.58)] ring-1 transition-all duration-700 animate-[monitorBoot_700ms_ease-out_forwards]"
-
-const MONITOR_FLASH_CLASS =
-  "pointer-events-none absolute inset-0 z-30 bg-white/10 opacity-0 animate-[monitorFlash_900ms_ease-out]"
-
-const MONITOR_REFLECTION_CLASS =
-  "pointer-events-none absolute inset-0 bg-[linear-gradient(115deg,rgba(255,255,255,0.035),transparent_18%,transparent_56%,rgba(255,255,255,0.014)_72%,transparent_88%)] opacity-28 mix-blend-screen"
-
-const MONITOR_SCANLINE_CLASS =
-  "pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.025)_0px,rgba(255,255,255,0.025)_1px,transparent_1px,transparent_7px)] opacity-[0.06]"
+  "group relative h-full w-full overflow-hidden rounded-[24px] border border-white/8 bg-black shadow-[0_22px_72px_rgba(0,0,0,0.42),inset_0_1px_0_rgba(255,255,255,0.04)] ring-1"
 
 const MONITOR_INNER_RING_CLASS =
   "pointer-events-none absolute inset-0 rounded-[24px] border border-white/6 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.022),inset_0_0_18px_rgba(255,255,255,0.018)]"
@@ -83,7 +74,6 @@ function getStatusPillToneClass(tone: StatusPillTone): string {
 
 function getMonitorModeClasses(mode: "program" | "preview" | "confidence"): {
   ringClass: string
-  glowClass: string
   pulseClass: string
   edgePulseClass: string
   tallyToneClass: string
@@ -91,7 +81,6 @@ function getMonitorModeClasses(mode: "program" | "preview" | "confidence"): {
   if (mode === "program") {
     return {
       ringClass: "ring-red-400/22",
-      glowClass: "from-red-400/10 via-red-300/3",
       pulseClass: "shadow-red-500/10",
       edgePulseClass: "border-red-300/14 shadow-[0_0_18px_rgba(248,113,113,0.08)]",
       tallyToneClass: "bg-red-400/75 shadow-[0_0_6px_rgba(248,113,113,0.28)]",
@@ -101,7 +90,6 @@ function getMonitorModeClasses(mode: "program" | "preview" | "confidence"): {
   if (mode === "preview") {
     return {
       ringClass: "ring-sky-400/22",
-      glowClass: "from-sky-400/10 via-sky-300/3",
       pulseClass: "shadow-sky-500/8",
       edgePulseClass: "border-sky-300/12 shadow-[0_0_16px_rgba(56,189,248,0.06)]",
       tallyToneClass: "bg-sky-300/75 shadow-[0_0_6px_rgba(56,189,248,0.24)]",
@@ -110,7 +98,6 @@ function getMonitorModeClasses(mode: "program" | "preview" | "confidence"): {
 
   return {
     ringClass: "ring-violet-400/22",
-    glowClass: "from-violet-400/10 via-violet-300/3",
     pulseClass: "shadow-violet-500/8",
     edgePulseClass: "border-violet-300/12 shadow-[0_0_16px_rgba(167,139,250,0.06)]",
     tallyToneClass: "bg-violet-300/75 shadow-[0_0_6px_rgba(167,139,250,0.24)]",
@@ -176,7 +163,6 @@ export function RoutedMonitorFrame({
 }: RoutedMonitorFrameProps): JSX.Element {
   const {
     ringClass,
-    glowClass,
     pulseClass,
     edgePulseClass,
     tallyToneClass,
@@ -186,19 +172,11 @@ export function RoutedMonitorFrame({
     <div
       className={`${ROUTED_MONITOR_FRAME_BASE_CLASS} ${ringClass} ${pulseClass}`}
     >
-      <div className={MONITOR_FLASH_CLASS} />
+      {children}
       <div
         className={`pointer-events-none absolute inset-0 z-10 rounded-[28px] border opacity-70 ${edgePulseClass} ${mode === "program" ? "animate-pulse" : ""}`}
       />
-      <div
-        className={`pointer-events-none absolute inset-x-0 top-0 h-24 bg-gradient-to-b ${glowClass} to-transparent`}
-      />
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(255,255,255,0.075),transparent_34%),radial-gradient(circle_at_50%_105%,rgba(0,0,0,0.78),transparent_44%)]" />
-      <div className={MONITOR_REFLECTION_CLASS} />
-      <div className={MONITOR_SCANLINE_CLASS} />
       <div className={MONITOR_INNER_RING_CLASS} />
-
-      <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_center,transparent_48%,rgba(0,0,0,0.22)_100%)]" />
 
       <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2">
         <MonitorBadge
@@ -256,10 +234,7 @@ export function RoutedMonitorFrame({
               : "Confidence"
         }
       />
-      {children}
       <div className="pointer-events-none absolute inset-0 z-10 rounded-[28px] ring-1 ring-inset ring-white/6" />
-      <div className="pointer-events-none absolute inset-x-6 bottom-0 z-10 h-px bg-gradient-to-r from-transparent via-white/8 to-transparent" />
-      <div className="pointer-events-none absolute inset-x-10 bottom-2 z-10 h-[1px] bg-gradient-to-r from-transparent via-white/8 to-transparent" />
       <MonitorChromeKeyframes />
     </div>
   )
