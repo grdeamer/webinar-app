@@ -1,5 +1,5 @@
 import type { JSX } from "react"
-import { ArrowRight, Radio, ShieldCheck, Zap } from "lucide-react"
+import { Radio } from "lucide-react"
 
 import type { StageState } from "./producerRoomTypes"
 import type { ScreenLayoutPreset } from "./assetDockTypes"
@@ -40,66 +40,48 @@ export default function ProducerLeftRail({
   onGoOffAir,
 }: ProducerLeftRailProps): JSX.Element {
   return (
-    <aside className="flex h-full min-h-0 flex-col border-r border-white/[0.055] bg-[linear-gradient(180deg,rgba(10,16,29,0.98),rgba(3,6,12,1))] p-2 text-white">
-      <div className="flex items-center justify-center py-2">
+    <aside className="flex h-full min-h-0 flex-col rounded-2xl border border-white/10 bg-[#07111d]/82 p-4 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="flex items-center justify-center py-1">
         <div
-          className={`flex h-10 w-10 items-center justify-center rounded-full border ${
+          className={`flex h-12 w-12 items-center justify-center rounded-full border ${
             isProgramLive
               ? "border-red-300/30 bg-red-500/15 text-red-100 shadow-[0_0_20px_rgba(248,113,113,0.16)]"
               : "border-white/10 bg-white/[0.035] text-white/45"
           }`}
           title={isProgramLive ? "Audience is live" : "Audience is in holding"}
         >
-          <Radio size={17} />
+          <Radio size={20} />
         </div>
       </div>
 
-      <div className="mt-2 space-y-2">
-        <div className="rounded-xl border border-white/[0.06] bg-white/[0.02] px-1.5 py-2 text-center">
-          <div className="text-[7px] font-black uppercase tracking-[0.14em] text-white/32">1 · Preview</div>
-          <div className={`mt-1 text-[8px] font-bold ${previewProgramDifferent ? "text-amber-200/75" : "text-emerald-200/62"}`}>
-            {previewProgramDifferent ? "READY" : "MATCHED"}
-          </div>
-        </div>
-
-        <ArrowRight className="mx-auto text-white/20" size={13} />
+      <div className="mt-4 flex flex-1 flex-col items-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-sky-400 text-[24px] font-medium text-white shadow-[0_0_18px_rgba(59,130,246,0.18)]">1</div>
+        <div className="mt-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-sky-400">Preview</div>
+        <div className="my-4 h-16 border-l border-dashed border-sky-400/50" />
 
         <button
           type="button"
           disabled={takeBusy || !previewProgramDifferent}
           onClick={onTake}
-          className="flex w-full flex-col items-center rounded-xl border border-sky-300/18 bg-sky-400/[0.08] px-1 py-3 text-sky-50 transition hover:bg-sky-400/[0.14] disabled:cursor-not-allowed disabled:border-white/[0.05] disabled:bg-white/[0.02] disabled:text-white/25"
+          className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-white/30 text-[24px] font-medium text-white/72 transition hover:border-sky-300/60 hover:text-white disabled:opacity-45"
           title="Send Preview to Program"
         >
-          <Zap size={16} />
-          <span className="mt-1 text-[8px] font-black uppercase tracking-[0.12em]">
-            {takeBusy ? "Taking" : "2 · Take"}
-          </span>
+          2
         </button>
-
-        <ArrowRight className="mx-auto text-white/20" size={13} />
+        <div className="mt-3 text-[13px] font-semibold uppercase tracking-[0.08em] text-white/62">Take</div>
+        <div className="my-4 h-16 border-l border-dashed border-emerald-400/45" />
 
         <button
           type="button"
           disabled={liveActionBusy}
           onClick={isProgramLive ? onGoOffAir : onGoLive}
-          className={`flex w-full flex-col items-center rounded-xl border px-1 py-3 transition ${
-            isProgramLive
-              ? "border-red-300/22 bg-red-500/[0.10] text-red-100 hover:bg-red-500/[0.16] disabled:opacity-40"
-              : "border-emerald-300/18 bg-emerald-400/[0.08] text-emerald-100 hover:bg-emerald-400/[0.14] disabled:opacity-40"
-          }`}
+          className={`flex h-14 w-14 items-center justify-center rounded-full border-2 text-[24px] font-medium transition ${isProgramLive ? "border-red-300/70 text-red-200" : "border-emerald-400/70 text-white"}`}
           title={isProgramLive ? "Take the event off air" : "Send Program to attendees"}
         >
-          <ShieldCheck size={16} />
-          <span className="mt-1 text-[8px] font-black uppercase tracking-[0.09em]">
-            {liveActionBusy ? "Applying" : isProgramLive ? "3 · Off Air" : "3 · Go Live"}
-          </span>
+          3
         </button>
-      </div>
-
-      <div className="mt-auto rounded-xl border border-white/[0.055] bg-black/20 px-1 py-2 text-center">
-        <div className={`text-[8px] font-black uppercase tracking-[0.12em] ${isProgramLive ? "text-red-200/78" : "text-white/38"}`}>
-          {isProgramLive ? "Audience Live" : "Holding"}
+        <div className={`mt-3 text-center text-[13px] font-semibold uppercase tracking-[0.07em] ${isProgramLive ? "text-red-300" : "text-emerald-300"}`}>
+          {isProgramLive ? "Off Air" : "Go Live"}
         </div>
       </div>
     </aside>

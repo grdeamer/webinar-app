@@ -9,12 +9,10 @@ import ProducerLeftRail from "./ProducerLeftRail";
 import ProducerRightRail from "./ProducerRightRail";
 import { type RecordingStatus } from "./BottomAssetDock";
 import ProducerRoomTopChrome from "./ProducerRoomTopChrome";
-import ProducerModeBar, {
-  type ProducerWorkspaceMode,
-} from "./ProducerModeBar";
-import ProducerHealthBar from "./ProducerHealthBar";
+import { type ProducerWorkspaceMode } from "./ProducerModeBar";
 import ProducerRoomWorkspace from "./ProducerRoomWorkspace";
 import { ProducerAdvancedWorkspace, ProducerPrepareWorkspace } from "./ProducerOperationalWorkspaces";
+import ProducerV1Header from "./ProducerV1Header";
 import { getProducerThemeStyle } from "./producerTheme";
 import ProducerSafetyDialog, {
   type ProducerSafetyAction,
@@ -112,13 +110,10 @@ export default function ProducerRoomClientView(
     operatorNotice,
     recoveryBusy,
     handleRecoverControlPlane,
-    healthSnapshot,
     transportHealth,
-    recordingHealth,
     workspaceMode,
     setWorkspaceMode,
     standardToolsOpen,
-    setStandardToolsOpen,
     topChromeProps,
     centerColumn,
     leftRailProps,
@@ -254,10 +249,16 @@ export default function ProducerRoomClientView(
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
-              <ProducerRoomTopChrome {...topChromeProps} />
-              <ProducerModeBar
+              <ProducerV1Header
+                eventTitle={eventTitle}
+                stageTitle={topChromeProps.headline}
                 mode={workspaceMode}
+                transportHealth={transportHealth}
+                isProgramLive={isProgramLive}
+                liveActionBusy={leftRailProps.liveActionBusy}
                 onModeChange={setWorkspaceMode}
+                onGoLive={leftRailProps.onGoLive}
+                onGoOffAir={leftRailProps.onGoOffAir}
               />
               {syncWarningText ? (
                 <div
@@ -291,16 +292,6 @@ export default function ProducerRoomClientView(
                   {operatorNotice}
                 </div>
               ) : null}
-              <ProducerHealthBar
-                snapshot={healthSnapshot}
-                transportHealth={transportHealth}
-                recordingStatus={recordingHealth.status}
-                recordingError={recordingHealth.error}
-                recoveryBusy={recoveryBusy}
-                onRecover={() => {
-                  void handleRecoverControlPlane();
-                }}
-              />
               <ProducerRoomWorkspaceFrame>
                 <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
                   {workspaceMode === "show" ? (
@@ -309,35 +300,22 @@ export default function ProducerRoomClientView(
                         leftRail={<ProducerLeftRail {...leftRailProps} />}
                         centerColumn={centerColumn}
                         rightRail={<ProducerRightRail {...rightRailProps} />}
-                        bottomDock={!standardToolsOpen ? undefined : bottomDock}
+                        bottomDock={bottomDock}
+                        bottomDockExpanded={standardToolsOpen}
                       />
                     </ProducerRoomGrid>
                   ) : workspaceMode === "prepare" ? (
-                    <ProducerPrepareWorkspace {...operationalWorkspaceProps} />
+                    <div className="grid h-full min-h-0 grid-cols-[minmax(0,1fr)_300px] gap-3 overflow-hidden p-4 pt-3">
+                      <div className="min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[#07111d]/72">
+                        <ProducerPrepareWorkspace {...operationalWorkspaceProps} />
+                      </div>
+                      <div className="min-h-0 overflow-hidden rounded-2xl border border-white/10 bg-[#07111d]/82">
+                        <ProducerRightRail {...rightRailProps} />
+                      </div>
+                    </div>
                   ) : (
                     <ProducerAdvancedWorkspace {...operationalWorkspaceProps} />
                   )}
-
-                  {workspaceMode === "show" ? (
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setStandardToolsOpen((current) => !current)
-                      }
-                      aria-expanded={standardToolsOpen}
-                      className="absolute right-3 top-3 z-[85] flex items-center gap-2 rounded-[10px] border border-white/[0.10] bg-[#101522]/95 px-4 py-2 text-[10px] font-bold uppercase tracking-[0.10em] text-white/70 shadow-[0_12px_28px_rgba(0,0,0,0.38)] backdrop-blur-xl transition hover:border-sky-200/25 hover:text-white"
-                    >
-                      {standardToolsOpen
-                        ? "Close Production Tools"
-                        : "Production Tools"}
-                      <span
-                        aria-hidden="true"
-                        className={`transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}
-                      >
-                        ▴
-                      </span>
-                    </button>
-                  ) : null}
                 </div>
               </ProducerRoomWorkspaceFrame>
             </main>

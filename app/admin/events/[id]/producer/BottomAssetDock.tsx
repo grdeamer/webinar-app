@@ -55,7 +55,6 @@ import {
   type ProductionDrawerTab,
   type MixerChannelKey,
   SourceLibraryCard,
-  CompactAudioMeter,
   UtilityButton,
   UtilityOverlay,
   formatRecordingDuration
@@ -124,6 +123,8 @@ function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, ind
 }
 export default function BottomAssetDock({
   workspaceMode,
+  standardToolsOpen,
+  onToggleStandardTools,
   scenes,
   selectedSceneId,
   programSceneId,
@@ -148,6 +149,8 @@ export default function BottomAssetDock({
   onRecordingHealthChange,
 }: {
   workspaceMode: ProducerWorkspaceMode
+  standardToolsOpen: boolean
+  onToggleStandardTools: () => void
   scenes: SceneSummary[]
   selectedSceneId: string | null
   programSceneId: string | null
@@ -1037,19 +1040,18 @@ const previewMediaAsset =
       {productionDrawerTab ? (
         <ProductionControlsDrawer
           activeTab={productionDrawerTab}
-          onTabChange={setProductionDrawerTab}
           onClose={() => setProductionDrawerTab(null)}
           audioChannels={[
-            ["Program", programLevel],
-            ["Stage", stageLevel],
-            ["Music", musicLevel],
-            ["Mics", micLevelPercent],
-            ["SFX", sfxLevel],
-            ["Audience", audienceLevel],
-          ].map(([id, level]) => ({
-            id: String(id),
-            label: String(id),
-            level: Number(level),
+            { id: "Program", label: "Program", level: programLevel },
+            { id: "Stage", label: "Stage", level: stageLevel },
+            { id: "Mics", label: "Mics", level: micLevelPercent },
+            { id: "Music", label: "Playback", level: musicLevel },
+            { id: "Audience", label: "Music", level: audienceLevel },
+            { id: "SFX", label: "SFX", level: sfxLevel },
+          ].map(({ id, label, level }) => ({
+            id,
+            label,
+            level,
             muted: mutedChannels[id as MixerChannelKey],
             solo: soloChannel === id,
           }))}
@@ -1059,41 +1061,30 @@ const previewMediaAsset =
           recordingElapsedSeconds={recordingElapsedSeconds}
           recordings={recordings}
           recordingError={recordingError}
-          recordingSource={recordingSource}
-          recordingDestination={recordingDestination}
-          recordingQuality={recordingQuality}
-          onRecordingSourceChange={setRecordingSource}
-          onRecordingDestinationChange={setRecordingDestination}
-          onRecordingQualityChange={setRecordingQuality}
           onArmRecording={armRecording}
           onStartRecording={startRecording}
           onStopRecording={stopRecording}
         />
       ) : null}
       {expandedMediaOpen ? (
-        <div className="fixed bottom-5 left-3 right-3 z-[999] flex h-[430px] max-w-[calc(100vw-1.5rem)] flex-col overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#050914]/[0.99] shadow-[0_28px_90px_rgba(0,0,0,0.68)] backdrop-blur-2xl lg:left-[84px] lg:right-5 lg:max-w-[calc(100vw-104px)]">
-          <header className="flex h-[62px] shrink-0 items-center justify-between border-b border-white/[0.07] px-5">
+        <div className="fixed bottom-[108px] left-[132px] right-[324px] z-[999] flex h-[360px] flex-col overflow-hidden rounded-[16px] border border-white/[0.13] bg-[#071321]/[0.99] shadow-[0_28px_90px_rgba(0,0,0,0.68)] backdrop-blur-2xl">
+          <header className="flex h-[58px] shrink-0 items-center justify-between border-b border-white/[0.10] px-6">
             <div>
-              <div className="text-[8px] font-semibold uppercase tracking-[0.18em] text-sky-200/55">
-                Source preparation
-              </div>
-              <h2 className="mt-1 text-[17px] font-semibold tracking-[-0.035em] text-white/92">
-                Choose a source, prepare it, then send it to Preview.
-              </h2>
+              <h2 className="text-[18px] font-semibold tracking-[-0.02em] text-white/92">Media Library <span className="ml-2 text-[13px] font-normal text-white/42">{orchestratedMediaRows.length} items</span></h2>
             </div>
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => mediaImportInputRef.current?.click()}
                 disabled={mediaImportBusy}
-                className="h-9 rounded-[10px] border border-white/[0.10] bg-white/[0.045] px-4 text-[10px] font-semibold text-white/74 transition hover:bg-white/[0.08] hover:text-white"
+                className="h-9 rounded-[10px] border border-blue-300/25 bg-blue-400/[0.10] px-4 text-[12px] font-semibold text-blue-100 transition hover:bg-blue-400/[0.18]"
               >
                 {mediaImportBusy ? "Importing…" : "Import source"}
               </button>
               <button
                 type="button"
                 onClick={() => setExpandedMediaOpen(false)}
-                className="h-9 rounded-[10px] border border-white/[0.08] px-4 text-[10px] font-semibold text-white/48 transition hover:bg-white/[0.05] hover:text-white/80"
+                className="h-9 rounded-[10px] border border-white/[0.10] px-4 text-[12px] font-semibold text-white/60 transition hover:bg-white/[0.05] hover:text-white/80"
               >
                 Close
               </button>
@@ -1189,7 +1180,7 @@ const previewMediaAsset =
                     ) : selectedMediaAsset.type === "audio" ? (
                       <Music2 size={28} />
                     ) : (
-                      <Image size={28} />
+                      <Image size={28} aria-hidden="true" />
                     )}
                   </div>
                   <h3 className="mt-3 truncate text-[15px] font-semibold tracking-[-0.025em] text-white/88">
@@ -1254,7 +1245,7 @@ const previewMediaAsset =
         </div>
       ) : null}
       
-      <div className="relative z-10 grid min-h-0 flex-1 gap-2 overflow-hidden pb-2 xl:grid-cols-[0.72fr_3.9fr]">
+      {standardToolsOpen ? <div className="relative z-10 grid min-h-0 flex-1 gap-4 overflow-hidden pb-4 xl:grid-cols-[0.9fr_3.1fr]">
 <ConsolePanel
   title="Scene presets"
   action={
@@ -1493,16 +1484,13 @@ const previewMediaAsset =
             </div>
           </div>
         </ConsolePanel>
-      </div>
+      </div> : null}
       {workspaceMode === "show" || workspaceMode === "advanced" ? (
-      <div className="relative z-20 mt-1.5 grid shrink-0 gap-1.5 border-t border-white/[0.06] pt-1.5 xl:grid-cols-[minmax(0,1fr)_minmax(330px,0.62fr)]">
-        <div className="grid grid-cols-4 gap-1.5">
-          <CompactAudioMeter label="Program" level={programLevel} />
-          <CompactAudioMeter label="Stage" level={stageLevel} />
-          <CompactAudioMeter label="Mics" level={micLevelPercent} />
-          <CompactAudioMeter label="Playback" level={musicLevel} />
-        </div>
-        <div className="grid grid-cols-4 gap-1.5">
+      <div className="relative z-20 mt-auto grid h-[76px] shrink-0 grid-cols-[280px_minmax(0,1fr)] items-center gap-5 border-t border-white/[0.08] px-5">
+        <button type="button" onClick={onToggleStandardTools} aria-expanded={standardToolsOpen} className="flex h-12 items-center justify-between border-r border-white/14 pr-8 text-left text-[17px] font-semibold text-white/90">
+          <span>Production Tools</span><span className={`text-white/70 transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}>⌃</span>
+        </button>
+        <div className="grid max-w-[980px] grid-cols-4 gap-4">
           <UtilityButton
             icon={<CircleDot size={15} />}
             label={recordingStatus === "recording" ? "Recording" : "Record"}

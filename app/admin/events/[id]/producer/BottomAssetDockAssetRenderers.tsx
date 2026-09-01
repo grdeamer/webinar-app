@@ -65,16 +65,16 @@ export function ConsolePanel({
 }): JSX.Element {
   return (
     <section
-      className={`relative min-h-0 overflow-hidden rounded-[14px] border border-white/[0.048] bg-[linear-gradient(180deg,rgba(12,18,31,0.76),rgba(5,9,17,0.90))] shadow-[0_8px_20px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.014)] ${className}`}
+      className={`relative min-h-0 overflow-hidden rounded-[14px] border border-white/10 bg-[#081522]/86 shadow-[0_8px_20px_rgba(0,0,0,0.16),inset_0_1px_0_rgba(255,255,255,0.03)] ${className}`}
     >
       <div className="pointer-events-none absolute inset-x-5 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.075] to-transparent" />
-      <div className="relative z-10 flex h-7 items-center justify-between border-b border-white/[0.035] px-2.5">
-        <div className="text-[9px] font-black uppercase tracking-[0.12em] text-white/62">
+      <div className="relative z-10 flex h-12 items-center justify-between border-b border-white/[0.08] px-4">
+        <div className="text-[15px] font-semibold text-white/88">
           {title}
         </div>
         {action}
       </div>
-      <div className="relative z-10 min-h-0 overflow-hidden p-2">{children}</div>
+      <div className="relative z-10 min-h-0 overflow-hidden p-4">{children}</div>
     </section>
   )
 }
@@ -127,7 +127,7 @@ export function PreparedSourceImage({
   if (failed) {
     return (
       <div className="flex h-full min-h-[128px] w-full flex-col items-center justify-center px-5 text-center">
-        <Image size={25} className="text-white/28" aria-hidden="true" />
+        <Image size={25} className="text-white/28" aria-hidden="true" focusable="false" />
         <div className="mt-3 text-[10px] font-semibold text-white/62">Source preview unavailable</div>
         <div className="mt-1 max-w-[220px] text-[9px] leading-relaxed text-white/36">
           Re-import {label} once to save it permanently to this event.
@@ -298,4 +298,3 @@ export function CueStackRow({ asset }: { asset: BroadcastAssetTelemetry }): JSX.
     </div>
   )
 }
-

@@ -168,19 +168,19 @@ function LocalMediaControls({
   ]
 
   return (
-    <section className="border-b border-white/[0.08] bg-[linear-gradient(180deg,rgba(12,20,34,0.98),rgba(6,11,20,0.98))] px-3 py-3" aria-label="Your camera and audio">
+    <section className="border-b border-white/[0.10] bg-[#07111d]/92 px-5 py-5" aria-label="Your camera and audio">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <div className="text-[9px] font-bold uppercase tracking-[0.14em] text-sky-100/55">Your camera &amp; audio</div>
-          <p className="mt-1 text-[10px] leading-4 text-white/45">Turn on your devices here, then use Stage to place yourself in Preview.</p>
+          <div className="text-[16px] font-semibold text-white/94">Your Camera &amp; Audio</div>
+          <p className="mt-1 text-[13px] leading-5 text-white/55">Turn on your devices here, then use Stage to place yourself in Preview.</p>
         </div>
         <span className={`mt-0.5 h-2 w-2 rounded-full ${cameraOn || micOn || screenOn ? "bg-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.7)]" : "bg-white/20"}`} />
       </div>
-      <div className="mt-3 grid grid-cols-3 gap-1.5">
+      <div className="mt-4 grid grid-cols-3 gap-3">
         {controls.map(({ id, label, icon: Icon, on, action }) => (
           <button key={id} type="button" disabled={busyControl !== null} onClick={() => void action()} aria-pressed={on}
-            className={`flex min-h-12 flex-col items-center justify-center gap-1 rounded-[11px] border px-1.5 py-2 text-[8px] font-bold uppercase tracking-[0.08em] transition disabled:opacity-45 ${on ? "border-emerald-300/28 bg-emerald-400/[0.12] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(52,211,153,0.08)]" : "border-white/[0.09] bg-white/[0.035] text-white/58 hover:border-sky-200/20 hover:bg-sky-300/[0.07] hover:text-white"}`}>
-            <Icon size={13} />
+            className={`flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-[12px] border px-2 py-3 text-[10px] font-semibold uppercase tracking-[0.05em] transition disabled:opacity-45 ${on ? "border-emerald-300/28 bg-emerald-400/[0.12] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(52,211,153,0.08)]" : "border-white/[0.10] bg-white/[0.035] text-white/72 hover:border-sky-200/20 hover:bg-sky-300/[0.07] hover:text-white"}`}>
+            <Icon size={20} />
             <span>{busyControl === id ? "Starting…" : `${label} ${on ? "on" : "off"}`}</span>
           </button>
         ))}
@@ -749,7 +749,7 @@ export default function ProducerRightRail({
   const railTabs: RailTab[] = ["Stage", "Backstage", "Layers", "Q&A"]
 
   return (
-    <aside className="flex h-full min-w-0 flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(5,9,18,0.98),rgba(2,4,9,1))]">
+    <aside className="flex h-full min-w-0 flex-col overflow-hidden bg-[#07111d]/90">
       <LocalMediaControls
         videoDevices={videoDevices}
         audioDevices={audioDevices}
@@ -758,17 +758,17 @@ export default function ProducerRightRail({
         onSelectVideoDevice={onSelectVideoDevice}
         onSelectAudioDevice={onSelectAudioDevice}
       />
-      <header className="shrink-0 border-b border-white/[0.09] bg-[#070c15] px-3 pb-3 pt-3">
+      <header className="shrink-0 border-b border-white/[0.09] bg-[#07111d] px-5 pb-4 pt-5">
         <div className="flex items-center justify-between">
           <div>
-            <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-white/44">Stage desk</div>
-            <div className="mt-1 text-[14px] font-semibold text-white/92">
+            <div className="text-[16px] font-semibold text-white/94">Stage Desk</div>
+            <div className="mt-2 text-[15px] font-medium text-white/82">
               {onStageParticipants.length} on stage · {backstageCount} backstage
             </div>
           </div>
-          <ShieldCheck size={15} className="text-emerald-200/52" />
+          <ShieldCheck size={20} className="text-emerald-300" />
         </div>
-        <nav className="mt-3 grid grid-cols-4 gap-1" aria-label="Stage desk views">
+        <nav className="mt-4 grid grid-cols-4 gap-1" aria-label="Stage desk views">
           {railTabs.map((tab) => (
             <button
               key={tab}
@@ -776,7 +776,7 @@ export default function ProducerRightRail({
               onClick={() => {
                 setActiveRailTab(tab)
               }}
-              className={`h-9 rounded-[7px] border text-[9px] font-semibold transition ${
+              className={`h-10 rounded-[7px] border text-[11px] font-medium transition ${
                 activeRailTab === tab
                   ? "border-sky-300/40 bg-[#102845] text-sky-50/92 shadow-[inset_0_-2px_0_rgba(56,189,248,0.55)]"
                   : "border-white/[0.07] bg-white/[0.022] text-white/46 hover:bg-white/[0.05] hover:text-white/72"
@@ -791,7 +791,7 @@ export default function ProducerRightRail({
         </nav>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="min-h-0 flex-1 overflow-y-auto p-5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {activeRailTab === "Q&A" ? (
           <ProducerQAModerationPanel
             eventId={eventId}
@@ -854,15 +854,15 @@ export default function ProducerRightRail({
         ) : (
           <>
             <div className="mb-3">
-              <div className="text-[8px] font-semibold uppercase tracking-[0.14em] text-white/30">
+              <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-white/38">
                 {activeRailTab === "Stage" ? "Audience can see" : "Waiting room"}
               </div>
-              <div className="mt-1 text-[20px] font-semibold tracking-[-0.035em] text-white/94">
+              <div className="mt-2 text-[24px] font-semibold tracking-[-0.035em] text-white/94">
                 {activeRailTab === "Stage"
                   ? `${onStageParticipants.length} on stage`
                   : `${backstageCount} backstage`}
               </div>
-              <p className="mt-1 text-[10px] leading-relaxed text-white/44">
+              <p className="mt-2 text-[13px] leading-relaxed text-white/52">
                 {activeRailTab === "Stage"
                   ? "Remove or promote the primary speaker without leaving this view."
                   : "Check readiness, then send a presenter to stage."}

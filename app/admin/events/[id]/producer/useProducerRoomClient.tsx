@@ -86,7 +86,7 @@ export function useProducerRoomClient({
   const staleRouteCleanupBusyRef = useRef(false);
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true);
-  const [standardToolsOpen, setStandardToolsOpen] = useState(true);
+  const [standardToolsOpen, setStandardToolsOpen] = useState(false);
   const [screenLayoutPreset, setScreenLayoutPreset] =
     useState<ScreenLayoutPreset>("classic");
   const [selectedTransitionDurationMs] = useState(600);
@@ -1804,6 +1804,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
   const bottomAssetDockProps = useMemo(
     () => ({
       workspaceMode,
+      standardToolsOpen,
+      onToggleStandardTools: () => setStandardToolsOpen((current) => !current),
       scenes,
       selectedSceneId,
       programSceneId,
@@ -1832,6 +1834,7 @@ onSaveScene: saveScene,
     }),
     [
       workspaceMode,
+      standardToolsOpen,
       scenes,
       selectedSceneId,
       programSceneId,

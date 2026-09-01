@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from "react"
 
-const PRODUCER_BOTTOM_DOCK_STORAGE_KEY = "producer-bottom-dock-height-v2"
-const DEFAULT_BOTTOM_DOCK_HEIGHT = 260
-const MIN_BOTTOM_DOCK_HEIGHT = 210
-const MAX_BOTTOM_DOCK_HEIGHT = 480
+const PRODUCER_BOTTOM_DOCK_STORAGE_KEY = "producer-bottom-dock-height-v3"
+const DEFAULT_BOTTOM_DOCK_HEIGHT = 360
+const MIN_BOTTOM_DOCK_HEIGHT = 300
+const MAX_BOTTOM_DOCK_HEIGHT = 520
 const MAX_BOTTOM_DOCK_VIEWPORT_RATIO = 0.58
 
 function clampBottomDockHeight(height: number, viewportHeight?: number): number {
@@ -19,6 +19,7 @@ type ProducerRoomWorkspaceProps = {
   centerColumn: ReactNode
   rightRail: ReactNode
   bottomDock?: ReactNode
+  bottomDockExpanded?: boolean
 }
 
 export default function ProducerRoomWorkspace({
@@ -26,6 +27,7 @@ export default function ProducerRoomWorkspace({
   centerColumn,
   rightRail,
   bottomDock,
+  bottomDockExpanded = true,
 }: ProducerRoomWorkspaceProps): JSX.Element {
   const [bottomDockHeight, setBottomDockHeight] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_BOTTOM_DOCK_HEIGHT
@@ -89,8 +91,9 @@ export default function ProducerRoomWorkspace({
     setBottomDockHeight(DEFAULT_BOTTOM_DOCK_HEIGHT)
   }, [])
 
+  const resolvedBottomDockHeight = bottomDockExpanded ? bottomDockHeight : 92
   const gridTemplateRows = bottomDock
-    ? `minmax(0,1fr) 8px ${bottomDockHeight}px`
+    ? `minmax(0,1fr) 8px ${resolvedBottomDockHeight}px`
     : "minmax(0,1fr)"
 
   const railChromeClassName =
@@ -98,7 +101,7 @@ export default function ProducerRoomWorkspace({
 
   return (
     <div
-      className="grid h-full min-h-0 w-full min-w-0 grid-cols-[54px_minmax(0,1fr)_190px] gap-1 overflow-hidden p-1 sm:grid-cols-[58px_minmax(0,1fr)_200px] md:gap-1.5 md:p-1.5 lg:grid-cols-[66px_minmax(0,1fr)_228px] xl:grid-cols-[72px_minmax(0,1fr)_264px] 2xl:grid-cols-[76px_minmax(0,1fr)_292px] 2xl:gap-2 2xl:p-2"
+      className="grid h-full min-h-0 w-full min-w-0 grid-cols-[104px_minmax(0,1fr)_300px] gap-3 overflow-hidden p-4 pt-3"
       style={{ gridTemplateRows }}
     >
       <div
@@ -130,7 +133,7 @@ export default function ProducerRoomWorkspace({
           </div>
 
           <div
-            style={{ height: `${bottomDockHeight}px` }}
+            style={{ height: `${resolvedBottomDockHeight}px` }}
             className="producer-bottom-dock col-start-2 min-h-0 min-w-0 overflow-hidden border-t border-white/[0.06] bg-[linear-gradient(180deg,rgba(5,8,15,0.985),rgba(2,4,8,1))] px-0 py-0 shadow-[0_-12px_30px_rgba(0,0,0,0.26),inset_0_1px_0_rgba(255,255,255,0.022)]"
           >
             {bottomDock}

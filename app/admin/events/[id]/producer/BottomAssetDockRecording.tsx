@@ -109,18 +109,18 @@ export function UtilityButton({
     <button
       type="button"
       onClick={onClick}
-      className={`group flex min-h-[40px] items-center gap-2.5 rounded-[11px] border px-3 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
+      className={`group flex min-h-[56px] items-center gap-4 rounded-[11px] border px-5 text-left transition-all duration-300 ease-out hover:-translate-y-px active:translate-y-0 ${
         danger
           ? "border-red-300/22 bg-[linear-gradient(180deg,rgba(185,28,28,0.76),rgba(127,29,29,0.92))] shadow-[0_0_22px_rgba(239,68,68,0.12),inset_0_1px_0_rgba(255,255,255,0.050)]"
           : "border-white/[0.055] bg-white/[0.022] shadow-[inset_0_1px_0_rgba(255,255,255,0.016)] hover:border-white/[0.09] hover:bg-white/[0.035]"
       }`}
     >
-      <span className={danger ? "text-white/88" : "text-white/52"}>{icon}</span>
+      <span className={danger ? "text-red-300" : "text-white/72"}>{icon}</span>
       <span className="min-w-0">
-        <span className="block text-[10px] font-black uppercase tracking-[0.10em] text-white/76">
+        <span className="block text-[15px] font-medium text-white/90">
           {label}
         </span>
-        <span className="mt-0.5 block text-[9px] font-medium text-white/36">{meta}</span>
+        <span className={`mt-0.5 block text-[11px] font-medium uppercase tracking-[0.05em] ${label === "Stream" ? "text-emerald-300" : "text-white/45"}`}>{meta}</span>
       </span>
     </button>
   )
