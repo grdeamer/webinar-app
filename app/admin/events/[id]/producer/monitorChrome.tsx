@@ -275,26 +275,32 @@ export function EmptyMonitorState({
   subtitle,
 }: EmptyMonitorStateProps): JSX.Element {
   return (
-    <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_50%_0%,rgba(56,189,248,0.12),transparent_34%),linear-gradient(180deg,#050816,#02040b)] shadow-[0_30px_120px_rgba(0,0,0,0.58),inset_0_1px_0_rgba(255,255,255,0.05)]">
-      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,0.06),transparent_24%,transparent_68%,rgba(255,255,255,0.035)_82%,transparent_100%)] opacity-70" />
-      <div className="pointer-events-none absolute inset-0 bg-[repeating-linear-gradient(to_bottom,rgba(255,255,255,0.02)_0px,rgba(255,255,255,0.02)_1px,transparent_1px,transparent_6px)] opacity-[0.18]" />
+    <div className="relative flex min-h-[320px] items-center justify-center overflow-hidden rounded-[22px] border border-white/[0.075] bg-[radial-gradient(circle_at_22%_12%,rgba(37,99,235,0.17),transparent_36%),radial-gradient(circle_at_78%_82%,rgba(124,58,237,0.13),transparent_40%),linear-gradient(145deg,#050b17_0%,#071126_48%,#090716_100%)] shadow-[0_28px_100px_rgba(0,0,0,0.54),inset_0_1px_0_rgba(255,255,255,0.035)]">
+      <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(135deg,transparent_0%,transparent_41%,rgba(96,165,250,0.075)_41.15%,transparent_41.6%,transparent_59%,rgba(139,92,246,0.055)_59.15%,transparent_59.6%)]" />
+      <div className="pointer-events-none absolute left-[12%] top-[18%] h-[58%] w-[52%] rounded-full bg-blue-500/[0.055] blur-[80px]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_38%,rgba(1,4,12,0.46)_100%)]" />
+      <div className="pointer-events-none absolute inset-x-[10%] top-0 h-px bg-gradient-to-r from-transparent via-sky-300/16 to-transparent" />
 
-      <div className="relative z-10 flex flex-col items-center text-center">
-        <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-white/10 bg-black/40 shadow-[0_0_40px_rgba(56,189,248,0.12)] backdrop-blur-md">
-          <div className="h-3 w-3 rounded-full bg-red-400/80 shadow-[0_0_18px_rgba(248,113,113,0.7)]" />
+      <div className="relative z-10 flex max-w-lg flex-col items-center px-8 text-center">
+        <div className="mb-5 text-[10px] font-semibold uppercase tracking-[0.46em] text-sky-100/38">
+          Jupiter
         </div>
-
-        <div className="text-sm font-black uppercase tracking-[0.28em] text-white/82">
+        <div className="text-[17px] font-semibold uppercase tracking-[0.34em] text-white/86">
           {title}
         </div>
-
-        <div className="mt-2 max-w-sm text-xs tracking-[0.14em] text-white/38">
+        <div className="mt-3 max-w-md text-[12px] leading-5 tracking-[0.08em] text-white/38">
           {subtitle}
         </div>
+        <div className="mt-6 h-px w-28 bg-gradient-to-r from-transparent via-sky-300/32 to-transparent" />
       </div>
 
-      <div className="pointer-events-none absolute bottom-4 right-4 rounded-full border border-white/10 bg-black/40 px-3 py-1 text-[9px] font-black uppercase tracking-[0.22em] text-white/42 backdrop-blur-md">
-        No Signal
+      <div className="pointer-events-none absolute bottom-4 left-4 flex items-center gap-2 rounded-full border border-white/[0.07] bg-black/20 px-3 py-1.5 backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-white/26" />
+        <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-white/32">Source unassigned</span>
+      </div>
+      <div className="pointer-events-none absolute bottom-4 right-4 flex items-center gap-2 rounded-full border border-emerald-300/10 bg-emerald-400/[0.035] px-3 py-1.5 backdrop-blur-md">
+        <span className="h-1.5 w-1.5 rounded-full bg-emerald-300/70 shadow-[0_0_8px_rgba(110,231,183,0.48)]" />
+        <span className="text-[8px] font-semibold uppercase tracking-[0.16em] text-emerald-100/42">Output ready</span>
       </div>
     </div>
   )

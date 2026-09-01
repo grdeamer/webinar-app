@@ -3,6 +3,7 @@ import type { JSX } from "react";
 import { ScanLine } from "lucide-react";
 import AudienceOriginCue from "@/components/live/AudienceOriginCue";
 import StageVideoPreview from "./StageVideoPreview";
+import { EmptyMonitorState } from "./monitorChrome";
 import type { PreviewBlock } from "./useProducerBlocks";
 import type { ProducerParticipant, StageState } from "./producerRoomTypes";
 import type {
@@ -1088,7 +1089,12 @@ export default function CenterSwitcherColumn({
 
               {!stageState?.stage_participant_ids?.length && !previewBlocks.some((block) => !block.hidden) ? (
                 <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-                  <div className="text-center"><div className="text-[28px] font-medium tracking-[0.42em] text-white/95">JUPITER</div><div className="mx-auto mt-4 h-px w-40 bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" /><div className="mt-4 text-[9px] font-semibold uppercase tracking-[0.20em] text-white/35">No source assigned</div></div>
+                  <div className="absolute inset-0">
+                    <EmptyMonitorState
+                      title="Standing By"
+                      subtitle="Choose a camera, media asset, or color source to build the next look"
+                    />
+                  </div>
                 </div>
               ) : null}
 
@@ -1294,7 +1300,12 @@ export default function CenterSwitcherColumn({
                 {!programState?.stage_participant_ids?.length &&
                 !programBlocks.some((block) => !block.hidden) ? (
                   <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-                    <div className="px-5 py-4 text-center"><div className="text-[28px] font-medium tracking-[0.42em] text-white/95">JUPITER</div><div className="mx-auto mt-4 h-px w-40 bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" /><div className="mt-4 text-[9px] font-semibold uppercase tracking-[0.20em] text-white/35">No source assigned</div></div>
+                    <div className="absolute inset-0">
+                      <EmptyMonitorState
+                        title="Standing By"
+                        subtitle="Preview is clear. Route a source, then TAKE when the next look is ready"
+                      />
+                    </div>
                   </div>
                 ) : null}
 

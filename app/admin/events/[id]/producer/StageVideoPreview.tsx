@@ -359,8 +359,8 @@ export default function StageVideoPreview({
     if (!primary) {
       return (
         <EmptyMonitorState
-          title="No Camera Signal"
-          subtitle="No active camera feeds are currently routed to the stage"
+          title="Standing By"
+          subtitle="Route a camera, media asset, or color source to Preview, then TAKE to Program"
         />
       )
     }
