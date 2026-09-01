@@ -338,14 +338,14 @@ function renderBlockContent(
   }
 
   if (block.type === "video" && block.src) {
-    return <video src={block.src} controls className="h-full w-full object-cover" />
+    return <video src={block.src} controls className="h-full w-full bg-black object-contain opacity-100" />
   }
 
   if (block.type === "image" && block.src) {
     return (
       <img
         src={block.src}
-        className="h-full w-full object-contain"
+        className="h-full w-full bg-black object-contain opacity-100"
         alt={block.label || "Image"}
       />
     )
@@ -416,12 +416,12 @@ export function renderPlacedBlocks({
               }
             : undefined
         }
-        className={`absolute overflow-hidden transition-[transform,opacity,filter,box-shadow,border-radius] duration-300 ease-out ${
+        className={`absolute overflow-hidden bg-black transition-[transform,opacity,filter,box-shadow,border-radius] duration-300 ease-out ${
           opts?.selectable
             ? selectedBlockId === block.id
-              ? "border-2 border-sky-400 bg-white/10 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
-              : "border border-white/20 bg-white/10"
-            : "border border-white/10 bg-white/10"
+              ? "border-2 border-sky-400 shadow-[0_0_0_1px_rgba(56,189,248,0.35)]"
+              : "border border-white/20"
+            : "border border-white/10"
         }`}
         style={getSharedBlockStyle({
           x: block.x,
@@ -429,18 +429,18 @@ export function renderPlacedBlocks({
           width: block.width,
           height: block.height,
           zIndex: block.zIndex,
-          opacity: block.opacity,
+          opacity: block.groupId === "source-route" ? 1 : block.opacity,
           scale: block.scale,
           rotation: block.rotation,
           blur: block.blur,
           glow: block.glow,
           glowColor: block.glowColor,
-          borderRadius: block.borderRadius,
-          shadowIntensity: block.shadowIntensity,
+          borderRadius: block.groupId === "source-route" ? 0 : block.borderRadius,
+          shadowIntensity: block.groupId === "source-route" ? 0 : block.shadowIntensity,
           shadowColor: block.shadowColor,
           animationType: block.animationType,
           animationProgress: block.animationProgress,
-          blendMode: block.blendMode,
+          blendMode: block.groupId === "source-route" ? "normal" : block.blendMode,
         })}
         data-blend-mode={block.blendMode ?? "normal"}
       >

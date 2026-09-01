@@ -33,6 +33,7 @@ import {
   Image,
   Layers3,
   Music2,
+  Palette,
   Radio,
   Search,
   Trash2,
@@ -84,6 +85,14 @@ function formatRuntimeClock(seconds: number): string {
   const minutes = Math.floor(safeSeconds / 60)
   const remainingSeconds = safeSeconds % 60
   return `${String(minutes).padStart(2, "0")}:${String(remainingSeconds).padStart(2, "0")}`
+}
+function normalizeColorHex(value: string): string {
+  const normalized = value.trim().toUpperCase()
+  return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : "#000000"
+}
+function buildColorSourceSvg(colorHex: string): string {
+  const safeColor = normalizeColorHex(colorHex)
+  return `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="1920" height="1080" fill="${safeColor}"/></svg>`
 }
 function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, index: number): BroadcastAssetTelemetry {
   const sourceType = "type" in item && typeof item.type === "string" ? item.type : "video"
@@ -185,6 +194,9 @@ export default function BottomAssetDock({
   const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
   const [mediaImportBusy, setMediaImportBusy] = useState(false)
   const [mediaImportError, setMediaImportError] = useState<string | null>(null)
+  const [colorSourceOpen, setColorSourceOpen] = useState(false)
+  const [colorSourceHex, setColorSourceHex] = useState("#000000")
+  const [colorSourceLabel, setColorSourceLabel] = useState("Black")
   const [mediaSearchQuery, setMediaSearchQuery] = useState("")
   const [mediaTypeFilter, setMediaTypeFilter] = useState<"all" | "graphic" | "video" | "audio" | "holding">("all")
   const [deletingMediaAssetId, setDeletingMediaAssetId] = useState<string | null>(null)
@@ -354,16 +366,113 @@ function handleSelectMediaAssetForPreview(label: string): void {
       src: targetAsset.imageUrl ?? "",
       assetId: targetAsset.id ?? null,
       storagePath: targetAsset.storagePath ?? null,
-      x: 12,
-      y: 12,
-      width: 76,
-      height: 42.75,
+      x: 0,
+      y: 0,
+      width: 640,
+      height: 360,
       opacity: 1,
+      scale: 1,
+      rotation: 0,
+      blur: 0,
+      glow: 0,
+      borderRadius: 0,
+      shadowIntensity: 0,
+      blendMode: "normal",
       zIndex: nextZIndex,
       groupId: "source-route",
     })
   }
   setRuntimePaused(false)
+}
+async function handleCreateColorSource(): Promise<void> {
+  const colorHex = normalizeColorHex(colorSourceHex)
+  const baseLabel = colorSourceLabel.trim() || `Color ${colorHex}`
+  const existingLabels = new Set(importedMediaAssets.map((asset) => asset.label))
+  let label = baseLabel
+  let suffix = 2
+  while (existingLabels.has(label)) {
+    label = `${baseLabel} ${suffix}`
+    suffix += 1
+  }
+  const fileName = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "color-source"}.svg`
+  const sourceFile = new File([buildColorSourceSvg(colorHex)], fileName, {
+    type: "image/svg+xml",
+  })
+
+  setMediaImportBusy(true)
+  setMediaImportError(null)
+
+  try {
+    const prepareRes = await fetch(`/api/admin/events/${eventId}/live/assets/prepare`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        fileName: sourceFile.name,
+        mimeType: sourceFile.type,
+        byteSize: sourceFile.size,
+      }),
+    })
+    const prepared = await prepareRes.json().catch((): null => null)
+    if (!prepareRes.ok) throw new Error(prepared?.error || "Could not prepare the color source")
+
+    const supabase = createClient()
+    const { error: uploadError } = await supabase.storage
+      .from(prepared.bucket)
+      .uploadToSignedUrl(prepared.path, prepared.token, sourceFile, {
+        contentType: sourceFile.type,
+      })
+    if (uploadError) throw uploadError
+
+    const commitRes = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        path: prepared.path,
+        label,
+        mimeType: sourceFile.type,
+        byteSize: sourceFile.size,
+        assetType: "image",
+      }),
+    })
+    const committed = await commitRes.json().catch((): null => null)
+    if (!commitRes.ok) throw new Error(committed?.error || "Could not save the color source")
+
+    const colorAsset: BroadcastAssetTelemetry = {
+      id: String(committed.asset.id),
+      label,
+      type: "graphic",
+      state: "READY",
+      duration: "16:9",
+      meta: `Color · ${colorHex}`,
+      route: "Standby",
+      lastPlayed: "Not played",
+      linkedScene: "Unassigned",
+      imageUrl: buildProducerAssetUrl(eventId, String(committed.asset.storage_path)),
+      storagePath: String(committed.asset.storage_path),
+      audioEmbedded: false,
+      programSafe: true,
+      destination: "STANDBY",
+      takeSafe: true,
+      progress: 0,
+      scheduledIn: "Manual",
+      resetBehavior: "Manual",
+      cacheState: "HOT",
+      codecState: "OK",
+      routeLock: false,
+      hoverHint: `Solid color source ${colorHex}`,
+      takeCompatibility: "Clean",
+      segment: "Color source",
+      trigger: "Manual",
+    }
+    setImportedMediaAssets((current) => [colorAsset, ...current])
+    setSelectedMediaAssetLabel(label)
+    setMediaTypeFilter("graphic")
+    setColorSourceOpen(false)
+  } catch (error) {
+    setMediaImportError(error instanceof Error ? error.message : "The color source could not be created")
+  } finally {
+    setMediaImportBusy(false)
+  }
 }
   const [preloadedAssetLabels, setPreloadedAssetLabels] = useState<string[]>([])
   function handlePreloadAsset(): void {
@@ -1122,6 +1231,15 @@ const previewMediaAsset =
               </button>
               <button
                 type="button"
+                onClick={() => setColorSourceOpen((current) => !current)}
+                aria-expanded={colorSourceOpen}
+                className={`inline-flex h-9 items-center gap-2 rounded-[9px] border px-3.5 text-[11px] font-semibold transition ${colorSourceOpen ? "border-violet-300/35 bg-violet-400/[0.14] text-violet-50" : "border-white/[0.10] bg-white/[0.035] text-white/62 hover:bg-white/[0.065] hover:text-white/86"}`}
+              >
+                <Palette size={13} aria-hidden="true" />
+                Color source
+              </button>
+              <button
+                type="button"
                 onClick={() => setExpandedMediaOpen(false)}
                 aria-label="Close Media Library"
                 className="grid h-9 w-9 place-items-center rounded-[9px] border border-white/[0.10] text-white/48 transition hover:bg-white/[0.05] hover:text-white/80"
@@ -1130,6 +1248,46 @@ const previewMediaAsset =
               </button>
             </div>
           </header>
+          {colorSourceOpen ? (
+            <div className="flex shrink-0 flex-wrap items-end gap-3 border-b border-white/[0.09] bg-black/24 px-5 py-3">
+              <label className="grid gap-1.5 text-[9px] font-semibold uppercase tracking-[0.10em] text-white/42">
+                Color
+                <span className="flex h-9 items-center gap-2 rounded-[9px] border border-white/[0.10] bg-[#05080f] px-2">
+                  <input
+                    type="color"
+                    value={colorSourceHex}
+                    onChange={(event) => setColorSourceHex(event.target.value.toUpperCase())}
+                    className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0"
+                    aria-label="Color source color"
+                  />
+                  <input
+                    value={colorSourceHex}
+                    onChange={(event) => setColorSourceHex(event.target.value)}
+                    onBlur={() => setColorSourceHex(normalizeColorHex(colorSourceHex))}
+                    className="w-20 bg-transparent text-[11px] font-semibold uppercase text-white/78 outline-none"
+                    aria-label="Color source hex value"
+                  />
+                </span>
+              </label>
+              <label className="grid min-w-[190px] flex-1 gap-1.5 text-[9px] font-semibold uppercase tracking-[0.10em] text-white/42">
+                Source name
+                <input
+                  value={colorSourceLabel}
+                  onChange={(event) => setColorSourceLabel(event.target.value)}
+                  placeholder="Black"
+                  className="h-9 rounded-[9px] border border-white/[0.10] bg-[#05080f] px-3 text-[11px] normal-case tracking-normal text-white/78 outline-none focus:border-violet-300/35"
+                />
+              </label>
+              <button
+                type="button"
+                onClick={() => void handleCreateColorSource()}
+                disabled={mediaImportBusy}
+                className="h-9 rounded-[9px] border border-violet-300/30 bg-violet-500/18 px-4 text-[10px] font-semibold text-violet-50 transition hover:bg-violet-500/28 disabled:cursor-wait disabled:opacity-50"
+              >
+                {mediaImportBusy ? "Adding…" : "Add to library"}
+              </button>
+            </div>
+          ) : null}
           {mediaImportError ? (
             <div className="border-b border-red-300/10 bg-red-400/[0.08] px-5 py-2 text-[10px] font-medium text-red-100/80">
               {mediaImportError}

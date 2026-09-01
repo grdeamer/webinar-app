@@ -969,7 +969,7 @@ export default function CenterSwitcherColumn({
             </div>
 
             <div
-              className={`relative min-h-0 flex-1 overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(20,30,48,0.94)_0%,rgba(7,14,27,0.99)_62%,rgba(2,6,13,1)_100%)] transition-shadow duration-300 ${
+              className={`relative min-h-0 flex-1 overflow-hidden bg-black transition-shadow duration-300 ${
                 previewProgramDifferent
                   ? "shadow-[inset_0_0_0_1px_rgba(125,211,252,0.10)]"
                   : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]"
@@ -1030,7 +1030,9 @@ export default function CenterSwitcherColumn({
                 snapGuideY={snapGuideY}
               />
 
-              <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_58%_45%,rgba(var(--producer-brand-primary),0.22),transparent_34%),linear-gradient(135deg,#071532_0%,#17266f_48%,#062a55_100%)] opacity-80 shadow-[inset_0_0_18px_rgba(0,0,0,0.42)]" />
+              {!stageState?.stage_participant_ids?.length && !previewBlocks.some((block) => !block.hidden) ? (
+                <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_45%,rgba(var(--producer-brand-primary),0.16),transparent_34%),linear-gradient(135deg,#050b18_0%,#101a48_48%,#06162c_100%)] shadow-[inset_0_0_22px_rgba(0,0,0,0.55)]" />
+              ) : null}
               <div className="pointer-events-none absolute inset-x-0 top-0 z-20 h-10 bg-gradient-to-b from-black/22 to-transparent" />
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/22 to-transparent" />
 
@@ -1046,7 +1048,7 @@ export default function CenterSwitcherColumn({
 
               {!stageState?.stage_participant_ids?.length && !previewBlocks.some((block) => !block.hidden) ? (
                 <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-                  <div className="text-center"><div className="text-[28px] font-medium tracking-[0.42em] text-white/95">JUPITER</div><div className="mx-auto mt-4 h-px w-40 bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" /></div>
+                  <div className="text-center"><div className="text-[28px] font-medium tracking-[0.42em] text-white/95">JUPITER</div><div className="mx-auto mt-4 h-px w-40 bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" /><div className="mt-4 text-[9px] font-semibold uppercase tracking-[0.20em] text-white/35">No source assigned</div></div>
                 </div>
               ) : null}
 
@@ -1292,13 +1294,15 @@ export default function CenterSwitcherColumn({
             </div>
 
             <div
-              className={`relative min-h-0 flex-1 overflow-hidden border-0 bg-[radial-gradient(circle_at_50%_44%,rgba(29,16,21,0.985)_0%,rgba(10,6,10,0.998)_65%,rgba(3,2,4,1)_100%)] transition-shadow duration-300 ${
+              className={`relative min-h-0 flex-1 overflow-hidden border-0 bg-black transition-shadow duration-300 ${
                 isTransitioning
                   ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]"
                   : "shadow-[inset_0_0_0_1px_rgba(248,113,113,0.08)]"
               }`}
             >
-              <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_72%_25%,rgba(var(--producer-brand-secondary),0.10),transparent_36%),linear-gradient(135deg,#170b1f_0%,#150f35_52%,#070912_100%)] opacity-90 shadow-[inset_0_0_30px_rgba(0,0,0,0.42)]" />
+              {!programState?.stage_participant_ids?.length && !programBlocks.some((block) => !block.hidden) ? (
+                <div className="pointer-events-none absolute inset-0 z-10 bg-[radial-gradient(circle_at_50%_45%,rgba(var(--producer-brand-primary),0.16),transparent_34%),linear-gradient(135deg,#050b18_0%,#101a48_48%,#06162c_100%)] shadow-[inset_0_0_22px_rgba(0,0,0,0.55)]" />
+              ) : null}
               {takeFlashVisible ? (
                 <div className="pointer-events-none absolute inset-0 z-[70] bg-white/38 mix-blend-screen animate-pulse" />
               ) : null}
@@ -1320,11 +1324,7 @@ export default function CenterSwitcherColumn({
                 {!programState?.stage_participant_ids?.length &&
                 !programBlocks.some((block) => !block.hidden) ? (
                   <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
-                    <div className="px-5 py-4 text-center">
-                      <div className="text-[14px] font-semibold uppercase tracking-[0.42em] text-white/90">
-                        Standing by
-                      </div>
-                    </div>
+                    <div className="px-5 py-4 text-center"><div className="text-[28px] font-medium tracking-[0.42em] text-white/95">JUPITER</div><div className="mx-auto mt-4 h-px w-40 bg-gradient-to-r from-transparent via-blue-300/60 to-transparent" /><div className="mt-4 text-[9px] font-semibold uppercase tracking-[0.20em] text-white/35">No source assigned</div></div>
                   </div>
                 ) : null}
 
