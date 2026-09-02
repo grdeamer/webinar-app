@@ -1,4 +1,4 @@
-import { screenRectToCanvasRect } from "./canvasCoordinates"
+import { screenRectToCanvasRect } from "./canvasCoordinates.ts"
 
 export type AlignableRect = {
   id: string

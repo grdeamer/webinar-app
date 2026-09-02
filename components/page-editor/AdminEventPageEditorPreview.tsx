@@ -44,6 +44,9 @@ import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import PageEditorToolbar from "./PageEditorToolbar"
+import EditorToolDock, { type EditorToolPanel } from "./EditorToolDock"
+import PageFilmstrip from "./PageFilmstrip"
+import TextContextToolbar from "./TextContextToolbar"
 import { createSystemComponentPreviewRegistry } from "./SystemComponentPreviewRegistry"
 import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
@@ -478,12 +481,14 @@ const isEmbedded =
   const [dragOverSectionId, setDragOverSectionId] = useState<string | null>(null)
   const [draggingLayerNodeId, setDraggingLayerNodeId] = useState<string | null>(null)
   const [dragOverLayerNodeId, setDragOverLayerNodeId] = useState<string | null>(null)
-  const [isMobilePreview, setIsMobilePreview] = useState(false)
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop")
+  const isMobilePreview = previewDevice === "mobile"
   const [canvasZoom, setCanvasZoom] = useState(1)
   const [showGrid, setShowGrid] = useState(true)
   const [showRulers, setShowRulers] = useState(false)
   const [copiedElementStyle, setCopiedElementStyle] = useState<Record<string, unknown> | null>(null)
   const [rightRailTab, setRightRailTab] = useState<RightRailTab>("inspect")
+  const [activeToolPanel, setActiveToolPanel] = useState<EditorToolPanel>("design")
   const [hoveredExperienceNodeId, setHoveredExperienceNodeId] = useState<string | null>(null)
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
@@ -2522,11 +2527,13 @@ const selectedExperienceNode = experienceNodes.find(
 
   const canvasWrapClass = isEmbedded
     ? "w-full"
-    : isMobilePreview
+    : previewDevice === "mobile"
       ? "mx-auto w-[390px] max-w-full"
-      : "w-full"
+      : previewDevice === "tablet"
+        ? "mx-auto w-[768px] max-w-full"
+        : "w-full"
 
-  const canvasScale = isMobilePreview ? 1 : canvasZoom
+  const canvasScale = previewDevice === "desktop" ? canvasZoom : 1
   const canvasViewportClass = isEmbedded
     ? "w-full overflow-auto"
     : "w-full overflow-auto rounded-[26px]"
@@ -2547,6 +2554,22 @@ const selectedExperienceNode = experienceNodes.find(
     : saveStatusMessage
   const customCodeDocument = getCustomCodeDocument(sections)
 
+  function downloadRecoveryBackup() {
+    const payload = JSON.stringify({
+      eventSlug: slug,
+      pageKey: selectedPageKey,
+      revision: documentRevision,
+      savedAt: new Date().toISOString(),
+      document: { sections, elements, eventTheme },
+    }, null, 2)
+    const url = URL.createObjectURL(new Blob([payload], { type: "application/json" }))
+    const anchor = document.createElement("a")
+    anchor.href = url
+    anchor.download = `${slug}-${selectedPageKey}-recovery.json`
+    anchor.click()
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div className={EXPERIENCE_EDITOR_ROOT_CLASS}>
       {!isEmbedded && (
@@ -2560,6 +2583,7 @@ const selectedExperienceNode = experienceNodes.find(
           canRedo={documentReady && canRedo}
           canvasZoom={canvasZoom}
           isMobilePreview={isMobilePreview}
+          previewDevice={previewDevice}
           isEditing={isEditing && documentReady}
           isCodeEditorOpen={isCodeEditorOpen}
           selectedElementCount={documentReady ? selectedElementCount : 0}
@@ -2595,7 +2619,7 @@ const selectedExperienceNode = experienceNodes.find(
           onUndo={() => restoreHistorySnapshot("undo")}
           onRedo={() => restoreHistorySnapshot("redo")}
           onChangeZoom={setCanvasZoom}
-          onToggleMobilePreview={() => setIsMobilePreview((value) => !value)}
+          onChangePreviewDevice={setPreviewDevice}
           onToggleEditing={toggleEditing}
           onToggleCodeEditor={() => {
             setIsCodeEditorOpen((value) => !value)
@@ -2627,7 +2651,41 @@ const selectedExperienceNode = experienceNodes.find(
         />
       )}
 
+      {!isEmbedded && (activePageSaveState.status === "conflict" || activePageSaveState.status === "failed") ? (
+        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 border-b border-amber-300/18 bg-amber-400/10 px-5 py-3 text-sm text-amber-50">
+          <div>
+            <strong>{activePageSaveState.status === "conflict" ? "A newer version exists" : "This page has not saved"}</strong>
+            <span className="ml-2 text-amber-100/64">Your local work is still available in this editor.</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={downloadRecoveryBackup} className="rounded-lg border border-amber-100/20 px-3 py-1.5 text-xs font-bold hover:bg-white/10">Download backup</button>
+            {activePageSaveState.status === "failed" ? (
+              <button type="button" onClick={() => { void flushCurrentPage() }} className="rounded-lg bg-amber-200 px-3 py-1.5 text-xs font-bold text-amber-950 hover:bg-amber-100">Retry save</button>
+            ) : (
+              <button type="button" onClick={() => {
+                if (!window.confirm("Reload the server version? Download a backup first if you need to preserve local changes.")) return
+                setLoadAttempt((attempt) => attempt + 1)
+              }} className="rounded-lg bg-amber-200 px-3 py-1.5 text-xs font-bold text-amber-950 hover:bg-amber-100">Reload latest</button>
+            )}
+          </div>
+        </div>
+      ) : null}
+
             <div className="relative flex min-h-0 flex-1 overflow-hidden">
+              {!isEmbedded && !isCodeEditorOpen ? (
+                <EditorToolDock
+                  activePanel={activeToolPanel}
+                  onChangePanel={(panel) => {
+                    setActiveToolPanel(panel)
+                    setIsEditing(true)
+                    setRightRailTab(
+                      panel === "design" || panel === "brand"
+                        ? "page"
+                        : "insert",
+                    )
+                  }}
+                />
+              ) : null}
               {isCodeEditorOpen && documentReady ? (
                 <FullCodeEditor
                   key={selectedPageKey}
@@ -2695,6 +2753,12 @@ const selectedExperienceNode = experienceNodes.find(
                 </div>
               ) : (
                 <div className={canvasViewportClass}>
+                  {isEditing && selectedElement?.element_type === "text" ? (
+                    <TextContextToolbar
+                      element={selectedElement}
+                      onUpdate={(props) => updateElementProps(selectedElement.id, props)}
+                    />
+                  ) : null}
                   {!isEmbedded && (
                     <div className="pointer-events-none sticky top-3 z-30 mx-2 mb-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/50 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-3">
@@ -3578,6 +3642,14 @@ const selectedExperienceNode = experienceNodes.find(
                 </>
               )}
     </div>
+      {!isEmbedded && documentReady && !isCodeEditorOpen ? (
+        <PageFilmstrip
+          selectedPageKey={selectedPageKey}
+          onSelectPage={(pageKey) => {
+            void selectPage(pageKey)
+          }}
+        />
+      ) : null}
   </div>
   )
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import type { ElementAlignmentCommand } from "./elementAlignmentCommands"
+import { EDITOR_PAGES } from "./editorPages"
 
 type TemplateOption = {
   id: string
@@ -18,6 +19,7 @@ type Props = {
   canRedo: boolean
   canvasZoom: number
   isMobilePreview: boolean
+  previewDevice: "desktop" | "tablet" | "mobile"
   isEditing: boolean
   isCodeEditorOpen: boolean
   selectedElementCount: number
@@ -32,7 +34,7 @@ type Props = {
   onUndo: () => void
   onRedo: () => void
   onChangeZoom: (zoom: number) => void
-  onToggleMobilePreview: () => void
+  onChangePreviewDevice: (device: "desktop" | "tablet" | "mobile") => void
   onToggleEditing: () => void
   onToggleCodeEditor: () => void
   onToggleGrid?: () => void
@@ -55,18 +57,6 @@ const EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS =
 
 const EXPERIENCE_EDITOR_SELECT_CLASS =
   "rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/78 outline-none transition hover:border-white/16 focus:border-violet-200/28"
-
-const PAGE_OPTIONS = [
-  { label: "Home", value: "event_home" },
-  { label: "Lobby", value: "lobby" },
-  { label: "Agenda", value: "agenda" },
-  { label: "Sessions", value: "sessions" },
-  { label: "Breakouts", value: "breakouts" },
-  { label: "Sponsors", value: "sponsors" },
-  { label: "Engage", value: "chat" },
-  { label: "Networking", value: "networking" },
-  { label: "On-Demand", value: "on_demand" },
-] as const
 
 const ZOOM_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5] as const
 const ALIGNMENT_ACTIONS: Array<{
@@ -105,6 +95,7 @@ export default function PageEditorToolbar({
   canRedo,
   canvasZoom,
   isMobilePreview,
+  previewDevice,
   isEditing,
   isCodeEditorOpen,
   selectedElementCount,
@@ -119,7 +110,7 @@ export default function PageEditorToolbar({
   onUndo,
   onRedo,
   onChangeZoom,
-  onToggleMobilePreview,
+  onChangePreviewDevice,
   onToggleEditing,
   onToggleCodeEditor,
   onToggleGrid,
@@ -164,7 +155,7 @@ export default function PageEditorToolbar({
             onChange={(event) => onSelectPage(event.target.value)}
             className={EXPERIENCE_EDITOR_SELECT_CLASS}
           >
-            {PAGE_OPTIONS.map((page) => (
+            {EDITOR_PAGES.map((page) => (
               <option key={page.value} value={page.value}>
                 {page.label}
               </option>
@@ -272,12 +263,19 @@ export default function PageEditorToolbar({
             </button>
           </div>
 
-          <button
-            onClick={onToggleMobilePreview}
-            className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}
-          >
-            {isMobilePreview ? "Mobile" : "Desktop"}
-          </button>
+          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1" aria-label="Preview device">
+            {(["desktop", "tablet", "mobile"] as const).map((device) => (
+              <button
+                key={device}
+                type="button"
+                aria-pressed={previewDevice === device}
+                onClick={() => onChangePreviewDevice(device)}
+                className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold capitalize transition ${previewDevice === device ? "bg-white text-black" : "text-white/52 hover:bg-white/10 hover:text-white"}`}
+              >
+                {device}
+              </button>
+            ))}
+          </div>
 
           <button
             type="button"

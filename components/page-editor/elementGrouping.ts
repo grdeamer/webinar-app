@@ -3,8 +3,8 @@ import type {
   ElementAlignmentCommand,
   ElementGeometry,
   ElementPositionUpdate,
-} from "./elementAlignmentCommands"
-import { getElementAlignmentUpdates } from "./elementAlignmentCommands"
+} from "./elementAlignmentCommands.ts"
+import { getElementAlignmentUpdates } from "./elementAlignmentCommands.ts"
 
 export type GroupMembershipElement = {
   id: string

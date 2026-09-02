@@ -1013,6 +1013,55 @@ onDragEnd={handleLayerDragEnd}
                             </select>
                           </div>
 
+                          <div className="rounded-2xl border border-white/8 bg-black/20 p-3">
+                            <div className="text-[10px] font-black uppercase tracking-[0.18em] text-white/42">
+                              Crop and focal point
+                            </div>
+                            <label className="mt-3 block text-xs text-white/56">
+                              Zoom · {Number(selectedElement.props?.imageScale ?? 1).toFixed(2)}×
+                              <input
+                                type="range"
+                                min="1"
+                                max="4"
+                                step="0.05"
+                                value={Number(selectedElement.props?.imageScale ?? 1)}
+                                onChange={(event) => updateElementProps(selectedElement.id, { imageScale: Number(event.target.value) })}
+                                className="mt-2 w-full accent-violet-400"
+                              />
+                            </label>
+                            <div className="mt-3 grid grid-cols-2 gap-3">
+                              <label className="text-xs text-white/56">
+                                Horizontal · {Number(selectedElement.props?.imageFocalX ?? 50)}%
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={Number(selectedElement.props?.imageFocalX ?? 50)}
+                                  onChange={(event) => updateElementProps(selectedElement.id, { imageFocalX: Number(event.target.value) })}
+                                  className="mt-2 w-full accent-violet-400"
+                                />
+                              </label>
+                              <label className="text-xs text-white/56">
+                                Vertical · {Number(selectedElement.props?.imageFocalY ?? 50)}%
+                                <input
+                                  type="range"
+                                  min="0"
+                                  max="100"
+                                  value={Number(selectedElement.props?.imageFocalY ?? 50)}
+                                  onChange={(event) => updateElementProps(selectedElement.id, { imageFocalY: Number(event.target.value) })}
+                                  className="mt-2 w-full accent-violet-400"
+                                />
+                              </label>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => updateElementProps(selectedElement.id, { imageScale: 1, imageFocalX: 50, imageFocalY: 50 })}
+                              className="mt-3 rounded-lg border border-white/10 px-2.5 py-1.5 text-[10px] font-bold text-white/56 hover:bg-white/8 hover:text-white"
+                            >
+                              Reset crop
+                            </button>
+                          </div>
+
                           <div>
                             <div className="mb-2 text-xs uppercase tracking-[0.18em] text-white/40">
                               Upload Image

@@ -195,6 +195,7 @@ export function getTextElementPresentationStyle(
     fontWeight: getCssNumberOrString(props.fontWeight, 500),
     fontFamily: String(props.fontFamily ?? "inherit"),
     fontStyle: getFontStyle(props.fontStyle),
+    textDecoration: String(props.textDecoration ?? "none"),
     textAlign: getTextAlign(props.textAlign),
     lineHeight: getCssNumberOrString(props.lineHeight, 1.4),
     letterSpacing:
@@ -209,12 +210,21 @@ export function getImageElementPresentationStyle(
   element: EventPageElement
 ): CSSProperties {
   const props = element.props ?? {}
+  const focalX = Math.min(100, Math.max(0, Number(props.imageFocalX ?? 50)))
+  const focalY = Math.min(100, Math.max(0, Number(props.imageFocalY ?? 50)))
+  const imageScale = Math.min(4, Math.max(1, Number(props.imageScale ?? 1)))
 
   return {
     width: "100%",
     height: "100%",
     objectFit: getObjectFit(props.imageFit),
-    objectPosition: String(props.imagePosition ?? "center"),
+    objectPosition:
+      props.imageFocalX != null || props.imageFocalY != null
+        ? `${focalX}% ${focalY}%`
+        : String(props.imagePosition ?? "center"),
+    transform: imageScale === 1 ? undefined : `scale(${imageScale})`,
+    transformOrigin: `${focalX}% ${focalY}%`,
+    transition: "transform 120ms ease-out",
     borderRadius: "inherit",
   }
 }
