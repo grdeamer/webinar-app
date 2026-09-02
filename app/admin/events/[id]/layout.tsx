@@ -73,7 +73,10 @@ export default function EventLayout({ children }: { children: ReactNode }) {
 
   const canConfigure = !eventContext || eventContext.isGlobalAdmin || eventContext.teamRole === "event_admin"
   const canOperate = canConfigure || eventContext?.teamRole === "producer"
-  const eventTitle = eventContext?.title || `Event ${id.slice(0, 8)}`
+  const eventTitle = eventContext?.title ?? "Loading event…"
+  const eventStatus = eventContext
+    ? `${formatEventDate(eventContext.startAt)} · ${eventContext.access === "closed" ? "Closed" : "Open"}`
+    : "Loading schedule…"
 
   return (
     <div className="jv1-shell">
@@ -83,7 +86,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
         <div className="jv1-header-workspace-bar">
           <div className="jv1-header-event-context">
             {eventContext?.badgeImageUrl ? <img className="jv1-header-event-thumbnail" src={eventContext.badgeImageUrl} alt="" /> : <span className="jv1-header-event-thumbnail jv1-header-event-thumbnail--default" aria-hidden="true" />}
-            <span className="jv1-header-event-copy"><strong>{eventTitle}</strong><span>{formatEventDate(eventContext?.startAt ?? null)} <i /> {eventContext?.access === "closed" ? "Closed" : "Open"}</span></span>
+            <span className="jv1-header-event-copy" aria-busy={!eventContext}><strong>{eventTitle}</strong><span>{eventStatus}</span></span>
           </div>
           <nav className="jv1-top-navigation" aria-label="Event workspace">
             <TopLink href={base} label="Overview" icon={<Home03 />} exact />
@@ -118,7 +121,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
         </aside>
         <aside className="jv1-event-rail" aria-label="Mobile event workspace">
           <div className="jv1-event-rail-label"><span /> Event workspace</div>
-          <div className="jv1-event-context"><h2>{eventTitle}</h2><p>{formatEventDate(eventContext?.startAt ?? null)} · {eventContext?.access === "closed" ? "Closed" : "Open"}</p></div>
+          <div className="jv1-event-context" aria-busy={!eventContext}><h2>{eventTitle}</h2><p>{eventStatus}</p></div>
           <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}{canConfigure ? <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<Cloud />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Run Event" icon={<Signal02 />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}</nav>
         </aside>
         <main className="jv1-content">{children}</main>

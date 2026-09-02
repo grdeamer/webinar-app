@@ -1,5 +1,6 @@
-import { notFound, redirect } from "next/navigation"
+import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import AdminEventPageEditorPreview from "@/components/page-editor/AdminEventPageEditorPreview"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -15,5 +16,12 @@ export default async function LegacyPageBuilderPage(props: {
     .maybeSingle()
 
   if (!event?.id) notFound()
-  redirect(`/admin/events/${event.id}/page-editor`)
+  return (
+    <div className="h-screen w-screen overflow-hidden bg-slate-950">
+      <AdminEventPageEditorPreview
+        eventSlug={slug}
+        eventAdminId={event.id}
+      />
+    </div>
+  )
 }

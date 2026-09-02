@@ -450,6 +450,8 @@ const params = useParams()
 const pathname = usePathname()
 const searchParams = useSearchParams()
 const slug = eventSlug ?? String(params.slug ?? "")
+const requestedPageKey = searchParams.get("page") || "event_home"
+const requestedMode = searchParams.get("mode")
 const isEmbedded =
   pathname.startsWith("/embed/") || searchParams.get("embed") === "1"
 
@@ -458,7 +460,9 @@ const isEmbedded =
     description: "Renderer mode is now active inside the Page Editor.",
   }
 
-  const [isEditing, setIsEditing] = useState(isEmbedded)
+  const [isEditing, setIsEditing] = useState(
+    isEmbedded || requestedMode === "edit",
+  )
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -530,7 +534,7 @@ const isEmbedded =
     removeBlockFromSection,
     addBlockToSection: addBlockToSectionState,
   } = usePageEditorState({
-    initialPageKey: "event_home",
+    initialPageKey: requestedPageKey,
     eventInfo,
   })
   const {
