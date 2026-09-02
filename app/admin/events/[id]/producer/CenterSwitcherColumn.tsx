@@ -4,7 +4,11 @@ import { ScanLine } from "lucide-react";
 import AudienceOriginCue from "@/components/live/AudienceOriginCue";
 import StageVideoPreview from "./StageVideoPreview";
 import { EmptyMonitorState } from "./monitorChrome";
-import type { PreviewBlock } from "./useProducerBlocks";
+import {
+  PRODUCER_BLOCK_CANVAS_HEIGHT,
+  PRODUCER_BLOCK_CANVAS_WIDTH,
+  type PreviewBlock,
+} from "./useProducerBlocks";
 import type { ProducerParticipant, StageState } from "./producerRoomTypes";
 import type {
   ProducerHealthSnapshot,
@@ -470,7 +474,7 @@ function PreviewSnapGuides({
       {snapGuideX !== null ? (
         <div
           className="absolute top-0 h-full w-px -translate-x-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
-          style={{ left: `${(snapGuideX / 640) * 100}%` }}
+          style={{ left: `${(snapGuideX / PRODUCER_BLOCK_CANVAS_WIDTH) * 100}%` }}
         >
           <div className="absolute left-1/2 top-2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
           <div className="absolute bottom-2 left-1/2 h-2 w-2 -translate-x-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
@@ -480,7 +484,7 @@ function PreviewSnapGuides({
       {snapGuideY !== null ? (
         <div
           className="absolute left-0 h-px w-full -translate-y-1/2 bg-sky-200/72 shadow-[0_0_12px_rgba(125,211,252,0.44)]"
-          style={{ top: `${(snapGuideY / 360) * 100}%` }}
+          style={{ top: `${(snapGuideY / PRODUCER_BLOCK_CANVAS_HEIGHT) * 100}%` }}
         >
           <div className="absolute left-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
           <div className="absolute right-2 top-1/2 h-2 w-2 -translate-y-1/2 rounded-full border border-sky-100/40 bg-sky-300/80 shadow-[0_0_10px_rgba(125,211,252,0.45)]" />
@@ -846,8 +850,8 @@ export default function CenterSwitcherColumn({
 
     const rawPayload = event.dataTransfer.getData("application/x-jupiter-preview-block");
     const rect = event.currentTarget.getBoundingClientRect();
-    const logicalPointerX = (event.clientX - rect.left) * (640 / rect.width);
-    const logicalPointerY = (event.clientY - rect.top) * (360 / rect.height);
+    const logicalPointerX = (event.clientX - rect.left) * (PRODUCER_BLOCK_CANVAS_WIDTH / rect.width);
+    const logicalPointerY = (event.clientY - rect.top) * (PRODUCER_BLOCK_CANVAS_HEIGHT / rect.height);
 
     let ghostWidth = 320;
     let ghostHeight = 180;
@@ -896,8 +900,8 @@ export default function CenterSwitcherColumn({
     try {
       const block = JSON.parse(rawPayload) as PreviewBlock;
       const rect = event.currentTarget.getBoundingClientRect();
-      const logicalPointerX = (event.clientX - rect.left) * (640 / rect.width);
-      const logicalPointerY = (event.clientY - rect.top) * (360 / rect.height);
+      const logicalPointerX = (event.clientX - rect.left) * (PRODUCER_BLOCK_CANVAS_WIDTH / rect.width);
+      const logicalPointerY = (event.clientY - rect.top) * (PRODUCER_BLOCK_CANVAS_HEIGHT / rect.height);
       const blockWidth = block.width ?? 320;
       const blockHeight = block.height ?? 180;
       const nextX = Math.max(0, logicalPointerX - blockWidth / 2);
@@ -999,7 +1003,7 @@ export default function CenterSwitcherColumn({
                   className="whitespace-nowrap rounded-full border border-sky-300/14 bg-black/24 px-2 py-1 text-[8px] font-bold normal-case tracking-[0.04em] text-sky-100/52"
                   title={`Actual output: ${broadcastOutputProfileLabel(outputProfile)}`}
                 >
-                  {outputProfile.height}p{outputProfile.frameRate} · {outputProfile.aspectRatio}
+                  {outputProfile.resolutionTier} · {outputProfile.frameRate} fps · {outputProfile.aspectRatio}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -1032,9 +1036,15 @@ export default function CenterSwitcherColumn({
               </div>
             </div>
 
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black">
             <div
               data-output-canvas="preview"
-              className={`relative my-auto aspect-video w-full flex-none overflow-hidden bg-black ring-1 ring-inset ring-white/[0.06] transition-shadow duration-300 ${
+              style={{ aspectRatio: outputProfile.aspectRatioValue }}
+              className={`relative flex-none overflow-hidden bg-black ring-1 ring-inset ring-white/[0.06] transition-shadow duration-300 ${
+                outputProfile.aspectRatioValue < 1
+                  ? "h-full w-auto max-w-full"
+                  : "h-auto max-h-full w-full"
+              } ${
                 previewProgramDifferent
                   ? "shadow-[inset_0_0_0_1px_rgba(125,211,252,0.10)]"
                   : "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.025)]"
@@ -1062,10 +1072,10 @@ export default function CenterSwitcherColumn({
                 <div
                   className="pointer-events-none absolute z-[60] overflow-hidden rounded-[16px] border border-sky-200/42 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.18),transparent_38%),linear-gradient(180deg,rgba(8,18,32,0.62),rgba(2,7,16,0.78))] shadow-[0_0_34px_rgba(56,189,248,0.18),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-sm"
                   style={{
-                    left: previewDropGhost.x,
-                    top: previewDropGhost.y,
-                    width: previewDropGhost.width,
-                    height: previewDropGhost.height,
+                    left: `${(previewDropGhost.x / PRODUCER_BLOCK_CANVAS_WIDTH) * 100}%`,
+                    top: `${(previewDropGhost.y / PRODUCER_BLOCK_CANVAS_HEIGHT) * 100}%`,
+                    width: `${(previewDropGhost.width / PRODUCER_BLOCK_CANVAS_WIDTH) * 100}%`,
+                    height: `${(previewDropGhost.height / PRODUCER_BLOCK_CANVAS_HEIGHT) * 100}%`,
                   }}
                 >
                   <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.08),transparent_34%,rgba(56,189,248,0.08))]" />
@@ -1160,6 +1170,7 @@ export default function CenterSwitcherColumn({
                   participantAppearanceOverrides={participantAppearanceOverrides}
                 />
               ) : null}
+            </div>
             </div>
           </div>
           <div
@@ -1288,7 +1299,7 @@ export default function CenterSwitcherColumn({
                   className="whitespace-nowrap rounded-full border border-red-300/14 bg-black/24 px-2 py-1 text-[8px] font-bold normal-case tracking-[0.04em] text-red-100/50"
                   title={`Actual output: ${broadcastOutputProfileLabel(outputProfile)}`}
                 >
-                  {outputProfile.height}p{outputProfile.frameRate} · {outputProfile.aspectRatio}
+                  {outputProfile.resolutionTier} · {outputProfile.frameRate} fps · {outputProfile.aspectRatio}
                 </span>
               </div>
               <span className="inline-flex items-center rounded-[8px] border border-red-400/25 bg-red-500/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-red-300">
@@ -1296,9 +1307,15 @@ export default function CenterSwitcherColumn({
               </span>
             </div>
 
+            <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black">
             <div
               data-output-canvas="program"
-              className={`relative my-auto aspect-video w-full flex-none overflow-hidden border-0 bg-black ring-1 ring-inset ring-white/[0.06] transition-shadow duration-300 ${
+              style={{ aspectRatio: outputProfile.aspectRatioValue }}
+              className={`relative flex-none overflow-hidden border-0 bg-black ring-1 ring-inset ring-white/[0.06] transition-shadow duration-300 ${
+                outputProfile.aspectRatioValue < 1
+                  ? "h-full w-auto max-w-full"
+                  : "h-auto max-h-full w-full"
+              } ${
                 isTransitioning
                   ? "shadow-[inset_0_0_0_1px_rgba(255,255,255,0.10)]"
                   : "shadow-[inset_0_0_0_1px_rgba(248,113,113,0.08)]"
@@ -1429,6 +1446,7 @@ export default function CenterSwitcherColumn({
                   participantAppearanceOverrides={participantAppearanceOverrides}
                 />
               ) : null}
+            </div>
             </div>
           </div>
         </div>

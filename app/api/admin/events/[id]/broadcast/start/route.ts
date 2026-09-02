@@ -60,7 +60,7 @@ export async function POST(request: Request, context: Params): Promise<Response>
         return NextResponse.json(
           {
             ok: false,
-            error: `The active output is ${broadcastOutputProfileLabel(getBroadcastOutputProfile(activeProfile))}. Stop it before changing resolution.`,
+            error: `The active output is ${broadcastOutputProfileLabel(getBroadcastOutputProfile(activeProfile))}. Stop it before changing the output format.`,
           },
           { status: 409 },
         )
@@ -74,7 +74,7 @@ export async function POST(request: Request, context: Params): Promise<Response>
         createBroadcastOutputs(attachedUrls, recordingEnabled),
         {
           layout: "speaker-dark",
-          customBaseUrl: `${getAppUrl()}/program-output/${encodeURIComponent(access.eventSlug)}`,
+          customBaseUrl: `${getAppUrl()}/program-output/${encodeURIComponent(access.eventSlug)}?outputProfile=${encodeURIComponent(qualityProfile)}`,
           encodingOptions: universalBroadcastEncoding(qualityProfile),
         },
       )

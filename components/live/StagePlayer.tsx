@@ -11,6 +11,7 @@ import {
 import { Track } from "livekit-client"
 import { isTrackReference } from "@livekit/components-core"
 import type { TrackReference } from "@livekit/components-core"
+import type { BroadcastOutputProfile } from "@/lib/broadcast/outputProfiles"
 
 type PublicStageState = {
   event_id: string
@@ -237,24 +238,31 @@ function ProgramMediaBlock({
 function AttendeeProgramTransition({
   programSource,
   children,
+  outputMode = false,
 }: {
   programSource: ProgramSourceMessage | null
   children: ReactNode
+  outputMode?: boolean
 }) {
   const [showCutFlash, setShowCutFlash] = useState(false)
+  const programUpdatedAt = programSource?.updatedAt
+  const programMode = programSource?.mode
 
   useEffect(() => {
-    if (!programSource) return
+    if (!programUpdatedAt) return
 
-    setShowCutFlash(true)
+    const startTimeout = window.setTimeout(() => setShowCutFlash(true), 0)
 
     const timeout = window.setTimeout(
       () => setShowCutFlash(false),
-      programSource.mode === "cut" ? 180 : 360
+      programMode === "cut" ? 180 : 360
     )
 
-    return () => window.clearTimeout(timeout)
-  }, [programSource?.updatedAt, programSource?.mode])
+    return () => {
+      window.clearTimeout(startTimeout)
+      window.clearTimeout(timeout)
+    }
+  }, [programMode, programUpdatedAt])
 
   const transitionClass =
     programSource?.transitionType === "warp"
@@ -277,7 +285,7 @@ function AttendeeProgramTransition({
   return (
     <div
       className={[
-        "relative overflow-hidden transition-all duration-500 ease-out",
+        `relative overflow-hidden transition-all duration-500 ease-out ${outputMode ? "h-full w-full" : ""}`,
         transitionClass,
       ].join(" ")}
     >
@@ -305,11 +313,17 @@ function AttendeeBroadcastFrame({
   label = "Main Stage",
   live = true,
   children,
+  outputMode = false,
 }: {
   label?: string
   live?: boolean
   children: ReactNode
+  outputMode?: boolean
 }) {
+  if (outputMode) {
+    return <div className="relative h-full w-full overflow-hidden bg-black">{children}</div>
+  }
+
   return (
     <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.08),transparent_34%),radial-gradient(circle_at_bottom_right,rgba(248,113,113,0.07),transparent_30%),#020617] p-1.5 shadow-[0_34px_110px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.075)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.045] [background:repeating-linear-gradient(90deg,rgba(255,255,255,0.8)_0px,rgba(255,255,255,0.8)_1px,transparent_1px,transparent_10px)]" />
@@ -352,11 +366,16 @@ function AudienceStageTracks({
   stageState,
   autoDirector,
   programSource,
+  outputProfile,
 }: {
   stageState: PublicStageState
   autoDirector: boolean
   programSource: ProgramSourceMessage | null
+  outputProfile?: BroadcastOutputProfile
 }) {
+  const outputMode = Boolean(outputProfile)
+  const portraitOutput = (outputProfile?.aspectRatioValue ?? 1) < 1
+  const outputCanvasClass = outputMode ? "relative h-full w-full overflow-hidden bg-black" : "relative aspect-video w-full overflow-hidden bg-black"
   const cameraTracks = useTracks([
     { source: Track.Source.Camera, withPlaceholder: false },
   ])
@@ -541,7 +560,7 @@ function AudienceStageTracks({
 
   function empty(msg: string) {
     return (
-      <div className="flex aspect-video items-center justify-center rounded-[28px] border border-dashed border-white/15 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.08),transparent_48%),rgba(0,0,0,0.48)] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+      <div className={`${outputMode ? "h-full w-full" : "aspect-video rounded-[28px]"} flex items-center justify-center border border-dashed border-white/15 bg-[radial-gradient(circle_at_center,rgba(56,189,248,0.08),transparent_48%),rgba(0,0,0,0.48)] text-white/48 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]`}>
         <div className="rounded-full border border-white/10 bg-black/42 px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white/45 backdrop-blur-md">
           {msg}
         </div>
@@ -569,9 +588,9 @@ function AudienceStageTracks({
     }) || pickScreenTrack()
 
     return (
-      <AttendeeProgramTransition programSource={programSource}>
-        <AttendeeBroadcastFrame label="Program" live={programSource?.isLive ?? stageState.is_live}>
-          <div className="relative aspect-video w-full overflow-hidden bg-black">
+      <AttendeeProgramTransition programSource={programSource} outputMode={outputMode}>
+        <AttendeeBroadcastFrame label="Program" live={programSource?.isLive ?? stageState.is_live} outputMode={outputMode}>
+          <div className={outputCanvasClass}>
             {normalizedBlocks.map((block) => (
               <ProgramMediaBlock
                 key={block.id}
@@ -608,9 +627,9 @@ function AudienceStageTracks({
       }
 
       return (
-        <AttendeeProgramTransition programSource={programSource}>
-          <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live}>
-            <div className="relative aspect-video w-full overflow-hidden bg-black">
+        <AttendeeProgramTransition programSource={programSource} outputMode={outputMode}>
+          <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live} outputMode={outputMode}>
+            <div className={outputCanvasClass}>
               <ProgramMediaBlock block={videoBlock} />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
             </div>
@@ -636,9 +655,9 @@ function AudienceStageTracks({
     }
 
     return (
-      <AttendeeProgramTransition programSource={programSource}>
-        <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live}>
-          <div className="relative aspect-video w-full overflow-hidden bg-black">
+      <AttendeeProgramTransition programSource={programSource} outputMode={outputMode}>
+        <AttendeeBroadcastFrame label={label} live={programSource?.isLive ?? stageState.is_live} outputMode={outputMode}>
+          <div className={outputCanvasClass}>
             <ProgramMediaBlock block={imageBlock} />
             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle,transparent_60%,rgba(0,0,0,0.55))]" />
           </div>
@@ -652,9 +671,9 @@ function AudienceStageTracks({
     if (!cam) return empty("Waiting for speaker…")
 
     return (
-      <AttendeeProgramTransition programSource={programSource}>
-        <AttendeeBroadcastFrame label="Camera" live={programSource?.isLive ?? stageState.is_live}>
-          <div className="relative aspect-video w-full bg-black">
+      <AttendeeProgramTransition programSource={programSource} outputMode={outputMode}>
+        <AttendeeBroadcastFrame label="Camera" live={programSource?.isLive ?? stageState.is_live} outputMode={outputMode}>
+          <div className={outputCanvasClass}>
             <VideoTrack trackRef={cam} className="h-full w-full object-cover" />
 
             {/* subtle cinematic vignette */}
@@ -671,7 +690,7 @@ function AudienceStageTracks({
     }
 
     return (
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className={`${outputMode ? "h-full w-full" : ""} grid gap-4 ${portraitOutput ? "grid-cols-1" : "grid-cols-2"}`}>
         {onStageCameraTracks.map((t) => (
           <div key={t.participant.identity} className="overflow-hidden rounded-2xl bg-black">
             <VideoTrack trackRef={t} className="aspect-video h-full w-full object-cover" />
@@ -694,8 +713,8 @@ function AudienceStageTracks({
     }
 
     return (
-      <AttendeeProgramTransition programSource={programSource}>
-        <div className="grid gap-4 lg:grid-cols-[1.5fr_0.5fr]">
+      <AttendeeProgramTransition programSource={programSource} outputMode={outputMode}>
+        <div className={`${outputMode ? "h-full w-full" : ""} grid gap-4 ${portraitOutput ? "grid-rows-[1.5fr_0.5fr]" : "grid-cols-[1.5fr_0.5fr]"}`}>
           <div className="overflow-hidden rounded-2xl bg-black">
             {screen ? (
               <VideoTrack trackRef={screen} className="aspect-video h-full w-full object-contain" />
@@ -736,12 +755,14 @@ export default function StagePlayer({
   egressToken,
   egressServerUrl,
   onConnected,
+  outputProfile,
 }: {
   slug: string
   sessionId?: string
   egressToken?: string | null
   egressServerUrl?: string | null
   onConnected?: () => void
+  outputProfile?: BroadcastOutputProfile
 }) {
   const [token, setToken] = useState<string | null>(null)
   const [serverUrl, setServerUrl] = useState<string | null>(null)
@@ -963,6 +984,7 @@ export default function StagePlayer({
         stageState={stageState}
         autoDirector={stageState.auto_director_enabled}
         programSource={programSource}
+        outputProfile={outputProfile}
       />
     </LiveKitRoom>
   )

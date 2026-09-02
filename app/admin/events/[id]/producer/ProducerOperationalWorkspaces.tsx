@@ -5,10 +5,15 @@ import type { JSX } from "react"
 
 import type { ProducerHealthSnapshot, ProducerTransportHealth } from "./producerHealthUtils"
 import {
-  BROADCAST_OUTPUT_PROFILES,
+  BROADCAST_ASPECT_RATIO_OPTIONS,
+  BROADCAST_RESOLUTION_OPTIONS,
   broadcastOutputProfileLabel,
+  findBroadcastOutputProfileId,
   getBroadcastOutputProfile,
+  type BroadcastAspectRatio,
+  type BroadcastFrameRate,
   type BroadcastOutputProfileId,
+  type BroadcastResolutionTier,
 } from "@/lib/broadcast/outputProfiles"
 
 type SharedProps = {
@@ -129,6 +134,30 @@ function OutputFormatControl({
 }): JSX.Element {
   const activeProfile = getBroadcastOutputProfile(profileId)
 
+  const selectResolution = (resolutionTier: BroadcastResolutionTier) => {
+    onChange(findBroadcastOutputProfileId({
+      resolutionTier,
+      frameRate: resolutionTier === "480p" ? 30 : activeProfile.frameRate,
+      aspectRatio: activeProfile.aspectRatio,
+    }))
+  }
+
+  const selectFrameRate = (frameRate: BroadcastFrameRate) => {
+    onChange(findBroadcastOutputProfileId({
+      resolutionTier: activeProfile.resolutionTier,
+      frameRate,
+      aspectRatio: activeProfile.aspectRatio,
+    }))
+  }
+
+  const selectAspectRatio = (aspectRatio: BroadcastAspectRatio) => {
+    onChange(findBroadcastOutputProfileId({
+      resolutionTier: activeProfile.resolutionTier,
+      frameRate: activeProfile.frameRate,
+      aspectRatio,
+    }))
+  }
+
   return (
     <div className="mt-4 rounded-[12px] border border-sky-300/12 bg-sky-400/[0.035] p-3">
       <div className="flex items-start justify-between gap-3">
@@ -140,37 +169,81 @@ function OutputFormatControl({
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        {Object.values(BROADCAST_OUTPUT_PROFILES).map((profile) => (
+        {BROADCAST_RESOLUTION_OPTIONS.map((resolution) => (
           <button
-            key={profile.id}
+            key={resolution.id}
             type="button"
-            onClick={() => onChange(profile.id)}
-            aria-pressed={profile.id === profileId}
+            onClick={() => selectResolution(resolution.id)}
+            aria-pressed={resolution.id === activeProfile.resolutionTier}
             className={`rounded-[9px] border px-3 py-2 text-left transition ${
-              profile.id === profileId
+              resolution.id === activeProfile.resolutionTier
                 ? "border-sky-300/30 bg-sky-400/[0.12] text-sky-50"
                 : "border-white/[0.07] bg-black/16 text-white/52 hover:border-white/14 hover:text-white/78"
             }`}
           >
-            <span className="block text-[11px] font-semibold">{profile.label}</span>
-            <span className="mt-0.5 block text-[8px] text-current opacity-55">{profile.width}×{profile.height} · {profile.frameRate} fps</span>
+            <span className="block text-[11px] font-semibold">{resolution.label}</span>
+            <span className="mt-0.5 block text-[8px] text-current opacity-55">{resolution.detail}</span>
           </button>
         ))}
+        <button type="button" disabled className="rounded-[9px] border border-amber-300/10 bg-amber-400/[0.025] px-3 py-2 text-left text-amber-100/34">
+          <span className="block text-[11px] font-semibold">Ultra HD 4K</span>
+          <span className="mt-0.5 block text-[8px] opacity-60">3840×2160 · later</span>
+        </button>
+      </div>
+
+      <div className="mt-3 border-t border-white/[0.07] pt-3">
+        <div className="flex items-center justify-between text-[9px] text-white/42">
+          <span>Frame rate</span>
+          <b className="font-semibold text-white/72">{activeProfile.frameRate} fps</b>
+        </div>
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          {([30, 60] as const).map((frameRate) => {
+            const disabled = frameRate === 60 && activeProfile.resolutionTier === "480p"
+            return (
+              <button
+                key={frameRate}
+                type="button"
+                disabled={disabled}
+                aria-pressed={frameRate === activeProfile.frameRate}
+                onClick={() => selectFrameRate(frameRate)}
+                className={`rounded-[7px] border px-2 py-1.5 text-center text-[8px] font-bold transition ${
+                  frameRate === activeProfile.frameRate
+                    ? "border-sky-300/24 bg-sky-400/[0.09] text-sky-100/82"
+                    : "border-white/[0.06] bg-white/[0.018] text-white/42 hover:text-white/70 disabled:cursor-not-allowed disabled:opacity-30"
+                }`}
+              >
+                {frameRate} fps{disabled ? " · unavailable at 480p" : ""}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       <div className="mt-3 border-t border-white/[0.07] pt-3">
         <div className="flex items-center justify-between text-[9px] text-white/42">
           <span>Aspect ratio</span>
-          <b className="font-semibold text-white/72">16:9 Landscape</b>
+          <b className="font-semibold text-white/72">{activeProfile.aspectRatio}</b>
         </div>
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
-          <span className="rounded-[7px] border border-violet-300/22 bg-violet-400/[0.09] px-2 py-1.5 text-center text-[8px] font-bold text-violet-100/76">16:9 Active</span>
-          <span className="rounded-[7px] border border-white/[0.06] bg-white/[0.018] px-2 py-1.5 text-center text-[8px] font-bold text-white/26">9:16 Planned</span>
-          <span className="rounded-[7px] border border-white/[0.06] bg-white/[0.018] px-2 py-1.5 text-center text-[8px] font-bold text-white/26">1:1 Planned</span>
+        <div className="mt-2 grid grid-cols-2 gap-1.5">
+          {BROADCAST_ASPECT_RATIO_OPTIONS.map((aspect) => (
+            <button
+              key={aspect.id}
+              type="button"
+              aria-pressed={aspect.id === activeProfile.aspectRatio}
+              onClick={() => selectAspectRatio(aspect.id)}
+              className={`rounded-[7px] border px-2 py-1.5 text-center text-[8px] font-bold transition ${
+                aspect.id === activeProfile.aspectRatio
+                  ? "border-violet-300/22 bg-violet-400/[0.09] text-violet-100/76"
+                  : "border-white/[0.06] bg-white/[0.018] text-white/38 hover:border-white/12 hover:text-white/68"
+              }`}
+            >
+              {aspect.label} · {aspect.detail}
+            </button>
+          ))}
         </div>
       </div>
 
-      <p className="mt-3 text-[8px] leading-4 text-white/32">Resolution applies to the next broadcast or recording start. Existing 16:9 scenes remain framed identically.</p>
+      <p className="mt-3 text-[8px] leading-4 text-white/32">Format applies to the next broadcast or recording start. Preview and Program now mirror the selected audience canvas.</p>
     </div>
   )
 }

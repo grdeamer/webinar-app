@@ -10,6 +10,7 @@ import {
 } from "../lib/broadcast/config.ts"
 import {
   broadcastOutputProfileLabel,
+  findBroadcastOutputProfileId,
   getBroadcastOutputProfile,
   normalizeBroadcastOutputProfileId,
 } from "../lib/broadcast/outputProfiles.ts"
@@ -72,4 +73,46 @@ test("broadcast output profiles expose the actual encoded canvas", () => {
   assert.equal(profile.height, 1080)
   assert.equal(profile.aspectRatio, "16:9")
   assert.equal(broadcastOutputProfileLabel(profile), "1920×1080 · 16:9 · 30 fps")
+})
+
+test("broadcast output profiles cover every active resolution, frame rate, and aspect", () => {
+  const aspects = ["16:9", "9:16", "1:1", "4:3"] as const
+
+  for (const aspectRatio of aspects) {
+    assert.equal(
+      getBroadcastOutputProfile(findBroadcastOutputProfileId({ resolutionTier: "480p", frameRate: 60, aspectRatio })).frameRate,
+      30,
+    )
+
+    for (const resolutionTier of ["720p", "1080p"] as const) {
+      for (const frameRate of [30, 60] as const) {
+        const profile = getBroadcastOutputProfile(
+          findBroadcastOutputProfileId({ resolutionTier, frameRate, aspectRatio }),
+        )
+        assert.equal(profile.resolutionTier, resolutionTier)
+        assert.equal(profile.frameRate, frameRate)
+        assert.equal(profile.aspectRatio, aspectRatio)
+      }
+    }
+  }
+})
+
+test("broadcast output dimensions match each operational aspect", () => {
+  assert.deepEqual(
+    [getBroadcastOutputProfile("low-480p30-16x9").width, getBroadcastOutputProfile("low-480p30-16x9").height],
+    [854, 480],
+  )
+  assert.deepEqual(
+    [getBroadcastOutputProfile("high-1080p30-9x16").width, getBroadcastOutputProfile("high-1080p30-9x16").height],
+    [1080, 1920],
+  )
+  assert.deepEqual(
+    [getBroadcastOutputProfile("high-1080p30-1x1").width, getBroadcastOutputProfile("high-1080p30-1x1").height],
+    [1080, 1080],
+  )
+  assert.deepEqual(
+    [getBroadcastOutputProfile("high-1080p30-4x3").width, getBroadcastOutputProfile("high-1080p30-4x3").height],
+    [1440, 1080],
+  )
+  assert.equal(normalizeBroadcastOutputProfileId("future-4k30"), "universal-720p30")
 })
