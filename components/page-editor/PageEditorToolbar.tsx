@@ -23,6 +23,10 @@ type Props = {
   selectedElementCount: number
   canGroupElements: boolean
   canUngroupElements: boolean
+  showGrid?: boolean
+  showRulers?: boolean
+  canCopyStyle?: boolean
+  canPasteStyle?: boolean
   onSelectPage: (pageKey: string) => void
   onSelectTemplate: (templateId: string) => void
   onUndo: () => void
@@ -31,6 +35,10 @@ type Props = {
   onToggleMobilePreview: () => void
   onToggleEditing: () => void
   onToggleCodeEditor: () => void
+  onToggleGrid?: () => void
+  onToggleRulers?: () => void
+  onCopyStyle?: () => void
+  onPasteStyle?: () => void
   onAlignElements: (command: ElementAlignmentCommand) => void
   onGroupElements: () => void
   onUngroupElements: () => void
@@ -102,6 +110,10 @@ export default function PageEditorToolbar({
   selectedElementCount,
   canGroupElements,
   canUngroupElements,
+  showGrid,
+  showRulers,
+  canCopyStyle,
+  canPasteStyle,
   onSelectPage,
   onSelectTemplate,
   onUndo,
@@ -110,6 +122,10 @@ export default function PageEditorToolbar({
   onToggleMobilePreview,
   onToggleEditing,
   onToggleCodeEditor,
+  onToggleGrid,
+  onToggleRulers,
+  onCopyStyle,
+  onPasteStyle,
   onAlignElements,
   onGroupElements,
   onUngroupElements,
@@ -229,6 +245,33 @@ export default function PageEditorToolbar({
             </button>
           </div>
 
+          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1">
+            <button
+              type="button"
+              onClick={onToggleGrid}
+              title="Toggle grid (G)"
+              className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
+                showGrid
+                  ? "bg-white text-black"
+                  : "text-white/56 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              Grid
+            </button>
+            <button
+              type="button"
+              onClick={onToggleRulers}
+              title="Toggle rulers (R)"
+              className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
+                showRulers
+                  ? "bg-white text-black"
+                  : "text-white/56 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              Rulers
+            </button>
+          </div>
+
           <button
             onClick={onToggleMobilePreview}
             className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}
@@ -318,6 +361,26 @@ export default function PageEditorToolbar({
                 className="ml-1 rounded-lg border border-amber-300/15 bg-amber-400/10 px-2.5 py-1.5 text-[10px] font-bold text-amber-50/70 transition hover:bg-amber-400/20 hover:text-white"
               >
                 Ungroup
+              </button>
+            ) : null}
+            {canCopyStyle ? (
+              <button
+                type="button"
+                onClick={onCopyStyle}
+                title="Copy style (Cmd+Shift+C)"
+                className="ml-1 rounded-lg border border-sky-300/15 bg-sky-400/10 px-2.5 py-1.5 text-[10px] font-bold text-sky-50/70 transition hover:bg-sky-400/20 hover:text-white"
+              >
+                Copy Style
+              </button>
+            ) : null}
+            {canPasteStyle ? (
+              <button
+                type="button"
+                onClick={onPasteStyle}
+                title="Paste style (Cmd+Shift+V)"
+                className="ml-1 rounded-lg border border-violet-300/15 bg-violet-400/10 px-2.5 py-1.5 text-[10px] font-bold text-violet-50/70 transition hover:bg-violet-400/20 hover:text-white"
+              >
+                Paste Style
               </button>
             ) : null}
           </div>

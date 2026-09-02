@@ -6,6 +6,7 @@ import type { RegistrationInspectorField } from "@/components/page-editor/experi
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
 import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
 import type { SessionsDisplayMode } from "@/components/page-editor/experience-studio/SessionsInspector"
+import AssetLibraryCard from "./AssetLibraryCard"
 import SystemComponentInspector from "@/components/page-editor/experience-studio/SystemComponentInspector"
 import {
   SECTION_TEMPLATE_OPTIONS,
@@ -118,6 +119,8 @@ interface ExperienceInspectorRailProps {
   ) => void
   moveSelectedBlock: (direction: "up" | "down") => void
   moveSelectedSection: (direction: "up" | "down") => void
+  onUploadAsset?: (file: File) => Promise<{ url: string; name: string; type: string } | null>
+  onInsertAsset?: (asset: { id: string; url: string; name: string; type: string }) => void
   orderedExperienceNodes: EditorExperienceNode[]
   performLayerCommand: (targetId: string, command: LayerCommand) => void
   removeRegistrationField: (fieldId: string) => void
@@ -377,6 +380,8 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     moveRegistrationFieldInSelectedBlock,
     moveSelectedBlock,
     moveSelectedSection,
+    onUploadAsset,
+    onInsertAsset,
     orderedExperienceNodes,
     performLayerCommand,
     removeRegistrationField,
@@ -2561,6 +2566,10 @@ onDragEnd={handleLayerDragEnd}
                 </>
               )}
             </div>
+
+            {onUploadAsset && onInsertAsset ? (
+              <AssetLibraryCard onUpload={onUploadAsset} onInsertAsset={onInsertAsset} />
+            ) : null}
   </div>
       </aside>
   )

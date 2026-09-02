@@ -35,6 +35,8 @@ import {
   applyLayerCommand,
   type LayerCommand,
 } from "./layerCommands"
+import CanvasGridOverlay from "./CanvasGridOverlay"
+import ResizeHandles, { type ResizeHandle } from "./ResizeHandles"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import FullCodeEditor from "@/components/page-editor/FullCodeEditor"
 import ElementVideoPlayer from "@/components/page-renderer/ElementVideoPlayer"
@@ -478,6 +480,9 @@ const isEmbedded =
   const [dragOverLayerNodeId, setDragOverLayerNodeId] = useState<string | null>(null)
   const [isMobilePreview, setIsMobilePreview] = useState(false)
   const [canvasZoom, setCanvasZoom] = useState(1)
+  const [showGrid, setShowGrid] = useState(true)
+  const [showRulers, setShowRulers] = useState(false)
+  const [copiedElementStyle, setCopiedElementStyle] = useState<Record<string, unknown> | null>(null)
   const [rightRailTab, setRightRailTab] = useState<RightRailTab>("inspect")
   const [hoveredExperienceNodeId, setHoveredExperienceNodeId] = useState<string | null>(null)
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
@@ -615,8 +620,11 @@ const isEmbedded =
 
   const resizeRef = useRef<{
     id: string
+    handle: ResizeHandle
     scale: number
     startPointer: CanvasPoint
+    startX: number
+    startY: number
     startWidth: number
     startHeight: number
     groupSnapshot?: GroupResizeSnapshot | null
@@ -874,6 +882,53 @@ const isEmbedded =
           arrowOffset.x * distance,
           arrowOffset.y * distance
         )
+        return
+      }
+
+      if (key === "g") {
+        e.preventDefault()
+        setShowGrid((value) => !value)
+        return
+      }
+
+      if (key === "r") {
+        e.preventDefault()
+        setShowRulers((value) => !value)
+        return
+      }
+
+      if (commandKey && e.shiftKey && key === "c") {
+        e.preventDefault()
+        if (selectedElement) {
+          setCopiedElementStyle(structuredClone(selectedElement.props ?? {}))
+        }
+        return
+      }
+
+      if (commandKey && e.shiftKey && key === "v") {
+        e.preventDefault()
+        if (copiedElementStyle && (selectedId || selectedIds.length > 0)) {
+          const targetIds = selectedIds.length > 0 ? selectedIds : [selectedId]
+          setElements((prev) =>
+            prev.map((el) =>
+              targetIds.includes(el.id)
+                ? { ...el, props: { ...(el.props ?? {}), ...copiedElementStyle } }
+                : el
+            )
+          )
+        }
+        return
+      }
+
+      if (key === "?") {
+        e.preventDefault()
+        void showNotice({
+          title: "Keyboard Shortcuts",
+          message:
+            "Cmd+Z / Cmd+Shift+Z — Undo / Redo\nCmd+D — Duplicate\nCmd+G / Cmd+Shift+G — Group / Ungroup\nCmd+A — Select all\nCmd+Shift+C / Cmd+Shift+V — Copy / Paste style\nArrows — Nudge (Shift x10)\nG — Toggle grid\nR — Toggle rulers\nDelete — Remove selected\n? — Show shortcuts",
+          tone: "default",
+        })
+        return
       }
     }
 
@@ -881,12 +936,19 @@ const isEmbedded =
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [
     clearSelection,
+    copiedElementStyle,
     documentReady,
     elements,
     isEditing,
     restoreHistorySnapshot,
+    selectedElement,
     selectedId,
     selectedIds,
+    setCopiedElementStyle,
+    setElements,
+    setShowGrid,
+    setShowRulers,
+    showNotice,
   ])
 
   function startDrag(
@@ -925,6 +987,9 @@ const isEmbedded =
   function startResize(
     e: React.PointerEvent<HTMLDivElement>,
     id: string,
+    handle: ResizeHandle,
+    x: number,
+    y: number,
     width: number | null | undefined,
     height: number | null | undefined
   ) {
@@ -947,24 +1012,32 @@ const isEmbedded =
       canvasScale
     )
 
+    const effectiveHandle = groupMembers.length > 1 ? "se" : handle
+
     beginTransaction()
-    const groupSnapshot = getGroupResizeSnapshot(
-      groupMembers.map((element) => ({
-        id: element.id,
-        x: element.x,
-        y: element.y,
-        width: element.width ?? 0,
-        height: element.height ?? 0,
-        props: element.props,
-      }))
-    )
+    const groupSnapshot =
+      effectiveHandle === "se" && groupMembers.length > 1
+        ? getGroupResizeSnapshot(
+            groupMembers.map((element) => ({
+              id: element.id,
+              x: element.x,
+              y: element.y,
+              width: element.width ?? 0,
+              height: element.height ?? 0,
+              props: element.props,
+            }))
+          )
+        : null
 
     setAlignmentGuides({ vertical: [], horizontal: [], distances: [] })
     isDraggingRef.current = false
     resizeRef.current = {
       id,
+      handle: effectiveHandle,
       scale: canvasScale,
       startPointer,
+      startX: groupSnapshot?.bounds.x ?? x,
+      startY: groupSnapshot?.bounds.y ?? y,
       startWidth: groupSnapshot?.bounds.width ?? width ?? 224,
       startHeight: groupSnapshot?.bounds.height ?? height ?? 56,
       groupSnapshot,
@@ -1051,8 +1124,11 @@ const isEmbedded =
 
       const {
         id,
+        handle,
         scale,
         startPointer,
+        startX,
+        startY,
         startWidth,
         startHeight,
         groupSnapshot,
@@ -1069,15 +1145,44 @@ const isEmbedded =
       const minimumGroupDimensions = groupSnapshot
         ? getMinimumGroupResizeDimensions(groupSnapshot, 96, 32)
         : null
-      const nextWidth = Math.max(
-        minimumGroupDimensions?.width ?? 96,
-        startWidth + snapToGrid(deltaX)
-      )
-      const nextHeight = Math.max(
-        minimumGroupDimensions?.height ?? 32,
-        startHeight + snapToGrid(deltaY)
-      )
-      if (nextWidth === startWidth && nextHeight === startHeight) return
+
+      const dx = snapToGrid(deltaX)
+      const dy = snapToGrid(deltaY)
+
+      let nextX = startX
+      let nextY = startY
+      let nextWidth = startWidth
+      let nextHeight = startHeight
+
+      if (handle.includes("e")) nextWidth = startWidth + dx
+      if (handle.includes("w")) {
+        nextWidth = startWidth - dx
+        nextX = startX + dx
+      }
+      if (handle.includes("s")) nextHeight = startHeight + dy
+      if (handle.includes("n")) {
+        nextHeight = startHeight - dy
+        nextY = startY + dy
+      }
+
+      if (groupSnapshot) {
+        nextWidth = Math.max(minimumGroupDimensions?.width ?? 96, nextWidth)
+        nextHeight = Math.max(minimumGroupDimensions?.height ?? 32, nextHeight)
+      } else {
+        nextWidth = Math.max(96, nextWidth)
+        nextHeight = Math.max(32, nextHeight)
+        nextX = Math.max(0, nextX)
+        nextY = Math.max(0, nextY)
+      }
+
+      if (
+        nextX === startX &&
+        nextY === startY &&
+        nextWidth === startWidth &&
+        nextHeight === startHeight
+      ) {
+        return
+      }
 
       isDraggingRef.current = true
       setHasUnsavedChanges(true)
@@ -1099,7 +1204,11 @@ const isEmbedded =
       }
 
       setElements((prev) =>
-        prev.map((el) => (el.id === id ? { ...el, width: nextWidth, height: nextHeight } : el))
+        prev.map((el) =>
+          el.id === id
+            ? { ...el, x: nextX, y: nextY, width: nextWidth, height: nextHeight }
+            : el
+        )
       )
 
       return
@@ -1899,6 +2008,85 @@ function addRegistrationFormSection() {
     }
   }
 
+  function addAssetElement(asset: { id: string; url: string; name: string; type: string }) {
+    const id = createElementId()
+    const highestZ = elements.reduce((max, el) => Math.max(max, el.z_index ?? 0), 0)
+
+    let nextElement: EditorElement
+
+    if (asset.type.startsWith("video/")) {
+      nextElement = {
+        id,
+        element_type: "video",
+        content: asset.name,
+        x: 96,
+        y: 120,
+        width: 320,
+        height: 184,
+        z_index: highestZ + 1,
+        props: {
+          src: asset.url,
+          source: "upload",
+          controls: true,
+          autoplay: false,
+          loop: false,
+          muted: true,
+          hideOnMobile: false,
+        },
+      }
+    } else if (asset.type === "application/pdf") {
+      nextElement = {
+        id,
+        element_type: "pdf",
+        content: asset.name,
+        x: 96,
+        y: 120,
+        width: 240,
+        height: 120,
+        z_index: highestZ + 1,
+        props: {
+          url: asset.url,
+          hideOnMobile: false,
+        },
+      }
+    } else {
+      nextElement = {
+        id,
+        element_type: "image",
+        content: asset.name,
+        x: 96,
+        y: 120,
+        width: 320,
+        height: 184,
+        z_index: highestZ + 1,
+        props: {
+          src: asset.url,
+          alt: asset.name,
+          hideOnMobile: false,
+          imageFit: "cover",
+          imagePosition: "center",
+        },
+      }
+    }
+
+    nextElement = {
+      ...nextElement,
+      props: {
+        ...(nextElement.props ?? {}),
+        animation: { ...DEFAULT_ELEMENT_ANIMATION },
+      },
+    }
+
+    setHasUnsavedChanges(true)
+    setElements((prev) => normalizeZIndexes([...prev, nextElement]))
+    setSelectedId(id)
+    setSelectedIds([id])
+    setSelectedSectionId(null)
+    setSelectedBlockId(null)
+    setEditingElementId(null)
+    setRightRailTab("inspect")
+  }
+
 
 
 
@@ -2377,6 +2565,10 @@ const selectedExperienceNode = experienceNodes.find(
           selectedElementCount={documentReady ? selectedElementCount : 0}
           canGroupElements={documentReady && canGroupElements}
           canUngroupElements={documentReady && canUngroupElements}
+          showGrid={showGrid}
+          showRulers={showRulers}
+          canCopyStyle={documentReady && Boolean(selectedElement)}
+          canPasteStyle={documentReady && Boolean(copiedElementStyle) && Boolean(selectedElement || selectedIds.length > 0)}
           onSelectPage={(pageKey) => {
             void selectPage(pageKey)
           }}
@@ -2413,6 +2605,25 @@ const selectedExperienceNode = experienceNodes.find(
           onAlignElements={executeElementAlignmentCommand}
           onGroupElements={groupSelectedElements}
           onUngroupElements={ungroupSelectedElements}
+          onToggleGrid={() => setShowGrid((value) => !value)}
+          onToggleRulers={() => setShowRulers((value) => !value)}
+          onCopyStyle={() => {
+            if (selectedElement) {
+              setCopiedElementStyle(structuredClone(selectedElement.props ?? {}))
+            }
+          }}
+          onPasteStyle={() => {
+            if (copiedElementStyle && (selectedId || selectedIds.length > 0)) {
+              const targetIds = selectedIds.length > 0 ? selectedIds : [selectedId!]
+              setElements((prev) =>
+                prev.map((el) =>
+                  targetIds.includes(el.id)
+                    ? { ...el, props: { ...(el.props ?? {}), ...copiedElementStyle } }
+                    : el
+                )
+              )
+            }
+          }}
         />
       )}
 
@@ -2638,6 +2849,12 @@ const selectedExperienceNode = experienceNodes.find(
                       }
                     }}
                   >
+                    <CanvasGridOverlay
+                      showGrid={showGrid}
+                      showRulers={showRulers}
+                      gridSize={GRID_SIZE}
+                      scale={canvasZoom}
+                    />
 <EditorEventPageRenderer
   event={eventInfo}
   sections={sections}
@@ -3230,11 +3447,24 @@ const selectedExperienceNode = experienceNodes.find(
                               </div>
                             )}
 
-                            {isEditing && !showInlineEditor && (
-                              <div
-                                data-resize-handle="true"
-                                onPointerDown={(e) => startResize(e, el.id, el.width, el.height)}
-                                className="absolute bottom-0 right-0 h-3 w-3 cursor-se-resize rounded-sm bg-black/40"
+                            {isEditing && !showInlineEditor && !isLocked && (
+                              <ResizeHandles
+                                handles={
+                                  groupMemberIds.length > 1
+                                    ? ["se"]
+                                    : ["nw", "n", "ne", "w", "e", "sw", "s", "se"]
+                                }
+                                onResizeStart={(e, handle) =>
+                                  startResize(
+                                    e,
+                                    el.id,
+                                    handle,
+                                    el.x,
+                                    el.y,
+                                    el.width,
+                                    el.height
+                                  )
+                                }
                               />
                             )}
                           </div>
@@ -3291,6 +3521,22 @@ const selectedExperienceNode = experienceNodes.find(
             moveRegistrationFieldInSelectedBlock,
             moveSelectedBlock,
             moveSelectedSection,
+            onUploadAsset: async (file) => {
+              try {
+                setSaveMessage("Uploading...")
+                const data = await uploadMediaFile(file)
+                setSaveMessage("Upload complete")
+                return {
+                  url: data.url,
+                  name: data.fileName ?? file.name,
+                  type: data.contentType ?? file.type,
+                }
+              } catch (err) {
+                setSaveMessage(err instanceof Error ? err.message : "Upload failed")
+                return null
+              }
+            },
+            onInsertAsset: addAssetElement,
             orderedExperienceNodes,
             performLayerCommand,
             removeRegistrationField,
