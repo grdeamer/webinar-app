@@ -45,6 +45,7 @@ import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import PageEditorToolbar from "./PageEditorToolbar"
 import EditorToolDock, { type EditorToolPanel } from "./EditorToolDock"
+import EditorToolPanelContent from "./EditorToolPanel"
 import PageFilmstrip from "./PageFilmstrip"
 import TextContextToolbar from "./TextContextToolbar"
 import { createSystemComponentPreviewRegistry } from "./SystemComponentPreviewRegistry"
@@ -95,6 +96,8 @@ type EditorExperienceNode = ExperienceNode & {
 }
 
 type AddableElementType = "text" | "image" | "pdf" | "video" | "button" | "spacer"
+type TextPreset = "heading" | "subheading" | "body"
+type EditorAsset = { id: string; url: string; name: string; type: string }
 type RightRailTab = "inspect" | "layers" | "insert" | "page"
 const GRID_SIZE = 8
 
@@ -489,6 +492,7 @@ const isEmbedded =
   const [copiedElementStyle, setCopiedElementStyle] = useState<Record<string, unknown> | null>(null)
   const [rightRailTab, setRightRailTab] = useState<RightRailTab>("inspect")
   const [activeToolPanel, setActiveToolPanel] = useState<EditorToolPanel>("design")
+  const [editorAssets, setEditorAssets] = useState<EditorAsset[]>([])
   const [hoveredExperienceNodeId, setHoveredExperienceNodeId] = useState<string | null>(null)
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
@@ -1858,7 +1862,7 @@ function addRegistrationFormSection() {
   setRightRailTab("inspect")
 }
 
-  function addElement(elementType: AddableElementType) {
+  function addElement(elementType: AddableElementType, textPreset?: TextPreset) {
     const id = createElementId()
     const highestZ = elements.reduce((max, el) => Math.max(max, el.z_index ?? 0), 0)
 
@@ -1971,22 +1975,29 @@ function addRegistrationFormSection() {
 
       case "text":
       default:
+        const preset = textPreset === "heading"
+          ? { content: "Add a heading", width: 560, height: 104, fontSize: 48, fontWeight: 800 }
+          : textPreset === "subheading"
+            ? { content: "Add a subheading", width: 440, height: 72, fontSize: 30, fontWeight: 700 }
+            : textPreset === "body"
+              ? { content: "Add body text", width: 400, height: 64, fontSize: 18, fontWeight: 400 }
+              : { content: "New text block", width: 264, height: 56, fontSize: 22, fontWeight: 700 }
         nextElement = {
           id,
           element_type: "text",
-          content: "New text block",
+          content: preset.content,
           x: 96,
           y: 120,
-          width: 264,
-          height: 56,
+          width: preset.width,
+          height: preset.height,
           z_index: highestZ + 1,
           props: {
             hideOnMobile: false,
             backgroundColor: "#2563eb",
             backgroundOpacity: 0.9,
             textColor: "#ffffff",
-            fontSize: 22,
-            fontWeight: 700,
+            fontSize: preset.fontSize,
+            fontWeight: preset.fontWeight,
             fontFamily: "Arial, sans-serif",
           },
         }
@@ -2011,6 +2022,62 @@ function addRegistrationFormSection() {
     if (elementType === "text" || elementType === "button" || elementType === "pdf") {
       setEditingElementId(id)
     }
+  }
+
+  function applyPageTemplate(templateId: string) {
+    if (!documentReady) return
+    const template = templates.find((item) => item.id === templateId)
+    if (!template) return
+    runTransaction(() => {
+      setSections(normalizeSections(Array.isArray(template.sections_json) ? template.sections_json : []))
+      setElements(Array.isArray(template.elements_json) ? template.elements_json : [])
+      if (template.event_theme && typeof template.event_theme === "object") {
+        setEventTheme(template.event_theme as EventTheme)
+      }
+    })
+  }
+
+  async function uploadAndAddAsset(file: File) {
+    try {
+      setSaveMessage("Uploading media...")
+      const uploaded = await uploadMediaFile(file)
+      const asset: EditorAsset = {
+        id: String(uploaded.id ?? uploaded.url ?? createElementId()),
+        url: String(uploaded.url),
+        name: String(uploaded.fileName ?? file.name),
+        type: String(uploaded.contentType ?? file.type),
+      }
+      setEditorAssets((current) => [...current.filter((item) => item.id !== asset.id), asset])
+      addAssetElement(asset)
+      setSaveMessage("Media added")
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Upload failed")
+      throw error
+    }
+  }
+
+  function addAppSection(componentKey: SystemComponentKey) {
+    const block = createSystemBlock(componentKey)
+    const sectionId = `app-${componentKey}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const label = componentKey.replaceAll("_", " ").replace(/\b\w/g, (character) => character.toUpperCase())
+    const section: EventPageSection = {
+      id: sectionId,
+      type: "system",
+      config: {
+        ...getSafeDefaultSectionConfig("system"),
+        adminLabel: label,
+        title: label,
+        body: `Jupiter ${label} experience.`,
+      },
+      blocks: [block],
+    }
+    setHasUnsavedChanges(true)
+    setSections((current) => normalizeSectionIds([...current, section]))
+    setSelectedSectionId(sectionId)
+    setSelectedBlockId(block.id)
+    setSelectedId(null)
+    setSelectedIds([])
+    setRightRailTab("inspect")
   }
 
   function addAssetElement(asset: { id: string; url: string; name: string; type: string }) {
@@ -2597,24 +2664,7 @@ const selectedExperienceNode = experienceNodes.find(
             void selectPage(pageKey)
           }}
           onSelectTemplate={(templateId) => {
-            if (!documentReady) return
-
-            const template = templates.find((item) => item.id === templateId)
-            if (!template) return
-
-            runTransaction(() => {
-              setSections(
-                normalizeSections(
-                  Array.isArray(template.sections_json) ? template.sections_json : []
-                )
-              )
-              setElements(
-                Array.isArray(template.elements_json) ? template.elements_json : []
-              )
-              if (template.event_theme && typeof template.event_theme === "object") {
-                setEventTheme(template.event_theme as EventTheme)
-              }
-            })
+            applyPageTemplate(templateId)
           }}
           onUndo={() => restoreHistorySnapshot("undo")}
           onRedo={() => restoreHistorySnapshot("redo")}
@@ -2675,15 +2725,33 @@ const selectedExperienceNode = experienceNodes.find(
               {!isEmbedded && !isCodeEditorOpen ? (
                 <EditorToolDock
                   activePanel={activeToolPanel}
+                  saveStatus={activePageSaveState.status}
+                  onSaveAction={() => {
+                    if (activePageSaveState.status === "conflict") {
+                      downloadRecoveryBackup()
+                      return
+                    }
+                    void flushCurrentPage()
+                  }}
                   onChangePanel={(panel) => {
                     setActiveToolPanel(panel)
                     setIsEditing(true)
-                    setRightRailTab(
-                      panel === "design" || panel === "brand"
-                        ? "page"
-                        : "insert",
-                    )
                   }}
+                />
+              ) : null}
+              {!isEmbedded && !isCodeEditorOpen ? (
+                <EditorToolPanelContent
+                  activePanel={activeToolPanel}
+                  templates={templates}
+                  assets={editorAssets}
+                  eventTheme={eventTheme}
+                  onApplyTemplate={applyPageTemplate}
+                  onAddElement={(type) => addElement(type)}
+                  onAddTextPreset={(preset) => addElement("text", preset)}
+                  onUpload={uploadAndAddAsset}
+                  onAddAsset={addAssetElement}
+                  onUpdateTheme={updateEventTheme}
+                  onAddApp={addAppSection}
                 />
               ) : null}
               {isCodeEditorOpen && documentReady ? (

@@ -29,10 +29,26 @@ const TOOLS: Array<{
 export default function EditorToolDock({
   activePanel,
   onChangePanel,
+  saveStatus,
+  onSaveAction,
 }: {
   activePanel: EditorToolPanel
   onChangePanel: (panel: EditorToolPanel) => void
+  saveStatus: "saved" | "unsaved" | "saving" | "failed" | "conflict"
+  onSaveAction: () => void
 }) {
+  const saveLabel = {
+    saved: "Saved",
+    unsaved: "Unsaved",
+    saving: "Saving…",
+    failed: "Retry",
+    conflict: "Resolve",
+  }[saveStatus]
+  const saveTone = saveStatus === "failed" || saveStatus === "conflict"
+    ? "border-amber-300/25 bg-amber-400/10 text-amber-200"
+    : saveStatus === "saved"
+      ? "border-emerald-300/15 bg-emerald-400/10 text-emerald-200"
+      : "border-sky-300/20 bg-sky-400/10 text-sky-200"
   return (
     <nav
       aria-label="Editor tools"
@@ -59,12 +75,18 @@ export default function EditorToolDock({
           </button>
         )
       })}
-      <div className="mt-auto flex w-full flex-col items-center gap-1 border-t border-white/[0.07] pt-3">
-        <div className="flex h-9 w-9 items-center justify-center rounded-xl border border-emerald-300/15 bg-emerald-400/10 text-emerald-200">
+      <button
+        type="button"
+        onClick={onSaveAction}
+        disabled={saveStatus === "saving"}
+        aria-label={saveStatus === "failed" ? "Retry save" : saveStatus === "conflict" ? "Resolve save conflict" : "Save now"}
+        className="mt-auto flex w-full flex-col items-center gap-1 border-t border-white/[0.07] pt-3 disabled:cursor-wait"
+      >
+        <div className={`flex h-9 w-9 items-center justify-center rounded-xl border ${saveTone}`}>
           <UploadCloud01 className="h-4 w-4" />
         </div>
-        <span className="text-[9px] font-semibold text-white/35">Saved</span>
-      </div>
+        <span className="text-[9px] font-semibold text-white/45">{saveLabel}</span>
+      </button>
     </nav>
   )
 }
