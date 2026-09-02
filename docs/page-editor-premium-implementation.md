@@ -35,7 +35,7 @@ Release approval was received on 2026-09-02 for migration, commit, and productio
 - `20260902230000_harden_page_editor_access.sql`
 - `20260902230100_index_page_editor_element_events.sql`
 
-All six migrations were applied successfully to Supabase project `jtznybsixaoqsoywsvke`. The manifest and collaboration migrations enable RLS and remove direct anonymous/authenticated table access. The hardening migration extends that posture to the legacy editor document, element, section, and template tables; server routes use operator authorization and the service-role client. The template migration adds the missing theme payload column. The page-theme migration prevents one page's background and styling from overwriting every other page while retaining the event theme as a fallback. The final index migration covers the remaining editor element foreign key.
+All six migrations were applied successfully to the Vercel production Supabase project `hnowxleaxhprrjzcgcfq`. They were also applied to the local-development project `jtznybsixaoqsoywsvke` before the environment mismatch was discovered during the live smoke test. The manifest and collaboration migrations enable RLS and remove direct anonymous/authenticated table access. The hardening migration extends that posture to the legacy editor document, element, section, and template tables; server routes use operator authorization and the service-role client. The template migration adds the missing theme payload column. The page-theme migration prevents one page's background and styling from overwriting every other page while retaining the event theme as a fallback. The final index migration covers the remaining editor element foreign key.
 
 ## Verification completed
 
@@ -48,7 +48,7 @@ All six migrations were applied successfully to Supabase project `jtznybsixaoqso
 
 ## Snags and unresolved verification gates
 
-- The Supabase CLI project-link command stalled in this checkout. The connected Supabase integration was used instead; migration history, RLS, columns, service-role-only RPC grants, and advisor output were verified against project `jtznybsixaoqsoywsvke`.
+- The Supabase CLI project-link command stalled in this checkout. The connected Supabase integration was used instead. Vercel's production environment was then inspected without exposing secret values to identify the actual production project; migration history, RLS, columns, service-role-only RPC grants, and advisor output were verified there.
 - Local authentication cookies are isolated from `app.jupiter.events`; an authenticated local visual interaction pass requires signing in on the local/LAN origin.
 - Port 3000 is occupied by an older Next development process. Verification used a temporary production server on port 3001 and then stopped it.
 - Full repository lint reports 601 pre-existing findings across legacy admin/live code. Editor-focused lint is clean; this change intentionally does not rewrite unrelated application areas.
