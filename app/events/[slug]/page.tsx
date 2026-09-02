@@ -409,7 +409,7 @@ export default async function EventHomePage(props: {
   const breakouts = normalizeBreakoutRows(breakoutRows)
   const savedSections = normalizeEventPageSections(pageDocument.sections)
   const savedElements = pageDocument.elements
-  const eventTheme = normalizeTheme(themeRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(themeRow?.event_theme)
 
   const liveDestination = await getEventLiveDestination(slug, event.id, viewer)
 

@@ -128,7 +128,7 @@ export async function proxy(req: NextRequest) {
     const isScopedApi = pathname === "/api/admin/events" || scopedApiPrefixes.some((prefix) => pathname.startsWith(prefix))
     if (isScopedApi) {
       let eventId = await requestEventId(req)
-      const editorMatch = pathname.match(/^\/api\/admin\/page-editor\/event\/([^/]+)\/elements$/)
+      const editorMatch = pathname.match(/^\/api\/admin\/page-editor\/event\/([^/]+)\/(?:elements|pages|collaboration)$/)
       if (!eventId && editorMatch) {
         const { data: event } = await supabase.from("events").select("id").eq("slug", decodeURIComponent(editorMatch[1])).maybeSingle()
         eventId = event?.id ?? null

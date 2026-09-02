@@ -431,7 +431,7 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
     ...webinars.map((w) => w.speaker)
   ).slice(0, 6)
 
-  const eventTheme = normalizeTheme(eventRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
   const savedSections = normalizeEventPageSections(pageDocument.sections)
   const sections =
     savedSections.length > 0 ? savedSections : getLobbyFallbackSections()

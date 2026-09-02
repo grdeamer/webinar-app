@@ -1160,3 +1160,36 @@ button, a, input, select, textarea {
     transform: translateY(6px);
   }
 }
+
+@keyframes jupiterElementFade {
+  from { opacity: 0; }
+}
+
+@keyframes jupiterElementSlideUp {
+  from { opacity: 0; transform: translateY(32px) var(--jupiter-element-transform); }
+  to { opacity: 1; transform: var(--jupiter-element-transform); }
+}
+
+@keyframes jupiterElementSlideDown {
+  from { opacity: 0; transform: translateY(-32px) var(--jupiter-element-transform); }
+  to { opacity: 1; transform: var(--jupiter-element-transform); }
+}
+
+@keyframes jupiterElementSlideLeft {
+  from { opacity: 0; transform: translateX(32px) var(--jupiter-element-transform); }
+  to { opacity: 1; transform: var(--jupiter-element-transform); }
+}
+
+@keyframes jupiterElementSlideRight {
+  from { opacity: 0; transform: translateX(-32px) var(--jupiter-element-transform); }
+  to { opacity: 1; transform: var(--jupiter-element-transform); }
+}
+
+@keyframes jupiterElementScale {
+  from { opacity: 0; transform: scale(0.88) var(--jupiter-element-transform); }
+  to { opacity: 1; transform: var(--jupiter-element-transform); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  [data-element-animation] { animation: none !important; }
+}

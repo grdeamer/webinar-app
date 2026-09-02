@@ -42,6 +42,13 @@ type SaveRequest = {
   generation: number
 }
 
+export type PageEditorRecoverySnapshot = {
+  version: 1
+  revision: number
+  savedAt: string
+  snapshot: PageEditorDocumentSnapshot
+}
+
 const DEFAULT_DEBOUNCE_MS = 1200
 const REVISION_CONFLICT_CODE = "revision_conflict"
 const REVISION_CONFLICT_MESSAGE =
@@ -122,6 +129,20 @@ export default function usePageEditorAutosave({
   saveStatesByPageRef.current = saveStatesByPage
   activePageKeyRef.current = activePageKey
   activeRevisionRef.current = activeRevision
+
+  const recoveryKey = useCallback((pageKey: string) => `jupiter:page-editor:recovery:${slug}:${pageKey}`, [slug])
+  const clearRecoverySnapshot = useCallback((pageKey: string) => { try { window.localStorage.removeItem(recoveryKey(pageKey)) } catch {} }, [recoveryKey])
+  const getRecoverySnapshot = useCallback((pageKey: string): PageEditorRecoverySnapshot | null => {
+    try {
+      const raw = window.localStorage.getItem(recoveryKey(pageKey))
+      if (!raw) return null
+      const value = JSON.parse(raw) as PageEditorRecoverySnapshot
+      return value?.version === 1 && Number.isSafeInteger(value.revision) && value.snapshot && typeof value.snapshot === "object" ? value : null
+    } catch { return null }
+  }, [recoveryKey])
+  const persistRecoverySnapshot = useCallback((pageKey: string, revision: number, snapshot: PageEditorDocumentSnapshot) => {
+    try { window.localStorage.setItem(recoveryKey(pageKey), JSON.stringify({ version: 1, revision, savedAt: new Date().toISOString(), snapshot })) } catch {}
+  }, [recoveryKey])
 
   const getPageSaveState = useCallback((pageKey: string): PageEditorSaveState => {
     return (
@@ -278,6 +299,8 @@ export default function usePageEditorAutosave({
           }
         })
 
+        if ((latestSnapshotsRef.current[request.pageKey]?.revision ?? request.revision) <= request.revision) clearRecoverySnapshot(request.pageKey)
+
         return true
       } catch (error) {
         const current = getPageSaveState(request.pageKey)
@@ -303,7 +326,7 @@ export default function usePageEditorAutosave({
         return false
       }
     },
-    [clearDebounce, getPageSaveState, slug, updatePageSaveState],
+    [clearDebounce, clearRecoverySnapshot, getPageSaveState, slug, updatePageSaveState],
   )
 
   const enqueueSave = useCallback(
@@ -411,6 +434,7 @@ export default function usePageEditorAutosave({
         revision,
         snapshot: clonedSnapshot,
       }
+      persistRecoverySnapshot(pageKey, revision, clonedSnapshot)
 
       const current = updatePageSaveState(pageKey, (state) => ({
         ...state,
@@ -444,7 +468,7 @@ export default function usePageEditorAutosave({
         void enqueueSave(pageKey, revision, clonedSnapshot)
       }, debounceMs)
     },
-    [clearDebounce, debounceMs, enqueueSave, updatePageSaveState],
+    [clearDebounce, debounceMs, enqueueSave, persistRecoverySnapshot, updatePageSaveState],
   )
 
   const saveNow = useCallback(
@@ -537,6 +561,8 @@ export default function usePageEditorAutosave({
       activePageSaveState,
       activePageIsDirty,
       getPageSaveState,
+      getRecoverySnapshot,
+      clearRecoverySnapshot,
       registerLoadedPage,
       scheduleSave,
       saveNow,
@@ -547,6 +573,8 @@ export default function usePageEditorAutosave({
       activePageSaveState,
       flushLatestPage,
       getPageSaveState,
+      getRecoverySnapshot,
+      clearRecoverySnapshot,
       registerLoadedPage,
       saveNow,
       scheduleSave,

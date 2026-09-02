@@ -318,6 +318,10 @@ export default function usePageEditorState({
       documentRevisionsByPageRef.current[pageKey] ?? 0,
     [],
   )
+  const markDocumentDirty = useCallback((): void => {
+    setHasUnsavedChanges(true)
+    advanceDocumentRevision(selectedPageKeyRef.current)
+  }, [advanceDocumentRevision])
 
   const recordDocumentChange = useCallback(
     (
@@ -986,6 +990,7 @@ export default function usePageEditorState({
     historySnapshots,
     documentRevision: documentRevisionsByPage[selectedPageKey] ?? 0,
     getDocumentRevision,
+    markDocumentDirty,
     canUndo: historyIndex > 0,
     canRedo: historyIndex < historySnapshots.length - 1,
     beginTransaction,

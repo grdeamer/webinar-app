@@ -11,3 +11,22 @@ export const EDITOR_PAGES = [
 ] as const
 
 export type EditorPageKey = (typeof EDITOR_PAGES)[number]["value"]
+
+const PUBLIC_PAGE_PATHS: Record<string, string> = {
+  event_home: "",
+  agenda: "/agenda",
+  breakouts: "/breakouts",
+  lobby: "/lobby",
+  on_demand: "/on-demand",
+  sessions: "/sessions",
+  sponsors: "/sponsors",
+  chat: "/chat",
+  networking: "/networking",
+}
+
+export function getPublicEditorPageUrl(slug: string, pageKey: string) {
+  const suffix = PUBLIC_PAGE_PATHS[pageKey]
+  return suffix !== undefined
+    ? `/events/${encodeURIComponent(slug)}${suffix}`
+    : `/events/${encodeURIComponent(slug)}/pages/${encodeURIComponent(pageKey)}`
+}

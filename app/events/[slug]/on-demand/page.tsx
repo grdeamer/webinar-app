@@ -123,10 +123,10 @@ export default async function EventOnDemandPage(props: {
       adminLabel: "On-Demand Library",
     },
   )
-  const eventTheme =
+  const eventTheme = pageDocument.eventTheme ?? (
     eventRow?.event_theme && typeof eventRow.event_theme === "object"
       ? (eventRow.event_theme as EventTheme)
-      : undefined
+      : undefined)
 
   const libraryPlaceholder = <OnDemandLibraryPlaceholder />
 

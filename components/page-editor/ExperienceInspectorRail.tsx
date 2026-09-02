@@ -23,6 +23,7 @@ import type {
   SectionType,
   SystemComponentKey,
 } from "@/lib/page-editor/sectionTypes"
+import ElementInspectorTabs from "./ElementInspectorTabs"
 import AgendaInspectorPanel from "./AgendaInspectorPanel"
 import RegistrationInspectorPanel from "./RegistrationInspectorPanel"
 import SectionPanelHeader from "./SectionPanelHeader"
@@ -113,6 +114,7 @@ interface ExperienceInspectorRailProps {
   isEditing: boolean
   isEmbedded: boolean
   isMobilePreview: boolean
+  previewDevice: "desktop" | "tablet" | "mobile"
   moveRegistrationFieldInSelectedBlock: (
     fieldId: string,
     direction: "up" | "down"
@@ -356,9 +358,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     deleteSelectedBlock,
     deleteSelectedElement,
     deleteSelectedSection,
-    draggingLayerNodeId,
     draggingSectionId,
-    dragOverLayerNodeId,
     dragOverSectionId,
     duplicateSelectedElement,
     duplicateSelectedSection,
@@ -377,6 +377,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     isEditing,
     isEmbedded,
     isMobilePreview,
+    previewDevice,
     moveRegistrationFieldInSelectedBlock,
     moveSelectedBlock,
     moveSelectedSection,
@@ -435,16 +436,16 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
 <aside
   className={`${EXPERIENCE_EDITOR_RAIL_CLASS} ${
     isEmbedded
-      ? "w-[300px] opacity-100 overflow-visible"
+      ? "w-[300px] shrink-0 opacity-100 overflow-visible"
       : `transition-[width,opacity] duration-300 ${
-          isEditing ? "w-[340px] opacity-100" : "w-0 opacity-0"
+          isEditing ? "w-[340px] shrink-0 opacity-100" : "w-0 opacity-0"
         } ${!isEditing ? "pointer-events-none overflow-hidden" : "overflow-visible"}`
   }`}
 >
   <div
     className="h-full min-h-0 w-full overflow-x-hidden overflow-y-auto overscroll-contain"
   >
-  <div className={isEmbedded ? "w-[320px] p-4" : "w-[380px] p-6"}>
+  <div className="w-full p-4">
             <div className={EXPERIENCE_EDITOR_RAIL_HEADER_CLASS}>
               <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">Experience Composer</div>
 
@@ -535,8 +536,6 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
                       {orderedExperienceNodes.map((node) => {
                        const isSelected = node.id === selectedExperienceNode?.id
                         const isHovered = node.id === hoveredExperienceNodeId
-                        const isLayerDragging = draggingLayerNodeId === node.id
-                        const isLayerDragOver = dragOverLayerNodeId === node.id
                         const canDragLayer = node.sourceType === "element" && !node.locked
                         return (
                           <button
@@ -802,6 +801,25 @@ onDragEnd={handleLayerDragEnd}
                       : "Select a section or canvas element"}
                   </div>
 {selectedElement ? (
+  <ElementInspectorTabs
+    element={selectedElement}
+    previewDevice={previewDevice}
+    canBringForward={canBringForward}
+    canSendBackward={canSendBackward}
+    canDuplicate={canDuplicateElement}
+    canDelete={canDeleteElement}
+    updateElement={updateElement}
+    updateProps={updateElementProps}
+    performLayerCommand={performLayerCommand}
+    duplicate={duplicateSelectedElement}
+    remove={deleteSelectedElement}
+    uploadImage={uploadSelectedImage}
+    uploadPdf={uploadSelectedPdf}
+    uploadVideo={uploadSelectedVideo}
+    uploadPoster={uploadSelectedPoster}
+  />
+) : null}
+{false && selectedElement ? (
   <div className="rounded-[20px] border border-white/[0.075] bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
     <div className="text-[11px] uppercase tracking-[0.22em] text-white/40">
       Element Telemetry
@@ -850,7 +868,7 @@ onDragEnd={handleLayerDragEnd}
     </div>
   </div>
 ) : null}
-                  {selectedElement ? (
+                  {false && selectedElement ? (
                     <div className="mt-4 space-y-4">
                       <div className="grid grid-cols-2 gap-3">
                         <button
@@ -1653,8 +1671,8 @@ onDragEnd={handleLayerDragEnd}
     </button>
   )}
 
-                      {registryItem?.fields.map((field: any) => {
-                        const value = (selectedSection.config as any)?.[field.key]
+                      {registryItem?.fields.map((field) => {
+                        const value = (selectedSection.config as Record<string, unknown>)[field.key]
                         const fillType =
                           (selectedSection.config.sectionBackgroundFillType as string) || "solid"
                             const themeMode = (selectedSection.config.themeMode as string) || "inherit"
@@ -1687,7 +1705,7 @@ onDragEnd={handleLayerDragEnd}
                                 }
                                 className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
                               >
-                                {field.options?.map((opt: any) => (
+                                {field.options?.map((opt) => (
                                   <option key={opt.value} value={opt.value}>
                                     {opt.label}
                                   </option>
@@ -1901,7 +1919,7 @@ onDragEnd={handleLayerDragEnd}
                                 }
                                 className="w-full rounded-xl border border-white/10 bg-slate-950 px-3 py-3 text-sm text-white"
                               >
-                                {field.options?.map((opt: any) => (
+                                {field.options?.map((opt) => (
                                   <option key={opt.value} value={opt.value}>
                                     {opt.label}
                                   </option>
@@ -2115,11 +2133,11 @@ onDragEnd={handleLayerDragEnd}
         : undefined
     }
     previewState={
-      (((selectedBlock.props as any).previewRegistrationState ??
+      ((selectedBlock.props.previewRegistrationState ??
         "open") as RegistrationPreviewState)
     }
     variant={
-      (((selectedBlock.props as any).variant ??
+      ((selectedBlock.props.variant ??
         "editorial") as RegistrationVariant)
     }
     copyValues={{
@@ -2132,23 +2150,23 @@ onDragEnd={handleLayerDragEnd}
           ? selectedBlock.props.body
           : "",
       ctaLabel:
-        typeof (selectedBlock.props as any).ctaLabel === "string"
-          ? (selectedBlock.props as any).ctaLabel
+        typeof selectedBlock.props.ctaLabel === "string"
+          ? selectedBlock.props.ctaLabel
           : "",
       confirmationTitle:
-        typeof (selectedBlock.props as any).confirmationTitle === "string"
-          ? (selectedBlock.props as any).confirmationTitle
+        typeof selectedBlock.props.confirmationTitle === "string"
+          ? selectedBlock.props.confirmationTitle
           : "",
       confirmationBody:
-        typeof (selectedBlock.props as any).confirmationBody === "string"
-          ? (selectedBlock.props as any).confirmationBody
+        typeof selectedBlock.props.confirmationBody === "string"
+          ? selectedBlock.props.confirmationBody
           : "",
     }}
     fields={getSelectedRegistrationFields() as RegistrationInspectorField[]}
     onChangePreviewState={(value) =>
       updateSelectedBlockProps({
         previewRegistrationState: value,
-      } as any)
+      })
     }
     onChangeVariant={(value) =>
       updateSelectedBlockProps({
@@ -2179,31 +2197,31 @@ onDragEnd={handleLayerDragEnd}
         : undefined
     }
     displayMode={
-      (((selectedBlock.props as any).displayMode ??
+      ((selectedBlock.props.displayMode ??
         "list") as AgendaDisplayMode)
     }
     showTime={
-      typeof (selectedBlock.props as any).showTime === "boolean"
-        ? (selectedBlock.props as any).showTime
+      typeof selectedBlock.props.showTime === "boolean"
+        ? selectedBlock.props.showTime
         : true
     }
     showDescriptions={
-      typeof (selectedBlock.props as any).showDescriptions === "boolean"
-        ? (selectedBlock.props as any).showDescriptions
+      typeof selectedBlock.props.showDescriptions === "boolean"
+        ? selectedBlock.props.showDescriptions
         : true
     }
     groupByDay={
-      typeof (selectedBlock.props as any).groupByDay === "boolean"
-        ? (selectedBlock.props as any).groupByDay
+      typeof selectedBlock.props.groupByDay === "boolean"
+        ? selectedBlock.props.groupByDay
         : true
     }
     emptyStateText={
-      typeof (selectedBlock.props as any).emptyStateText === "string"
-        ? (selectedBlock.props as any).emptyStateText
+      typeof selectedBlock.props.emptyStateText === "string"
+        ? selectedBlock.props.emptyStateText
         : "No agenda items are available yet."
     }
     onChange={(patch) =>
-      updateSelectedBlockProps(patch as any)
+      updateSelectedBlockProps(patch)
     }
   />
 ) : null}
@@ -2221,36 +2239,36 @@ onDragEnd={handleLayerDragEnd}
         : undefined
     }
     displayMode={
-      (((selectedBlock.props as any).displayMode ??
+      ((selectedBlock.props.displayMode ??
         "cards") as SessionsDisplayMode)
     }
     showTime={
-      typeof (selectedBlock.props as any).showTime === "boolean"
-        ? (selectedBlock.props as any).showTime
+      typeof selectedBlock.props.showTime === "boolean"
+        ? selectedBlock.props.showTime
         : true
     }
     showDescriptions={
-      typeof (selectedBlock.props as any).showDescriptions === "boolean"
-        ? (selectedBlock.props as any).showDescriptions
+      typeof selectedBlock.props.showDescriptions === "boolean"
+        ? selectedBlock.props.showDescriptions
         : true
     }
     showPresenter={
-      typeof (selectedBlock.props as any).showPresenter === "boolean"
-        ? (selectedBlock.props as any).showPresenter
+      typeof selectedBlock.props.showPresenter === "boolean"
+        ? selectedBlock.props.showPresenter
         : true
     }
     showJoinAction={
-      typeof (selectedBlock.props as any).showJoinAction === "boolean"
-        ? (selectedBlock.props as any).showJoinAction
+      typeof selectedBlock.props.showJoinAction === "boolean"
+        ? selectedBlock.props.showJoinAction
         : true
     }
     emptyStateText={
-      typeof (selectedBlock.props as any).emptyStateText === "string"
-        ? (selectedBlock.props as any).emptyStateText
+      typeof selectedBlock.props.emptyStateText === "string"
+        ? selectedBlock.props.emptyStateText
         : "No sessions are available yet."
     }
     onChange={(patch) =>
-      updateSelectedBlockProps(patch as any)
+      updateSelectedBlockProps(patch)
     }
   />
 ) : null}
@@ -2280,26 +2298,26 @@ onDragEnd={handleLayerDragEnd}
           : "Meet the voices guiding this experience."
       }
       displayMode={
-        (((selectedBlock.props as any).displayMode ??
+        ((selectedBlock.props.displayMode ??
           "grid") as "grid" | "list" | "spotlight")
       }
       showRole={
-        typeof (selectedBlock.props as any).showRole === "boolean"
-          ? (selectedBlock.props as any).showRole
+        typeof selectedBlock.props.showRole === "boolean"
+          ? selectedBlock.props.showRole
           : true
       }
       showCompany={
-        typeof (selectedBlock.props as any).showCompany === "boolean"
-          ? (selectedBlock.props as any).showCompany
+        typeof selectedBlock.props.showCompany === "boolean"
+          ? selectedBlock.props.showCompany
           : true
       }
       showBio={
-        typeof (selectedBlock.props as any).showBio === "boolean"
-          ? (selectedBlock.props as any).showBio
+        typeof selectedBlock.props.showBio === "boolean"
+          ? selectedBlock.props.showBio
           : true
       }
       onChange={(patch) =>
-        updateSelectedBlockProps(patch as any)
+        updateSelectedBlockProps(patch)
       }
     />
   </SystemComponentInspector>

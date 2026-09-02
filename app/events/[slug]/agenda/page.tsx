@@ -130,7 +130,7 @@ export default async function EventAgendaPage(props: {
       .order("start_at", { ascending: true, nullsFirst: false }),
   ])
 
-  const eventTheme = normalizeTheme(eventRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
   const storedSections = normalizeEventPageSections(pageDocument.sections)
   const agenda = (agendaRows ?? []) as Array<{
     id: string

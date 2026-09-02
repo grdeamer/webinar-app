@@ -46,8 +46,13 @@ import usePageEditorState from "@/components/page-editor/hooks/usePageEditorStat
 import PageEditorToolbar from "./PageEditorToolbar"
 import EditorToolDock, { type EditorToolPanel } from "./EditorToolDock"
 import EditorToolPanelContent from "./EditorToolPanel"
-import PageFilmstrip from "./PageFilmstrip"
+import PageFilmstrip, { type EditorPageManifestItem, type PageThumbnailDocument } from "./PageFilmstrip"
+import { EDITOR_PAGES, getPublicEditorPageUrl } from "./editorPages"
 import TextContextToolbar from "./TextContextToolbar"
+import EditorCollaborationPanel from "./EditorCollaborationPanel"
+import RichTextInlineEditor from "./RichTextInlineEditor"
+import RichTextContent from "@/components/page-renderer/RichTextContent"
+import type { RichTextRun } from "@/lib/page-editor/richText"
 import { createSystemComponentPreviewRegistry } from "./SystemComponentPreviewRegistry"
 import { useJupiterNotice } from "@/components/ui/JupiterNotificationProvider"
 
@@ -65,7 +70,9 @@ import {
   getElementAnimationAttribute,
   getElementContentAlignmentStyle,
   getElementFrameStyle,
+  getElementIntroAnimationStyle,
   getImageElementPresentationStyle,
+  getResponsiveElement,
   getTextElementPresentationStyle,
   getVideoElementPresentationStyle,
   parseGeneralSessionProgramSource,
@@ -82,6 +89,14 @@ import type {
   ExperienceNode,
 } from "@/lib/page-editor/sectionTypes"
 
+type PageEditorTemplate = {
+  id: string
+  name: string
+  sections_json: EventPageSection[]
+  elements_json: EventPageElement[]
+  event_theme?: Partial<EventTheme> | null
+}
+
 export type EditorElement = EventPageElement
 
 export type EventPageSection = {
@@ -97,7 +112,27 @@ type EditorExperienceNode = ExperienceNode & {
 
 type AddableElementType = "text" | "image" | "pdf" | "video" | "button" | "spacer"
 type TextPreset = "heading" | "subheading" | "body"
-type EditorAsset = { id: string; url: string; name: string; type: string }
+type RegistrationFieldDefinition = {
+  id: string
+  label: string
+  placeholder: string
+  fieldType: "text" | "email"
+  required: boolean
+  visible: boolean
+  locked?: boolean
+  width: "half" | "full"
+  helperText?: string
+  systemRole: "identity" | "contact" | "profile"
+}
+
+function applyResponsiveFramePatch(element: EventPageElement, patch: Partial<Pick<EventPageElement, "x" | "y" | "width" | "height">>, device: "desktop" | "tablet" | "mobile") {
+  if (device === "desktop") return { ...element, ...patch }
+  const props = element.props ?? {}
+  const responsiveStyles = props.responsiveStyles && typeof props.responsiveStyles === "object" && !Array.isArray(props.responsiveStyles) ? props.responsiveStyles as Record<string, unknown> : {}
+  const current = responsiveStyles[device] && typeof responsiveStyles[device] === "object" && !Array.isArray(responsiveStyles[device]) ? responsiveStyles[device] as Record<string, unknown> : {}
+  return { ...element, props: { ...props, responsiveStyles: { ...responsiveStyles, [device]: { ...current, ...patch } } } }
+}
+type EditorAsset = { id: string; path: string; url: string; name: string; type: string; trashed?: boolean; originalPath?: string }
 type RightRailTab = "inspect" | "layers" | "insert" | "page"
 const GRID_SIZE = 8
 
@@ -254,19 +289,32 @@ function normalizeSectionIds(inputSections: EventPageSection[]) {
   })
 }
 
-function normalizeSections(inputSections: any[]): EventPageSection[] {
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+function normalizeSections(inputSections: unknown): EventPageSection[] {
+  const values = Array.isArray(inputSections) ? inputSections : []
   return normalizeSectionIds(
-    inputSections.map((section: any) => ({
+    values.map((value) => {
+      const section = isRecord(value) ? value : {}
+      const type = String(section.type ?? "content") as SectionType
+      const blocks = Array.isArray(section.blocks) ? section.blocks.flatMap((blockValue, blockIndex): SectionBlock[] => {
+        if (!isRecord(blockValue)) return []
+        const blockType = blockValue.type === "system_component" ? "system_component" : "rich_text"
+        return [{ id: String(blockValue.id ?? `block-${blockIndex + 1}`), type: blockType, props: isRecord(blockValue.props) ? blockValue.props : {} } as SectionBlock]
+      }) : []
+      return {
       id: String(
         section.id ?? `section-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
       ),
-      type: String(section.type ?? "content") as SectionType,
+      type,
       config:
-        section.config && typeof section.config === "object"
-          ? section.config
-          : getSafeDefaultSectionConfig(String(section.type ?? "content")),
-      blocks: Array.isArray(section.blocks) ? section.blocks : [],
-    }))
+        isRecord(section.config)
+          ? section.config as SectionConfig
+          : getSafeDefaultSectionConfig(type),
+      blocks,
+    }}),
   )
 }
 
@@ -343,109 +391,6 @@ function elementToEditorExperienceNode(element: EditorElement): EditorExperience
   }
 }
 
-function EditorTrimPreview({
-  url,
-  sourceType = "mp4",
-  trimStart = 0,
-  trimEnd = 0,
-  onDuration,
-}: {
-  url: string
-  sourceType?: string
-  trimStart?: number
-  trimEnd?: number
-  onDuration?: (duration: number) => void
-}) {
-  const videoRef = useRef<HTMLVideoElement | null>(null)
-
-  useEffect(() => {
-    let destroyed = false
-    let hlsInstance: any = null
-
-    async function setup() {
-      const video = videoRef.current
-      if (!video || !url) return
-
-      if (sourceType !== "hls") {
-        video.src = url
-        video.load()
-        return
-      }
-
-      if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = url
-        video.load()
-        return
-      }
-
-      try {
-        const mod = await import("hls.js")
-        if (destroyed) return
-
-        const Hls = mod.default
-        if (Hls.isSupported()) {
-          hlsInstance = new Hls()
-          hlsInstance.loadSource(url)
-          hlsInstance.attachMedia(video)
-        } else {
-          video.src = url
-          video.load()
-        }
-      } catch {
-        video.src = url
-        video.load()
-      }
-    }
-
-    void setup()
-
-    return () => {
-      destroyed = true
-      if (hlsInstance) hlsInstance.destroy()
-    }
-  }, [url, sourceType])
-
-  useEffect(() => {
-    const video = videoRef.current
-    if (!video) return
-
-    const startAt = trimStart > 0 ? trimStart : 0
-
-    const handleLoadedMetadata = () => {
-      if (Number.isFinite(video.duration)) {
-        onDuration?.(video.duration)
-      }
-
-      try {
-        video.currentTime = startAt
-      } catch {}
-    }
-
-    const handleTimeUpdate = () => {
-      if (trimEnd > 0 && video.currentTime >= trimEnd) {
-        video.pause()
-      }
-    }
-
-    video.addEventListener("loadedmetadata", handleLoadedMetadata)
-    video.addEventListener("timeupdate", handleTimeUpdate)
-
-    return () => {
-      video.removeEventListener("loadedmetadata", handleLoadedMetadata)
-      video.removeEventListener("timeupdate", handleTimeUpdate)
-    }
-  }, [trimStart, trimEnd, onDuration])
-
-  return (
-    <video
-      ref={videoRef}
-      controls
-      playsInline
-      className="w-full rounded-xl border border-white/10 bg-black"
-    />
-  )
-}
-
 export default function AdminEventPageEditorPreview({
   eventSlug,
   eventAdminId: eventAdminIdOverride,
@@ -463,8 +408,11 @@ const requestedMode = searchParams.get("mode")
 const isEmbedded =
   pathname.startsWith("/embed/") || searchParams.get("embed") === "1"
 
+  const [eventTitle, setEventTitle] = useState(slug ? slug.replace(/-/g, " ") : "Event Preview")
+  const [eventStage, setEventStage] = useState("build")
+
   const eventInfo = {
-    title: slug ? slug.replace(/-/g, " ") : "Event Preview",
+    title: eventTitle,
     description: "Renderer mode is now active inside the Page Editor.",
   }
 
@@ -492,13 +440,17 @@ const isEmbedded =
   const [copiedElementStyle, setCopiedElementStyle] = useState<Record<string, unknown> | null>(null)
   const [rightRailTab, setRightRailTab] = useState<RightRailTab>("inspect")
   const [activeToolPanel, setActiveToolPanel] = useState<EditorToolPanel>("design")
+  const [toolPanelOpen, setToolPanelOpen] = useState(true)
+  const [collaborationOpen, setCollaborationOpen] = useState(false)
   const [editorAssets, setEditorAssets] = useState<EditorAsset[]>([])
+  const [editorPages, setEditorPages] = useState<EditorPageManifestItem[]>(() => EDITOR_PAGES.map((page) => ({ pageKey: page.value, title: page.label, isSystem: true })))
+  const [pageThumbnails, setPageThumbnails] = useState<Record<string, PageThumbnailDocument>>({})
   const [hoveredExperienceNodeId, setHoveredExperienceNodeId] = useState<string | null>(null)
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
   const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
-  const [templates, setTemplates] = useState<any[]>([])
+  const [templates, setTemplates] = useState<PageEditorTemplate[]>([])
   const [generalSession, setGeneralSession] =
     useState<GeneralSessionPresentationSource>(null)
 
@@ -535,6 +487,7 @@ const isEmbedded =
     restoreHistorySnapshot,
     documentRevision,
     getDocumentRevision,
+    markDocumentDirty,
     updateElement,
     updateElementProps,
     updateSectionConfig,
@@ -543,7 +496,6 @@ const isEmbedded =
     duplicateSelectedSection,
     moveSelectedSection,
     selectBlock,
-    updateBlock,
     updateBlockProps,
     removeBlockFromSection,
     addBlockToSection: addBlockToSectionState,
@@ -551,10 +503,13 @@ const isEmbedded =
     initialPageKey: requestedPageKey,
     eventInfo,
   })
+  const displaySelectedElement = selectedElement ? getResponsiveElement(selectedElement, previewDevice) : null
   const {
     activePageSaveState,
     activePageIsDirty,
     registerLoadedPage,
+    getRecoverySnapshot,
+    clearRecoverySnapshot,
     scheduleSave,
     saveNow,
     flushLatestPage,
@@ -636,6 +591,7 @@ const isEmbedded =
     startY: number
     startWidth: number
     startHeight: number
+    lockAspectRatio: boolean
     groupSnapshot?: GroupResizeSnapshot | null
   } | null>(null)
 
@@ -664,6 +620,8 @@ const isEmbedded =
           sections?: unknown
           eventTheme?: unknown
           event_id?: unknown
+          event_title?: unknown
+          event_stage?: unknown
           revision?: unknown
           error?: unknown
         } | null
@@ -704,7 +662,18 @@ const isEmbedded =
 
         if (typeof data.event_id === "string" && data.event_id.trim()) {
           setEventAdminId(data.event_id)
+          if (typeof data.event_title === "string" && data.event_title.trim()) setEventTitle(data.event_title.trim())
+          if (typeof data.event_stage === "string" && data.event_stage.trim()) setEventStage(data.event_stage.trim())
         }
+
+        const recovery = getRecoverySnapshot(pageKey)
+        const shouldRecover = recovery ? window.confirm(`Recover unsaved changes from ${new Date(recovery.savedAt).toLocaleString()}? Choose Cancel to discard that local recovery copy.`) : false
+        const recoveredSnapshot = shouldRecover && recovery ? {
+          elements: normalizeEventPageElements(recovery.snapshot.elements),
+          sections: normalizeSections(recovery.snapshot.sections),
+          eventTheme: recovery.snapshot.eventTheme && typeof recovery.snapshot.eventTheme === "object" ? recovery.snapshot.eventTheme as EventTheme : snapshot.eventTheme,
+        } : null
+        if (recovery) clearRecoverySnapshot(pageKey)
 
         resetHistory(pageKey, snapshot)
         registerLoadedPage(
@@ -713,6 +682,11 @@ const isEmbedded =
           serverRevision,
           snapshot,
         )
+        if (recoveredSnapshot) {
+          resetHistory(pageKey, recoveredSnapshot)
+          markDocumentDirty()
+          setSaveMessage("Recovered unsaved local changes")
+        }
         setLoadedPageKey(pageKey)
       } catch (error) {
         if (
@@ -741,8 +715,11 @@ const isEmbedded =
       abortController.abort()
     }
   }, [
+    clearRecoverySnapshot,
     getDocumentRevision,
+    getRecoverySnapshot,
     loadAttempt,
+    markDocumentDirty,
     registerLoadedPage,
     resetHistory,
     slug,
@@ -755,8 +732,8 @@ const isEmbedded =
         const res = await fetch("/api/admin/page-editor/templates")
         const data = await res.json()
 
-        if (data.templates) {
-          setTemplates(data.templates)
+        if (Array.isArray(data.templates)) {
+          setTemplates(data.templates as PageEditorTemplate[])
         }
       } catch {
         console.error("Failed to load templates")
@@ -765,6 +742,104 @@ const isEmbedded =
 
     void loadTemplates()
   }, [])
+
+  useEffect(() => {
+    async function loadPageManifest() {
+      try {
+        const response = await fetch(`/api/admin/page-editor/event/${slug}/pages`)
+        const data = await response.json()
+        if (!response.ok) throw new Error(data?.error || "Failed to load pages")
+        setEditorPages((Array.isArray(data.pages) ? data.pages : []).map((page: Record<string, unknown>) => ({ pageKey: String(page.page_key), title: String(page.title), isSystem: Boolean(page.is_system) })))
+      } catch (error) {
+        console.error("Failed to load page manifest", error)
+        setSaveMessage("Using built-in pages until page management is available")
+      }
+    }
+    void loadPageManifest()
+  }, [slug])
+
+  useEffect(() => {
+    if (!editorPages.length) return
+    const abortController = new AbortController()
+    async function loadThumbnails() {
+      const entries = await Promise.all(editorPages.filter((page) => page.pageKey !== selectedPageKey).map(async (page) => {
+        try {
+          const response = await fetch(`/api/admin/page-editor/event/${slug}/elements?pageKey=${encodeURIComponent(page.pageKey)}`, { cache: "no-store", signal: abortController.signal })
+          const data = await response.json().catch((): null => null)
+          if (!response.ok || !data) return null
+          return [page.pageKey, { elements: normalizeEventPageElements(data.elements), sections: normalizeSections(data.sections), eventTheme: data.eventTheme && typeof data.eventTheme === "object" ? data.eventTheme as EventTheme : eventThemeRef.current }] as const
+        } catch { return null }
+      }))
+      if (!abortController.signal.aborted) setPageThumbnails(Object.fromEntries(entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null)))
+    }
+    void loadThumbnails()
+    return () => abortController.abort()
+  }, [editorPages, selectedPageKey, slug])
+
+  async function persistPageOrder(pages: EditorPageManifestItem[]) {
+    const previousPages = editorPages
+    setEditorPages(pages)
+    setSaveMessage("Saving page order...")
+    try {
+      const response = await fetch(`/api/admin/page-editor/event/${slug}/pages`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pages }) })
+      const data = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(data?.error || "Page order could not be saved")
+      setSaveMessage("Page order saved")
+    } catch (error) {
+      setEditorPages(previousPages)
+      setSaveMessage(error instanceof Error ? error.message : "Page order could not be saved")
+    }
+  }
+
+  async function createEditorPage(sourcePageKey?: string) {
+    const title = window.prompt(sourcePageKey ? "Name the duplicated page" : "Name the new page", sourcePageKey ? "Copy of page" : "Untitled page")?.trim()
+    if (!title) return
+    try {
+      setSaveMessage(sourcePageKey ? "Duplicating page..." : "Creating page...")
+      const response = await fetch(`/api/admin/page-editor/event/${slug}/pages`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, sourcePageKey }) })
+      const data = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(data?.error || "Page could not be created")
+      const page = { pageKey: String(data.page.page_key), title: String(data.page.title), isSystem: false }
+      setEditorPages((current) => [...current, page])
+      await selectPage(page.pageKey)
+      setSaveMessage(sourcePageKey ? "Page duplicated" : "Page created")
+    } catch (error) {
+      setSaveMessage(error instanceof Error ? error.message : "Page could not be created")
+    }
+  }
+
+  async function renameEditorPage(page: EditorPageManifestItem) {
+    const title = window.prompt("Rename page", page.title)?.trim()
+    if (!title || title === page.title) return
+    await persistPageOrder(editorPages.map((item) => item.pageKey === page.pageKey ? { ...item, title } : item))
+  }
+
+  async function deleteEditorPage(page: EditorPageManifestItem) {
+    if (page.isSystem || !window.confirm(`Delete “${page.title}”? This cannot be undone.`)) return
+    const response = await fetch(`/api/admin/page-editor/event/${slug}/pages`, { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ pageKey: page.pageKey }) })
+    const data = await response.json().catch((): null => null)
+    if (!response.ok) { setSaveMessage(data?.error || "Page could not be deleted"); return }
+    const remaining = editorPages.filter((item) => item.pageKey !== page.pageKey)
+    setEditorPages(remaining)
+    if (selectedPageKey === page.pageKey) await selectPage(remaining[0]?.pageKey ?? "event_home")
+  }
+
+  useEffect(() => {
+    if (activeToolPanel !== "media" || !eventAdminId) return
+    const abortController = new AbortController()
+    async function loadAssets() {
+      try {
+        const response = await fetch(`/api/admin/page-editor/upload-media?eventId=${encodeURIComponent(eventAdminId!)}`, { signal: abortController.signal })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data?.error || "Failed to load media")
+        setEditorAssets(Array.isArray(data.assets) ? data.assets : [])
+      } catch (error) {
+        if (!abortController.signal.aborted) setSaveMessage(error instanceof Error ? error.message : "Failed to load media")
+      }
+    }
+    void loadAssets()
+    return () => abortController.abort()
+  }, [activeToolPanel, eventAdminId])
 
   useEffect(() => {
     if (!documentReady) return
@@ -1009,7 +1084,7 @@ const isEmbedded =
     e.stopPropagation()
     const groupId = targetElement ? getElementGroupId(targetElement) : null
     const groupMembers = groupId
-      ? elements.filter((element) => getElementGroupId(element) === groupId)
+      ? elements.filter((element) => getElementGroupId(element) === groupId).map((element) => getResponsiveElement(element, previewDevice))
       : []
     if (groupMembers.some((element) => element.locked === true)) return
     if (!canvasRef.current) return
@@ -1049,6 +1124,7 @@ const isEmbedded =
       startY: groupSnapshot?.bounds.y ?? y,
       startWidth: groupSnapshot?.bounds.width ?? width ?? 224,
       startHeight: groupSnapshot?.bounds.height ?? height ?? 56,
+      lockAspectRatio: Boolean(targetElement?.props?.lockAspectRatio),
       groupSnapshot,
     }
 
@@ -1121,7 +1197,7 @@ const isEmbedded =
       setElements((prev) =>
         prev.map((el) => {
           const update = updatesById.get(el.id)
-          return update ? { ...el, ...update } : el
+          return update ? applyResponsiveFramePatch(el, update, previewDevice) : el
         })
       )
 
@@ -1140,6 +1216,7 @@ const isEmbedded =
         startY,
         startWidth,
         startHeight,
+        lockAspectRatio,
         groupSnapshot,
       } = resizeRef.current
       const currentPointer = screenPointToCanvasPoint(
@@ -1174,6 +1251,16 @@ const isEmbedded =
         nextY = startY + dy
       }
 
+      if ((lockAspectRatio || e.shiftKey) && handle.length === 2 && startWidth > 0 && startHeight > 0) {
+        const ratio = startWidth / startHeight
+        const widthChange = Math.abs((nextWidth - startWidth) / startWidth)
+        const heightChange = Math.abs((nextHeight - startHeight) / startHeight)
+        if (widthChange >= heightChange) nextHeight = nextWidth / ratio
+        else nextWidth = nextHeight * ratio
+        if (handle.includes("w")) nextX = startX + startWidth - nextWidth
+        if (handle.includes("n")) nextY = startY + startHeight - nextHeight
+      }
+
       if (groupSnapshot) {
         nextWidth = Math.max(minimumGroupDimensions?.width ?? 96, nextWidth)
         nextHeight = Math.max(minimumGroupDimensions?.height ?? 32, nextHeight)
@@ -1206,7 +1293,7 @@ const isEmbedded =
         setElements((prev) =>
           prev.map((element) => {
             const update = updatesById.get(element.id)
-            return update ? { ...element, ...update } : element
+            return update ? applyResponsiveFramePatch(element, update, previewDevice) : element
           })
         )
         return
@@ -1215,7 +1302,7 @@ const isEmbedded =
       setElements((prev) =>
         prev.map((el) =>
           el.id === id
-            ? { ...el, x: nextX, y: nextY, width: nextWidth, height: nextHeight }
+            ? applyResponsiveFramePatch(el, { x: nextX, y: nextY, width: nextWidth, height: nextHeight }, previewDevice)
             : el
         )
       )
@@ -1265,10 +1352,11 @@ const isEmbedded =
       },
       targets: [
         ...elements
+          .map((element) => getResponsiveElement(element, previewDevice))
           .filter((element) => (element as EditorElement).visible !== false)
           .filter(
             (element) =>
-              !(isMobilePreview && Boolean(element.props?.hideOnMobile))
+              !((previewDevice === "mobile" && Boolean(element.props?.hideOnMobile)) || (previewDevice === "tablet" && Boolean(element.props?.hideOnTablet)) || (previewDevice === "desktop" && Boolean(element.props?.hideOnDesktop)))
           )
           .map((element) => ({
             id: element.id,
@@ -1287,7 +1375,7 @@ const isEmbedded =
     setHasUnsavedChanges(true)
     setElements((prev) =>
       prev.map((el) =>
-        el.id === id ? { ...el, x: alignment.x, y: alignment.y } : el
+        el.id === id ? applyResponsiveFramePatch(el, { x: alignment.x, y: alignment.y }, previewDevice) : el
       )
     )
   }
@@ -1313,7 +1401,7 @@ const isEmbedded =
     if (activeIds.length === 0) return
     if (compositeSelectionHasLockedMember(elements, activeIds)) return
 
-    const groupableElements = elements.map((element) => ({
+    const groupableElements = elements.map((element) => getResponsiveElement(element, previewDevice)).map((element) => ({
       id: element.id,
       x: element.x,
       y: element.y,
@@ -1365,18 +1453,17 @@ const isEmbedded =
     setElements((current) =>
       current.map((element) => {
         const update = updatesById.get(element.id)
-        return update ? { ...element, ...update } : element
+        return update ? applyResponsiveFramePatch(element, update, previewDevice) : element
       })
     )
   }
 
-  async function uploadMediaFile(file: File) {
-    const formData = new FormData()
-    formData.append("file", file)
-
+  async function uploadMediaFile(file: File, onProgress?: (percent: number) => void) {
+    if (!eventAdminId) throw new Error("Event context is still loading")
     const res = await fetch("/api/admin/page-editor/upload-media", {
       method: "POST",
-      body: formData,
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_id: eventAdminId, file_name: file.name, file_size: file.size, content_type: file.type }),
     })
 
     const data = await res.json()
@@ -1384,6 +1471,29 @@ const isEmbedded =
     if (!res.ok) {
       throw new Error(data?.error || "Upload failed")
     }
+
+    if (!data?.path || !data?.token || !data?.signedUrl) throw new Error("Upload signer returned invalid data")
+    await new Promise<void>((resolve, reject) => {
+      const request = new XMLHttpRequest()
+      request.open("PUT", String(data.signedUrl))
+      request.setRequestHeader("x-upsert", "false")
+      request.upload.addEventListener("progress", (event) => {
+        if (event.lengthComputable) onProgress?.(Math.round((event.loaded / event.total) * 100))
+      })
+      request.addEventListener("load", () => {
+        if (request.status >= 200 && request.status < 300) { onProgress?.(100); resolve(); return }
+        try {
+          const uploadError = JSON.parse(request.responseText) as { message?: string; error?: string }
+          reject(new Error(uploadError.message ?? uploadError.error ?? `Upload failed (${request.status})`))
+        } catch { reject(new Error(`Upload failed (${request.status})`)) }
+      })
+      request.addEventListener("error", () => reject(new Error("Upload connection failed")))
+      request.addEventListener("abort", () => reject(new Error("Upload cancelled")))
+      const formData = new FormData()
+      formData.append("cacheControl", "3600")
+      formData.append("", file)
+      request.send(formData)
+    })
 
     return data
   }
@@ -1481,9 +1591,17 @@ const isEmbedded =
     setEditingElementId(null)
   }
 
-  function getNextContentId() {
-    const contentCount = sections.filter((section) => section.type !== "hero").length
-    return contentCount === 0 ? "content" : `content-${contentCount + 1}`
+  function commitRichTextEdit(id: string, value: string, runs: RichTextRun[]) {
+    runTransaction(() => setElements((current) => current.map((element) => {
+      if (element.id !== id) return element
+      if (previewDevice === "desktop") return { ...element, content: value, props: { ...(element.props ?? {}), richTextRuns: runs } }
+      const props = element.props ?? {}
+      const responsiveStyles = props.responsiveStyles && typeof props.responsiveStyles === "object" && !Array.isArray(props.responsiveStyles) ? props.responsiveStyles as Record<string, unknown> : {}
+      const override = responsiveStyles[previewDevice] && typeof responsiveStyles[previewDevice] === "object" && !Array.isArray(responsiveStyles[previewDevice]) ? responsiveStyles[previewDevice] as Record<string, unknown> : {}
+      const overrideProps = override.props && typeof override.props === "object" && !Array.isArray(override.props) ? override.props as Record<string, unknown> : {}
+      return { ...element, props: { ...props, responsiveStyles: { ...responsiveStyles, [previewDevice]: { ...override, content: value, props: { ...overrideProps, richTextRuns: runs } } } } }
+    })))
+    setEditingElementId(null)
   }
 
   function normalizeZIndexes(nextElements: EditorElement[]) {
@@ -1614,11 +1732,6 @@ function handleLayerDragEnd() {
   }
 
 
-  function updateSelectedBlock(nextBlock: SectionBlock) {
-    if (!selectedSectionId || !selectedBlockId) return
-    updateBlock(selectedSectionId, selectedBlockId, nextBlock)
-  }
-
   function updateSelectedBlockProps(
     nextProps: Partial<Extract<SectionBlock, { type: "rich_text" }>["props"]> |
       Partial<Extract<SectionBlock, { type: "system_component" }>["props"]>
@@ -1630,9 +1743,9 @@ function updateRegistrationBlockCopyProp(
   key: "title" | "body" | "ctaLabel" | "confirmationTitle" | "confirmationBody",
   value: string
 ) {
-  updateSelectedBlockProps({ [key]: value } as any)
+  updateSelectedBlockProps({ [key]: value })
 }
-function createDefaultRegistrationFieldDefinitions() {
+function createDefaultRegistrationFieldDefinitions(): RegistrationFieldDefinition[] {
   return [
     {
       id: "firstName",
@@ -1687,15 +1800,15 @@ function getSelectedRegistrationFields() {
     return createDefaultRegistrationFieldDefinitions()
   }
 
-  const fields = (selectedBlock.props as any).registrationFields
+  const fields = selectedBlock.props.registrationFields
 
   return Array.isArray(fields) && fields.length > 0
-    ? fields
+    ? fields.filter(isRecord).map((field) => field as RegistrationFieldDefinition)
     : createDefaultRegistrationFieldDefinitions()
 }
 
-function updateRegistrationFields(nextFields: any[]) {
-  updateSelectedBlockProps({ registrationFields: nextFields } as any)
+function updateRegistrationFields(nextFields: RegistrationFieldDefinition[]) {
+  updateSelectedBlockProps({ registrationFields: nextFields })
 }
 
 function updateRegistrationField(
@@ -1705,7 +1818,7 @@ function updateRegistrationField(
   const fields = getSelectedRegistrationFields()
 
   updateRegistrationFields(
-    fields.map((field: any) =>
+    fields.map((field) =>
       field.id === fieldId ? { ...field, ...nextFieldProps } : field
     )
   )
@@ -1716,7 +1829,7 @@ function moveRegistrationFieldInSelectedBlock(
   direction: "up" | "down"
 ) {
   const fields = getSelectedRegistrationFields()
-  const index = fields.findIndex((field: any) => field.id === fieldId)
+  const index = fields.findIndex((field) => field.id === fieldId)
   if (index === -1) return
 
   const targetIndex = direction === "up" ? index - 1 : index + 1
@@ -1731,7 +1844,7 @@ function moveRegistrationFieldInSelectedBlock(
 
 function createRegistrationFieldFromTemplate(
   template: "jobTitle" | "phone" | "dietaryNeeds"
-) {
+): RegistrationFieldDefinition {
   switch (template) {
     case "phone":
       return {
@@ -1786,7 +1899,7 @@ function addRegistrationFieldFromTemplate(
 
 function removeRegistrationField(fieldId: string) {
   updateRegistrationFields(
-    getSelectedRegistrationFields().filter((field: any) => field.id !== fieldId)
+    getSelectedRegistrationFields().filter((field) => field.id !== fieldId)
   )
 }
   function moveSelectedBlock(direction: "up" | "down") {
@@ -2037,12 +2150,13 @@ function addRegistrationFormSection() {
     })
   }
 
-  async function uploadAndAddAsset(file: File) {
+  async function uploadAndAddAsset(file: File, onProgress?: (percent: number) => void) {
     try {
       setSaveMessage("Uploading media...")
-      const uploaded = await uploadMediaFile(file)
+      const uploaded = await uploadMediaFile(file, onProgress)
       const asset: EditorAsset = {
         id: String(uploaded.id ?? uploaded.url ?? createElementId()),
+        path: String(uploaded.path),
         url: String(uploaded.url),
         name: String(uploaded.fileName ?? file.name),
         type: String(uploaded.contentType ?? file.type),
@@ -2054,6 +2168,47 @@ function addRegistrationFormSection() {
       setSaveMessage(error instanceof Error ? error.message : "Upload failed")
       throw error
     }
+  }
+
+  async function deleteUploadedAsset(asset: EditorAsset) {
+    if (!eventAdminId) return
+    const referencedCount = elements.filter((element) => {
+      const props = element.props ?? {}
+      return props.src === asset.url || props.url === asset.url || props.posterUrl === asset.url
+    }).length + (eventTheme.pageBackgroundImageUrl === asset.url ? 1 : 0)
+    if (referencedCount) {
+      setSaveMessage(`Remove the ${referencedCount} placed instance${referencedCount === 1 ? "" : "s"} from this page and wait for Saved before deleting the library asset.`)
+      return
+    }
+    const warning = `Move “${asset.name}” to Trash? You can restore it later.`
+    if (!window.confirm(warning)) return
+    const response = await fetch("/api/admin/page-editor/upload-media", {
+      method: "DELETE",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_id: eventAdminId, path: asset.path, url: asset.url }),
+    })
+    const data = await response.json().catch((): null => null) as { error?: string } | null
+    if (!response.ok) { setSaveMessage(data?.error || "Delete failed"); return }
+    setEditorAssets((current) => current.map((item) => item.path === asset.path ? { ...item, path: String((data as { path?: string } | null)?.path ?? item.path), trashed: true, originalPath: item.path } : item))
+    setSaveMessage("Asset moved to Trash")
+  }
+
+  async function restoreUploadedAsset(asset: EditorAsset) {
+    if (!eventAdminId || !asset.originalPath) return
+    const response = await fetch("/api/admin/page-editor/upload-media", { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_id: eventAdminId, path: asset.path, original_path: asset.originalPath }) })
+    const data = await response.json().catch((): null => null) as { error?: string; path?: string; url?: string } | null
+    if (!response.ok) { setSaveMessage(data?.error || "Restore failed"); return }
+    setEditorAssets((current) => current.map((item) => item.path === asset.path ? { ...item, path: data?.path ?? asset.originalPath!, url: data?.url ?? item.url, trashed: false, originalPath: undefined } : item))
+    setSaveMessage("Asset restored")
+  }
+
+  async function permanentlyDeleteUploadedAsset(asset: EditorAsset) {
+    if (!eventAdminId || !asset.trashed || !window.confirm(`Permanently delete “${asset.name}”? This cannot be undone.`)) return
+    const response = await fetch("/api/admin/page-editor/upload-media", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ event_id: eventAdminId, path: asset.path, url: asset.url, permanent: true }) })
+    const data = await response.json().catch((): null => null) as { error?: string } | null
+    if (!response.ok) { setSaveMessage(data?.error || "Permanent delete failed"); return }
+    setEditorAssets((current) => current.filter((item) => item.path !== asset.path))
+    setSaveMessage("Asset permanently deleted")
   }
 
   function addAppSection(componentKey: SystemComponentKey) {
@@ -2232,7 +2387,7 @@ function addRegistrationFormSection() {
     if (compositeSelectionHasLockedMember(elements, activeIds)) return
 
     const updates = getCompositeMoveUpdates({
-      elements: elements.map((element) => ({
+      elements: elements.map((element) => getResponsiveElement(element, previewDevice)).map((element) => ({
         id: element.id,
         x: element.x,
         y: element.y,
@@ -2251,7 +2406,7 @@ function addRegistrationFormSection() {
     setElements((current) =>
       current.map((element) => {
         const update = updatesById.get(element.id)
-        return update ? { ...element, ...update } : element
+        return update ? applyResponsiveFramePatch(element, update, previewDevice) : element
       })
     )
   }
@@ -2395,7 +2550,7 @@ function addRegistrationFormSection() {
     const name = await promptNotice({ title: "Save page template", message: "Give this reusable Jupiter template a clear name.", placeholder: "Template name", confirmLabel: "Save template" })
     if (!name) return
 
-    await fetch("/api/admin/page-editor/templates", {
+    const response = await fetch("/api/admin/page-editor/templates", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -2404,8 +2559,15 @@ function addRegistrationFormSection() {
         name,
         sections,
         elements,
+        eventTheme,
       }),
     })
+    const data = await response.json().catch((): null => null)
+    if (!response.ok || !data?.template) {
+      await showNotice({ title: "Template not saved", message: String(data?.error ?? "The template service did not accept this page."), tone: "danger" })
+      return
+    }
+    setTemplates((current) => [data.template as PageEditorTemplate, ...current.filter((template) => template.id !== data.template.id)])
 
     await showNotice({ title: "Template saved", message: `“${name}” is now available in the page editor.`, tone: "success" })
   }
@@ -2422,8 +2584,8 @@ function addRegistrationFormSection() {
       })
 
       setSaveMessage("Image uploaded")
-    } catch (err: any) {
-      setSaveMessage(err.message)
+    } catch (err: unknown) {
+      setSaveMessage(err instanceof Error ? err.message : "Image upload failed")
     }
   }
 
@@ -2439,8 +2601,8 @@ function addRegistrationFormSection() {
       })
 
       setSaveMessage("PDF uploaded")
-    } catch (err: any) {
-      setSaveMessage(err.message)
+    } catch (err: unknown) {
+      setSaveMessage(err instanceof Error ? err.message : "PDF upload failed")
     }
   }
 
@@ -2457,8 +2619,8 @@ function addRegistrationFormSection() {
       })
 
       setSaveMessage("Video uploaded")
-    } catch (err: any) {
-      setSaveMessage(err.message)
+    } catch (err: unknown) {
+      setSaveMessage(err instanceof Error ? err.message : "Video upload failed")
     }
   }
 
@@ -2474,8 +2636,8 @@ function addRegistrationFormSection() {
       })
 
       setSaveMessage("Poster uploaded")
-    } catch (err: any) {
-      setSaveMessage(err.message)
+    } catch (err: unknown) {
+      setSaveMessage(err instanceof Error ? err.message : "Poster upload failed")
     }
   }
 
@@ -2645,6 +2807,7 @@ const selectedExperienceNode = experienceNodes.find(
           eventTitle={eventInfo.title}
           eventAdminHref={eventAdminId ? `/admin/events/${eventAdminId}` : null}
           selectedPageKey={selectedPageKey}
+          pages={editorPages}
           templates={documentReady ? templates : []}
           canUndo={documentReady && canUndo}
           canRedo={documentReady && canRedo}
@@ -2660,6 +2823,8 @@ const selectedExperienceNode = experienceNodes.find(
           showRulers={showRulers}
           canCopyStyle={documentReady && Boolean(selectedElement)}
           canPasteStyle={documentReady && Boolean(copiedElementStyle) && Boolean(selectedElement || selectedIds.length > 0)}
+          saveStatus={saveStatusMessage}
+          eventStage={eventStage}
           onSelectPage={(pageKey) => {
             void selectPage(pageKey)
           }}
@@ -2679,6 +2844,14 @@ const selectedExperienceNode = experienceNodes.find(
           onAlignElements={executeElementAlignmentCommand}
           onGroupElements={groupSelectedElements}
           onUngroupElements={ungroupSelectedElements}
+          onPreview={() => window.open(getPublicEditorPageUrl(slug, selectedPageKey), "_blank", "noopener,noreferrer")}
+          onShare={() => setCollaborationOpen(true)}
+          onPublish={() => {
+            void flushCurrentPage().then((saved) => {
+              if (!saved || !eventAdminId) return
+              window.location.assign(`/admin/events/${eventAdminId}/publishing`)
+            })
+          }}
           onToggleGrid={() => setShowGrid((value) => !value)}
           onToggleRulers={() => setShowRulers((value) => !value)}
           onCopyStyle={() => {
@@ -2734,12 +2907,13 @@ const selectedExperienceNode = experienceNodes.find(
                     void flushCurrentPage()
                   }}
                   onChangePanel={(panel) => {
+                    setToolPanelOpen((open) => panel === activeToolPanel ? !open : true)
                     setActiveToolPanel(panel)
                     setIsEditing(true)
                   }}
                 />
               ) : null}
-              {!isEmbedded && !isCodeEditorOpen ? (
+              {!isEmbedded && !isCodeEditorOpen && toolPanelOpen ? (
                 <EditorToolPanelContent
                   activePanel={activeToolPanel}
                   templates={templates}
@@ -2750,8 +2924,19 @@ const selectedExperienceNode = experienceNodes.find(
                   onAddTextPreset={(preset) => addElement("text", preset)}
                   onUpload={uploadAndAddAsset}
                   onAddAsset={addAssetElement}
+                  onSetBackground={(asset) => updateEventTheme({ pageBackgroundImageUrl: asset?.url ?? "", pageBackgroundImageFit: "cover", pageBackgroundImagePosition: "center", pageBackgroundOverlay: 0.28 })}
+                  onDeleteAsset={deleteUploadedAsset}
+                  onRestoreAsset={restoreUploadedAsset}
+                  onPermanentlyDeleteAsset={permanentlyDeleteUploadedAsset}
                   onUpdateTheme={updateEventTheme}
                   onAddApp={addAppSection}
+                  onAddSection={(type, label) => {
+                    const appByLabel: Partial<Record<string, SystemComponentKey>> = { Agenda: "agenda", Speakers: "speaker_cards", Sponsors: "sponsors", Resources: "resource_library" }
+                    const app = appByLabel[label]
+                    if (app) addAppSection(app)
+                    else addSectionTemplate(type, label)
+                  }}
+                  onClose={() => setToolPanelOpen(false)}
                 />
               ) : null}
               {isCodeEditorOpen && documentReady ? (
@@ -2825,6 +3010,9 @@ const selectedExperienceNode = experienceNodes.find(
                     <TextContextToolbar
                       element={selectedElement}
                       onUpdate={(props) => updateElementProps(selectedElement.id, props)}
+                      onDuplicate={duplicateSelectedElement}
+                      onToggleLock={() => updateElement(selectedElement.id, { locked: !selectedElement.locked })}
+                      onDelete={deleteSelectedElement}
                     />
                   ) : null}
                   {!isEmbedded && (
@@ -2862,6 +3050,7 @@ const selectedExperienceNode = experienceNodes.find(
                   >
                     <div
                       ref={canvasRef}
+                      data-editor-canvas="true"
                       className={`relative overflow-hidden bg-black ${
   isEmbedded
     ? "min-h-screen rounded-none border-0 mt-0"
@@ -3133,38 +3322,39 @@ const selectedExperienceNode = experienceNodes.find(
                       </>
                     )}
 
-                    {isEditing && isDraggingRef.current && selectedElement && (
+                    {isEditing && isDraggingRef.current && displaySelectedElement && (
                       <>
                         <div
                           className="pointer-events-none absolute inset-y-0 border-l border-cyan-400/70 border-dashed"
                           style={{
-                            left: selectedElement.x,
+                            left: displaySelectedElement.x,
                             zIndex: 9998,
                           }}
                         />
                         <div
                           className="pointer-events-none absolute inset-x-0 border-t border-cyan-400/70 border-dashed"
                           style={{
-                            top: selectedElement.y,
+                            top: displaySelectedElement.y,
                             zIndex: 9998,
                           }}
                         />
                         <div
                           className="pointer-events-none absolute rounded-md bg-cyan-400/90 px-2 py-1 text-[11px] font-semibold text-slate-950"
                           style={{
-                            left: selectedElement.x + 8,
-                            top: Math.max(8, selectedElement.y - 28),
+                            left: displaySelectedElement.x + 8,
+                            top: Math.max(8, displaySelectedElement.y - 28),
                             zIndex: 9999,
                           }}
                         >
-                          {selectedElement.x}, {selectedElement.y}
+                          {displaySelectedElement.x}, {displaySelectedElement.y}
                         </div>
                       </>
                     )}
 
                                 {normalizedElements
+                    .map((el) => getResponsiveElement(el, previewDevice))
                     .filter((el) => el.visible !== false)
-                    .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
+                    .filter((el) => !((previewDevice === "mobile" && Boolean(el.props?.hideOnMobile)) || (previewDevice === "tablet" && Boolean(el.props?.hideOnTablet)) || (previewDevice === "desktop" && Boolean(el.props?.hideOnDesktop))))
                     .map((el) => {
                         const isInlineEditing = editingElementId === el.id
                         const isLayerHovered = hoveredExperienceNodeId === el.id
@@ -3242,7 +3432,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 beginTransaction()
                                 const startPositions: Record<string, { x: number; y: number }> = {}
 
-                                elements.forEach((item) => {
+                                elements.map((item) => getResponsiveElement(item, previewDevice)).forEach((item) => {
                                   if (activeIds.includes(item.id)) {
                                     startPositions[item.id] = { x: item.x, y: item.y }
                                   }
@@ -3355,7 +3545,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 ? "border border-dashed border-white/20 bg-white/5"
                                 : ""
                             }`}
-                            style={getElementFrameStyle(el)}
+                            style={{ ...getElementFrameStyle(el), ...getElementIntroAnimationStyle(el) }}
                           >
                                                         {isLocked && (
                               <div className="pointer-events-none absolute right-2 top-2 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-amber-300/30 bg-amber-500/12 text-[10px] font-black text-amber-100/70 shadow-[0_0_18px_rgba(251,191,36,0.18)] backdrop-blur-sm">
@@ -3365,22 +3555,7 @@ const selectedExperienceNode = experienceNodes.find(
                             {showInlineEditor ? (
                               <div className="h-full w-full p-2">
                                 {el.element_type === "text" ? (
-                                  <textarea
-                                    data-inline-editor="true"
-                                    autoFocus
-                                    defaultValue={el.content}
-                                    onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
-                                    onKeyDown={(e) => {
-                                      if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                                        commitInlineElementEdit(
-                                          el.id,
-                                          (e.target as HTMLTextAreaElement).value
-                                        )
-                                      }
-                                      if (e.key === "Escape") setEditingElementId(null)
-                                    }}
-                                    className="h-full w-full resize-none rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
-                                  />
+                                  <RichTextInlineEditor content={el.content} runs={Array.isArray(el.props?.richTextRuns) ? el.props.richTextRuns as RichTextRun[] : []} onCommit={(value, runs) => commitRichTextEdit(el.id, value, runs)} onCancel={() => setEditingElementId(null)} />
                                 ) : (
                                   <input
                                     data-inline-editor="true"
@@ -3575,7 +3750,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 className="h-full w-full whitespace-pre-wrap"
                                 style={getTextElementPresentationStyle(el)}
                               >
-                                {el.content}
+                                <RichTextContent content={el.content} runs={el.props?.richTextRuns} />
                               </div>
                             )}
 
@@ -3650,6 +3825,7 @@ const selectedExperienceNode = experienceNodes.find(
             isEditing,
             isEmbedded,
             isMobilePreview,
+            previewDevice,
             moveRegistrationFieldInSelectedBlock,
             moveSelectedBlock,
             moveSelectedSection,
@@ -3713,11 +3889,20 @@ const selectedExperienceNode = experienceNodes.find(
       {!isEmbedded && documentReady && !isCodeEditorOpen ? (
         <PageFilmstrip
           selectedPageKey={selectedPageKey}
+          pages={editorPages}
           onSelectPage={(pageKey) => {
             void selectPage(pageKey)
           }}
+          onAddPage={() => { void createEditorPage() }}
+          onRenamePage={(page) => { void renameEditorPage(page) }}
+          onDuplicatePage={(page) => { void createEditorPage(page.pageKey) }}
+          onDeletePage={(page) => { void deleteEditorPage(page) }}
+          onReorderPages={(pages) => { void persistPageOrder(pages) }}
+          thumbnailDocuments={pageThumbnails}
+          currentDocument={{ elements: normalizedElements, sections, eventTheme }}
         />
       ) : null}
+      {collaborationOpen && !isEmbedded ? <EditorCollaborationPanel slug={slug} pageKey={selectedPageKey} selectedElementId={selectedElement?.id ?? null} publicUrl={getPublicEditorPageUrl(slug, selectedPageKey)} teamHref={eventAdminId ? `/admin/events/${eventAdminId}/settings` : null} onClose={() => setCollaborationOpen(false)} /> : null}
   </div>
   )
 }

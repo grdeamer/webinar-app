@@ -3,6 +3,7 @@
 import Link from "next/link"
 import type { ElementAlignmentCommand } from "./elementAlignmentCommands"
 import { EDITOR_PAGES } from "./editorPages"
+import type { EditorPageManifestItem } from "./PageFilmstrip"
 
 type TemplateOption = {
   id: string
@@ -14,6 +15,7 @@ type Props = {
   eventTitle: string
   eventAdminHref: string | null
   selectedPageKey: string
+  pages: EditorPageManifestItem[]
   templates: TemplateOption[]
   canUndo: boolean
   canRedo: boolean
@@ -29,6 +31,8 @@ type Props = {
   showRulers?: boolean
   canCopyStyle?: boolean
   canPasteStyle?: boolean
+  saveStatus: string
+  eventStage: string
   onSelectPage: (pageKey: string) => void
   onSelectTemplate: (templateId: string) => void
   onUndo: () => void
@@ -44,6 +48,9 @@ type Props = {
   onAlignElements: (command: ElementAlignmentCommand) => void
   onGroupElements: () => void
   onUngroupElements: () => void
+  onPreview: () => void
+  onShare: () => void
+  onPublish: () => void
 }
 
 const EXPERIENCE_EDITOR_TOPBAR_CLASS =
@@ -90,6 +97,7 @@ export default function PageEditorToolbar({
   eventTitle,
   eventAdminHref,
   selectedPageKey,
+  pages,
   templates,
   canUndo,
   canRedo,
@@ -105,6 +113,8 @@ export default function PageEditorToolbar({
   showRulers,
   canCopyStyle,
   canPasteStyle,
+  saveStatus,
+  eventStage,
   onSelectPage,
   onSelectTemplate,
   onUndo,
@@ -120,32 +130,24 @@ export default function PageEditorToolbar({
   onAlignElements,
   onGroupElements,
   onUngroupElements,
+  onPreview,
+  onShare,
+  onPublish,
 }: Props) {
   return (
     <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
-      <div className="mx-auto flex max-w-[1600px] flex-wrap items-center justify-between gap-4 px-6 py-4">
-        <div className="flex items-center gap-4">
-          <div>
-            <div className="text-xs uppercase tracking-[0.22em] text-white/40">
-              {isEmbedded ? "Experience Builder" : "Page Editor Preview"}
-            </div>
-            <h1 className="text-xl font-semibold capitalize">
-              {isEmbedded ? "Experience Builder" : eventTitle}
-            </h1>
-            {!isEmbedded ? (
-              <Link
-                href={eventAdminHref ?? "/admin/events"}
-                aria-disabled={!eventAdminHref}
-                className={`mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-bold shadow-lg transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/70 ${
-                  eventAdminHref
-                    ? "border-sky-300/35 bg-sky-400/15 text-sky-50 shadow-sky-950/30 hover:border-sky-200/60 hover:bg-sky-300/25 hover:text-white"
-                    : "pointer-events-none border-white/5 bg-white/[0.025] text-white/25 shadow-none"
-                }`}
-              >
-                <span aria-hidden="true" className="text-lg leading-none">←</span>
-                Back to Event
-              </Link>
-            ) : null}
+      <div className="flex min-h-[72px] items-center justify-between gap-4 px-5 py-3">
+        <div className="min-w-0">
+          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-white/60">
+            {!isEmbedded ? <Link href="/admin/events" className="hover:text-white">Events</Link> : <span>Experience Builder</span>}
+            <span className="text-white/25">›</span>
+            {eventAdminHref ? <Link href={eventAdminHref} className="max-w-[260px] truncate text-white/80 hover:text-white">{eventTitle}</Link> : <span className="max-w-[260px] truncate text-white/80">{eventTitle}</span>}
+            <span className="text-white/25">›</span>
+            <span className="capitalize text-white">{pages.find((page) => page.pageKey === selectedPageKey)?.title ?? EDITOR_PAGES.find((page) => page.value === selectedPageKey)?.label ?? selectedPageKey}</span>
+          </div>
+          <div className="mt-2 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.12em]">
+            <span className={`rounded-full border px-2 py-1 ${eventStage === "live" ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200" : eventStage === "archived" ? "border-white/10 bg-white/5 text-white/45" : "border-amber-300/20 bg-amber-400/10 text-amber-100"}`}>{eventStage === "live" ? "Live" : eventStage === "archived" ? "Archived" : "Build"}</span>
+            <span className="normal-case tracking-normal text-white/38">{saveStatus}</span>
           </div>
         </div>
 
@@ -155,9 +157,9 @@ export default function PageEditorToolbar({
             onChange={(event) => onSelectPage(event.target.value)}
             className={EXPERIENCE_EDITOR_SELECT_CLASS}
           >
-            {EDITOR_PAGES.map((page) => (
-              <option key={page.value} value={page.value}>
-                {page.label}
+            {pages.map((page) => (
+              <option key={page.pageKey} value={page.pageKey}>
+                {page.title}
               </option>
             ))}
           </select>
@@ -203,38 +205,7 @@ export default function PageEditorToolbar({
             </button>
           </div>
 
-          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1">
-            {ZOOM_OPTIONS.map((zoom) => (
-              <button
-                key={zoom}
-                type="button"
-                onClick={() => onChangeZoom(zoom)}
-                disabled={isMobilePreview}
-                className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
-                  canvasZoom === zoom && !isMobilePreview
-                    ? "bg-white text-black"
-                    : isMobilePreview
-                      ? "cursor-not-allowed text-white/22"
-                      : "text-white/56 hover:bg-white/10 hover:text-white"
-                }`}
-              >
-                {Math.round(zoom * 100)}%
-              </button>
-            ))}
-
-            <button
-              type="button"
-              onClick={() => onChangeZoom(1)}
-              disabled={isMobilePreview}
-              className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
-                isMobilePreview
-                  ? "cursor-not-allowed text-white/22"
-                  : "text-white/56 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              Fit
-            </button>
-          </div>
+          <select aria-label="Canvas zoom" value={canvasZoom} onChange={(event) => onChangeZoom(Number(event.target.value))} disabled={isMobilePreview} className={EXPERIENCE_EDITOR_SELECT_CLASS}>{ZOOM_OPTIONS.map((zoom) => <option key={zoom} value={zoom}>{Math.round(zoom * 100)}%</option>)}</select>
 
           <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1">
             <button
@@ -288,6 +259,10 @@ export default function PageEditorToolbar({
           >
             {isCodeEditorOpen ? "Close Code" : "HTML + CSS"}
           </button>
+
+          <button type="button" onClick={onPreview} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Preview</button>
+          <button type="button" onClick={onShare} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Share</button>
+          <button type="button" onClick={onPublish} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,58,237,0.28)] transition hover:bg-violet-500">Publish</button>
 
           <button
             onClick={onToggleEditing}

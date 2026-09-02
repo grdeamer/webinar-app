@@ -58,6 +58,10 @@ export type SectionBlock =
         body?: string | null
         containerStyle?: "none" | "panel" | "subtle"
         registrationState?: RegistrationExperienceState
+        ctaLabel?: string
+        confirmationTitle?: string
+        confirmationBody?: string
+        [key: string]: unknown
       }
     }
 export type ExperienceNode = {
@@ -112,6 +116,10 @@ export type ExperienceNode = {
 }
 export type EventTheme = {
   pageBackgroundColor?: string
+  pageBackgroundImageUrl?: string
+  pageBackgroundImageFit?: "cover" | "contain"
+  pageBackgroundImagePosition?: string
+  pageBackgroundOverlay?: number
   panelBackgroundColor?: string
   panelBorderColor?: string
   textColor?: string

@@ -21,8 +21,30 @@ export type GeneralSessionPresentationSource = {
   playbackUrl?: string | null
 } | null
 
+export type ElementPreviewDevice = "desktop" | "tablet" | "mobile"
+
+type ResponsiveElementOverride = Partial<Pick<EventPageElement, "x" | "y" | "width" | "height">> & {
+  props?: Record<string, unknown>
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+export function getResponsiveElement(element: EventPageElement, device: ElementPreviewDevice): EventPageElement {
+  if (device === "desktop") return element
+  const responsive = isRecord(element.props?.responsiveStyles) ? element.props.responsiveStyles : null
+  const overrideValue = responsive?.[device]
+  if (!isRecord(overrideValue)) return element
+  const override = overrideValue as ResponsiveElementOverride
+  return {
+    ...element,
+    ...override,
+    props: {
+      ...(element.props ?? {}),
+      ...(isRecord(override.props) ? override.props : {}),
+    },
+  }
 }
 
 function getFiniteNumber(value: unknown, fallback: number) {
@@ -108,9 +130,6 @@ function getTransform(props: Record<string, unknown>) {
 
   const translateX = getOptionalFiniteNumber(props.translateX)
   const translateY = getOptionalFiniteNumber(props.translateY)
-  const rotation = getOptionalFiniteNumber(
-    props.rotation ?? props.rotationDeg ?? props.rotate
-  )
   const uniformScale = getOptionalFiniteNumber(props.scale)
   const scaleX = getOptionalFiniteNumber(props.scaleX) ?? uniformScale
   const scaleY = getOptionalFiniteNumber(props.scaleY) ?? uniformScale
@@ -119,7 +138,6 @@ function getTransform(props: Record<string, unknown>) {
   if (translateX !== null || translateY !== null) {
     transforms.push(`translate(${translateX ?? 0}px, ${translateY ?? 0}px)`)
   }
-  if (rotation !== null) transforms.push(`rotate(${rotation}deg)`)
   if (scaleX !== null || scaleY !== null) {
     transforms.push(`scale(${scaleX ?? 1}, ${scaleY ?? 1})`)
   }
@@ -154,9 +172,14 @@ export function getElementFrameStyle(
   element: EventPageElement
 ): CSSProperties {
   const props = element.props ?? {}
-  const transform = getTransform(props)
+  const baseTransform = getTransform(props)
+  const rotation = Number(props.rotation ?? 0)
+  const flipX = props.flipX === true ? -1 : 1
+  const flipY = props.flipY === true ? -1 : 1
+  const transforms = [baseTransform, Number.isFinite(rotation) && rotation !== 0 ? `rotate(${rotation}deg)` : "", flipX !== 1 || flipY !== 1 ? `scale(${flipX}, ${flipY})` : ""].filter(Boolean)
+  const transform = transforms.length ? transforms.join(" ") : undefined
 
-  return {
+  const style: CSSProperties & { "--jupiter-element-transform"?: string } = {
     left: element.x,
     top: element.y,
     zIndex: element.z_index ?? 1,
@@ -165,6 +188,7 @@ export function getElementFrameStyle(
     borderRadius: getCssLength(props.borderRadius, 12),
     opacity: clampOpacity(props.opacity),
     transform,
+    "--jupiter-element-transform": transform ?? "translate(0)",
     transformOrigin:
       transform && typeof props.transformOrigin === "string"
         ? props.transformOrigin
@@ -172,6 +196,19 @@ export function getElementFrameStyle(
           ? "center center"
           : undefined,
   }
+  return style
+}
+
+export function getElementIntroAnimationStyle(element: EventPageElement): CSSProperties {
+  const animation = isRecord(element.props?.animation) ? element.props.animation : {}
+  const intro = String(animation.intro ?? "none")
+  const names: Record<string, string> = { fade: "jupiterElementFade", "slide-up": "jupiterElementSlideUp", "slide-down": "jupiterElementSlideDown", "slide-left": "jupiterElementSlideLeft", "slide-right": "jupiterElementSlideRight", scale: "jupiterElementScale" }
+  const animationName = names[intro]
+  if (!animationName) return {}
+  const duration = Math.min(10_000, Math.max(0, getFiniteNumber(animation.duration, 400)))
+  const delay = Math.min(10_000, Math.max(0, getFiniteNumber(animation.delay, 0)))
+  const easing = ["linear", "ease", "ease-in", "ease-out", "ease-in-out"].includes(String(animation.easing)) ? String(animation.easing) : "ease-out"
+  return { animationName, animationDuration: `${duration}ms`, animationDelay: `${delay}ms`, animationTimingFunction: easing, animationFillMode: "both" }
 }
 
 export function getTextElementPresentationStyle(
@@ -179,6 +216,7 @@ export function getTextElementPresentationStyle(
 ): CSSProperties {
   const props = element.props ?? {}
 
+  const textEffect = String(props.textEffect ?? "none")
   return {
     padding: `${getCssLength(props.paddingY, 8)} ${getCssLength(
       props.paddingX,
@@ -196,6 +234,8 @@ export function getTextElementPresentationStyle(
     fontFamily: String(props.fontFamily ?? "inherit"),
     fontStyle: getFontStyle(props.fontStyle),
     textDecoration: String(props.textDecoration ?? "none"),
+    textTransform: String(props.textTransform ?? "none") as CSSProperties["textTransform"],
+    textShadow: textEffect === "glow" ? "0 0 8px currentColor, 0 0 20px currentColor" : textEffect === "shadow" ? "0 4px 10px rgba(0,0,0,.55)" : textEffect === "outline" ? "1px 1px 0 rgba(0,0,0,.8), -1px -1px 0 rgba(0,0,0,.8), 1px -1px 0 rgba(0,0,0,.8), -1px 1px 0 rgba(0,0,0,.8)" : "none",
     textAlign: getTextAlign(props.textAlign),
     lineHeight: getCssNumberOrString(props.lineHeight, 1.4),
     letterSpacing:
@@ -306,14 +346,19 @@ export function getElementContentAlignmentStyle(
   }
 }
 
-export function getResponsiveVisibilityClass(hideOnMobile: unknown) {
-  return hideOnMobile === true ? "hidden md:block" : ""
+export function getResponsiveVisibilityClass(input: unknown) {
+  if (!isRecord(input)) return input === true ? "max-md:hidden" : ""
+  return [
+    input.hideOnMobile === true ? "max-md:hidden" : "",
+    input.hideOnTablet === true ? "md:max-lg:hidden" : "",
+    input.hideOnDesktop === true ? "lg:hidden" : "",
+  ].filter(Boolean).join(" ")
 }
 
 export function getSectionResponsiveVisibilityClass(
   config: Pick<SectionConfig, "hideOnMobile">
 ) {
-  return getResponsiveVisibilityClass(config.hideOnMobile)
+  return getResponsiveVisibilityClass({ hideOnMobile: config.hideOnMobile })
 }
 
 export function getElementAnimationAttribute(element: EventPageElement) {

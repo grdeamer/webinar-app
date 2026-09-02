@@ -3,6 +3,7 @@
 
 alter table public.event_page_sections
   add column if not exists elements jsonb not null default '[]'::jsonb,
+  add column if not exists page_theme jsonb,
   add column if not exists document_revision bigint not null default 0;
 
 create or replace function public.save_event_page_document(
@@ -52,6 +53,7 @@ begin
         when p_has_elements then p_elements
         else event_page_sections.elements
       end,
+      page_theme = p_event_theme,
       document_revision = next_revision,
       updated_at = saved_at
     where event_id = p_event_id
@@ -71,6 +73,7 @@ begin
         page_key,
         sections,
         elements,
+        page_theme,
         document_revision,
         updated_at
       )
@@ -79,6 +82,7 @@ begin
         p_page_key,
         p_sections,
         case when p_has_elements then p_elements else '[]'::jsonb end,
+        p_event_theme,
         next_revision,
         saved_at
       )
@@ -89,12 +93,6 @@ begin
         return;
     end;
   end if;
-
-  update public.events
-  set
-    event_theme = p_event_theme,
-    updated_at = saved_at
-  where id = p_event_id;
 
   return query
   select

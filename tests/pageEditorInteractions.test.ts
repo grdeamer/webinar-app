@@ -10,6 +10,9 @@ import {
   getGroupResizeUpdates,
 } from "../components/page-editor/elementGrouping.ts"
 import { applyLayerCommand } from "../components/page-editor/layerCommands.ts"
+import { getPublicEditorPageUrl } from "../components/page-editor/editorPages.ts"
+import { getElementFrameStyle, getElementIntroAnimationStyle, getResponsiveElement } from "../lib/page-editor/elementPresentation.ts"
+import { getPageBackgroundStyle } from "../lib/page-editor/themeBackground.ts"
 
 test("canvas movement snaps matching centers within the threshold", () => {
   const result = calculateAlignmentGuides({
@@ -101,4 +104,72 @@ test("locked and visible layer state toggles independently", () => {
 
   assert.equal(hidden[0].locked, true)
   assert.equal(hidden[0].visible, false)
+})
+
+test("responsive element overrides preserve the desktop base", () => {
+  const element = {
+    id: "hero-title",
+    element_type: "text",
+    content: "Desktop title",
+    x: 120,
+    y: 80,
+    width: 640,
+    height: 120,
+    props: {
+      fontSize: 72,
+      responsiveStyles: {
+        mobile: { x: 24, y: 36, width: 320, props: { fontSize: 42 } },
+      },
+    },
+  }
+
+  const mobile = getResponsiveElement(element, "mobile")
+  assert.equal(mobile.x, 24)
+  assert.equal(mobile.width, 320)
+  assert.equal(mobile.props?.fontSize, 42)
+  assert.equal(element.x, 120)
+  assert.equal(element.props.fontSize, 72)
+})
+
+test("element frame rotation is composed exactly once with flips", () => {
+  const style = getElementFrameStyle({
+    id: "rotated",
+    element_type: "image",
+    content: "",
+    x: 0,
+    y: 0,
+    width: 200,
+    height: 100,
+    props: { rotation: 15, flipX: true },
+  })
+
+  assert.equal(style.transform, "rotate(15deg) scale(-1, 1)")
+})
+
+test("saved intro animation settings produce bounded motion styles", () => {
+  const style = getElementIntroAnimationStyle({ id: "animated", element_type: "text", content: "Hi", x: 0, y: 0, props: { animation: { intro: "slide-up", duration: 99999, delay: -20, easing: "ease-in-out" } } })
+  assert.equal(style.animationName, "jupiterElementSlideUp")
+  assert.equal(style.animationDuration, "10000ms")
+  assert.equal(style.animationDelay, "0ms")
+  assert.equal(style.animationTimingFunction, "ease-in-out")
+})
+
+test("page image backgrounds preserve safe sizing and clamp their overlay", () => {
+  const style = getPageBackgroundStyle({
+    pageBackgroundColor: "#020617",
+    pageBackgroundImageUrl: "https://cdn.example.test/hero image.jpg",
+    pageBackgroundImageFit: "contain",
+    pageBackgroundImagePosition: "top",
+    pageBackgroundOverlay: 4,
+  })
+
+  assert.match(String(style.backgroundImage), /rgba\(2,6,23,0\.9\)/)
+  assert.match(String(style.backgroundImage), /hero image\.jpg/)
+  assert.equal(style.backgroundSize, "cover, contain")
+  assert.equal(style.backgroundPosition, "center, top")
+})
+
+test("preview links target the selected built-in or custom page", () => {
+  assert.equal(getPublicEditorPageUrl("annual-meeting", "agenda"), "/events/annual-meeting/agenda")
+  assert.equal(getPublicEditorPageUrl("annual meeting", "leadership-room"), "/events/annual%20meeting/pages/leadership-room")
 })

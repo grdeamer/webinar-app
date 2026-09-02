@@ -214,7 +214,7 @@ export default async function EventSessionsPage(props: {
 
   const pageDocument = await loadEventPageDocument(event.id, "sessions")
 
-  const eventTheme = normalizeTheme(eventRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
   const savedSections = normalizeEventPageSections(pageDocument.sections)
   const baseSections =
     savedSections.length > 0

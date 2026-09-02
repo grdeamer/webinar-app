@@ -12,6 +12,7 @@ import type {
   SectionBlock,
   EventTheme,
 } from "@/lib/page-editor/sectionTypes"
+import { getPageBackgroundStyle } from "@/lib/page-editor/themeBackground"
 
 type EventLike = {
   title: string
@@ -249,14 +250,9 @@ function renderBlock(
 }
 
 function getCardStackPageStyle(theme: EventTheme): CSSProperties {
-  const colorA = theme.gradientColorA || "#020617"
-  const colorB = theme.gradientColorB || "#020617"
-  const angle = theme.gradientAngle || "135deg"
-
   return {
     color: theme.textColor || "#ffffff",
-    backgroundColor: theme.pageBackgroundColor || "#020617",
-    backgroundImage: `linear-gradient(${angle}, ${colorA}, ${colorB})`,
+    ...getPageBackgroundStyle(theme, true),
   }
 }
 
@@ -800,7 +796,7 @@ export default function EventPageRenderer({
     <div
       className="relative overflow-hidden rounded-3xl border text-white"
       style={{
-        backgroundColor: resolvedEventTheme.pageBackgroundColor,
+        ...getPageBackgroundStyle(resolvedEventTheme),
         borderColor: resolvedEventTheme.panelBorderColor,
         color: resolvedEventTheme.textColor,
       }}

@@ -85,10 +85,10 @@ export default async function EventChatPage(props: {
     adminLabel: "Chat",
     containerStyle: "panel",
   })
-  const eventTheme =
+  const eventTheme = pageDocument.eventTheme ?? (
     eventRow?.event_theme && typeof eventRow.event_theme === "object"
       ? (eventRow.event_theme as EventTheme)
-      : undefined
+      : undefined)
   const chatRoom = <EventChatRoom eventSlug={slug} roomKey="general" />
 
   return (

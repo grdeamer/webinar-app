@@ -171,7 +171,7 @@ export default async function LibraryPage(props: {
   if (error) throw new Error(error.message)
 
   const items = (data || []) as LibraryItem[]
-  const eventTheme = normalizeTheme(eventRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
   const storedSections = normalizeEventPageSections(pageDocument.sections)
   const baseSections =
     storedSections.length > 0

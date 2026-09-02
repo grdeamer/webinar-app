@@ -210,7 +210,7 @@ export default async function EventBreakoutsPage(props: {
   if (error) throw new Error(error.message)
 
   const items = (data || []) as BreakoutRow[]
-  const eventTheme = normalizeTheme(eventRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
   const storedSections = normalizeEventPageSections(pageDocument.sections)
 
   const destination = getEventLiveDestination({

@@ -86,10 +86,10 @@ export default async function EventNetworkingPage(props: {
     sectionId: "networking-room-runtime",
     adminLabel: "Networking Room",
   })
-  const eventTheme =
+  const eventTheme = pageDocument.eventTheme ?? (
     eventRow?.event_theme && typeof eventRow.event_theme === "object"
       ? (eventRow.event_theme as EventTheme)
-      : undefined
+      : undefined)
 
   const networkingRoom = <NetworkingRoom eventSlug={slug} />
 

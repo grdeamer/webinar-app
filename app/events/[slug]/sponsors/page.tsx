@@ -161,7 +161,7 @@ export default async function SponsorsPage(props: {
   if (error) throw new Error(error.message)
 
   const sponsors = (data || []) as Sponsor[]
-  const eventTheme = normalizeTheme(eventRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
   const storedSections = normalizeEventPageSections(pageDocument.sections)
   const baseSections =
     storedSections.length > 0

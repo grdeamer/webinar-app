@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { normalizeEventPageElements } from "@/lib/page-editor/elements"
 import type { EventTheme } from "@/lib/page-editor/sectionTypes"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -30,7 +31,7 @@ function isUuid(value: string) {
 }
 
 async function getEventBySlugOrId(value: string) {
-  const query = supabaseAdmin.from("events").select("id, slug, event_theme")
+  const query = supabaseAdmin.from("events").select("id, slug, title, lifecycle_stage, event_theme")
 
   const { data, error } = isUuid(value)
     ? await query.eq("id", value).maybeSingle()
@@ -114,9 +115,11 @@ export async function GET(
   ctx: { params: Promise<{ slug: string }> }
 ): Promise<Response> {
   const { slug } = await ctx.params
+  const access = await requireEventOperatorAccess(slug)
+  if (access instanceof NextResponse) return access
   const pageKey = getPageKey(req)
 
-  const { data: event, error: eventError } = await getEventBySlugOrId(slug)
+  const { data: event, error: eventError } = await getEventBySlugOrId(access.eventId)
 
   if (eventError || !event) {
     return json({ error: "Event not found" }, 404)
@@ -124,7 +127,7 @@ export async function GET(
 
   const { data: pageRow, error: pageError } = await supabaseAdmin
     .from("event_page_sections")
-    .select("sections, elements, document_revision")
+    .select("sections, elements, page_theme, document_revision")
     .eq("event_id", event.id)
     .eq("page_key", pageKey)
     .maybeSingle()
@@ -136,8 +139,10 @@ export async function GET(
   return json({
     event_id: event.id,
     event_slug: event.slug,
+    event_title: event.title,
+    event_stage: event.lifecycle_stage,
     pageKey,
-    eventTheme: normalizeTheme(event.event_theme),
+    eventTheme: normalizeTheme(pageRow?.page_theme) ?? normalizeTheme(event.event_theme),
     elements: normalizeEventPageElements(pageRow?.elements),
     sections: normalizeSections(pageRow?.sections),
     revision: normalizeRevision(pageRow?.document_revision),
@@ -149,6 +154,8 @@ export async function POST(
   ctx: { params: Promise<{ slug: string }> }
 ): Promise<Response> {
   const { slug } = await ctx.params
+  const access = await requireEventOperatorAccess(slug)
+  if (access instanceof NextResponse) return access
   const pageKey = getPageKey(req)
   const input = await req.json().catch((): null => null)
   const body = isRecord(input) ? input : {}
@@ -169,7 +176,7 @@ export async function POST(
   const elements = normalizeEventPageElements(body.elements)
   const eventTheme = normalizeTheme(body.eventTheme)
 
-  const { data: event, error: eventError } = await getEventBySlugOrId(slug)
+  const { data: event, error: eventError } = await getEventBySlugOrId(access.eventId)
 
   if (eventError || !event) {
     return json({ error: "Event not found" }, 404)

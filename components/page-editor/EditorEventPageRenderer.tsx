@@ -8,6 +8,7 @@ import type {
   EventTheme,
   ExperienceNode,
 } from "@/lib/page-editor/sectionTypes"
+import { getPageBackgroundStyle } from "@/lib/page-editor/themeBackground"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
 import { getRenderableSections } from "@/lib/page-editor/customCode"
 
@@ -454,7 +455,7 @@ export default function EditorEventPageRenderer({
     <div
       className={RENDERER_ROOT_CLASS}
       style={{
-        backgroundColor: resolvedEventTheme.pageBackgroundColor,
+        ...getPageBackgroundStyle(resolvedEventTheme),
         borderColor: resolvedEventTheme.panelBorderColor,
         color: resolvedEventTheme.textColor,
       }}

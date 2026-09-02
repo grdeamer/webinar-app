@@ -15,9 +15,15 @@ const buttonClass =
 export default function TextContextToolbar({
   element,
   onUpdate,
+  onDuplicate,
+  onToggleLock,
+  onDelete,
 }: {
   element: EventPageElement
   onUpdate: (props: Record<string, unknown>) => void
+  onDuplicate: () => void
+  onToggleLock: () => void
+  onDelete: () => void
 }) {
   const props = element.props ?? {}
   const weight = Number(props.fontWeight ?? 500)
@@ -62,7 +68,9 @@ export default function TextContextToolbar({
         <span>Color</span>
         <input aria-label="Text color" type="color" value={String(props.textColor ?? "#ffffff")} onChange={(event) => onUpdate({ textColor: event.target.value })} className="h-5 w-5 cursor-pointer rounded border-0 bg-transparent p-0" />
       </label>
+      <select aria-label="Text effect" value={String(props.textEffect ?? "none")} onChange={(event) => onUpdate({ textEffect: event.target.value })} className="h-8 rounded-lg border border-white/8 bg-black/20 px-2 text-[10px] font-semibold text-white/65 outline-none"><option value="none">No effect</option><option value="shadow">Shadow</option><option value="glow">Glow</option><option value="outline">Outline</option></select>
+      <details className="relative"><summary aria-label="More text actions" className={`${buttonClass} cursor-pointer list-none`}>•••</summary><div className="absolute right-0 top-10 z-50 grid w-36 gap-1 rounded-xl border border-white/10 bg-[#111621] p-1.5 shadow-2xl"><button type="button" className={buttonClass} onClick={onDuplicate}>Duplicate</button><button type="button" className={buttonClass} onClick={onToggleLock}>{element.locked ? "Unlock" : "Lock"}</button></div></details>
+      <button type="button" aria-label="Delete text element" title="Delete" onClick={onDelete} className={`${buttonClass} text-red-200/70 hover:bg-red-400/15 hover:text-red-100`}>⌫</button>
     </div>
   )
 }
-

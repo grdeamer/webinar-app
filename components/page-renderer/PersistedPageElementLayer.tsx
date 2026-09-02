@@ -8,6 +8,8 @@ import {
   getElementContentAlignmentStyle,
   getElementFrameStyle,
   getImageElementPresentationStyle,
+  getElementIntroAnimationStyle,
+  getResponsiveElement,
   getResponsiveVisibilityClass,
   getTextElementPresentationStyle,
   getVideoElementPresentationStyle,
@@ -17,6 +19,7 @@ import {
   type GeneralSessionPresentationSource,
 } from "@/lib/page-editor/elementPresentation"
 import type { EventPageElement } from "@/lib/page-editor/sectionTypes"
+import RichTextContent from "./RichTextContent"
 
 function PersistedVideoPresentation({
   element,
@@ -153,6 +156,7 @@ export default function PersistedPageElementLayer({
 }) {
   const [generalSession, setGeneralSession] =
     useState<GeneralSessionPresentationSource>(null)
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop")
   const refreshPromiseRef = useRef<
     Promise<GeneralSessionPresentationSource> | null
   >(null)
@@ -200,19 +204,25 @@ export default function PersistedPageElementLayer({
     })
   }, [refreshGeneralSession, usesGeneralSession])
 
+  useEffect(() => {
+    const updateDevice = () => setPreviewDevice(window.innerWidth < 768 ? "mobile" : window.innerWidth < 1024 ? "tablet" : "desktop")
+    updateDevice()
+    window.addEventListener("resize", updateDevice, { passive: true })
+    return () => window.removeEventListener("resize", updateDevice)
+  }, [])
+
   const resolvedGeneralSession = usesGeneralSession ? generalSession : null
 
   return elements
     .filter((element) => element.visible !== false)
+    .map((element) => getResponsiveElement(element, previewDevice))
     .map((element) => (
       <div
         key={element.id}
         data-page-element-id={element.id}
         data-page-element-type={element.element_type ?? "text"}
         data-element-animation={getElementAnimationAttribute(element)}
-        className={`absolute overflow-hidden rounded-xl ${getResponsiveVisibilityClass(
-          element.props?.hideOnMobile
-        )} ${
+        className={`absolute overflow-hidden rounded-xl ${getResponsiveVisibilityClass(element.props)} ${
           element.element_type === "image"
             ? "bg-white"
             : element.element_type === "video"
@@ -225,7 +235,7 @@ export default function PersistedPageElementLayer({
                     ? "border border-dashed border-white/20 bg-white/5"
                     : ""
         }`}
-        style={getElementFrameStyle(element)}
+        style={{ ...getElementFrameStyle(element), ...getElementIntroAnimationStyle(element) }}
       >
         {element.element_type === "image" ? (
           <img
@@ -279,7 +289,7 @@ export default function PersistedPageElementLayer({
             className="h-full w-full whitespace-pre-wrap"
             style={getTextElementPresentationStyle(element)}
           >
-            {element.content}
+            <RichTextContent content={element.content} runs={element.props?.richTextRuns} />
           </div>
         )}
       </div>
