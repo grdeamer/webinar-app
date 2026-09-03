@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import {
   districtDigest,
-  getAssignedDistrictSession,
+  getAssignedDistrictSessions,
   isDistrictEmail,
   isDistrictLookupWindowOpen,
   normalizeDistrictEmail,
@@ -78,7 +78,7 @@ export async function POST(
       )
     }
 
-    const assignment = await getAssignedDistrictSession(event.id, email)
+    const assignment = await getAssignedDistrictSessions(event.id, email)
     const requestId = randomUUID()
     const auditToken = randomUUID()
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
@@ -89,7 +89,7 @@ export async function POST(
         id: requestId,
         event_id: event.id,
         registrant_id: assignment?.registrantId || null,
-        session_id: assignment?.session.id || null,
+        session_id: assignment?.sessions[0]?.id || null,
         email_hash: emailHash,
         ip_hash: ipHash,
         code_digest: districtDigest("code", `${requestId}:${auditToken}`),
@@ -111,11 +111,17 @@ export async function POST(
     return json(request, {
       ok: true,
       district: {
-        code: assignment.session.code,
-        name: assignment.session.title,
-        manager: assignment.session.presenter,
-        meeting_link: assignment.session.external_join_url,
+        code: assignment.sessions[0].code,
+        name: assignment.sessions[0].title,
+        manager: assignment.sessions[0].presenter,
+        meeting_link: assignment.sessions[0].external_join_url,
       },
+      districts: assignment.sessions.map((session) => ({
+        code: session.code,
+        name: session.title,
+        manager: session.presenter,
+        meeting_link: session.external_join_url,
+      })),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to find a district room"

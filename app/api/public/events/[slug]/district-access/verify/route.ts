@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import {
   districtDigest,
   districtDigestMatches,
-  getAssignedDistrictSession,
+  getAssignedDistrictSessions,
   isDistrictEmail,
   isDistrictLookupWindowOpen,
   normalizeDistrictEmail,
@@ -101,11 +101,11 @@ export async function POST(
 
     if (!emailMatches || !codeMatches) return denied(request)
 
-    const assignment = await getAssignedDistrictSession(event.id, email)
+    const assignment = await getAssignedDistrictSessions(event.id, email)
     if (
       !assignment ||
       assignment.registrantId !== challenge.registrant_id ||
-      assignment.session.id !== challenge.session_id
+      !assignment.sessions.some((session) => session.id === challenge.session_id)
     ) {
       return denied(request)
     }
@@ -125,11 +125,17 @@ export async function POST(
     return json(request, {
       ok: true,
       district: {
-        code: assignment.session.code,
-        name: assignment.session.title,
-        manager: assignment.session.presenter,
-        meeting_link: assignment.session.external_join_url,
+        code: assignment.sessions[0].code,
+        name: assignment.sessions[0].title,
+        manager: assignment.sessions[0].presenter,
+        meeting_link: assignment.sessions[0].external_join_url,
       },
+      districts: assignment.sessions.map((session) => ({
+        code: session.code,
+        name: session.title,
+        manager: session.presenter,
+        meeting_link: session.external_join_url,
+      })),
     })
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unable to verify code"

@@ -164,6 +164,11 @@ export default function PeopleClient({
     [districtById]
   )
 
+  const districtsOf = useCallback(
+    (person: Person) => person.session_ids.map((id) => districtById.get(id)).filter((district): district is District => Boolean(district)),
+    [districtById]
+  )
+
   const districtCounts = useMemo(() => {
     const tally = new Map<string, number>()
     for (const person of people) {
@@ -289,14 +294,15 @@ export default function PeopleClient({
     }
   }
 
-  const assignDistrict = useCallback(async (personIds: string[], districtSessionId: string | null) => {
+  const assignDistrict = useCallback(async (personIds: string[], districtSessionId: string | null, add = true) => {
     const ids = [...new Set(personIds)]
     if (!ids.length) return
     const previous = people
     setPeople((current) => current.map((person) => {
       if (!ids.includes(person.id)) return person
-      const withoutDistricts = person.session_ids.filter((id) => !districtById.has(id))
-      return { ...person, session_ids: districtSessionId ? [...withoutDistricts, districtSessionId] : withoutDistricts }
+      const withoutTarget = person.session_ids.filter((id) => id !== districtSessionId)
+      if (!districtSessionId) return { ...person, session_ids: person.session_ids.filter((id) => !districtById.has(id)) }
+      return { ...person, session_ids: add ? [...withoutTarget, districtSessionId] : withoutTarget }
     }))
     setBusy("district")
     setError(null)
@@ -304,7 +310,7 @@ export default function PeopleClient({
       const response = await fetch(`/api/admin/events/${eventId}/attendees/bulk-district`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ attendee_ids: ids, district_session_id: districtSessionId }),
+        body: JSON.stringify({ attendee_ids: ids, district_session_id: districtSessionId, action: districtSessionId ? (add ? "add" : "remove") : "clear" }),
       })
       const payload = await response.json().catch((): null => null)
       if (!response.ok) throw new Error(payload?.error || "Could not update district assignments")
@@ -358,7 +364,7 @@ export default function PeopleClient({
       if (!rows.length) return
       // A single click on an assigned cell clears it; a drag always assigns.
       const clearing = rows.length === 1 && rows[0].session_ids.includes(range.columnId)
-      if (matrixMode === "district") void assignDistrict(rows.map((person) => person.id), clearing ? null : range.columnId)
+      if (matrixMode === "district") void assignDistrict(rows.map((person) => person.id), range.columnId, !clearing)
       else void assignSession(rows.map((person) => person.id), range.columnId, !clearing)
     }
     window.addEventListener("mouseup", commitDrag)
@@ -545,7 +551,7 @@ export default function PeopleClient({
                 {([{ id: "district", label: `Districts (${districts.length})`, disabled: districts.length === 0 }, { id: "session", label: `Sessions (${sessionColumns.length})`, disabled: sessionColumns.length === 0 }] as const).map((tab) => <button key={tab.id} type="button" disabled={tab.disabled} onClick={() => switchMatrixMode(tab.id)} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-35 ${matrixMode === tab.id ? "border-violet-300/30 bg-violet-500/15 text-violet-100" : "border-white/10 bg-white/[.04] text-white/60 hover:bg-white/10"}`}>{tab.label}</button>)}
               </div>
               <p className="mt-3 max-w-2xl text-sm text-white/50">{matrixMode === "district"
-                ? "Click a cell to move someone into that district, click it again to clear them, or drag down a column to lasso a run of people. Everyone holds one district at a time."
+                ? "Click a cell to add that district, click it again to remove it, or drag down a column to assign a run of people. People can hold multiple districts."
                 : "Click a cell to give someone access to that session, click it again to take it away, or drag down a column to lasso a run of people. Sessions stack — people can hold as many as you like."}</p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -565,16 +571,15 @@ export default function PeopleClient({
               </thead>
               <tbody>
                 {visiblePeople.map((person, rowIndex) => {
-                  const assigned = districtOf(person)
                   return <tr key={person.id}>
                     <th scope="row" className="sticky left-0 z-10 max-w-[260px] bg-[#0b111c] px-4 py-2 text-left font-normal">
                       <div className="truncate text-sm">{personName(person)}</div>
                       <div className="truncate text-xs text-white/35">{matrixMode === "district"
-                        ? assigned ? assigned.title : "Unassigned"
+                        ? districtsOf(person).length ? districtsOf(person).map((district) => district.code || district.title).join(", ") : "Unassigned"
                         : `${person.session_ids.filter((id) => !districtById.has(id)).length} sessions`}</div>
                     </th>
                     {visibleColumns.map((column) => {
-                      const isAssigned = matrixMode === "district" ? assigned?.id === column.id : person.session_ids.includes(column.id)
+                      const isAssigned = person.session_ids.includes(column.id)
                       const inDrag = drag?.columnId === column.id
                         && rowIndex >= Math.min(drag.start, drag.end)
                         && rowIndex <= Math.max(drag.start, drag.end)

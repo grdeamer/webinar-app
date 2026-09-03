@@ -44,7 +44,12 @@ export async function PATCH(
 
     const districtSessionId = district_session_id ? String(district_session_id) : null
     if (district_session_id !== undefined) {
-      await assignRegistrantsToDistrict(eventId, [attendeeId], districtSessionId)
+      await assignRegistrantsToDistrict(
+        eventId,
+        [attendeeId],
+        districtSessionId,
+        districtSessionId ? "add" : "clear"
+      )
     }
 
     if (district_meeting_url !== undefined && districtSessionId) {

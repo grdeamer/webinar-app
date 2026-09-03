@@ -72,7 +72,7 @@ export async function isDistrictLookupWindowOpen(eventId: string) {
   return (data || []).some(isDistrictAgendaItem)
 }
 
-export async function getAssignedDistrictSession(eventId: string, email: string) {
+export async function getAssignedDistrictSessions(eventId: string, email: string) {
   const { data: registrant, error: registrantError } = await supabaseAdmin
     .from("event_registrants")
     .select("id")
@@ -110,8 +110,15 @@ export async function getAssignedDistrictSession(eventId: string, email: string)
       typeof session.external_join_url === "string" && /^https:\/\//i.test(session.external_join_url)
   )
 
-  if (validSessions.length !== 1) return null
-  return { registrantId: registrant.id as string, session: validSessions[0] }
+  if (!validSessions.length) return null
+  return { registrantId: registrant.id as string, sessions: validSessions }
+}
+
+/** Backward-compatible first district for callers that only support one room. */
+export async function getAssignedDistrictSession(eventId: string, email: string) {
+  const assignment = await getAssignedDistrictSessions(eventId, email)
+  if (!assignment) return null
+  return { registrantId: assignment.registrantId, session: assignment.sessions[0] }
 }
 
 /** Returns the assignable district rooms for a single event. */
@@ -132,11 +139,12 @@ export async function listDistrictSessions(eventId: string) {
   }>
 }
 
-/** Moves event registrants into one district room, or clears their district. */
+/** Adds, removes, replaces, or clears district assignments for event registrants. */
 export async function assignRegistrantsToDistrict(
   eventId: string,
   registrantIds: string[],
-  sessionId: string | null
+  sessionId: string | null,
+  action: "add" | "remove" | "replace" | "clear" = "replace"
 ) {
   const requestedIds = [...new Set(registrantIds.filter(Boolean))]
   if (!requestedIds.length) return { assigned: 0 }
@@ -161,7 +169,8 @@ export async function assignRegistrantsToDistrict(
     throw new Error("That district room does not belong to this event")
   }
 
-  if (districtIds.length) {
+  const shouldClearAll = action === "clear" || (action === "replace" && !sessionId)
+  if (shouldClearAll && districtIds.length) {
     const { error } = await supabaseAdmin
       .from("event_registrant_sessions")
       .delete()
@@ -172,16 +181,51 @@ export async function assignRegistrantsToDistrict(
     if (error) throw new Error(error.message)
   }
 
-  if (!sessionId) return { assigned: 0 }
+  if (shouldClearAll || !sessionId) return { assigned: 0 }
+
+  if (action === "remove") {
+    const { error: removeError } = await supabaseAdmin
+      .from("event_registrant_sessions")
+      .delete()
+      .eq("event_id", eventId)
+      .eq("session_id", sessionId)
+      .in("registrant_id", validRegistrantIds)
+
+    if (removeError) throw new Error(removeError.message)
+    return { assigned: 0 }
+  }
+
+  if (action === "replace" && districtIds.length) {
+    const { error: replaceError } = await supabaseAdmin
+      .from("event_registrant_sessions")
+      .delete()
+      .eq("event_id", eventId)
+      .in("registrant_id", validRegistrantIds)
+      .in("session_id", districtIds)
+
+    if (replaceError) throw new Error(replaceError.message)
+  }
+
+  const { data: existing, error: existingError } = await supabaseAdmin
+    .from("event_registrant_sessions")
+    .select("registrant_id")
+    .eq("event_id", eventId)
+    .eq("session_id", sessionId)
+    .in("registrant_id", validRegistrantIds)
+
+  if (existingError) throw new Error(existingError.message)
+  const existingIds = new Set((existing || []).map((row) => String(row.registrant_id)))
+  const idsToInsert = validRegistrantIds.filter((id) => !existingIds.has(id))
+  if (!idsToInsert.length) return { assigned: 0 }
 
   const { error: insertError } = await supabaseAdmin
     .from("event_registrant_sessions")
-    .insert(validRegistrantIds.map((registrantId) => ({
+    .insert(idsToInsert.map((registrantId) => ({
       event_id: eventId,
       registrant_id: registrantId,
       session_id: sessionId,
     })))
 
   if (insertError) throw new Error(insertError.message)
-  return { assigned: validRegistrantIds.length }
+  return { assigned: idsToInsert.length }
 }
