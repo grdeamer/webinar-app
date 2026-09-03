@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { listDistrictSessions } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
 
@@ -77,6 +78,8 @@ export async function GET(
       external_join_url: session.external_join_url,
     }))
 
+    const districts = await listDistrictSessions(eventId)
+
     const { data: registrants, error: registrantsError } = await supabaseAdmin
       .from("event_registrants")
       .select("id,event_id,email,first_name,last_name,tag,created_at")
@@ -122,9 +125,9 @@ export async function GET(
           source: "event_registrants",
         }))
 
-      return json({ attendees, sessions: safeSessions })
+      return json({ attendees, sessions: safeSessions, districts })
     }
-    return json({ attendees: [], sessions: safeSessions })
+    return json({ attendees: [], sessions: safeSessions, districts })
   } catch (err) {
     console.error("Attendees API error:", err)
     return json({ error: err instanceof Error ? err.message : "Server error" }, 500)

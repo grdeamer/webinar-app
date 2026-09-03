@@ -113,3 +113,75 @@ export async function getAssignedDistrictSession(eventId: string, email: string)
   if (validSessions.length !== 1) return null
   return { registrantId: registrant.id as string, session: validSessions[0] }
 }
+
+/** Returns the assignable district rooms for a single event. */
+export async function listDistrictSessions(eventId: string) {
+  const { data, error } = await supabaseAdmin
+    .from("event_sessions")
+    .select("id,code,title,presenter,external_join_url")
+    .eq("event_id", eventId)
+    .eq("session_kind", "breakout")
+    .eq("visibility_mode", "assigned")
+    .eq("delivery_mode", "external")
+    .order("sort_order", { ascending: true })
+    .order("code", { ascending: true })
+
+  if (error) throw new Error(error.message)
+  return (data || []) as Array<Omit<DistrictSession, "external_join_url"> & {
+    external_join_url: string | null
+  }>
+}
+
+/** Moves event registrants into one district room, or clears their district. */
+export async function assignRegistrantsToDistrict(
+  eventId: string,
+  registrantIds: string[],
+  sessionId: string | null
+) {
+  const requestedIds = [...new Set(registrantIds.filter(Boolean))]
+  if (!requestedIds.length) return { assigned: 0 }
+
+  const [{ data: registrants, error: registrantError }, districts] = await Promise.all([
+    supabaseAdmin
+      .from("event_registrants")
+      .select("id")
+      .eq("event_id", eventId)
+      .in("id", requestedIds),
+    listDistrictSessions(eventId),
+  ])
+
+  if (registrantError) throw new Error(registrantError.message)
+  const validRegistrantIds = (registrants || []).map((registrant) => String(registrant.id))
+  if (validRegistrantIds.length !== requestedIds.length) {
+    throw new Error("An attendee does not belong to this event")
+  }
+
+  const districtIds = districts.map((district) => district.id)
+  if (sessionId && !districtIds.includes(sessionId)) {
+    throw new Error("That district room does not belong to this event")
+  }
+
+  if (districtIds.length) {
+    const { error } = await supabaseAdmin
+      .from("event_registrant_sessions")
+      .delete()
+      .eq("event_id", eventId)
+      .in("registrant_id", validRegistrantIds)
+      .in("session_id", districtIds)
+
+    if (error) throw new Error(error.message)
+  }
+
+  if (!sessionId) return { assigned: 0 }
+
+  const { error: insertError } = await supabaseAdmin
+    .from("event_registrant_sessions")
+    .insert(validRegistrantIds.map((registrantId) => ({
+      event_id: eventId,
+      registrant_id: registrantId,
+      session_id: sessionId,
+    })))
+
+  if (insertError) throw new Error(insertError.message)
+  return { assigned: validRegistrantIds.length }
+}

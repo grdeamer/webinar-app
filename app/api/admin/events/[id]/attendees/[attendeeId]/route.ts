@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { assignRegistrantsToDistrict } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
 
@@ -19,7 +20,7 @@ export async function PATCH(
 
     const { id: eventId, attendeeId } = await context.params
     const body = await request.json()
-    const { first_name, last_name, email, role, district_meeting_url } = body
+    const { first_name, last_name, email, role, district_meeting_url, district_session_id } = body
 
     const updateData: Record<string, unknown> = {}
     if (first_name !== undefined) updateData.first_name = first_name
@@ -41,25 +42,25 @@ export async function PATCH(
       return json({ error: error.message }, 400)
     }
 
-    // Update district session meeting URL if provided and attendee has a session
-    if (district_meeting_url !== undefined) {
-      const { data: assignments, error: assignmentsError } = await supabaseAdmin
-        .from("event_registrant_sessions")
-        .select("session_id")
-        .eq("registrant_id", attendeeId)
+    const districtSessionId = district_session_id ? String(district_session_id) : null
+    if (district_session_id !== undefined) {
+      await assignRegistrantsToDistrict(eventId, [attendeeId], districtSessionId)
+    }
+
+    if (district_meeting_url !== undefined && districtSessionId) {
+      const meetingUrl = String(district_meeting_url).trim()
+      if (!/^https:\/\//i.test(meetingUrl)) {
+        return json({ error: "District meeting URL must use HTTPS" }, 400)
+      }
+
+      const { error: sessionError } = await supabaseAdmin
+        .from("event_sessions")
+        .update({ external_join_url: meetingUrl })
+        .eq("id", districtSessionId)
         .eq("event_id", eventId)
 
-      if (!assignmentsError && assignments && assignments.length > 0) {
-        const sessionId = assignments[0].session_id
-        const { error: sessionError } = await supabaseAdmin
-          .from("event_sessions")
-          .update({ external_join_url: district_meeting_url })
-          .eq("id", sessionId)
-          .eq("event_id", eventId)
-
-        if (sessionError) {
-          return json({ error: sessionError.message }, 400)
-        }
+      if (sessionError) {
+        return json({ error: sessionError.message }, 400)
       }
     }
 

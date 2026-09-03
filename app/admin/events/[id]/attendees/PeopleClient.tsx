@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import { Check, CircleCheckBig, Download, Mail, Plus, RefreshCw, Search, Trash2, Upload, UserRound, Users, X } from "lucide-react"
+import { Check, CircleCheckBig, Download, Grid3x3, Mail, Plus, RefreshCw, Search, Trash2, Upload, UserRound, Users, X } from "lucide-react"
 
 type Role = "registrant" | "presenter"
 type Person = {
@@ -17,6 +17,9 @@ type Person = {
   source: "event_registrants"
 }
 type Session = { id: string; code: string | null; title: string; starts_at: string | null; ends_at: string | null; external_join_url: string | null }
+type District = { id: string; code: string | null; title: string; presenter: string | null; external_join_url: string | null }
+type MatrixMode = "district" | "session"
+type MatrixColumn = { id: string; code: string | null; title: string; subtitle: string | null }
 type OperationProgress = {
   state: "idle" | "running" | "complete" | "error"
   percent: number
@@ -66,16 +69,25 @@ export default function PeopleClient({
   eventSlug, 
   eventTitle,
   initialAttendees = [],
-  initialSessions = []
+  initialSessions = [],
+  initialDistricts = []
 }: { 
   eventId: string; 
   eventSlug: string; 
   eventTitle: string;
   initialAttendees?: Person[];
   initialSessions?: Session[];
+  initialDistricts?: District[];
 }) {
   const [people, setPeople] = useState<Person[]>(initialAttendees)
   const [sessions, setSessions] = useState<Session[]>(initialSessions)
+  const [districts, setDistricts] = useState<District[]>(initialDistricts)
+  const [matrixOpen, setMatrixOpen] = useState(false)
+  const [matrixMode, setMatrixMode] = useState<MatrixMode>(initialDistricts.length ? "district" : "session")
+  const [drag, setDrag] = useState<{ columnId: string; start: number; end: number } | null>(null)
+  const [districtFilter, setDistrictFilter] = useState("")
+  const [bulkDistrictId, setBulkDistrictId] = useState("")
+  const [bulkSessionId, setBulkSessionId] = useState("")
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [filter, setFilter] = useState<"everyone" | Role>("everyone")
   const [search, setSearch] = useState("")
@@ -91,7 +103,7 @@ export default function PeopleClient({
   const [removeProgress, setRemoveProgress] = useState<OperationProgress>(idleProgress)
   const [newPerson, setNewPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role })
   const [editMode, setEditMode] = useState(false)
-  const [editPerson, setEditPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role, district_meeting_url: "" })
+  const [editPerson, setEditPerson] = useState({ first_name: "", last_name: "", email: "", role: "registrant" as Role, district_meeting_url: "", district_session_id: "" })
   const fileInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
@@ -105,6 +117,7 @@ export default function PeopleClient({
       rows.sort((a, b) => personName(a).localeCompare(personName(b)))
       setPeople(rows)
       setSessions(payload.sessions || [])
+      setDistricts(payload.districts || [])
       setSelectedId((current) => current && rows.some((person) => person.id === current) ? current : rows[0]?.id || null)
     } catch (loadError) {
       // Fallback to initial data if API fails
@@ -112,6 +125,7 @@ export default function PeopleClient({
       if (initialAttendees.length > 0) {
         setPeople(initialAttendees)
         setSessions(initialSessions)
+        setDistricts(initialDistricts)
         setSelectedId((current) => current && initialAttendees.some((person) => person.id === current) ? current : initialAttendees[0]?.id || null)
       } else {
         setError(loadError instanceof Error ? loadError.message : "Could not load people")
@@ -119,7 +133,7 @@ export default function PeopleClient({
     } finally {
       setLoading(false)
     }
-  }, [eventId, initialAttendees, initialSessions])
+  }, [eventId, initialAttendees, initialSessions, initialDistricts])
 
   useEffect(() => {
     // Only load from API if we don't have initial data
@@ -143,21 +157,60 @@ export default function PeopleClient({
     })
   }, [filter, people, search])
 
+  const districtById = useMemo(() => new Map(districts.map((district) => [district.id, district])), [districts])
+
+  const districtOf = useCallback(
+    (person: Person) => person.session_ids.map((id) => districtById.get(id)).find(Boolean) || null,
+    [districtById]
+  )
+
+  const districtCounts = useMemo(() => {
+    const tally = new Map<string, number>()
+    for (const person of people) {
+      for (const sessionId of person.session_ids) {
+        if (districtById.has(sessionId)) tally.set(sessionId, (tally.get(sessionId) || 0) + 1)
+      }
+    }
+    return tally
+  }, [districtById, people])
+
+  function switchMatrixMode(mode: MatrixMode) {
+    setMatrixMode(mode)
+    setDistrictFilter("")
+    setDrag(null)
+  }
+
+  // The matrix assigns either district rooms (one per person) or any other
+  // session (many per person); both render from the same column shape.
+  const matrixColumns = useMemo<MatrixColumn[]>(() => matrixMode === "district"
+    ? districts.map((district) => ({ id: district.id, code: district.code, title: district.title, subtitle: district.presenter }))
+    : sessions.filter((session) => !districtById.has(session.id)).map((session) => ({ id: session.id, code: session.code, title: session.title, subtitle: null as string | null })),
+    [districtById, districts, matrixMode, sessions])
+
+  const columnCounts = useMemo(() => {
+    const tally = new Map<string, number>()
+    for (const person of people) {
+      for (const sessionId of person.session_ids) tally.set(sessionId, (tally.get(sessionId) || 0) + 1)
+    }
+    return tally
+  }, [people])
+
+  const visibleColumns = useMemo(() => {
+    const query = districtFilter.trim().toLowerCase()
+    if (!query) return matrixColumns
+    return matrixColumns.filter((column) => `${column.code || ""} ${column.title} ${column.subtitle || ""}`.toLowerCase().includes(query))
+  }, [districtFilter, matrixColumns])
+
+  const sessionColumns = useMemo(() => sessions.filter((session) => !districtById.has(session.id)), [districtById, sessions])
+
   const selected = people.find((person) => person.id === selectedId) || null
   const selectedPeople = people.filter((person) => bulkSelection.has(person.id))
   const allVisibleSelected = visiblePeople.length > 0 && visiblePeople.every((person) => bulkSelection.has(person.id))
-  const removingEveryone = people.length > 0 && bulkSelection.size === people.length
-
   function toggleBulkMode() {
     setBulkMode((current) => !current)
     setBulkSelection(new Set())
     setRemoveOpen(false)
     setRemoveProgress(idleProgress())
-  }
-
-  function openRemoveDialog() {
-    setRemoveProgress(idleProgress())
-    setRemoveOpen(true)
   }
 
   function closeRemoveDialog() {
@@ -190,22 +243,21 @@ export default function PeopleClient({
 
   function startEditing() {
     if (!selected) return
-    const assignedSession = selected.session_ids.length > 0
-      ? sessions.find((session) => session.id === selected.session_ids[0])
-      : null
+    const district = districtOf(selected)
     setEditPerson({
       first_name: selected.first_name || "",
       last_name: selected.last_name || "",
       email: selected.email,
       role: selected.role,
-      district_meeting_url: assignedSession?.external_join_url || ""
+      district_meeting_url: district?.external_join_url || "",
+      district_session_id: district?.id || ""
     })
     setEditMode(true)
   }
 
   function cancelEditing() {
     setEditMode(false)
-    setEditPerson({ first_name: "", last_name: "", email: "", role: "registrant", district_meeting_url: "" })
+    setEditPerson({ first_name: "", last_name: "", email: "", role: "registrant", district_meeting_url: "", district_session_id: "" })
   }
 
   async function savePersonEdit() {
@@ -220,7 +272,8 @@ export default function PeopleClient({
           last_name: editPerson.last_name,
           email: editPerson.email,
           role: editPerson.role,
-          district_meeting_url: editPerson.district_meeting_url
+          district_meeting_url: editPerson.district_meeting_url,
+          district_session_id: editPerson.district_session_id || null
         })
       })
       if (!response.ok) {
@@ -235,6 +288,82 @@ export default function PeopleClient({
       setBusy("idle")
     }
   }
+
+  const assignDistrict = useCallback(async (personIds: string[], districtSessionId: string | null) => {
+    const ids = [...new Set(personIds)]
+    if (!ids.length) return
+    const previous = people
+    setPeople((current) => current.map((person) => {
+      if (!ids.includes(person.id)) return person
+      const withoutDistricts = person.session_ids.filter((id) => !districtById.has(id))
+      return { ...person, session_ids: districtSessionId ? [...withoutDistricts, districtSessionId] : withoutDistricts }
+    }))
+    setBusy("district")
+    setError(null)
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/attendees/bulk-district`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendee_ids: ids, district_session_id: districtSessionId }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Could not update district assignments")
+    } catch (districtError) {
+      setPeople(previous)
+      setError(districtError instanceof Error ? districtError.message : "Could not update district assignments")
+    } finally {
+      setBusy(null)
+    }
+  }, [districtById, eventId, people])
+
+  const assignSession = useCallback(async (personIds: string[], sessionId: string, add: boolean) => {
+    const ids = [...new Set(personIds)]
+    if (!ids.length) return
+    const previous = people
+    setPeople((current) => current.map((person) => {
+      if (!ids.includes(person.id)) return person
+      const withoutSession = person.session_ids.filter((id) => id !== sessionId)
+      return { ...person, session_ids: add ? [...withoutSession, sessionId] : withoutSession }
+    }))
+    setBusy("session-matrix")
+    setError(null)
+    try {
+      const response = await fetch(`/api/admin/events/${eventId}/attendees/bulk-edit-sessions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          attendee_ids: ids,
+          add_session_ids: add ? [sessionId] : [],
+          remove_session_ids: add ? [] : [sessionId],
+        }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Could not update session access")
+    } catch (sessionError) {
+      setPeople(previous)
+      setError(sessionError instanceof Error ? sessionError.message : "Could not update session access")
+    } finally {
+      setBusy(null)
+    }
+  }, [eventId, people])
+
+  useEffect(() => {
+    if (!drag) return
+    const range = drag
+    function commitDrag() {
+      const from = Math.min(range.start, range.end)
+      const to = Math.max(range.start, range.end)
+      const rows = visiblePeople.slice(from, to + 1)
+      setDrag(null)
+      if (!rows.length) return
+      // A single click on an assigned cell clears it; a drag always assigns.
+      const clearing = rows.length === 1 && rows[0].session_ids.includes(range.columnId)
+      if (matrixMode === "district") void assignDistrict(rows.map((person) => person.id), clearing ? null : range.columnId)
+      else void assignSession(rows.map((person) => person.id), range.columnId, !clearing)
+    }
+    window.addEventListener("mouseup", commitDrag)
+    return () => window.removeEventListener("mouseup", commitDrag)
+  }, [assignDistrict, assignSession, drag, matrixMode, visiblePeople])
 
   async function removeSelectedPeople() {
     if (bulkSelection.size === 0) return
@@ -385,14 +514,15 @@ export default function PeopleClient({
   const template = ["event_slug,email,first_name,last_name,tag,notes,session_code_1", `${eventSlug},jane@company.com,Jane,Doe,Registrant,,`].join("\n")
 
   return (
-    <div className="space-y-6 text-white">
-      <section className="border-b border-[#273348] pb-7">
+    <div className="space-y-5 text-white">
+      <section className="border-b border-[#33405a] pb-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-          <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; People</div><h1 className="editorial-title mt-5">People</h1><p className="mt-3 max-w-2xl text-base text-white/55">Manage registrants, presenters, district assignments, and event access for {eventTitle}.</p></div>
+          <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; People</div><h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Bring everyone together.</h1><p className="mt-3 text-base text-white/55">Add and manage everyone connected to {eventTitle}.</p></div>
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={toggleBulkMode} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold ${bulkMode ? "border-red-300/25 bg-red-500/10 text-red-100" : "border-white/10 bg-white/[.05] hover:bg-white/10"}`}>{bulkMode ? <X size={16} /> : <Check size={16} />}{bulkMode ? "Exit Bulk Select" : "Bulk Select"}</button>
-            <button type="button" onClick={() => { setImportOpen(!importOpen); setImportProgress(idleProgress); setAddOpen(false) }} className="inline-flex items-center gap-2 rounded-xl bg-[#3974df] px-4 py-2.5 text-sm font-semibold hover:bg-[#4f82e3]"><Upload size={16} />Import CSV</button>
-            <button type="button" onClick={() => { setAddOpen(!addOpen); setImportOpen(false) }} className="inline-flex items-center gap-2 rounded-xl bg-[#6750d3] px-4 py-2.5 text-sm font-semibold hover:bg-[#765fe0]"><Plus size={16} />Add person</button>
+            <button type="button" onClick={() => setMatrixOpen((current) => !current)} disabled={districts.length === 0 && sessionColumns.length === 0} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-semibold disabled:opacity-35 ${matrixOpen ? "border-violet-300/30 bg-violet-500/15 text-violet-100" : "border-white/10 bg-white/[.05] hover:bg-white/10"}`}><Grid3x3 size={16} />Assignment Matrix</button>
+            <button type="button" onClick={() => { setAddOpen(!addOpen); setImportOpen(false) }} className="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-4 py-2.5 text-sm font-semibold hover:bg-violet-500"><Plus size={16} />Add Person</button>
+            <button type="button" onClick={() => { setImportOpen(!importOpen); setImportProgress(idleProgress); setAddOpen(false) }} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/10"><Upload size={16} />Import CSV</button>
           </div>
         </div>
       </section>
@@ -401,11 +531,73 @@ export default function PeopleClient({
 
       {importOpen ? <section className="rounded-2xl border border-white/10 bg-[#0c1420]/95 p-5 shadow-[0_20px_60px_rgba(0,0,0,.28)]"><div className="flex flex-wrap items-center justify-between gap-4"><div><div className="font-semibold">Import people from CSV</div><div className="mt-1 max-w-2xl text-xs leading-5 text-white/50">Bulk add people to this event. Jupiter already knows which event you are editing, so your file only needs each person’s email and optional profile or district fields.</div></div><button type="button" onClick={() => download(`people_${eventSlug}.csv`, template)} className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/[.04] px-3 py-2 text-xs hover:bg-white/[.08]"><Download size={14} />Download template</button></div><div className="mt-5 flex flex-wrap items-center gap-3 rounded-xl border border-white/[.08] bg-black/20 p-3"><input ref={fileInput} type="file" accept=".csv,text/csv" className="min-w-0 flex-1 text-sm text-white/65 file:mr-3 file:rounded-lg file:border-0 file:bg-white/10 file:px-3 file:py-2 file:text-xs file:font-semibold file:text-white hover:file:bg-white/15" /><button type="button" onClick={() => void importCsv()} disabled={busy === "import"} className="rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold shadow-[0_10px_30px_rgba(5,150,105,.18)] hover:bg-emerald-500 disabled:opacity-40">{busy === "import" ? `Uploading ${importProgress.percent}%…` : "Import people"}</button></div><OperationProgressPanel progress={importProgress} /></section> : null}
 
-      <section className="grid gap-4 sm:grid-cols-3">
-        {([{ id: "everyone", label: "Everyone", value: counts.everyone }, { id: "registrant", label: "Registrants", value: counts.registrant }, { id: "presenter", label: "Presenters", value: counts.presenter }] as const).map((item) => <button type="button" key={item.id} onClick={() => setFilter(item.id)} className={`relative flex min-h-[118px] flex-col items-start justify-between overflow-hidden rounded-2xl border px-5 py-5 text-left shadow-[0_18px_50px_rgba(0,0,0,.2)] transition ${filter === item.id ? "border-[#6750d3]/60 bg-[#15152a]" : "border-[#263249] bg-[#0a101c] hover:border-[#3b4963] hover:bg-[#0d1522]"}`}><div className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/45">{item.label}</div><div className="mt-5 text-3xl font-semibold leading-none tabular-nums text-white">{item.value}</div></button>)}
+      <section className="grid gap-3 sm:grid-cols-3">
+        {([{ id: "everyone", label: "Everyone", value: counts.everyone }, { id: "registrant", label: "Registrants", value: counts.registrant }, { id: "presenter", label: "Presenters", value: counts.presenter }] as const).map((item) => <button type="button" key={item.id} onClick={() => setFilter(item.id)} className={`relative flex min-h-[112px] flex-col items-start justify-between overflow-hidden rounded-2xl border px-5 py-4 text-left shadow-[0_18px_50px_rgba(0,0,0,.22)] transition ${filter === item.id ? "border-violet-300/30 bg-[#17132b]" : "border-white/10 bg-[#0c131f] hover:border-white/15 hover:bg-[#111a28]"}`}><div className="text-[11px] font-semibold uppercase tracking-[.16em] text-white/45">{item.label}</div><div className="mt-5 text-3xl font-semibold leading-none tabular-nums text-white">{item.value}</div></button>)}
       </section>
 
       {error ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
+
+      {matrixOpen && (districts.length > 0 || sessionColumns.length > 0) ? (
+        <section className="rounded-3xl border border-white/10 bg-white/[.03] p-5">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                {([{ id: "district", label: `Districts (${districts.length})`, disabled: districts.length === 0 }, { id: "session", label: `Sessions (${sessionColumns.length})`, disabled: sessionColumns.length === 0 }] as const).map((tab) => <button key={tab.id} type="button" disabled={tab.disabled} onClick={() => switchMatrixMode(tab.id)} className={`rounded-lg border px-3 py-1.5 text-xs font-semibold disabled:opacity-35 ${matrixMode === tab.id ? "border-violet-300/30 bg-violet-500/15 text-violet-100" : "border-white/10 bg-white/[.04] text-white/60 hover:bg-white/10"}`}>{tab.label}</button>)}
+              </div>
+              <p className="mt-3 max-w-2xl text-sm text-white/50">{matrixMode === "district"
+                ? "Click a cell to move someone into that district, click it again to clear them, or drag down a column to lasso a run of people. Everyone holds one district at a time."
+                : "Click a cell to give someone access to that session, click it again to take it away, or drag down a column to lasso a run of people. Sessions stack — people can hold as many as you like."}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="relative"><Search className="absolute left-3 top-3 text-white/30" size={15} /><input aria-label={matrixMode === "district" ? "Filter districts" : "Filter sessions"} value={districtFilter} onChange={(event) => setDistrictFilter(event.target.value)} placeholder={`Filter ${matrixColumns.length} ${matrixMode === "district" ? "districts" : "sessions"}`} className="w-56 rounded-xl border border-white/10 bg-black/20 py-2.5 pl-9 pr-3 text-sm outline-none" /></div>
+              <div className="text-xs text-white/40">{busy === "district" || busy === "session-matrix" ? "Saving…" : matrixMode === "district"
+                ? `${visiblePeople.filter((person) => districtOf(person)).length} of ${visiblePeople.length} assigned · ${visibleColumns.length} of ${matrixColumns.length} districts shown`
+                : `${visibleColumns.length} of ${matrixColumns.length} sessions shown`}</div>
+            </div>
+          </div>
+          <div className="mt-4 max-h-[560px] overflow-auto rounded-2xl border border-white/[.07]">
+            <table className="w-full select-none border-separate border-spacing-0 text-sm">
+              <thead>
+                <tr>
+                  <th className="sticky left-0 top-0 z-20 bg-[#0c131f] px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-white/40">Person</th>
+                  {visibleColumns.map((column) => <th key={column.id} title={`${column.title}${column.subtitle ? ` — ${column.subtitle}` : ""}`} className="sticky top-0 z-10 bg-[#0c131f] px-2 py-3 text-xs font-semibold text-white/55"><div className="max-w-[140px] truncate">{column.code || column.title}</div><div className="mt-0.5 text-[10px] font-normal text-white/30">{columnCounts.get(column.id) || 0}</div></th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {visiblePeople.map((person, rowIndex) => {
+                  const assigned = districtOf(person)
+                  return <tr key={person.id}>
+                    <th scope="row" className="sticky left-0 z-10 max-w-[260px] bg-[#0b111c] px-4 py-2 text-left font-normal">
+                      <div className="truncate text-sm">{personName(person)}</div>
+                      <div className="truncate text-xs text-white/35">{matrixMode === "district"
+                        ? assigned ? assigned.title : "Unassigned"
+                        : `${person.session_ids.filter((id) => !districtById.has(id)).length} sessions`}</div>
+                    </th>
+                    {visibleColumns.map((column) => {
+                      const isAssigned = matrixMode === "district" ? assigned?.id === column.id : person.session_ids.includes(column.id)
+                      const inDrag = drag?.columnId === column.id
+                        && rowIndex >= Math.min(drag.start, drag.end)
+                        && rowIndex <= Math.max(drag.start, drag.end)
+                      return <td key={column.id} className="border-t border-white/[.05] p-1">
+                        <button
+                          type="button"
+                          aria-pressed={isAssigned}
+                          aria-label={`Assign ${personName(person)} to ${column.title}`}
+                          onMouseDown={() => setDrag({ columnId: column.id, start: rowIndex, end: rowIndex })}
+                          onMouseEnter={() => setDrag((current) => current && current.columnId === column.id ? { ...current, end: rowIndex } : current)}
+                          className={`flex h-7 w-full items-center justify-center rounded-lg border ${isAssigned ? "border-emerald-300/40 bg-emerald-500/25 text-emerald-100" : inDrag ? "border-violet-300/40 bg-violet-500/25" : "border-white/[.07] bg-black/20 hover:bg-white/[.08]"}`}
+                        >{isAssigned ? <Check size={13} /> : null}</button>
+                      </td>
+                    })}
+                  </tr>
+                })}
+                {visiblePeople.length === 0 ? <tr><td colSpan={visibleColumns.length + 1} className="p-8 text-center text-sm text-white/40">No people match this view.</td></tr> : null}
+                {visibleColumns.length === 0 ? <tr><td colSpan={2} className="p-8 text-center text-sm text-white/40">No {matrixMode === "district" ? "districts" : "sessions"} match “{districtFilter}”.</td></tr> : null}
+              </tbody>
+            </table>
+          </div>
+        </section>
+      ) : null}
 
       <section className="grid min-h-[520px] gap-4 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,.85fr)]">
         <div className="rounded-3xl border border-white/10 bg-white/[.03] p-5">
@@ -415,7 +607,7 @@ export default function PeopleClient({
         </div>
 
         <div className="rounded-3xl border border-white/10 bg-white/[.03] p-5">
-          {bulkMode ? <div className="flex h-full min-h-[300px] flex-col"><div className="text-xs uppercase tracking-[.16em] text-white/35">Bulk selection</div><div className="mt-4 text-4xl font-semibold">{bulkSelection.size}</div><div className="mt-1 text-sm text-white/50">people selected</div><div className="mt-6 grid grid-cols-2 gap-3"><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Registrants</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "registrant").length}</div></div><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Presenters</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "presenter").length}</div></div></div><div className="mt-6 rounded-xl border border-amber-300/10 bg-amber-500/[.05] p-4 text-xs leading-5 text-amber-50/65">Removal applies only to this event. It also clears the selected people’s session assignments and event access.</div><button type="button" disabled={bulkSelection.size === 0} onClick={() => setRemoveOpen(true)} className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />Remove {bulkSelection.size || "selected"} from event</button></div> : !selected ? <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center text-white/40"><Users size={28} /><p className="mt-3 text-sm">Select a person to manage their role and access.</p></div> : <div className="space-y-5">{editMode ? <div className="space-y-4"><div className="text-xs uppercase tracking-[.16em] text-white/35">Edit person</div><div className="grid gap-3 md:grid-cols-2"><div><label className="text-xs font-semibold text-white/50">First name<input aria-label="First name" value={editPerson.first_name} onChange={(event) => setEditPerson({ ...editPerson, first_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Last name<input aria-label="Last name" value={editPerson.last_name} onChange={(event) => setEditPerson({ ...editPerson, last_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">Email<input aria-label="Email" type="email" value={editPerson.email} onChange={(event) => setEditPerson({ ...editPerson, email: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">District meeting URL<input aria-label="District meeting URL" type="url" value={editPerson.district_meeting_url} onChange={(event) => setEditPerson({ ...editPerson, district_meeting_url: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Role<select aria-label="Role" value={editPerson.role} onChange={(event) => setEditPerson({ ...editPerson, role: event.target.value as Role })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div></div><div className="flex gap-2"><button type="button" disabled={busy === "edit" || !editPerson.email} onClick={() => void savePersonEdit()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-35">{busy === "edit" ? "Saving…" : "Save changes"}</button><button type="button" disabled={busy === "edit"} onClick={cancelEditing} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/[.10]">Cancel</button></div></div> : <><div><div className="flex items-center justify-between"><div className="text-xs uppercase tracking-[.16em] text-white/35">Person details</div><button type="button" onClick={startEditing} className="text-xs font-semibold text-violet-200 hover:text-violet-100">Edit</button></div><h2 className="mt-2 text-xl font-semibold">{personName(selected)}</h2><p className="mt-1 text-sm text-white/50">{selected.email}</p></div><div><label className="text-xs font-semibold text-white/50">Role<select value={selected.role} disabled={busy === "role"} onChange={(event) => void updateRole(event.target.value as Role)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-3 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div><div><div className="text-xs font-semibold text-white/50">Session access</div><div className="mt-2 space-y-2">{sessions.filter(session => selected.session_ids.includes(session.id)).map((session) => { const checked = selected.session_ids.includes(session.id); return <label key={session.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-black/15 p-3"><div><div className="text-sm font-medium">{session.title}</div>{session.code ? <div className="text-xs text-white/35">{session.code}</div> : null}</div><input type="checkbox" checked={checked} disabled={busy === `session:${session.id}`} onChange={(event) => void toggleSession(session.id, event.target.checked)} className="h-4 w-4" /></label>})}{selected.session_ids.length === 0 ? <div className="text-sm text-white/40">No sessions assigned to this person.</div> : null}</div></div>{selected.role === "presenter" ? <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void sendPresenterLink()} disabled={busy === "send" || selected.session_ids.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Mail size={15} />{busy === "send" ? "Sending…" : "Send Access"}</button><button type="button" disabled={selected.session_ids.length !== 1} onClick={() => selected.session_ids[0] && navigator.clipboard.writeText(`${window.location.origin}/presenter/${eventSlug}/sessions/${selected.session_ids[0]}`)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Check size={15} />Copy Link</button></div> : <div className="rounded-xl border border-sky-300/10 bg-sky-500/[.05] p-3 text-xs leading-5 text-sky-100/65">Change this person to Presenter to enable presenter-room access.</div>}<Link href={`/admin/events/${eventId}/emails`} className="block text-center text-xs font-semibold text-sky-200/70 hover:text-sky-100">Manage Emails →</Link></>}</div>}
+          {bulkMode ? <div className="flex h-full min-h-[300px] flex-col"><div className="text-xs uppercase tracking-[.16em] text-white/35">Bulk selection</div><div className="mt-4 text-4xl font-semibold">{bulkSelection.size}</div><div className="mt-1 text-sm text-white/50">people selected</div><div className="mt-6 grid grid-cols-2 gap-3"><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Registrants</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "registrant").length}</div></div><div className="rounded-xl border border-white/[.07] bg-black/15 p-3"><div className="text-xs text-white/40">Presenters</div><div className="mt-1 text-xl font-semibold">{selectedPeople.filter((person) => person.role === "presenter").length}</div></div></div><div className="mt-6 rounded-xl border border-white/[.07] bg-black/15 p-4"><label className="text-xs font-semibold text-white/50">Move selected to district<select aria-label="Move selected to district" value={bulkDistrictId} onChange={(event) => setBulkDistrictId(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="">Choose a district…</option><option value="__clear__">No district (clear)</option>{districts.map((district) => <option key={district.id} value={district.id}>{[district.code, district.title].filter(Boolean).join(" · ")} ({districtCounts.get(district.id) || 0})</option>)}</select></label><button type="button" disabled={!bulkDistrictId || bulkSelection.size === 0 || busy === "district"} onClick={() => void assignDistrict([...bulkSelection], bulkDistrictId === "__clear__" ? null : bulkDistrictId)} className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-35">{busy === "district" ? "Saving…" : `Assign ${bulkSelection.size || "selected"}`}</button></div><div className="mt-4 rounded-xl border border-white/[.07] bg-black/15 p-4"><label className="text-xs font-semibold text-white/50">Session access for selected<select aria-label="Session access for selected" value={bulkSessionId} onChange={(event) => setBulkSessionId(event.target.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="">Choose a session…</option>{sessionColumns.map((session) => <option key={session.id} value={session.id}>{[session.code, session.title].filter(Boolean).join(" · ")} ({columnCounts.get(session.id) || 0})</option>)}</select></label><div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled={!bulkSessionId || bulkSelection.size === 0 || busy === "session-matrix"} onClick={() => void assignSession([...bulkSelection], bulkSessionId, true)} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-35">Grant</button><button type="button" disabled={!bulkSessionId || bulkSelection.size === 0 || busy === "session-matrix"} onClick={() => void assignSession([...bulkSelection], bulkSessionId, false)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-3 py-2.5 text-sm font-semibold hover:bg-white/10 disabled:opacity-35">Revoke</button></div>{sessionColumns.length === 0 ? <p className="mt-2 text-xs text-white/35">This event has no non-district sessions yet.</p> : null}</div><div className="mt-6 rounded-xl border border-amber-300/10 bg-amber-500/[.05] p-4 text-xs leading-5 text-amber-50/65">Removal applies only to this event. It also clears the selected people’s session assignments and event access.</div><button type="button" disabled={bulkSelection.size === 0} onClick={() => setRemoveOpen(true)} className="mt-auto inline-flex items-center justify-center gap-2 rounded-xl bg-red-600 px-4 py-3 text-sm font-semibold hover:bg-red-500 disabled:opacity-35"><Trash2 size={15} />Remove {bulkSelection.size || "selected"} from event</button></div> : !selected ? <div className="flex h-full min-h-[300px] flex-col items-center justify-center text-center text-white/40"><Users size={28} /><p className="mt-3 text-sm">Select a person to manage their role and access.</p></div> : <div className="space-y-5">{editMode ? <div className="space-y-4"><div className="text-xs uppercase tracking-[.16em] text-white/35">Edit person</div><div className="grid gap-3 md:grid-cols-2"><div><label className="text-xs font-semibold text-white/50">First name<input aria-label="First name" value={editPerson.first_name} onChange={(event) => setEditPerson({ ...editPerson, first_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Last name<input aria-label="Last name" value={editPerson.last_name} onChange={(event) => setEditPerson({ ...editPerson, last_name: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">Email<input aria-label="Email" type="email" value={editPerson.email} onChange={(event) => setEditPerson({ ...editPerson, email: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">District<select aria-label="District" value={editPerson.district_session_id} onChange={(event) => { const district = districts.find((item) => item.id === event.target.value); setEditPerson({ ...editPerson, district_session_id: event.target.value, district_meeting_url: district?.external_join_url || "" }) }} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="">No district</option>{districts.map((district) => <option key={district.id} value={district.id}>{[district.code, district.title].filter(Boolean).join(" · ")}</option>)}</select></label>{districts.length === 0 ? <p className="mt-1.5 text-xs text-white/35">No district rooms exist yet — saving a meeting URL below creates one.</p> : null}</div><div className="md:col-span-2"><label className="text-xs font-semibold text-white/50">District meeting URL<input aria-label="District meeting URL" type="url" value={editPerson.district_meeting_url} onChange={(event) => setEditPerson({ ...editPerson, district_meeting_url: event.target.value })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-2.5 text-sm outline-none" /></label></div><div><label className="text-xs font-semibold text-white/50">Role<select aria-label="Role" value={editPerson.role} onChange={(event) => setEditPerson({ ...editPerson, role: event.target.value as Role })} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-2.5 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div></div><div className="flex gap-2"><button type="button" disabled={busy === "edit" || !editPerson.email} onClick={() => void savePersonEdit()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-35">{busy === "edit" ? "Saving…" : "Save changes"}</button><button type="button" disabled={busy === "edit"} onClick={cancelEditing} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[.05] px-4 py-2.5 text-sm font-semibold hover:bg-white/[.10]">Cancel</button></div></div> : <><div><div className="flex items-center justify-between"><div className="text-xs uppercase tracking-[.16em] text-white/35">Person details</div><button type="button" onClick={startEditing} className="text-xs font-semibold text-violet-200 hover:text-violet-100">Edit</button></div><h2 className="mt-2 text-xl font-semibold">{personName(selected)}</h2><p className="mt-1 text-sm text-white/50">{selected.email}</p><p className="mt-2 text-xs text-white/40">District: {(() => { const district = districtOf(selected); return district ? [district.code, district.title].filter(Boolean).join(" · ") : "Unassigned" })()}</p></div><div><label className="text-xs font-semibold text-white/50">Role<select value={selected.role} disabled={busy === "role"} onChange={(event) => void updateRole(event.target.value as Role)} className="mt-2 w-full rounded-xl border border-white/10 bg-[#0a0f1c] px-4 py-3 text-sm"><option value="registrant">Registrant</option><option value="presenter">Presenter</option></select></label></div><div><div className="text-xs font-semibold text-white/50">Session access</div><div className="mt-2 space-y-2">{sessionColumns.map((session) => { const checked = selected.session_ids.includes(session.id); return <label key={session.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/[.07] bg-black/15 p-3"><div><div className="text-sm font-medium">{session.title}</div>{session.code ? <div className="text-xs text-white/35">{session.code}</div> : null}</div><input type="checkbox" checked={checked} disabled={busy === `session:${session.id}`} onChange={(event) => void toggleSession(session.id, event.target.checked)} className="h-4 w-4" /></label>})}{sessionColumns.length === 0 ? <div className="text-sm text-white/40">This event has no non-district sessions yet.</div> : null}</div></div>{selected.role === "presenter" ? <div className="grid gap-2 sm:grid-cols-2"><button type="button" onClick={() => void sendPresenterLink()} disabled={busy === "send" || selected.session_ids.length === 0} className="inline-flex items-center justify-center gap-2 rounded-xl bg-violet-600 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Mail size={15} />{busy === "send" ? "Sending…" : "Send Access"}</button><button type="button" disabled={selected.session_ids.length !== 1} onClick={() => selected.session_ids[0] && navigator.clipboard.writeText(`${window.location.origin}/presenter/${eventSlug}/sessions/${selected.session_ids[0]}`)} className="inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold disabled:opacity-35"><Check size={15} />Copy Link</button></div> : <div className="rounded-xl border border-sky-300/10 bg-sky-500/[.05] p-3 text-xs leading-5 text-sky-100/65">Change this person to Presenter to enable presenter-room access.</div>}<Link href={`/admin/events/${eventId}/emails`} className="block text-center text-xs font-semibold text-sky-200/70 hover:text-sky-100">Manage Emails →</Link></>}</div>}
         </div>
       </section>
 

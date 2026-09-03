@@ -1,20 +1,7 @@
 import { notFound } from "next/navigation"
+import { listDistrictSessions } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import PeopleClient from "./PeopleClient"
-
-type Role = "registrant" | "presenter"
-type Person = {
-  id: string
-  email: string
-  first_name: string | null
-  last_name: string | null
-  name: string
-  session_ids: string[]
-  role: Role
-  created_at: string | null
-  source: "event_registrants"
-}
-type Session = { id: string; code: string | null; title: string; starts_at: string | null; ends_at: string | null; external_join_url: string | null }
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -43,8 +30,12 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
     .eq("event_id", id)
     .order("email", { ascending: true })
 
+  if (sessionsError || registrantsError) notFound()
+
+  const districts = await listDistrictSessions(id)
+
   // Get session assignments
-  let registrantSessionMap: Record<string, string[]> = {}
+  const registrantSessionMap: Record<string, string[]> = {}
   if (registrants && registrants.length > 0) {
     const registrantIds = registrants.map(r => r.id)
     const { data: registrantSessions } = await supabaseAdmin
@@ -80,6 +71,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
         eventTitle={event.title}
         initialAttendees={attendees}
         initialSessions={sessions || []}
+        initialDistricts={districts}
       />
     </main>
   )
