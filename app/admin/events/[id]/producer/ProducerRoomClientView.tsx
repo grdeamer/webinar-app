@@ -250,6 +250,7 @@ export default function ProducerRoomClientView(
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
               <ProducerV1Header
+                eventId={props.eventId}
                 eventTitle={eventTitle}
                 stageTitle={topChromeProps.headline}
                 mode={workspaceMode}

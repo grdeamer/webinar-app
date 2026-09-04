@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import {
   Activity,
@@ -9,7 +10,7 @@ import {
   ShieldCheck,
   SlidersHorizontal,
 } from "lucide-react"
-import type { JSX } from "react"
+import { useEffect, useState, type JSX } from "react"
 
 import type { ProducerWorkspaceMode } from "./ProducerModeBar"
 import type { ProducerTransportHealth } from "./producerHealthUtils"
@@ -25,6 +26,7 @@ const MODES: Array<{
 ]
 
 export default function ProducerV1Header({
+  eventId,
   eventTitle,
   stageTitle,
   mode,
@@ -35,6 +37,7 @@ export default function ProducerV1Header({
   onGoLive,
   onGoOffAir,
 }: {
+  eventId: string
   eventTitle: string
   stageTitle: string
   mode: ProducerWorkspaceMode
@@ -46,6 +49,25 @@ export default function ProducerV1Header({
   onGoOffAir: () => void
 }): JSX.Element {
   const connected = transportHealth === "connected"
+  const [audienceDestination, setAudienceDestination] = useState("Loading…")
+
+  useEffect(() => {
+    const controller = new AbortController()
+    const loadDestination = async (): Promise<void> => {
+      try {
+        const response = await fetch(`/api/admin/events/${eventId}/live-state`, { cache: "no-store", signal: controller.signal })
+        if (!response.ok) return
+        const payload = await response.json() as { liveState?: { mode?: string | null } }
+        const mode = payload.liveState?.mode || "lobby"
+        setAudienceDestination(mode.split("_").map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join(" "))
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) setAudienceDestination("Check flow")
+      }
+    }
+    void loadDestination()
+    const interval = window.setInterval((): void => { void loadDestination() }, 15_000)
+    return () => { controller.abort(); window.clearInterval(interval) }
+  }, [eventId])
 
   return (
     <header className="producer-v1-header relative z-[100] shrink-0 px-5 pt-4 lg:px-7 lg:pt-5">
@@ -107,6 +129,15 @@ export default function ProducerV1Header({
         </div>
 
         <div className="flex items-center gap-4">
+          <div className="hidden items-center gap-3 rounded-[10px] border border-sky-300/16 bg-sky-300/[0.055] px-4 py-2 xl:flex">
+            <div>
+              <div className="text-[9px] font-semibold uppercase tracking-[0.12em] text-sky-100/45">Audience destination</div>
+              <div className="mt-0.5 max-w-32 truncate text-[13px] font-semibold text-sky-50/85">{audienceDestination}</div>
+            </div>
+            <Link href={`/admin/events/${eventId}/routing`} target="_blank" rel="noopener noreferrer" className="rounded-lg border border-sky-200/14 bg-sky-200/[0.06] px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-sky-100/75 transition hover:bg-sky-200/[0.12] hover:text-white">
+              Open flow ↗
+            </Link>
+          </div>
           <span className={`inline-flex h-10 min-w-[140px] items-center justify-center gap-3 rounded-[10px] border px-4 text-[12px] font-semibold uppercase tracking-[0.10em] ${isProgramLive ? "border-red-300/25 bg-red-400/10 text-red-200" : "border-emerald-300/24 bg-emerald-400/10 text-white"}`}>
             <span className={`h-2.5 w-2.5 rounded-full ${isProgramLive ? "bg-red-300" : "bg-emerald-300"}`} />
             {isProgramLive ? "On Air" : "Standby"}

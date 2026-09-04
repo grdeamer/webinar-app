@@ -8,7 +8,7 @@ type EventRole = "event_admin" | "producer" | "viewer"
 
 const roleOptions: Array<{ value: EventRole; label: string; description: string }> = [
   { value: "event_admin", label: "Event Admin", description: "Configure this event and invite collaborators." },
-  { value: "producer", label: "Producer", description: "Operate Run Event, Run of Show, and Producer Room." },
+  { value: "producer", label: "Producer", description: "Operate Audience Flow, Run of Show, and Producer Room." },
   { value: "viewer", label: "Viewer", description: "View the event overview and analytics without making changes." },
 ]
 

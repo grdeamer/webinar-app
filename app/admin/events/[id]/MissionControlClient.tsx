@@ -1,5 +1,6 @@
 "use client"
 
+import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {
@@ -553,14 +554,19 @@ export default function MissionControlClient({
 
   return (
     <div className="space-y-5 text-white">
-      <div>
+      <div className="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+        <div>
         <div className="text-[10px] font-semibold uppercase tracking-[0.18em] text-violet-100/45">
-          Event &nbsp;/&nbsp; Run Event
+          Event &nbsp;/&nbsp; Audience Flow
         </div>
-        <h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Guide the audience.</h1>
+        <h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Audience Flow</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-white/55">
-          Control where attendees go during the event. Video, audio, and program switching stay in Producer Room.
+          Preview, confirm, and recover attendee browser destinations. Production switching stays in Producer Room.
         </p>
+        </div>
+        <Link href={`/admin/events/${eventId}/producer/room`} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl border border-sky-300/20 bg-sky-300/[0.07] px-5 text-sm font-semibold text-sky-50 transition hover:bg-sky-300/[0.12]">
+          Open Producer Room&nbsp; ↗
+        </Link>
       </div>
 
       <section className="overflow-hidden rounded-[22px] border border-white/[0.08] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.10),transparent_40%),rgba(255,255,255,0.035)]">
@@ -624,7 +630,7 @@ export default function MissionControlClient({
       <section className="rounded-[22px] border border-white/[0.08] bg-white/[0.025] p-5">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold text-white">Move the audience</h2>
+            <h2 className="text-lg font-semibold text-white">Review the next audience move</h2>
             <p className="mt-1 text-sm text-white/50">
               Each action opens a review step before anything changes live.
             </p>
@@ -641,7 +647,7 @@ export default function MissionControlClient({
           <DialogTrigger asChild>
             <Button className="h-auto w-full justify-start rounded-2xl border border-emerald-300/20 bg-emerald-300/[0.09] px-5 py-4 text-left text-white hover:bg-emerald-300/[0.14]">
               <span>
-                <span className="block font-semibold">Move to Main Stage</span>
+                <span className="block font-semibold">Preview Main Stage move</span>
                 <span className="mt-1 block text-xs font-normal text-white/50">Send everyone to the primary session.</span>
               </span>
             </Button>
@@ -842,7 +848,7 @@ export default function MissionControlClient({
           <DialogTrigger asChild>
             <Button className="h-auto w-full justify-start rounded-2xl border border-sky-300/15 bg-sky-300/[0.06] px-5 py-4 text-left text-white hover:bg-sky-300/[0.11]">
               <span>
-                <span className="block font-semibold">Move to Session</span>
+                <span className="block font-semibold">Preview Session move</span>
                 <span className="mt-1 block text-xs font-normal text-white/50">Choose one programmed session.</span>
               </span>
             </Button>
@@ -1040,7 +1046,7 @@ export default function MissionControlClient({
           <DialogTrigger asChild>
             <Button className="h-auto w-full justify-start rounded-2xl border border-violet-300/15 bg-violet-300/[0.07] px-5 py-4 text-left text-white hover:bg-violet-300/[0.12]">
               <span>
-                <span className="block font-semibold">Move to Breakout</span>
+                <span className="block font-semibold">Preview Breakout move</span>
                 <span className="mt-1 block text-xs font-normal text-white/50">Send attendees into a breakout.</span>
               </span>
             </Button>
@@ -1240,7 +1246,7 @@ export default function MissionControlClient({
           <DialogTrigger asChild>
             <Button className="h-auto w-full justify-start rounded-2xl border border-red-300/15 bg-red-300/[0.045] px-5 py-4 text-left text-white hover:bg-red-300/[0.09]">
               <span>
-                <span className="block font-semibold text-red-100">Take Off Air</span>
+                <span className="block font-semibold text-red-100">Preview Off Air move</span>
                 <span className="mt-1 block text-xs font-normal text-white/50">Return attendees to the event home.</span>
               </span>
             </Button>

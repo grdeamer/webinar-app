@@ -164,6 +164,9 @@ function TopChromeTransmissionShell({
                 <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}/publishing`)} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
                   Publishing
                 </button>
+                <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}/routing`)} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
+                  Audience Flow
+                </button>
                 <button type="button" onClick={() => navigateFromProducer("/access")} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
                   Attendee View
                 </button>
