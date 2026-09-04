@@ -14,13 +14,6 @@ type SessionRow = { id: string; event_id: string; presenter: string | null }
 const dateFormat = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "America/New_York" })
 const timeFormat = new Intl.DateTimeFormat("en-US", { hour: "numeric", minute: "2-digit", timeZone: "America/New_York" })
 
-function duration(from: string | null | undefined, now: number) {
-  if (!from) return "—"
-  const elapsed = Math.max(0, now - new Date(from).getTime())
-  const values = [Math.floor(elapsed / 3_600_000), Math.floor((elapsed % 3_600_000) / 60_000), Math.floor((elapsed % 60_000) / 1_000)]
-  return values.map((value) => String(value).padStart(2, "0")).join(":")
-}
-
 function eventReadiness(eventId: string, sessions: SessionRow[]) {
   const relevant = sessions.filter((session) => session.event_id === eventId)
   const missing = relevant.filter((session) => !session.presenter?.trim()).length
@@ -93,7 +86,7 @@ export default async function AdminDashboardPage() {
       <section className="dashboard-command-panel overflow-hidden rounded-2xl border border-white/10 bg-[#080e1d]/88 shadow-[0_24px_70px_rgba(0,0,0,.2)]">
         <div className="flex items-center justify-between border-b border-white/[.08] px-6 py-4">
           <div className="text-xs font-semibold uppercase tracking-[.18em] text-white/70">Live operations</div>
-          {liveState?.updated_at ? <div className="text-xs font-medium text-red-300">Live since {timeFormat.format(new Date(liveState.updated_at))}</div> : null}
+          {liveState?.updated_at ? <div className="text-xs font-medium text-white/45">State synced {timeFormat.format(new Date(liveState.updated_at))}</div> : null}
         </div>
         {liveEvent ? (
           <div className="grid gap-6 px-6 py-6 xl:grid-cols-[1.3fr_repeat(4,.62fr)_auto] xl:items-center">
@@ -103,11 +96,11 @@ export default async function AdminDashboardPage() {
               <div className="mt-3 flex flex-wrap gap-x-7 gap-y-2 text-sm"><span className="text-white/40">Current session</span><span className="font-medium text-white/85">{currentSession}</span></div>
             </div>
             <Metric icon={<Users size={17} />} label="Attending" value={String(attendeeCount)} detail="Live now" />
-            <Metric icon={<Clock3 size={17} />} label="Runtime" value={duration(liveState.updated_at, now)} detail="hh:mm:ss" />
+            <Metric icon={<Clock3 size={17} />} label="Routing state" value="Live" detail={liveState.updated_at ? `Synced ${timeFormat.format(new Date(liveState.updated_at))}` : "Connected"} />
             <Metric icon={<Radio size={17} />} label="Signal health" value={healthy ? "Good" : "Check"} detail={healthy ? "All streams stable" : "Review services"} accent />
             <Metric icon={<CircleGauge size={17} />} label="Engagement" value={livePeople ? "Live" : "Ready"} detail={livePeople ? `${livePeople} active signals` : "Awaiting signals"} accent />
             <div className="grid min-w-[205px] gap-2">
-              <Link href={`/admin/events/${liveEvent.id}/producer`} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-5 text-sm font-semibold shadow-[0_12px_28px_rgba(77,83,255,.2)] hover:brightness-110">Open Producer Room<ArrowUpRight size={16} /></Link>
+              <Link href={`/admin/events/${liveEvent.id}/producer/room`} className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 to-violet-600 px-5 text-sm font-semibold shadow-[0_12px_28px_rgba(77,83,255,.2)] hover:brightness-110">Open Producer Room<ArrowUpRight size={16} /></Link>
               <Link href={`/admin/events/${liveEvent.id}`} className="inline-flex h-10 items-center justify-center gap-2 rounded-xl border border-white/12 bg-white/[.025] px-5 text-sm font-semibold text-white/75 hover:bg-white/[.06] hover:text-white">View event<ArrowUpRight size={15} /></Link>
             </div>
           </div>
