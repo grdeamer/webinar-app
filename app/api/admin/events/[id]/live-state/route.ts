@@ -22,15 +22,26 @@ export async function GET(_req: Request, ctx: Params): Promise<Response> {
 
   const { id: eventId } = await ctx.params
 
-  const { data, error } = await supabaseAdmin
-    .from("event_live_state")
-    .select("id,event_id,mode,breakout_id,force_redirect,updated_at")
-    .eq("event_id", eventId)
-    .maybeSingle()
+  const [liveStateResult, runOfShowResult] = await Promise.all([
+    supabaseAdmin
+      .from("event_live_state")
+      .select("id,event_id,mode,active_breakout_id,destination_type,destination_session_id,headline,message,force_redirect,transition_type,transition_duration_ms,transition_active,updated_at")
+      .eq("event_id", eventId)
+      .maybeSingle(),
+    supabaseAdmin
+      .from("event_run_of_show")
+      .select("cues")
+      .eq("event_id", eventId)
+      .maybeSingle(),
+  ])
 
-  if (error) {
-    return json({ error: error.message }, 400)
+  if (liveStateResult.error) {
+    return json({ error: liveStateResult.error.message }, 400)
   }
+
+  const data = liveStateResult.data ?? null
+  const cues = Array.isArray(runOfShowResult.data?.cues) ? runOfShowResult.data.cues : []
+  const nextCue = cues.find((cue) => cue && typeof cue === "object") ?? null
 
   return json({
     liveState:
@@ -39,8 +50,11 @@ export async function GET(_req: Request, ctx: Params): Promise<Response> {
         mode: "lobby",
         breakout_id: null,
         force_redirect: false,
+        transition_type: "fade",
+        transition_duration_ms: 3000,
         updated_at: null,
       },
+    nextCue,
   })
 }
 
