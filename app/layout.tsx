@@ -26,11 +26,11 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://jupiter.events"),
   applicationName: "Jupiter",
   title: {
-    default: "Jupiter — Events with gravity",
+    default: "Jupiter — Virtual events should feel bigger",
     template: "%s | Jupiter",
   },
   description:
-    "Host events with gravity. Run webinars, summits, and live broadcasts on a platform built to scale.",
+    "Create, produce, and direct branded virtual events from one live production platform. Your event, written in the stars. This is Jupiter.",
   icons: {
     icon: [{ url: "/jupiter-planet.svg", type: "image/svg+xml" }],
     shortcut: "/jupiter-planet.svg",
