@@ -14,6 +14,7 @@ import {
 } from "@untitledui/icons"
 import { Cloud, Menu, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
+import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 
 function matches(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin"
@@ -144,6 +145,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 >
                   <span className="sm:hidden">Preview</span><span className="hidden sm:inline">Attendee Preview</span>
                 </Link>
+                <AdminProfileMenu compact popoverPlacement="bottom" />
               </div>
             </div>
           ) : null}
@@ -257,21 +259,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
               </Section> : null}
             </div>
 
-            {!compactNavigation ? <div className="border-t border-white/10 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
-              <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.035] p-3">
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-violet-400/15 text-sm font-black text-violet-100">
-                  JD
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm font-semibold text-white">
-                    Producer Console
-                  </div>
-                  <div className="truncate text-xs text-white/40">
-                    Jupiter.events Admin
-                  </div>
-                </div>
-              </div>
-            </div> : <div className="mx-auto mb-5 h-9 w-9 rounded-full border border-white/15 bg-[linear-gradient(135deg,#1c78ff,#7542ef)]" />}
+            <div className={`${compactNavigation ? "px-2" : "border-t border-white/10 p-4"} pb-[calc(1rem+env(safe-area-inset-bottom))]`}>
+              <AdminProfileMenu compact={compactNavigation} />
+            </div>
           </div>
         </aside>
 

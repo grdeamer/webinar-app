@@ -6,6 +6,7 @@ import { CSSProperties, ReactNode, useCallback, useEffect, useState } from "reac
 import { Activity, CalendarDate, File04, Home03, LayersThree01, List, Mail02, Signal02, Tool02, UploadCloud01, Users01, VideoRecorder } from "@untitledui/icons"
 import { Cloud, Menu, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
+import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 
 type EventWorkspaceContext = {
   title: string
@@ -117,11 +118,13 @@ export default function EventLayout({ children }: { children: ReactNode }) {
           <nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin" label="Dashboard" icon={<Home03 />} iconTone="112 169 255" exact /><NavLink href="/admin/events" label="Events" icon={<CalendarDate />} iconTone="174 108 255" /><NavLink href="/admin/activity" label="Live Activity" icon={<Activity />} iconTone="83 229 168" /></nav>
           <div className="jv1-rail-section-label jv1-rail-section-label--administration">Administration</div>
           <nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin/users" label="Team & Access" icon={<Users01 />} iconTone="91 211 255" /><NavLink href="/admin/dev-tools" label="Dev Tools" icon={<Tool02 />} iconTone="241 188 104" /></nav>
+          <div className="mt-auto pt-6"><AdminProfileMenu /></div>
         </aside>
         <aside className="jv1-event-rail" aria-label="Mobile event workspace">
           <div className="jv1-event-rail-label"><span /> Event workspace</div>
           <div className="jv1-event-context" aria-busy={!eventContext}><h2>{eventTitle}</h2><p>{eventStatus}</p></div>
           <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}{canConfigure ? <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<Cloud />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Audience Flow" icon={<Signal02 />} /> : null}</nav>
+          <div className="mt-auto pt-5"><AdminProfileMenu /></div>
         </aside>
         <main className="jv1-content">{children}</main>
       </div>
