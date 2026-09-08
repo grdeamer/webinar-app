@@ -310,6 +310,23 @@ button, a, input, select, textarea {
     drop-shadow(-42px 3px 92px rgba(65, 126, 239, .34));
 }
 
+.global-jupiter-backdrop--activity {
+  top: 7.5rem;
+  right: clamp(2rem, 5vw, 5rem);
+  width: clamp(170px, 14vw, 225px);
+  opacity: .24;
+}
+
+.activity-editorial-page {
+  overflow: hidden;
+  padding: 2rem;
+  border: 1px solid rgba(115,144,199,.14);
+  border-radius: 24px;
+  background: rgba(4,9,20,.9);
+  box-shadow: 0 24px 70px rgba(0,0,0,.22), inset 0 1px rgba(255,255,255,.025);
+  backdrop-filter: blur(18px);
+}
+
 .events-editorial-page { position: relative; isolation: isolate; padding-top: 4.5rem; font-family: var(--font-instrument), var(--font-sans), sans-serif; }
 .events-editorial-page::after { content: ""; position: absolute; z-index: -1; inset: 0 -4vw; pointer-events: none; background: radial-gradient(circle at 72% 10%, rgba(48, 94, 178, .11), transparent 28%), linear-gradient(180deg, rgba(4, 8, 16, .08), rgba(3, 5, 9, .62)); }
 
@@ -878,13 +895,16 @@ button, a, input, select, textarea {
 .admin-theme-shell[data-admin-theme="light"] .events-activity-list > a,
 .admin-theme-shell[data-admin-theme="light"] .events-calendar-selection { border-color: #e4e9f0; }
 
+.admin-theme-shell[data-admin-theme="light"] .global-jupiter-backdrop--activity { opacity: .08; }
+.admin-theme-shell[data-admin-theme="light"] .activity-editorial-page {
+  border-color: rgba(39,57,88,.18);
+  background: rgba(255,255,255,.97);
+  box-shadow: 0 20px 56px rgba(47,63,94,.11), inset 0 1px rgba(255,255,255,.9);
+}
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page > header,
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page > div { border-color: rgba(39,57,88,.13) !important; }
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page > div:last-of-type {
-  border: 1px solid #ccd6e3 !important;
-  border-radius: 18px;
-  background: rgba(255,255,255,.97);
-  box-shadow: 0 16px 42px rgba(49,65,96,.08);
+  background: transparent;
 }
 .admin-theme-shell[data-admin-theme="light"] .activity-range-control {
   border-color: #d8e0eb;
