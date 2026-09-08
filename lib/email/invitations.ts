@@ -141,7 +141,8 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
             </tr>
             <tr>
               <td class="pad" style="padding:22px 42px 28px;border-top:1px solid #24304a;background:#050b18;color:#93a1ba;font-family:Arial,Helvetica,sans-serif;font-size:12px;line-height:20px;">
-                Jupiter.events&nbsp;&nbsp;·&nbsp;&nbsp;Events with gravity.
+                Jupiter.events&nbsp;&nbsp;·&nbsp;&nbsp;Events with gravity.<br>
+                <span style="color:#6f7d96;">Jupiter is a product of August Black, Inc.</span>
               </td>
             </tr>
           </table>
@@ -168,6 +169,7 @@ export function buildJupiterInviteEmail(options: JupiterInviteEmailOptions) {
     footerNote,
     "",
     "Jupiter.events · Events with gravity.",
+    "Jupiter is a product of August Black, Inc.",
   ].join("\n")
 
   return { subject, html, text }

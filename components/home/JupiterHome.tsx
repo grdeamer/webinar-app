@@ -131,7 +131,7 @@ export default function JupiterHome() {
       </section>
 
       <footer className="relative border-t border-white/[0.08] bg-black/20 px-5 py-10 text-white/45 sm:px-8 lg:px-12">
-        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-6 sm:flex-row sm:items-center"><JupiterLogo className="text-white/80" markClassName="h-6 w-6" wordmarkClassName="text-xs font-semibold tracking-[0.22em]" /><div className="flex items-center gap-7 text-sm"><a className="transition hover:text-white" href="#producer">Product</a><a className="transition hover:text-white" href="#scale">Scale</a><a className="transition hover:text-white" href="/login">Sign in</a></div></div>
+        <div className="mx-auto flex max-w-[1440px] flex-col justify-between gap-6 sm:flex-row sm:items-center"><div><JupiterLogo className="text-white/80" markClassName="h-6 w-6" wordmarkClassName="text-xs font-semibold tracking-[0.22em]" /><p className="mt-3 text-xs text-white/36">Jupiter is a product of August Black, Inc.</p></div><div className="flex items-center gap-7 text-sm"><a className="transition hover:text-white" href="#producer">Product</a><a className="transition hover:text-white" href="#scale">Scale</a><a className="transition hover:text-white" href="/login">Sign in</a></div></div>
       </footer>
     </main>
   )
