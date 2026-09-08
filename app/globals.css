@@ -745,8 +745,8 @@ button, a, input, select, textarea {
   --admin-surface: rgba(255,255,255,.84);
   --admin-raised: #ffffff;
   --admin-ink: #152033;
-  --admin-muted: #68758a;
-  --admin-line: rgba(39,57,88,.13);
+  --admin-muted: #526076;
+  --admin-line: rgba(39,57,88,.19);
   color-scheme: light;
 }
 
@@ -754,7 +754,7 @@ button, a, input, select, textarea {
   position: relative;
   isolation: isolate;
   background:
-    linear-gradient(180deg,rgba(243,246,251,.08) 0,rgba(243,246,251,.78) 260px,#f3f6fb 540px),
+    linear-gradient(180deg,rgba(243,246,251,.28) 0,rgba(243,246,251,.9) 220px,#f3f6fb 430px),
     url('/jupiter-daylight-horizon.jpg') center top / 100% auto no-repeat,
     #f3f6fb;
 }
@@ -767,31 +767,31 @@ button, a, input, select, textarea {
   background: linear-gradient(90deg,rgba(243,246,251,.18),transparent 36%,rgba(243,246,251,.2));
 }
 .admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail {
-  border-color: rgba(39,57,88,.12) !important;
+  border-color: rgba(39,57,88,.18) !important;
   background: var(--admin-rail) !important;
   box-shadow: 12px 0 38px rgba(62,79,111,.08);
   color: #182338;
 }
 .admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail .text-white,
-.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="text-white/"] { color: #556176 !important; }
-.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="border-white/"] { border-color: rgba(39,57,88,.12) !important; }
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="text-white/"] { color: #3f4d63 !important; }
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="border-white/"] { border-color: rgba(39,57,88,.18) !important; }
 .admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="bg-[#050816]"] { background: var(--admin-rail) !important; }
 .admin-theme-shell[data-admin-theme="light"] .main-nav-icon { background: rgba(var(--nav-icon-rgb),.08); border-color: rgba(var(--nav-icon-rgb),.16); }
 .admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail a[class*="bg-[#0c1428]"] { background: rgba(88,107,231,.1) !important; color: #28375a !important; }
 .admin-theme-shell[data-admin-theme="light"] .admin-theme-switch { border-color: rgba(39,57,88,.12); background: rgba(221,228,241,.52); }
-.admin-theme-shell[data-admin-theme="light"] .admin-theme-switch button { color: #718096; }
+.admin-theme-shell[data-admin-theme="light"] .admin-theme-switch button { color: #526076; }
 .admin-theme-shell[data-admin-theme="light"] .admin-theme-switch button[aria-pressed="true"] { background: #fff; color: #5546c9; box-shadow: 0 3px 12px rgba(52,65,99,.12); }
 
 .admin-theme-shell[data-admin-theme="light"] .global-editorial-page { color: #172236; }
 .admin-theme-shell[data-admin-theme="light"] .global-editorial-page::before { opacity: 0; }
-.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-white/"] { color: #6a7689 !important; }
-.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="border-white/"] { border-color: rgba(39,57,88,.12) !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-white/"] { color: #4b596f !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="border-white/"] { border-color: rgba(39,57,88,.18) !important; }
 .admin-theme-shell[data-admin-theme="light"] .dashboard-command-panel,
 .admin-theme-shell[data-admin-theme="light"] .events-directory-panel,
 .admin-theme-shell[data-admin-theme="light"] .events-calendar-card,
 .admin-theme-shell[data-admin-theme="light"] .events-activity-card {
-  border-color: rgba(39,57,88,.12) !important;
-  background: rgba(255,255,255,.84) !important;
+  border-color: rgba(39,57,88,.18) !important;
+  background: rgba(255,255,255,.97) !important;
   box-shadow: 0 18px 48px rgba(50,68,102,.09) !important;
   backdrop-filter: blur(18px);
 }
@@ -806,8 +806,8 @@ button, a, input, select, textarea {
 .admin-theme-shell[data-admin-theme="light"] .events-editorial-header::after { background: linear-gradient(90deg,rgba(247,249,253,.2),rgba(247,249,253,.08) 56%,rgba(247,249,253,.16)),linear-gradient(180deg,rgba(247,249,253,.02),rgba(243,246,251,.9) 100%); }
 .admin-theme-shell[data-admin-theme="light"] .events-editorial-title { color: #172236; text-shadow: 0 2px 12px rgba(255,255,255,.72); }
 .admin-theme-shell[data-admin-theme="light"] .events-editorial-description,
-.admin-theme-shell[data-admin-theme="light"] .events-editorial-kicker { color: #536176; text-shadow: 0 1px 8px rgba(255,255,255,.75); }
-.admin-theme-shell[data-admin-theme="light"] .team-access-page { border-color: rgba(39,57,88,.12); background: rgba(255,255,255,.78); box-shadow: 0 24px 70px rgba(50,68,102,.1); }
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-kicker { color: #3f4d63; text-shadow: 0 1px 8px rgba(255,255,255,.85); }
+.admin-theme-shell[data-admin-theme="light"] .team-access-page { border-color: rgba(39,57,88,.18); background: rgba(255,255,255,.96); box-shadow: 0 24px 70px rgba(50,68,102,.1); }
 .admin-theme-shell[data-admin-theme="light"] .team-access-header { background: #eaf0f8; border-color: rgba(39,57,88,.12) !important; }
 .admin-theme-shell[data-admin-theme="light"] .team-access-header::before { background-image: url('/jupiter-daylight-horizon.jpg'); background-position: center 50%; filter: saturate(.72) brightness(1.06) contrast(.92); }
 .admin-theme-shell[data-admin-theme="light"] .team-access-header::after { background: linear-gradient(90deg,rgba(248,250,254,.12),rgba(248,250,254,.04) 55%,rgba(248,250,254,.16)),linear-gradient(180deg,rgba(248,250,254,.02),rgba(243,246,251,.9)); }
@@ -817,6 +817,19 @@ button, a, input, select, textarea {
 .admin-theme-shell[data-admin-theme="light"] .team-access-page section { border-color: rgba(39,57,88,.13) !important; }
 .admin-theme-shell[data-admin-theme="light"] .global-editorial-page a[class*="from-blue-600"],
 .admin-theme-shell[data-admin-theme="light"] .global-editorial-page button[class*="bg-blue-600"] { color: #fff !important; }
+
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page p { color: #4b596f; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page small { color: #5b687c; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-emerald-200"],
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-emerald-300"] { color: #08785b !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-amber-200"],
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-amber-300"] { color: #9a5a00 !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-cyan-200"],
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-cyan-300"],
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-sky-300"] { color: #126b8a !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-blue-300"] { color: #245fbd !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-red-"],
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-rose-"] { color: #b52f43 !important; }
 
 /* Complete light-surface pass: operational content stays crisp and the
    atmospheric horizon recedes behind opaque working panels. */
@@ -836,11 +849,11 @@ button, a, input, select, textarea {
   color: #1c2940;
 }
 .admin-theme-shell[data-admin-theme="light"] .events-directory-filters {
-  border-color: #dce3ed;
+  border-color: #cfd8e5;
   background: #f0f3f8;
 }
 .admin-theme-shell[data-admin-theme="light"] .event-directory-item {
-  border-color: #dce3ec;
+  border-color: #cfd8e5;
   background: linear-gradient(90deg,rgba(var(--event-accent),.13),rgba(var(--event-accent),.035) 17%,#fff 43%);
   color: #243149;
   box-shadow: 0 5px 16px rgba(48,64,96,.07),inset 0 1px rgba(255,255,255,.8);
@@ -852,11 +865,15 @@ button, a, input, select, textarea {
 }
 .admin-theme-shell[data-admin-theme="light"] .event-directory-item__title { color: #1b273b; }
 .admin-theme-shell[data-admin-theme="light"] .event-directory-item__slug,
-.admin-theme-shell[data-admin-theme="light"] .event-directory-item__date { color: #718096; }
+.admin-theme-shell[data-admin-theme="light"] .event-directory-item__date { color: #526076; }
 .admin-theme-shell[data-admin-theme="light"] .events-rail-heading,
 .admin-theme-shell[data-admin-theme="light"] .events-calendar-month h3 { color: #344158; }
 .admin-theme-shell[data-admin-theme="light"] .events-calendar-weekdays span,
-.admin-theme-shell[data-admin-theme="light"] .events-calendar-day { color: #758197; }
+.admin-theme-shell[data-admin-theme="light"] .events-calendar-day { color: #526076; }
+.admin-theme-shell[data-admin-theme="light"] .events-rail-heading a,
+.admin-theme-shell[data-admin-theme="light"] .events-rail-heading button,
+.admin-theme-shell[data-admin-theme="light"] .events-calendar-selection p,
+.admin-theme-shell[data-admin-theme="light"] .events-calendar-selection small { color: #5b687c; }
 .admin-theme-shell[data-admin-theme="light"] .events-activity-list strong { color: #27344a; }
 .admin-theme-shell[data-admin-theme="light"] .events-activity-list > a,
 .admin-theme-shell[data-admin-theme="light"] .events-calendar-selection { border-color: #e4e9f0; }
@@ -864,9 +881,9 @@ button, a, input, select, textarea {
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page > header,
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page > div { border-color: rgba(39,57,88,.13) !important; }
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page > div:last-of-type {
-  border: 1px solid #dce3ed !important;
+  border: 1px solid #ccd6e3 !important;
   border-radius: 18px;
-  background: rgba(255,255,255,.88);
+  background: rgba(255,255,255,.97);
   box-shadow: 0 16px 42px rgba(49,65,96,.08);
 }
 .admin-theme-shell[data-admin-theme="light"] .activity-range-control {
@@ -874,9 +891,9 @@ button, a, input, select, textarea {
   background: rgba(255,255,255,.86);
   box-shadow: 0 7px 22px rgba(48,64,95,.08);
 }
-.admin-theme-shell[data-admin-theme="light"] .activity-range-option { color: #718096; }
+.admin-theme-shell[data-admin-theme="light"] .activity-range-option { color: #4b596f; }
 .admin-theme-shell[data-admin-theme="light"] .activity-range-option.is-selected { background: #27344b; color: #fff; }
-.admin-theme-shell[data-admin-theme="light"] .activity-editorial-page svg text { fill: #69768a; }
+.admin-theme-shell[data-admin-theme="light"] .activity-editorial-page svg text { fill: #4b596f; }
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page svg g[transform="translate(435,300)"] text:first-of-type { fill: #263249; }
 .admin-theme-shell[data-admin-theme="light"] .activity-editorial-page svg rect { fill: #fff; stroke: rgba(39,57,88,.16); }
 
@@ -889,8 +906,8 @@ button, a, input, select, textarea {
 .admin-theme-shell[data-admin-theme="light"] .cloud-editorial-hero > div:nth-child(2) { display: none; }
 .admin-theme-shell[data-admin-theme="light"] .cloud-editorial-page article,
 .admin-theme-shell[data-admin-theme="light"] .cloud-editorial-page section > div[class*="rounded-2xl"] {
-  border-color: #dce3ed !important;
-  background: rgba(255,255,255,.9) !important;
+  border-color: #ccd6e3 !important;
+  background: rgba(255,255,255,.98) !important;
   color: #1d2940;
   box-shadow: 0 12px 34px rgba(48,64,96,.07) !important;
 }
@@ -901,27 +918,27 @@ button, a, input, select, textarea {
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-editorial-page > header { border-color: rgba(39,57,88,.13) !important; }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-editorial-page > header h1 { color: #172236 !important; }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace {
-  border-color: #d9e1ec;
-  background: rgba(255,255,255,.92);
+  border-color: #ccd6e3;
+  background: rgba(255,255,255,.98);
   box-shadow: 0 20px 56px rgba(47,63,94,.11),inset 0 1px rgba(255,255,255,.9);
 }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace::before {
   background: radial-gradient(ellipse 65% 45% at 4% 0%,rgba(75,133,226,.07),transparent 68%),linear-gradient(115deg,rgba(255,255,255,.7),transparent 28%);
 }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace__verification {
-  border-color: #e0e6ef;
-  background: #f7f9fc;
+  border-color: #d4dce8;
+  background: #f2f5fa;
 }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-field {
-  border-color: #dce3ed;
-  background: #f6f8fb;
+  border-color: #cbd5e2;
+  background: #f4f7fa;
   color: #263249 !important;
   box-shadow: inset 0 1px rgba(255,255,255,.8);
 }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-field:hover { border-color: #c7d2e2; background: #fff; }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-field:focus { border-color: #6a8fea; background: #fff; box-shadow: 0 0 0 3px rgba(83,126,229,.12); }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-field::placeholder { color: #9aa5b5 !important; }
-.admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace [class*="text-white"] { color: #66748a !important; }
+.admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace [class*="text-white"] { color: #4b596f !important; }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace h2,
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace h3 { color: #1c2940 !important; }
 .admin-theme-shell[data-admin-theme="light"] .dev-tools-workspace button[class*="bg-[linear-gradient"] { color: #fff !important; }
