@@ -23,7 +23,7 @@ export default async function AdminDevToolsPage(props: {
   const webinarTitle = first(searchParams.webinar) || "Welcome Session"
 
   return (
-    <main className="global-editorial-page mx-auto max-w-[1440px] pb-12">
+    <main className="global-editorial-page dev-tools-editorial-page mx-auto max-w-[1440px] pb-12">
       <header className="relative overflow-hidden border-b border-white/10 pb-9 pt-3">
         <div className="pointer-events-none absolute -right-16 -top-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(70,117,205,.16),rgba(65,40,90,.06)_48%,transparent_72%)] blur-2xl" />
         <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">

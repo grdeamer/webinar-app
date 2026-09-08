@@ -46,8 +46,8 @@ export default async function JupiterCloudPage() {
   const snapshot = await getPlatformCloudSnapshot()
   const healthyServices = snapshot.services.filter((service) => service.state === "operational" || service.state === "configured").length
 
-  return <div className="global-editorial-page mx-auto max-w-[1460px] space-y-6">
-    <header className="relative overflow-hidden rounded-[28px] border border-blue-300/10 bg-[#030817] px-7 py-8 sm:px-10 sm:py-10">
+  return <div className="global-editorial-page cloud-editorial-page mx-auto max-w-[1460px] space-y-6">
+    <header className="cloud-editorial-hero relative overflow-hidden rounded-[28px] border border-blue-300/10 bg-[#030817] px-7 py-8 sm:px-10 sm:py-10">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_18%,rgba(93,93,255,.22),transparent_31%),radial-gradient(circle_at_62%_120%,rgba(48,193,255,.12),transparent_34%)]" />
       <div className="pointer-events-none absolute -right-16 top-[-150px] h-[360px] w-[360px] rounded-full border border-blue-200/10 bg-[radial-gradient(circle_at_36%_32%,#8f704f_0%,#5a4133_24%,#1d273a_53%,#050915_73%)] opacity-75 shadow-[0_0_70px_rgba(76,121,255,.24)] blur-[1px]" />
       <div className="relative flex flex-col gap-7 lg:flex-row lg:items-end lg:justify-between">

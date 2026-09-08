@@ -176,7 +176,7 @@ export default function ActivityTreeClient({
   const maxCount = Math.max(1, ...counts.values())
 
   return (
-    <div className="global-editorial-page mx-auto max-w-[1440px]">
+    <div className="global-editorial-page activity-editorial-page mx-auto max-w-[1440px]">
       <header className="flex flex-col gap-6 border-b border-white/10 pb-7 lg:flex-row lg:items-start lg:justify-between">
         <div><div className="text-[11px] font-semibold uppercase tracking-[.24em] text-white/36">Jupiter.events Admin</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Live Activity</h1><p className="mt-3 text-base text-white/58">See where audiences are gathering across every active event.</p></div>
         <div className="flex flex-wrap items-center gap-4"><div className="activity-range-control">{(["now", "hour", "day"] as const).map((value) => <button key={value} type="button" onClick={() => selectRange(value)} className={`activity-range-option ${range === value ? "is-selected" : ""}`} aria-pressed={range === value}>{value === "now" ? "Now" : value === "hour" ? "1 hour" : "24 hours"}</button>)}</div><button type="button" onClick={() => setPaused((current) => !current)} className="inline-flex items-center gap-2 text-sm text-white/60 transition hover:text-white"><PauseCircle className="h-4 w-4" />{paused ? "Resume updates" : "Pause updates"}</button></div>
