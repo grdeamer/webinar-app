@@ -95,6 +95,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isEventWorkspace = /^\/admin\/events\/[^/]+(?:\/.*)?$/.test(pathname) && !isProducerWorkspace
   const isEventsDirectory = pathname === "/admin/events"
   const isDashboard = pathname === "/admin"
+  const isTeamAccess = pathname === "/admin/users"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const compactNavigation = isEventWorkspace && !mobileNavOpen
@@ -185,7 +186,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
         {mobileNavOpen ? <button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} className="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm lg:hidden" /> : null}
-        {!isEventWorkspace && !isPageEditorWorkspace && !isDashboard ? (
+        {!isEventWorkspace && !isPageEditorWorkspace && !isDashboard && !isTeamAccess ? (
           <div
             aria-hidden="true"
             className={`global-jupiter-backdrop ${isEventsDirectory ? "global-jupiter-backdrop--events" : ""}`}
