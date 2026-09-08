@@ -5,7 +5,7 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 
-export default function LoginForm({ next = "/admin/webinars" }: { next?: string }) {
+export default function LoginForm({ next = "/admin" }: { next?: string }) {
   const router = useRouter()
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
@@ -31,10 +31,10 @@ export default function LoginForm({ next = "/admin/webinars" }: { next?: string 
         return
       }
 
-      router.push(next || "/admin/webinars")
+      router.push(next || "/admin")
       router.refresh()
-    } catch (err: any) {
-      setError(err?.message || "Login failed")
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Login failed")
       setLoading(false)
     }
   }

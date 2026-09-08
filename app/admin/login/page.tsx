@@ -7,7 +7,7 @@ export default async function AdminLoginPage(props: {
   searchParams?: Promise<{ next?: string }>
 }) {
   const sp = (await props.searchParams) ?? {}
-  const next = sp.next ?? "/admin/webinars"
+  const next = sp.next ?? "/admin"
 
   return (
     <main className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6">
