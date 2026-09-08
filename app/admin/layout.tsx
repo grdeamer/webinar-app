@@ -12,7 +12,7 @@ import {
   Tool02,
   Users01,
 } from "@untitledui/icons"
-import { Cloud, Menu, X } from "lucide-react"
+import { Cloud, Menu, Moon, Sun, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 
@@ -98,7 +98,21 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isTeamAccess = pathname === "/admin/users"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [adminTheme, setAdminTheme] = useState<"dark" | "light">("dark")
   const compactNavigation = isEventWorkspace && !mobileNavOpen
+
+  useEffect(() => {
+    const savedTheme = window.localStorage.getItem("jupiter-admin-theme")
+    if (savedTheme === "light" || savedTheme === "dark") {
+      setAdminTheme(savedTheme)
+      return
+    }
+    setAdminTheme(window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
+  }, [])
+
+  useEffect(() => {
+    window.localStorage.setItem("jupiter-admin-theme", adminTheme)
+  }, [adminTheme])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -162,9 +176,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div
+      data-admin-theme={adminTheme}
       className={`${
         isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
-      } bg-transparent text-white`}
+      } admin-theme-shell bg-transparent text-white`}
     >
       <div
         className={`relative flex ${
@@ -196,7 +211,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           onClickCapture={(event) => {
             if ((event.target as HTMLElement).closest("a")) setMobileNavOpen(false)
           }}
-          className={`${
+          className={`admin-navigation-rail ${
             isPageEditorWorkspace ? "h-full" : ""
           } ${compactNavigation ? "lg:w-[84px]" : "lg:w-[288px]"} fixed inset-y-0 left-0 z-[65] w-[min(86vw,320px)] transform border-r border-white/10 bg-[#050816]/97 pt-[env(safe-area-inset-top)] shadow-2xl backdrop-blur-2xl transition-transform duration-200 lg:static lg:z-auto lg:translate-x-0 lg:pt-0 lg:shadow-none ${mobileNavOpen ? "translate-x-0" : "-translate-x-full"}`}
         >
@@ -261,13 +276,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
 
             <div className={`${compactNavigation ? "px-2" : "border-t border-white/10 p-4"} pb-[calc(1rem+env(safe-area-inset-bottom))]`}>
+              {!compactNavigation ? (
+                <div className="admin-theme-switch mb-3 grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-black/15 p-1" aria-label="Appearance">
+                  <button type="button" onClick={() => setAdminTheme("light")} aria-pressed={adminTheme === "light"} className="flex h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition"><Sun className="h-3.5 w-3.5" />Light</button>
+                  <button type="button" onClick={() => setAdminTheme("dark")} aria-pressed={adminTheme === "dark"} className="flex h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition"><Moon className="h-3.5 w-3.5" />Dark</button>
+                </div>
+              ) : null}
               <AdminProfileMenu compact={compactNavigation} />
             </div>
           </div>
         </aside>
 
         <div
-          className={`flex min-w-0 flex-1 flex-col pt-16 lg:pt-0 ${
+          className={`admin-workspace flex min-w-0 flex-1 flex-col pt-16 lg:pt-0 ${
             isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"
           }`}
         >

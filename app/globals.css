@@ -720,6 +720,104 @@ button, a, input, select, textarea {
   opacity: .55;
 }
 
+/* Jupiter admin appearance foundation. The dark theme remains the production
+   default; daylight is a calm, low-glare counterpart using the same hierarchy. */
+.admin-theme-shell {
+  --admin-canvas: #030714;
+  --admin-rail: #050816;
+  --admin-surface: #080e1d;
+  --admin-raised: #0d1527;
+  --admin-ink: #f5f7fb;
+  --admin-muted: #9ba6bb;
+  --admin-line: rgba(255,255,255,.1);
+  min-height: 100dvh;
+  background: var(--admin-canvas);
+  color: var(--admin-ink);
+  transition: background-color .24s ease, color .24s ease;
+}
+
+.admin-theme-switch button { color: rgba(255,255,255,.52); }
+.admin-theme-switch button[aria-pressed="true"] { background: rgba(124,92,255,.22); color: #f7f5ff; box-shadow: inset 0 0 0 1px rgba(167,139,250,.22); }
+
+.admin-theme-shell[data-admin-theme="light"] {
+  --admin-canvas: #f3f6fb;
+  --admin-rail: rgba(249,251,255,.94);
+  --admin-surface: rgba(255,255,255,.84);
+  --admin-raised: #ffffff;
+  --admin-ink: #152033;
+  --admin-muted: #68758a;
+  --admin-line: rgba(39,57,88,.13);
+  color-scheme: light;
+}
+
+.admin-theme-shell[data-admin-theme="light"] .admin-workspace {
+  position: relative;
+  isolation: isolate;
+  background:
+    linear-gradient(180deg,rgba(243,246,251,.08) 0,rgba(243,246,251,.78) 260px,#f3f6fb 540px),
+    url('/jupiter-daylight-horizon.jpg') center top / 100% auto no-repeat,
+    #f3f6fb;
+}
+.admin-theme-shell[data-admin-theme="light"] .admin-workspace::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg,rgba(243,246,251,.18),transparent 36%,rgba(243,246,251,.2));
+}
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail {
+  border-color: rgba(39,57,88,.12) !important;
+  background: var(--admin-rail) !important;
+  box-shadow: 12px 0 38px rgba(62,79,111,.08);
+  color: #182338;
+}
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail .text-white,
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="text-white/"] { color: #556176 !important; }
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="border-white/"] { border-color: rgba(39,57,88,.12) !important; }
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail [class*="bg-[#050816]"] { background: var(--admin-rail) !important; }
+.admin-theme-shell[data-admin-theme="light"] .main-nav-icon { background: rgba(var(--nav-icon-rgb),.08); border-color: rgba(var(--nav-icon-rgb),.16); }
+.admin-theme-shell[data-admin-theme="light"] .admin-navigation-rail a[class*="bg-[#0c1428]"] { background: rgba(88,107,231,.1) !important; color: #28375a !important; }
+.admin-theme-shell[data-admin-theme="light"] .admin-theme-switch { border-color: rgba(39,57,88,.12); background: rgba(221,228,241,.52); }
+.admin-theme-shell[data-admin-theme="light"] .admin-theme-switch button { color: #718096; }
+.admin-theme-shell[data-admin-theme="light"] .admin-theme-switch button[aria-pressed="true"] { background: #fff; color: #5546c9; box-shadow: 0 3px 12px rgba(52,65,99,.12); }
+
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page { color: #172236; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page::before { opacity: 0; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="text-white/"] { color: #6a7689 !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page [class*="border-white/"] { border-color: rgba(39,57,88,.12) !important; }
+.admin-theme-shell[data-admin-theme="light"] .dashboard-command-panel,
+.admin-theme-shell[data-admin-theme="light"] .events-directory-panel,
+.admin-theme-shell[data-admin-theme="light"] .events-calendar-card,
+.admin-theme-shell[data-admin-theme="light"] .events-activity-card {
+  border-color: rgba(39,57,88,.12) !important;
+  background: rgba(255,255,255,.84) !important;
+  box-shadow: 0 18px 48px rgba(50,68,102,.09) !important;
+  backdrop-filter: blur(18px);
+}
+.admin-theme-shell[data-admin-theme="light"] .dashboard-command-header { position: relative; min-height: 174px; padding: 44px 28px 28px; }
+.admin-theme-shell[data-admin-theme="light"] .dashboard-command-header::before {
+  content: ""; position: absolute; z-index: -1; inset: -40px -40px -22px;
+  background: linear-gradient(180deg,rgba(255,255,255,.02),rgba(243,246,251,.38) 72%,#f3f6fb 100%);
+}
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-page { background: transparent; color: #172236; }
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-header { background: rgba(243,246,251,.08); border-color: rgba(39,57,88,.11); }
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-header::before { background-image: url('/jupiter-daylight-horizon.jpg'); background-position: center 48%; filter: saturate(.72) brightness(1.06) contrast(.92); }
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-header::after { background: linear-gradient(90deg,rgba(247,249,253,.2),rgba(247,249,253,.08) 56%,rgba(247,249,253,.16)),linear-gradient(180deg,rgba(247,249,253,.02),rgba(243,246,251,.9) 100%); }
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-title { color: #172236; text-shadow: 0 2px 12px rgba(255,255,255,.72); }
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-description,
+.admin-theme-shell[data-admin-theme="light"] .events-editorial-kicker { color: #536176; text-shadow: 0 1px 8px rgba(255,255,255,.75); }
+.admin-theme-shell[data-admin-theme="light"] .team-access-page { border-color: rgba(39,57,88,.12); background: rgba(255,255,255,.78); box-shadow: 0 24px 70px rgba(50,68,102,.1); }
+.admin-theme-shell[data-admin-theme="light"] .team-access-header { background: #eaf0f8; border-color: rgba(39,57,88,.12) !important; }
+.admin-theme-shell[data-admin-theme="light"] .team-access-header::before { background-image: url('/jupiter-daylight-horizon.jpg'); background-position: center 50%; filter: saturate(.72) brightness(1.06) contrast(.92); }
+.admin-theme-shell[data-admin-theme="light"] .team-access-header::after { background: linear-gradient(90deg,rgba(248,250,254,.12),rgba(248,250,254,.04) 55%,rgba(248,250,254,.16)),linear-gradient(180deg,rgba(248,250,254,.02),rgba(243,246,251,.9)); }
+.admin-theme-shell[data-admin-theme="light"] .team-access-header h1,
+.admin-theme-shell[data-admin-theme="light"] .team-access-header p,
+.admin-theme-shell[data-admin-theme="light"] .team-access-header > div > div { color: #172236 !important; text-shadow: 0 2px 12px rgba(255,255,255,.76); }
+.admin-theme-shell[data-admin-theme="light"] .team-access-page section { border-color: rgba(39,57,88,.13) !important; }
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page a[class*="from-blue-600"],
+.admin-theme-shell[data-admin-theme="light"] .global-editorial-page button[class*="bg-blue-600"] { color: #fff !important; }
+
 .dashboard-atmospheric-header {
   position: relative;
   isolation: isolate;
