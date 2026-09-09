@@ -34,7 +34,7 @@ async function requestEventId(req: NextRequest): Promise<string | null> {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Allow the legacy admin login page path if it still exists.
+  // Keep the legacy admin login route available as a compatibility redirect.
   if (pathname === "/admin/login") {
     return NextResponse.next()
   }

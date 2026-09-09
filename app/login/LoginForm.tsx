@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client"
 
 export default function LoginForm({ next = "/admin" }: { next?: string }) {
   const router = useRouter()
+  const destination = next.startsWith("/admin") ? next : "/admin"
   const [email, setEmail] = React.useState("")
   const [password, setPassword] = React.useState("")
   const [loading, setLoading] = React.useState(false)
@@ -31,7 +32,7 @@ export default function LoginForm({ next = "/admin" }: { next?: string }) {
         return
       }
 
-      router.push(next || "/admin")
+      router.replace(destination)
       router.refresh()
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Login failed")
