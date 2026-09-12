@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react"
 import { DndContext, PointerSensor, useDraggable, useDroppable, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core"
-import { ChevronDown, ChevronRight, ExternalLink, GripVertical, MapPinned, Network, Plus, Save, Search, Trash2 } from "lucide-react"
+import { BookOpen, ChevronDown, ChevronRight, Download, ExternalLink, GripVertical, MapPinned, Network, Plus, Save, Search, Trash2, X } from "lucide-react"
 
 export type DistrictNode = {
   id: string
@@ -45,6 +45,7 @@ export default function DistrictTreeEditor({ event, initialNodes }: { event: Eve
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null)
+  const [helpOpen, setHelpOpen] = useState(initialNodes.length === 0)
   const [newType, setNewType] = useState<DistrictNode["node_type"]>("district")
   const [newTitle, setNewTitle] = useState("")
   const selected = nodes.find((node) => node.id === selectedId) || null
@@ -117,6 +118,20 @@ export default function DistrictTreeEditor({ event, initialNodes }: { event: Eve
     }
   }
 
+  function downloadRosterExample() {
+    const csv = [
+      "email,first_name,last_name,district_code_1,district_code_2",
+      "jane@example.com,Jane,Doe,PHL,BAL",
+      "john@example.com,John,Smith,BOS,",
+    ].join("\n")
+    const href = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }))
+    const link = document.createElement("a")
+    link.href = href
+    link.download = `district_roster_${event.slug}.csv`
+    link.click()
+    URL.revokeObjectURL(href)
+  }
+
   async function onDragEnd(eventInfo: DragEndEvent) {
     const dragged = nodes.find((node) => node.id === eventInfo.active.id)
     const target = nodes.find((node) => node.id === eventInfo.over?.id)
@@ -154,7 +169,8 @@ export default function DistrictTreeEditor({ event, initialNodes }: { event: Eve
   return (
     <DndContext sensors={sensors} onDragEnd={(eventInfo) => void onDragEnd(eventInfo)}>
       <div className="mx-auto max-w-[1660px] px-6 py-10 text-white lg:px-10">
-        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-white/10 pb-8"><div><div className="text-xs font-bold uppercase tracking-[.22em] text-violet-300/70">Event / Districts</div><h1 className="mt-4 text-5xl font-semibold tracking-[-.045em]">District structure</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">Drag Zones, Regions, and Districts into the order attendees should see. The public directory mirrors this structure.</p></div><div className="flex gap-3 text-sm"><span className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-3">{counts.zones} zones</span><span className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-3">{counts.regions} regions</span><span className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-3">{counts.districts} districts</span></div></div>
+        <div className="flex flex-wrap items-end justify-between gap-6 border-b border-white/10 pb-8"><div><div className="text-xs font-bold uppercase tracking-[.22em] text-violet-300/70">Event / Districts</div><h1 className="mt-4 text-5xl font-semibold tracking-[-.045em]">District structure</h1><p className="mt-3 max-w-2xl text-sm leading-6 text-white/45">Drag Zones, Regions, and Districts into the order attendees should see. The public directory mirrors this structure.</p></div><div className="flex flex-wrap items-center justify-end gap-3 text-sm"><button type="button" onClick={() => setHelpOpen((current) => !current)} className={`inline-flex items-center gap-2 rounded-xl border px-4 py-3 font-semibold transition ${helpOpen ? "border-violet-300/35 bg-violet-500/15 text-violet-100" : "border-white/10 bg-white/[.04] text-white/70 hover:bg-white/[.08]"}`}><BookOpen size={16} />How districts work</button><span className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-3">{counts.zones} zones</span><span className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-3">{counts.regions} regions</span><span className="rounded-xl border border-white/10 bg-white/[.04] px-4 py-3">{counts.districts} districts</span></div></div>
+        {helpOpen ? <section className="mt-6 overflow-hidden rounded-3xl border border-violet-300/20 bg-gradient-to-br from-[#10182a] via-[#0b1422] to-[#17132a] shadow-[0_24px_70px_rgba(0,0,0,.24)]"><div className="flex items-start justify-between gap-6 border-b border-white/10 px-6 py-5"><div><div className="text-xs font-bold uppercase tracking-[.2em] text-violet-300/70">District guide</div><h2 className="mt-2 text-2xl font-semibold">Build the tree first. Assign people second.</h2><p className="mt-2 max-w-3xl text-sm leading-6 text-white/50">Districts route people to geographic meeting destinations. Sessions are scheduled program content. They appear separately in Jupiter even though they share some infrastructure behind the scenes.</p></div><button type="button" onClick={() => setHelpOpen(false)} aria-label="Close district guide" className="grid size-9 shrink-0 place-items-center rounded-xl border border-white/10 text-white/45 hover:bg-white/10 hover:text-white"><X size={16} /></button></div><div className="grid gap-px bg-white/10 lg:grid-cols-3"><div className="bg-[#0b1321] p-6"><span className="grid size-9 place-items-center rounded-xl bg-violet-500/15 text-sm font-bold text-violet-200">1</span><h3 className="mt-4 font-semibold">Create the structure</h3><p className="mt-2 text-sm leading-6 text-white/48">Create Zones, place Regions inside them, then add Districts inside each Region. Give every District a unique, recognizable code and its meeting URL.</p><div className="mt-4 rounded-xl border border-white/[.07] bg-black/20 px-4 py-3 font-mono text-xs text-white/55">East → Mid-Atlantic → PHL</div></div><div className="bg-[#0b1321] p-6"><span className="grid size-9 place-items-center rounded-xl bg-blue-500/15 text-sm font-bold text-blue-200">2</span><h3 className="mt-4 font-semibold">Upload the district roster</h3><p className="mt-2 text-sm leading-6 text-white/48">In People, choose <strong className="text-white/75">Import CSV → District roster</strong>. Use the exact codes already shown in this tree. Add numbered columns when someone belongs to multiple Districts.</p><pre className="mt-4 overflow-x-auto rounded-xl border border-white/[.07] bg-black/25 p-3 text-[11px] leading-5 text-white/55">{`email,district_code_1,district_code_2\njane@example.com,PHL,BAL`}</pre><button type="button" onClick={downloadRosterExample} className="mt-3 inline-flex items-center gap-2 text-xs font-semibold text-blue-200 hover:text-blue-100"><Download size={14} />Download roster example</button></div><div className="bg-[#0b1321] p-6"><span className="grid size-9 place-items-center rounded-xl bg-emerald-500/15 text-sm font-bold text-emerald-200">3</span><h3 className="mt-4 font-semibold">Review in the matrix</h3><p className="mt-2 text-sm leading-6 text-white/48">Open the Assignment Matrix in People and select the Districts view. Checkmarks show every District assigned to each person; click cells to add or remove assignments.</p><div className="mt-4 rounded-xl border border-amber-300/15 bg-amber-400/[.06] px-4 py-3 text-xs leading-5 text-amber-100/65"><strong className="text-amber-100">Avoid unknown codes.</strong> A roster code that is not already in this tree may create an unplaced District that must be moved into a Region.</div></div></div><div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/10 px-6 py-4 text-xs text-white/42"><span><strong className="text-white/68">District columns:</strong> district_code_1, district_code_2, …</span><span><strong className="text-white/68">Program columns:</strong> session_code_1, session_code_2, …</span></div></section> : null}
         {message ? <div className={`mt-5 rounded-xl border px-4 py-3 text-sm ${message.includes("saved") || message.includes("removed") ? "border-emerald-300/20 bg-emerald-400/[.07] text-emerald-100" : "border-amber-300/20 bg-amber-400/[.07] text-amber-100"}`}>{message}</div> : null}
         <div className="mt-7 grid gap-5 xl:grid-cols-[minmax(520px,.98fr)_minmax(420px,.72fr)]">
           <section className="rounded-3xl border border-white/10 bg-[#07101d]/92 p-5 shadow-[0_28px_80px_rgba(0,0,0,.28)]"><div className="flex flex-wrap items-center gap-3"><div className="relative min-w-[250px] flex-1"><Search size={16} className="absolute left-3 top-3.5 text-white/30" /><input value={query} onChange={(eventInfo) => setQuery(eventInfo.target.value)} placeholder="Search zones, regions, or districts" className="w-full rounded-xl border border-white/10 bg-black/20 py-3 pl-10 pr-3 text-sm outline-none placeholder:text-white/25 focus:border-violet-300/45" /></div></div><div className="mt-5 space-y-2">{visibleRows.map(({ node, depth }) => <TreeRow key={node.id} node={node} depth={depth} selected={node.id === selectedId} expanded={expanded.has(node.id)} childCount={(children.get(node.id) || []).length} onExpand={() => setExpanded((current) => { const next = new Set(current); if (next.has(node.id)) next.delete(node.id); else next.add(node.id); return next })} onSelect={() => { setSelectedId(node.id); setPendingDeleteId(null) }} />)}{!visibleRows.length ? <div className="rounded-2xl border border-dashed border-white/10 p-12 text-center text-sm text-white/35">No district nodes match this search.</div> : null}</div></section>
