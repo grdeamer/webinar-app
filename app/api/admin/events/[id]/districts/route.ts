@@ -69,6 +69,26 @@ async function validateParent(eventId: string, nodeType: NodeKind, parentId: str
   return parentId
 }
 
+async function deleteNode(eventId: string, nodeId: string) {
+  const { count, error: countError } = await supabaseAdmin
+    .from("event_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("event_id", eventId)
+    .eq("district_parent_id", nodeId)
+  if (countError) throw new Error(countError.message)
+  if ((count || 0) > 0) throw new Error("Move or remove this node’s children first")
+
+  const { data, error } = await supabaseAdmin
+    .from("event_sessions")
+    .delete()
+    .eq("id", nodeId)
+    .eq("event_id", eventId)
+    .select("id")
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  if (!data) throw new Error("District node was not found or could not be removed")
+}
+
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const auth = await requireAdmin()
   if (auth instanceof Response) return auth
@@ -78,6 +98,21 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     return NextResponse.json({ nodes: await loadNodes(id) })
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Could not load districts" }, { status: 400 })
+  }
+}
+
+export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
+  const auth = await requireAdmin()
+  if (auth instanceof Response) return auth
+  try {
+    const { id: eventId } = await context.params
+    await assertEvent(eventId)
+    const nodeId = clean(new URL(request.url).searchParams.get("nodeId"), 100)
+    if (!nodeId) throw new Error("Missing node id")
+    await deleteNode(eventId, nodeId)
+    return NextResponse.json({ ok: true, nodes: await loadNodes(eventId) })
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Could not remove district" }, { status: 400 })
   }
 }
 
@@ -164,11 +199,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     if (action === "delete") {
       const nodeId = clean(body.id, 100)
       if (!nodeId) throw new Error("Missing node id")
-      const { count, error: countError } = await supabaseAdmin.from("event_sessions").select("id", { count: "exact", head: true }).eq("event_id", eventId).eq("district_parent_id", nodeId)
-      if (countError) throw new Error(countError.message)
-      if ((count || 0) > 0) throw new Error("Move or remove this node’s children first")
-      const { error } = await supabaseAdmin.from("event_sessions").delete().eq("id", nodeId).eq("event_id", eventId)
-      if (error) throw new Error(error.message)
+      await deleteNode(eventId, nodeId)
       return NextResponse.json({ ok: true, nodes: await loadNodes(eventId) })
     }
 
