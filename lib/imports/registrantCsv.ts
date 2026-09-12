@@ -1,12 +1,12 @@
 import Papa from "papaparse"
-import type { CsvRow } from "@/lib/types"
+import type { CsvRow } from "../types.ts"
 import {
   normalizeEmail,
   normalizeNullableString,
   normalizeSessionCode,
   normalizeString,
-} from "@/lib/imports/normalize"
-import { isValidEmail } from "@/lib/imports/validators"
+} from "./normalize.ts"
+import { isValidEmail } from "./validators.ts"
 
 export type ParsedRegistrantImportRow = {
   rowNumber: number
@@ -20,6 +20,7 @@ export type ParsedRegistrantImportRow = {
   districtName: string | null
   districtManager: string | null
   districtMeetingLink: string | null
+  districtCodes: string[]
   sessionCodes: string[]
   errors: string[]
 }
@@ -48,6 +49,10 @@ function getSessionHeaders(headers: string[]) {
   )
 }
 
+function getDistrictHeaders(headers: string[]) {
+  return headers.filter((header) => /^district_code(_\d+)?$/i.test(header))
+}
+
 export type ParseRegistrantCsvOptions = {
   requireEventSlug?: boolean
 }
@@ -70,10 +75,9 @@ export function parseRegistrantCsv(
 
   const headers = (parsed.meta.fields || []).map((h) => h.trim())
   const sessionHeaders = getSessionHeaders(headers)
-  const districtHeadersPresent = headers.some((header) =>
+  const districtHeaders = getDistrictHeaders(headers)
+  const districtDefinitionHeadersPresent = headers.some((header) =>
     [
-      "district_code",
-      "districtcode",
       "district_name",
       "districtname",
       "district_manager",
@@ -120,12 +124,20 @@ export function parseRegistrantCsv(
       ])
     )
 
+    const districtCodes = Array.from(
+      new Set(
+        [
+          ...districtHeaders.map((header) => normalizeSessionCode(rawRow[header])),
+          districtCode ? normalizeSessionCode(districtCode) : "",
+        ].filter(Boolean)
+      )
+    )
+
     const sessionCodes = Array.from(
       new Set(
         [
           ...sessionHeaders.map((header) => normalizeSessionCode(rawRow[header])),
-          // Only add district code as a session if there are no explicit session columns
-          sessionHeaders.length === 0 && districtCode ? normalizeSessionCode(districtCode) : "",
+          ...districtCodes,
         ]
           .filter(Boolean)
       )
@@ -143,7 +155,7 @@ export function parseRegistrantCsv(
       errors.push("Missing event_slug")
     }
 
-    if (districtHeadersPresent) {
+    if (districtDefinitionHeadersPresent) {
       if (!districtCode) errors.push("Missing district_code")
       if (!districtName) errors.push("Missing district_name")
       if (!districtManager) errors.push("Missing district_manager")
@@ -166,6 +178,7 @@ export function parseRegistrantCsv(
       districtName,
       districtManager,
       districtMeetingLink,
+      districtCodes,
       sessionCodes,
       errors,
     }

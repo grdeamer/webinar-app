@@ -9,6 +9,7 @@ create table if not exists public.events (
   title text not null,
   accent_color text not null default 'blue' check (accent_color in ('blue', 'violet', 'cyan', 'orange', 'emerald', 'rose')),
   badge_image_url text null,
+  district_directory_enabled boolean not null default false,
   description text null,
   start_at timestamptz null,
   end_at timestamptz null,
@@ -17,6 +18,9 @@ create table if not exists public.events (
 );
 
 alter table public.events add column if not exists badge_image_url text null;
+alter table public.events add column if not exists district_directory_enabled boolean not null default false;
+
+alter table if exists public.event_sessions add column if not exists district_parent_id uuid null references public.event_sessions(id) on delete set null;
 
 create table if not exists public.event_agenda_items (
   id uuid primary key default gen_random_uuid(),

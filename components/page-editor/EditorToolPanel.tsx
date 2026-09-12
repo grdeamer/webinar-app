@@ -15,6 +15,7 @@ const CONTROL = "w-full rounded-xl border border-white/10 bg-white/[0.045] px-3 
 const APP_BLOCKS: Array<{ key: SystemComponentKey; label: string; description: string }> = [
   { key: "agenda", label: "Agenda", description: "Live event schedule" },
   { key: "sessions_list", label: "Sessions", description: "Session directory" },
+  { key: "featured_breakouts", label: "Districts", description: "Clickable district directory" },
   { key: "chat", label: "Chat", description: "Attendee conversation" },
   { key: "qa", label: "Q&A", description: "Questions and moderation" },
   { key: "networking", label: "Networking", description: "Connection experience" },

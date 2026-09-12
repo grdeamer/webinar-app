@@ -437,11 +437,11 @@ export function createDefaultEventHomeSections(event: {
       type: "system",
       config: {
         ...getDefaultSectionConfig("system"),
-        adminLabel: "Featured Breakouts",
+        adminLabel: "District Directory",
       },
       blocks: [
         makeSystemBlock("featured_breakouts", {
-          title: "Featured breakouts",
+          title: "Districts",
           body: "",
         }),
       ],

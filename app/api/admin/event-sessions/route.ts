@@ -5,8 +5,12 @@ import { requireAdmin } from "@/lib/requireAdmin"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
+}
+
+function errorMessage(error: unknown, fallback: string) {
+  return error instanceof Error ? error.message : fallback
 }
 
 function cleanString(v: unknown, max = 1000) {
@@ -29,6 +33,44 @@ function cleanBool(v: unknown) {
   return !!v
 }
 
+async function validateDistrictParent({
+  eventId,
+  parentId,
+  sessionId,
+}: {
+  eventId: string
+  parentId: string | null
+  sessionId?: string | null
+}) {
+  if (!parentId) return null
+  if (sessionId && parentId === sessionId) throw new Error("A district cannot be its own parent")
+
+  const visited = new Set<string>(sessionId ? [sessionId] : [])
+  let currentId: string | null = parentId
+  let depth = 0
+
+  while (currentId) {
+    if (visited.has(currentId)) throw new Error("That parent would create a district loop")
+    if (depth++ > 50) throw new Error("District trees can contain at most 50 levels")
+    visited.add(currentId)
+
+    const { data, error } = await supabaseAdmin
+      .from("event_sessions")
+      .select("id,event_id,session_kind,district_parent_id")
+      .eq("id", currentId)
+      .maybeSingle()
+
+    if (error) throw new Error(error.message)
+    if (!data || data.event_id !== eventId) throw new Error("The parent district does not belong to this event")
+    if (!["district_zone", "district_region", "district", "breakout"].includes(String(data.session_kind || ""))) {
+      throw new Error("Only a district-tree node can be a parent")
+    }
+    currentId = data.district_parent_id || null
+  }
+
+  return parentId
+}
+
 export async function POST(req: Request): Promise<Response> {
   const authResult = await requireAdmin()
   if (authResult instanceof Response) return authResult
@@ -36,8 +78,14 @@ export async function POST(req: Request): Promise<Response> {
   try {
     const body = await req.json().catch((): null => null)
 
+    const eventId = cleanString(body?.event_id, 100)
+    const sessionKind = cleanString(body?.session_kind, 50)
+    const districtParentId = ["district_zone", "district_region", "district", "breakout"].includes(sessionKind || "")
+      ? await validateDistrictParent({ eventId: eventId || "", parentId: cleanString(body?.district_parent_id, 100) })
+      : null
+
     const row = {
-      event_id: cleanString(body?.event_id, 100),
+      event_id: eventId,
       code: cleanCode(body?.code),
       title: cleanString(body?.title, 200),
       description: cleanString(body?.description, 5000),
@@ -52,7 +100,8 @@ export async function POST(req: Request): Promise<Response> {
       playback_m3u8_url: cleanString(body?.playback_m3u8_url, 2000),
       sort_order: cleanNumber(body?.sort_order, 0),
 
-      session_kind: cleanString(body?.session_kind, 50),
+      session_kind: sessionKind,
+      district_parent_id: districtParentId,
       visibility_mode: cleanString(body?.visibility_mode, 50),
       delivery_mode: cleanString(body?.delivery_mode, 50),
       external_platform: cleanString(body?.external_platform, 50),
@@ -76,8 +125,8 @@ export async function POST(req: Request): Promise<Response> {
     if (error) return json({ error: error.message }, 400)
 
     return json({ ok: true, session: data })
-  } catch (e: any) {
-    return json({ error: e?.message || "Failed to create session" }, 400)
+  } catch (error: unknown) {
+    return json({ error: errorMessage(error, "Failed to create session") }, 400)
   }
 }
 
@@ -94,6 +143,15 @@ export async function PUT(req: Request): Promise<Response> {
     if (!id) return json({ error: "Missing session id" }, 400)
     if (!event_id) return json({ error: "Missing event_id" }, 400)
 
+    const sessionKind = cleanString(body?.session_kind, 50)
+    const districtParentId = ["district_zone", "district_region", "district", "breakout"].includes(sessionKind || "")
+      ? await validateDistrictParent({
+          eventId: event_id,
+          parentId: cleanString(body?.district_parent_id, 100),
+          sessionId: id,
+        })
+      : null
+
     const row = {
       code: cleanCode(body?.code),
       title: cleanString(body?.title, 200),
@@ -109,7 +167,8 @@ export async function PUT(req: Request): Promise<Response> {
       playback_m3u8_url: cleanString(body?.playback_m3u8_url, 2000),
       sort_order: cleanNumber(body?.sort_order, 0),
 
-      session_kind: cleanString(body?.session_kind, 50),
+      session_kind: sessionKind,
+      district_parent_id: districtParentId,
       visibility_mode: cleanString(body?.visibility_mode, 50),
       delivery_mode: cleanString(body?.delivery_mode, 50),
       external_platform: cleanString(body?.external_platform, 50),
@@ -136,8 +195,8 @@ export async function PUT(req: Request): Promise<Response> {
     if (error) return json({ error: error.message }, 400)
 
     return json({ ok: true, session: data })
-  } catch (e: any) {
-    return json({ error: e?.message || "Failed to save session" }, 400)
+  } catch (error: unknown) {
+    return json({ error: errorMessage(error, "Failed to save session") }, 400)
   }
 }
 
@@ -161,7 +220,7 @@ export async function DELETE(req: Request): Promise<Response> {
     if (error) return json({ error: error.message }, 400)
 
     return json({ ok: true })
-  } catch (e: any) {
-    return json({ error: e?.message || "Failed to delete session" }, 400)
+  } catch (error: unknown) {
+    return json({ error: errorMessage(error, "Failed to delete session") }, 400)
   }
 }

@@ -77,6 +77,7 @@ type SessionRow = {
   updated_at: string | null
 
   session_kind: string | null
+  district_parent_id: string | null
   visibility_mode: string | null
   delivery_mode: string | null
   external_platform: string | null
@@ -105,6 +106,7 @@ type DraftSession = {
   sort_order: number
 
   session_kind: string
+  district_parent_id: string
   visibility_mode: string
   delivery_mode: string
   external_platform: string
@@ -138,6 +140,7 @@ function emptyDraft(eventId: string, sortOrder: number): DraftSession {
     sort_order: sortOrder,
 
     session_kind: "session",
+    district_parent_id: "",
     visibility_mode: "assigned",
     delivery_mode: "external",
     external_platform: "",
@@ -277,6 +280,7 @@ function toggleSessionOpen(id: string) {
         sort_order: Number.isFinite(draft.sort_order) ? draft.sort_order : nextSortOrder,
 
         session_kind: draft.session_kind || null,
+        district_parent_id: draft.session_kind === "district" ? draft.district_parent_id || null : null,
         visibility_mode: draft.visibility_mode || null,
         delivery_mode: draft.delivery_mode || null,
         external_platform: draft.external_platform || null,
@@ -342,6 +346,7 @@ function toggleSessionOpen(id: string) {
         sort_order: row.sort_order ?? 0,
 
         session_kind: row.session_kind || null,
+        district_parent_id: row.session_kind === "district" || row.session_kind === "breakout" ? row.district_parent_id || null : null,
         visibility_mode: row.visibility_mode || null,
         delivery_mode: row.delivery_mode || null,
         external_platform: row.external_platform || null,
@@ -541,11 +546,19 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
               onChange={(e) => setDraft((prev) => ({ ...prev, session_kind: e.target.value }))}
             >
               <option value="session">session</option>
+              <option value="district">district</option>
               <option value="general">general</option>
               <option value="networking">networking</option>
               <option value="backstage">backstage</option>
             </select>
           </Field>
+
+          {draft.session_kind === "district" ? <Field label="Parent District" help="Optional. Nest this district beneath another district in the attendee directory.">
+            <select className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#4c91ff]/70" value={draft.district_parent_id} onChange={(e) => setDraft((prev) => ({ ...prev, district_parent_id: e.target.value }))}>
+              <option value="">Top-level district</option>
+              {sessions.filter((item) => ["district", "breakout"].includes(item.session_kind || "")).map((item) => <option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}
+            </select>
+          </Field> : null}
 
           <Field label="Visibility" help="Assigned limits access to selected attendees. All and Open make the session more broadly available.">
             <select
@@ -1113,11 +1126,19 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                           }
                         >
                           <option value="session">session</option>
+                          <option value="district">district</option>
                           <option value="general">general</option>
                           <option value="networking">networking</option>
                           <option value="backstage">backstage</option>
                         </select>
                       </Field>
+
+                      {["district", "breakout"].includes(session.session_kind || "") ? <Field label="Parent District" help="Optional. Nest this district beneath another district in the attendee directory.">
+                        <select className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#4c91ff]/70" value={session.district_parent_id || ""} onChange={(e) => patchSession(session.id, { district_parent_id: e.target.value || null })}>
+                          <option value="">Top-level district</option>
+                          {sessions.filter((item) => item.id !== session.id && ["district", "breakout"].includes(item.session_kind || "")).map((item) => <option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}
+                        </select>
+                      </Field> : null}
 
                       <Field label="Visibility" help="Assigned limits access to selected attendees. All and Open make the session more broadly available.">
                         <select

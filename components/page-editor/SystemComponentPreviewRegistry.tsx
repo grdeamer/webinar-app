@@ -103,8 +103,8 @@ export function createSystemComponentPreviewRegistry({
         },
         {
           time: "11:00 AM",
-          title: "Breakouts",
-          description: "Continue into focused breakout experiences.",
+          title: "Districts",
+          description: "Continue into focused district experiences.",
         },
       ]
 
@@ -517,11 +517,11 @@ export function createSystemComponentPreviewRegistry({
     featured_breakouts: (
       <div className="grid gap-3 md:grid-cols-2">
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-          Breakout preview
+          District preview
         </div>
 
         <div className="rounded-xl border border-white/10 bg-white/[0.03] p-4 text-sm text-white/70">
-          Breakout preview
+          District preview
         </div>
       </div>
     ),

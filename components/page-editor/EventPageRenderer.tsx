@@ -259,9 +259,9 @@ function getSystemComponentPlaceholderLabel(componentKey: SystemComponentKey) {
     case "sponsors":
       return "Sponsors"
     case "breakouts":
-      return "Breakouts"
+      return "Districts"
     case "featured_breakouts":
-      return "Featured Breakouts"
+      return "District Directory"
     default:
       return componentKey
   }
@@ -457,7 +457,7 @@ function renderSystemComponentLive(
     case "breakouts":
     case "featured_breakouts":
       return (
-        <div className="text-sm text-white/60">Breakout sessions (dynamic routing next)</div>
+        <div className="text-sm text-white/60">District directory</div>
       )
 
     case "chat":

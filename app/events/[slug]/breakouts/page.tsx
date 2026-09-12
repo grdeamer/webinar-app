@@ -5,6 +5,7 @@ import RemoteRefreshListener from "@/components/RemoteRefreshListener"
 import EventBreakoutMagnifyList from "@/components/EventBreakoutMagnifyList"
 import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import EventEmailGate from "../EventEmailGate"
+import DistrictDirectory, { type DistrictDirectoryItem } from "@/components/events/DistrictDirectory"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import {
@@ -75,7 +76,7 @@ function renderBreakoutsList(
   if (items.length === 0) {
     return (
       <div className="rounded-3xl border border-white/10 bg-white/5 p-8 text-white/70">
-        No breakouts have been added yet.
+        No districts have been added yet.
       </div>
     )
   }
@@ -138,9 +139,9 @@ function getBreakoutsFallbackSections(eventTitle: string): EventPageSection[] {
       type: "hero",
       config: {
         visible: true,
-        title: `${eventTitle} Breakouts`,
-        body: "Explore breakout rooms, side sessions, and focused discussions.",
-        adminLabel: "Breakouts Hero",
+        title: `${eventTitle} Districts`,
+        body: "Explore district rooms and focused discussions.",
+        adminLabel: "Districts Hero",
         backgroundStyle: "transparent",
         contentWidth: "xl",
         paddingY: "md",
@@ -157,7 +158,7 @@ function getBreakoutsFallbackSections(eventTitle: string): EventPageSection[] {
         visible: true,
         title: "",
         body: null,
-        adminLabel: "Breakout Rooms",
+        adminLabel: "District Directory",
         backgroundStyle: "transparent",
         contentWidth: "xl",
         paddingY: "md",
@@ -190,8 +191,8 @@ export default async function EventBreakoutsPage(props: {
     return <EventEmailGate slug={slug} eventTitle={event.title} />
   }
 
-  const [{ data: eventRow }, pageDocument, { data, error }, liveState] = await Promise.all([
-    supabaseAdmin.from("events").select("event_theme").eq("id", event.id).maybeSingle(),
+  const [{ data: eventRow }, pageDocument, { data, error }, liveState, { data: districtRows, error: districtError }] = await Promise.all([
+    supabaseAdmin.from("events").select("event_theme,district_directory_enabled").eq("id", event.id).maybeSingle(),
 
     loadEventPageDocument(event.id, "breakouts"),
 
@@ -205,9 +206,36 @@ export default async function EventBreakoutsPage(props: {
       .order("start_at", { ascending: true, nullsFirst: false }),
 
     getEventLiveState(event.id),
+
+    supabaseAdmin
+      .from("event_sessions")
+      .select("id,code,title,presenter,external_join_url,district_parent_id,session_kind")
+      .eq("event_id", event.id)
+      .in("session_kind", ["district_zone", "district_region", "district", "breakout"])
+      .order("sort_order", { ascending: true })
+      .order("code", { ascending: true }),
   ])
 
   if (error) throw new Error(error.message)
+  if (districtError) throw new Error(districtError.message)
+
+  const districtHierarchyRows = districtRows || []
+  const includedDistrictNodeIds = new Set(
+    districtHierarchyRows
+      .filter((row) => row.session_kind === "district_zone" && !row.district_parent_id)
+      .map((row) => row.id)
+  )
+  for (const kind of ["district_region", "district", "breakout"]) {
+    for (const row of districtHierarchyRows) {
+      if (
+        row.session_kind === kind &&
+        row.district_parent_id &&
+        includedDistrictNodeIds.has(row.district_parent_id)
+      ) {
+        includedDistrictNodeIds.add(row.id)
+      }
+    }
+  }
 
   const items = (data || []) as BreakoutRow[]
   const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
@@ -246,7 +274,9 @@ export default async function EventBreakoutsPage(props: {
       </div>
     </section>
   )
-  const breakoutsList = renderBreakoutsList(items, slug, liveState)
+  const breakoutsList = eventRow?.district_directory_enabled
+    ? <DistrictDirectory items={districtHierarchyRows.filter((row) => includedDistrictNodeIds.has(row.id)).map((row) => ({ ...row, node_type: row.session_kind === "district_zone" ? "zone" : row.session_kind === "district_region" ? "region" : "district" })) as DistrictDirectoryItem[]} />
+    : renderBreakoutsList(items, slug, liveState)
   const baseSections =
     storedSections.length > 0
       ? storedSections
@@ -257,7 +287,7 @@ export default async function EventBreakoutsPage(props: {
       ? baseSections
       : withRequiredSystemComponent(baseSections, "featured_breakouts", {
           sectionId: "breakouts-runtime",
-          adminLabel: "Breakout Rooms",
+          adminLabel: "District Directory",
         })
 
   return (

@@ -378,6 +378,32 @@ export async function POST(req: Request) {
       await ensureEventSessionsExist(eventId, Array.from(codeSet), sessionMap)
     }
 
+    const districtSessionKeys = new Set<string>()
+    for (const row of prevalidatedRows) {
+      if (!row.resolvedEventId) continue
+      for (const code of row.districtCodes) {
+        districtSessionKeys.add(`${row.resolvedEventId}::${normalizeSessionCode(code)}`)
+      }
+    }
+
+    for (const key of districtSessionKeys) {
+      const session = sessionMap.get(key)
+      if (!session) continue
+      const { error: districtKindError } = await supabaseAdmin
+        .from("event_sessions")
+        .update({
+          session_kind: "district",
+          visibility_mode: "assigned",
+          delivery_mode: "external",
+        })
+        .eq("id", session.id)
+        .eq("event_id", session.event_id)
+
+      if (districtKindError) {
+        throw new Error(`Failed to configure district ${session.code}: ${districtKindError.message}`)
+      }
+    }
+
     const districtDefinitions = new Map<
       string,
       {
@@ -419,7 +445,7 @@ export async function POST(req: Request) {
         .update({
           title: district.title,
           presenter: district.manager,
-          session_kind: "breakout",
+          session_kind: "district",
           visibility_mode: "assigned",
           delivery_mode: "external",
           external_platform: externalPlatformFromUrl(district.meetingLink),
@@ -600,15 +626,16 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(result)
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error("import-registrants error:", err)
+    const message = err instanceof Error ? err.message : "Server error"
 
     if (jobId) {
       await supabaseAdmin
         .from("import_jobs")
         .update({
           status: "error",
-          error_message: err?.message || "Server error",
+          error_message: message,
           finished_at: new Date().toISOString(),
           updated_at: new Date().toISOString(),
         })
@@ -616,7 +643,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json(
-      { error: err?.message || "Server error", jobId },
+      { error: message, jobId },
       { status: 500 }
     )
   }

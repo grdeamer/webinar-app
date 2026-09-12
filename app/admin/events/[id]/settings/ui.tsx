@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 import { Button } from "@/components/ui/button"
 import { Check, ImageUp, RotateCcw, Save } from "lucide-react"
@@ -11,7 +12,7 @@ const EVENT_ACCENTS = {
   orange: "239,157,72", emerald: "61,198,151", rose: "244,83,116",
 } as const
 type EventAccentColor = keyof typeof EVENT_ACCENTS
-type EventSettingsRow = { id: string; slug: string; title: string; badge_image_url: string | null; description: string | null; start_at: string | null; end_at: string | null; accent_color: string }
+type EventSettingsRow = { id: string; slug: string; title: string; badge_image_url: string | null; description: string | null; start_at: string | null; end_at: string | null; accent_color: string; district_directory_enabled: boolean }
 
 export default function EventSettingsForm({ initial }: { initial: EventSettingsRow }) {
   const router = useRouter()
@@ -111,7 +112,7 @@ export default function EventSettingsForm({ initial }: { initial: EventSettingsR
             <div className="editorial-rule mt-8 border-t pt-6">
               <div className="editorial-eyebrow !text-[#8d9ab4]">Event badge</div>
               <div className="mt-4 flex items-center gap-5">
-                {event.badge_image_url ? <img src={event.badge_image_url} alt="Current event badge" className="h-20 w-20 rounded-2xl border border-white/15 object-cover shadow-[0_14px_36px_rgba(0,0,0,.35)]" /> : <div role="img" aria-label="Default Jupiter event badge" className="h-20 w-20 rounded-2xl border border-white/15 bg-[url('/jupiter-surface-horizon-v1.png')] bg-[position:54%_46%] bg-[size:260%_auto] shadow-[0_14px_36px_rgba(0,0,0,.35)]" />}
+                {event.badge_image_url ? <Image src={event.badge_image_url} alt="Current event badge" width={80} height={80} unoptimized className="h-20 w-20 rounded-2xl border border-white/15 object-cover shadow-[0_14px_36px_rgba(0,0,0,.35)]" /> : <div role="img" aria-label="Default Jupiter event badge" className="h-20 w-20 rounded-2xl border border-white/15 bg-[url('/jupiter-surface-horizon-v1.png')] bg-[position:54%_46%] bg-[size:260%_auto] shadow-[0_14px_36px_rgba(0,0,0,.35)]" />}
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-[#e7ecf8]">{event.badge_image_url ? "Custom event artwork" : "Jupiter default"}</div>
                   <p className="mt-1 max-w-sm text-xs leading-5 text-[#75829c]">Square PNG, JPG, or WebP up to 2 MB. A 512 × 512 image will stay crisp in the workspace.</p>
@@ -145,6 +146,20 @@ export default function EventSettingsForm({ initial }: { initial: EventSettingsR
             </div>
             <p className="mt-4 text-xs uppercase tracking-[.13em] text-emerald-300/75">End follows start until you change it</p>
             <div className="mt-10"><div className="editorial-eyebrow !text-[#8d9ab4]">Timezone</div><div className="mt-3 border-b border-[#34415c] py-3 text-[#b7c0d3]">Eastern Time (US &amp; Canada)</div></div>
+            <div className="editorial-rule mt-10 border-t pt-7">
+              <div className="editorial-eyebrow !text-[#8d9ab4]">District directory</div>
+              <div className="mt-4 flex items-start justify-between gap-6 rounded-2xl border border-white/10 bg-white/[.035] p-5">
+                <div>
+                  <h3 className="font-medium text-[#e7ecf8]">Show the district tree</h3>
+                  <p className="mt-2 max-w-md text-sm leading-6 text-[#8793ab]">Adds a clickable district hierarchy to this event’s Districts page. Selecting a district reveals its configured destination link to signed-in attendees.</p>
+                  <p className="mt-2 text-xs leading-5 text-amber-200/70">Leave this off when district links should only be available through secure roster lookup.</p>
+                </div>
+                <button type="button" role="switch" aria-checked={event.district_directory_enabled} onClick={() => setEvent((current) => ({ ...current, district_directory_enabled: !current.district_directory_enabled }))} className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${event.district_directory_enabled ? "border-violet-300/50 bg-violet-500" : "border-white/15 bg-black/30"}`}>
+                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${event.district_directory_enabled ? "translate-x-6" : "translate-x-1"}`} />
+                  <span className="sr-only">Show district tree</span>
+                </button>
+              </div>
+            </div>
           </div>
         </section>
 

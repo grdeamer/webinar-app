@@ -114,7 +114,7 @@ export async function PUT(req: Request) {
   }
 
   const updatedAt = new Date().toISOString()
-  const patch = {
+  const patch: Record<string, unknown> = {
     title: body.title ? String(body.title).slice(0, 200) : null,
     description:
       body.description != null
@@ -123,6 +123,10 @@ export async function PUT(req: Request) {
     start_at: body.start_at || null,
     end_at: body.end_at || null,
     updated_at: updatedAt,
+  }
+
+  if (typeof body.district_directory_enabled === "boolean") {
+    patch.district_directory_enabled = body.district_directory_enabled
   }
 
   const { error } = await supabaseAdmin
@@ -149,7 +153,7 @@ export async function PUT(req: Request) {
     actorEmail: authResult.user.email,
     category: "event",
     action: "event.details.updated",
-    summary: `Updated event details for ${patch.title || "event"}`,
+    summary: `Updated event details for ${String(patch.title || "event")}`,
     targetType: "event",
     targetId: String(body.id),
   })

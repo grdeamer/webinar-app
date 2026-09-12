@@ -23,6 +23,7 @@ type SessionRow = {
   created_at: string | null
   updated_at: string | null
   session_kind: string | null
+  district_parent_id: string | null
   visibility_mode: string | null
   delivery_mode: string | null
   external_platform: string | null
@@ -84,11 +85,12 @@ export default async function AdminEventSessionsPage(props: {
       id,event_id,code,title,description,starts_at,ends_at,presenter,
       join_link,room_key,manual_live,playback_type,playback_mp4_url,playback_m3u8_url,
       sort_order,created_at,updated_at,
-      session_kind,visibility_mode,delivery_mode,external_platform,external_join_url,
+      session_kind,district_parent_id,visibility_mode,delivery_mode,external_platform,external_join_url,
       live_provider,live_room_name,is_general_session,runtime_status,
       chat_enabled,qa_enabled,lower_panel_enabled
     `)
     .eq("event_id", event.id)
+    .not("session_kind", "in", '("district_zone","district_region")')
     .order("sort_order", { ascending: true })
     .order("starts_at", { ascending: true, nullsFirst: false })
 

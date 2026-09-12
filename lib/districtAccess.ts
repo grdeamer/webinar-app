@@ -7,6 +7,7 @@ export type DistrictSession = {
   title: string
   presenter: string | null
   external_join_url: string
+  district_parent_id?: string | null
 }
 
 function secret() {
@@ -97,7 +98,7 @@ export async function getAssignedDistrictSessions(eventId: string, email: string
     .from("event_sessions")
     .select("id,code,title,presenter,external_join_url")
     .eq("event_id", eventId)
-    .eq("session_kind", "breakout")
+    .in("session_kind", ["district", "breakout"])
     .eq("visibility_mode", "assigned")
     .eq("delivery_mode", "external")
     .in("id", sessionIds)
@@ -125,9 +126,9 @@ export async function getAssignedDistrictSession(eventId: string, email: string)
 export async function listDistrictSessions(eventId: string) {
   const { data, error } = await supabaseAdmin
     .from("event_sessions")
-    .select("id,code,title,presenter,external_join_url")
+    .select("id,code,title,presenter,external_join_url,district_parent_id")
     .eq("event_id", eventId)
-    .eq("session_kind", "breakout")
+    .in("session_kind", ["district", "breakout"])
     .eq("visibility_mode", "assigned")
     .eq("delivery_mode", "external")
     .order("sort_order", { ascending: true })
