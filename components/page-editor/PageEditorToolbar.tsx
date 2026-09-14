@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { ArrowLeft } from "lucide-react"
 import type { ElementAlignmentCommand } from "./elementAlignmentCommands"
 import { EDITOR_PAGES } from "./editorPages"
 import type { EditorPageManifestItem } from "./PageFilmstrip"
@@ -138,6 +139,15 @@ export default function PageEditorToolbar({
     <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
       <div className="flex min-h-[72px] w-full min-w-0 flex-wrap items-center justify-between gap-4 px-5 py-3">
         <div className="min-w-0">
+          {eventAdminHref ? (
+            <Link
+              href={`${eventAdminHref}/page-editor`}
+              className="mb-2 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-xs font-semibold text-white/72 transition hover:border-white/18 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/60"
+            >
+              <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
+              Back to Experience
+            </Link>
+          ) : null}
           <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-white/60">
             {!isEmbedded ? <Link href="/admin/events" className="hover:text-white">Events</Link> : <span>Experience Builder</span>}
             <span className="text-white/25">›</span>

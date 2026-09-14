@@ -1,3 +1,8 @@
+import {
+  buildJupiterEmailFooterHtml,
+  buildJupiterEmailFooterText,
+} from "./branding.ts"
+
 export function buildDistrictAccessEmail({
   code,
   eventTitle,
@@ -13,8 +18,7 @@ export function buildDistrictAccessEmail({
     "",
     "The code expires in 10 minutes. For your security, do not forward it.",
     "",
-    "Jupiter Events",
-    "A product of August Black, Inc.",
+    ...buildJupiterEmailFooterText(`You’re receiving this email because you registered for ${eventTitle}.`),
   ].join("\n")
 
   const html = `
@@ -32,7 +36,7 @@ export function buildDistrictAccessEmail({
                 <div style="padding:22px;border-radius:16px;background:#eef4ff;border:1px solid #cad9f6;text-align:center;font-size:34px;font-weight:700;letter-spacing:10px;color:#15315d">${code}</div>
                 <p style="margin:24px 0 0;color:#718099;font-size:13px;line-height:1.5">This code expires in 10 minutes. For your security, do not forward it.</p>
               </td></tr>
-              <tr><td style="padding:18px 32px;border-top:1px solid #dbe3ef;color:#718099;font-size:12px;line-height:18px">Jupiter is a product of August Black, Inc.</td></tr>
+              <tr><td style="padding:22px 32px;border-top:1px solid #24304a;background:#050b18;font-family:Arial,sans-serif">${buildJupiterEmailFooterHtml(`You’re receiving this email because you registered for ${eventTitle}.`)}</td></tr>
             </table>
           </td></tr>
         </table>

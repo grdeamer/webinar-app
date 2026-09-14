@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from "@/lib/email/campaigns"
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
+import { buildJupiterEmailFooterHtml } from "@/lib/email/branding"
 import { createPresenterAccessToken, type PresenterAccessSource } from "@/lib/presenterAccess"
 
 export const runtime = "nodejs"
@@ -132,6 +133,10 @@ function presenterLinksHtml({
 
         <div style="margin-top:28px;padding-top:16px;border-top:1px solid #e2e8f0;font-size:12px;color:#64748b;">
           These links are private. Please do not share them.
+        </div>
+
+        <div style="margin:24px -32px -32px;padding:22px 32px;border-radius:0 0 16px 16px;background:#050b18;">
+          ${buildJupiterEmailFooterHtml(`You’re receiving this email because you are presenting at ${eventTitle}.`)}
         </div>
 
       </div>

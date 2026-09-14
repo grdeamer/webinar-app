@@ -3,6 +3,7 @@ import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from "@/lib/email/campaigns"
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
+import { buildJupiterEmailFooterHtml } from "@/lib/email/branding"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -74,6 +75,9 @@ function confirmationHtml({
         </a>
       </p>
       <p style="color:#64748b;font-size:13px;">Use this same email address when accessing the event.</p>
+      <div style="margin-top:28px;padding:22px 24px;border-radius:12px;background:#050b18;font-family:Arial,sans-serif;">
+        ${buildJupiterEmailFooterHtml(`You’re receiving this email because you registered for ${eventTitle}.`)}
+      </div>
     </div>
   `
 }

@@ -39,6 +39,8 @@ import CanvasGridOverlay from "./CanvasGridOverlay"
 import ResizeHandles, { type ResizeHandle } from "./ResizeHandles"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import FullCodeEditor from "@/components/page-editor/FullCodeEditor"
+import ImportedSiteVisualEditor from "@/components/page-editor/ImportedSiteVisualEditor"
+import CustomCodePage from "@/components/page-renderer/CustomCodePage"
 import ElementVideoPlayer from "@/components/page-renderer/ElementVideoPlayer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
@@ -3086,7 +3088,7 @@ const selectedExperienceNode = experienceNodes.find(
                       <div className="flex items-center gap-2">
                         <span>{Math.round(canvasScale * 100)}%</span>
                         <span className="h-1 w-1 rounded-full bg-white/25" />
-                        <span>{experienceNodes.length} nodes · {normalizedElements.length} layers</span>
+                        <span>{customCodeDocument.enabled ? "Imported site" : `${experienceNodes.length} nodes · ${normalizedElements.length} layers`}</span>
                         <div className="relative h-10 w-20 overflow-hidden rounded-lg border border-white/10 bg-white/[0.035]">
                           <div className="absolute inset-x-2 top-1 h-2 rounded-sm bg-violet-300/25" />
                           <div className="absolute inset-x-3 top-4 h-2 rounded-sm bg-sky-300/20" />
@@ -3239,6 +3241,31 @@ const selectedExperienceNode = experienceNodes.find(
                       gridSize={GRID_SIZE}
                       scale={canvasZoom}
                     />
+{customCodeDocument.enabled ? (
+  isEditing ? (
+    <ImportedSiteVisualEditor
+      html={customCodeDocument.html}
+      css={customCodeDocument.css}
+      onChange={(html) => {
+        setSections((current) =>
+          setCustomCodeDocument(current, {
+            ...getCustomCodeDocument(current),
+            enabled: true,
+            html,
+          }),
+        )
+        setSaveMessage("Imported site updated")
+      }}
+    />
+  ) : (
+    <CustomCodePage
+      html={customCodeDocument.html}
+      css={customCodeDocument.css}
+      title={`${eventInfo.title} preview`}
+      preview
+    />
+  )
+) : (
 <EditorEventPageRenderer
   event={eventInfo}
   sections={sections}
@@ -3266,6 +3293,7 @@ const selectedExperienceNode = experienceNodes.find(
   isMobilePreview={isMobilePreview}
   systemComponents={systemComponents}
                     />
+)}
 
 
                     {isMarqueeSelecting && selectionBox && (
