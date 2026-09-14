@@ -7,6 +7,7 @@ import { Activity, CalendarDate, Home03, Signal02, Tool02, Users01 } from "@unti
 import { CalendarClock, CloudCog, LayoutDashboard, ListChecks, Menu, MessagesSquare, Network, NotebookTabs, PanelsTopLeft, RadioTower, Rocket, UsersRound, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
+import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
 
 type EventWorkspaceContext = {
   title: string
@@ -70,7 +71,9 @@ export default function EventLayout({ children }: { children: ReactNode }) {
     return () => { controller.abort(); window.clearTimeout(initialLoad); window.clearInterval(interval); window.removeEventListener("jupiter:event-context-updated", refreshContext) }
   }, [loadContext])
 
-  if (isProducer) return <>{children}</>
+  const documentTitle = <AdminDocumentTitle eventTitle={eventContext?.title} eventBasePath={base} />
+
+  if (isProducer) return <>{documentTitle}{children}</>
 
   const canConfigure = !eventContext || eventContext.isGlobalAdmin || eventContext.teamRole === "event_admin"
   const canOperate = canConfigure || eventContext?.teamRole === "producer"
@@ -81,6 +84,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
 
   return (
     <div className="jv1-shell">
+      {documentTitle}
       <header className="jv1-atmospheric-header">
         <div className="jv1-header-veil" />
         <div className="jv1-header-brand"><JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-[18px] font-semibold tracking-[.18em]" /></div>

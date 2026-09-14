@@ -155,7 +155,7 @@ export default function EventSettingsForm({ initial }: { initial: EventSettingsR
                   <p className="mt-2 text-xs leading-5 text-amber-200/70">Leave this off when district links should only be available through secure roster lookup.</p>
                 </div>
                 <button type="button" role="switch" aria-checked={event.district_directory_enabled} onClick={() => setEvent((current) => ({ ...current, district_directory_enabled: !current.district_directory_enabled }))} className={`relative mt-1 h-7 w-12 shrink-0 rounded-full border transition ${event.district_directory_enabled ? "border-violet-300/50 bg-violet-500" : "border-white/15 bg-black/30"}`}>
-                  <span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${event.district_directory_enabled ? "translate-x-6" : "translate-x-1"}`} />
+                  <span className={`absolute left-1 top-1 h-5 w-5 rounded-full bg-white shadow transition-transform ${event.district_directory_enabled ? "translate-x-5" : "translate-x-0"}`} />
                   <span className="sr-only">Show district tree</span>
                 </button>
               </div>

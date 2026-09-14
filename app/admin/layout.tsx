@@ -15,6 +15,7 @@ import {
 import { Cloud, Menu, Moon, Sun, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
+import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
 
 function matches(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin"
@@ -129,6 +130,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   if (isProducerWorkspace) {
     return (
       <div className="min-h-dvh bg-transparent text-white">
+        <AdminDocumentTitle />
         <main className="relative min-h-dvh p-2 pt-[calc(4rem+env(safe-area-inset-top))] lg:p-3 lg:pt-[72px] 2xl:p-4 2xl:pt-[76px]">
           {producerEventId ? (
             <div className="fixed left-3 right-3 top-[calc(.75rem+env(safe-area-inset-top))] z-50 flex min-h-11 items-center justify-between gap-2 rounded-2xl border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.82),rgba(2,6,23,0.72))] px-2.5 py-2 shadow-[0_18px_60px_rgba(0,0,0,0.34)] backdrop-blur-2xl lg:left-4 lg:right-4 lg:top-4">
@@ -172,7 +174,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   if (isEventWorkspace) {
-    return <div className="min-h-dvh bg-[#030714] text-white">{children}</div>
+    return <div className="min-h-dvh bg-[#030714] text-white"><AdminDocumentTitle />{children}</div>
   }
 
   return (
@@ -182,6 +184,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
       } admin-theme-shell bg-transparent text-white`}
     >
+      <AdminDocumentTitle />
       <div
         className={`relative flex ${
           isPageEditorWorkspace ? "h-full min-h-0" : "min-h-screen"

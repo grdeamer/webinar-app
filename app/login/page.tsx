@@ -1,8 +1,13 @@
 import LoginForm from "./LoginForm"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import Link from "next/link"
+import type { Metadata } from "next"
 
 export const dynamic = "force-dynamic"
+
+export const metadata: Metadata = {
+  title: "Sign In",
+}
 
 export default async function LoginPage(props: {
   searchParams?: Promise<{ next?: string }>

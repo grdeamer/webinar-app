@@ -26,8 +26,8 @@ export const metadata: Metadata = {
   metadataBase: new URL("https://jupiter.events"),
   applicationName: "Jupiter",
   title: {
-    default: "Jupiter — Virtual events should feel bigger",
-    template: "%s | Jupiter",
+    default: "Jupiter — Events with Gravity",
+    template: "%s — Jupiter",
   },
   description:
     "Create, produce, and direct branded virtual events from one live production platform. Your event, written in the stars. This is Jupiter.",
