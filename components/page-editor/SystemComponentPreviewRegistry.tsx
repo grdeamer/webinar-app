@@ -6,17 +6,51 @@ import LetsLiveAgendaExperience from "@/components/events/LetsLiveAgendaExperien
 
 export function createSystemComponentPreviewRegistry({
   sections,
+  event,
 }: {
   sections: EventPageSection[]
+  event?: {
+    title: string
+    description?: string | null
+  }
 }) {
+  const letsLiveAgendaBlock = sections
+    .flatMap((section) => section.blocks ?? [])
+    .find(
+      (block) =>
+        block.type === "system_component" &&
+        block.props.componentKey === "lets_live_agenda"
+    )
+  const letsLiveAgendaProps: Record<string, unknown> =
+    letsLiveAgendaBlock?.type === "system_component"
+      ? (letsLiveAgendaBlock.props as Record<string, unknown>)
+      : {}
+  const letsLiveAgendaTitle =
+    typeof letsLiveAgendaProps.title === "string" && letsLiveAgendaProps.title.trim()
+      ? letsLiveAgendaProps.title
+      : event?.title || "Event Home"
+  const letsLiveAgendaDescription =
+    typeof letsLiveAgendaProps.body === "string"
+      ? letsLiveAgendaProps.body
+      : event?.description ||
+        "Follow the live agenda, see what is happening now, and enter the correct meeting space from this page."
+
   return {
     lets_live_agenda: (
       <LetsLiveAgendaExperience
         preview
-        title="CAPLYTA September POA Meeting"
-        description="Follow the live agenda, see what is happening now, and enter the correct meeting space from this page."
-        accessOpen
-        joinHref="#"
+        title={letsLiveAgendaTitle}
+        description={letsLiveAgendaDescription}
+        accessOpen={
+          typeof letsLiveAgendaProps.accessOpen === "boolean"
+            ? letsLiveAgendaProps.accessOpen
+            : true
+        }
+        joinHref={
+          typeof letsLiveAgendaProps.joinHref === "string"
+            ? letsLiveAgendaProps.joinHref
+            : "#"
+        }
         agenda={[
           { id: "preview-1", title: "Meeting Kick-Off & Welcome", start_at: "2026-09-24T15:00:00Z", end_at: "2026-09-24T15:30:00Z", status: "upcoming" },
           { id: "preview-2", title: "Keynote Speaker", start_at: "2026-09-24T15:30:00Z", end_at: "2026-09-24T16:30:00Z", status: "upcoming" },

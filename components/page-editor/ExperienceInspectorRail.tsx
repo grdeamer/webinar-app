@@ -168,7 +168,7 @@ interface ExperienceInspectorRailProps {
 }
 
 const EXPERIENCE_EDITOR_RAIL_CLASS =
-  "h-full min-h-0 shrink-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.965),rgba(2,4,9,0.992))] shadow-[inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
+  "h-full min-h-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.985),rgba(2,4,9,0.998))] shadow-[-24px_0_72px_rgba(0,0,0,0.42),inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
 
 const EXPERIENCE_EDITOR_RAIL_HEADER_CLASS =
   "rounded-[18px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.032)]"
@@ -434,12 +434,15 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
 
   return (
 <aside
+  aria-label="Experience editor inspector"
   className={`${EXPERIENCE_EDITOR_RAIL_CLASS} ${
     isEmbedded
-      ? "w-[300px] shrink-0 opacity-100 overflow-visible"
-      : `transition-[width,opacity] duration-300 ${
-          isEditing ? "w-[340px] shrink-0 opacity-100" : "w-0 opacity-0"
-        } ${!isEditing ? "pointer-events-none overflow-hidden" : "overflow-visible"}`
+      ? "w-[300px] shrink-0 overflow-visible opacity-100"
+      : `absolute inset-y-0 right-0 z-[60] w-[360px] max-w-[calc(100%-4rem)] overflow-visible transition-[transform,opacity] duration-300 ${
+          isEditing
+            ? "translate-x-0 opacity-100"
+            : "pointer-events-none translate-x-full opacity-0"
+        }`
   }`}
 >
   <div

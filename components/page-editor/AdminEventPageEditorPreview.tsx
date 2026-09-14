@@ -2644,13 +2644,16 @@ function addRegistrationFormSection() {
   function selectExperienceNode(node: EditorExperienceNode) {
     if (node.sourceType === "section") {
       setSelectedSectionId(node.id)
-      setSelectedBlockId(null)
+      const nextSection = sections.find((section) => section.id === node.id) ?? null
+      setSelectedBlockId(nextSection?.blocks?.[0]?.id ?? null)
       setSelectedId(null)
       setSelectedIds([])
       setEditingElementId(null)
     } else {
       selectLayerElement(node.id)
     }
+    setEditorDetailsOpen(true)
+    setRightRailTab("inspect")
   }
 
   function updateEventTheme(nextTheme: Partial<EventTheme>) {
@@ -2678,6 +2681,8 @@ function addRegistrationFormSection() {
     setSelectedId(null)
     setSelectedIds([])
     setEditingElementId(null)
+    setEditorDetailsOpen(true)
+    setRightRailTab("inspect")
   }
 
   // removed local selectedSection, selectedElement, selectedBlock (now from state)
@@ -2766,7 +2771,10 @@ const selectedExperienceNode = experienceNodes.find(
   const canvasViewportClass = isEmbedded
     ? "w-full overflow-auto"
     : "w-full overflow-auto rounded-[26px]"
-  const systemComponents = createSystemComponentPreviewRegistry({ sections })
+  const systemComponents = createSystemComponentPreviewRegistry({
+    sections,
+    event: eventInfo,
+  })
   const saveStatusMessage =
     activePageSaveState.status === "saving"
       ? "Saving..."
@@ -3016,14 +3024,27 @@ const selectedExperienceNode = experienceNodes.find(
                     />
                   ) : null}
                   {!isEmbedded && (
-                    <div className="pointer-events-none sticky top-3 z-30 mx-2 mb-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/55 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/50 shadow-2xl backdrop-blur-xl">
+                    <div className="pointer-events-none sticky top-3 z-30 mx-2 mb-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/50 shadow-2xl backdrop-blur-xl">
                       <div className="flex items-center gap-3">
-                        <span>Canvas · {Math.round(canvasScale * 100)}%</span>
+                        <span className={isEditing ? "text-emerald-200/80" : undefined}>
+                          {isEditing ? "Editing on" : "Preview"}
+                        </span>
                         <span className="h-1 w-1 rounded-full bg-white/25" />
-                        <span>{experienceNodes.length} nodes · {normalizedElements.length} layers</span>
+                        <span className="normal-case tracking-normal text-white/62">
+                          {isEditing
+                            ? selectedElement
+                              ? `Editing ${selectedElement.element_type ?? "element"}`
+                              : selectedSection
+                                ? `Editing ${selectedSection.config.adminLabel || selectedSection.config.title || selectedSection.type}`
+                                : "Click any section or element to edit it"
+                            : "Use Edit Page to change this experience"}
+                        </span>
                       </div>
 
                       <div className="flex items-center gap-2">
+                        <span>{Math.round(canvasScale * 100)}%</span>
+                        <span className="h-1 w-1 rounded-full bg-white/25" />
+                        <span>{experienceNodes.length} nodes · {normalizedElements.length} layers</span>
                         <div className="relative h-10 w-20 overflow-hidden rounded-lg border border-white/10 bg-white/[0.035]">
                           <div className="absolute inset-x-2 top-1 h-2 rounded-sm bg-violet-300/25" />
                           <div className="absolute inset-x-3 top-4 h-2 rounded-sm bg-sky-300/20" />
@@ -3196,6 +3217,7 @@ const selectedExperienceNode = experienceNodes.find(
     setSelectedIds([])
     setEditingElementId(null)
     setEditorDetailsOpen(true)
+    setRightRailTab("inspect")
   }}
   eventTheme={eventTheme}
   experienceNodeCount={experienceNodes.length}
