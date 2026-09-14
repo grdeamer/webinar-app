@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useCallback, useEffect, useState } from "react"
-import { CheckCircle2, ExternalLink, Globe2, History, Loader2, RotateCcw, Server, UploadCloud } from "lucide-react"
+import { CheckCircle2, ExternalLink, Globe2, History, Loader2, Pencil, RotateCcw, Server, UploadCloud, X } from "lucide-react"
 import RemoteFileBrowser from "./RemoteFileBrowser"
 
 type Destination = {
@@ -30,6 +30,7 @@ type Deployment = {
 }
 
 const inputClass = "mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/40 focus:ring-2 focus:ring-violet-400/15"
+const emptyForm = { name: "LETS Production", protocol: "ftps", host: "", port: "21", username: "", password: "", remote_path: "/public_html", public_url: "https://letstrainonline.live" }
 
 export default function ExternalPublishingClient({ eventId }: { eventId: string }) {
   const [destinations, setDestinations] = useState<Destination[]>([])
@@ -38,7 +39,8 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
   const [busy, setBusy] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [form, setForm] = useState({ name: "LETS Production", protocol: "ftps", host: "", port: "21", username: "", password: "", remote_path: "/public_html", public_url: "https://letstrainonline.live" })
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [form, setForm] = useState(emptyForm)
 
   const load = useCallback(async () => {
     const [destinationResponse, historyResponse] = await Promise.all([
@@ -78,18 +80,45 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
     setMessage(null)
     setError(null)
     try {
-      const response = await fetch(`/api/admin/events/${eventId}/publishing/destinations`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ...form, port: Number(form.port) }) })
+      const response = await fetch(`/api/admin/events/${eventId}/publishing/destinations`, {
+        method: editingId ? "PATCH" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...form, port: Number(form.port), destination_id: editingId }),
+      })
       const payload = await response.json().catch((): null => null)
       if (!response.ok) throw new Error(payload?.error || "Could not save destination")
       setSelectedId(payload.destination.id)
-      setForm((current) => ({ ...current, password: "" }))
-      setMessage("Destination saved. Test the connection before publishing.")
+      setEditingId(null)
+      setForm(emptyForm)
+      setMessage(editingId ? "Destination updated. Test the connection before publishing." : "Destination saved. Test the connection before publishing.")
       await load()
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Could not save destination")
     } finally {
       setBusy(null)
     }
+  }
+
+  function editDestination(destination: Destination) {
+    setEditingId(destination.id)
+    setForm({
+      name: destination.name,
+      protocol: destination.protocol,
+      host: destination.host,
+      port: String(destination.port),
+      username: destination.username,
+      password: "",
+      remote_path: destination.remote_path,
+      public_url: destination.public_url || "",
+    })
+    setMessage(null)
+    setError(null)
+  }
+
+  function cancelEdit() {
+    setEditingId(null)
+    setForm(emptyForm)
+    setError(null)
   }
 
   const selected = destinations.find((destination) => destination.id === selectedId) || null
@@ -106,24 +135,27 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
 
         <div className="grid gap-5 lg:grid-cols-[1fr_.9fr]">
           <section className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7">
-            <div className="flex items-center gap-3"><Server className="text-violet-200" size={20} /><div><h2 className="font-semibold">New destination</h2><p className="text-xs text-white/40">FTPS is recommended when your host supports it.</p></div></div>
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3"><Server className="text-violet-200" size={20} /><div><h2 className="font-semibold">{editingId ? "Edit destination" : "New destination"}</h2><p className="text-xs text-white/40">{editingId ? "Update the selected publishing destination." : "FTPS is recommended when your host supports it."}</p></div></div>
+              {editingId ? <button type="button" onClick={cancelEdit} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/55 hover:bg-white/[.06] hover:text-white"><X size={14} />Cancel</button> : null}
+            </div>
             <div className="mt-6 grid gap-4 sm:grid-cols-2">
               <label className="text-xs font-semibold text-white/60">Destination name<input className={inputClass} value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} /></label>
               <label className="text-xs font-semibold text-white/60">Connection<select className={inputClass} value={form.protocol} onChange={(event) => setForm({ ...form, protocol: event.target.value })}><option value="ftps">FTPS (encrypted)</option><option value="ftp">FTP</option></select></label>
               <label className="text-xs font-semibold text-white/60">Host<input className={inputClass} placeholder="ftp.example.com" value={form.host} onChange={(event) => setForm({ ...form, host: event.target.value })} /></label>
               <label className="text-xs font-semibold text-white/60">Port<input className={inputClass} inputMode="numeric" value={form.port} onChange={(event) => setForm({ ...form, port: event.target.value })} /></label>
               <label className="text-xs font-semibold text-white/60">Username<input className={inputClass} autoComplete="username" value={form.username} onChange={(event) => setForm({ ...form, username: event.target.value })} /></label>
-              <label className="text-xs font-semibold text-white/60">Password<input className={inputClass} type="password" autoComplete="new-password" value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
+              <label className="text-xs font-semibold text-white/60">Password<input className={inputClass} type="password" autoComplete="new-password" placeholder={editingId ? "Leave blank to keep current password" : ""} value={form.password} onChange={(event) => setForm({ ...form, password: event.target.value })} /></label>
               <label className="text-xs font-semibold text-white/60 sm:col-span-2">Remote folder<input className={inputClass} placeholder="/public_html" value={form.remote_path} onChange={(event) => setForm({ ...form, remote_path: event.target.value })} /></label>
               <label className="text-xs font-semibold text-white/60 sm:col-span-2">Public URL<input className={inputClass} placeholder="https://letstrainonline.live" value={form.public_url} onChange={(event) => setForm({ ...form, public_url: event.target.value })} /></label>
             </div>
-            <button type="button" onClick={saveDestination} disabled={Boolean(busy)} className="mt-6 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold hover:bg-violet-500 disabled:opacity-50">{busy === "save" ? "Saving…" : "Save destination"}</button>
+            <button type="button" onClick={saveDestination} disabled={Boolean(busy)} className="mt-6 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold hover:bg-violet-500 disabled:opacity-50">{busy === "save" ? "Saving…" : editingId ? "Save changes" : "Save destination"}</button>
           </section>
 
           <section className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7">
             <div className="flex items-center gap-3"><Globe2 className="text-sky-200" size={20} /><div><h2 className="font-semibold">Publish</h2><p className="text-xs text-white/40">Only Jupiter-managed attendee files are replaced.</p></div></div>
             <label className="mt-6 block text-xs font-semibold text-white/60">Destination<select className={inputClass} value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Choose a destination</option>{destinations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select></label>
-            {selected ? <div className="mt-4 rounded-2xl border border-white/[.08] bg-black/20 p-4 text-sm text-white/55"><div className="font-semibold text-white/85">{selected.protocol.toUpperCase()} • {selected.host}:{selected.port}</div><div className="mt-1">{selected.remote_path}</div>{selected.last_status ? <div className="mt-3 flex items-center gap-2 text-xs"><CheckCircle2 size={14} className="text-emerald-300" />{selected.last_status}</div> : null}</div> : null}
+            {selected ? <div className="mt-4 rounded-2xl border border-white/[.08] bg-black/20 p-4 text-sm text-white/55"><div className="flex items-start justify-between gap-4"><div><div className="font-semibold text-white/85">{selected.protocol.toUpperCase()} • {selected.host}:{selected.port}</div><div className="mt-1">{selected.remote_path}</div></div><button type="button" onClick={() => editDestination(selected)} disabled={Boolean(busy)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/65 hover:bg-white/[.06] hover:text-white disabled:opacity-40"><Pencil size={13} />Edit</button></div>{selected.last_status ? <div className="mt-3 flex items-center gap-2 text-xs"><CheckCircle2 size={14} className="text-emerald-300" />{selected.last_status}</div> : null}</div> : null}
             <div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="button" disabled={!selectedId || Boolean(busy)} onClick={() => run("test", { destination_id: selectedId })} className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-3 text-sm font-semibold hover:bg-white/10 disabled:opacity-40">Test Connection</button><button type="button" disabled={!selectedId || Boolean(busy)} onClick={() => run("publish", { destination_id: selectedId })} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-40">{busy === "publish" ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}Publish Site</button></div>
             {selected?.public_url ? <a className="mt-4 inline-flex items-center gap-2 text-sm text-sky-200/75 hover:text-sky-100" href={selected.public_url} target="_blank" rel="noreferrer">View live site <ExternalLink size={14} /></a> : null}
             {message ? <div className="mt-5 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">{message}</div> : null}
