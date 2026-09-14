@@ -6,12 +6,20 @@ export type CustomCodeDocument = {
   enabled: boolean
   html: string
   css: string
+  script: string
+  headHtml: string
+  importedTemplateName: string
+  importedAssetPaths: string[]
 }
 
 const EMPTY_CUSTOM_CODE_DOCUMENT: CustomCodeDocument = {
   enabled: false,
   html: "",
   css: "",
+  script: "",
+  headHtml: "",
+  importedTemplateName: "",
+  importedAssetPaths: [],
 }
 
 export function getCustomCodeDocument(
@@ -30,13 +38,29 @@ export function getCustomCodeDocument(
       typeof section.config.customCss === "string"
         ? section.config.customCss
         : "",
+    script:
+      typeof section.config.customScript === "string"
+        ? section.config.customScript
+        : "",
+    headHtml:
+      typeof section.config.customHeadHtml === "string"
+        ? section.config.customHeadHtml
+        : "",
+    importedTemplateName:
+      typeof section.config.importedTemplateName === "string"
+        ? section.config.importedTemplateName
+        : "",
+    importedAssetPaths: Array.isArray(section.config.importedAssetPaths)
+      ? section.config.importedAssetPaths.filter((path): path is string => typeof path === "string")
+      : [],
   }
 }
 
 export function setCustomCodeDocument(
   sections: EventPageSection[],
-  document: CustomCodeDocument,
+  document: Pick<CustomCodeDocument, "enabled" | "html" | "css"> & Partial<CustomCodeDocument>,
 ): EventPageSection[] {
+  const current = getCustomCodeDocument(sections)
   const metadataSection: EventPageSection = {
     id: CUSTOM_CODE_SECTION_ID,
     type: "content",
@@ -46,6 +70,10 @@ export function setCustomCodeDocument(
       customCodeMode: document.enabled,
       customHtml: document.html,
       customCss: document.css,
+      customScript: document.script ?? current.script,
+      customHeadHtml: document.headHtml ?? current.headHtml,
+      importedTemplateName: document.importedTemplateName ?? current.importedTemplateName,
+      importedAssetPaths: document.importedAssetPaths ?? current.importedAssetPaths,
     },
     blocks: [],
   }

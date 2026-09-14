@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import CustomCodePage from "@/components/page-renderer/CustomCodePage"
+import ImportedSiteVisualEditor from "@/components/page-editor/ImportedSiteVisualEditor"
 
 const STARTER_HTML = `<main class="event-page">
   <p class="eyebrow">Jupiter Experience</p>
@@ -59,6 +60,7 @@ export default function FullCodeEditor({
   const [css, setCss] = useState(initialCss || STARTER_CSS)
   const [appliedHtml, setAppliedHtml] = useState(initialHtml || STARTER_HTML)
   const [appliedCss, setAppliedCss] = useState(initialCss || STARTER_CSS)
+  const [view, setView] = useState<"visual" | "code">(initialHtml ? "visual" : "code")
   const hasDraftChanges = html !== appliedHtml || css !== appliedCss
 
   function applyCode() {
@@ -84,6 +86,9 @@ export default function FullCodeEditor({
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
+            <div className="flex rounded-xl border border-white/10 bg-black/20 p-1">
+              {(["visual", "code"] as const).map((mode) => <button key={mode} type="button" aria-pressed={view === mode} onClick={() => setView(mode)} className={`rounded-lg px-3 py-1.5 text-xs font-semibold capitalize ${view === mode ? "bg-white/10 text-white" : "text-white/40 hover:text-white/70"}`}>{mode}</button>)}
+            </div>
             <span className="text-xs text-white/45">
               {hasDraftChanges ? "Draft changes" : saveStatus}
             </span>
@@ -106,7 +111,9 @@ export default function FullCodeEditor({
           </div>
         </section>
 
-        <div className="grid gap-5 2xl:grid-cols-[minmax(0,0.9fr)_minmax(620px,1.1fr)]">
+        {view === "visual" ? (
+          <ImportedSiteVisualEditor html={html} css={css} onChange={setHtml} />
+        ) : <div className="grid gap-5 2xl:grid-cols-[minmax(0,0.9fr)_minmax(620px,1.1fr)]">
           <div className="grid min-h-[720px] gap-5 xl:grid-cols-2 2xl:grid-cols-1">
             <label className="flex min-h-[350px] flex-col overflow-hidden rounded-[24px] border border-white/10 bg-[#070a14]">
               <span className="border-b border-white/10 px-4 py-3 text-[11px] font-black uppercase tracking-[0.18em] text-sky-200/65">
@@ -156,7 +163,7 @@ export default function FullCodeEditor({
               preview
             />
           </section>
-        </div>
+        </div>}
       </div>
     </div>
   )

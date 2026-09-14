@@ -2141,13 +2141,54 @@ function addRegistrationFormSection() {
     if (!documentReady) return
     const template = templates.find((item) => item.id === templateId)
     if (!template) return
+    const nextSections = normalizeSections(Array.isArray(template.sections_json) ? template.sections_json : [])
     runTransaction(() => {
-      setSections(normalizeSections(Array.isArray(template.sections_json) ? template.sections_json : []))
+      setSections(nextSections)
       setElements(Array.isArray(template.elements_json) ? template.elements_json : [])
       if (template.event_theme && typeof template.event_theme === "object") {
         setEventTheme(template.event_theme as EventTheme)
       }
     })
+    if (getCustomCodeDocument(nextSections).enabled) setIsCodeEditorOpen(true)
+  }
+
+  async function importSiteTemplate(file: File) {
+    if (!eventAdminId) {
+      await showNotice({ title: "Template not imported", message: "Wait for the event workspace to finish loading, then try again.", tone: "danger" })
+      return
+    }
+    if (!file.name.toLowerCase().endsWith(".zip")) {
+      await showNotice({ title: "Choose a ZIP file", message: "A site template must include index.html inside a ZIP package.", tone: "danger" })
+      return
+    }
+
+    const name = file.name.replace(/\.zip$/i, "").trim() || "Imported site"
+    const body = new FormData()
+    body.set("file", file)
+    body.set("event_id", eventAdminId)
+    body.set("name", name)
+    setSaveMessage("Importing site template…")
+
+    const response = await fetch("/api/admin/page-editor/templates/import", { method: "POST", body })
+    const payload = await response.json().catch((): null => null)
+    if (!response.ok || !payload?.template) {
+      const message = String(payload?.error ?? "The template package could not be imported.")
+      setSaveMessage(message)
+      await showNotice({ title: "Template not imported", message, tone: "danger" })
+      return
+    }
+
+    const template = payload.template as PageEditorTemplate
+    setTemplates((current) => [template, ...current.filter((item) => item.id !== template.id)])
+    const nextSections = normalizeSections(template.sections_json)
+    runTransaction(() => {
+      setSections(nextSections)
+      setElements(Array.isArray(template.elements_json) ? template.elements_json : [])
+      if (template.event_theme && typeof template.event_theme === "object") setEventTheme(template.event_theme as EventTheme)
+    })
+    setIsCodeEditorOpen(true)
+    setSaveMessage("Imported template ready to edit")
+    await showNotice({ title: "Site template imported", message: `${payload.imported?.files ?? 0} files were processed. The visual editor is ready.`, tone: "success" })
   }
 
   async function uploadAndAddAsset(file: File, onProgress?: (percent: number) => void) {
@@ -2928,6 +2969,7 @@ const selectedExperienceNode = experienceNodes.find(
                   assets={editorAssets}
                   eventTheme={eventTheme}
                   onApplyTemplate={applyPageTemplate}
+                  onImportTemplate={importSiteTemplate}
                   onAddElement={(type) => addElement(type)}
                   onAddTextPreset={(preset) => addElement("text", preset)}
                   onUpload={uploadAndAddAsset}

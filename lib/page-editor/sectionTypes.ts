@@ -145,6 +145,10 @@ export type SectionConfig = {
   customCodeMode?: boolean
   customHtml?: string
   customCss?: string
+  customScript?: string
+  customHeadHtml?: string
+  importedTemplateName?: string
+  importedAssetPaths?: string[]
 
   sectionBackgroundFillType?: "solid" | "linear-gradient" | "radial-gradient"
   sectionBackgroundColor?: string

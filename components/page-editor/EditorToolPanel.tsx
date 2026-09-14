@@ -28,6 +28,7 @@ export default function EditorToolPanel({
   assets,
   eventTheme,
   onApplyTemplate,
+  onImportTemplate,
   onAddElement,
   onAddTextPreset,
   onUpload,
@@ -46,6 +47,7 @@ export default function EditorToolPanel({
   assets: Asset[]
   eventTheme: EventTheme
   onApplyTemplate: (id: string) => void
+  onImportTemplate: (file: File) => Promise<void>
   onAddElement: (type: ElementType) => void
   onAddTextPreset: (preset: TextPreset) => void
   onUpload: (file: File, onProgress?: (percent: number) => void) => Promise<void>
@@ -60,7 +62,9 @@ export default function EditorToolPanel({
   onClose: () => void
 }) {
   const uploadRef = useRef<HTMLInputElement>(null)
+  const importRef = useRef<HTMLInputElement>(null)
   const [uploading, setUploading] = useState(false)
+  const [importing, setImporting] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [designTab, setDesignTab] = useState<"templates" | "layouts">("templates")
   const [templateSearch, setTemplateSearch] = useState("")
@@ -72,6 +76,12 @@ export default function EditorToolPanel({
     setUploading(true)
     setUploadProgress(0)
     try { await onUpload(file, setUploadProgress) } finally { setUploading(false) }
+  }
+
+  async function importTemplate(file: File | undefined) {
+    if (!file) return
+    setImporting(true)
+    try { await onImportTemplate(file) } finally { setImporting(false) }
   }
 
   return (
@@ -86,6 +96,11 @@ export default function EditorToolPanel({
           <div className="grid grid-cols-2 border-b border-white/10">{(["templates", "layouts"] as const).map((tab) => <button key={tab} type="button" aria-pressed={designTab === tab} onClick={() => setDesignTab(tab)} className={`border-b-2 px-2 py-2 text-xs font-semibold capitalize ${designTab === tab ? "border-violet-400 text-white" : "border-transparent text-white/40"}`}>{tab}</button>)}</div>
           {designTab === "templates" ? <>
             <input aria-label="Search templates" type="search" placeholder="Search templates" value={templateSearch} onChange={(event) => setTemplateSearch(event.target.value)} className="w-full rounded-xl border border-white/10 bg-black/25 px-3 py-2.5 text-xs text-white outline-none focus:border-violet-300/40" />
+            <input ref={importRef} className="sr-only" type="file" accept=".zip,application/zip" onChange={(event) => { void importTemplate(event.target.files?.[0]); event.target.value = "" }} />
+            <button type="button" disabled={importing} className="w-full rounded-xl border border-dashed border-violet-300/25 bg-violet-400/[.08] px-3 py-3 text-left text-xs font-semibold text-violet-100 transition hover:border-violet-300/45 hover:bg-violet-400/[.14] disabled:cursor-wait disabled:opacity-50" onClick={() => importRef.current?.click()}>
+              <span className="block">{importing ? "Importing site…" : "+ Import site template"}</span>
+              <span className="mt-1 block text-[10px] font-normal leading-4 text-white/40">ZIP with index.html · up to 20 MB</span>
+            </button>
             <PanelLabel>All templates</PanelLabel>
             {visibleTemplates.length ? visibleTemplates.map((template) => <button key={template.id} type="button" className={`${CONTROL} overflow-hidden p-0`} onClick={() => { if (window.confirm(`Apply “${template.name || "Untitled template"}” to this page? You can undo this change.`)) onApplyTemplate(template.id) }}><span className="block h-20 bg-[radial-gradient(circle_at_75%_35%,rgba(139,92,246,.65),transparent_30%),linear-gradient(135deg,#071426,#101328)]" /><span className="block px-3 py-2">{template.name || "Untitled template"}</span></button>) : <Empty>No matching templates.</Empty>}
           </> : <>

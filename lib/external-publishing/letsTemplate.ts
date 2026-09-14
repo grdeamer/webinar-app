@@ -46,7 +46,7 @@ function replaceMetaContent(html: string, name: string, replacement: string): st
   return html.replace(pattern, `$1${replacement}$2`)
 }
 
-function buildPublishHead(title: string): string {
+function buildPublishHead(title: string, headHtml = ""): string {
   return [
     `<meta charset="utf-8" />`,
     `<meta name="viewport" content="width=device-width, initial-scale=1" />`,
@@ -54,12 +54,13 @@ function buildPublishHead(title: string): string {
     `<link rel="stylesheet" href="styles.css" />`,
     `<script src="config.js"></script>`,
     `<script src="app.js" defer></script>`,
-  ].join("\n  ")
+    headHtml,
+  ].filter(Boolean).join("\n  ")
 }
 
-function wrapCustomHtmlForPublish(html: string, css: string, title: string): { indexHtml: string; stylesCss: string } {
+function wrapCustomHtmlForPublish(html: string, css: string, title: string, headHtml = ""): { indexHtml: string; stylesCss: string } {
   const trimmed = html.trim()
-  const headContent = buildPublishHead(title)
+  const headContent = buildPublishHead(title, headHtml)
 
   if (/<html[\s>]/i.test(trimmed)) {
     if (/<head[\s>]/i.test(trimmed)) {
@@ -107,9 +108,15 @@ export async function buildLetsPublishArtifacts(args: {
     const body = typeof hero?.config?.body === "string" ? hero.config.body.trim() : ""
 
     if (customCode.enabled && customCode.html.trim()) {
-      const wrapped = wrapCustomHtmlForPublish(customCode.html, customCode.css, title || "Event")
+      const wrapped = wrapCustomHtmlForPublish(customCode.html, customCode.css, title || "Event", customCode.headHtml)
       indexHtml = wrapped.indexHtml
       stylesCss = wrapped.stylesCss
+      if (customCode.script.trim()) {
+        const scriptPosition = fileEntries.findIndex((entry) => entry.name === "app.js")
+        if (scriptPosition !== -1) {
+          fileEntries[scriptPosition] = { name: "app.js", content: Buffer.from(customCode.script, "utf8") }
+        }
+      }
     } else {
       if (title) {
         const escapedTitle = escapeHtml(title)
@@ -141,6 +148,8 @@ export async function buildLetsPublishArtifacts(args: {
   const config = `window.POA_CONFIG = ${JSON.stringify(
     {
       STATE_ENDPOINT: `${origin}/api/public/events/${args.eventSlug}/runtime`,
+      DISTRICT_ACCESS_ENDPOINT: `${origin}/api/public/events/${args.eventSlug}/district-access`,
+      DISTRICT_DIRECTORY_ENDPOINT: `${origin}/api/public/events/${args.eventSlug}/district-directory`,
       EVENT_SLUG: args.eventSlug,
       POLL_INTERVAL_MS: 10000,
       TIME_ZONE: "America/New_York",
