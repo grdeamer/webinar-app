@@ -294,13 +294,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           }`}
         >
           <main
-            className={`relative z-10 flex-1 ${isEventWorkspace || isEventsDirectory ? "p-0" : "p-4 sm:p-6 lg:p-10"} ${
-              isPageEditorWorkspace ? "min-h-0 overflow-hidden" : ""
+            className={`relative z-10 min-w-0 flex-1 ${isEventWorkspace || isEventsDirectory || isPageEditorWorkspace ? "p-0" : "p-4 sm:p-6 lg:p-10"} ${
+              isPageEditorWorkspace ? "min-h-0 max-w-full overflow-hidden" : ""
             }`}
           >
             <div
-              className={`w-full ${
-                isPageEditorWorkspace ? "h-full min-h-0" : ""
+              className={`w-full min-w-0 ${
+                isPageEditorWorkspace ? "h-full min-h-0 max-w-full overflow-hidden" : ""
               }`}
             >
               {children}

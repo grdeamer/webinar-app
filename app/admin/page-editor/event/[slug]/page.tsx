@@ -17,7 +17,7 @@ export default async function LegacyPageBuilderPage(props: {
 
   if (!event?.id) notFound()
   return (
-    <div className="h-screen w-screen overflow-hidden bg-slate-950">
+    <div className="h-full min-h-0 w-full min-w-0 max-w-full overflow-hidden bg-slate-950">
       <AdminEventPageEditorPreview
         eventSlug={slug}
         eventAdminId={event.id}

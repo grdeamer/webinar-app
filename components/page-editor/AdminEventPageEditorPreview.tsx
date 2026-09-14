@@ -137,7 +137,7 @@ type RightRailTab = "inspect" | "layers" | "insert" | "page"
 const GRID_SIZE = 8
 
 const EXPERIENCE_EDITOR_ROOT_CLASS =
-  "flex h-full min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.07),transparent_28%),radial-gradient(circle_at_82%_14%,rgba(168,85,247,0.075),transparent_30%),linear-gradient(180deg,#050816_0%,#040712_44%,#02040a_100%)] text-white"
+  "flex h-full min-h-0 w-full min-w-0 max-w-full flex-col overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(56,189,248,0.07),transparent_28%),radial-gradient(circle_at_82%_14%,rgba(168,85,247,0.075),transparent_30%),linear-gradient(180deg,#050816_0%,#040712_44%,#02040a_100%)] text-white"
 
 const EXPERIENCE_EDITOR_CANVAS_SHELL_CLASS =
   "rounded-[28px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.038),rgba(255,255,255,0.014))] p-4 shadow-[0_22px_72px_rgba(0,0,0,0.30),inset_0_1px_0_rgba(255,255,255,0.035)]"
@@ -2902,7 +2902,7 @@ const selectedExperienceNode = experienceNodes.find(
         </div>
       ) : null}
 
-            <div className="relative flex min-h-0 flex-1 overflow-hidden">
+            <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 overflow-hidden">
               {!isEmbedded && !isCodeEditorOpen ? (
                 <EditorToolDock
                   activePanel={activeToolPanel}

@@ -54,7 +54,7 @@ type Props = {
 }
 
 const EXPERIENCE_EDITOR_TOPBAR_CLASS =
-  "relative z-40 shrink-0 border-b border-white/[0.07] bg-[linear-gradient(180deg,rgba(6,10,18,0.92),rgba(3,6,13,0.78))] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl"
+  "relative z-40 w-full min-w-0 max-w-full shrink-0 overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(180deg,rgba(6,10,18,0.92),rgba(3,6,13,0.78))] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl"
 
 const EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS =
   "rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_12px_34px_rgba(255,255,255,0.08)] transition hover:bg-white/90"
@@ -136,7 +136,7 @@ export default function PageEditorToolbar({
 }: Props) {
   return (
     <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
-      <div className="flex min-h-[72px] items-center justify-between gap-4 px-5 py-3">
+      <div className="flex min-h-[72px] w-full min-w-0 flex-wrap items-center justify-between gap-4 px-5 py-3">
         <div className="min-w-0">
           <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-white/60">
             {!isEmbedded ? <Link href="/admin/events" className="hover:text-white">Events</Link> : <span>Experience Builder</span>}
@@ -151,7 +151,7 @@ export default function PageEditorToolbar({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3">
           <select
             value={selectedPageKey}
             onChange={(event) => onSelectPage(event.target.value)}
