@@ -3,8 +3,8 @@
 import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { CSSProperties, ReactNode, useCallback, useEffect, useState } from "react"
-import { Activity, CalendarDate, File04, Home03, LayersThree01, List, Mail02, Signal02, Tool02, UploadCloud01, Users01, VideoRecorder } from "@untitledui/icons"
-import { Cloud, Menu, Network, X } from "lucide-react"
+import { Activity, CalendarDate, Home03, Signal02, Tool02, Users01 } from "@untitledui/icons"
+import { CalendarClock, CloudCog, LayoutDashboard, ListChecks, Menu, MessagesSquare, Network, NotebookTabs, PanelsTopLeft, RadioTower, Rocket, UsersRound, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 
@@ -90,17 +90,17 @@ export default function EventLayout({ children }: { children: ReactNode }) {
             <span className="jv1-header-event-copy" aria-busy={!eventContext}><strong>{eventTitle}</strong><span>{eventStatus}</span></span>
           </div>
           <nav className="jv1-top-navigation" aria-label="Event workspace">
-            <TopLink href={base} label="Overview" icon={<Home03 />} exact />
-            {canConfigure ? <TopLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}
+            <TopLink href={base} label="Overview" icon={<LayoutDashboard />} exact />
+            {canConfigure ? <TopLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/attendees`} label="People" icon={<UsersRound />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} /> : null}
             {canConfigure ? <TopLink href={`${base}/districts`} label="Districts" icon={<Network />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/infrastructure`} label="Cloud" icon={<Cloud />} /> : null}
-            {canOperate ? <TopLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}
-            {canOperate ? <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} /> : null}
+            {canConfigure ? <TopLink href={`${base}/infrastructure`} label="Cloud" icon={<CloudCog />} /> : null}
+            {canOperate ? <TopLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} /> : null}
+            {canOperate ? <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} /> : null}
           </nav>
         </div>
         <div className="jv1-live-badge"><span />{eventContext?.hasLiveSession ? "EVENT LIVE" : "LIVE READY"}</div>
@@ -124,7 +124,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
         <aside className="jv1-event-rail" aria-label="Mobile event workspace">
           <div className="jv1-event-rail-label"><span /> Event workspace</div>
           <div className="jv1-event-context" aria-busy={!eventContext}><h2>{eventTitle}</h2><p>{eventStatus}</p></div>
-          <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<File04 />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<Users01 />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarDate />} /> : null}{canConfigure ? <NavLink href={`${base}/districts`} label="Districts" icon={<Network />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<LayersThree01 />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<Mail02 />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<UploadCloud01 />} /> : null}{canConfigure ? <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<Cloud />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<List />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<VideoRecorder />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Audience Flow" icon={<Signal02 />} /> : null}</nav>
+          <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" icon={<LayoutDashboard />} exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<UsersRound />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} /> : null}{canConfigure ? <NavLink href={`${base}/districts`} label="Districts" icon={<Network />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} /> : null}{canConfigure ? <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<CloudCog />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Audience Flow" icon={<Signal02 />} /> : null}</nav>
           <div className="mt-auto pt-5"><AdminProfileMenu /></div>
         </aside>
         <main className="jv1-content">{children}</main>
