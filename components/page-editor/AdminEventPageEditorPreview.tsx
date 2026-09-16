@@ -36,6 +36,7 @@ import {
   type LayerCommand,
 } from "./layerCommands"
 import CanvasGridOverlay from "./CanvasGridOverlay"
+import MarqueeSelection from "./MarqueeSelection"
 import ResizeHandles, { type ResizeHandle } from "./ResizeHandles"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
 import FullCodeEditor from "@/components/page-editor/FullCodeEditor"
@@ -3297,15 +3298,11 @@ const selectedExperienceNode = experienceNodes.find(
 
 
                     {isMarqueeSelecting && selectionBox && (
-                      <div
-                        className="pointer-events-none absolute border border-sky-400 bg-sky-400/15"
-                        style={{
-                          left: Math.min(selectionBox.startX, selectionBox.currentX),
-                          top: Math.min(selectionBox.startY, selectionBox.currentY),
-                          width: Math.abs(selectionBox.currentX - selectionBox.startX),
-                          height: Math.abs(selectionBox.currentY - selectionBox.startY),
-                          zIndex: 9999,
-                        }}
+                      <MarqueeSelection
+                        startX={selectionBox.startX}
+                        startY={selectionBox.startY}
+                        currentX={selectionBox.currentX}
+                        currentY={selectionBox.currentY}
                       />
                     )}
 

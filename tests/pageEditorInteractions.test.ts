@@ -4,6 +4,7 @@ import test from "node:test"
 import { calculateAlignmentGuides } from "../components/page-editor/alignmentGuides.ts"
 import { getElementAlignmentUpdates } from "../components/page-editor/elementAlignmentCommands.ts"
 import {
+  compositeSelectionHasLockedMember,
   getCompositeMoveUpdates,
   getExpandedGroupMemberIds,
   getGroupResizeSnapshot,
@@ -172,4 +173,15 @@ test("page image backgrounds preserve safe sizing and clamp their overlay", () =
 test("preview links target the selected built-in or custom page", () => {
   assert.equal(getPublicEditorPageUrl("annual-meeting", "agenda"), "/events/annual-meeting/agenda")
   assert.equal(getPublicEditorPageUrl("annual meeting", "leadership-room"), "/events/annual%20meeting/pages/leadership-room")
+})
+
+test("locked members are detected in a composite selection", () => {
+  const elements = [
+    { id: "a", props: { groupId: "hero" } },
+    { id: "b", props: { groupId: "hero" }, locked: true },
+    { id: "c", props: {} },
+  ]
+
+  assert.equal(compositeSelectionHasLockedMember(elements, ["a"]), true)
+  assert.equal(compositeSelectionHasLockedMember(elements, ["c"]), false)
 })
