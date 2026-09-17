@@ -38,6 +38,7 @@ export interface EventRecord {
   description?: string | null
   start_at?: string | null
   end_at?: string | null
+  district_directory_enabled?: boolean
 }
 
 export type EventAgendaStatus =

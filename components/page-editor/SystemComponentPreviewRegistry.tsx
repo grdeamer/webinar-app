@@ -85,6 +85,14 @@ export function createSystemComponentPreviewRegistry({
       </div>
     ),
 
+    next_up: (
+      <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
+        <div className="text-xs uppercase tracking-[0.18em] text-white/40">Next up</div>
+        <div className="mt-3 text-lg font-semibold text-white">Keynote Speaker</div>
+        <div className="mt-2 text-sm text-white/60">11:30 AM</div>
+      </div>
+    ),
+
     agenda: (() => {
       const agendaBlock = sections
         .flatMap((section) => section.blocks ?? [])

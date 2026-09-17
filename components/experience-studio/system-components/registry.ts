@@ -31,7 +31,13 @@ export const SYSTEM_COMPONENTS: SystemComponentDefinition[] = [
     key: "countdown",
     label: "Countdown",
     category: "live",
-    description: "Displays countdown to event start.",
+    description: "Reusable live timer for event start, next session, or current session end.",
+  },
+  {
+    key: "next_up",
+    label: "Next Up",
+    category: "live",
+    description: "Displays the next scheduled session and its start time.",
   },
   {
     key: "sessions_list",

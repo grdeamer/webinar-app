@@ -6,7 +6,7 @@ import { recordAuditEvent } from "@/lib/cloud/audit"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
+function json(data: unknown, status = 200) {
   return NextResponse.json(data, { status })
 }
 
@@ -33,7 +33,7 @@ async function getUniqueEventSlug(baseSlug: string) {
   }
 
   const existing = new Set(
-    (data ?? []).map((row: any) => String(row.slug).toLowerCase())
+    (data ?? []).map((row: { slug: string }) => String(row.slug).toLowerCase())
   )
 
   if (!existing.has(safeBase)) return safeBase
@@ -62,8 +62,8 @@ export async function POST(req: Request) {
 
   try {
     finalSlug = await getUniqueEventSlug(rawSlug)
-  } catch (err: any) {
-    return json({ error: err?.message || "Slug generation failed" }, 500)
+  } catch (err: unknown) {
+    return json({ error: err instanceof Error ? err.message : "Slug generation failed" }, 500)
   }
 
   const row = {
@@ -114,15 +114,23 @@ export async function PUT(req: Request) {
   }
 
   const updatedAt = new Date().toISOString()
-  const patch: Record<string, unknown> = {
-    title: body.title ? String(body.title).slice(0, 200) : null,
-    description:
-      body.description != null
-        ? String(body.description).slice(0, 10000)
-        : null,
-    start_at: body.start_at || null,
-    end_at: body.end_at || null,
-    updated_at: updatedAt,
+  const patch: Record<string, unknown> = { updated_at: updatedAt }
+
+  if (Object.prototype.hasOwnProperty.call(body, "title")) {
+    const title = String(body.title || "").trim()
+    if (!title) return json({ error: "Title is required" }, 400)
+    patch.title = title.slice(0, 200)
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "description")) {
+    patch.description = body.description != null
+      ? String(body.description).slice(0, 10000)
+      : null
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "start_at")) {
+    patch.start_at = body.start_at || null
+  }
+  if (Object.prototype.hasOwnProperty.call(body, "end_at")) {
+    patch.end_at = body.end_at || null
   }
 
   if (typeof body.district_directory_enabled === "boolean") {

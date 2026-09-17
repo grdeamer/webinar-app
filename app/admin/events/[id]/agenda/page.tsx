@@ -3,6 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { EventAgendaItem, EventRecord } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import AdminAgendaEditor from "./ui"
+import { normalizeAttendeeComponentState } from "@/lib/attendeeComponents"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -14,7 +15,7 @@ export default async function AdminEventAgendaPage(props: {
 
   const { data: event, error: e1 } = await supabaseAdmin
     .from("events")
-    .select("id,slug,title")
+    .select("id,slug,title,district_directory_enabled")
     .eq("id", id)
     .single<EventRecord>()
 
@@ -32,7 +33,7 @@ export default async function AdminEventAgendaPage(props: {
       .returns<EventAgendaItem[]>(),
     supabaseAdmin
       .from("event_live_state")
-      .select("status,survey_url,show_survey")
+      .select("status,survey_url,show_survey,attendee_component_state")
       .eq("event_id", id)
       .maybeSingle(),
   ])
@@ -63,9 +64,11 @@ export default async function AdminEventAgendaPage(props: {
       <AdminAgendaEditor
         eventId={id}
         eventSlug={event.slug}
+        initialDistrictDirectoryEnabled={event.district_directory_enabled === true}
         initialAccessOpen={liveStateResult.data?.status === "open"}
         initialSurveyUrl={liveStateResult.data?.survey_url || ""}
         initialShowSurvey={liveStateResult.data?.show_survey === true}
+        initialComponentState={normalizeAttendeeComponentState(liveStateResult.data?.attendee_component_state)}
         initialItems={(agendaResult.data || []).map((item) => ({
           ...item,
           created_at: item.created_at ?? "",

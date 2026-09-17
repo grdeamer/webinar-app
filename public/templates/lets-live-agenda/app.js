@@ -43,7 +43,8 @@
     ringcentral: ["M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6Z"],
     chime: ["M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm3 9h-6v2h6Z"],
     bluejeans: ["M3 7a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2ZM16 9l5-3v12l-5-3Z"],
-    meeting: ["M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"]
+    meeting: ["M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"],
+    district: ["M12 3v6M5 21v-4a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v4M6 9h12M6 9v3M18 9v3", "M3 12h6v5H3ZM15 12h6v5h-6ZM9 2h6v5H9Z"]
   };
 
   const els = {
@@ -69,6 +70,8 @@
     countdownLabel: document.getElementById("countdownLabel"),
     countdownValue: document.getElementById("countdownValue"),
     countdownSession: document.getElementById("countdownSession"),
+    countdownCard: document.getElementById("countdownCard"),
+    agendaSection: document.getElementById("agendaSection"),
     statusPill: document.getElementById("statusPill"),
     eventDayDate: document.getElementById("eventDayDate"),
     timeZoneSelect: document.getElementById("timeZoneSelect"),
@@ -79,7 +82,17 @@
     speakerPanelLabel: document.getElementById("speakerPanelLabel"),
     speakerList: document.getElementById("speakerList"),
     speakerSession: document.getElementById("speakerSession"),
-    speakerTime: document.getElementById("speakerTime")
+    speakerTime: document.getElementById("speakerTime"),
+    districtFinder: document.getElementById("districtFinder"),
+    districtFinderClose: document.getElementById("districtFinderClose"),
+    districtFinderBackdrop: document.getElementById("districtFinderBackdrop"),
+    districtFinderForm: document.getElementById("districtFinderForm"),
+    districtEmail: document.getElementById("districtEmail"),
+    districtFinderSubmit: document.getElementById("districtFinderSubmit"),
+    districtFinderMessage: document.getElementById("districtFinderMessage"),
+    districtFinderResults: document.getElementById("districtFinderResults"),
+    districtDirectory: document.getElementById("districtDirectory"),
+    districtDirectoryList: document.getElementById("districtDirectoryList")
   };
 
   function firstValue(...values) {
@@ -517,8 +530,14 @@
       current_session: hasCurrentSession && typeof current === "object" ? current : null,
       next_session: typeof next === "object" ? next : null,
       event_date: firstValue(agenda?.[0]?.start, raw.event?.start_at, raw.event_start_at, state.event_date, config.EVENT_DATE),
+      event_start_at: firstValue(raw.event?.start_at, raw.event_start_at, state.event_start_at),
       survey_url: firstValue(raw.survey_url, raw.survey?.url, ""),
       show_survey: raw.show_survey === true || raw.survey?.visible === true,
+      district_lookup_enabled: raw.district_lookup_enabled === true,
+      district_directory_enabled: raw.district_directory_enabled === true,
+      attendee_component_state: raw.attendee_component_state && typeof raw.attendee_component_state === "object"
+        ? raw.attendee_component_state
+        : state.attendee_component_state,
       button_text: firstValue(raw.button_text, button?.text, button?.label, state.button_text),
       button_url: firstValue(raw.button_url, button?.url, button?.href, state.button_url),
       announcement: typeof latestAnnouncement === "string" ? latestAnnouncement : firstValue(latestAnnouncement?.message, latestAnnouncement?.text, latestAnnouncement?.title, ""),
@@ -596,6 +615,100 @@
     }
   }
 
+  function closeDistrictFinder() {
+    if (!els.districtFinder) return;
+    els.districtFinder.hidden = true;
+    document.body.style.removeProperty("overflow");
+  }
+
+  function renderDistrictRooms(rooms) {
+    if (!els.districtFinderResults) return;
+    els.districtFinderResults.replaceChildren();
+    (Array.isArray(rooms) ? rooms : []).forEach(room => {
+      const card = document.createElement("article");
+      card.className = "district-room";
+      const copy = document.createElement("div");
+      const name = document.createElement("strong");
+      name.textContent = room.name || room.code || "Assigned room";
+      copy.append(name);
+      if (room.manager) {
+        const manager = document.createElement("span");
+        manager.textContent = `Lead: ${room.manager}`;
+        copy.append(manager);
+      }
+      card.append(copy);
+      if (/^https:\/\//i.test(room.meeting_link || "")) {
+        const link = document.createElement("a");
+        link.className = "district-room-link";
+        link.href = room.meeting_link;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer nofollow";
+        link.textContent = "Enter room →";
+        card.append(link);
+      }
+      els.districtFinderResults.append(card);
+    });
+  }
+
+  function renderDistrictDirectory(nodes) {
+    if (!els.districtDirectory || !els.districtDirectoryList) return;
+    els.districtDirectoryList.replaceChildren();
+    const rows = Array.isArray(nodes) ? nodes : [];
+    if (!rows.length) {
+      els.districtDirectory.hidden = true;
+      return;
+    }
+    const byParent = new Map();
+    rows.forEach(node => {
+      const key = node.parent_id || "root";
+      byParent.set(key, [...(byParent.get(key) || []), node]);
+    });
+    const appendNodes = (parentId, depth) => {
+      (byParent.get(parentId) || []).forEach(node => {
+        const row = /^https:\/\//i.test(node.meeting_link || "") ? document.createElement("a") : document.createElement("div");
+        row.className = "district-directory-node";
+        row.style.marginLeft = `${Math.min(depth, 3) * 16}px`;
+        if (row instanceof HTMLAnchorElement) {
+          row.href = node.meeting_link;
+          row.target = "_blank";
+          row.rel = "noopener noreferrer nofollow";
+        }
+        const name = document.createElement("span");
+        name.textContent = node.name || node.code || "Untitled";
+        const type = document.createElement("small");
+        type.textContent = String(node.node_type || "group").replace(/_/g, " ");
+        row.append(name, type);
+        els.districtDirectoryList.append(row);
+        appendNodes(node.id, depth + 1);
+      });
+    };
+    appendNodes("root", 0);
+    els.districtDirectory.hidden = false;
+  }
+
+  async function loadDistrictDirectory() {
+    if (!state.district_directory_enabled || !config.DISTRICT_DIRECTORY_ENDPOINT || !els.districtDirectory) return;
+    try {
+      const response = await fetch(config.DISTRICT_DIRECTORY_ENDPOINT, { headers: { Accept: "application/json" }, cache: "no-store" });
+      const payload = await response.json();
+      if (response.ok && payload.enabled) renderDistrictDirectory(payload.nodes);
+    } catch (error) {
+      console.warn("Unable to load the district directory.", error);
+    }
+  }
+
+  function openDistrictFinder() {
+    if (!els.districtFinder) return;
+    els.districtFinder.hidden = false;
+    document.body.style.overflow = "hidden";
+    if (els.districtFinderMessage) {
+      els.districtFinderMessage.textContent = "";
+      els.districtFinderMessage.classList.remove("is-error");
+    }
+    void loadDistrictDirectory();
+    window.setTimeout(() => els.districtEmail?.focus(), 50);
+  }
+
   function applyState(nextState, animate = false) {
     if (!nextState) return;
     state = { ...state, ...nextState };
@@ -613,6 +726,9 @@
     if (nextState.agenda?.length) renderAgenda(nextState.agenda);
 
     const { active, primary, secondary } = resolveDisplaySessions();
+    const componentState = state.attendee_component_state || {};
+    if (els.countdownCard) els.countdownCard.hidden = componentState.countdown === false;
+    if (els.agendaSection) els.agendaSection.hidden = componentState.agenda === false;
     const sessionStatusNow = new Date();
     agendaItems.forEach(item => {
       const session = sessionMap.get(item.dataset.session);
@@ -628,7 +744,7 @@
       els.liveSessionName.textContent = primary.name;
       els.liveSessionTime.textContent = primary.displayTime;
     }
-    if (secondary) {
+    if (secondary && componentState.next_up !== false) {
       els.nextUp.hidden = false;
       els.nextSessionName.textContent = secondary.name;
       els.nextSessionTime.textContent = secondary.displayTime;
@@ -651,9 +767,24 @@
       state.button_text,
       "Enter live meeting"
     );
-    if (els.enterButton && meetingButtonUrl) els.enterButton.href = meetingButtonUrl;
-    if (els.enterButtonText) els.enterButtonText.textContent = meetingButtonText;
-    updateMeetingProvider(meetingButtonUrl || "");
+    const districtLookupActive = state.district_lookup_enabled === true && Boolean(active);
+    if (districtLookupActive) {
+      if (els.enterButton) {
+        els.enterButton.href = "#district-finder";
+        els.enterButton.removeAttribute("target");
+        els.enterButton.dataset.provider = "district";
+      }
+      if (els.enterButtonText) els.enterButtonText.textContent = "Find your district";
+      if (els.meetingProviderLabel) els.meetingProviderLabel.textContent = "District & group rooms";
+      if (els.meetingProviderIcon) els.meetingProviderIcon.replaceChildren(createMeetingProviderIcon("district"));
+    } else {
+      if (els.enterButton && meetingButtonUrl) {
+        els.enterButton.href = meetingButtonUrl;
+        els.enterButton.target = "_blank";
+      }
+      if (els.enterButtonText) els.enterButtonText.textContent = meetingButtonText;
+      updateMeetingProvider(meetingButtonUrl || "");
+    }
     if (els.announcement && els.announcementText) {
       els.announcement.hidden = !state.announcement;
       els.announcementText.textContent = state.announcement || "";
@@ -708,6 +839,8 @@
 
   function updateCountdown() {
     const { active, primary, secondary } = resolveDisplaySessions();
+    const componentState = state.attendee_component_state || {};
+    const countdownMode = componentState.countdown_mode || "next_session";
     const next = active ? secondary : primary;
     const now = new Date();
     if (els.liveLabel) els.liveLabel.textContent = active ? "Live now" : "Up next";
@@ -715,7 +848,7 @@
       els.liveSessionName.textContent = primary.name;
       els.liveSessionTime.textContent = primary.displayTime;
     }
-    if (secondary) {
+    if (secondary && componentState.next_up !== false) {
       els.nextUp.hidden = false;
       els.nextSessionName.textContent = secondary.name;
       els.nextSessionTime.textContent = secondary.displayTime;
@@ -730,7 +863,17 @@
       const label = item.querySelector(".agenda-state");
       if (label) label.textContent = status === "live" ? "Live now" : status === "complete" ? "Complete" : status === "cancelled" ? "Cancelled" : "Upcoming";
     });
-    if (next) {
+    if (countdownMode === "event_start") {
+      const eventStart = eventMoment(state.event_start_at || state.event_date);
+      els.countdownLabel.textContent = "Event begins in";
+      els.countdownSession.textContent = state.event_title || "Event";
+      els.countdownValue.textContent = eventStart && eventStart > now ? formatDuration(eventStart - now) : "Starting soon";
+    } else if (countdownMode === "current_session_end" && active) {
+      const activeEnd = eventMoment(active.end);
+      els.countdownLabel.textContent = "Current session ends in";
+      els.countdownSession.textContent = active.name;
+      els.countdownValue.textContent = activeEnd && activeEnd > now ? formatDuration(activeEnd - now) : "Ending soon";
+    } else if (next) {
       const nextStart = eventMoment(next.start);
       els.countdownLabel.textContent = "Next session begins in";
       els.countdownSession.textContent = next.name;
@@ -768,6 +911,47 @@
     window.$crisp = window.$crisp || [];
     window.$crisp.push(["do", "chat:show"]);
     window.$crisp.push(["do", "chat:open"]);
+  });
+
+  els.enterButton?.addEventListener("click", event => {
+    if (state.district_lookup_enabled !== true) return;
+    event.preventDefault();
+    openDistrictFinder();
+  });
+  els.districtFinderClose?.addEventListener("click", closeDistrictFinder);
+  els.districtFinderBackdrop?.addEventListener("click", closeDistrictFinder);
+  document.addEventListener("keydown", event => {
+    if (event.key === "Escape" && !els.districtFinder?.hidden) closeDistrictFinder();
+  });
+  els.districtFinderForm?.addEventListener("submit", async event => {
+    event.preventDefault();
+    const email = String(els.districtEmail?.value || "").trim();
+    if (!email || !config.DISTRICT_ACCESS_ENDPOINT) return;
+    if (els.districtFinderSubmit) els.districtFinderSubmit.disabled = true;
+    if (els.districtFinderMessage) {
+      els.districtFinderMessage.textContent = "Finding your assigned room…";
+      els.districtFinderMessage.classList.remove("is-error");
+    }
+    if (els.districtFinderResults) els.districtFinderResults.replaceChildren();
+    try {
+      const endpoint = `${String(config.DISTRICT_ACCESS_ENDPOINT).replace(/\/$/, "")}/request`;
+      const response = await fetch(endpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Accept: "application/json" },
+        body: JSON.stringify({ email })
+      });
+      const payload = await response.json();
+      if (!response.ok) throw new Error(payload.error || "We could not find a room for that email.");
+      renderDistrictRooms(payload.districts || (payload.district ? [payload.district] : []));
+      if (els.districtFinderMessage) els.districtFinderMessage.textContent = "Your room is ready.";
+    } catch (error) {
+      if (els.districtFinderMessage) {
+        els.districtFinderMessage.textContent = error instanceof Error ? error.message : "We could not find your room.";
+        els.districtFinderMessage.classList.add("is-error");
+      }
+    } finally {
+      if (els.districtFinderSubmit) els.districtFinderSubmit.disabled = false;
+    }
   });
   window.$crisp = window.$crisp || [];
   window.$crisp.push(["on", "chat:closed", () => window.$crisp.push(["do", "chat:hide"])]);

@@ -25,6 +25,10 @@ import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionType
 import JupiterHomeHero from "@/components/events/JupiterHomeHero"
 import TransitionAwareEventShell from "@/components/events/TransitionAwareEventShell"
 import LetsLiveAgendaExperience from "@/components/events/LetsLiveAgendaExperience"
+import {
+  componentIsVisible,
+  normalizeAttendeeComponentState,
+} from "@/lib/attendeeComponents"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -399,7 +403,7 @@ export default async function EventHomePage(props: {
 
     supabaseAdmin
       .from("event_live_state")
-      .select("status")
+      .select("status,attendee_component_state")
       .eq("event_id", event.id)
       .maybeSingle(),
   ])
@@ -424,8 +428,22 @@ export default async function EventHomePage(props: {
   ).slice(0, 6)
 
   const spotlightSpeaker = featuredSpeakers[0] || null
-  const nextAgenda = agenda.find((item) => item.start_at) || agenda[0] || null
-  const countdownTarget = nextAgenda?.start_at || event.start_at || null
+  const attendeeComponentState = normalizeAttendeeComponentState(accessRow?.attendee_component_state)
+  const liveAgenda = agenda.find((item) => item.status === "live") || null
+  const nextAgenda = agenda.find((item) => item.status === "upcoming" && item.start_at) || agenda.find((item) => item.start_at) || agenda[0] || null
+  const countdownAgenda = attendeeComponentState.countdown_mode === "current_session_end" && liveAgenda
+    ? liveAgenda
+    : nextAgenda
+  const countdownTarget = attendeeComponentState.countdown_mode === "event_start"
+    ? event.start_at || nextAgenda?.start_at || null
+    : attendeeComponentState.countdown_mode === "current_session_end"
+      ? liveAgenda?.end_at || nextAgenda?.start_at || event.start_at || null
+      : nextAgenda?.start_at || event.start_at || null
+  const countdownSubtitle = attendeeComponentState.countdown_mode === "event_start"
+    ? "Countdown to event start"
+    : attendeeComponentState.countdown_mode === "current_session_end" && liveAgenda
+      ? "Current session ends in"
+      : "Countdown to next session"
 
   const accessGate =
     viewer.type !== "guest" ? (
@@ -550,12 +568,20 @@ export default async function EventHomePage(props: {
           Countdown
         </div>
         <EventCountdownCard
-          title={nextAgenda?.title || event.title}
+          title={countdownAgenda?.title || event.title}
           targetIso={countdownTarget}
-          subtitle={nextAgenda ? "Countdown to next session" : "Countdown to event start"}
+          subtitle={countdownSubtitle}
         />
       </div>
     ),
+
+    next_up: nextAgenda ? (
+      <section className="rounded-3xl border border-white/10 bg-white/5 p-6 text-white shadow-xl shadow-black/20">
+        <div className="text-[11px] font-black uppercase tracking-[0.22em] text-white/40">Next up</div>
+        <div className="mt-3 text-2xl font-semibold tracking-[-0.03em]">{nextAgenda.title || "Upcoming session"}</div>
+        <div className="mt-2 text-sm text-white/55">{nextAgenda.start_at ? new Date(nextAgenda.start_at).toLocaleString() : "Time to be announced"}</div>
+      </section>
+    ) : null,
 
     speaker_spotlight: (
       <div className="space-y-4">
@@ -609,8 +635,14 @@ export default async function EventHomePage(props: {
       description: event.description,
     }) as EventPageSection[]
 
-  const resolvedSections =
+  const resolvedSectionsUnfiltered =
     savedSections.length > 0 ? savedSections : fallbackSections
+  const resolvedSections = resolvedSectionsUnfiltered.map((section) => ({
+    ...section,
+    blocks: section.blocks?.filter((block) =>
+      block.type !== "system_component" || componentIsVisible(attendeeComponentState, block.props.componentKey)
+    ),
+  }))
 
   const authValue: unknown = authedUser
   const authRecord = isRecord(authValue) ? authValue : null

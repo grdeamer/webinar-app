@@ -7,12 +7,13 @@ export type EventRow = {
   description: string | null
   start_at: string | null
   end_at: string | null
+  district_directory_enabled: boolean
 }
 
 export async function getEventBySlug(slug: string): Promise<EventRow> {
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id,slug,title,description,start_at,end_at")
+    .select("id,slug,title,description,start_at,end_at,district_directory_enabled")
     .eq("slug", slug)
     .order("start_at", { ascending: false, nullsFirst: true })
     .limit(1)
@@ -32,7 +33,7 @@ export async function getEventBySlug(slug: string): Promise<EventRow> {
 export async function getEventById(id: string): Promise<EventRow> {
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id,slug,title,description,start_at,end_at")
+    .select("id,slug,title,description,start_at,end_at,district_directory_enabled")
     .eq("id", id)
     .maybeSingle()
 
@@ -50,7 +51,7 @@ export async function getEventById(id: string): Promise<EventRow> {
 export async function listEvents(): Promise<EventRow[]> {
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id,slug,title,description,start_at,end_at")
+    .select("id,slug,title,description,start_at,end_at,district_directory_enabled")
     .order("start_at", { ascending: false, nullsFirst: true })
 
   if (error) {

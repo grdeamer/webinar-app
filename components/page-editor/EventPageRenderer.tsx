@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type ReactNode } from "react"
+import type Hls from "hls.js"
 import type {
   SectionConfig,
   SectionType,
@@ -228,6 +229,8 @@ function getSystemComponentPlaceholderLabel(componentKey: SystemComponentKey) {
       return "Agenda"
     case "countdown":
       return "Countdown"
+    case "next_up":
+      return "Next Up"
    case "registration_form":
   return "Registration Form"
 
@@ -315,6 +318,13 @@ function renderSystemComponentLive(
       return (
         <div className="text-sm text-white/70">
           Countdown component (connect to event start time next)
+        </div>
+      )
+
+    case "next_up":
+      return (
+        <div className="text-sm text-white/70">
+          Next scheduled session
         </div>
       )
 
@@ -587,7 +597,7 @@ function VideoPlayer({
 
   useEffect(() => {
     let destroyed = false
-    let hlsInstance: any = null
+    let hlsInstance: Hls | null = null
 
     async function setup() {
       const video = videoRef.current

@@ -388,6 +388,21 @@ export function createDefaultEventHomeSections(event: {
     },
 
     {
+      id: "next-up",
+      type: "system",
+      config: {
+        ...getDefaultSectionConfig("system"),
+        adminLabel: "Next Up",
+      },
+      blocks: [
+        makeSystemBlock("next_up", {
+          title: "Next up",
+          body: "The next scheduled session and start time.",
+        }),
+      ],
+    },
+
+    {
       id: "agenda",
       type: "system",
       config: {

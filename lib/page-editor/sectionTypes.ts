@@ -9,6 +9,7 @@ export type SystemComponentKey =
   | "sessions_list"
   | "agenda"
   | "countdown"
+  | "next_up"
   | "speaker_cards"
   | "speaker_spotlight"
   | "schedule_rail"

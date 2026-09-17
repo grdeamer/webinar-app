@@ -1,10 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"
 
 export async function GET() {
-  const webinars = [
+  return NextResponse.json([
     { id: 1, title: "Intro to Next.js" },
     { id: 2, title: "Supabase Basics" },
-  ];
-
-  return NextResponse.json(webinars);
+  ])
 }

@@ -3,6 +3,7 @@ import { getEventBySlug } from "@/lib/events"
 import { isDistrictAgendaItem } from "@/lib/districtAccess"
 import { publicEventHeaders } from "@/lib/publicEventCors"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { normalizeAttendeeComponentState } from "@/lib/attendeeComponents"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -27,7 +28,7 @@ export async function GET(
     const [liveStateResult, agendaResult] = await Promise.all([
       supabaseAdmin
         .from("event_live_state")
-        .select("mode,status,survey_url,show_survey,updated_at")
+        .select("mode,status,survey_url,show_survey,attendee_component_state,updated_at")
         .eq("event_id", event.id)
         .maybeSingle(),
       supabaseAdmin
@@ -113,6 +114,8 @@ export async function GET(
       district_lookup_enabled: currentSession
         ? isDistrictAgendaItem(currentSession)
         : false,
+      district_directory_enabled: event.district_directory_enabled === true,
+      attendee_component_state: normalizeAttendeeComponentState(liveStateResult.data?.attendee_component_state),
       current_session: currentSession,
       next_session: nextSession,
       button_text: currentSession?.button_text ?? null,

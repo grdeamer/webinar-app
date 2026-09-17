@@ -16,6 +16,7 @@ import {
   LayoutGrid,
   MessageSquare,
   Mic2,
+  Network,
   PartyPopper,
   Presentation,
   Utensils,
@@ -26,6 +27,12 @@ import {
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import { Button } from "@/components/ui/button"
+import {
+  ATTENDEE_COMPONENT_KEYS,
+  type AttendeeComponentKey,
+  type AttendeeComponentState,
+  type CountdownMode,
+} from "@/lib/attendeeComponents"
 import {
   AGENDA_ICON_OPTIONS,
   type AgendaIconKey,
@@ -298,16 +305,20 @@ function RundownRow({
 export default function AdminAgendaEditor({
   eventId,
   eventSlug,
+  initialDistrictDirectoryEnabled,
   initialAccessOpen,
   initialSurveyUrl,
   initialShowSurvey,
+  initialComponentState,
   initialItems,
 }: {
   eventId: string
   eventSlug: string
+  initialDistrictDirectoryEnabled: boolean
   initialAccessOpen: boolean
   initialSurveyUrl: string
   initialShowSurvey: boolean
+  initialComponentState: AttendeeComponentState
   initialItems: AgendaItem[]
 }) {
   const [items, setItems] = useState<AgendaItem[]>(initialItems || [])
@@ -325,6 +336,8 @@ export default function AdminAgendaEditor({
   const [uploadingSpeakerPhoto, setUploadingSpeakerPhoto] = useState(false)
   const [uploadingResource, setUploadingResource] = useState(false)
   const [accessOpen, setAccessOpen] = useState(initialAccessOpen)
+  const [districtDirectoryEnabled, setDistrictDirectoryEnabled] = useState(initialDistrictDirectoryEnabled)
+  const [updatingDistrictDirectory, setUpdatingDistrictDirectory] = useState(false)
   const [updatingAccess, setUpdatingAccess] = useState(false)
   const [pendingAccessChange, setPendingAccessChange] = useState<boolean | null>(null)
   const [pendingRemoval, setPendingRemoval] = useState<AgendaItem | null>(null)
@@ -339,6 +352,8 @@ export default function AdminAgendaEditor({
   const [accessError, setAccessError] = useState<string | null>(null)
   const [surveyUrl, setSurveyUrl] = useState(initialSurveyUrl)
   const [showSurvey, setShowSurvey] = useState(initialShowSurvey)
+  const [componentState, setComponentState] = useState(initialComponentState)
+  const [savingComponentState, setSavingComponentState] = useState(false)
   const [savingSurvey, setSavingSurvey] = useState(false)
   const [surveyError, setSurveyError] = useState<string | null>(null)
   const [surveySyncToken, setSurveySyncToken] = useState<string | null>(null)
@@ -683,6 +698,55 @@ export default function AdminAgendaEditor({
     }
   }
 
+  async function updateDistrictDirectory(nextEnabled: boolean) {
+    setUpdatingDistrictDirectory(true)
+    setErr(null)
+    try {
+      const response = await fetch("/api/admin/events", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: eventId, district_directory_enabled: nextEnabled }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Failed to update district tree")
+      setDistrictDirectoryEnabled(nextEnabled)
+      window.dispatchEvent(new Event("jupiter:event-context-updated"))
+      flash(nextEnabled ? "District tree is available to attendees" : "District tree hidden from attendees")
+    } catch (error) {
+      setErr(errorMessage(error, "Failed to update district tree"))
+    } finally {
+      setUpdatingDistrictDirectory(false)
+    }
+  }
+
+  async function saveComponentState(nextState: AttendeeComponentState) {
+    setSavingComponentState(true)
+    setErr(null)
+    try {
+      const response = await fetch("/api/admin/event-components", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ event_id: eventId, attendee_component_state: nextState }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "Failed to update attendee display")
+      setComponentState(nextState)
+      flash("Attendee display updated")
+    } catch (error) {
+      setErr(errorMessage(error, "Failed to update attendee display"))
+    } finally {
+      setSavingComponentState(false)
+    }
+  }
+
+  function toggleComponent(key: AttendeeComponentKey) {
+    void saveComponentState({ ...componentState, [key]: !componentState[key] })
+  }
+
+  function setCountdownMode(mode: CountdownMode) {
+    void saveComponentState({ ...componentState, countdown_mode: mode })
+  }
+
   async function saveSurvey(nextShow = showSurvey) {
     setSavingSurvey(true)
     setSurveyError(null)
@@ -790,6 +854,65 @@ export default function AdminAgendaEditor({
           </div>
         </section>
       ) : null}
+
+      <section className="relative overflow-hidden rounded-2xl border border-cyan-300/20 bg-[linear-gradient(120deg,rgba(6,182,212,0.11),rgba(99,102,241,0.07))] px-5 py-5">
+        <div className="pointer-events-none absolute -right-12 -top-16 h-44 w-44 rounded-full border border-cyan-200/10" />
+        <div className="relative flex items-start gap-4">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-cyan-300/30 bg-cyan-400/15 text-cyan-200">
+            <Network aria-hidden="true" className="h-6 w-6" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold">Attendee display</h2>
+            <p className="mt-1 max-w-2xl text-sm leading-6 text-white/45">Show or hide reusable components during the event. This changes the live experience without altering the saved page design.</p>
+          </div>
+        </div>
+
+        <div className="relative mt-5 grid gap-3 lg:grid-cols-3">
+          {ATTENDEE_COMPONENT_KEYS.map((key) => {
+            const labels: Record<AttendeeComponentKey, [string, string]> = {
+              countdown: ["Countdown", "Live timer shown wherever the page template includes it."],
+              next_up: ["Next up", "The next scheduled session and its time."],
+              agenda: ["Agenda", "The attendee-facing schedule component."],
+            }
+            const [label, description] = labels[key]
+            const enabled = componentState[key]
+            return <button key={key} type="button" aria-pressed={enabled} disabled={savingComponentState} onClick={() => toggleComponent(key)} className={`rounded-2xl border p-4 text-left transition disabled:opacity-50 ${enabled ? "border-cyan-300/30 bg-cyan-400/10" : "border-white/10 bg-black/20"}`}>
+              <span className="flex items-center justify-between gap-3"><span className="font-semibold text-white">{label}</span><span className={`rounded-full px-2 py-1 text-[10px] font-bold uppercase tracking-[.12em] ${enabled ? "bg-emerald-400/15 text-emerald-200" : "bg-white/5 text-white/35"}`}>{enabled ? "Shown" : "Hidden"}</span></span>
+              <span className="mt-2 block text-xs leading-5 text-white/40">{description}</span>
+            </button>
+          })}
+        </div>
+
+        <div className="relative mt-3 flex flex-col gap-3 rounded-2xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><div className="text-sm font-semibold text-white">Countdown target</div><div className="mt-1 text-xs text-white/40">Choose what the live timer counts toward.</div></div>
+          <select value={componentState.countdown_mode} disabled={savingComponentState || !componentState.countdown} onChange={(event) => setCountdownMode(event.target.value as CountdownMode)} className="min-h-11 rounded-xl border border-white/10 bg-[#08111f] px-4 text-sm text-white outline-none disabled:opacity-40">
+            <option value="next_session">Next session begins</option>
+            <option value="current_session_end">Current session ends</option>
+            <option value="event_start">Event begins</option>
+          </select>
+        </div>
+
+        <div className="relative mt-3 flex flex-col gap-5 rounded-2xl border border-white/10 bg-black/20 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-4">
+            <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border ${districtDirectoryEnabled ? "border-cyan-300/30 bg-cyan-400/15 text-cyan-200" : "border-white/10 bg-white/5 text-white/40"}`}>
+              <Network aria-hidden="true" className="h-6 w-6" />
+            </div>
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <h3 className="text-base font-semibold">District tree</h3>
+                <span className={`rounded-md border px-2 py-1 text-[10px] font-bold uppercase tracking-[0.13em] ${districtDirectoryEnabled ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200" : "border-white/10 bg-white/5 text-white/40"}`}>{districtDirectoryEnabled ? "Available" : "Hidden"}</span>
+              </div>
+              <p className="mt-1 max-w-2xl text-sm leading-6 text-white/45">This event-wide control makes the hierarchy available. A session’s “Find Your District” switch still decides when attendee routing opens.</p>
+            </div>
+          </div>
+          <div className="flex shrink-0 flex-wrap gap-2">
+            <Button asChild variant="jupiterSecondary" size="lg"><a href={`/admin/events/${eventId}/districts`}>Manage tree</a></Button>
+            <Button type="button" variant={districtDirectoryEnabled ? "jupiterSecondary" : "jupiterPrimary"} size="lg" disabled={updatingDistrictDirectory} onClick={() => void updateDistrictDirectory(!districtDirectoryEnabled)}>
+              {updatingDistrictDirectory ? "Updating…" : districtDirectoryEnabled ? "Hide from attendees" : "Show district tree"}
+            </Button>
+          </div>
+        </div>
+      </section>
 
       <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#101a2b] px-5 py-4">
         <div>
