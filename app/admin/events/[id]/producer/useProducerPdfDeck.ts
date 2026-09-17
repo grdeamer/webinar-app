@@ -8,6 +8,7 @@ import {
   type LocalPdfDeck,
   estimatePdfPageCount,
 } from "./pdfDeckUtils"
+import { broadcastPresenterNextContent } from "./programTransportUtils"
 
 type Params = {
   eventId: string
@@ -178,17 +179,38 @@ export default function useProducerPdfDeck({
     })
 
     setSceneName(`${slideLabel} Preview`)
+    broadcastPresenterNextContent({
+      sessionId,
+      payload: {
+        type: "slide",
+        title: slideLabel,
+        subtitle: "The producer has this slide ready in Preview.",
+        mode: "preview",
+        updatedAt: Date.now(),
+      },
+    })
   }
 
   function takeSlide(slideIndex: number) {
     sendSlideToPreview(slideIndex)
 
     window.setTimeout(() => {
+      const slideLabel = localPdfDeck?.name
+        ? `${localPdfDeck.name} · Slide ${slideIndex}`
+        : `Slide ${slideIndex}`
       takeProgram("cut", undefined, {
         sceneId: null,
-        slideLabel: localPdfDeck?.name
-          ? `${localPdfDeck.name} · Slide ${slideIndex}`
-          : `Slide ${slideIndex}`,
+        slideLabel,
+      })
+      broadcastPresenterNextContent({
+        sessionId,
+        payload: {
+          type: "slide",
+          title: slideLabel,
+          subtitle: "This slide is now in Program.",
+          mode: "program",
+          updatedAt: Date.now(),
+        },
       })
     }, 175)
   }

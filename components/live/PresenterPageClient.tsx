@@ -23,7 +23,8 @@ export default function PresenterPageClient({
   slug,
   presenterAccessToken,
 }: PresenterPageClientProps) {
-  const tokenEndpoint = `/api/events/${slug}/sessions/${sessionId}/live/presenter-token?access=${encodeURIComponent(presenterAccessToken)}`
+  const presenterTokenEndpoint = `/api/events/${slug}/sessions/${sessionId}/live/presenter-token?access=${encodeURIComponent(presenterAccessToken)}`
+  const monitorTokenEndpoint = `${presenterTokenEndpoint}&mode=monitor`
   return (
     <div className="min-h-screen bg-slate-950 text-white">
       <div className="mx-auto max-w-6xl space-y-6 px-6 py-8">
@@ -101,7 +102,8 @@ export default function PresenterPageClient({
               Awaiting Program Source
             </div>
             <PresenterProgramMonitor
-              tokenEndpoint={tokenEndpoint}
+              tokenEndpoint={monitorTokenEndpoint}
+              sessionId={sessionId}
               programSourceChannelKey={`jupiter:program-source:${sessionId}`}
             />
           </div>
@@ -126,7 +128,7 @@ export default function PresenterPageClient({
             {/* Camera Preview */}
             <div className="mb-4 overflow-hidden rounded-2xl border border-white/10">
               <SimplePresenterClient
-                tokenEndpoint={tokenEndpoint}
+                tokenEndpoint={presenterTokenEndpoint}
                 eventTitle={eventTitle}
                 statusChannelKey={`jupiter:presenter-status:${sessionId}`}
               />

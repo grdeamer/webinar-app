@@ -1,6 +1,39 @@
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { StageState } from "./producerRoomTypes"
 import type { CinematicTransitionType } from "./commandDeckTypes"
+import {
+  dispatchPresenterSignal,
+  type PresenterNextContent,
+  type PresenterProgramSource,
+} from "@/lib/live/presenterRealtime"
+
+function broadcastLocally(channelKey: string, payload: unknown) {
+  try {
+    window.localStorage.setItem(channelKey, JSON.stringify(payload))
+
+    const channel = new BroadcastChannel(channelKey)
+    channel.postMessage(payload)
+    channel.close()
+  } catch {
+    // The room-data relay remains the primary cross-device transport.
+  }
+}
+
+export function broadcastPresenterNextContent({
+  sessionId,
+  payload,
+}: {
+  sessionId: string
+  payload: PresenterNextContent
+}) {
+  broadcastLocally(`jupiter:presenter-next:${sessionId}`, payload)
+  dispatchPresenterSignal({
+    version: 1,
+    kind: "next-content",
+    sessionId,
+    payload,
+  })
+}
 
 export function broadcastPresenterProgramSource({
   mode,
@@ -69,7 +102,7 @@ export function broadcastPresenterProgramSource({
       block.src.trim().length > 0
   )
 
-  const payload = mediaBlock
+  const payload: PresenterProgramSource = mediaBlock
     ? {
         mode,
         transitionType: resolvedTransitionType,
@@ -107,14 +140,11 @@ export function broadcastPresenterProgramSource({
         updatedAt: Date.now(),
       }
 
-  try {
-    window.localStorage.setItem(channelKey, JSON.stringify(payload))
-
-    const channel = new BroadcastChannel(channelKey)
-
-    channel.postMessage(payload)
-    channel.close()
-  } catch (_err: unknown) {
-    // best effort
-  }
+  broadcastLocally(channelKey, payload)
+  dispatchPresenterSignal({
+    version: 1,
+    kind: "program-source",
+    sessionId,
+    payload,
+  })
 }

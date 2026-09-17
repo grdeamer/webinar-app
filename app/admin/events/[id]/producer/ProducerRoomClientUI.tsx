@@ -1,7 +1,14 @@
 "use client";
 
-import type { JSX } from "react";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { useEffect, useRef, type JSX } from "react";
+import { LiveKitRoom, RoomAudioRenderer, useRoomContext } from "@livekit/components-react";
+import { RoomEvent } from "livekit-client";
+import {
+  encodePresenterSignal,
+  PRESENTER_SIGNAL_EVENT,
+  PRESENTER_SIGNAL_TOPIC,
+  type PresenterSignalEnvelope,
+} from "@/lib/live/presenterRealtime";
 
 import ProducerModeBar, { type ProducerWorkspaceMode } from "./ProducerModeBar";
 import ProducerHealthBar from "./ProducerHealthBar";
@@ -91,6 +98,46 @@ function ProducerRoomAtmosphere({ isLive }: { isLive: boolean }): JSX.Element {
 
     </div>
   );
+}
+
+function PresenterSignalPublisher(): null {
+  const room = useRoomContext();
+  const latestSignalsRef = useRef(new Map<string, PresenterSignalEnvelope>());
+
+  useEffect(() => {
+    function sendSignal(signal: PresenterSignalEnvelope) {
+      void room.localParticipant
+        .publishData(encodePresenterSignal(signal), {
+          reliable: true,
+          topic: PRESENTER_SIGNAL_TOPIC,
+        })
+        .catch((error: unknown) => {
+          console.error("Failed to send presenter signal", error);
+        });
+    }
+
+    function publishSignal(event: Event) {
+      const signal = (event as CustomEvent<PresenterSignalEnvelope>).detail;
+      if (!signal) return;
+      latestSignalsRef.current.set(`${signal.kind}:${signal.sessionId}`, signal);
+      sendSignal(signal);
+    }
+
+    function replayLatestSignals() {
+      for (const signal of latestSignalsRef.current.values()) {
+        sendSignal(signal);
+      }
+    }
+
+    window.addEventListener(PRESENTER_SIGNAL_EVENT, publishSignal);
+    room.on(RoomEvent.ParticipantConnected, replayLatestSignals);
+    return () => {
+      window.removeEventListener(PRESENTER_SIGNAL_EVENT, publishSignal);
+      room.off(RoomEvent.ParticipantConnected, replayLatestSignals);
+    };
+  }, [room]);
+
+  return null;
 }
 
 export default function ProducerRoomClientUI({
@@ -195,6 +242,7 @@ export default function ProducerRoomClientUI({
       onDisconnected={onDisconnected}
       onError={onError}
     >
+      <PresenterSignalPublisher />
       <RoomAudioRenderer />
 
       <div className="fixed inset-0 z-[1000] flex items-center justify-center bg-[#030714] px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))] pt-[calc(1.5rem+env(safe-area-inset-top))] text-center text-white md:hidden">

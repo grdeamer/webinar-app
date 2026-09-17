@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from "@/lib/email/campaigns"
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 import { buildJupiterEmailFooterHtml } from "@/lib/email/branding"
-import { createPresenterAccessToken, type PresenterAccessSource } from "@/lib/presenterAccess"
+import { createPresenterAccessUrl, type PresenterAccessSource } from "@/lib/presenterAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -62,7 +62,9 @@ function presenterLinksHtml({
   const sessionItems = sessions.length
     ? sessions
         .map((session) => {
-          const accessToken = createPresenterAccessToken({
+          const href = createPresenterAccessUrl({
+            appUrl,
+            eventSlug,
             eventId,
             sessionId: session.id,
             presenterId: presenter.id,
@@ -70,7 +72,6 @@ function presenterLinksHtml({
             email: presenter.email.trim().toLowerCase(),
             name: fullName(presenter) || "Presenter",
           })
-          const href = `${appUrl}/presenter/${eventSlug}/sessions/${session.id}?access=${encodeURIComponent(accessToken)}`
 
           return `
             <div style="margin-bottom:18px;padding:14px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;">

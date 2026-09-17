@@ -7,24 +7,98 @@ import {
   ParticipantTile,
   RoomAudioRenderer,
   useLocalParticipant,
+  useRoomContext,
   useTracks,
 } from "@livekit/components-react"
 import { Button } from "@/components/ui/button"
 import { Camera, Mic2, MonitorPlay, Radio, ShieldCheck, Waves } from "lucide-react"
-import { ParticipantEvent, Track } from "livekit-client"
+import { ParticipantEvent, RemoteTrackPublication, RoomEvent, Track } from "livekit-client"
+import {
+  decodePresenterSignal,
+  PRESENTER_SIGNAL_TOPIC,
+  relayPresenterSignalToBrowser,
+  type PresenterNextContent,
+  type PresenterProgramSource,
+} from "@/lib/live/presenterRealtime"
+
+function participantIsProducer(metadata: string | undefined, identity: string): boolean {
+  if (identity.startsWith("producer_") || identity.startsWith("host_")) return true
+
+  try {
+    const parsed = JSON.parse(metadata || "{}") as { role?: unknown }
+    return parsed.role === "producer" || parsed.role === "host"
+  } catch {
+    return false
+  }
+}
+
+function PresenterSignalReceiver({ sessionId }: { sessionId: string }): null {
+  const room = useRoomContext()
+
+  useEffect(() => {
+    const handleData = (
+      data: Uint8Array,
+      participant: { identity: string; metadata?: string } | undefined,
+      _kind: unknown,
+      topic?: string
+    ) => {
+      if (
+        topic !== PRESENTER_SIGNAL_TOPIC ||
+        !participant ||
+        !participantIsProducer(participant.metadata, participant.identity)
+      ) {
+        return
+      }
+
+      const signal = decodePresenterSignal(data)
+      if (!signal || signal.sessionId !== sessionId) return
+      relayPresenterSignalToBrowser(signal)
+    }
+
+    room.on(RoomEvent.DataReceived, handleData)
+    return () => {
+      room.off(RoomEvent.DataReceived, handleData)
+    }
+  }, [room, sessionId])
+
+  return null
+}
+
 function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMessage | null }) {
   const tracks = useTracks(
     [
       { source: Track.Source.Camera, withPlaceholder: false },
       { source: Track.Source.ScreenShare, withPlaceholder: false },
+      { source: Track.Source.Microphone, withPlaceholder: false },
     ],
-    { onlySubscribed: true }
+    { onlySubscribed: false }
   )
 
-  const screenShareTrack = tracks.find(
-    (trackRef) => trackRef.source === Track.Source.ScreenShare
-  )
-  const cameraTrack = tracks.find((trackRef) => trackRef.source === Track.Source.Camera)
+  const desiredParticipant =
+    programSource?.sourceType === "screen"
+      ? programSource.screenShareParticipantIdentity
+      : programSource?.sourceType === "camera"
+        ? programSource.participantIdentity
+        : null
+
+  useEffect(() => {
+    for (const trackRef of tracks) {
+      const publication = trackRef.publication
+      if (!(publication instanceof RemoteTrackPublication)) continue
+
+      const shouldSubscribe = Boolean(
+        desiredParticipant &&
+          trackRef.participant.identity === desiredParticipant &&
+          (trackRef.source === Track.Source.Microphone ||
+            (programSource?.sourceType === "screen"
+              ? trackRef.source === Track.Source.ScreenShare
+              : trackRef.source === Track.Source.Camera))
+      )
+
+      publication.setSubscribed(shouldSubscribe)
+    }
+  }, [desiredParticipant, programSource?.sourceType, tracks])
+
   const requestedTrack = programSource
     ? tracks.find((trackRef) => {
         if (programSource.sourceType === "screen") {
@@ -45,8 +119,7 @@ function ProgramOnlyViewer({ programSource }: { programSource: ProgramSourceMess
       })
     : null
 
-  const primaryTrack = requestedTrack ?? cameraTrack ?? screenShareTrack
-  const trackCount = tracks.length
+  const primaryTrack = requestedTrack
   const selectedSource = primaryTrack?.source ?? programSource?.sourceType ?? "none"
 const selectedSourceName = String(selectedSource)
 
@@ -76,6 +149,36 @@ const sourceLabel =
     const t = setTimeout(() => setShowTakeFlash(false), isCut ? 180 : 360)
     return () => clearTimeout(t)
   }, [isCut, programSource])
+
+  if (programSource?.sourceType === "media" && programSource.mediaUrl) {
+    return (
+      <div className="relative h-full w-full overflow-hidden bg-black">
+        {programSource.mediaType === "video" ? (
+          <video
+            key={programSource.mediaUrl}
+            src={programSource.mediaUrl}
+            autoPlay
+            playsInline
+            className="h-full w-full object-contain"
+          />
+        ) : (
+          <div
+            role="img"
+            aria-label={programSource.mediaLabel || "Program media"}
+            className="h-full w-full bg-contain bg-center bg-no-repeat"
+            style={{ backgroundImage: `url(${JSON.stringify(programSource.mediaUrl).slice(1, -1)})` }}
+          />
+        )}
+        <div className="pointer-events-none absolute left-3 top-3 z-20 flex items-center gap-2 rounded-full border border-red-300/28 bg-black/64 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-red-50 backdrop-blur-md">
+          <span className="h-2 w-2 rounded-full bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.85)]" />
+          {isProgramLive ? "Live" : "Standby"}
+        </div>
+        <div className="pointer-events-none absolute right-3 top-3 z-20 rounded-full border border-white/10 bg-black/64 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/62 backdrop-blur-md">
+          PROGRAM · MEDIA · {modeLabel}
+        </div>
+      </div>
+    )
+  }
 
   if (!primaryTrack) {
     return (
@@ -184,13 +287,7 @@ type TokenResponse = {
   roomName: string
 }
 
-type PresenterNextContentMessage = {
-  type: "slide" | "screen" | "empty"
-  title: string
-  subtitle?: string
-  mode?: "preview" | "program"
-  updatedAt: number
-}
+type PresenterNextContentMessage = PresenterNextContent
 
 type PresenterStatusMessage = {
   cameraEnabled: boolean
@@ -201,16 +298,7 @@ type PresenterStatusMessage = {
   updatedAt: number
 }
 
-type ProgramSourceMessage = {
-  mode: "cut" | "auto"
-  sourceType: "camera" | "screen" | "empty"
-  participantIdentity: string | null
-  screenShareParticipantIdentity: string | null
-  screenShareTrackId: string | null
-  layout: string | null
-  isLive: boolean
-  updatedAt: number
-}
+type ProgramSourceMessage = PresenterProgramSource
 
 export function PresenterNextContentPanel({
   channelKey,
@@ -496,9 +584,11 @@ export function PresenterStatusRail({
 
 export function PresenterProgramMonitor({
   tokenEndpoint,
+  sessionId,
   programSourceChannelKey,
 }: {
   tokenEndpoint: string
+  sessionId: string
   programSourceChannelKey?: string
 }) {
   const [serverUrl, setServerUrl] = useState<string | null>(null)
@@ -607,9 +697,11 @@ export function PresenterProgramMonitor({
       serverUrl={serverUrl}
       connect
       video={false}
-      audio
+      audio={false}
+      connectOptions={{ autoSubscribe: false }}
       className="h-full w-full"
     >
+      <PresenterSignalReceiver sessionId={sessionId} />
       <ProgramOnlyViewer programSource={programSource} />
       <RoomAudioRenderer />
     </LiveKitRoom>
@@ -1143,13 +1235,13 @@ export default function SimplePresenterClient({
         connect
         audio
         video
+        connectOptions={{ autoSubscribe: false }}
         className="contents"
         onError={(err) => {
           console.error("LiveKit room error", err)
           setError(err instanceof Error ? err.message : "LiveKit connection failed")
         }}
       >
-        <RoomAudioRenderer />
         <PresenterControls statusChannelKey={statusChannelKey} />
       </LiveKitRoom>
     </div>

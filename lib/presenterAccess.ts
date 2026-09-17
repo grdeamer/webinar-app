@@ -1,7 +1,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
-const PRESENTER_LINK_TTL_MS = 30 * 24 * 60 * 60 * 1000
+export const PRESENTER_LINK_TTL_DAYS = 30
+const PRESENTER_LINK_TTL_MS = PRESENTER_LINK_TTL_DAYS * 24 * 60 * 60 * 1000
 
 export type PresenterAccessSource = "registrant" | "attendee"
 
@@ -55,6 +56,28 @@ export function createPresenterAccessToken(
   }
   const encoded = Buffer.from(JSON.stringify(payload)).toString("base64url")
   return `${encoded}.${sign(encoded)}`
+}
+
+export function createPresenterAccessUrl(input: {
+  appUrl: string
+  eventSlug: string
+  eventId: string
+  sessionId: string
+  presenterId: string
+  source: PresenterAccessSource
+  email: string
+  name: string
+}): string {
+  const token = createPresenterAccessToken({
+    eventId: input.eventId,
+    sessionId: input.sessionId,
+    presenterId: input.presenterId,
+    source: input.source,
+    email: input.email.trim().toLowerCase(),
+    name: input.name.trim() || "Presenter",
+  })
+  const base = input.appUrl.replace(/\/$/, "")
+  return `${base}/presenter/${encodeURIComponent(input.eventSlug)}/sessions/${encodeURIComponent(input.sessionId)}?access=${encodeURIComponent(token)}`
 }
 
 export function verifyPresenterAccessToken(

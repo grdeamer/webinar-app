@@ -1028,16 +1028,12 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                       </TooltipProvider>
 
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Open session as</DropdownMenuLabel>
+                        <DropdownMenuLabel>Session access</DropdownMenuLabel>
                         <DropdownMenuGroup>
                           <DropdownMenuItem asChild>
-                            <Link
-                              href={`/presenter/${eventSlug}/sessions/${session.id}`}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
+                            <Link href={`/admin/events/${event.id}/attendees`}>
                               <UserRound className="h-4 w-4 text-violet-300/75" />
-                              Presenter view
+                              Manage presenter access
                             </Link>
                           </DropdownMenuItem>
                           <DropdownMenuItem asChild>

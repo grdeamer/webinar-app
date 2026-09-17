@@ -20,7 +20,6 @@ type PresenterControlsProps = {
 
 export default function PresenterControls({
   eventId,
-  eventSlug,
   userId,
   initialIsPresenter = false,
   initialSessionId = null,
@@ -93,18 +92,29 @@ export default function PresenterControls({
   }
 
   const handleCopy = async () => {
-    if (!selectedSession) return
+    if (!selectedSession || !userId) return
     setSendMessage(null)
-
-    const url = `${window.location.origin}/presenter/${eventSlug}/sessions/${selectedSession}`
+    setCopyStatus("idle")
 
     try {
-      await navigator.clipboard.writeText(url)
+      const response = await fetch(`/api/admin/events/${eventId}/presenters/access-link`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, sessionId: selectedSession }),
+      })
+      const payload = (await response.json().catch((): null => null)) as
+        | { url?: string; error?: string }
+        | null
+      if (!response.ok || !payload?.url) {
+        throw new Error(payload?.error || "Could not create presenter link")
+      }
+
+      await navigator.clipboard.writeText(payload.url)
       setCopyStatus("copied")
-      setSendMessage("Presenter link copied")
+      setSendMessage("Private presenter link copied")
     } catch (err) {
       setCopyStatus("error")
-      setSendMessage("Copy failed")
+      setSendMessage(err instanceof Error ? err.message : "Copy failed")
       console.error("copy presenter link failed", err)
     }
   }

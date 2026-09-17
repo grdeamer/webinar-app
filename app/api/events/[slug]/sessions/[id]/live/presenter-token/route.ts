@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { AccessToken } from "livekit-server-sdk"
+import { AccessToken, TrackSource } from "livekit-server-sdk"
 import { getEventBySlug } from "@/lib/events"
 import { getSessionById } from "@/lib/repos/sessionsRepo"
 import { buildEventRoomName } from "@/lib/live/config"
@@ -43,7 +43,9 @@ export async function POST(
     return json({ error: "This session is not configured for LiveKit" }, 400)
   }
 
-  const accessToken = new URL(req.url).searchParams.get("access")
+  const requestUrl = new URL(req.url)
+  const accessToken = requestUrl.searchParams.get("access")
+  const monitorOnly = requestUrl.searchParams.get("mode") === "monitor"
   const presenterAccess = verifyPresenterAccessToken(accessToken)
   if (
     !presenterAccess ||
@@ -56,21 +58,37 @@ export async function POST(
 
   const roomName = buildEventRoomName(String(event.id))
 
-  const identity = `presenter-${presenterAccess.presenterId}-${crypto.randomUUID()}`
+  const identity = `${monitorOnly ? "presenter-monitor" : "presenter"}-${presenterAccess.presenterId}-${crypto.randomUUID()}`
   const displayName = presenterAccess.name || presenterAccess.email
 
   const token = new AccessToken(apiKey, apiSecret, {
     identity,
     name: displayName,
+    metadata: JSON.stringify({
+      role: "presenter",
+      eventId: String(event.id),
+      sessionId: String(session.id),
+    }),
     ttl: "1h",
   })
 
   token.addGrant({
     room: roomName,
     roomJoin: true,
-    canPublish: true,
-    canPublishData: true,
+    canPublish: !monitorOnly,
+    ...(monitorOnly
+      ? {}
+      : {
+          canPublishSources: [
+            TrackSource.CAMERA,
+            TrackSource.MICROPHONE,
+            TrackSource.SCREEN_SHARE,
+            TrackSource.SCREEN_SHARE_AUDIO,
+          ],
+        }),
+    canPublishData: false,
     canSubscribe: true,
+    canUpdateOwnMetadata: false,
   })
 
   return json({
