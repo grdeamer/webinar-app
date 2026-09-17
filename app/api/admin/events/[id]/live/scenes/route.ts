@@ -84,7 +84,7 @@ export async function POST(
         updated_at: new Date().toISOString(),
       }
 
-    let query = sceneId
+    const query = sceneId
       ? supabaseAdmin
           .from("event_live_scenes")
           .update(payload)

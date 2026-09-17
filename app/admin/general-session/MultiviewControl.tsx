@@ -189,7 +189,6 @@ export default function MultiviewControl() {
     return () => {
       supabase.removeChannel(ch)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   // Broadcast UX: hotkeys

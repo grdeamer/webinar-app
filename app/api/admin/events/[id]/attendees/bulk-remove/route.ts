@@ -53,7 +53,7 @@ export async function POST(
     
     console.log(`Looking up people in ${idBatches.length} batches`)
     
-    let allPeople: Array<{ id: string; email: string }> = []
+    const allPeople: Array<{ id: string; email: string }> = []
     let lastLookupError: Error | null = null
     
     for (const idBatch of idBatches) {
@@ -100,7 +100,7 @@ export async function POST(
         emailBatches.push(emails.slice(i, i + BATCH_SIZE))
       }
       
-      let allUserIds: string[] = []
+      const allUserIds: string[] = []
       
       for (const emailBatch of emailBatches) {
         const { data: users, error: usersError } = await supabaseAdmin

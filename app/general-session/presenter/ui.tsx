@@ -41,7 +41,6 @@ export default function PresenterControlRoom(props: {
     refresh()
     const t = setInterval(refresh, 5000)
     return () => clearInterval(t)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const isLive = control.state === "live"
