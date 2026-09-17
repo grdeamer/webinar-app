@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
+import { requireAdmin } from "@/lib/requireAdmin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -9,6 +10,8 @@ function safeFileName(name: string) {
 }
 
 export async function POST(req: Request) {
+  await requireAdmin()
+
   try {
     const formData = await req.formData()
     const file = formData.get("file")

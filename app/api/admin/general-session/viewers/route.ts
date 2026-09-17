@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { requireAdmin } from "@/lib/requireAdmin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -13,6 +14,8 @@ function json(data: any, status = 200) {
  * Table: general_session_presence (room_key, session_id, user_id, user_email, last_seen_at)
  */
 export async function GET(req: Request) {
+  await requireAdmin()
+
   const url = new URL(req.url)
   const room_key = url.searchParams.get("room_key") || "general"
 
