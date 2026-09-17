@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { classifyDistrictNodes } from "@/lib/districtTree"
 import DistrictTreeEditor, { type DistrictNode } from "./ui"
 
 export const runtime = "nodejs"
@@ -19,8 +20,7 @@ export default async function DistrictsPage({ params }: { params: Promise<{ id: 
   ])
   if (eventError || !event) notFound()
   if (rowsError) throw new Error(rowsError.message)
-  const kind: Record<string, DistrictNode["node_type"]> = { district_zone: "zone", district_region: "region", district: "district", breakout: "district" }
-  const nodes = (rows || []).map((row) => ({ ...row, node_type: kind[row.session_kind] })) as DistrictNode[]
+  const nodes = classifyDistrictNodes(rows || []) as DistrictNode[]
 
   return <main className="event-editorial-page"><DistrictTreeEditor event={event} initialNodes={nodes} /></main>
 }

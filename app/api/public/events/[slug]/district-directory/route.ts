@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { getEventBySlug } from "@/lib/events"
 import { publicEventHeaders } from "@/lib/publicEventCors"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { classifyDistrictNodes } from "@/lib/districtTree"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -43,7 +44,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
     }
     return json(request, {
       enabled: true,
-      nodes: rows.filter((row) => included.has(row.id)).map((row) => ({
+      nodes: classifyDistrictNodes(rows.filter((row) => included.has(row.id))).map((row) => ({
         id: row.id,
         code: row.code,
         name: row.title,
@@ -51,7 +52,7 @@ export async function GET(request: Request, context: { params: Promise<{ slug: s
         meeting_link: row.external_join_url,
         platform: row.external_platform,
         parent_id: row.district_parent_id,
-        node_type: row.session_kind === "district_zone" ? "zone" : row.session_kind === "district_region" ? "region" : "district",
+        node_type: row.node_type,
         sort_order: row.sort_order,
       })),
     })

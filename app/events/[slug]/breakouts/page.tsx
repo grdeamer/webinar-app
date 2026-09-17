@@ -6,6 +6,7 @@ import EventBreakoutMagnifyList from "@/components/EventBreakoutMagnifyList"
 import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import EventEmailGate from "../EventEmailGate"
 import DistrictDirectory, { type DistrictDirectoryItem } from "@/components/events/DistrictDirectory"
+import { classifyDistrictNodes } from "@/lib/districtTree"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import {
@@ -209,7 +210,7 @@ export default async function EventBreakoutsPage(props: {
 
     supabaseAdmin
       .from("event_sessions")
-      .select("id,code,title,presenter,external_join_url,district_parent_id,session_kind")
+      .select("id,code,title,presenter,external_join_url,external_platform,district_parent_id,session_kind")
       .eq("event_id", event.id)
       .in("session_kind", ["district_zone", "district_region", "district", "breakout"])
       .order("sort_order", { ascending: true })
@@ -275,7 +276,7 @@ export default async function EventBreakoutsPage(props: {
     </section>
   )
   const breakoutsList = eventRow?.district_directory_enabled
-    ? <DistrictDirectory items={districtHierarchyRows.filter((row) => includedDistrictNodeIds.has(row.id)).map((row) => ({ ...row, node_type: row.session_kind === "district_zone" ? "zone" : row.session_kind === "district_region" ? "region" : "district" })) as DistrictDirectoryItem[]} />
+    ? <DistrictDirectory items={classifyDistrictNodes(districtHierarchyRows.filter((row) => includedDistrictNodeIds.has(row.id))) as DistrictDirectoryItem[]} />
     : renderBreakoutsList(items, slug, liveState)
   const baseSections =
     storedSections.length > 0
