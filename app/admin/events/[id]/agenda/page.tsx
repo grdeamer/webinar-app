@@ -44,10 +44,9 @@ export default async function AdminEventAgendaPage(props: {
     <main className="event-editorial-page">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <div className="editorial-eyebrow">Live operations &nbsp;/&nbsp; Run of Show</div>
-          <h1 className="mt-6 text-5xl font-semibold tracking-[-.045em]">Direct the day.</h1>
-          <div className="mt-2 max-w-xl text-white/60">A broadcast rundown with one clear moment at a time.</div>
-          <div className="mt-2 text-sm font-medium text-cyan-100/55">{event.title}</div>
+          <h1 className="text-5xl font-semibold tracking-[-.045em]">Run of show</h1>
+          <div className="mt-3 max-w-xl text-base text-white/60">Manage the schedule and control what attendees see.</div>
+          <div className="mt-2 text-sm font-medium text-white/42">{event.title}</div>
         </div>
 
         <div className="flex gap-2">

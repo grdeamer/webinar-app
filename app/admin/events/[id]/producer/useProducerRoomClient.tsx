@@ -1516,11 +1516,41 @@ updateShadowColor: updateSelectedBlockShadowColor,
           tone: "danger",
         });
         if (confirmed) {
-          setProgramBlocks((current) => current.filter((block) => block.id !== blockId));
+          const nextProgramBlocks = programBlocks.filter((block) => block.id !== blockId);
+          try {
+            setError(null);
+            const { state } = await api.saveProgramComposition(
+              nextProgramBlocks,
+              programState?.scene_version ?? null,
+            );
+            updateProgramState(state);
+            setProgramBlocks(nextProgramBlocks);
+            broadcastPresenterProgramSource({
+              mode: "cut",
+              transitionDurationMs: 0,
+              sessionId,
+              stageState: state,
+              previewBlocks: nextProgramBlocks,
+            });
+          } catch (removeError: unknown) {
+            setError(
+              removeError instanceof Error
+                ? removeError.message
+                : "Failed to remove the Program layer",
+            );
+          }
         }
       })();
     },
-    [confirmNotice, programBlocks, setProgramBlocks],
+    [
+      api,
+      confirmNotice,
+      programBlocks,
+      programState?.scene_version,
+      sessionId,
+      setProgramBlocks,
+      updateProgramState,
+    ],
   );
 
   // Center workspace props
@@ -1951,6 +1981,26 @@ onSaveScene: saveScene,
       recoveryBusy,
       onRecover: () => { void handleRecoverControlPlane(); },
       onOpenShow: () => setWorkspaceMode("show"),
+      onOpenStageDesk: () => {
+        setWorkspaceMode("show");
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("jupiter:producer-rail-tab", { detail: "Stage" }));
+        }, 0);
+      },
+      onOpenStreamOutputs: () => {
+        setWorkspaceMode("show");
+        setStandardToolsOpen(true);
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("jupiter:producer-open-panel", { detail: "stream" }));
+        }, 0);
+      },
+      onOpenRecording: () => {
+        setWorkspaceMode("show");
+        setStandardToolsOpen(true);
+        window.setTimeout(() => {
+          window.dispatchEvent(new CustomEvent("jupiter:producer-open-panel", { detail: "recording" }));
+        }, 0);
+      },
       outputProfileId,
       onOutputProfileChange: setOutputProfileId,
     },

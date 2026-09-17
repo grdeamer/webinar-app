@@ -28,6 +28,7 @@ export async function POST(request: Request) {
   const email = String(body?.email ?? "").trim().toLowerCase()
   const name = String(body?.name ?? "").trim()
   const promoteExisting = body?.promoteExisting === true
+  const sendInvitation = body?.sendInvitation !== false
   if (!email || !email.includes("@")) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 })
 
   const appUrl = getAppUrl().replace(/\/$/, "")
@@ -57,15 +58,6 @@ export async function POST(request: Request) {
       }, { status: 409 })
     }
 
-    const { data: accessLink, error: accessLinkError } = await supabaseAdmin.auth.admin.generateLink({
-      type: "recovery",
-      email,
-      options: { redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent("/admin")}` },
-    })
-    if (accessLinkError || !accessLink.properties?.action_link) {
-      return NextResponse.json({ error: accessLinkError?.message || "Could not create secure administrator access." }, { status: 400 })
-    }
-
     const now = new Date().toISOString()
     const resolvedName = name || existingProfile?.full_name || String(existingUser.user_metadata?.full_name ?? "").trim() || null
     const { error: promotionError } = await supabaseAdmin.from("profiles").upsert({
@@ -82,21 +74,32 @@ export async function POST(request: Request) {
     }, { onConflict: "id" })
     if (promotionError) return NextResponse.json({ error: promotionError.message }, { status: 500 })
 
-    const invitation = buildJupiterInviteEmail({
-      inviteUrl: accessLink.properties.action_link,
-      logoUrl: `${appUrl}/jupiter-email-logo-inverted.png?v=1`,
-      name: resolvedName,
-      role: "administrator",
-      existingAccount: true,
-    })
-    const response = await getResendClient().emails.send({ from: getEmailFrom(), to: email, ...invitation })
-    if (response.error) {
-      return NextResponse.json({ error: `Administrator access was granted, but Jupiter could not send the access email: ${resendErrorMessage(response.error)}` }, { status: 502 })
+    if (sendInvitation) {
+      const { data: accessLink, error: accessLinkError } = await supabaseAdmin.auth.admin.generateLink({
+        type: "recovery",
+        email,
+        options: { redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent("/admin")}` },
+      })
+      if (accessLinkError || !accessLink.properties?.action_link) {
+        return NextResponse.json({ error: accessLinkError?.message || "Could not create secure administrator access." }, { status: 400 })
+      }
+      const invitation = buildJupiterInviteEmail({
+        inviteUrl: accessLink.properties.action_link,
+        logoUrl: `${appUrl}/jupiter-email-logo-inverted.png?v=1`,
+        name: resolvedName,
+        role: "administrator",
+        existingAccount: true,
+      })
+      const response = await getResendClient().emails.send({ from: getEmailFrom(), to: email, ...invitation })
+      if (response.error) {
+        return NextResponse.json({ error: `Administrator access was granted, but Jupiter could not send the access email: ${resendErrorMessage(response.error)}` }, { status: 502 })
+      }
     }
 
     return NextResponse.json({
       promoted: true,
-      member: { id: existingUser.id, email, name: resolvedName, team_role: "administrator", is_active: true, invite_status: "active", invited_at: now, last_active_at: existingUser.last_sign_in_at ?? null, is_current: false },
+      invitationSent: sendInvitation,
+      member: { id: existingUser.id, email, name: resolvedName, team_role: "administrator", is_active: true, invite_status: "active", invited_at: sendInvitation ? now : null, last_active_at: existingUser.last_sign_in_at ?? null, avatar_url: String(existingUser.user_metadata?.avatar_url ?? "") || null, is_current: false },
     })
   }
 
@@ -121,26 +124,28 @@ export async function POST(request: Request) {
     team_role: "administrator",
     is_active: true,
     invite_status: "pending",
-    invited_at: now,
+    invited_at: sendInvitation ? now : null,
     invited_by: user.id,
     updated_at: now,
   }, { onConflict: "id" })
   if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 })
 
-  const invitation = buildJupiterInviteEmail({
-    inviteUrl: data.properties.action_link,
-    logoUrl: `${appUrl}/jupiter-email-logo-inverted.png?v=1`,
-    name,
-    role: "administrator",
-  })
-  const response = await getResendClient().emails.send({
-    from: getEmailFrom(),
-    to: email,
-    ...invitation,
-  })
-  if (response.error) {
-    return NextResponse.json({ error: `The account was created, but Jupiter could not send the invitation: ${resendErrorMessage(response.error)}` }, { status: 502 })
+  if (sendInvitation) {
+    const invitation = buildJupiterInviteEmail({
+      inviteUrl: data.properties.action_link,
+      logoUrl: `${appUrl}/jupiter-email-logo-inverted.png?v=1`,
+      name,
+      role: "administrator",
+    })
+    const response = await getResendClient().emails.send({
+      from: getEmailFrom(),
+      to: email,
+      ...invitation,
+    })
+    if (response.error) {
+      return NextResponse.json({ error: `The account was created, but Jupiter could not send the invitation: ${resendErrorMessage(response.error)}` }, { status: 502 })
+    }
   }
 
-  return NextResponse.json({ member: { id: data.user.id, email, name: name || null, team_role: "administrator", is_active: true, invite_status: "pending", invited_at: now, last_active_at: null, is_current: false } })
+  return NextResponse.json({ invitationSent: sendInvitation, member: { id: data.user.id, email, name: name || null, team_role: "administrator", is_active: true, invite_status: "pending", invited_at: sendInvitation ? now : null, last_active_at: null, avatar_url: null, is_current: false } })
 }

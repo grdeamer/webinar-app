@@ -256,6 +256,23 @@ export default function useProducerRoomApi(
     return readJson<{ state: StageState }>(res)
   }
 
+  async function saveProgramComposition(
+    blocks: unknown[],
+    expectedVersion: number | null
+  ) {
+    const res = await fetch(`/api/admin/events/${eventId}/live/program-state`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        blocks,
+        expectedVersion,
+        session_id: sessionId,
+      }),
+    })
+
+    return readJson<{ state: StageState }>(res)
+  }
+
   async function takeProgram(input: {
     expectedPreviewVersion: number | null
     programBlocks: unknown[]
@@ -397,6 +414,7 @@ export default function useProducerRoomApi(
       setAutoDirector,
       savePreviewState,
       savePreviewComposition,
+      saveProgramComposition,
       takeProgram,
       saveScene,
       applyScene,

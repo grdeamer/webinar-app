@@ -1,7 +1,8 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { ChangeEvent, useMemo, useRef, useState } from "react"
 import { DotsHorizontal, Lock01, Mail01, UserPlus01, X } from "@untitledui/icons"
+import { Camera, Eye, MailX } from "lucide-react"
 
 export type TeamMember = {
   id: string
@@ -12,6 +13,7 @@ export type TeamMember = {
   invite_status: "active" | "pending"
   invited_at: string | null
   last_active_at: string | null
+  avatar_url: string | null
   is_current: boolean
 }
 
@@ -37,11 +39,14 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
   const [inviteOpen, setInviteOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
+  const [sendInvitation, setSendInvitation] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [menuId, setMenuId] = useState<string | null>(null)
   const [existingAccount, setExistingAccount] = useState<{ email: string; name: string | null } | null>(null)
+  const [avatarMember, setAvatarMember] = useState<TeamMember | null>(null)
+  const avatarFileRef = useRef<HTMLInputElement | null>(null)
 
   const pendingCount = useMemo(() => members.filter((member) => member.invite_status === "pending").length, [members])
   const activeCount = members.filter((member) => member.invite_status === "active" && member.is_active).length
@@ -53,7 +58,7 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
       const response = await fetch("/api/admin/team/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, name, promoteExisting: existingAccount?.email === email.trim().toLowerCase() }),
+        body: JSON.stringify({ email, name, sendInvitation, promoteExisting: existingAccount?.email === email.trim().toLowerCase() }),
       })
       const payload = await response.json().catch((): null => null)
       if (response.status === 409 && payload?.code === "existing_account") {
@@ -66,8 +71,11 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
       setInviteOpen(false)
       setEmail("")
       setName("")
+      setSendInvitation(false)
       setExistingAccount(null)
-      setNotice(payload?.promoted ? `${payload.member.email} now has administrator access.` : null)
+      setNotice(payload?.invitationSent
+        ? `${payload.member.email} was added and their access email was sent.`
+        : `${payload.member.email} was added without sending an email.`)
     } catch (inviteError) {
       setError(inviteError instanceof Error ? inviteError.message : "Could not send invitation")
     } finally {
@@ -130,15 +138,55 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
     }
   }
 
+  async function copyTestLogin(member: TeamMember) {
+    setBusy(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await fetch(`/api/admin/team/${member.id}/test-login`, { method: "POST" })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok || !payload?.url) throw new Error(payload?.error || "Could not create a test sign-in link")
+      await navigator.clipboard.writeText(payload.url)
+      setNotice(`One-time test login copied for ${member.email}. Open it in a private browser window so your Owner session stays signed in.`)
+      setMenuId(null)
+    } catch (linkError) {
+      setError(linkError instanceof Error ? linkError.message : "Could not create a test sign-in link")
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function uploadAvatar(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file || !avatarMember) return
+    setBusy(true)
+    setError(null)
+    try {
+      const form = new FormData()
+      form.set("file", file)
+      const response = await fetch(`/api/admin/team/${avatarMember.id}/avatar`, { method: "POST", body: form })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok || !payload?.avatarUrl) throw new Error(payload?.error || "Could not update the profile photo")
+      setMembers((current) => current.map((member) => member.id === avatarMember.id ? { ...member, avatar_url: payload.avatarUrl } : member))
+      setNotice(`${avatarMember.name || avatarMember.email}’s profile photo was updated.`)
+      setAvatarMember(null)
+    } catch (avatarError) {
+      setError(avatarError instanceof Error ? avatarError.message : "Could not update the profile photo")
+    } finally {
+      event.target.value = ""
+      setBusy(false)
+    }
+  }
+
   return (
     <div className="global-editorial-page team-access-page mx-auto max-w-[1440px]">
       <header className="team-access-header flex flex-col gap-6 border-b border-white/10 sm:flex-row sm:items-end sm:justify-between">
         <div><div className="text-[11px] font-semibold uppercase tracking-[.24em] text-white/46">Jupiter.events Admin</div><h1 className="mt-3 text-4xl font-semibold tracking-[-.045em] sm:text-5xl">Team &amp; Access</h1><p className="mt-3 text-base text-white/64">Manage who can configure, produce, and review events.</p></div>
-        {canManage ? <button type="button" onClick={() => { setInviteOpen(true); setError(null); setExistingAccount(null) }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-400/55 bg-blue-500/15 px-5 py-3 text-sm font-semibold text-blue-50 hover:bg-blue-500/24"><UserPlus01 className="h-4 w-4" />Invite administrator</button> : null}
+        {canManage ? <button type="button" onClick={() => { setInviteOpen(true); setError(null); setExistingAccount(null); setSendInvitation(false) }} className="inline-flex items-center justify-center gap-2 rounded-xl border border-blue-400/55 bg-blue-500/15 px-5 py-3 text-sm font-semibold text-blue-50 hover:bg-blue-500/24"><UserPlus01 className="h-4 w-4" />Add administrator</button> : null}
       </header>
 
       <div className="team-access-content">
-      <div className="py-7 text-sm text-white/52">{activeCount} active {activeCount === 1 ? "member" : "members"}<span className="mx-3 text-white/20">·</span>{pendingCount} pending {pendingCount === 1 ? "invitation" : "invitations"}</div>
+      <div className="py-7 text-sm text-white/52">{activeCount} active {activeCount === 1 ? "member" : "members"}<span className="mx-3 text-white/20">·</span>{pendingCount} awaiting access</div>
       {error ? <div className="mb-5 rounded-xl border border-red-300/15 bg-red-400/[.07] px-4 py-3 text-sm text-red-100">{error}</div> : null}
       {notice ? <div className="mb-5 rounded-xl border border-emerald-300/15 bg-emerald-400/[.07] px-4 py-3 text-sm text-emerald-100">{notice}</div> : null}
 
@@ -146,12 +194,12 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
         <div className="min-w-[920px]">
           <div className="grid grid-cols-[1.35fr_.65fr_1fr_.65fr_.55fr_48px] gap-4 border-b border-white/10 px-3 py-4 text-[10px] font-semibold uppercase tracking-[.18em] text-white/38"><div>Team member</div><div>Role</div><div>Access</div><div>Last active</div><div>Status</div><div /></div>
           {members.map((member) => <div key={member.id} className="grid grid-cols-[1.35fr_.65fr_1fr_.65fr_.55fr_48px] items-center gap-4 border-b border-white/[.075] px-3 py-5 last:border-0">
-            <div className="flex min-w-0 items-center gap-4"><div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-[linear-gradient(135deg,#13213f,#17172a)] text-sm font-semibold">{initials(member)}</div><div className="min-w-0"><div className="truncate font-semibold">{member.name || member.email.split("@")[0]}</div><div className="mt-1 truncate text-sm text-white/45">{member.email}</div></div></div>
+            <div className="flex min-w-0 items-center gap-4"><div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,#13213f,#17172a)] text-sm font-semibold">{member.avatar_url ? <img src={member.avatar_url} alt="" className="h-full w-full object-cover" /> : initials(member)}</div><div className="min-w-0"><div className="truncate font-semibold">{member.name || member.email.split("@")[0]}</div><div className="mt-1 truncate text-sm text-white/45">{member.email}</div></div></div>
             <div><span className="rounded-md border border-white/12 px-2.5 py-1.5 text-xs font-medium text-white/78">{member.team_role === "owner" ? "Owner" : "Administrator"}</span></div>
             <div className="text-sm text-white/66">All events and administration</div>
-            <div className="text-sm text-white/58">{member.invite_status === "pending" ? member.invited_at ? `Invited ${new Date(member.invited_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "Invite sent" : lastActive(member.last_active_at)}</div>
+            <div className="text-sm text-white/58">{member.invite_status === "pending" ? member.invited_at ? `Invited ${new Date(member.invited_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "Email held" : lastActive(member.last_active_at)}</div>
             <div className={`text-sm font-medium ${member.invite_status === "pending" ? "text-amber-200" : member.is_active ? "text-emerald-200" : "text-white/35"}`}>{member.invite_status === "pending" ? "Pending" : member.is_active ? "Active" : "Disabled"}</div>
-            <div className="relative flex justify-end">{canManage ? <><button type="button" aria-label={`Access options for ${member.email}`} onClick={() => setMenuId((current) => current === member.id ? null : member.id)} className="rounded-lg p-2 text-white/42 hover:bg-white/[.06] hover:text-white"><DotsHorizontal className="h-4 w-4" /></button>{menuId === member.id ? <div className="absolute right-0 top-10 z-20 w-52 rounded-xl border border-white/10 bg-[#0b101d] p-1.5 shadow-2xl"><button type="button" disabled={busy} onClick={() => void resendInvitation(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.invite_status === "pending" ? "Resend invitation" : "Send Jupiter access email"}</button>{member.invite_status !== "pending" ? <button type="button" disabled={busy} onClick={() => void sendPasswordReset(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Send password reset</button> : null}{member.team_role !== "owner" ? <button type="button" disabled={busy} onClick={() => void setActive(member, !member.is_active)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.is_active ? "Disable access" : "Restore access"}</button> : <div className="px-3 py-2 text-xs text-white/35">Owner access is protected</div>}</div> : null}</> : member.team_role === "owner" ? <span title="Protected account"><Lock01 className="h-4 w-4 text-white/38" /></span> : null}</div>
+            <div className="relative flex justify-end">{canManage ? <><button type="button" aria-label={`Access options for ${member.email}`} onClick={() => setMenuId((current) => current === member.id ? null : member.id)} className="rounded-lg p-2 text-white/42 hover:bg-white/[.06] hover:text-white"><DotsHorizontal className="h-4 w-4" /></button>{menuId === member.id ? <div className="absolute right-0 top-10 z-20 w-64 rounded-xl border border-white/10 bg-[#0b101d] p-1.5 shadow-2xl"><button type="button" disabled={busy} onClick={() => void copyTestLogin(member)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Eye className="h-4 w-4 text-blue-200/70" />Copy one-time test login</button><button type="button" disabled={busy} onClick={() => { setAvatarMember(member); setMenuId(null) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Camera className="h-4 w-4 text-violet-200/70" />Change profile photo</button><div className="my-1 h-px bg-white/[.07]" /><button type="button" disabled={busy} onClick={() => void resendInvitation(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.invite_status === "pending" ? "Send invitation" : "Send Jupiter access email"}</button>{member.invite_status !== "pending" ? <button type="button" disabled={busy} onClick={() => void sendPasswordReset(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Send password reset</button> : null}{member.team_role !== "owner" ? <button type="button" disabled={busy} onClick={() => void setActive(member, !member.is_active)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.is_active ? "Disable access" : "Restore access"}</button> : <div className="px-3 py-2 text-xs text-white/35">Owner access is protected</div>}</div> : null}</> : member.team_role === "owner" ? <span title="Protected account"><Lock01 className="h-4 w-4 text-white/38" /></span> : null}</div>
           </div>)}
           {members.length === 0 ? <div className="px-3 py-12 text-sm text-white/45">No administrators found.</div> : null}
         </div>
@@ -160,7 +208,9 @@ export default function TeamAccessClient({ initialMembers, canManage }: { initia
       <div className="mt-7 flex items-center gap-3 text-sm text-white/42"><Lock01 className="h-4 w-4" /><span>Owners control team access and permanent account settings.</span></div>
       </div>
 
-      {inviteOpen ? <div role="dialog" aria-modal="true" aria-labelledby="invite-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-2xl border border-white/12 bg-[#080d19] p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-semibold uppercase tracking-[.2em] text-blue-200/55">Team access</div><h2 id="invite-title" className="mt-2 text-2xl font-semibold">{existingAccount ? "Grant administrator access" : "Invite an administrator"}</h2></div><button type="button" aria-label="Close invitation" onClick={() => setInviteOpen(false)} className="rounded-lg p-2 text-white/45 hover:bg-white/[.06]"><X className="h-4 w-4" /></button></div><p className="mt-3 text-sm leading-6 text-white/50">Administrators can configure events, operate live tools, and manage attendees. Only the Owner can manage administrator access.</p><div className="mt-6 space-y-4"><label className="block text-xs font-semibold text-white/55">Name<input value={name} onChange={(event) => { setName(event.target.value); setError(null); setExistingAccount(null) }} placeholder="Full name" className="mt-2 w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-blue-400/50" /></label><label className="block text-xs font-semibold text-white/55">Email<input autoFocus type="email" value={email} onChange={(event) => { setEmail(event.target.value); setError(null); setExistingAccount(null) }} placeholder="name@company.com" className="mt-2 w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-blue-400/50" /></label></div>{existingAccount ? <div className="mt-4 rounded-xl border border-blue-300/20 bg-blue-400/[.08] px-4 py-3 text-sm leading-6 text-blue-100/80"><strong className="block text-blue-50">Existing Jupiter account found</strong>{existingAccount.name || existingAccount.email} can keep the same sign-in. Confirming will add administrator access and send a secure access email.</div> : null}{error ? <div className="mt-4 text-sm text-red-200">{error}</div> : null}<div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setInviteOpen(false)} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/[.05]">Cancel</button><button type="button" disabled={busy || !email.includes("@")} onClick={() => void invite()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold hover:bg-blue-500 disabled:opacity-40"><Mail01 className="h-4 w-4" />{busy ? "Working…" : existingAccount ? "Grant admin access" : "Send invitation"}</button></div></div></div> : null}
+      {inviteOpen ? <div role="dialog" aria-modal="true" aria-labelledby="invite-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-5 backdrop-blur-sm"><div className="w-full max-w-lg rounded-2xl border border-white/12 bg-[#080d19] p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-semibold uppercase tracking-[.2em] text-blue-200/55">Team access</div><h2 id="invite-title" className="mt-2 text-2xl font-semibold">{existingAccount ? "Grant administrator access" : "Add an administrator"}</h2></div><button type="button" aria-label="Close invitation" onClick={() => setInviteOpen(false)} className="rounded-lg p-2 text-white/45 hover:bg-white/[.06]"><X className="h-4 w-4" /></button></div><p className="mt-3 text-sm leading-6 text-white/50">Administrators can configure events, operate live tools, and manage attendees. You can create the account now and send their invitation later.</p><div className="mt-6 space-y-4"><label className="block text-xs font-semibold text-white/55">Name<input value={name} onChange={(event) => { setName(event.target.value); setError(null); setExistingAccount(null) }} placeholder="Full name" className="mt-2 w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-blue-400/50" /></label><label className="block text-xs font-semibold text-white/55">Email<input autoFocus type="email" value={email} onChange={(event) => { setEmail(event.target.value); setError(null); setExistingAccount(null) }} placeholder="name@company.com" className="mt-2 w-full rounded-xl border border-white/12 bg-black/25 px-4 py-3 text-sm outline-none focus:border-blue-400/50" /></label></div><button type="button" role="switch" aria-checked={sendInvitation} onClick={() => setSendInvitation((value) => !value)} className="mt-5 flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/[.025] px-4 py-3 text-left"><span className="flex items-center gap-3">{sendInvitation ? <Mail01 className="h-4 w-4 text-blue-200" /> : <MailX className="h-4 w-4 text-white/40" />}<span><strong className="block text-sm">Send invitation now</strong><span className="mt-1 block text-xs text-white/40">{sendInvitation ? "Jupiter will email secure access immediately." : "No email will be sent until you choose Send invitation."}</span></span></span><span className={`relative h-6 w-11 rounded-full transition ${sendInvitation ? "bg-blue-500" : "bg-white/12"}`}><span className={`absolute top-1 h-4 w-4 rounded-full bg-white transition ${sendInvitation ? "left-6" : "left-1"}`} /></span></button>{existingAccount ? <div className="mt-4 rounded-xl border border-blue-300/20 bg-blue-400/[.08] px-4 py-3 text-sm leading-6 text-blue-100/80"><strong className="block text-blue-50">Existing Jupiter account found</strong>{existingAccount.name || existingAccount.email} can keep the same sign-in. Confirming adds administrator access{sendInvitation ? " and sends a secure access email" : " without sending an email"}.</div> : null}{error ? <div className="mt-4 text-sm text-red-200">{error}</div> : null}<div className="mt-6 flex justify-end gap-2"><button type="button" onClick={() => setInviteOpen(false)} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/[.05]">Cancel</button><button type="button" disabled={busy || !email.includes("@")} onClick={() => void invite()} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-4 py-3 text-sm font-semibold hover:bg-blue-500 disabled:opacity-40">{sendInvitation ? <Mail01 className="h-4 w-4" /> : <UserPlus01 className="h-4 w-4" />}{busy ? "Working…" : existingAccount ? "Grant admin access" : sendInvitation ? "Create and send" : "Create account"}</button></div></div></div> : null}
+
+      {avatarMember ? <div role="dialog" aria-modal="true" aria-labelledby="avatar-title" className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 p-5 backdrop-blur-sm"><div className="w-full max-w-sm rounded-2xl border border-white/12 bg-[#080d19] p-6 shadow-2xl"><div className="flex items-start justify-between gap-4"><div><div className="text-[10px] font-semibold uppercase tracking-[.2em] text-violet-200/55">Profile photo</div><h2 id="avatar-title" className="mt-2 text-xl font-semibold">{avatarMember.name || avatarMember.email}</h2></div><button type="button" aria-label="Close profile photo editor" onClick={() => setAvatarMember(null)} className="rounded-lg p-2 text-white/45 hover:bg-white/[.06]"><X className="h-4 w-4" /></button></div><div className="mt-6 flex flex-col items-center text-center"><div className="flex h-24 w-24 items-center justify-center overflow-hidden rounded-full border border-violet-300/20 bg-[linear-gradient(135deg,#13213f,#2a1747)] text-2xl font-semibold">{avatarMember.avatar_url ? <img src={avatarMember.avatar_url} alt="" className="h-full w-full object-cover" /> : initials(avatarMember)}</div><p className="mt-4 text-sm text-white/48">JPEG, PNG, or WebP · 2 MB max</p><input ref={avatarFileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={(event) => void uploadAvatar(event)} className="hidden" /><button type="button" disabled={busy} onClick={() => avatarFileRef.current?.click()} className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold hover:bg-violet-500 disabled:opacity-40"><Camera className="h-4 w-4" />{busy ? "Uploading…" : "Choose new photo"}</button></div></div></div> : null}
     </div>
   )
 }

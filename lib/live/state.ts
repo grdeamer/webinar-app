@@ -9,6 +9,9 @@ export type LiveProgramState = {
   screen_share_participant_id: string | null
   screen_share_track_id: string | null
   is_live: boolean
+  scene_version?: number
+  program_blocks?: unknown[]
+  updated_by?: string | null
   updated_at: string
 }
 
@@ -88,4 +91,38 @@ export async function updateEventLiveProgramState(
   }
 
   return data
+}
+
+export async function setEventLiveProgramComposition(args: {
+  eventId: string
+  blocks: unknown[]
+  expectedVersion?: number | null
+  updatedBy?: string | null
+}): Promise<LiveProgramState> {
+  const current = await ensureEventLiveProgramState(args.eventId)
+  const currentVersion = Number(current.scene_version || 1)
+
+  if (args.expectedVersion != null && currentVersion !== args.expectedVersion) {
+    throw new Error("Program changed on another console. Refresh before continuing.")
+  }
+
+  const query = supabaseAdmin
+    .from("event_live_program_state")
+    .update({
+      program_blocks: args.blocks,
+      scene_version: currentVersion + 1,
+      updated_by: args.updatedBy ?? null,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("event_id", args.eventId)
+    .eq("scene_version", currentVersion)
+
+  const { data, error } = await query.select("*").maybeSingle()
+
+  if (error) throw new Error(error.message)
+  if (!data) {
+    throw new Error("Program changed on another console. Refresh before continuing.")
+  }
+
+  return data as LiveProgramState
 }

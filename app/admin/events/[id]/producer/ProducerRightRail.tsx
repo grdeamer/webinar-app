@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react"
+import { useEffect, useState, type JSX } from "react"
 import { useRoomContext } from "@livekit/components-react"
 import {
   Camera,
@@ -162,9 +162,9 @@ function LocalMediaControls({
   }
 
   const controls = [
-    { id: "camera" as const, label: "Camera", icon: Camera, on: cameraOn, action: toggleCamera },
-    { id: "mic" as const, label: "Microphone", icon: Mic2, on: micOn, action: toggleMic },
-    { id: "screen" as const, label: "Share screen", icon: MonitorUp, on: screenOn, action: toggleScreen },
+    { id: "camera" as const, label: "Camera", accessibleLabel: "Camera", icon: Camera, on: cameraOn, action: toggleCamera },
+    { id: "mic" as const, label: "Mic", accessibleLabel: "Microphone", icon: Mic2, on: micOn, action: toggleMic },
+    { id: "screen" as const, label: "Screen", accessibleLabel: "Screen share", icon: MonitorUp, on: screenOn, action: toggleScreen },
   ]
 
   return (
@@ -177,11 +177,20 @@ function LocalMediaControls({
         <span className={`mt-0.5 h-2 w-2 rounded-full ${cameraOn || micOn || screenOn ? "bg-emerald-300 shadow-[0_0_12px_rgba(52,211,153,0.7)]" : "bg-white/20"}`} />
       </div>
       <div className="mt-4 grid grid-cols-3 gap-3">
-        {controls.map(({ id, label, icon: Icon, on, action }) => (
-          <button key={id} type="button" disabled={busyControl !== null} onClick={() => void action()} aria-pressed={on}
-            className={`flex min-h-[86px] flex-col items-center justify-center gap-2 rounded-[12px] border px-2 py-3 text-[10px] font-semibold uppercase tracking-[0.05em] transition disabled:opacity-45 ${on ? "border-emerald-300/28 bg-emerald-400/[0.12] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(52,211,153,0.08)]" : "border-white/[0.10] bg-white/[0.035] text-white/72 hover:border-sky-200/20 hover:bg-sky-300/[0.07] hover:text-white"}`}>
+        {controls.map(({ id, label, accessibleLabel, icon: Icon, on, action }) => (
+          <button key={id} type="button" disabled={busyControl !== null} onClick={() => void action()} aria-label={`${accessibleLabel} ${on ? "on" : "off"}`} aria-pressed={on}
+            className={`flex min-w-0 min-h-[86px] flex-col items-center justify-center gap-2 rounded-[12px] border px-1 py-3 font-semibold uppercase transition disabled:opacity-45 ${on ? "border-emerald-300/28 bg-emerald-400/[0.12] text-emerald-50 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_0_14px_rgba(52,211,153,0.08)]" : "border-white/[0.10] bg-white/[0.035] text-white/72 hover:border-sky-200/20 hover:bg-sky-300/[0.07] hover:text-white"}`}>
             <Icon size={20} />
-            <span>{busyControl === id ? "Starting…" : `${label} ${on ? "on" : "off"}`}</span>
+            <span className="flex min-w-0 flex-col items-center text-[9px] leading-[1.25] tracking-[0.04em]">
+              {busyControl === id ? (
+                <span className="normal-case tracking-normal">Starting…</span>
+              ) : (
+                <>
+                  <span className="whitespace-nowrap">{label}</span>
+                  <span className="mt-0.5 text-[8px] tracking-[0.08em] opacity-70">{on ? "On" : "Off"}</span>
+                </>
+              )}
+            </span>
           </button>
         ))}
       </div>
@@ -748,6 +757,23 @@ export default function ProducerRightRail({
   const [activeRailTab, setActiveRailTab] = useState<RailTab>(defaultRailTab)
   const railTabs: RailTab[] = ["Stage", "Backstage", "Layers", "Q&A"]
 
+  useEffect(() => {
+    function openRequestedTab(event: Event): void {
+      const requestedTab = (event as CustomEvent<unknown>).detail
+      if (
+        requestedTab === "Stage" ||
+        requestedTab === "Backstage" ||
+        requestedTab === "Layers" ||
+        requestedTab === "Q&A"
+      ) {
+        setActiveRailTab(requestedTab as RailTab)
+      }
+    }
+
+    window.addEventListener("jupiter:producer-rail-tab", openRequestedTab)
+    return () => window.removeEventListener("jupiter:producer-rail-tab", openRequestedTab)
+  }, [])
+
   return (
     <aside className="producer-stage-rail flex h-full min-w-0 flex-col overflow-hidden bg-[#07111d]/90">
       <LocalMediaControls
@@ -768,7 +794,10 @@ export default function ProducerRightRail({
           </div>
           <ShieldCheck size={20} className="text-emerald-300" />
         </div>
-        <nav className="mt-4 grid grid-cols-4 gap-1" aria-label="Stage desk views">
+        <nav
+          className="mt-4 grid grid-cols-[0.85fr_1.35fr_0.9fr_0.75fr] gap-1"
+          aria-label="Stage desk views"
+        >
           {railTabs.map((tab) => (
             <button
               key={tab}
@@ -776,13 +805,13 @@ export default function ProducerRightRail({
               onClick={() => {
                 setActiveRailTab(tab)
               }}
-              className={`h-10 rounded-[7px] border text-[11px] font-medium transition ${
+              className={`min-w-0 h-10 rounded-[7px] border px-1 text-[11px] font-medium transition ${
                 activeRailTab === tab
                   ? "border-sky-300/40 bg-[#102845] text-sky-50/92 shadow-[inset_0_-2px_0_rgba(56,189,248,0.55)]"
                   : "border-white/[0.07] bg-white/[0.022] text-white/46 hover:bg-white/[0.05] hover:text-white/72"
               }`}
             >
-              <span className="flex items-center justify-center gap-1">
+              <span className="flex min-w-0 items-center justify-center gap-1 whitespace-nowrap">
                 {tab === "Q&A" ? <MessageSquareText size={10} /> : null}
                 {tab}
               </span>

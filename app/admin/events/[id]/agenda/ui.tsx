@@ -737,6 +737,7 @@ export default function AdminAgendaEditor({
             />
           </label>
           <button onClick={() => refresh()} disabled={busy || importingCsv} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-50">Refresh</button>
+          <button onClick={syncDisplays} disabled={syncingDisplays} className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs font-semibold hover:bg-white/10 disabled:opacity-50">{syncingDisplays ? "Syncing…" : "Sync displays"}</button>
           <button onClick={() => setAdding((value) => !value)} disabled={busy || importingCsv} className="rounded-xl bg-indigo-600 px-4 py-2 text-sm font-semibold hover:bg-indigo-500 disabled:opacity-50">+ Add Session</button>
         </div>
       </div>
@@ -790,14 +791,11 @@ export default function AdminAgendaEditor({
         </section>
       ) : null}
 
-      <section className={`flex flex-wrap items-center justify-between gap-4 rounded-2xl border px-5 py-4 shadow-xl backdrop-blur-xl ${accessOpen ? "border-emerald-400/20 bg-emerald-400/[0.055]" : "border-amber-400/20 bg-amber-400/[0.045]"}`}>
+      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-white/10 bg-[#101a2b] px-5 py-4">
         <div>
-          <div className={`text-xs font-bold uppercase tracking-[0.18em] ${accessOpen ? "text-emerald-200/60" : "text-amber-200/60"}`}>
-            Attendee Access
-          </div>
-          <div className="mt-1 flex items-center gap-2">
-            <div className="text-base font-semibold">Event Access</div>
-            <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${accessOpen ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200" : "border-amber-300/25 bg-amber-400/10 text-amber-100"}`}>
+          <div className="flex items-center gap-2">
+            <div className="text-base font-semibold">Attendee access</div>
+            <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${accessOpen ? "border-emerald-300/25 bg-emerald-400/10 text-emerald-200" : "border-amber-300/25 bg-amber-400/10 text-amber-100"}`}>
               {accessOpen ? "Open" : "Closed"}
             </span>
           </div>
@@ -819,7 +817,7 @@ export default function AdminAgendaEditor({
             type="button"
             onClick={() => setPendingAccessChange(true)}
             disabled={updatingAccess || accessOpen}
-            className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-[0_0_20px_rgba(5,150,105,0.16)] hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35"
+            className="rounded-xl bg-emerald-600 px-5 py-3 text-sm font-semibold text-white hover:bg-emerald-500 disabled:cursor-not-allowed disabled:opacity-35"
           >
             {updatingAccess && !accessOpen ? "Opening…" : "Open Event"}
           </button>
@@ -827,20 +825,23 @@ export default function AdminAgendaEditor({
             type="button"
             onClick={() => setPendingAccessChange(false)}
             disabled={updatingAccess || !accessOpen}
-            className="rounded-xl border border-red-300/20 bg-red-500/10 px-5 py-3 text-sm font-bold text-red-100 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-35"
+            className="rounded-xl border border-red-300/20 bg-red-500/10 px-5 py-3 text-sm font-semibold text-red-100 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-35"
           >
             {updatingAccess && accessOpen ? "Closing…" : "Close Event"}
           </button>
         </div>
       </section>
 
-      <section className={`rounded-2xl border px-5 py-5 shadow-xl backdrop-blur-xl ${showSurvey ? "border-violet-300/25 bg-violet-500/[0.07]" : "border-white/10 bg-white/[0.035]"}`}>
-        <div className="flex flex-wrap items-start justify-between gap-5">
+      <details open={showSurvey ? true : undefined} className="group rounded-2xl border border-white/10 bg-[#101a2b]">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-5 py-4 text-base font-semibold marker:content-none">
+          <span>Survey and closing screen</span>
+          <span className="flex items-center gap-3 text-sm font-medium text-white/45"><span>{showSurvey ? "Visible" : surveyUrl.trim() ? "Configured" : "Not configured"}</span><span className="text-lg transition group-open:rotate-45">+</span></span>
+        </summary>
+        <div className="flex flex-wrap items-start justify-between gap-5 border-t border-white/10 px-5 py-5">
           <div className="min-w-[260px] flex-1">
-            <div className="text-xs font-bold uppercase tracking-[0.18em] text-violet-200/60">Closing Experience</div>
             <div className="mt-1 flex items-center gap-2">
-              <div className="text-base font-semibold">Attendee Survey</div>
-              <span className={`rounded-full border px-2.5 py-1 text-[10px] font-black uppercase tracking-[0.16em] ${showSurvey ? "border-violet-300/30 bg-violet-400/15 text-violet-100" : "border-white/10 bg-white/5 text-white/40"}`}>
+              <div className="text-base font-semibold">Attendee survey</div>
+              <span className={`rounded-md border px-2 py-1 text-xs font-semibold ${showSurvey ? "border-violet-300/30 bg-violet-400/15 text-violet-100" : "border-white/10 bg-white/5 text-white/40"}`}>
                 {showSurvey ? "Visible" : "Hidden"}
               </span>
             </div>
@@ -873,13 +874,13 @@ export default function AdminAgendaEditor({
               type="button"
               onClick={() => void saveSurvey(!showSurvey)}
               disabled={savingSurvey || (!showSurvey && !surveyUrl.trim())}
-              className={`rounded-xl px-5 py-3 text-sm font-bold text-white disabled:cursor-not-allowed disabled:opacity-40 ${showSurvey ? "border border-red-300/20 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "bg-violet-600 shadow-[0_0_20px_rgba(124,58,237,0.16)] hover:bg-violet-500"}`}
+              className={`rounded-xl px-5 py-3 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40 ${showSurvey ? "border border-red-300/20 bg-red-500/10 text-red-100 hover:bg-red-500/20" : "bg-violet-600 hover:bg-violet-500"}`}
             >
               {showSurvey ? "Hide Survey" : "Push Survey to Attendees"}
             </button>
           </div>
         </div>
-      </section>
+      </details>
 
       {pendingAccessChange !== null ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#02030d]/80 px-4 backdrop-blur-md">
@@ -1071,22 +1072,8 @@ export default function AdminAgendaEditor({
         </div>
       ) : null}
 
-      <section className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-cyan-400/15 bg-cyan-400/[0.04] px-5 py-4 shadow-xl backdrop-blur-xl">
-        <div>
-          <div className="text-xs font-bold uppercase tracking-[0.18em] text-cyan-200/55">Operations</div>
-          <div className="mt-1 text-base font-semibold">Sync Displays</div>
-          <p className="mt-1 text-sm text-white/45">Ask connected attendee pages to quietly reload the latest event data.</p>
-          {lastDisplaySync ? <div className="mt-2 text-xs text-emerald-300/70">Last successful sync: {formatDateTime(lastDisplaySync)}</div> : null}
-          {displaySyncError ? <div className="mt-2 text-sm text-red-300">{displaySyncError}</div> : null}
-        </div>
-        <button
-          onClick={syncDisplays}
-          disabled={syncingDisplays}
-          className="rounded-xl border border-cyan-300/20 bg-cyan-500/15 px-5 py-3 text-sm font-bold text-cyan-100 shadow-[0_0_20px_rgba(34,211,238,0.08)] hover:bg-cyan-500/25 disabled:cursor-wait disabled:opacity-50"
-        >
-          {syncingDisplays ? "Syncing…" : "Sync Displays"}
-        </button>
-      </section>
+      {lastDisplaySync ? <div className="px-1 text-xs text-white/35">Displays last synced {formatDateTime(lastDisplaySync)}</div> : null}
+      {displaySyncError ? <div className="rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-300">{displaySyncError}</div> : null}
 
       {adding ? (
         <section className="rounded-2xl border border-indigo-400/20 bg-indigo-500/[0.06] p-5 shadow-2xl backdrop-blur-xl">
@@ -1120,8 +1107,7 @@ export default function AdminAgendaEditor({
         <section className="run-show-panel run-show-panel--timeline">
           <div className="run-show-panel__header">
             <div>
-              <div className="run-show-overline">Production Timeline</div>
-              <h2>Run of Show Timeline</h2>
+              <h2>Schedule</h2>
             </div>
             <div className="run-show-toolbar">
             <Button
@@ -1164,15 +1150,15 @@ export default function AdminAgendaEditor({
           </div>
           {items.length > 0 ? (
             <div className="run-show-panel__footer">
-              <span>{items.length} moments</span>
-              <span>Hover to inspect · Select to control</span>
+              <span>{items.length} sessions</span>
+              <span>Select a session to view or edit it</span>
             </div>
           ) : null}
         </section>
 
         <section className={`run-show-panel run-show-panel--inspector min-w-0 p-6 ${editing ? "" : "lg:sticky lg:top-6"} ${selectedItem?.status === "live" ? "is-live" : ""}`}>
           <div className="flex items-center justify-between gap-3">
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-white/35">Current Session</div>
+            <div className="text-sm font-semibold text-white/62">Selected session</div>
             {selectedItem ? <StatusBadge status={selectedItem.status} /> : null}
           </div>
 

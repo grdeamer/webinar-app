@@ -23,27 +23,13 @@ export default async function AdminDevToolsPage(props: {
   const webinarTitle = first(searchParams.webinar) || "Welcome Session"
 
   return (
-    <main className="global-editorial-page dev-tools-editorial-page mx-auto max-w-[1440px] pb-12">
-      <header className="relative overflow-hidden border-b border-white/10 pb-9 pt-3">
-        <div className="pointer-events-none absolute -right-16 -top-32 h-72 w-72 rounded-full bg-[radial-gradient(circle,rgba(70,117,205,.16),rgba(65,40,90,.06)_48%,transparent_72%)] blur-2xl" />
-        <div className="relative flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
-          <div className="max-w-4xl">
-            <div className="text-[10px] font-semibold uppercase tracking-[.26em] text-sky-300/70">
-              System / Development tools
-            </div>
-            <h1 className="mt-5 max-w-3xl text-4xl font-semibold tracking-[-.045em] text-white sm:text-5xl lg:text-6xl">
-              Build the test.<br />Prove the experience.
-            </h1>
-            <p className="mt-5 max-w-2xl text-base leading-7 text-white/52">
-              Create a complete event path for rehearsal—from attendee access and program content to artwork and playback.
-            </p>
-          </div>
-
-          <div className="grid w-full max-w-md grid-cols-3 border-y border-white/10 py-4 lg:mb-1">
-            <Metric label="Creates" value="Event" />
-            <Metric label="Seeds" value="Portal" />
-            <Metric label="Verifies" value="Playback" />
-          </div>
+    <main className="global-editorial-page dev-tools-editorial-page mx-auto max-w-[1680px] pb-12">
+      <header className="relative border-b border-white/10 pb-8 pt-2">
+        <div className="max-w-4xl">
+          <h1 className="text-4xl font-semibold tracking-[-.045em] text-white sm:text-5xl">Test event builder</h1>
+          <p className="mt-3 max-w-2xl text-base leading-7 text-white/62">
+            Create one complete rehearsal event, then verify the attendee experience from access through playback.
+          </p>
         </div>
       </header>
 
@@ -151,15 +137,6 @@ export default async function AdminDevToolsPage(props: {
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value
-}
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="border-l border-white/10 px-4 first:border-l-0 first:pl-0 last:pr-0">
-      <div className="text-[9px] font-semibold uppercase tracking-[.2em] text-white/28">{label}</div>
-      <div className="mt-2 text-sm font-semibold text-white/72">{value}</div>
-    </div>
-  )
 }
 
 function FormSection({

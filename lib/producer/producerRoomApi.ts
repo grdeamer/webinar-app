@@ -51,6 +51,7 @@ export interface ProducerRoomApi {
     liveMomentType?: "audience_origin" | null
   }): Promise<{ state: StageState }>
   savePreviewComposition(blocks: unknown[], expectedVersion: number | null): Promise<{ state: StageState }>
+  saveProgramComposition(blocks: unknown[], expectedVersion: number | null): Promise<{ state: StageState }>
   takeProgram(input: {
     expectedPreviewVersion: number | null
     programBlocks: unknown[]

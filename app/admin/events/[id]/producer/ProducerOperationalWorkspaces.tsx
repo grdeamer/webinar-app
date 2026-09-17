@@ -26,6 +26,9 @@ type SharedProps = {
   recoveryBusy: boolean
   onRecover: () => void
   onOpenShow: () => void
+  onOpenStageDesk: () => void
+  onOpenStreamOutputs: () => void
+  onOpenRecording: () => void
   outputProfileId: BroadcastOutputProfileId
   onOutputProfileChange: (profileId: BroadcastOutputProfileId) => void
 }
@@ -34,26 +37,18 @@ const PANEL = "rounded-[14px] border border-white/10 bg-[#081522]/74 shadow-[ins
 
 type SignalTone = "blue" | "red" | "violet" | "amber"
 
-const SIGNAL_TONES: Record<SignalTone, { icon: string; line: string; dot: string }> = {
+const SIGNAL_TONES: Record<SignalTone, { icon: string }> = {
   blue: {
     icon: "border-blue-300/15 bg-blue-500/18 text-blue-200",
-    line: "from-blue-400/25 via-blue-400 to-blue-300/40",
-    dot: "bg-blue-400 shadow-[0_0_9px_rgba(59,130,246,0.82)]",
   },
   red: {
     icon: "border-red-300/15 bg-red-500/16 text-red-200",
-    line: "from-red-400/25 via-red-400 to-red-300/40",
-    dot: "bg-red-400 shadow-[0_0_9px_rgba(248,113,113,0.80)]",
   },
   violet: {
     icon: "border-violet-300/15 bg-violet-500/17 text-violet-200",
-    line: "from-violet-400/25 via-violet-400 to-violet-300/40",
-    dot: "bg-violet-400 shadow-[0_0_9px_rgba(167,139,250,0.80)]",
   },
   amber: {
     icon: "border-amber-300/15 bg-amber-500/16 text-amber-100",
-    line: "from-amber-400/25 via-amber-400 to-amber-300/40",
-    dot: "bg-amber-400 shadow-[0_0_9px_rgba(251,191,36,0.78)]",
   },
 }
 
@@ -65,6 +60,7 @@ function SignalRoutingRow({
   readyLabel,
   idleLabel,
   tone,
+  onClick,
 }: {
   icon: JSX.Element
   label: string
@@ -73,6 +69,7 @@ function SignalRoutingRow({
   readyLabel: string
   idleLabel: string
   tone: SignalTone
+  onClick: () => void
 }): JSX.Element {
   const style = SIGNAL_TONES[tone]
   const programOnAir = ready && tone === "red"
@@ -80,8 +77,9 @@ function SignalRoutingRow({
   return (
     <button
       type="button"
+      onClick={onClick}
       aria-label={`${label}: ${ready ? readyLabel : idleLabel}`}
-      className="group grid min-h-[58px] w-full grid-cols-[42px_minmax(112px,1fr)_minmax(74px,112px)_90px_14px] items-center gap-2.5 rounded-[11px] border border-white/[0.085] bg-[linear-gradient(90deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] px-2.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] transition hover:border-white/[0.15] hover:bg-white/[0.045]"
+      className="group grid min-h-[58px] w-full grid-cols-[40px_minmax(0,1fr)_auto_14px] items-center gap-2.5 rounded-[11px] border border-white/[0.085] bg-[linear-gradient(90deg,rgba(255,255,255,0.028),rgba(255,255,255,0.012))] px-2.5 py-2 text-left shadow-[inset_0_1px_0_rgba(255,255,255,0.018)] transition hover:border-white/[0.15] hover:bg-white/[0.045]"
     >
       <span className={`flex h-10 w-10 items-center justify-center rounded-[9px] border ${style.icon}`}>
         {icon}
@@ -90,13 +88,8 @@ function SignalRoutingRow({
         <b className="block truncate text-[14px] font-medium leading-5 text-white/88">{label}</b>
         <small className="block truncate text-[11px] leading-4 text-white/40">{detail}</small>
       </span>
-      <span className="flex min-w-0 items-center" aria-hidden="true">
-        <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
-        <span className={`h-px min-w-0 flex-1 bg-gradient-to-r ${style.line}`} />
-        <span className={`h-2 w-2 shrink-0 rounded-full ${style.dot}`} />
-      </span>
       <span
-        className={`inline-flex h-8 items-center justify-center gap-2 rounded-[8px] border px-2 text-[10px] font-bold uppercase tracking-[0.08em] ${
+        className={`inline-flex h-8 shrink-0 items-center justify-center gap-1.5 whitespace-nowrap rounded-[8px] border px-2 text-[9px] font-bold uppercase tracking-[0.06em] ${
           ready
             ? programOnAir
               ? "border-red-300/22 bg-red-400/[0.10] text-red-200"
@@ -284,11 +277,11 @@ export function ProducerAdvancedWorkspace(props: SharedProps): JSX.Element {
   const connected = props.transportHealth === "connected"
   const outputProfile = getBroadcastOutputProfile(props.outputProfileId)
   const signals = [
-    { label: "Preview Bus", detail: "Preview pipeline", ready: props.healthSnapshot.previewReady, readyLabel: "Active", idleLabel: "Check", tone: "blue" as const, icon: <MonitorCheck size={20} /> },
-    { label: "Program Bus", detail: "Program pipeline", ready: props.healthSnapshot.programReady, readyLabel: "On Air", idleLabel: "Idle", tone: "red" as const, icon: <MonitorCheck size={20} /> },
-    { label: "Main Stage", detail: "Stage feed", ready: props.healthSnapshot.stageReady, readyLabel: "Connected", idleLabel: "Offline", tone: "violet" as const, icon: <Users size={20} /> },
-    { label: "Stream Outputs", detail: "Live destinations", ready: connected, readyLabel: "Ready", idleLabel: "Check", tone: "blue" as const, icon: <Radio size={20} /> },
-    { label: "Cloud Recording", detail: "Backup recording", ready: props.recordingStatus !== "starting", readyLabel: "Ready", idleLabel: "Starting", tone: "amber" as const, icon: <Cloud size={20} /> },
+    { label: "Preview Bus", detail: "Preview pipeline", ready: props.healthSnapshot.previewReady, readyLabel: "Active", idleLabel: "Check", tone: "blue" as const, icon: <MonitorCheck size={20} />, onClick: props.onOpenShow },
+    { label: "Program Bus", detail: "Program pipeline", ready: props.healthSnapshot.programReady, readyLabel: "On Air", idleLabel: "Idle", tone: "red" as const, icon: <MonitorCheck size={20} />, onClick: props.onOpenShow },
+    { label: "Main Stage", detail: "Stage feed", ready: props.healthSnapshot.stageReady, readyLabel: "Connected", idleLabel: "Offline", tone: "violet" as const, icon: <Users size={20} />, onClick: props.onOpenStageDesk },
+    { label: "Stream Outputs", detail: "Live destinations", ready: connected, readyLabel: "Ready", idleLabel: "Check", tone: "blue" as const, icon: <Radio size={20} />, onClick: props.onOpenStreamOutputs },
+    { label: "Cloud Recording", detail: "Backup recording", ready: props.recordingStatus !== "starting", readyLabel: "Ready", idleLabel: "Starting", tone: "amber" as const, icon: <Cloud size={20} />, onClick: props.onOpenRecording },
   ]
   const log = ["Transport connected to LiveKit (US East)","Program bus is ON AIR","Stream outputs are ready","Preview reconnect detected, recovered","Room state synchronized"]
 

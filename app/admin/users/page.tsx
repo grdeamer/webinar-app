@@ -41,6 +41,7 @@ export default async function AdminUsersPage() {
       invite_status: authUser?.email_confirmed_at ? "active" : profile.invite_status,
       invited_at: profile.invited_at,
       last_active_at: authUser?.last_sign_in_at ?? null,
+      avatar_url: String(authUser?.user_metadata?.avatar_url ?? "") || null,
       is_current: profile.id === user.id,
     }
   })

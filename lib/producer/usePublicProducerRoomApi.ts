@@ -339,6 +339,13 @@ export default function usePublicProducerRoomApi({
         throw new Error("savePreviewComposition is not implemented for public sessions")
       }
 
+      async function saveProgramComposition(
+        _blocks: unknown[],
+        _expectedVersion: number | null
+      ): Promise<{ state: StageState }> {
+        throw new Error("saveProgramComposition is not implemented for public sessions")
+      }
+
       async function takeProgram(input: Parameters<ProducerRoomApi["takeProgram"]>[0]) {
         const transition = input.transition as Record<string, unknown>
         const type = (transition?.type as CinematicTransitionType) ?? "none"
@@ -452,6 +459,7 @@ export default function usePublicProducerRoomApi({
         setAutoDirector,
         savePreviewState,
         savePreviewComposition,
+        saveProgramComposition,
         takeProgram,
         saveScene,
         applyScene,
@@ -461,6 +469,6 @@ export default function usePublicProducerRoomApi({
         clearEventTransition,
       }
     },
-    [eventId, roomName, stageEndpoint, token]
+    [eventId, roomName, scenesEndpoint, stageEndpoint, token]
   )
 }

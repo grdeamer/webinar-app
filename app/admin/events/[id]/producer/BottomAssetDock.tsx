@@ -215,6 +215,22 @@ export default function BottomAssetDock({
   const [mediaRuntimeByLabel, setMediaRuntimeByLabel] = useState<Record<string, MediaAssetRuntimeState>>({})
   const [runtimePaused, setRuntimePaused] = useState(false)
   const [mediaRuntimeNowMs, setMediaRuntimeNowMs] = useState(Date.now())
+  useEffect(() => {
+    function openRequestedPanel(event: Event): void {
+      const requestedPanel = (event as CustomEvent<unknown>).detail
+      setExpandedMediaOpen(false)
+      if (requestedPanel === "stream") {
+        setProductionDrawerTab(null)
+        setActiveUtilityPanel("stream")
+      } else if (requestedPanel === "recording") {
+        setActiveUtilityPanel(null)
+        setProductionDrawerTab("recording")
+      }
+    }
+
+    window.addEventListener("jupiter:producer-open-panel", openRequestedPanel)
+    return () => window.removeEventListener("jupiter:producer-open-panel", openRequestedPanel)
+  }, [])
   function openMediaLibrary(): void {
     setActiveUtilityPanel(null)
     setProductionDrawerTab(null)
