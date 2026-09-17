@@ -1,15 +1,18 @@
 import { NextResponse } from "next/server"
 import { deleteSessionStageScene } from "@/lib/app/sessionStageScenes"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function DELETE(
   _req: Request,
-  ctx: { params: Promise<{ sceneId: string }> }
+  ctx: { params: Promise<{ slug: string; sceneId: string }> }
 ): Promise<Response> {
   try {
-    const { sceneId } = await ctx.params
+    const { slug, sceneId } = await ctx.params
+    const access = await requireEventOperatorAccess(slug)
+    if (access instanceof Response) return access
 
     await deleteSessionStageScene(sceneId)
 

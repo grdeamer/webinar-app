@@ -5,6 +5,7 @@ import {
   getStageState,
   upsertPreviewStageState,
 } from "@/lib/app/sessionStageState"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -75,6 +76,9 @@ export async function POST(
 ): Promise<Response> {
   try {
     const { slug, id } = await ctx.params
+    const access = await requireEventOperatorAccess(slug)
+    if (access instanceof Response) return access
+
     const body = (await req.json().catch((): null => null)) as
       | {
           layout?: "solo" | "grid" | "screen_speaker"
