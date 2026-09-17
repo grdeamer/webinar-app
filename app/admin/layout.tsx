@@ -97,6 +97,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isEventsDirectory = pathname === "/admin/events"
   const isDashboard = pathname === "/admin"
   const isActivity = pathname === "/admin/activity"
+  const isCloud = pathname === "/admin/cloud"
   const isTeamAccess = pathname === "/admin/users"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -208,7 +209,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         {!isEventWorkspace && !isPageEditorWorkspace && !isDashboard && !isTeamAccess ? (
           <div
             aria-hidden="true"
-            className={`global-jupiter-backdrop ${isEventsDirectory ? "global-jupiter-backdrop--events" : ""} ${isActivity ? "global-jupiter-backdrop--activity" : ""}`}
+            className={`global-jupiter-backdrop ${isEventsDirectory ? "global-jupiter-backdrop--events" : ""} ${isActivity ? "global-jupiter-backdrop--activity" : ""} ${isCloud ? "global-jupiter-backdrop--cloud" : ""}`}
           />
         ) : null}
         <aside
