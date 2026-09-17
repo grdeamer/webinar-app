@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -24,6 +25,8 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params
+  const access = await requireEventOperatorAccess(id)
+  if (access instanceof Response) return access
 
   const { data, error } = await supabaseAdmin
     .from("event_page_themes")
@@ -40,6 +43,9 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params
+  const access = await requireEventOperatorAccess(id)
+  if (access instanceof Response) return access
+
   const body = await req.json().catch((): null => null)
 
   const page_key =
