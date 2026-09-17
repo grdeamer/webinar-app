@@ -33,7 +33,7 @@ export default async function AdminEventAgendaPage(props: {
       .returns<EventAgendaItem[]>(),
     supabaseAdmin
       .from("event_live_state")
-      .select("status,survey_url,show_survey,attendee_component_state")
+      .select("*")
       .eq("event_id", id)
       .maybeSingle(),
   ])

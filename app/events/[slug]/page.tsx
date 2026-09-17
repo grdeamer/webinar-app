@@ -403,7 +403,7 @@ export default async function EventHomePage(props: {
 
     supabaseAdmin
       .from("event_live_state")
-      .select("status,attendee_component_state")
+      .select("*")
       .eq("event_id", event.id)
       .maybeSingle(),
   ])

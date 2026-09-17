@@ -28,7 +28,7 @@ export async function GET(
     const [liveStateResult, agendaResult] = await Promise.all([
       supabaseAdmin
         .from("event_live_state")
-        .select("mode,status,survey_url,show_survey,attendee_component_state,updated_at")
+        .select("*")
         .eq("event_id", event.id)
         .maybeSingle(),
       supabaseAdmin
