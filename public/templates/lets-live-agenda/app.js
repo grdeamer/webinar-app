@@ -511,7 +511,7 @@
     els.speakerSession.textContent = session.name;
     els.speakerTime.textContent = session.displayTime;
     agendaItems.forEach(item => item.classList.toggle("is-selected", item.dataset.session === key));
-    if (isLargeRoster || window.matchMedia("(max-width: 820px)").matches) {
+    if (window.matchMedia("(max-width: 940px)").matches) {
       els.speakerPanel.scrollIntoView({ behavior: "smooth", block: isLargeRoster ? "start" : "nearest" });
     }
     els.speakerPanel.focus({ preventScroll: true });

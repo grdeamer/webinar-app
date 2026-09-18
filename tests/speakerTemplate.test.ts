@@ -15,11 +15,13 @@ test("speaker panels can show names without placeholder biographies", () => {
 test("large speaker rosters use a responsive grid", () => {
   assert.match(script, /session\.speakers\.length > 4/)
   assert.match(styles, /\.speaker-list\.is-large\s*\{[^}]*grid-template-columns:/s)
+  assert.match(styles, /\.speaker-panel\.is-roster\s*\{[^}]*max-height:\s*calc\(100vh - 48px\)/s)
+  assert.doesNotMatch(styles, /\.speaker-panel\.is-roster\s*\{[^}]*grid-column:\s*1\s*\/\s*-1/s)
   assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?\.speaker-list\.is-large\s*\{[^}]*grid-template-columns:\s*1fr/s)
 })
 
-test("large speaker rosters are brought into view when opened", () => {
-  assert.match(script, /isLargeRoster \|\| window\.matchMedia/)
+test("speaker rail stays beside the agenda on desktop and scrolls into view on narrow screens", () => {
+  assert.match(script, /window\.matchMedia\("\(max-width: 940px\)"\)\.matches/)
   assert.match(script, /scrollIntoView\(\{ behavior: "smooth", block: isLargeRoster \? "start" : "nearest" \}\)/)
   assert.match(script, /speakerPanel\.focus\(\{ preventScroll: true \}\)/)
 })

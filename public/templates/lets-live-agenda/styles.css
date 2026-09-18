@@ -946,9 +946,9 @@ h1 {
 }
 
 .speaker-panel.is-roster {
-  position: relative;
-  top: auto;
-  grid-column: 1 / -1;
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .speaker-list.is-large {
