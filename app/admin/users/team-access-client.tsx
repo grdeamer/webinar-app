@@ -1,8 +1,8 @@
 "use client"
 
-import { ChangeEvent, useMemo, useRef, useState } from "react"
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react"
 import { DotsHorizontal, Lock01, Mail01, UserPlus01, X } from "@untitledui/icons"
-import { Camera, Eye, MailX } from "lucide-react"
+import { Activity, Camera, Eye, LogIn, MailX } from "lucide-react"
 import {
   EVENT_FEATURES,
   EVENT_ROLE_FEATURES,
@@ -32,6 +32,14 @@ export type TeamMember = {
 
 type EventOption = { id: string; title: string }
 
+type UserActivity = {
+  id: string
+  action: "sign_in" | "view_page"
+  label: string
+  path: string | null
+  created_at: string
+}
+
 const roleOptions: Array<{ value: EventTeamRole; label: string }> = [
   { value: "event_admin", label: "Event admin" },
   { value: "producer", label: "Producer" },
@@ -48,6 +56,16 @@ function lastActive(value: string | null) {
   const hours = Math.round(minutes / 60)
   if (Math.abs(hours) < 24) return relativeTime.format(hours, "hour")
   return new Date(value).toLocaleDateString("en-US", { month: "short", day: "numeric" })
+}
+
+function activityTime(value: string) {
+  return new Date(value).toLocaleString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })
 }
 
 function initials(member: TeamMember) {
@@ -73,10 +91,34 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
   const [menuId, setMenuId] = useState<string | null>(null)
   const [existingAccount, setExistingAccount] = useState<{ email: string; name: string | null } | null>(null)
   const [avatarMember, setAvatarMember] = useState<TeamMember | null>(null)
+  const [activity, setActivity] = useState<UserActivity[]>([])
+  const [activityLoading, setActivityLoading] = useState(false)
+  const [activityError, setActivityError] = useState<string | null>(null)
   const avatarFileRef = useRef<HTMLInputElement | null>(null)
 
   const pendingCount = useMemo(() => members.filter((member) => member.invite_status === "pending").length, [members])
   const activeCount = members.filter((member) => member.invite_status === "active" && member.is_active).length
+
+  useEffect(() => {
+    if (!editingMember) return
+    const controller = new AbortController()
+    setActivity([])
+    setActivityError(null)
+    setActivityLoading(true)
+    void fetch(`/api/admin/user-activity?userId=${encodeURIComponent(editingMember.user_id)}`, { cache: "no-store", signal: controller.signal })
+      .then(async (response) => {
+        const payload = await response.json().catch((): null => null)
+        if (!response.ok) throw new Error(payload?.error || "Could not load activity")
+        setActivity(Array.isArray(payload?.activity) ? payload.activity : [])
+      })
+      .catch((loadError: unknown) => {
+        if (!(loadError instanceof DOMException && loadError.name === "AbortError")) {
+          setActivityError(loadError instanceof Error ? loadError.message : "Could not load activity")
+        }
+      })
+      .finally(() => setActivityLoading(false))
+    return () => controller.abort()
+  }, [editingMember])
 
   async function invite() {
     setBusy(true)
@@ -289,13 +331,12 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
       {notice ? <div className="mb-5 rounded-xl border border-emerald-300/15 bg-emerald-400/[.07] px-4 py-3 text-sm text-emerald-100">{notice}</div> : null}
 
       <section className="overflow-x-auto border-y border-white/10">
-        <div className="min-w-[920px]">
-          <div className="grid grid-cols-[1.35fr_.65fr_1fr_.65fr_.55fr_48px] gap-4 border-b border-white/10 px-3 py-4 text-[10px] font-semibold uppercase tracking-[.18em] text-white/38"><div>Team member</div><div>Role</div><div>Access</div><div>Last active</div><div>Status</div><div /></div>
-          {members.map((member) => <div key={member.id} className="grid grid-cols-[1.35fr_.65fr_1fr_.65fr_.55fr_48px] items-center gap-4 border-b border-white/[.075] px-3 py-5 last:border-0">
-            <div className="flex min-w-0 items-center gap-4"><div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,#13213f,#17172a)] text-sm font-semibold">{member.avatar_url ? <img src={member.avatar_url} alt="" className="h-full w-full object-cover" /> : initials(member)}</div><div className="min-w-0"><button type="button" onClick={() => openEdit(member)} className="block max-w-full truncate text-left font-semibold text-white underline decoration-blue-400/35 underline-offset-4 transition hover:text-blue-200 hover:decoration-blue-300">{member.name || member.email.split("@")[0]}</button><div className="mt-1 truncate text-sm text-white/45">{member.email}</div></div></div>
+        <div className="min-w-[820px]">
+          <div className="grid grid-cols-[1.55fr_.65fr_1fr_.55fr_48px] gap-4 border-b border-white/10 px-3 py-4 text-[10px] font-semibold uppercase tracking-[.18em] text-white/38"><div>Team member</div><div>Role</div><div>Access</div><div>Status</div><div /></div>
+          {members.map((member) => <div key={member.id} className="grid grid-cols-[1.55fr_.65fr_1fr_.55fr_48px] items-center gap-4 border-b border-white/[.075] px-3 py-5 last:border-0">
+            <div className="flex min-w-0 items-center gap-4"><div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,#13213f,#17172a)] text-sm font-semibold">{member.avatar_url ? <img src={member.avatar_url} alt="" className="h-full w-full object-cover" /> : initials(member)}</div><div className="min-w-0"><button type="button" onClick={() => openEdit(member)} className="block max-w-full truncate text-left font-semibold text-white underline decoration-blue-400/35 underline-offset-4 transition hover:text-blue-200 hover:decoration-blue-300">{member.name || member.email.split("@")[0]}</button><div className="mt-1 truncate text-sm text-white/45">{member.email}</div><div className="mt-1 text-xs text-white/32">Last signed in: {lastActive(member.last_active_at)}</div></div></div>
             <div><span className="rounded-md border border-white/12 px-2.5 py-1.5 text-xs font-medium text-white/78">{member.scope === "global" ? member.team_role === "owner" ? "Owner" : "Administrator" : roleOptions.find((option) => option.value === member.event_role)?.label ?? "Event member"}</span></div>
             <div className="text-sm text-white/66">{member.scope === "global" ? "All events and administration" : <><span className="block font-medium text-white/78">{member.event_title}</span><span className="mt-1 block text-xs text-white/38">{featuresForEventRole(member.event_role ?? "viewer", member.feature_permissions).length} features</span></>}</div>
-            <div className="text-sm text-white/58">{member.invite_status === "pending" ? member.invited_at ? `Invited ${new Date(member.invited_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}` : "Email held" : lastActive(member.last_active_at)}</div>
             <div className={`text-sm font-medium ${member.invite_status === "pending" ? "text-amber-200" : member.is_active ? "text-emerald-200" : "text-white/35"}`}>{member.invite_status === "pending" ? "Pending" : member.is_active ? "Active" : "Disabled"}</div>
             <div className="relative flex justify-end">{canManage ? <><button type="button" aria-label={`Access options for ${member.email}`} onClick={() => setMenuId((current) => current === member.id ? null : member.id)} className="rounded-lg p-2 text-white/42 hover:bg-white/[.06] hover:text-white"><DotsHorizontal className="h-4 w-4" /></button>{menuId === member.id ? <div className="absolute right-0 top-10 z-20 w-64 rounded-xl border border-white/10 bg-[#0b101d] p-1.5 shadow-2xl"><button type="button" disabled={busy} onClick={() => openEdit(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Open full profile</button><button type="button" disabled={busy} onClick={() => void copyTestLogin(member)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Eye className="h-4 w-4 text-blue-200/70" />Copy one-time test login</button><button type="button" disabled={busy} onClick={() => { setAvatarMember(member); setMenuId(null) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Camera className="h-4 w-4 text-violet-200/70" />Change profile photo</button><div className="my-1 h-px bg-white/[.07]" /><button type="button" disabled={busy} onClick={() => void resendInvitation(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.invite_status === "pending" ? "Send invitation" : "Send Jupiter access email"}</button>{member.invite_status !== "pending" ? <button type="button" disabled={busy} onClick={() => void sendPasswordReset(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Send password reset</button> : null}{member.team_role !== "owner" ? <button type="button" disabled={busy} onClick={() => void setActive(member, !member.is_active)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.is_active ? "Disable access" : "Restore access"}</button> : <div className="px-3 py-2 text-xs text-white/35">Owner access is protected</div>}</div> : null}</> : member.team_role === "owner" ? <span title="Protected account"><Lock01 className="h-4 w-4 text-white/38" /></span> : null}</div>
           </div>)}
@@ -312,7 +353,7 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
 
       {editingMember ? (
         <div role="dialog" aria-modal="true" aria-labelledby="edit-access-title" className="fixed inset-0 z-50 overflow-y-auto bg-black/78 p-3 backdrop-blur-sm sm:p-6">
-          <div className="mx-auto my-3 w-full max-w-5xl overflow-hidden rounded-2xl border border-white/12 bg-[#080d19] shadow-2xl sm:my-8">
+          <div className="mx-auto my-3 w-full max-w-7xl overflow-hidden rounded-2xl border border-white/12 bg-[#080d19] shadow-2xl sm:my-8">
             <div className="flex items-start justify-between gap-5 border-b border-white/10 bg-[radial-gradient(circle_at_15%_0%,rgba(76,108,255,.18),transparent_42%),linear-gradient(120deg,#0a1120,#0b0d18)] p-5 sm:p-7">
               <div className="flex min-w-0 items-center gap-4 sm:gap-5">
                 <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-[linear-gradient(135deg,#172b50,#301c50)] text-xl font-semibold sm:h-20 sm:w-20 sm:text-2xl">
@@ -327,11 +368,11 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
               <button type="button" aria-label="Close full profile" onClick={() => setEditingMember(null)} className="rounded-lg p-2 text-white/45 hover:bg-white/[.06] hover:text-white"><X className="h-5 w-5" /></button>
             </div>
 
-            <div className="grid gap-0 lg:grid-cols-[280px_1fr]">
+            <div className="grid gap-0 lg:grid-cols-[250px_minmax(0,1fr)_320px]">
               <aside className="border-b border-white/10 bg-white/[.018] p-5 lg:border-b-0 lg:border-r lg:p-6">
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
                   <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Status</div><div className={`mt-1.5 text-sm font-semibold ${editingMember.invite_status === "pending" ? "text-amber-200" : editingMember.is_active ? "text-emerald-200" : "text-white/40"}`}>{editingMember.invite_status === "pending" ? "Pending invitation" : editingMember.is_active ? "Active" : "Disabled"}</div></div>
-                  <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Last active</div><div className="mt-1.5 text-sm font-semibold text-white/72">{lastActive(editingMember.last_active_at)}</div></div>
+                  <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Last signed in</div><div className="mt-1.5 text-sm font-semibold text-white/72">{lastActive(editingMember.last_active_at)}</div></div>
                   <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Current access</div><div className="mt-1.5 text-sm font-semibold text-white/72">{editingMember.scope === "global" ? "All events" : editingMember.event_title}</div></div>
                   <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Account</div><div className="mt-1.5 text-sm font-semibold text-white/72">{editingMember.team_role === "owner" ? "Owner" : editingMember.scope === "global" ? "Administrator" : roleOptions.find((option) => option.value === editingMember.event_role)?.label}</div></div>
                 </div>
@@ -374,6 +415,27 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
                   {editingMember.team_role !== "owner" ? <button type="button" disabled={busy || (scope === "event" && (!eventId || features.length === 0))} onClick={() => void saveEventAccess()} className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold hover:bg-violet-500 disabled:opacity-40">{busy ? "Saving…" : "Save permissions"}</button> : null}
                 </div>
               </div>
+
+              <aside className="border-t border-white/10 bg-white/[.012] p-5 lg:border-l lg:border-t-0 lg:p-6">
+                <div className="flex items-center gap-2">
+                  <Activity className="h-4 w-4 text-blue-200/70" />
+                  <h3 className="text-xs font-semibold uppercase tracking-[.16em] text-white/55">Recent activity</h3>
+                </div>
+                <p className="mt-3 text-xs leading-5 text-white/38">Owner-only with 90-day retention. Records sign-ins and high-level Jupiter navigation—not typed content, passwords, attendee data viewed, or keystrokes.</p>
+                <div className="mt-5 space-y-2">
+                  {activityLoading ? <div className="rounded-xl border border-white/[.08] bg-black/15 px-3 py-4 text-sm text-white/42">Loading activity…</div> : null}
+                  {activityError ? <div className="rounded-xl border border-red-300/15 bg-red-400/[.06] px-3 py-4 text-sm text-red-100/75">{activityError}</div> : null}
+                  {!activityLoading && !activityError && activity.length === 0 ? <div className="rounded-xl border border-white/[.08] bg-black/15 px-3 py-4 text-sm leading-6 text-white/42">No recorded activity yet. New activity will appear here as this user uses Jupiter.</div> : null}
+                  {activity.map((item) => (
+                    <div key={item.id} className="flex gap-3 rounded-xl border border-white/[.08] bg-black/15 p-3">
+                      <span className={`mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${item.action === "sign_in" ? "bg-emerald-400/10 text-emerald-200" : "bg-blue-400/10 text-blue-200"}`}>
+                        {item.action === "sign_in" ? <LogIn className="h-3.5 w-3.5" /> : <Activity className="h-3.5 w-3.5" />}
+                      </span>
+                      <div className="min-w-0"><div className="text-sm font-medium leading-5 text-white/72">{item.label}</div><div className="mt-1 text-[11px] text-white/34">{activityTime(item.created_at)}</div></div>
+                    </div>
+                  ))}
+                </div>
+              </aside>
             </div>
           </div>
         </div>

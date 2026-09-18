@@ -128,6 +128,19 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     return () => controller.abort()
   }, [])
 
+  useEffect(() => {
+    const throttleKey = `jupiter:activity:${pathname}`
+    const lastRecorded = Number(window.sessionStorage.getItem(throttleKey) ?? 0)
+    if (Date.now() - lastRecorded < 60_000) return
+    window.sessionStorage.setItem(throttleKey, String(Date.now()))
+    void fetch("/api/admin/user-activity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "view_page", path: pathname }),
+      keepalive: true,
+    }).catch((): null => null)
+  }, [pathname])
+
   if (isProducerWorkspace) {
     return (
       <div className="min-h-dvh bg-transparent text-white">

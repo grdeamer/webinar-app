@@ -100,7 +100,7 @@ export async function proxy(req: NextRequest) {
   }
 
   if (isEventMember) {
-    if (pathname === "/admin" || pathname === "/admin/events" || pathname === "/api/admin/access-context") {
+    if (pathname === "/admin" || pathname === "/admin/events" || pathname === "/api/admin/access-context" || pathname === "/api/admin/user-activity") {
       return res
     }
 

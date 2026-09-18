@@ -31,6 +31,12 @@ export default function LoginForm() {
         return
       }
 
+      await fetch("/api/admin/user-activity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "sign_in" }),
+      }).catch((): null => null)
+
       router.replace("/admin")
       router.refresh()
     } catch (err: unknown) {
