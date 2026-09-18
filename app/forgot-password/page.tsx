@@ -2,26 +2,9 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { createClient } from "@supabase/supabase-js"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 
 export default function ForgotPasswordPage() {
-  const supabase = React.useMemo(
-    () =>
-      createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL!,
-        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-        {
-          auth: {
-            flowType: "implicit",
-            detectSessionInUrl: true,
-            persistSession: true,
-          },
-        }
-      ),
-    []
-  )
-
   const [email, setEmail] = React.useState("")
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
@@ -40,17 +23,19 @@ export default function ForgotPasswordPage() {
 
     setLoading(true)
 
-    const { error } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
-      redirectTo: `${window.location.origin}/reset-password`,
+    const response = await fetch("/api/auth/forgot-password", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: cleanEmail }),
     })
-
-    if (error) {
-      setError(error.message)
+    const payload = await response.json().catch((): null => null)
+    if (!response.ok) {
+      setError(payload?.error || "Jupiter could not send the password reset email.")
       setLoading(false)
       return
     }
 
-    setMessage("Password reset email sent. Check your inbox.")
+    setMessage(payload?.message || "If an account exists for that email, a secure reset link is on its way.")
     setLoading(false)
   }
 
