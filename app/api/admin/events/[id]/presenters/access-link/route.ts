@@ -23,7 +23,7 @@ function presenterName(
 
 export async function POST(req: Request, context: RouteContext): Promise<Response> {
   const { id: eventId } = await context.params
-  const access = await requireEventOperatorAccess(eventId)
+  const access = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
   if (access instanceof Response) return access
 
   const body = (await req.json().catch((): null => null)) as {

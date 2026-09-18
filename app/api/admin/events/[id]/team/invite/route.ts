@@ -3,6 +3,7 @@ import { canManageEventAccess, getEventTeamAccess, type EventTeamRole } from "@/
 import { buildJupiterInviteEmail } from "@/lib/email/invitations"
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { EVENT_ROLE_FEATURES, normalizeEventFeatures } from "@/lib/eventPermissions"
 
 export const runtime = "nodejs"
 
@@ -19,8 +20,15 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   const email = String(body?.email ?? "").trim().toLowerCase()
   const name = String(body?.name ?? "").trim()
   const role = String(body?.role ?? "") as EventTeamRole
+  const sendInvitation = body?.sendInvitation !== false
   if (!email || !email.includes("@")) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 })
   if (!roles.has(role)) return NextResponse.json({ error: "Choose a valid event role." }, { status: 400 })
+  const featurePermissions = access.role === "owner" && Array.isArray(body?.featurePermissions)
+    ? normalizeEventFeatures(body?.featurePermissions)
+    : EVENT_ROLE_FEATURES[role]
+  if (featurePermissions.length === 0) {
+    return NextResponse.json({ error: "Select at least one event feature." }, { status: 400 })
+  }
 
   const [{ data: event }, authUsersResult] = await Promise.all([
     supabaseAdmin.from("events").select("id,title").eq("id", access.eventId).maybeSingle(),
@@ -70,6 +78,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     invite_status: authUser.email_confirmed_at ? "active" : "pending",
     invited_at: now,
     invited_by: access.user.id,
+    feature_permissions: featurePermissions,
     updated_at: now,
   }, { onConflict: "id" })
   if (profileResult.error) return NextResponse.json({ error: profileResult.error.message }, { status: 500 })
@@ -86,20 +95,23 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }, { onConflict: "event_id,user_id" }).select("id").single()
   if (membershipResult.error) return NextResponse.json({ error: membershipResult.error.message }, { status: 500 })
 
-  const invitation = buildJupiterInviteEmail({
-    inviteUrl: invitationUrl || eventUrl,
-    logoUrl: `${appUrl}/jupiter-email-logo-inverted.png?v=1`,
-    name: name || String(authUser.user_metadata?.full_name ?? "").trim(),
-    role,
-    eventTitle: event.title,
-    existingAccount: !invitationUrl,
-  })
-  const response = await getResendClient().emails.send({
-    from: getEmailFrom(),
-    to: email,
-    ...invitation,
-  })
-  const notificationWarning = response.error ? resendErrorMessage(response.error) : null
+  let notificationWarning: string | null = null
+  if (sendInvitation) {
+    const invitation = buildJupiterInviteEmail({
+      inviteUrl: invitationUrl || eventUrl,
+      logoUrl: `${appUrl}/jupiter-email-logo-inverted.png?v=1`,
+      name: name || String(authUser.user_metadata?.full_name ?? "").trim(),
+      role,
+      eventTitle: event.title,
+      existingAccount: !invitationUrl,
+    })
+    const response = await getResendClient().emails.send({
+      from: getEmailFrom(),
+      to: email,
+      ...invitation,
+    })
+    notificationWarning = response.error ? resendErrorMessage(response.error) : null
+  }
 
   return NextResponse.json({
     member: {
@@ -108,8 +120,10 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       email,
       name: name || null,
       role,
+      feature_permissions: featurePermissions,
       status: authUser.email_confirmed_at ? "active" : "pending",
     },
+    invitationSent: sendInvitation && !notificationWarning,
     notificationWarning,
   })
 }

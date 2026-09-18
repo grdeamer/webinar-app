@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -14,6 +15,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     if (auth instanceof Response) return auth
 
     const { id: eventId } = await context.params
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin"], "event_details")
+    if (eventAccess instanceof Response) return eventAccess
     if (!UUID_PATTERN.test(eventId)) return NextResponse.json({ error: "Invalid event" }, { status: 400 })
 
     const body = await request.json().catch(() => ({}))

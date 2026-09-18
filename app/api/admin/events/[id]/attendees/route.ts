@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { listDistrictSessions } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -56,6 +57,8 @@ export async function GET(
     if (auth instanceof Response) return auth
 
     const { id: eventId } = await context.params
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
+    if (eventAccess instanceof Response) return eventAccess
 
     const { data: sessions, error: sessionsError } = await supabaseAdmin
       .from("event_sessions")
@@ -143,6 +146,8 @@ export async function PATCH(
     if (auth instanceof Response) return auth
 
     const { id: eventId } = await context.params
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
+    if (eventAccess instanceof Response) return eventAccess
     const body = await request.json()
     const { registrantId, first_name, last_name, email, role } = body
 

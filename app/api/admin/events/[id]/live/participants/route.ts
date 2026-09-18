@@ -26,7 +26,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   try {

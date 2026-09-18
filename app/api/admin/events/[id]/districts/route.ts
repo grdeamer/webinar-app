@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { classifyDistrictNodes, isAssignableDistrictNode, type DistrictNodeType } from "@/lib/districtTree"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -87,6 +88,8 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
   if (auth instanceof Response) return auth
   try {
     const { id } = await context.params
+    const eventAccess = await requireEventOperatorAccess(id, ["event_admin"], "districts")
+    if (eventAccess instanceof Response) return eventAccess
     await assertEvent(id)
     return NextResponse.json({ nodes: await loadNodes(id) })
   } catch (error) {
@@ -99,6 +102,8 @@ export async function DELETE(request: Request, context: { params: Promise<{ id: 
   if (auth instanceof Response) return auth
   try {
     const { id: eventId } = await context.params
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin"], "districts")
+    if (eventAccess instanceof Response) return eventAccess
     await assertEvent(eventId)
     const nodeId = clean(new URL(request.url).searchParams.get("nodeId"), 100)
     if (!nodeId) throw new Error("Missing node id")
@@ -114,6 +119,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (auth instanceof Response) return auth
   try {
     const { id: eventId } = await context.params
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin"], "districts")
+    if (eventAccess instanceof Response) return eventAccess
     await assertEvent(eventId)
     const body = await request.json().catch(() => ({}))
     const action = clean(body.action, 30)

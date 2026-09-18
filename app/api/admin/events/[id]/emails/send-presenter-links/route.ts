@@ -5,6 +5,7 @@ import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from 
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 import { buildJupiterEmailFooterHtml } from "@/lib/email/branding"
 import { createPresenterAccessUrl, type PresenterAccessSource } from "@/lib/presenterAccess"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -150,6 +151,8 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
   if (authResult instanceof Response) return authResult
 
   const { id: eventId } = await context.params
+  const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin"], "communications")
+  if (eventAccess instanceof Response) return eventAccess
 
   const body = (await req.json().catch((): null => null)) as {
     testTo?: string

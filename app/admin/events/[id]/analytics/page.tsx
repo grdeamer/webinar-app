@@ -13,6 +13,7 @@ import {
   Users,
 } from "lucide-react"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -57,6 +58,7 @@ export default async function AdminEventAnalyticsPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  await requireEventPageFeature(id, "analytics")
   const eventQuery = supabaseAdmin.from("events").select("id,slug,title")
   const { data, error: eventError } = isUuid(id)
     ? await eventQuery.eq("id", id).maybeSingle()

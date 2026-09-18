@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
-import { getEventTeamAccess } from "@/lib/eventTeamAccess"
+import { getEventTeamAccess, hasEventFeature } from "@/lib/eventTeamAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
@@ -25,7 +25,7 @@ export async function GET(request: Request, context: Params): Promise<Response> 
   await requireAdmin()
   const { id } = await context.params
   const access = await getEventTeamAccess(id)
-  if (!access) return NextResponse.json({ error: "Event access denied" }, { status: 403 })
+  if (!access || !hasEventFeature(access, "analytics")) return NextResponse.json({ error: "Event access denied" }, { status: 403 })
 
   const url = new URL(request.url)
   const report = url.searchParams.get("report") || "summary"

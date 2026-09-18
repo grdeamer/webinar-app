@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -24,6 +25,8 @@ export async function POST(
     if (auth instanceof Response) return auth
 
     const { id: eventId } = await context.params
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
+    if (eventAccess instanceof Response) return eventAccess
     const body = (await req.json().catch((): null => null)) as Body | null
 
     const attendeeId = String(body?.attendee_id || "").trim()

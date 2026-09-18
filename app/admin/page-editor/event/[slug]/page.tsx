@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import AdminEventPageEditorPreview from "@/components/page-editor/AdminEventPageEditorPreview"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -9,6 +10,7 @@ export default async function LegacyPageBuilderPage(props: {
   params: Promise<{ slug: string }>
 }) {
   const { slug } = await props.params
+  await requireEventPageFeature(slug, "experience")
   const { data: event } = await supabaseAdmin
     .from("events")
     .select("id")

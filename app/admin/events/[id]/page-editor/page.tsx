@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -9,6 +10,7 @@ export default async function EventPageEditorPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
+  await requireEventPageFeature(id, "experience")
 
   const { data: event } = await supabaseAdmin
     .from("events")

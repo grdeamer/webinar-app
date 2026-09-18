@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { assignRegistrantsToDistrict } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -19,6 +20,8 @@ export async function PATCH(
     if (auth instanceof Response) return auth
 
     const { id: eventId, attendeeId } = await context.params
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
+    if (eventAccess instanceof Response) return eventAccess
     const body = await request.json()
     const { first_name, last_name, email, role, district_meeting_url, district_session_id } = body
 

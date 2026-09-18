@@ -15,7 +15,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string; sceneId: string }> }
 ) {
   const { id, sceneId } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   try {
@@ -93,7 +93,7 @@ export async function PATCH(
   ctx: { params: Promise<{ id: string; sceneId: string }> }
 ): Promise<Response> {
   const { id, sceneId } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
   const body = await req.json().catch((): null => null)
   const name = String(body?.name || "").trim().slice(0, 120)
@@ -116,7 +116,7 @@ export async function DELETE(
   ctx: { params: Promise<{ id: string; sceneId: string }> }
 ): Promise<Response> {
   const { id, sceneId } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   const { error, count } = await supabaseAdmin

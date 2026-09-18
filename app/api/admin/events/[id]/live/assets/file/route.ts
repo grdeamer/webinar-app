@@ -14,7 +14,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> },
 ): Promise<Response> {
   const { id } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   const storagePath = new URL(req.url).searchParams.get("path")?.trim() ?? ""

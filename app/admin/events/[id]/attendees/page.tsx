@@ -2,12 +2,14 @@ import { notFound } from "next/navigation"
 import { listDistrictSessions } from "@/lib/districtAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import PeopleClient from "./PeopleClient"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export default async function PeoplePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  await requireEventPageFeature(id, "people")
   const { data: event, error } = await supabaseAdmin
     .from("events")
     .select("id,slug,title")

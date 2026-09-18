@@ -35,8 +35,8 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (actor?.team_role !== "owner") {
     return NextResponse.json({ error: "Only the Owner can change another team member’s photo." }, { status: 403 })
   }
-  if (target?.role !== "admin") {
-    return NextResponse.json({ error: "This administrator account is not available." }, { status: 404 })
+  if (!target || !["admin", "event_member"].includes(target.role)) {
+    return NextResponse.json({ error: "This team member account is not available." }, { status: 404 })
   }
 
   const { data: authUser, error: authLookupError } = await supabaseAdmin.auth.admin.getUserById(id)

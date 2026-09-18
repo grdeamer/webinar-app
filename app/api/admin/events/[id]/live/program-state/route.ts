@@ -20,7 +20,7 @@ export async function GET(
 ) {
   try {
     const { id } = await context.params
-    const auth = await requireEventOperatorAccess(id)
+    const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
     if (auth instanceof Response) return auth
 
     if (!id) {
@@ -46,7 +46,7 @@ export async function PATCH(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   const body = await request.json().catch((): null => null)

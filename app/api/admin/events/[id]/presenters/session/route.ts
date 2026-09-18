@@ -7,7 +7,7 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await params
-  const access = await requireEventOperatorAccess(id)
+  const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "people")
   if (access instanceof Response) return access
 
   const { userId, sessionId } = await req.json()

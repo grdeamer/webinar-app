@@ -13,7 +13,7 @@ type Params = { params: Promise<{ id: string; destinationId: string }> }
 
 export async function PATCH(request: Request, context: Params): Promise<Response> {
   const { id, destinationId } = await context.params
-  const access = await requireEventOperatorAccess(id)
+  const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (access instanceof Response) return access
 
   try {
@@ -62,7 +62,7 @@ export async function PATCH(request: Request, context: Params): Promise<Response
 
 export async function DELETE(_request: Request, context: Params): Promise<Response> {
   const { id, destinationId } = await context.params
-  const access = await requireEventOperatorAccess(id)
+  const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (access instanceof Response) return access
 
   const { data, error } = await supabaseAdmin

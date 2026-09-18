@@ -8,6 +8,7 @@ import { CalendarClock, CloudCog, LayoutDashboard, ListChecks, Menu, MessagesSqu
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
+import type { EventFeature } from "@/lib/eventPermissions"
 
 type EventWorkspaceContext = {
   title: string
@@ -18,6 +19,7 @@ type EventWorkspaceContext = {
   hasLiveSession: boolean
   teamRole: "owner" | "administrator" | "event_admin" | "producer" | "viewer"
   isGlobalAdmin: boolean
+  features: EventFeature[]
 }
 
 function active(pathname: string, href: string, exact = false) {
@@ -75,8 +77,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
 
   if (isProducer) return <>{documentTitle}{children}</>
 
-  const canConfigure = !eventContext || eventContext.isGlobalAdmin || eventContext.teamRole === "event_admin"
-  const canOperate = canConfigure || eventContext?.teamRole === "producer"
+  const hasFeature = (feature: EventFeature) => !eventContext || eventContext.isGlobalAdmin || eventContext.features.includes(feature)
   const eventTitle = eventContext?.title ?? "Loading event…"
   const eventStatus = eventContext
     ? `${formatEventDate(eventContext.startAt)} · ${eventContext.access === "closed" ? "Closed" : "Open"}`
@@ -95,16 +96,16 @@ export default function EventLayout({ children }: { children: ReactNode }) {
           </div>
           <nav className="jv1-top-navigation" aria-label="Event workspace">
             <TopLink href={base} label="Overview" icon={<LayoutDashboard />} exact />
-            {canConfigure ? <TopLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/attendees`} label="People" icon={<UsersRound />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/districts`} label="Districts" icon={<Network />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} /> : null}
-            {canConfigure ? <TopLink href={`${base}/infrastructure`} label="Cloud" icon={<CloudCog />} /> : null}
-            {canOperate ? <TopLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} /> : null}
-            {canOperate ? <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} /> : null}
+            {hasFeature("event_details") ? <TopLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} /> : null}
+            {hasFeature("people") ? <TopLink href={`${base}/attendees`} label="People" icon={<UsersRound />} /> : null}
+            {hasFeature("program") ? <TopLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} /> : null}
+            {hasFeature("districts") ? <TopLink href={`${base}/districts`} label="Districts" icon={<Network />} /> : null}
+            {hasFeature("experience") ? <TopLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} /> : null}
+            {hasFeature("communications") ? <TopLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} /> : null}
+            {hasFeature("publishing") ? <TopLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} /> : null}
+            {hasFeature("event_details") ? <TopLink href={`${base}/infrastructure`} label="Cloud" icon={<CloudCog />} /> : null}
+            {hasFeature("run_of_show") ? <TopLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} /> : null}
+            {hasFeature("producer_room") ? <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} /> : null}
           </nav>
         </div>
         <div className="jv1-live-badge"><span />{eventContext?.hasLiveSession ? "EVENT LIVE" : "LIVE READY"}</div>
@@ -121,14 +122,13 @@ export default function EventLayout({ children }: { children: ReactNode }) {
           </div>
           <div className="jv1-rail-section-label">Global</div>
           <nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin" label="Dashboard" icon={<Home03 />} iconTone="112 169 255" exact /><NavLink href="/admin/events" label="Events" icon={<CalendarDate />} iconTone="174 108 255" /><NavLink href="/admin/activity" label="Live Activity" icon={<Activity />} iconTone="83 229 168" /></nav>
-          <div className="jv1-rail-section-label jv1-rail-section-label--administration">Administration</div>
-          <nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin/users" label="Team & Access" icon={<Users01 />} iconTone="91 211 255" /><NavLink href="/admin/dev-tools" label="Dev Tools" icon={<Tool02 />} iconTone="241 188 104" /></nav>
+          {eventContext?.isGlobalAdmin ? <><div className="jv1-rail-section-label jv1-rail-section-label--administration">Administration</div><nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin/users" label="Team & Access" icon={<Users01 />} iconTone="91 211 255" /><NavLink href="/admin/dev-tools" label="Dev Tools" icon={<Tool02 />} iconTone="241 188 104" /></nav></> : null}
           <div className="mt-auto pt-6"><AdminProfileMenu /></div>
         </aside>
         <aside className="jv1-event-rail" aria-label="Mobile event workspace">
           <div className="jv1-event-rail-label"><span /> Event workspace</div>
           <div className="jv1-event-context" aria-busy={!eventContext}><h2>{eventTitle}</h2><p>{eventStatus}</p></div>
-          <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" icon={<LayoutDashboard />} exact />{canConfigure ? <NavLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} /> : null}{canConfigure ? <NavLink href={`${base}/attendees`} label="People" icon={<UsersRound />} /> : null}{canConfigure ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} /> : null}{canConfigure ? <NavLink href={`${base}/districts`} label="Districts" icon={<Network />} /> : null}{canConfigure ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} /> : null}{canConfigure ? <NavLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} /> : null}{canConfigure ? <NavLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} /> : null}{canConfigure ? <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<CloudCog />} /> : null}{canOperate ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} /> : null}{canOperate ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} /> : null}{canOperate ? <NavLink href={`${base}/routing`} label="Audience Flow" icon={<Signal02 />} /> : null}</nav>
+          <nav className="jv1-event-navigation space-y-1"><NavLink href={base} label="Overview" icon={<LayoutDashboard />} exact />{hasFeature("event_details") ? <NavLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} /> : null}{hasFeature("people") ? <NavLink href={`${base}/attendees`} label="People" icon={<UsersRound />} /> : null}{hasFeature("program") ? <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} /> : null}{hasFeature("districts") ? <NavLink href={`${base}/districts`} label="Districts" icon={<Network />} /> : null}{hasFeature("experience") ? <NavLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} /> : null}{hasFeature("communications") ? <NavLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} /> : null}{hasFeature("publishing") ? <NavLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} /> : null}{hasFeature("event_details") ? <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<CloudCog />} /> : null}{hasFeature("run_of_show") ? <NavLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} /> : null}{hasFeature("producer_room") ? <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} /> : null}{hasFeature("run_of_show") ? <NavLink href={`${base}/routing`} label="Audience Flow" icon={<Signal02 />} /> : null}</nav>
           <div className="mt-auto pt-5"><AdminProfileMenu /></div>
         </aside>
         <main className="jv1-content">{children}</main>

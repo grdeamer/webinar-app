@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -79,6 +80,9 @@ export async function POST(req: Request): Promise<Response> {
     const body = await req.json().catch((): null => null)
 
     const eventId = cleanString(body?.event_id, 100)
+    if (!eventId) return json({ error: "Missing event_id" }, 400)
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin"], "program")
+    if (eventAccess instanceof Response) return eventAccess
     const sessionKind = cleanString(body?.session_kind, 50)
     const districtParentId = ["district_zone", "district_region", "district", "breakout"].includes(sessionKind || "")
       ? await validateDistrictParent({ eventId: eventId || "", parentId: cleanString(body?.district_parent_id, 100) })
@@ -112,7 +116,6 @@ export async function POST(req: Request): Promise<Response> {
       runtime_status: cleanString(body?.runtime_status, 50),
     }
 
-    if (!row.event_id) return json({ error: "Missing event_id" }, 400)
     if (!row.code) return json({ error: "Session code is required" }, 400)
     if (!row.title) return json({ error: "Session title is required" }, 400)
 
@@ -142,6 +145,8 @@ export async function PUT(req: Request): Promise<Response> {
 
     if (!id) return json({ error: "Missing session id" }, 400)
     if (!event_id) return json({ error: "Missing event_id" }, 400)
+    const eventAccess = await requireEventOperatorAccess(event_id, ["event_admin"], "program")
+    if (eventAccess instanceof Response) return eventAccess
 
     const sessionKind = cleanString(body?.session_kind, 50)
     const districtParentId = ["district_zone", "district_region", "district", "breakout"].includes(sessionKind || "")
@@ -209,6 +214,11 @@ export async function DELETE(req: Request): Promise<Response> {
     const id = cleanString(body?.id, 100)
 
     if (!id) return json({ error: "Missing session id" }, 400)
+
+    const { data: session } = await supabaseAdmin.from("event_sessions").select("event_id").eq("id", id).maybeSingle()
+    if (!session?.event_id) return json({ error: "Session not found" }, 404)
+    const eventAccess = await requireEventOperatorAccess(session.event_id, ["event_admin"], "program")
+    if (eventAccess instanceof Response) return eventAccess
 
     await supabaseAdmin.from("event_user_webinars").delete().eq("webinar_id", id)
 

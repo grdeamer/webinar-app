@@ -6,6 +6,7 @@ import {
 } from "@/lib/validators/liveRouting"
 import { updateEventLiveState } from "@/lib/services/admin/updateEventLiveState"
 import { recordAuditEvent } from "@/lib/cloud/audit"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -21,6 +22,8 @@ export async function GET(_req: Request, ctx: Params): Promise<Response> {
   if (authResult instanceof Response) return authResult
 
   const { id: eventId } = await ctx.params
+  const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "run_of_show")
+  if (eventAccess instanceof Response) return eventAccess
 
   const [liveStateResult, runOfShowResult] = await Promise.all([
     supabaseAdmin
@@ -63,6 +66,8 @@ export async function POST(req: Request, ctx: Params): Promise<Response> {
   if (authResult instanceof Response) return authResult
 
   const { id: eventId } = await ctx.params
+  const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "run_of_show")
+  if (eventAccess instanceof Response) return eventAccess
   const body = await req.json().catch((): null => null)
 
   const parsed = updateLegacyEventLiveStateSchema.safeParse({

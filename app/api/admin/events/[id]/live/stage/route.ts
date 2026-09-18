@@ -71,7 +71,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
   const raw = await req.json().catch((): null => null)
   const body = parseStageBody(raw)

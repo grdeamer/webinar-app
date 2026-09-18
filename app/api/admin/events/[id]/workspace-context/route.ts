@@ -82,5 +82,6 @@ export async function GET(_request: Request, context: Params): Promise<Response>
     liveAttendeeCount,
     teamRole: teamAccess.role,
     isGlobalAdmin: teamAccess.isGlobalAdmin,
+    features: teamAccess.features,
   })
 }

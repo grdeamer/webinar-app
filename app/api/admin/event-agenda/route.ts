@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import type { EventAgendaItem, EventAgendaResource, EventAgendaSpeaker } from "@/lib/types"
 import { normalizeAgendaIconKey } from "@/lib/agendaIcons"
 
@@ -59,6 +60,8 @@ export async function GET(req: Request): Promise<Response> {
   const { searchParams } = new URL(req.url)
   const event_id = searchParams.get("event_id")
   if (!event_id) return json({ error: "Missing event_id" }, 400)
+  const eventAccess = await requireEventOperatorAccess(event_id, ["event_admin", "producer"], "run_of_show")
+  if (eventAccess instanceof Response) return eventAccess
 
   const { data, error } = await supabaseAdmin
     .from("event_agenda_items")
@@ -78,6 +81,8 @@ export async function POST(req: Request): Promise<Response> {
   if (!body?.event_id || !body?.title) {
     return json({ error: "Missing fields" }, 400)
   }
+  const eventAccess = await requireEventOperatorAccess(body.event_id, ["event_admin", "producer"], "run_of_show")
+  if (eventAccess instanceof Response) return eventAccess
 
   const speakers = normalizeSpeakers(body.speakers)
   if (speakers.length === 0 && clamp(body.speaker, 200)?.trim()) {
@@ -132,6 +137,10 @@ export async function PUT(req: Request): Promise<Response> {
 
   const body = await req.json().catch((): null => null)
   if (!body?.id) return json({ error: "Missing id" }, 400)
+  const { data: existingItem } = await supabaseAdmin.from("event_agenda_items").select("event_id").eq("id", body.id).maybeSingle()
+  if (!existingItem?.event_id) return json({ error: "Agenda item not found" }, 404)
+  const eventAccess = await requireEventOperatorAccess(existingItem.event_id, ["event_admin", "producer"], "run_of_show")
+  if (eventAccess instanceof Response) return eventAccess
 
   const patch: Partial<EventAgendaItem> = {}
 
@@ -222,6 +231,10 @@ export async function DELETE(req: Request): Promise<Response> {
 
   const body = await req.json().catch((): null => null)
   if (!body?.id) return json({ error: "Missing id" }, 400)
+  const { data: existingItem } = await supabaseAdmin.from("event_agenda_items").select("event_id").eq("id", body.id).maybeSingle()
+  if (!existingItem?.event_id) return json({ error: "Agenda item not found" }, 404)
+  const eventAccess = await requireEventOperatorAccess(existingItem.event_id, ["event_admin", "producer"], "run_of_show")
+  if (eventAccess instanceof Response) return eventAccess
 
   const { error } = await supabaseAdmin
     .from("event_agenda_items")

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import EventSettingsForm from "./ui"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -29,6 +30,7 @@ function isUuid(value: string) {
 
 export default async function EventSettingsPage({ params }: PageProps) {
   const { id } = await params
+  await requireEventPageFeature(id, "event_details")
   const query = supabaseAdmin
     .from("events")
     .select("id,slug,title,badge_image_url,description,start_at,end_at,accent_color,district_directory_enabled")

@@ -1,9 +1,16 @@
 import type { User } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
+import { notFound } from "next/navigation"
 import { createClient } from "@/lib/supabase/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import {
+  ALL_EVENT_FEATURES,
+  featuresForEventRole,
+  type EventFeature,
+  type EventTeamRole,
+} from "@/lib/eventPermissions"
 
-export type EventTeamRole = "event_admin" | "producer" | "viewer"
+export type { EventFeature, EventTeamRole } from "@/lib/eventPermissions"
 
 export type EventTeamAccess = {
   user: User
@@ -11,6 +18,7 @@ export type EventTeamAccess = {
   eventId: string
   eventSlug: string
   role: "owner" | "administrator" | EventTeamRole
+  features: EventFeature[]
 }
 
 function isUuid(value: string) {
@@ -39,12 +47,13 @@ export async function getEventTeamAccess(eventRef: string): Promise<EventTeamAcc
       eventId: event.id,
       eventSlug: event.slug,
       role: profile.team_role === "owner" ? "owner" : "administrator",
+      features: [...ALL_EVENT_FEATURES],
     }
   }
 
   const { data: membership } = await supabaseAdmin
     .from("event_team_members")
-    .select("role,is_active")
+    .select("role,is_active,feature_permissions")
     .eq("event_id", event.id)
     .eq("user_id", user.id)
     .maybeSingle()
@@ -56,6 +65,10 @@ export async function getEventTeamAccess(eventRef: string): Promise<EventTeamAcc
     eventId: event.id,
     eventSlug: event.slug,
     role: membership.role as EventTeamRole,
+    features: featuresForEventRole(
+      membership.role as EventTeamRole,
+      membership.feature_permissions
+    ),
   }
 }
 
@@ -63,11 +76,22 @@ export function canManageEventAccess(access: EventTeamAccess) {
   return access.isGlobalAdmin || access.role === "event_admin"
 }
 
+export function hasEventFeature(access: EventTeamAccess, feature: EventFeature) {
+  return access.isGlobalAdmin || access.features.includes(feature)
+}
+
+export async function requireEventPageFeature(eventRef: string, feature: EventFeature) {
+  const access = await getEventTeamAccess(eventRef)
+  if (!access || !hasEventFeature(access, feature)) notFound()
+  return access
+}
+
 export type EventOperatorRole = "event_admin" | "producer"
 
 export async function requireEventOperatorAccess(
   eventRef: string,
-  allowedRoles: readonly EventOperatorRole[] = ["event_admin", "producer"]
+  allowedRoles: readonly EventOperatorRole[] = ["event_admin", "producer"],
+  requiredFeature?: EventFeature
 ): Promise<EventTeamAccess | NextResponse> {
   const access = await getEventTeamAccess(eventRef)
 
@@ -81,6 +105,14 @@ export async function requireEventOperatorAccess(
   ) {
     return NextResponse.json(
       { error: "Your event role does not allow this production action." },
+      { status: 403 }
+    )
+  }
+
+
+  if (requiredFeature && !hasEventFeature(access, requiredFeature)) {
+    return NextResponse.json(
+      { error: "Your event access does not include this feature." },
       { status: 403 }
     )
   }

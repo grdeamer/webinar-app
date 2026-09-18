@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { createEmailCampaign, completeEmailCampaign, recordEmailMessages } from "@/lib/email/campaigns"
 import { getAppUrl, getEmailFrom, getResendClient, resendErrorMessage } from "@/lib/email/resend"
 import { buildJupiterEmailFooterHtml } from "@/lib/email/branding"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -87,6 +88,8 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
   if (authResult instanceof Response) return authResult
 
   const { id: eventId } = await context.params
+  const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin"], "communications")
+  if (eventAccess instanceof Response) return eventAccess
   const url = new URL(req.url)
   const dryRun = url.searchParams.get("dryRun") === "1"
   const body = (await req.json().catch((): null => null)) as {

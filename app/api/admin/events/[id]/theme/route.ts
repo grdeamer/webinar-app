@@ -25,7 +25,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params
-  const access = await requireEventOperatorAccess(id)
+  const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "experience")
   if (access instanceof Response) return access
 
   const { data, error } = await supabaseAdmin
@@ -43,7 +43,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ) {
   const { id } = await ctx.params
-  const access = await requireEventOperatorAccess(id)
+  const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "experience")
   if (access instanceof Response) return access
 
   const body = await req.json().catch((): null => null)

@@ -1,5 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import SessionsEditor from "./ui"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -51,6 +52,7 @@ export default async function AdminEventSessionsPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
+  await requireEventPageFeature(id, "program")
 
   let event: EventRow | null = null
   let eventErrorMessage: string | null = null

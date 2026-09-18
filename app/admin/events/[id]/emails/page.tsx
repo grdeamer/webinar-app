@@ -1,12 +1,14 @@
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import CommunicationsClient from "./CommunicationsClient"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export default async function EventEmailsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  await requireEventPageFeature(id, "communications")
   const [{ data: event, error: eventError }, { data: people, error: peopleError }, { data: assignments, error: assignmentsError }, { data: history, error: historyError }] = await Promise.all([
     supabaseAdmin.from("events").select("id,title").eq("id", id).maybeSingle(),
     supabaseAdmin.from("event_registrants").select("id,email,tag").eq("event_id", id),

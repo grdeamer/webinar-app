@@ -13,7 +13,7 @@ type RouteContext = {
 
 export async function POST(request: Request, context: RouteContext): Promise<Response> {
   const { id: eventRef } = await context.params
-  const access = await requireEventOperatorAccess(eventRef, ["event_admin"])
+  const access = await requireEventOperatorAccess(eventRef, ["event_admin"], "program")
   if (access instanceof Response) return access
 
   try {

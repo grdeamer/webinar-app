@@ -2,12 +2,14 @@ import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { classifyDistrictNodes } from "@/lib/districtTree"
 import DistrictTreeEditor, { type DistrictNode } from "./ui"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export default async function DistrictsPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  await requireEventPageFeature(id, "districts")
   const [{ data: event, error: eventError }, { data: rows, error: rowsError }] = await Promise.all([
     supabaseAdmin.from("events").select("id,slug,title,district_directory_enabled").eq("id", id).maybeSingle(),
     supabaseAdmin

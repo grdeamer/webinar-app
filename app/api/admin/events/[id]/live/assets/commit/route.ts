@@ -27,7 +27,7 @@ export async function GET(
   ctx: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   const { data, error } = await supabaseAdmin
@@ -50,7 +50,7 @@ export async function POST(
   ctx: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   const body = await req.json().catch((): null => null)
@@ -106,7 +106,7 @@ export async function DELETE(
   ctx: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   const { id } = await ctx.params
-  const auth = await requireEventOperatorAccess(id)
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (auth instanceof Response) return auth
 
   const body = await req.json().catch((): null => null)

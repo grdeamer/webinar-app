@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
-import { canManageEventAccess, getEventTeamAccess } from "@/lib/eventTeamAccess"
+import { canManageEventAccess, getEventTeamAccess, hasEventFeature } from "@/lib/eventTeamAccess"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { recordAuditEvent } from "@/lib/cloud/audit"
 
@@ -32,7 +32,7 @@ function extensionFor(contentType: string): string {
 
 async function authorize(id: string) {
   const access = await getEventTeamAccess(id)
-  if (!access || !canManageEventAccess(access)) {
+  if (!access || !canManageEventAccess(access) || !hasEventFeature(access, "event_details")) {
     return NextResponse.json({ error: "Your event role does not allow identity changes." }, { status: 403 })
   }
   return access

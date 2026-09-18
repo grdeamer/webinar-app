@@ -16,7 +16,7 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ) {
   const { id } = await context.params
-  const access = await requireEventOperatorAccess(id)
+  const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (access instanceof Response) return access
 
   const body = await request.json().catch((): null => null)

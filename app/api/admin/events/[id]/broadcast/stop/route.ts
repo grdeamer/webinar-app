@@ -13,7 +13,7 @@ type Params = { params: Promise<{ id: string }> }
 
 export async function POST(_request: Request, context: Params): Promise<Response> {
   const { id } = await context.params
-  const access = await requireEventOperatorAccess(id)
+  const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (access instanceof Response) return access
 
   let outputUrls: string[] = []

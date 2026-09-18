@@ -2,6 +2,7 @@ import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { getEventRoutingState, upsertEventRoutingState } from "@/lib/app/liveState"
 import MissionControlClient from "../MissionControlClient"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -91,6 +92,7 @@ export default async function AdminEventDetailPage({
   params: Promise<{ id: string }>
 }) {
   const { id } = await params
+  await requireEventPageFeature(id, "run_of_show")
 
   let eventId = id
   let eventSlug = id

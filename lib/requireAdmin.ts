@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 
 type AdminProfile = {
   role: string | null
+  team_role: "owner" | "administrator" | null
   is_active: boolean | null
 }
 
@@ -27,7 +28,7 @@ export async function requireAdmin(): Promise<RequireAdminResult> {
 
   const { data: profile, error: profileError } = await supabaseAdmin
     .from("profiles")
-    .select("role,is_active")
+    .select("role,team_role,is_active")
     .eq("id", user.id)
     .maybeSingle<AdminProfile>()
 

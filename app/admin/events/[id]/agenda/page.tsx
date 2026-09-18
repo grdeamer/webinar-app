@@ -4,6 +4,7 @@ import type { EventAgendaItem, EventRecord } from "@/lib/types"
 import { Button } from "@/components/ui/button"
 import AdminAgendaEditor from "./ui"
 import { normalizeAttendeeComponentState } from "@/lib/attendeeComponents"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const dynamic = "force-dynamic"
 export const runtime = "nodejs"
@@ -12,6 +13,7 @@ export default async function AdminEventAgendaPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
+  await requireEventPageFeature(id, "run_of_show")
 
   const { data: event, error: e1 } = await supabaseAdmin
     .from("events")

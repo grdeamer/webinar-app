@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomClient"
 import ProducerRoomSetup from "./ProducerRoomSetup"
+import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,6 +17,7 @@ export default async function AdminProducerRoomPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
+  await requireEventPageFeature(id, "producer_room")
 
   let eventId = id
   let eventTitle = "Event"
