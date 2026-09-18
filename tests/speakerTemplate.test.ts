@@ -17,3 +17,16 @@ test("large speaker rosters use a responsive grid", () => {
   assert.match(styles, /\.speaker-list\.is-large\s*\{[^}]*grid-template-columns:/s)
   assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?\.speaker-list\.is-large\s*\{[^}]*grid-template-columns:\s*1fr/s)
 })
+
+test("large speaker rosters are brought into view when opened", () => {
+  assert.match(script, /isLargeRoster \|\| window\.matchMedia/)
+  assert.match(script, /scrollIntoView\(\{ behavior: "smooth", block: isLargeRoster \? "start" : "nearest" \}\)/)
+  assert.match(script, /speakerPanel\.focus\(\{ preventScroll: true \}\)/)
+})
+
+test("phone layouts give agenda cards and speaker details the full width", () => {
+  assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?\.agenda-item\s*\{[^}]*display:\s*block/s)
+  assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?\.agenda-track\s*\{[^}]*display:\s*none/s)
+  assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?\.speaker-session-meta\s*\{[^}]*grid-template-columns:\s*1fr/s)
+  assert.match(styles, /@media \(max-width: 680px\)[\s\S]*?\.status-panel-top\s*\{[^}]*flex-wrap:\s*wrap/s)
+})

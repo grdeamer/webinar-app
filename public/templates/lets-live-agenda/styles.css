@@ -883,12 +883,18 @@ h1 {
 .speaker-panel {
   position: sticky;
   top: 24px;
+  scroll-margin-top: 18px;
   overflow: hidden;
   border: 1px solid var(--line);
   border-radius: 22px;
   background: rgba(255,255,255,.94);
   box-shadow: var(--shadow-md);
   animation: speakerPanelIn .32s ease both;
+}
+
+.speaker-panel:focus {
+  outline: 3px solid rgba(235,23,0,.16);
+  outline-offset: 4px;
 }
 
 .speaker-panel[hidden] {
@@ -1308,6 +1314,14 @@ h1 {
     grid-template-columns: 1fr;
   }
 
+  .speaker-panel-body {
+    padding: 22px 16px;
+  }
+
+  .speaker-session-meta {
+    grid-template-columns: 1fr;
+  }
+
   .survey-header {
     grid-template-columns: 1fr;
     gap: 16px;
@@ -1375,6 +1389,23 @@ h1 {
     padding: 22px;
   }
 
+  .status-panel-top {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .timezone-picker {
+    align-items: flex-start;
+  }
+
+  .clock-block strong {
+    font-size: clamp(42px, 16vw, 58px);
+  }
+
+  .countdown-value {
+    font-size: clamp(27px, 10vw, 38px);
+  }
+
   .section-heading {
     align-items: flex-start;
     flex-direction: column;
@@ -1385,23 +1416,48 @@ h1 {
   }
 
   .agenda-item {
-    grid-template-columns: 78px 24px minmax(0, 1fr);
-    min-height: 104px;
+    display: block;
+    min-height: 0;
+    margin-bottom: 18px;
   }
 
   .agenda-time {
-    padding-right: 10px;
+    align-items: baseline;
+    flex-direction: row;
+    padding: 0 4px 8px;
+    gap: 8px;
   }
 
   .agenda-time span {
     font-size: 12px;
   }
 
+  .agenda-time small::before {
+    content: "–";
+    margin-right: 8px;
+  }
+
+  .agenda-track {
+    display: none;
+  }
+
   .agenda-card {
     align-items: flex-start;
     flex-direction: column;
+    margin-bottom: 0;
     padding: 18px;
     gap: 13px;
+  }
+
+  .agenda-item.is-live .agenda-card {
+    transform: none;
+  }
+
+  .agenda-speaker-trigger {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    margin-left: 0 !important;
   }
 
   .agenda-state {

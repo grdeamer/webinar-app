@@ -504,15 +504,17 @@
     const session = sessionMap.get(key);
     if (!session || !session.showSessionDetails || !els.speakerPanel) return;
     const hasSpeaker = session.speakers.length > 0;
+    const isLargeRoster = session.speakers.length > 4;
     els.speakerPanel.hidden = false;
     els.speakerPanelLabel.textContent = session.speakers.length > 1 ? "Meet the speakers" : hasSpeaker ? "Meet the speaker" : "Session details";
     renderSpeakerList(session);
     els.speakerSession.textContent = session.name;
     els.speakerTime.textContent = session.displayTime;
     agendaItems.forEach(item => item.classList.toggle("is-selected", item.dataset.session === key));
-    if (window.matchMedia("(max-width: 820px)").matches) {
-      els.speakerPanel.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    if (isLargeRoster || window.matchMedia("(max-width: 820px)").matches) {
+      els.speakerPanel.scrollIntoView({ behavior: "smooth", block: isLargeRoster ? "start" : "nearest" });
     }
+    els.speakerPanel.focus({ preventScroll: true });
   }
 
   function normalizeState(payload) {
