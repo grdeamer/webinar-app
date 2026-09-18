@@ -25,7 +25,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const appUrl = getAppUrl().replace(/\/$/, "")
-  let nextPath = "/admin"
   let eventTitle: string | undefined
   let invitationRole: "administrator" | "event_admin" | "producer" | "viewer" = "administrator"
   if (target.role === "event_member") {
@@ -35,14 +34,13 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     const { data: membership } = await membershipQuery.limit(1).maybeSingle()
     if (!membership?.event_id) return NextResponse.json({ error: "This person has no active event access." }, { status: 400 })
     const { data: event } = await supabaseAdmin.from("events").select("title").eq("id", membership.event_id).maybeSingle()
-    nextPath = `/admin/events/${membership.event_id}`
     eventTitle = event?.title || "Event"
     invitationRole = membership.role as "event_admin" | "producer" | "viewer"
   }
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: "recovery",
     email: target.email,
-    options: { redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent(nextPath)}` },
+    options: { redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent("/admin")}` },
   })
   if (error || !data.properties?.action_link) {
     return NextResponse.json({ error: error?.message || "Could not create a fresh invitation link." }, { status: 400 })

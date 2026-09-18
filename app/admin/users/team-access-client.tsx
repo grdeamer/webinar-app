@@ -226,7 +226,7 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
       const payload = await response.json().catch((): null => null)
       if (!response.ok) throw new Error(payload?.error || "Could not resend the invitation")
       setMembers((current) => current.map((item) => item.id === member.id ? { ...item, invited_at: payload.invitedAt || item.invited_at } : item))
-      setNotice(`${member.invite_status === "pending" ? "Fresh invitation" : "Jupiter access email"} sent to ${member.email}.`)
+      setNotice(`${member.invite_status === "pending" ? "Fresh invitation" : "Jupiter access email"} sent to ${member.email}`)
       setMenuId(null)
     } catch (inviteError) {
       setError(inviteError instanceof Error ? inviteError.message : "Could not resend the invitation")

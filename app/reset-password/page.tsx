@@ -17,7 +17,7 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
   const [message, setMessage] = React.useState<string | null>(null)
-  const [nextPath, setNextPath] = React.useState("/login")
+  const [nextPath, setNextPath] = React.useState("/admin")
 
   React.useEffect(() => {
     let active = true
@@ -25,9 +25,7 @@ export default function ResetPasswordPage() {
     async function initializeRecoverySession() {
       const url = new URL(window.location.href)
       const requestedNext = url.searchParams.get("next")
-      if (requestedNext === "/admin" || requestedNext?.startsWith("/admin/events/")) {
-        setNextPath(requestedNext)
-      }
+      if (requestedNext === "/admin") setNextPath(requestedNext)
       const code = url.searchParams.get("code")
       const hash = new URLSearchParams(url.hash.slice(1))
       const accessToken = hash.get("access_token")

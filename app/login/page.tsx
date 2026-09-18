@@ -9,12 +9,7 @@ export const metadata: Metadata = {
   title: "Sign In",
 }
 
-export default async function LoginPage(props: {
-  searchParams?: Promise<{ next?: string }>
-}) {
-  const sp = (await props.searchParams) ?? {}
-  const next = sp.next?.startsWith("/admin") ? sp.next : "/admin"
-
+export default function LoginPage() {
   return (
     <main className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#030817] p-6 text-white">
       <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(88,91,255,.18),transparent_34%),radial-gradient(circle_at_20%_85%,rgba(22,147,255,.12),transparent_30%)]" />
@@ -26,7 +21,7 @@ export default async function LoginPage(props: {
         </p>
 
         <div className="mt-6">
-          <LoginForm next={next} />
+          <LoginForm />
         </div>
         <div className="mt-6 border-t border-white/10 pt-5 text-center text-sm text-white/45">
           Looking for Jupiter?{" "}

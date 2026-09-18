@@ -47,7 +47,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
       email,
       options: {
         data: { full_name: name || undefined },
-        redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent(`/admin/events/${event.id}`)}`,
+        redirectTo: `${appUrl}/reset-password?next=${encodeURIComponent("/admin")}`,
       },
     })
     if (inviteResult.error || !inviteResult.data.user || !inviteResult.data.properties?.action_link) {
@@ -87,6 +87,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     event_id: event.id,
     user_id: authUser.id,
     role,
+    feature_permissions: featurePermissions,
     is_active: true,
     invite_status: authUser.email_confirmed_at ? "active" : "pending",
     invited_at: now,

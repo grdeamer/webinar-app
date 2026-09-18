@@ -256,9 +256,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
             <div className={`${compactNavigation ? "space-y-3 px-2" : "space-y-6 px-3"} flex-1 overflow-y-auto pb-[calc(1rem+env(safe-area-inset-bottom))]`}>
               <Section title="Global" compact={compactNavigation}>
-                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin" icon={<Home03 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                <NavLink compact={compactNavigation} href="/admin" icon={<Home03 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Dashboard
-                </NavLink> : null}
+                </NavLink>
                 <NavLink compact={compactNavigation} href="/admin/events" icon={<CalendarDate className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Events
                 </NavLink>

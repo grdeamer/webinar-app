@@ -26,19 +26,17 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
 
   const appUrl = getAppUrl().replace(/\/$/, "")
-  let nextPath = "/admin"
   if (target.role === "event_member") {
     const requestedEventId = new URL(request.url).searchParams.get("eventId")
     let membershipQuery = supabaseAdmin.from("event_team_members").select("event_id").eq("user_id", id).eq("is_active", true)
     if (requestedEventId) membershipQuery = membershipQuery.eq("event_id", requestedEventId)
     const { data: membership } = await membershipQuery.limit(1).maybeSingle()
     if (!membership?.event_id) return NextResponse.json({ error: "This person has no active event access." }, { status: 400 })
-    nextPath = `/admin/events/${membership.event_id}`
   }
   const { data, error } = await supabaseAdmin.auth.admin.generateLink({
     type: "magiclink",
     email: target.email,
-    options: { redirectTo: `${appUrl}${nextPath}` },
+    options: { redirectTo: `${appUrl}/admin` },
   })
   if (error || !data.properties?.action_link) {
     return NextResponse.json({ error: error?.message || "Could not create a test sign-in link." }, { status: 400 })
