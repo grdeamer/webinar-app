@@ -78,6 +78,7 @@ type AgendaItem = {
   speakers: AgendaSpeaker[]
   show_session_details: boolean
   show_speaker_photo: boolean
+  show_speaker_bio: boolean
   resources: AgendaResource[]
   show_resources: boolean
   district_lookup_enabled: boolean
@@ -104,6 +105,7 @@ const emptyDraft: Partial<AgendaItem> = {
   speakers: [],
   show_session_details: true,
   show_speaker_photo: true,
+  show_speaker_bio: true,
   resources: [],
   show_resources: true,
   district_lookup_enabled: false,
@@ -1634,6 +1636,20 @@ function SessionFields({
             <span>
               <span className="block font-medium">Show Speaker Photo</span>
               <span className="mt-0.5 block text-xs text-white/35">Hides the portrait while keeping text details available.</span>
+            </span>
+          </label>
+          <label className="flex items-start gap-2 rounded-lg border border-white/[0.07] bg-black/15 px-3 py-2.5 text-sm text-white/75">
+            <input
+              type="checkbox"
+              checked={value.show_speaker_bio !== false}
+              onChange={(event) =>
+                onChange({ ...value, show_speaker_bio: event.target.checked })
+              }
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block font-medium">Show Speaker Bio</span>
+              <span className="mt-0.5 block text-xs text-white/35">Turn this off to display speaker names and titles only.</span>
             </span>
           </label>
         </div>

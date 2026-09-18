@@ -16,6 +16,7 @@ export const AGENDA_CSV_HEADERS = [
   "speaker_photo_url",
   "show_session_details",
   "show_speaker_photo",
+  "show_speaker_bio",
   "track",
   "location",
   "status",
@@ -37,6 +38,7 @@ export type AgendaCsvPayload = {
   speaker_photo_url: string | null
   show_session_details: boolean
   show_speaker_photo: boolean
+  show_speaker_bio: boolean
   track: string | null
   location: string | null
   status: "upcoming" | "live" | "complete" | "cancelled"
@@ -103,6 +105,7 @@ export function createAgendaSampleCsv() {
         "https://example.com/speakers/jane-smith.webp",
         "true",
         "true",
+        "true",
         "General Session",
         "Main Stage",
         "upcoming",
@@ -122,6 +125,7 @@ export function createAgendaSampleCsv() {
         "",
         "",
         "",
+        "false",
         "false",
         "false",
         "Hospitality",
@@ -201,6 +205,11 @@ export function parseAgendaCsv(csvText: string): ParsedAgendaCsv {
         show_speaker_photo: booleanValue(
           stringValue(row, "show_speaker_photo"),
           "show_speaker_photo",
+          errors
+        ),
+        show_speaker_bio: booleanValue(
+          stringValue(row, "show_speaker_bio"),
+          "show_speaker_bio",
           errors
         ),
         track: nullableValue(row, "track"),

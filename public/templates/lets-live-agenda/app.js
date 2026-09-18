@@ -253,6 +253,7 @@
         speakers: normalizeSpeakers(JSON.parse(item.dataset.speakers || "[]"), legacySpeaker),
         showSessionDetails: item.dataset.showSessionDetails !== "false",
         showSpeakerPhoto: item.dataset.showSpeakerPhoto !== "false",
+        showSpeakerBio: item.dataset.showSpeakerBio !== "false",
         resources: normalizeResources(JSON.parse(item.dataset.resources || "[]")),
         showResources: item.dataset.showResources !== "false",
         buttonText: item.dataset.buttonText || "",
@@ -328,6 +329,7 @@
       }),
       showSessionDetails: item.show_session_details !== false && item.showSessionDetails !== false,
       showSpeakerPhoto: item.show_speaker_photo !== false && item.showSpeakerPhoto !== false,
+      showSpeakerBio: item.show_speaker_bio !== false && item.showSpeakerBio !== false,
       resources: normalizeResources(item.resources),
       showResources: item.show_resources !== false && item.showResources !== false,
       buttonText: firstValue(item.button_text, item.buttonText, ""),
@@ -354,6 +356,7 @@
       item.dataset.speakers = JSON.stringify(session.speakers || []);
       item.dataset.showSessionDetails = String(session.showSessionDetails !== false);
       item.dataset.showSpeakerPhoto = String(session.showSpeakerPhoto !== false);
+      item.dataset.showSpeakerBio = String(session.showSpeakerBio !== false);
       item.dataset.resources = JSON.stringify(session.resources || []);
       item.dataset.showResources = String(session.showResources !== false);
       item.dataset.buttonText = session.buttonText || "";
@@ -448,6 +451,9 @@
   function renderSpeakerList(session) {
     if (!els.speakerList) return;
     els.speakerList.replaceChildren();
+    const isLargeRoster = session.speakers.length > 4;
+    els.speakerList.classList.toggle("is-large", isLargeRoster);
+    els.speakerPanel?.classList.toggle("is-roster", isLargeRoster);
     if (!session.speakers.length) {
       const empty = document.createElement("p");
       empty.className = "speaker-empty";
@@ -483,10 +489,12 @@
         role.textContent = speaker.title;
         copy.append(role);
       }
-      const bio = document.createElement("p");
-      bio.className = "speaker-bio";
-      bio.textContent = speaker.bio || "A full speaker biography will be available here soon.";
-      copy.append(bio);
+      if (session.showSpeakerBio !== false && speaker.bio) {
+        const bio = document.createElement("p");
+        bio.className = "speaker-bio";
+        bio.textContent = speaker.bio;
+        copy.append(bio);
+      }
       card.append(portrait, copy);
       els.speakerList.append(card);
     });

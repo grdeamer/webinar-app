@@ -78,6 +78,7 @@ export interface EventAgendaItem {
   speakers: EventAgendaSpeaker[]
   show_session_details: boolean
   show_speaker_photo: boolean
+  show_speaker_bio: boolean
   resources: EventAgendaResource[]
   show_resources: boolean
   district_lookup_enabled: boolean

@@ -939,6 +939,30 @@ h1 {
   margin-top: 14px;
 }
 
+.speaker-panel.is-roster {
+  position: relative;
+  top: auto;
+  grid-column: 1 / -1;
+}
+
+.speaker-list.is-large {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.speaker-list.is-large .speaker-card-portrait {
+  min-height: 140px;
+}
+
+.speaker-list.is-large .speaker-card-portrait img {
+  height: 140px;
+}
+
+.speaker-list.is-large .speaker-card-portrait span {
+  width: 88px;
+  height: 88px;
+  font-size: 24px;
+}
+
 .speaker-card {
   overflow: hidden;
   border: 1px solid var(--line);
@@ -1280,6 +1304,10 @@ h1 {
 }
 
 @media (max-width: 680px) {
+  .speaker-list.is-large {
+    grid-template-columns: 1fr;
+  }
+
   .survey-header {
     grid-template-columns: 1fr;
     gap: 16px;

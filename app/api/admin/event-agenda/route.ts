@@ -8,7 +8,7 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const agendaSelect =
-  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,speakers,show_session_details,show_speaker_photo,resources,show_resources,district_lookup_enabled,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
+  "id,event_id,start_at,end_at,title,description,location,track,speaker,speaker_title,speaker_bio,speaker_photo_url,speakers,show_session_details,show_speaker_photo,show_speaker_bio,resources,show_resources,district_lookup_enabled,icon_key,sort_index,status,button_text,button_url,is_visible,created_at,updated_at"
 
 function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
@@ -103,6 +103,7 @@ export async function POST(req: Request): Promise<Response> {
     speakers,
     show_session_details: body.show_session_details !== false,
     show_speaker_photo: body.show_speaker_photo !== false,
+    show_speaker_bio: body.show_speaker_bio !== false,
     resources: normalizeResources(body.resources),
     show_resources: body.show_resources !== false,
     district_lookup_enabled: body.district_lookup_enabled === true,
@@ -175,6 +176,9 @@ export async function PUT(req: Request): Promise<Response> {
   }
   if (body.show_speaker_photo !== undefined) {
     patch.show_speaker_photo = Boolean(body.show_speaker_photo)
+  }
+  if (body.show_speaker_bio !== undefined) {
+    patch.show_speaker_bio = Boolean(body.show_speaker_bio)
   }
   if (body.resources !== undefined) {
     patch.resources = normalizeResources(body.resources)

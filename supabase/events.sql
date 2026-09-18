@@ -38,6 +38,7 @@ create table if not exists public.event_agenda_items (
   speakers jsonb not null default '[]'::jsonb,
   show_session_details boolean not null default true,
   show_speaker_photo boolean not null default true,
+  show_speaker_bio boolean not null default true,
   resources jsonb not null default '[]'::jsonb,
   show_resources boolean not null default true,
   sort_index int not null default 0,
@@ -194,5 +195,6 @@ alter table public.event_agenda_items add column if not exists speakers jsonb no
 alter table public.event_agenda_items add column if not exists icon_key text null;
 alter table public.event_agenda_items add column if not exists show_session_details boolean not null default true;
 alter table public.event_agenda_items add column if not exists show_speaker_photo boolean not null default true;
+alter table public.event_agenda_items add column if not exists show_speaker_bio boolean not null default true;
 alter table public.event_agenda_items add column if not exists resources jsonb not null default '[]'::jsonb;
 alter table public.event_agenda_items add column if not exists show_resources boolean not null default true;
