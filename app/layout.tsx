@@ -35,9 +35,35 @@ export const metadata: Metadata = {
   creator: "August Black, Inc.",
   publisher: "August Black, Inc.",
   icons: {
-    icon: [{ url: "/jupiter-planet.svg", type: "image/svg+xml" }],
-    shortcut: "/jupiter-planet.svg",
-    apple: "/jupiter-planet.svg",
+    icon: [
+      { url: "/jupiter-planet.svg", type: "image/svg+xml" },
+      { url: "/jupiter-share-icon.png", type: "image/png", sizes: "512x512" },
+    ],
+    shortcut: "/jupiter-share-icon.png",
+    apple: [{ url: "/jupiter-share-icon.png", type: "image/png", sizes: "512x512" }],
+  },
+  openGraph: {
+    type: "website",
+    url: "https://jupiter.events",
+    siteName: "Jupiter",
+    title: "Jupiter — Events with Gravity",
+    description:
+      "Create, produce, and direct branded virtual events from one live production platform.",
+    images: [
+      {
+        url: "/jupiter-share-icon.png",
+        width: 512,
+        height: 512,
+        alt: "Jupiter",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary",
+    title: "Jupiter — Events with Gravity",
+    description:
+      "Create, produce, and direct branded virtual events from one live production platform.",
+    images: ["/jupiter-share-icon.png"],
   },
   appleWebApp: {
     capable: true,
