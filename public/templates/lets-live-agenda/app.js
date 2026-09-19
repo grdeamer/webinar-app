@@ -43,9 +43,26 @@
     ringcentral: ["M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 16a6 6 0 1 1 6-6 6 6 0 0 1-6 6Z"],
     chime: ["M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm3 9h-6v2h6Z"],
     bluejeans: ["M3 7a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2ZM16 9l5-3v12l-5-3Z"],
-    meeting: ["M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"],
-    district: ["M12 3v6M5 21v-4a3 3 0 0 1 3-3h8a3 3 0 0 1 3 3v4M6 9h12M6 9v3M18 9v3", "M3 12h6v5H3ZM15 12h6v5h-6ZM9 2h6v5H9Z"]
+    meeting: ["M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"]
   };
+
+  function detectMeetingPlatform(url) {
+    if (!url) return "";
+    try {
+      const host = new URL(url).hostname.toLowerCase();
+      if (host.includes("zoom.us")) return "zoom";
+      if (host.includes("teams.microsoft.com")) return "teams";
+      if (host.includes("webex.com")) return "webex";
+      if (host.includes("meet.google.com")) return "google-meet";
+      if (host.includes("gotomeeting.com") || host.includes("gotowebinar.com")) return "goto";
+      if (host.includes("ringcentral.com")) return "ringcentral";
+      if (host.includes("chime.aws")) return "chime";
+      if (host.includes("bluejeans.com")) return "bluejeans";
+      return "other";
+    } catch {
+      return "";
+    }
+  }
 
   const els = {
     eventGate: document.getElementById("eventGate"),
@@ -77,22 +94,16 @@
     timeZoneSelect: document.getElementById("timeZoneSelect"),
     announcement: document.getElementById("runtimeAnnouncement"),
     announcementText: document.getElementById("runtimeAnnouncementText"),
+    districtDirectory: document.getElementById("districtDirectory"),
+    districtDirectoryTree: document.getElementById("districtDirectoryTree"),
+    districtDirectoryDetail: document.getElementById("districtDirectoryDetail"),
+    districtDirectorySearch: document.getElementById("districtDirectorySearch"),
     speakerPanel: document.getElementById("speakerPanel"),
     speakerPanelClose: document.getElementById("speakerPanelClose"),
     speakerPanelLabel: document.getElementById("speakerPanelLabel"),
     speakerList: document.getElementById("speakerList"),
     speakerSession: document.getElementById("speakerSession"),
-    speakerTime: document.getElementById("speakerTime"),
-    districtFinder: document.getElementById("districtFinder"),
-    districtFinderClose: document.getElementById("districtFinderClose"),
-    districtFinderBackdrop: document.getElementById("districtFinderBackdrop"),
-    districtFinderForm: document.getElementById("districtFinderForm"),
-    districtEmail: document.getElementById("districtEmail"),
-    districtFinderSubmit: document.getElementById("districtFinderSubmit"),
-    districtFinderMessage: document.getElementById("districtFinderMessage"),
-    districtFinderResults: document.getElementById("districtFinderResults"),
-    districtDirectory: document.getElementById("districtDirectory"),
-    districtDirectoryList: document.getElementById("districtDirectoryList")
+    speakerTime: document.getElementById("speakerTime")
   };
 
   function firstValue(...values) {
@@ -118,7 +129,7 @@
       return { key: "teams", label: "Microsoft Teams" };
     }
     if (hostnameMatches(hostname, "meet.google.com")) {
-      return { key: "meet", label: "Google Meet" };
+      return { key: "google-meet", label: "Google Meet" };
     }
     if (hostnameMatches(hostname, "webex.com")) {
       return { key: "webex", label: "Webex" };
@@ -126,8 +137,17 @@
     if (hostnameMatches(hostname, "youtube.com") || hostnameMatches(hostname, "youtu.be")) {
       return { key: "youtube", label: "YouTube Live" };
     }
-    if (hostnameMatches(hostname, "gotomeeting.com") || hostnameMatches(hostname, "goto.com")) {
+    if (hostnameMatches(hostname, "gotomeeting.com") || hostnameMatches(hostname, "gotowebinar.com") || hostnameMatches(hostname, "goto.com")) {
       return { key: "goto", label: "GoTo Meeting" };
+    }
+    if (hostnameMatches(hostname, "ringcentral.com")) {
+      return { key: "ringcentral", label: "RingCentral" };
+    }
+    if (hostnameMatches(hostname, "chime.aws")) {
+      return { key: "chime", label: "Amazon Chime" };
+    }
+    if (hostnameMatches(hostname, "bluejeans.com")) {
+      return { key: "bluejeans", label: "BlueJeans" };
     }
     return { key: "meeting", label: "Meeting link" };
   }
@@ -152,6 +172,99 @@
     }
     if (els.meetingProviderLabel) els.meetingProviderLabel.textContent = provider.label;
     if (els.enterButton) els.enterButton.dataset.provider = provider.key;
+  }
+
+  let districtDirectoryNodes = [];
+  let districtDirectoryAvailable = false;
+  let districtDirectoryRequestInFlight = false;
+
+  function safeMeetingUrl(value) {
+    try {
+      const url = new URL(value);
+      return url.protocol === "https:" ? url.href : "";
+    } catch {
+      return "";
+    }
+  }
+
+  function renderDistrictDestination(node) {
+    if (!els.districtDirectoryDetail || !node || node.node_type !== "district") return;
+    const url = safeMeetingUrl(node.meeting_link);
+    const parent = districtDirectoryNodes.find(item => item.id === node.parent_id);
+    const zone = parent ? districtDirectoryNodes.find(item => item.id === parent.parent_id) : null;
+    els.districtDirectoryDetail.replaceChildren();
+    const title = document.createElement("h3"); title.textContent = node.name;
+    const copy = document.createElement("p"); copy.textContent = url ? "Your district destination is ready. It will open in a new browser tab." : "This district does not have a meeting link yet.";
+    const meta = document.createElement("dl");
+    const meetingStatus = url ? (node.platform || detectMeetingProvider(url).label || "Ready") : "Not available";
+    [["Zone", zone?.name], ["Region", parent?.name], ["Meeting link", meetingStatus]].forEach(([label, value]) => {
+      if (!value) return;
+      const row = document.createElement("div"), term = document.createElement("dt"), description = document.createElement("dd");
+      term.textContent = label; description.textContent = value; row.append(term, description); meta.append(row);
+    });
+    els.districtDirectoryDetail.append(title, copy, meta);
+    if (url) {
+      const link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer nofollow"; link.textContent = "Open district room ↗"; els.districtDirectoryDetail.append(link);
+    }
+  }
+
+  function renderDistrictDirectory(query = "") {
+    if (!els.districtDirectoryTree) return;
+    const normalized = String(query).trim().toLowerCase();
+    const byParent = new Map();
+    districtDirectoryNodes.forEach(node => byParent.set(node.parent_id || null, [...(byParent.get(node.parent_id || null) || []), node]));
+    byParent.forEach(nodes => nodes.sort((left, right) => (left.sort_order || 0) - (right.sort_order || 0) || left.name.localeCompare(right.name)));
+
+    function branch(parentId, depth) {
+      const list = document.createElement("ul"); list.className = "district-tree-level"; list.dataset.depth = String(depth);
+      (byParent.get(parentId) || []).forEach(node => {
+        const descendants = byParent.get(node.id) || [];
+        const descendantMatches = !normalized || node.name.toLowerCase().includes(normalized) || descendants.some(child => child.name.toLowerCase().includes(normalized) || (byParent.get(child.id) || []).some(grandchild => grandchild.name.toLowerCase().includes(normalized)));
+        if (!descendantMatches) return;
+        const item = document.createElement("li"); item.className = `district-tree-item is-${node.node_type}`;
+        const button = document.createElement("button"); button.type = "button";
+        const marker = document.createElement("span"); marker.className = "district-tree-marker"; marker.textContent = node.node_type === "district" ? "•" : normalized ? "⌄" : "›";
+        const copy = document.createElement("span"); copy.className = "district-tree-copy";
+        const label = document.createElement("small"); label.textContent = node.node_type;
+        const name = document.createElement("strong"); name.textContent = node.name; copy.append(label, name);
+        const count = document.createElement("em"); count.textContent = descendants.length ? `${descendants.length} ${node.node_type === "zone" ? "regions" : "districts"}` : node.meeting_link ? "Link ready" : "Link needed";
+        button.append(marker, copy, count); item.append(button);
+        if (descendants.length) {
+          const children = branch(node.id, depth + 1); children.hidden = !normalized;
+          button.setAttribute("aria-expanded", normalized ? "true" : "false");
+          button.addEventListener("click", () => { children.hidden = !children.hidden; button.setAttribute("aria-expanded", String(!children.hidden)); marker.textContent = children.hidden ? "›" : "⌄"; });
+          item.append(children);
+        } else {
+          button.addEventListener("click", () => { els.districtDirectoryTree.querySelectorAll("button.is-selected").forEach(element => element.classList.remove("is-selected")); button.classList.add("is-selected"); renderDistrictDestination(node); });
+        }
+        list.append(item);
+      });
+      return list;
+    }
+    els.districtDirectoryTree.replaceChildren(branch(null, 0));
+  }
+
+  async function fetchDistrictDirectory() {
+    const endpoint = String(config.DISTRICT_DIRECTORY_ENDPOINT || "").trim();
+    if (!endpoint || !els.districtDirectory || districtDirectoryRequestInFlight) return;
+    districtDirectoryRequestInFlight = true;
+    try {
+      const response = await fetch(endpoint, { headers: { Accept: "application/json" }, cache: "no-store" });
+      if (!response.ok) throw new Error(`District directory returned ${response.status}`);
+      const payload = await response.json();
+      districtDirectoryNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
+      // This endpoint is the source of truth for directory availability. Keeping
+      // the runtime flag in this condition allowed a stale mobile response to
+      // hide a directory that the endpoint had already confirmed was active.
+      districtDirectoryAvailable = payload.enabled === true && districtDirectoryNodes.length > 0;
+      els.districtDirectory.hidden = !districtDirectoryAvailable;
+      if (!els.districtDirectory.hidden) renderDistrictDirectory();
+    } catch (error) {
+      console.warn("District directory is unavailable.", error);
+      if (!districtDirectoryAvailable) els.districtDirectory.hidden = true;
+    } finally {
+      districtDirectoryRequestInFlight = false;
+    }
   }
 
   function sessionKey(session) {
@@ -543,7 +656,6 @@
       event_start_at: firstValue(raw.event?.start_at, raw.event_start_at, state.event_start_at),
       survey_url: firstValue(raw.survey_url, raw.survey?.url, ""),
       show_survey: raw.show_survey === true || raw.survey?.visible === true,
-      district_lookup_enabled: raw.district_lookup_enabled === true,
       district_directory_enabled: raw.district_directory_enabled === true,
       attendee_component_state: raw.attendee_component_state && typeof raw.attendee_component_state === "object"
         ? raw.attendee_component_state
@@ -625,100 +737,6 @@
     }
   }
 
-  function closeDistrictFinder() {
-    if (!els.districtFinder) return;
-    els.districtFinder.hidden = true;
-    document.body.style.removeProperty("overflow");
-  }
-
-  function renderDistrictRooms(rooms) {
-    if (!els.districtFinderResults) return;
-    els.districtFinderResults.replaceChildren();
-    (Array.isArray(rooms) ? rooms : []).forEach(room => {
-      const card = document.createElement("article");
-      card.className = "district-room";
-      const copy = document.createElement("div");
-      const name = document.createElement("strong");
-      name.textContent = room.name || room.code || "Assigned room";
-      copy.append(name);
-      if (room.manager) {
-        const manager = document.createElement("span");
-        manager.textContent = `Lead: ${room.manager}`;
-        copy.append(manager);
-      }
-      card.append(copy);
-      if (/^https:\/\//i.test(room.meeting_link || "")) {
-        const link = document.createElement("a");
-        link.className = "district-room-link";
-        link.href = room.meeting_link;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer nofollow";
-        link.textContent = "Enter room →";
-        card.append(link);
-      }
-      els.districtFinderResults.append(card);
-    });
-  }
-
-  function renderDistrictDirectory(nodes) {
-    if (!els.districtDirectory || !els.districtDirectoryList) return;
-    els.districtDirectoryList.replaceChildren();
-    const rows = Array.isArray(nodes) ? nodes : [];
-    if (!rows.length) {
-      els.districtDirectory.hidden = true;
-      return;
-    }
-    const byParent = new Map();
-    rows.forEach(node => {
-      const key = node.parent_id || "root";
-      byParent.set(key, [...(byParent.get(key) || []), node]);
-    });
-    const appendNodes = (parentId, depth) => {
-      (byParent.get(parentId) || []).forEach(node => {
-        const row = /^https:\/\//i.test(node.meeting_link || "") ? document.createElement("a") : document.createElement("div");
-        row.className = "district-directory-node";
-        row.style.marginLeft = `${Math.min(depth, 3) * 16}px`;
-        if (row instanceof HTMLAnchorElement) {
-          row.href = node.meeting_link;
-          row.target = "_blank";
-          row.rel = "noopener noreferrer nofollow";
-        }
-        const name = document.createElement("span");
-        name.textContent = node.name || node.code || "Untitled";
-        const type = document.createElement("small");
-        type.textContent = String(node.node_type || "group").replace(/_/g, " ");
-        row.append(name, type);
-        els.districtDirectoryList.append(row);
-        appendNodes(node.id, depth + 1);
-      });
-    };
-    appendNodes("root", 0);
-    els.districtDirectory.hidden = false;
-  }
-
-  async function loadDistrictDirectory() {
-    if (!state.district_directory_enabled || !config.DISTRICT_DIRECTORY_ENDPOINT || !els.districtDirectory) return;
-    try {
-      const response = await fetch(config.DISTRICT_DIRECTORY_ENDPOINT, { headers: { Accept: "application/json" }, cache: "no-store" });
-      const payload = await response.json();
-      if (response.ok && payload.enabled) renderDistrictDirectory(payload.nodes);
-    } catch (error) {
-      console.warn("Unable to load the district directory.", error);
-    }
-  }
-
-  function openDistrictFinder() {
-    if (!els.districtFinder) return;
-    els.districtFinder.hidden = false;
-    document.body.style.overflow = "hidden";
-    if (els.districtFinderMessage) {
-      els.districtFinderMessage.textContent = "";
-      els.districtFinderMessage.classList.remove("is-error");
-    }
-    void loadDistrictDirectory();
-    window.setTimeout(() => els.districtEmail?.focus(), 50);
-  }
-
   function applyState(nextState, animate = false) {
     if (!nextState) return;
     state = { ...state, ...nextState };
@@ -739,6 +757,10 @@
     const componentState = state.attendee_component_state || {};
     if (els.countdownCard) els.countdownCard.hidden = componentState.countdown === false;
     if (els.agendaSection) els.agendaSection.hidden = componentState.agenda === false;
+    if (els.districtDirectory) {
+      els.districtDirectory.hidden = !districtDirectoryAvailable;
+      if (!els.districtDirectory.hidden) renderDistrictDirectory(els.districtDirectorySearch?.value || "");
+    }
     const sessionStatusNow = new Date();
     agendaItems.forEach(item => {
       const session = sessionMap.get(item.dataset.session);
@@ -777,31 +799,16 @@
       state.button_text,
       "Enter live meeting"
     );
-    const districtLookupActive = state.district_lookup_enabled === true && Boolean(active);
-    if (districtLookupActive) {
-      if (els.enterButton) {
-        els.enterButton.href = "#district-finder";
-        els.enterButton.removeAttribute("target");
-        els.enterButton.dataset.provider = "district";
-      }
-      if (els.enterButtonText) els.enterButtonText.textContent = "Find your district";
-      if (els.meetingProviderLabel) els.meetingProviderLabel.textContent = "District & group rooms";
-      if (els.meetingProviderIcon) els.meetingProviderIcon.replaceChildren(createMeetingProviderIcon("district"));
-    } else {
-      if (els.enterButton && meetingButtonUrl) {
-        els.enterButton.href = meetingButtonUrl;
-        els.enterButton.target = "_blank";
-      }
-      if (els.enterButtonText) els.enterButtonText.textContent = meetingButtonText;
-      updateMeetingProvider(meetingButtonUrl || "");
-    }
+    if (els.enterButton && meetingButtonUrl) els.enterButton.href = meetingButtonUrl;
+    if (els.enterButtonText) els.enterButtonText.textContent = meetingButtonText;
+    updateMeetingProvider(meetingButtonUrl || "");
     if (els.announcement && els.announcementText) {
       els.announcement.hidden = !state.announcement;
       els.announcementText.textContent = state.announcement || "";
     }
     if (els.statusPill) {
       const text = state.status === "complete" || state.status === "ended" ? "Event complete" : state.status === "scheduled" ? "Event begins soon" : "Event in progress";
-      const textNode = Array.from(els.statusPill.childNodes).find(node => node.nodeType === Node.TEXT_NODE);
+      const textNode = Array.from(els.statusPill.childNodes).find(node => node.nodeType === Node.TEXT_NODE && node.textContent.trim());
       if (textNode) textNode.textContent = ` ${text}`;
     }
     updateEventDayDate(state.event_date);
@@ -811,7 +818,7 @@
 
   function updateClock() {
     const now = new Date();
-    els.eventClock.textContent = new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), hour: "numeric", minute: "2-digit", second: "2-digit", hour12: true }).format(now);
+    els.eventClock.textContent = new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), hour: "numeric", minute: "2-digit", hour12: true }).format(now);
     els.eventDate.textContent = new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(now);
   }
 
@@ -916,52 +923,13 @@
     }
   }
 
+  els.districtDirectorySearch?.addEventListener("input", () => renderDistrictDirectory(els.districtDirectorySearch.value));
+
   document.getElementById("openSupport")?.addEventListener("click", event => {
     event.preventDefault();
     window.$crisp = window.$crisp || [];
     window.$crisp.push(["do", "chat:show"]);
     window.$crisp.push(["do", "chat:open"]);
-  });
-
-  els.enterButton?.addEventListener("click", event => {
-    if (state.district_lookup_enabled !== true) return;
-    event.preventDefault();
-    openDistrictFinder();
-  });
-  els.districtFinderClose?.addEventListener("click", closeDistrictFinder);
-  els.districtFinderBackdrop?.addEventListener("click", closeDistrictFinder);
-  document.addEventListener("keydown", event => {
-    if (event.key === "Escape" && !els.districtFinder?.hidden) closeDistrictFinder();
-  });
-  els.districtFinderForm?.addEventListener("submit", async event => {
-    event.preventDefault();
-    const email = String(els.districtEmail?.value || "").trim();
-    if (!email || !config.DISTRICT_ACCESS_ENDPOINT) return;
-    if (els.districtFinderSubmit) els.districtFinderSubmit.disabled = true;
-    if (els.districtFinderMessage) {
-      els.districtFinderMessage.textContent = "Finding your assigned room…";
-      els.districtFinderMessage.classList.remove("is-error");
-    }
-    if (els.districtFinderResults) els.districtFinderResults.replaceChildren();
-    try {
-      const endpoint = `${String(config.DISTRICT_ACCESS_ENDPOINT).replace(/\/$/, "")}/request`;
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Accept: "application/json" },
-        body: JSON.stringify({ email })
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.error || "We could not find a room for that email.");
-      renderDistrictRooms(payload.districts || (payload.district ? [payload.district] : []));
-      if (els.districtFinderMessage) els.districtFinderMessage.textContent = "Your room is ready.";
-    } catch (error) {
-      if (els.districtFinderMessage) {
-        els.districtFinderMessage.textContent = error instanceof Error ? error.message : "We could not find your room.";
-        els.districtFinderMessage.classList.add("is-error");
-      }
-    } finally {
-      if (els.districtFinderSubmit) els.districtFinderSubmit.disabled = false;
-    }
   });
   window.$crisp = window.$crisp || [];
   window.$crisp.push(["on", "chat:closed", () => window.$crisp.push(["do", "chat:hide"])]);
@@ -991,5 +959,7 @@
   setInterval(updateClock, 1000);
   setInterval(updateCountdown, 1000);
   fetchState();
+  fetchDistrictDirectory();
   setInterval(fetchState, Math.max(10000, Number(config.POLL_INTERVAL_MS) || 10000));
+  setInterval(fetchDistrictDirectory, Math.max(30000, (Number(config.POLL_INTERVAL_MS) || 10000) * 3));
 })();

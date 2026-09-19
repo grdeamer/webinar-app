@@ -2,7 +2,8 @@ import { Readable } from "node:stream"
 import { NextResponse } from "next/server"
 import { loadPublishDestination } from "@/lib/external-publishing/destinations"
 import { RemoteFileExistsError, uploadRemoteFile } from "@/lib/external-publishing/ftpPublisher"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requirePublishingApiAccess } from "@/lib/external-publishing/authorization"
+import { logPublishingEvent } from "@/lib/external-publishing/logging"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
@@ -12,8 +13,9 @@ const bucket = "upload"
 const maxFileSize = 50 * 1024 * 1024
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
   const { id } = await context.params
+  const access = await requirePublishingApiAccess(id)
+  if (access instanceof NextResponse) return access
   const body = await request.json().catch((): null => null)
   const destinationId = String(body?.destination_id || "")
   const stagingPath = String(body?.staging_path || "")
@@ -42,12 +44,14 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     })
 
     await supabaseAdmin.storage.from(bucket).remove([stagingPath])
+    logPublishingEvent("info", "file-upload.completed", { eventId: id, destinationId, path: String(body?.path || ""), fileName: result.name, replaced: result.replaced })
     return NextResponse.json({ ok: true, ...result })
   } catch (error) {
     if (error instanceof RemoteFileExistsError) {
       return NextResponse.json({ error: error.message, conflict: true }, { status: 409 })
     }
     await supabaseAdmin.storage.from(bucket).remove([stagingPath])
+    logPublishingEvent("error", "file-upload.failed", { eventId: id, destinationId, path: String(body?.path || ""), fileName: String(body?.file_name || ""), error: error instanceof Error ? error.message : "Could not upload remote file" })
     return NextResponse.json(
       { error: error instanceof Error ? error.message : "Could not upload remote file" },
       { status: 400 },

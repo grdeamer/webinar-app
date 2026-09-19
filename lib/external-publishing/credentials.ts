@@ -6,14 +6,7 @@ type EncryptedSecret = {
   tag: string
 }
 
-function getEncryptionKey(): Buffer {
-  const raw =
-    process.env.EXTERNAL_PUBLISHING_ENCRYPTION_KEY?.trim() ||
-    process.env.JWT_SECRET?.trim()
-  if (!raw) {
-    throw new Error("Publishing credential encryption is not configured")
-  }
-
+function deriveEncryptionKey(raw: string): Buffer {
   const decoded = Buffer.from(raw, "base64")
   if (decoded.length === 32) return decoded
 
@@ -21,6 +14,26 @@ function getEncryptionKey(): Buffer {
     .update("jupiter:external-publishing:v1\0", "utf8")
     .update(raw, "utf8")
     .digest()
+}
+
+function getEncryptionKeys(): Buffer[] {
+  const configured = process.env.EXTERNAL_PUBLISHING_ENCRYPTION_KEY?.trim()
+  const legacy = process.env.JWT_SECRET?.trim()
+  const rawKeys = [configured, legacy].filter(
+    (value, index, values): value is string =>
+      Boolean(value) && values.indexOf(value) === index,
+  )
+
+  if (rawKeys.length === 0) {
+    throw new Error("Publishing credential encryption is not configured")
+  }
+
+  return rawKeys.map(deriveEncryptionKey)
+}
+
+function getEncryptionKey(): Buffer {
+  const [key] = getEncryptionKeys()
+  return key
 }
 
 export function encryptPublishingSecret(value: string): EncryptedSecret {
@@ -36,14 +49,23 @@ export function encryptPublishingSecret(value: string): EncryptedSecret {
 }
 
 export function decryptPublishingSecret(secret: EncryptedSecret): string {
-  const decipher = createDecipheriv(
-    "aes-256-gcm",
-    getEncryptionKey(),
-    Buffer.from(secret.iv, "base64"),
-  )
-  decipher.setAuthTag(Buffer.from(secret.tag, "base64"))
-  return Buffer.concat([
-    decipher.update(Buffer.from(secret.ciphertext, "base64")),
-    decipher.final(),
-  ]).toString("utf8")
+  for (const key of getEncryptionKeys()) {
+    try {
+      const decipher = createDecipheriv(
+        "aes-256-gcm",
+        key,
+        Buffer.from(secret.iv, "base64"),
+      )
+      decipher.setAuthTag(Buffer.from(secret.tag, "base64"))
+      return Buffer.concat([
+        decipher.update(Buffer.from(secret.ciphertext, "base64")),
+        decipher.final(),
+      ]).toString("utf8")
+    } catch {
+      // Try the legacy JWT-derived key for credentials saved before the
+      // dedicated publishing key was introduced.
+    }
+  }
+
+  throw new Error("Unable to decrypt publishing credentials")
 }

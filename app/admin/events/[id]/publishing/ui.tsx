@@ -1,9 +1,10 @@
 "use client"
 
 import Link from "next/link"
-import { useCallback, useEffect, useState } from "react"
-import { CheckCircle2, ExternalLink, Globe2, History, Loader2, Pencil, RotateCcw, Server, UploadCloud, X } from "lucide-react"
+import { useCallback, useEffect, useRef, useState } from "react"
+import { Archive, CheckCircle2, ExternalLink, Globe2, History, Loader2, Pencil, RotateCcw, Server, UploadCloud, X } from "lucide-react"
 import RemoteFileBrowser from "./RemoteFileBrowser"
+import { createClient } from "@/lib/supabase/client"
 
 type Destination = {
   id: string
@@ -27,6 +28,8 @@ type Deployment = {
   created_at: string
   completed_at: string | null
   backup_path: string | null
+  files: string[]
+  error: string | null
 }
 
 const inputClass = "mt-2 w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm text-white outline-none transition focus:border-violet-300/40 focus:ring-2 focus:ring-violet-400/15"
@@ -41,6 +44,7 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
   const [error, setError] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
+  const archiveInput = useRef<HTMLInputElement>(null)
 
   const load = useCallback(async () => {
     const [destinationResponse, historyResponse] = await Promise.all([
@@ -96,6 +100,58 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
       setError(saveError instanceof Error ? saveError.message : "Could not save destination")
     } finally {
       setBusy(null)
+    }
+  }
+
+  async function deployArchive(file: File) {
+    if (!selectedId) return
+    if (!file.name.toLowerCase().endsWith(".zip")) {
+      setError("Choose a ZIP file.")
+      return
+    }
+    if (file.size < 1 || file.size > 50 * 1024 * 1024) {
+      setError("ZIP files must be between 1 byte and 50 MB.")
+      return
+    }
+
+    setBusy("archive")
+    setMessage(null)
+    setError(null)
+    let stagingPath = ""
+    try {
+      const prepareResponse = await fetch(`/api/admin/events/${eventId}/publishing/upload/prepare`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination_id: selectedId, file_name: file.name, size_bytes: file.size }),
+      })
+      const prepared = await prepareResponse.json().catch((): null => null)
+      if (!prepareResponse.ok || !prepared?.path || !prepared?.token) throw new Error(prepared?.error || "Could not prepare ZIP")
+      stagingPath = prepared.path
+      const supabase = createClient()
+      const { error: uploadError } = await supabase.storage.from("upload").uploadToSignedUrl(stagingPath, prepared.token, file, { contentType: "application/zip", upsert: false })
+      if (uploadError) throw uploadError
+
+      const response = await fetch(`/api/admin/events/${eventId}/publishing/archive`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ destination_id: selectedId, staging_path: stagingPath }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (!response.ok) throw new Error(payload?.error || "ZIP publish failed")
+      setMessage(`Site ZIP published successfully (${payload.files} files).`)
+      await load()
+    } catch (archiveError) {
+      setError(archiveError instanceof Error ? archiveError.message : "ZIP publish failed")
+      if (stagingPath) {
+        await fetch(`/api/admin/events/${eventId}/publishing/upload/prepare`, {
+          method: "DELETE",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ destination_id: selectedId, staging_path: stagingPath }),
+        }).catch((): void => undefined)
+      }
+    } finally {
+      setBusy(null)
+      if (archiveInput.current) archiveInput.current.value = ""
     }
   }
 
@@ -155,8 +211,9 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
           <section className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7">
             <div className="flex items-center gap-3"><Globe2 className="text-sky-200" size={20} /><div><h2 className="font-semibold">Publish</h2><p className="text-xs text-white/40">Only Jupiter-managed attendee files are replaced.</p></div></div>
             <label className="mt-6 block text-xs font-semibold text-white/60">Destination<select className={inputClass} value={selectedId} onChange={(event) => setSelectedId(event.target.value)}><option value="">Choose a destination</option>{destinations.map((destination) => <option key={destination.id} value={destination.id}>{destination.name}</option>)}</select></label>
-            {selected ? <div className="mt-4 rounded-2xl border border-white/[.08] bg-black/20 p-4 text-sm text-white/55"><div className="flex items-start justify-between gap-4"><div><div className="font-semibold text-white/85">{selected.protocol.toUpperCase()} • {selected.host}:{selected.port}</div><div className="mt-1">{selected.remote_path}</div></div><button type="button" onClick={() => editDestination(selected)} disabled={Boolean(busy)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/65 hover:bg-white/[.06] hover:text-white disabled:opacity-40"><Pencil size={13} />Edit</button></div>{selected.last_status ? <div className="mt-3 flex items-center gap-2 text-xs"><CheckCircle2 size={14} className="text-emerald-300" />{selected.last_status}</div> : null}</div> : null}
-            <div className="mt-5 grid gap-3 sm:grid-cols-2"><button type="button" disabled={!selectedId || Boolean(busy)} onClick={() => run("test", { destination_id: selectedId })} className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-3 text-sm font-semibold hover:bg-white/10 disabled:opacity-40">Test Connection</button><button type="button" disabled={!selectedId || Boolean(busy)} onClick={() => run("publish", { destination_id: selectedId })} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-40">{busy === "publish" ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}Publish Site</button></div>
+            {selected ? <div className="mt-4 rounded-2xl border border-white/[.08] bg-black/20 p-4 text-sm text-white/55"><div className="flex items-start justify-between gap-4"><div><div className="font-semibold text-white/85">{selected.protocol.toUpperCase()} • {selected.host}:{selected.port}</div><div className="mt-1">{selected.remote_path}</div></div><button type="button" onClick={() => editDestination(selected)} disabled={Boolean(busy)} className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 px-3 py-2 text-xs font-semibold text-white/65 hover:bg-white/[.06] hover:text-white disabled:opacity-40"><Pencil size={13} />Edit</button></div>{selected.last_status ? <div className="mt-3 flex items-center gap-2 text-xs"><CheckCircle2 size={14} className={selected.last_status === "failed" ? "text-red-300" : "text-emerald-300"} />{selected.last_status}</div> : null}{selected.last_error ? <div className="mt-2 rounded-lg border border-red-400/15 bg-red-500/[.08] px-3 py-2 text-xs leading-5 text-red-100/80">{selected.last_error}</div> : null}</div> : null}
+            <div className="mt-5 grid gap-3 sm:grid-cols-3"><button type="button" disabled={!selectedId || Boolean(busy)} onClick={() => run("test", { destination_id: selectedId })} className="rounded-xl border border-white/10 bg-white/[.05] px-4 py-3 text-sm font-semibold hover:bg-white/10 disabled:opacity-40">Test Connection</button><button type="button" disabled={!selectedId || Boolean(busy)} onClick={() => run("publish", { destination_id: selectedId })} className="flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-3 text-sm font-semibold hover:bg-emerald-500 disabled:opacity-40">{busy === "publish" ? <Loader2 className="animate-spin" size={16} /> : <UploadCloud size={16} />}Publish Site</button><button type="button" disabled={!selectedId || Boolean(busy)} onClick={() => archiveInput.current?.click()} className="flex items-center justify-center gap-2 rounded-xl border border-violet-300/20 bg-violet-500/10 px-4 py-3 text-sm font-semibold text-violet-100 hover:bg-violet-500/20 disabled:opacity-40">{busy === "archive" ? <Loader2 className="animate-spin" size={16} /> : <Archive size={16} />}Deploy ZIP</button></div>
+            <input ref={archiveInput} type="file" accept=".zip,application/zip" className="hidden" onChange={(event) => { const file = event.target.files?.[0]; if (file) void deployArchive(file) }} />
             {selected?.public_url ? <a className="mt-4 inline-flex items-center gap-2 text-sm text-sky-200/75 hover:text-sky-100" href={selected.public_url} target="_blank" rel="noreferrer">View live site <ExternalLink size={14} /></a> : null}
             {message ? <div className="mt-5 rounded-xl border border-emerald-400/20 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">{message}</div> : null}
             {error ? <div className="mt-5 rounded-xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-100">{error}</div> : null}
@@ -165,7 +222,7 @@ export default function ExternalPublishingClient({ eventId }: { eventId: string 
 
         <RemoteFileBrowser eventId={eventId} destinationId={selectedId} />
 
-        <section className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7"><div className="flex items-center gap-3"><History className="text-white/60" size={20} /><h2 className="font-semibold">Publish history</h2></div><div className="mt-5 space-y-3">{deployments.length === 0 ? <p className="text-sm text-white/40">No external deployments yet.</p> : deployments.map((deployment) => <div key={deployment.id} className="flex flex-col gap-3 rounded-2xl border border-white/[.07] bg-black/15 p-4 sm:flex-row sm:items-center sm:justify-between"><div><div className="text-sm font-semibold capitalize">{deployment.status.replace(/_/g, " ")}</div><div className="mt-1 text-xs text-white/40">{new Date(deployment.created_at).toLocaleString()}</div></div>{deployment.status === "published" && deployment.backup_path ? <button type="button" disabled={Boolean(busy)} onClick={() => run("rollback", { deployment_id: deployment.id })} className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-100"><RotateCcw size={14} />Rollback</button> : null}</div>)}</div></section>
+        <section className="rounded-[26px] border border-white/[.08] bg-white/[.035] p-7"><div className="flex items-center gap-3"><History className="text-white/60" size={20} /><h2 className="font-semibold">Publish history</h2></div><div className="mt-5 space-y-3">{deployments.length === 0 ? <p className="text-sm text-white/40">No external deployments yet.</p> : deployments.map((deployment) => <div key={deployment.id} className="flex flex-col gap-3 rounded-2xl border border-white/[.07] bg-black/15 p-4 sm:flex-row sm:items-center sm:justify-between"><div className="min-w-0"><div className="text-sm font-semibold capitalize">{deployment.status.replace(/_/g, " ")}</div><div className="mt-1 text-xs text-white/40">{new Date(deployment.created_at).toLocaleString()} · {Array.isArray(deployment.files) ? deployment.files.length : 0} files</div>{deployment.error ? <div className="mt-2 break-words text-xs leading-5 text-red-200/75">{deployment.error}</div> : null}</div>{deployment.status === "published" && deployment.backup_path ? <button type="button" disabled={Boolean(busy)} onClick={() => run("rollback", { deployment_id: deployment.id })} className="inline-flex items-center justify-center gap-2 rounded-xl border border-amber-300/20 bg-amber-500/10 px-4 py-2 text-xs font-semibold text-amber-100"><RotateCcw size={14} />Rollback</button> : null}</div>)}</div></section>
       </div>
     </main>
   )

@@ -50,6 +50,7 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
   const [error, setError] = useState<string | null>(null)
   const [uploads, setUploads] = useState<UploadItem[]>([])
   const fileInput = useRef<HTMLInputElement>(null)
+  const folderInput = useRef<HTMLInputElement>(null)
 
   async function loadFiles(nextPath = path) {
     if (!destinationId) return
@@ -85,14 +86,14 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
     }).catch((): void => undefined)
   }
 
-  async function commitUpload(file: globalThis.File, stagingPath: string, overwrite: boolean) {
+  async function commitUpload(file: globalThis.File, stagingPath: string, overwrite: boolean, remotePath: string) {
     return fetch(`/api/admin/events/${eventId}/publishing/upload/commit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         destination_id: destinationId,
         staging_path: stagingPath,
-        path,
+        path: remotePath,
         file_name: file.name,
         overwrite,
       }),
@@ -100,10 +101,15 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
   }
 
   async function uploadFile(file: globalThis.File) {
-    setUploads((current) => [{ name: file.name, status: "uploading", message: "Uploading…" }, ...current.filter((item) => item.name !== file.name)])
+    const relativeName = file.webkitRelativePath || file.name
+    const relativeParts = relativeName.replace(/\\/g, "/").split("/").filter(Boolean)
+    const folderParts = relativeParts.slice(0, -1)
+    const remotePath = [...path.split("/").filter(Boolean), ...folderParts].join("/")
+    const displayName = relativeName || file.name
+    setUploads((current) => [{ name: displayName, status: "uploading", message: "Uploading…" }, ...current.filter((item) => item.name !== displayName)])
 
     if (file.size < 1 || file.size > maxFileSize) {
-      setUploads((current) => current.map((item) => item.name === file.name ? { ...item, status: "failed", message: "Files must be between 1 byte and 50 MB" } : item))
+      setUploads((current) => current.map((item) => item.name === displayName ? { ...item, status: "failed", message: "Files must be between 1 byte and 50 MB" } : item))
       return
     }
 
@@ -129,25 +135,25 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
         })
       if (stagingError) throw stagingError
 
-      let commitResponse = await commitUpload(file, stagingPath, false)
+      let commitResponse = await commitUpload(file, stagingPath, false, remotePath)
       let result = await commitResponse.json().catch((): null => null)
       if (commitResponse.status === 409 && result?.conflict) {
         const replace = await confirmNotice({ title: "Replace existing file?", message: `${file.name} already exists in this folder.`, detail: "Jupiter will retain a backup of the current file.", confirmLabel: "Replace file", tone: "warning" })
         if (!replace) {
           await discardStagedUpload(stagingPath)
-          setUploads((current) => current.filter((item) => item.name !== file.name))
+          setUploads((current) => current.filter((item) => item.name !== displayName))
           return
         }
-        commitResponse = await commitUpload(file, stagingPath, true)
+        commitResponse = await commitUpload(file, stagingPath, true, remotePath)
         result = await commitResponse.json().catch((): null => null)
       }
       if (!commitResponse.ok) throw new Error(result?.error || "Could not upload file")
 
-      setUploads((current) => current.map((item) => item.name === file.name ? { ...item, status: "complete", message: result.replaced ? "Replaced safely" : "Uploaded" } : item))
+      setUploads((current) => current.map((item) => item.name === displayName ? { ...item, status: "complete", message: result.replaced ? "Replaced safely" : "Uploaded" } : item))
       await loadFiles(path)
     } catch (uploadError) {
       if (stagingPath) await discardStagedUpload(stagingPath)
-      setUploads((current) => current.map((item) => item.name === file.name ? { ...item, status: "failed", message: uploadError instanceof Error ? uploadError.message : "Upload failed" } : item))
+      setUploads((current) => current.map((item) => item.name === displayName ? { ...item, status: "failed", message: uploadError instanceof Error ? uploadError.message : "Upload failed" } : item))
     }
   }
 
@@ -185,20 +191,23 @@ export default function RemoteFileBrowser({ eventId, destinationId }: { eventId:
             <button type="button" disabled={loading} onClick={() => void loadFiles(path)} aria-label="Refresh remote files" className="rounded-lg border border-white/10 p-2 text-white/65 hover:bg-white/10 disabled:opacity-40"><RefreshCw className={loading ? "animate-spin" : ""} size={16} /></button>
           </div>
 
-          <button
-            type="button"
-            onClick={() => fileInput.current?.click()}
+          <div
             onDragEnter={(event) => { event.preventDefault(); setDragging(true) }}
             onDragOver={(event) => event.preventDefault()}
             onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDragging(false) }}
             onDrop={(event) => { event.preventDefault(); setDragging(false); void uploadFiles(event.dataTransfer.files) }}
-            className={`m-4 flex w-[calc(100%-2rem)] flex-col items-center justify-center rounded-xl border border-dashed px-5 py-7 text-center transition ${dragging ? "border-violet-300/70 bg-violet-500/15" : "border-white/15 bg-white/[.025] hover:bg-white/[.05]"}`}
+            className={`m-4 flex w-[calc(100%-2rem)] flex-col items-center justify-center rounded-xl border border-dashed px-5 py-7 text-center transition ${dragging ? "border-violet-300/70 bg-violet-500/15" : "border-white/15 bg-white/[.025]"}`}
           >
             <UploadCloud className="text-violet-200" size={24} />
-            <span className="mt-2 text-sm font-semibold">Drop files into this folder</span>
-            <span className="mt-1 text-xs text-white/40">or click to choose files · up to 50 MB each</span>
-          </button>
+            <span className="mt-2 text-sm font-semibold">Drop files or a folder into this destination</span>
+            <span className="mt-1 text-xs text-white/40">up to 50 MB per file</span>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <button type="button" onClick={() => fileInput.current?.click()} className="rounded-lg border border-white/10 bg-white/[.05] px-3 py-2 text-xs font-semibold hover:bg-white/10">Choose files</button>
+              <button type="button" onClick={() => folderInput.current?.click()} className="rounded-lg border border-violet-300/20 bg-violet-500/10 px-3 py-2 text-xs font-semibold text-violet-100 hover:bg-violet-500/20">Choose folder</button>
+            </div>
+          </div>
           <input ref={fileInput} type="file" multiple className="hidden" onChange={(event) => { if (event.target.files) void uploadFiles(event.target.files); event.target.value = "" }} />
+          <input ref={(element) => { folderInput.current = element; element?.setAttribute("webkitdirectory", ""); element?.setAttribute("directory", "") }} type="file" multiple className="hidden" onChange={(event) => { if (event.target.files) void uploadFiles(event.target.files); event.target.value = "" }} />
 
           {uploads.length > 0 ? (
             <div className="mx-4 mb-4 space-y-2">

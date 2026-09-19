@@ -1,21 +1,13 @@
-import { readFile } from "node:fs/promises"
 import path from "node:path"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import { getCustomCodeDocument } from "@/lib/page-editor/customCode"
 import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
+import { readTemplateArtifacts } from "./templateFiles"
 
 export type PublishArtifact = {
   name: string
   content: Buffer
 }
-
-const TEMPLATE_FILES = [
-  "index.html",
-  "styles.css",
-  "app.js",
-  "jnj-logo.png",
-  "favicon.png",
-] as const
 
 function escapeHtml(text: string): string {
   return text
@@ -87,12 +79,7 @@ export async function buildLetsPublishArtifacts(args: {
   eventId?: string
 }): Promise<PublishArtifact[]> {
   const templateRoot = path.join(process.cwd(), "public", "templates", "lets-live-agenda")
-  const fileEntries = await Promise.all(
-    TEMPLATE_FILES.map(async (name) => ({
-      name,
-      content: await readFile(path.join(templateRoot, name)),
-    })),
-  )
+  const fileEntries = await readTemplateArtifacts(templateRoot)
 
   let indexHtml = fileEntries.find((entry) => entry.name === "index.html")?.content.toString("utf8") ?? ""
   let stylesCss = fileEntries.find((entry) => entry.name === "styles.css")?.content.toString("utf8") ?? ""

@@ -56,9 +56,12 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
 JWT_SECRET=
+EXTERNAL_PUBLISHING_ENCRYPTION_KEY=
 ```
 
-Optional values may be required depending on which features you are actively using, but the four values above are the core baseline.
+Optional values may be required depending on which features you are actively using. The first four values above are the core baseline; the publishing key is required when external publishing is enabled.
+
+`EXTERNAL_PUBLISHING_ENCRYPTION_KEY` is required for production FTP/FTPS destinations. Use an independent, randomly generated 32-byte base64 secret and keep it stable. Credentials saved before this key was configured remain readable through a legacy `JWT_SECRET` fallback, while all newly saved credentials use the dedicated key.
 
 ## Supabase setup
 
@@ -66,6 +69,8 @@ Run the SQL files in `supabase/` that match the features you need:
 
 - `supabase/events.sql`
 - `supabase/general-session.sql`
+
+Tracked schema changes live in `supabase/migrations/`. External publishing requires `20260919152138_external_site_publishing.sql`; it creates service-role-only destination and deployment records with row-level security enabled.
 - `supabase/presence.sql`
 - `supabase/qa.sql`
 

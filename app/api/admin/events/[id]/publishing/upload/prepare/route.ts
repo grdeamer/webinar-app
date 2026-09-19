@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 import { loadPublishDestination } from "@/lib/external-publishing/destinations"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requirePublishingApiAccess } from "@/lib/external-publishing/authorization"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
@@ -17,8 +17,9 @@ function safeFileName(value: unknown) {
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
   const { id } = await context.params
+  const access = await requirePublishingApiAccess(id)
+  if (access instanceof NextResponse) return access
   const body = await request.json().catch((): null => null)
   const destinationId = String(body?.destination_id || "")
   const fileName = safeFileName(body?.file_name)
@@ -45,8 +46,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 }
 
 export async function DELETE(request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
   const { id } = await context.params
+  const access = await requirePublishingApiAccess(id)
+  if (access instanceof NextResponse) return access
   const body = await request.json().catch((): null => null)
   const destinationId = String(body?.destination_id || "")
   const stagingPath = String(body?.staging_path || "")

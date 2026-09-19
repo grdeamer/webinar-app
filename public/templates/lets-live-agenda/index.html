@@ -8,13 +8,9 @@
   <meta name="description" content="Johnson & Johnson National POA Meeting attendee portal" />
   <title>J&J National POA Meeting</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
-
-  <link rel="stylesheet" href="styles.css?v=20260918-speaker-rail" />
-  <script src="config.js?v=20260806-runtime-fix"></script>
-  <script src="app.js?v=20260918-speaker-rail" defer></script>
+  <link rel="stylesheet" href="styles.css?v=20260919-responsive-audit" />
+  <script src="config.js?v=20260911-district-tree"></script>
+  <script src="app.js?v=20260919-responsive-audit" defer></script>
 </head>
 
 <body>
@@ -156,6 +152,21 @@
           <span>This page updates automatically. No refresh is required.</span>
         </div>
       </aside>
+    </section>
+
+    <section class="district-directory-section" id="districtDirectory" aria-labelledby="districtDirectoryHeading" hidden>
+      <div class="district-directory-heading">
+        <div><p class="eyebrow">District directory</p><h2 id="districtDirectoryHeading">Choose your district.</h2><p>Explore the event structure, then select a district to reveal its meeting link.</p></div>
+        <label class="district-directory-search"><span class="sr-only">Search districts</span><input id="districtDirectorySearch" type="search" placeholder="Search districts" autocomplete="off"></label>
+      </div>
+      <div class="district-directory-shell">
+        <nav class="district-directory-tree" id="districtDirectoryTree" aria-label="District tree"></nav>
+        <aside class="district-directory-detail" id="districtDirectoryDetail" aria-live="polite">
+          <p class="eyebrow">District details</p>
+          <h3>Select a district.</h3>
+          <p>Open a Zone and Region to find your District.</p>
+        </aside>
+      </div>
     </section>
 
     <section class="agenda-section" id="agendaSection" aria-labelledby="agendaHeading">
@@ -351,29 +362,6 @@
     <a class="footer-brand" href="https://letstrainonline.com">Leading Edge Training Solutions, LLC</a>
     <span class="footer-credit">Powered by <a href="https://jupiter.events">Jupiter</a></span>
   </footer>
-
-  <div class="district-finder" id="districtFinder" hidden>
-    <button class="district-finder-backdrop" type="button" id="districtFinderBackdrop" aria-label="Close district finder"></button>
-    <section class="district-finder-card" role="dialog" aria-modal="true" aria-labelledby="districtFinderTitle">
-      <button class="district-finder-close" type="button" id="districtFinderClose" aria-label="Close district finder">×</button>
-      <p class="eyebrow">Breakout routing</p>
-      <h2 id="districtFinderTitle">Find your district or group</h2>
-      <p class="district-finder-intro">Enter the email address used for registration and we’ll route you to the correct room.</p>
-      <form class="district-finder-form" id="districtFinderForm">
-        <label for="districtEmail">Registration email</label>
-        <div class="district-finder-field-row">
-          <input id="districtEmail" name="email" type="email" autocomplete="email" required placeholder="you@company.com">
-          <button type="submit" id="districtFinderSubmit">Find my room</button>
-        </div>
-      </form>
-      <div class="district-finder-message" id="districtFinderMessage" role="status" aria-live="polite"></div>
-      <div class="district-finder-results" id="districtFinderResults"></div>
-      <details class="district-directory" id="districtDirectory" hidden>
-        <summary>Browse the district tree</summary>
-        <div class="district-directory-list" id="districtDirectoryList"></div>
-      </details>
-    </section>
-  </div>
 
   <noscript>
     <div class="noscript-message">

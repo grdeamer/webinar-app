@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
-import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { encryptPublishingSecret } from "@/lib/external-publishing/credentials"
+import { requirePublishingApiAccess } from "@/lib/external-publishing/authorization"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -46,8 +46,9 @@ function destinationWriteError(error: { code?: string; message: string }) {
 }
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
   const { id } = await context.params
+  const access = await requirePublishingApiAccess(id)
+  if (access instanceof NextResponse) return access
   const { data, error } = await supabaseAdmin
     .from("event_publish_destinations")
     .select("*")
@@ -59,8 +60,9 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
 }
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
   const { id } = await context.params
+  const access = await requirePublishingApiAccess(id)
+  if (access instanceof NextResponse) return access
   const body = await request.json().catch((): null => null) as Record<string, unknown> | null
   const parsed = readDestinationInput(body, true)
   if ("error" in parsed) return json({ error: parsed.error }, 400)
@@ -97,8 +99,9 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
 }
 
 export async function PATCH(request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
   const { id } = await context.params
+  const access = await requirePublishingApiAccess(id)
+  if (access instanceof NextResponse) return access
   const body = await request.json().catch((): null => null) as Record<string, unknown> | null
   const destinationId = String(body?.destination_id || "").trim()
   if (!destinationId) return json({ error: "Destination is required" }, 400)

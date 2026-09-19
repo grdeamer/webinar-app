@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server"
 import { loadPublishDestination } from "@/lib/external-publishing/destinations"
 import { listRemoteFiles } from "@/lib/external-publishing/ftpPublisher"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requirePublishingApiAccess } from "@/lib/external-publishing/authorization"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
-  await requireAdmin()
   const { id } = await context.params
+  const access = await requirePublishingApiAccess(id)
+  if (access instanceof NextResponse) return access
   const url = new URL(request.url)
   const destinationId = url.searchParams.get("destination_id") || ""
   const browserPath = url.searchParams.get("path") || ""
