@@ -7,6 +7,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { featuresForEventRole, type EventTeamRole } from "@/lib/eventPermissions"
 import MissionControlTour from "@/components/admin/MissionControlTour"
+import TimeOfDayGreeting from "@/components/admin/TimeOfDayGreeting"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -104,7 +105,7 @@ export default async function AdminDashboardPage() {
       <header data-dashboard-tour="welcome" className="dashboard-command-header flex flex-col gap-6 px-1 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <div className="text-[11px] font-semibold uppercase tracking-[.24em] text-blue-300/70">Mission Control</div>
-          <h1 className="mt-3 text-4xl font-semibold tracking-[-.045em] sm:text-[50px]">Good afternoon.</h1>
+          <TimeOfDayGreeting className="mt-3 text-4xl font-semibold tracking-[-.045em] sm:text-[50px]" />
           <p className="mt-2 text-base text-white/58">{isGlobalAdmin ? "Here’s what needs your attention across Jupiter." : "Here’s what needs your attention across your events."}</p>
         </div>
         <div className="flex flex-wrap items-center gap-3">

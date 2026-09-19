@@ -62,10 +62,15 @@ export default function MissionControlTour({ userId }: { userId: string }) {
   }, [])
 
   useEffect(() => {
+    if (window.location.hash === "#guided-tour") {
+      const timer = window.setTimeout(startTour, 0)
+      window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`)
+      return () => window.clearTimeout(timer)
+    }
     if (window.localStorage.getItem(storageKey) === "seen") return
     const timer = window.setTimeout(() => setMode("intro"), 0)
     return () => window.clearTimeout(timer)
-  }, [storageKey])
+  }, [startTour, storageKey])
 
   useEffect(() => {
     if (mode === "closed") return

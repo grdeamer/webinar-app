@@ -36,9 +36,11 @@ function roleLabel(value: string): string {
 export default function AdminProfileMenu({
   compact = false,
   popoverPlacement = "top",
+  popoverAlign = "left",
 }: {
   compact?: boolean
   popoverPlacement?: "top" | "bottom"
+  popoverAlign?: "left" | "right"
 }) {
   const router = useRouter()
   const rootRef = useRef<HTMLDivElement | null>(null)
@@ -178,7 +180,7 @@ export default function AdminProfileMenu({
       </button>
 
       {open ? (
-        <div role="dialog" aria-label="Account menu" className={`absolute left-0 z-[300] w-[330px] overflow-hidden rounded-[20px] border border-violet-300/20 bg-[linear-gradient(180deg,rgba(10,15,30,.99),rgba(3,7,16,.995))] p-3 shadow-[0_28px_80px_rgba(0,0,0,.68),inset_0_1px_0_rgba(255,255,255,.05)] backdrop-blur-2xl ${popoverPlacement === "bottom" ? "top-[calc(100%+10px)]" : "bottom-[calc(100%+10px)]"}`}>
+        <div role="dialog" aria-label="Account menu" className={`absolute z-[300] w-[330px] overflow-hidden rounded-[20px] border border-violet-300/20 bg-[linear-gradient(180deg,rgba(10,15,30,.99),rgba(3,7,16,.995))] p-3 shadow-[0_28px_80px_rgba(0,0,0,.68),inset_0_1px_0_rgba(255,255,255,.05)] backdrop-blur-2xl ${popoverAlign === "right" ? "right-0" : "left-0"} ${popoverPlacement === "bottom" ? "top-[calc(100%+10px)]" : "bottom-[calc(100%+10px)]"}`}>
           {editing ? (
             <form onSubmit={(event) => void saveProfile(event)}>
               <div className="flex items-center justify-between px-1"><div><div className="text-[9px] font-bold uppercase tracking-[.18em] text-violet-200/55">Your profile</div><div className="mt-1 text-base font-semibold text-white">Edit account details</div></div><button type="button" onClick={() => setEditing(false)} aria-label="Close profile editor" className="rounded-lg p-2 text-white/35 hover:bg-white/[.06] hover:text-white"><X size={16} /></button></div>

@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import EventAccessActions from "./EventAccessActions"
 import { canManageEventAccess, getEventTeamAccess } from "@/lib/eventTeamAccess"
 import { getEventInfrastructureSnapshot } from "@/lib/cloud/status"
+import TimeOfDayGreeting from "@/components/admin/TimeOfDayGreeting"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -62,7 +63,7 @@ export default async function AdminEventDashboardPage({ params }: PageProps) {
 
   return <main className="event-editorial-page"><div className="mx-auto max-w-[1100px] space-y-4">
     <section className="flex flex-col gap-5 border-b border-[#1a2231] pb-5 lg:flex-row lg:items-center lg:justify-between">
-      <div><div className="text-[9px] font-bold tracking-[.16em] text-[#68758c]">EVENT&nbsp;&nbsp;/&nbsp;&nbsp;OVERVIEW</div><h2 className="mt-2 text-[32px] font-medium tracking-[-.035em]">Good morning.</h2><p className="mt-1 text-sm text-[#9aa6bb]">{event.title} is nearly ready for rehearsal.</p></div>
+      <div><div className="text-[9px] font-bold tracking-[.16em] text-[#68758c]">EVENT&nbsp;&nbsp;/&nbsp;&nbsp;OVERVIEW</div><TimeOfDayGreeting as="h2" className="mt-2 text-[32px] font-medium tracking-[-.035em]" /><p className="mt-1 text-sm text-[#9aa6bb]">{event.title} is nearly ready for rehearsal.</p></div>
       <div className="flex flex-wrap gap-2"><Link href={`/events/${event.slug}`} className="min-h-10 rounded-xl bg-[#3974df] px-4 text-sm font-semibold">Attendee preview&nbsp; →</Link>{canOperate ? <Link href={`/admin/events/${event.id}/producer/room`} className="min-h-10 rounded-xl bg-[#6750d3] px-4 text-sm font-semibold">Open Producer Room&nbsp; →</Link> : null}{canManageEventAccess(access) ? <EventAccessActions eventId={event.id} eventTitle={event.title} /> : null}</div>
     </section>
 

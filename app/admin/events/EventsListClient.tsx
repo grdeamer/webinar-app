@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { type CSSProperties, useMemo, useState } from "react"
 import { Activity, Archive, ArchiveRestore, Bell, CalendarDays, Check, ChevronLeft, ChevronRight, CircleHelp, Clock3, MoreHorizontal, Pencil, Radio, Search, Trash2, X } from "lucide-react"
+import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import { Button } from "@/components/ui/button"
 
 const EVENT_ACCENTS = {
@@ -163,9 +164,17 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
           <kbd>⌘ K</kbd>
         </label>
         <div className="events-command-tools" aria-label="Utilities">
-          <Button type="button" variant="jupiterQuiet" size="icon" aria-label="Notifications"><Bell size={18} /><span>3</span></Button>
-          <Button type="button" variant="jupiterQuiet" size="icon" aria-label="Help"><CircleHelp size={19} /></Button>
-          <div className="events-command-avatar" aria-label="Account">G</div>
+          <Button asChild variant="jupiterQuiet" size="icon">
+            <Link href="/admin/activity" aria-label="Notifications and live activity" title="Notifications and live activity">
+              <Bell size={18} />
+            </Link>
+          </Button>
+          <Button asChild variant="jupiterQuiet" size="icon">
+            <Link href="/admin#guided-tour" aria-label="Help and guided tour" title="Help and guided tour">
+              <CircleHelp size={19} />
+            </Link>
+          </Button>
+          <AdminProfileMenu compact popoverPlacement="bottom" popoverAlign="right" />
         </div>
       </div>
 

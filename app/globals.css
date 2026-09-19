@@ -473,8 +473,6 @@ button, a, input, select, textarea {
 .events-command-search kbd { border-left: 1px solid rgba(255,255,255,.08); padding-left: .65rem; color: rgba(224,231,244,.55); font-size: .72rem; }
 .events-command-tools { display: flex; align-items: center; gap: .75rem; }
 .events-command-tools button { position: relative; }
-.events-command-tools button span { position: absolute; top: -.22rem; right: -.2rem; min-width: 1.1rem; border-radius: 999px; background: #315dcc; padding: .05rem .2rem; color: white; font-size: .62rem; }
-.events-command-avatar { display: grid; width: 2.15rem; height: 2.15rem; place-items: center; border-radius: 50%; background: #0a8f56; color: white; font-size: .78rem; font-weight: 600; }
 
 .events-operations-grid { display: grid; grid-template-columns: minmax(0, 1fr) 22rem; gap: .75rem; margin-top: .75rem; }
 .events-directory-panel, .events-calendar-card, .events-activity-card { border: 1px solid rgba(188, 202, 228, .14); background: linear-gradient(145deg, rgba(14, 20, 32, .92), rgba(6, 10, 18, .94)); box-shadow: inset 0 1px rgba(255,255,255,.04), 0 18px 45px rgba(0,0,0,.22); }
@@ -659,6 +657,28 @@ button, a, input, select, textarea {
 .events-activity-list strong { color:#f7f9ff; font-size:12px; }
 .events-activity-list small { color:#68758c; }
 @media (max-width:1100px) { .events-operations-grid{grid-template-columns:1fr}.events-insight-rail{grid-template-columns:repeat(2,minmax(0,1fr))} }
+@media (min-width:761px) and (max-width:1023px) {
+  .events-command-bar {
+    top:14px;
+    height:48px;
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:14px;
+  }
+  .events-command-search {
+    width:100%;
+    min-width:0;
+    margin:0;
+  }
+  .events-command-tools {
+    position:static;
+    gap:6px;
+  }
+  .events-command-tools > [data-slot="button"] {
+    width:40px;
+    height:40px;
+  }
+}
 @media (max-width:760px) { .events-editorial-page{padding:0 14px 44px}.events-editorial-header{min-height:198px;margin:0 -14px;padding:0 18px 22px}.events-editorial-title{font-size:31px}.events-editorial-create{margin-top:18px}.events-command-bar{left:18px;right:18px}.events-command-search{width:100%;margin:0}.events-command-tools{display:none}.events-metric-strip{grid-template-columns:repeat(2,1fr);padding:14px}.events-operations-grid{margin-top:18px}.events-insight-rail{grid-template-columns:1fr}.event-directory-item__content{grid-template-columns:24px minmax(0,1fr);padding-right:46px}.event-directory-item__date{grid-column:2} }
 
 .dev-tools-workspace {
