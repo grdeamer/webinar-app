@@ -72,10 +72,11 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
 
         <nav className="ios-scrollbar-none mx-auto flex max-w-6xl flex-nowrap gap-2 overflow-x-auto overscroll-x-contain px-4 pb-4 text-sm sm:px-6">
           <Nav href={`/events/${slug}`} label="Home" />
+          {event.district_directory_enabled ? <Nav href={`/events/${slug}/breakouts`} label="Districts" /> : null}
           <Nav href={`/events/${slug}/lobby`} label="Lobby" />
           <Nav href={`/events/${slug}/agenda`} label="Agenda" />
           <Nav href={`/events/${slug}/sessions`} label="Sessions" />
-          <Nav href={`/events/${slug}/breakouts`} label="Breakouts" />
+          {!event.district_directory_enabled ? <Nav href={`/events/${slug}/breakouts`} label="Breakouts" /> : null}
           <Nav href={`/events/${slug}/sponsors`} label="Sponsors" />
           <Nav href={`/events/${slug}/chat`} label="Chat" />
           <Nav href={`/events/${slug}/networking`} label="Networking" />

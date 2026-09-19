@@ -290,12 +290,23 @@ export default async function EventBreakoutsPage(props: {
           sectionId: "breakouts-runtime",
           adminLabel: "District Directory",
         })
+  const responsiveSections = eventRow?.district_directory_enabled
+    ? sections.map((section) => {
+        const containsDirectory = section.blocks?.some((block) =>
+          block.type === "system_component" &&
+          (block.props.componentKey === "breakouts" || block.props.componentKey === "featured_breakouts")
+        )
+        return containsDirectory
+          ? { ...section, config: { ...section.config, visible: true, hideOnMobile: false } }
+          : section
+      })
+    : sections
 
   return (
     <EventPageRenderer
       event={event}
       elements={pageDocument.elements}
-      sections={sections}
+      sections={responsiveSections}
       systemComponents={{
         live_state: liveRouting,
         breakouts: breakoutsList,
