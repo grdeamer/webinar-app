@@ -8,7 +8,13 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function json(request: Request, data: unknown, status = 200) {
-  return NextResponse.json(data, { status, headers: publicEventHeaders(request) })
+  return NextResponse.json(data, {
+    status,
+    headers: publicEventHeaders(
+      request,
+      status === 200 ? "district-directory" : undefined,
+    ),
+  })
 }
 
 export async function OPTIONS(request: Request) {

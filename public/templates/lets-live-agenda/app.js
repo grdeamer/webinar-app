@@ -249,7 +249,7 @@
     if (!endpoint || !els.districtDirectory || districtDirectoryRequestInFlight) return;
     districtDirectoryRequestInFlight = true;
     try {
-      const response = await fetch(endpoint, { headers: { Accept: "application/json" }, cache: "no-store" });
+      const response = await fetch(endpoint, { headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`District directory returned ${response.status}`);
       const payload = await response.json();
       districtDirectoryNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
@@ -907,7 +907,7 @@
     if (!config.STATE_ENDPOINT || requestInFlight) return;
     requestInFlight = true;
     try {
-      const response = await fetch(config.STATE_ENDPOINT, { method: "GET", headers: { Accept: "application/json" }, cache: "no-store" });
+      const response = await fetch(config.STATE_ENDPOINT, { method: "GET", headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`Runtime endpoint returned ${response.status}`);
       const nextState = normalizeState(await response.json());
       if (!nextState) return;
@@ -916,6 +916,9 @@
       const isUpdate = lastSyncToken !== null;
       applyState(nextState, isUpdate);
       lastSyncToken = token;
+      // A live control change is a useful signal to refresh the directory.
+      // The CDN collapses simultaneous attendee refreshes into one origin read.
+      if (isUpdate) fetchDistrictDirectory();
     } catch (error) {
       console.warn("Unable to refresh Jupiter runtime. Continuing with the last known state.", error);
     } finally {
@@ -961,5 +964,8 @@
   fetchState();
   fetchDistrictDirectory();
   setInterval(fetchState, Math.max(10000, Number(config.POLL_INTERVAL_MS) || 10000));
-  setInterval(fetchDistrictDirectory, Math.max(30000, (Number(config.POLL_INTERVAL_MS) || 10000) * 3));
+  // District structure changes far less often than live program state. Keep a
+  // five-minute safety refresh while live control changes trigger an immediate
+  // refresh through fetchState above.
+  setInterval(fetchDistrictDirectory, 5 * 60 * 1000);
 })();

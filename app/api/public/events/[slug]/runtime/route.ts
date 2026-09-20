@@ -9,7 +9,10 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 function json(request: Request, data: unknown, status = 200): Response {
-  return NextResponse.json(data, { status, headers: publicEventHeaders(request) })
+  return NextResponse.json(data, {
+    status,
+    headers: publicEventHeaders(request, status === 200 ? "runtime" : undefined),
+  })
 }
 
 export async function OPTIONS(request: Request): Promise<Response> {
