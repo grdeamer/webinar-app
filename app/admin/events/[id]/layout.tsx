@@ -4,7 +4,7 @@ import Link from "next/link"
 import { useParams, usePathname } from "next/navigation"
 import { CSSProperties, ReactNode, useCallback, useEffect, useState } from "react"
 import { Activity, CalendarDate, Home03, Signal02, Tool02, Users01 } from "@untitledui/icons"
-import { CalendarClock, CloudCog, LayoutDashboard, ListChecks, Menu, MessagesSquare, Network, NotebookTabs, PanelsTopLeft, RadioTower, Rocket, UsersRound, X } from "lucide-react"
+import { BarChart3, CalendarClock, CloudCog, LayoutDashboard, ListChecks, Menu, MessagesSquare, Network, NotebookTabs, PanelsTopLeft, RadioTower, Rocket, UsersRound, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
@@ -108,6 +108,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
             <TopLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} disabled={!hasFeature("communications")} />
             <TopLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} disabled={!hasFeature("publishing")} />
             <TopLink href={`${base}/infrastructure`} label="Cloud" icon={<CloudCog />} disabled={!hasFeature("event_details")} />
+            <TopLink href={`${base}/analytics`} label="Analytics" icon={<BarChart3 />} disabled={!hasFeature("analytics")} />
             <TopLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} disabled={!hasFeature("run_of_show")} />
             <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} disabled={!hasFeature("producer_room")} />
           </nav>
@@ -142,6 +143,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
             <NavLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} disabled={!hasFeature("communications")} />
             <NavLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} disabled={!hasFeature("publishing")} />
             <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<CloudCog />} disabled={!hasFeature("event_details")} />
+            <NavLink href={`${base}/analytics`} label="Analytics" icon={<BarChart3 />} disabled={!hasFeature("analytics")} />
             <NavLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} disabled={!hasFeature("run_of_show")} />
             <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} disabled={!hasFeature("producer_room")} />
             <NavLink href={`${base}/routing`} label="Audience Flow" icon={<Signal02 />} disabled={!hasFeature("run_of_show")} />
