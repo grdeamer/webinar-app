@@ -177,6 +177,17 @@
   let districtDirectoryNodes = [];
   let districtDirectoryAvailable = false;
   let districtDirectoryRequestInFlight = false;
+  let districtDirectoryQueuedSyncToken = "";
+
+  function syncDistrictDirectoryVisibility() {
+    if (!els.districtDirectory) return;
+    // The fast runtime response is authoritative for event-wide visibility.
+    // The longer-lived directory response only supplies the tree contents.
+    els.districtDirectory.hidden = state.district_directory_enabled === false || !districtDirectoryAvailable;
+    if (!els.districtDirectory.hidden) {
+      renderDistrictDirectory(els.districtDirectorySearch?.value || "");
+    }
+  }
 
   function safeMeetingUrl(value) {
     try {
@@ -244,26 +255,36 @@
     els.districtDirectoryTree.replaceChildren(branch(null, 0));
   }
 
-  async function fetchDistrictDirectory() {
+  async function fetchDistrictDirectory(syncToken = "") {
     const endpoint = String(config.DISTRICT_DIRECTORY_ENDPOINT || "").trim();
-    if (!endpoint || !els.districtDirectory || districtDirectoryRequestInFlight) return;
+    if (!endpoint || !els.districtDirectory) return;
+    const normalizedSyncToken = String(syncToken || "").trim();
+    if (districtDirectoryRequestInFlight) {
+      if (normalizedSyncToken) districtDirectoryQueuedSyncToken = normalizedSyncToken;
+      return;
+    }
     districtDirectoryRequestInFlight = true;
     try {
-      const response = await fetch(endpoint, { headers: { Accept: "application/json" } });
+      const requestUrl = new URL(endpoint, window.location.href);
+      // All attendees receive the same sync token, so this bypasses an older
+      // CDN object once while still collapsing the crowd onto one fresh read.
+      if (normalizedSyncToken) requestUrl.searchParams.set("sync", normalizedSyncToken);
+      const response = await fetch(requestUrl.href, { headers: { Accept: "application/json" } });
       if (!response.ok) throw new Error(`District directory returned ${response.status}`);
       const payload = await response.json();
       districtDirectoryNodes = Array.isArray(payload.nodes) ? payload.nodes : [];
-      // This endpoint is the source of truth for directory availability. Keeping
-      // the runtime flag in this condition allowed a stale mobile response to
-      // hide a directory that the endpoint had already confirmed was active.
       districtDirectoryAvailable = payload.enabled === true && districtDirectoryNodes.length > 0;
-      els.districtDirectory.hidden = !districtDirectoryAvailable;
-      if (!els.districtDirectory.hidden) renderDistrictDirectory();
+      syncDistrictDirectoryVisibility();
     } catch (error) {
       console.warn("District directory is unavailable.", error);
-      if (!districtDirectoryAvailable) els.districtDirectory.hidden = true;
+      syncDistrictDirectoryVisibility();
     } finally {
       districtDirectoryRequestInFlight = false;
+      const queuedSyncToken = districtDirectoryQueuedSyncToken;
+      districtDirectoryQueuedSyncToken = "";
+      if (queuedSyncToken && queuedSyncToken !== normalizedSyncToken) {
+        void fetchDistrictDirectory(queuedSyncToken);
+      }
     }
   }
 
@@ -757,10 +778,7 @@
     const componentState = state.attendee_component_state || {};
     if (els.countdownCard) els.countdownCard.hidden = componentState.countdown === false;
     if (els.agendaSection) els.agendaSection.hidden = componentState.agenda === false;
-    if (els.districtDirectory) {
-      els.districtDirectory.hidden = !districtDirectoryAvailable;
-      if (!els.districtDirectory.hidden) renderDistrictDirectory(els.districtDirectorySearch?.value || "");
-    }
+    syncDistrictDirectoryVisibility();
     const sessionStatusNow = new Date();
     agendaItems.forEach(item => {
       const session = sessionMap.get(item.dataset.session);
@@ -918,7 +936,7 @@
       lastSyncToken = token;
       // A live control change is a useful signal to refresh the directory.
       // The CDN collapses simultaneous attendee refreshes into one origin read.
-      if (isUpdate) fetchDistrictDirectory();
+      if (isUpdate) fetchDistrictDirectory(nextState.sync_token);
     } catch (error) {
       console.warn("Unable to refresh Jupiter runtime. Continuing with the last known state.", error);
     } finally {

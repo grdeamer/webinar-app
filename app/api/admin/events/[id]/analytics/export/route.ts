@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { getEventTeamAccess, hasEventFeature } from "@/lib/eventTeamAccess"
+import {
+  buildSessionDistrictAuditRows,
+  SESSION_DISTRICT_AUDIT_HEADERS,
+  type SessionDistrictAuditSourceRow,
+} from "@/lib/reports/sessionDistrictAudit"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
@@ -9,7 +14,8 @@ export const dynamic = "force-dynamic"
 type Params = { params: Promise<{ id: string }> }
 
 function csvEscape(value: unknown): string {
-  const text = String(value ?? "")
+  const raw = String(value ?? "")
+  const text = /^[=+\-@]/.test(raw) ? `'${raw}` : raw
   return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 
@@ -36,7 +42,22 @@ export async function GET(request: Request, context: Params): Promise<Response> 
   let headers: string[]
   let rows: Record<string, unknown>[]
 
-  if (report === "sessions") {
+  if (report === "session-district-audit") {
+    const { data, error } = await supabaseAdmin
+      .from("event_sessions")
+      .select("id,code,title,presenter,starts_at,ends_at,session_kind,district_parent_id,visibility_mode,delivery_mode,external_platform,external_join_url,join_link,live_provider,live_room_name,runtime_status,is_general_session")
+      .eq("event_id", id)
+      .order("sort_order", { ascending: true })
+      .order("starts_at", { ascending: true, nullsFirst: false })
+    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
+    headers = [...SESSION_DISTRICT_AUDIT_HEADERS]
+    rows = buildSessionDistrictAuditRows({
+      rows: (data ?? []) as SessionDistrictAuditSourceRow[],
+      origin: url.origin,
+      eventId: event.id,
+      eventSlug: event.slug,
+    })
+  } else if (report === "sessions") {
     const { data, error } = await supabaseAdmin.from("event_sessions").select("code,title,presenter,starts_at,ends_at,session_kind,delivery_mode,runtime_status,is_general_session").eq("event_id", id).order("sort_order", { ascending: true })
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     headers = ["code", "title", "presenter", "starts_at", "ends_at", "session_kind", "delivery_mode", "runtime_status", "is_general_session"]

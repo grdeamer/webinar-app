@@ -163,12 +163,20 @@ export default async function AdminEventAnalyticsPage({
                 A live operational view of audience reach, program readiness, and participation for {event.title}.
               </p>
             </div>
-            <a
-              href={`${exportBase}?report=summary`}
-              className="inline-flex h-11 w-fit items-center gap-2 rounded-[9px] border border-white/[0.12] bg-white/[0.045] px-4 text-sm font-semibold text-white/78 transition hover:bg-white/[0.08] hover:text-white"
-            >
-              <Download className="h-4 w-4" /> Download summary
-            </a>
+            <div className="flex flex-wrap gap-3">
+              <a
+                href={`${exportBase}?report=session-district-audit`}
+                className="inline-flex h-11 w-fit items-center gap-2 rounded-[9px] bg-[#1f6eff] px-4 text-sm font-semibold text-white transition hover:bg-[#3b80ff]"
+              >
+                <FileSpreadsheet className="h-4 w-4" /> Download visual audit
+              </a>
+              <a
+                href={`${exportBase}?report=summary`}
+                className="inline-flex h-11 w-fit items-center gap-2 rounded-[9px] border border-white/[0.12] bg-white/[0.045] px-4 text-sm font-semibold text-white/78 transition hover:bg-white/[0.08] hover:text-white"
+              >
+                <Download className="h-4 w-4" /> Download summary
+              </a>
+            </div>
           </div>
 
           <div className="mt-9 grid border-y border-white/[0.08] sm:grid-cols-2 lg:grid-cols-4 lg:divide-x lg:divide-white/[0.08]">
@@ -199,6 +207,7 @@ export default async function AdminEventAnalyticsPage({
           <AnalyticsSection eyebrow="Reports" title="Take the data with you">
             <div className="divide-y divide-white/[0.08] border-y border-white/[0.08]">
               <ReportLink href={`${exportBase}?report=summary`} icon={<BarChart3 />} title="Event summary" detail="Key totals and current live signal" />
+              <ReportLink href={`${exportBase}?report=session-district-audit`} icon={<FileSpreadsheet />} title="Session & district visual audit" detail="Every session and hierarchy node, with meeting-link health and inspection URLs" />
               <ReportLink href={`${exportBase}?report=sessions`} icon={<FileSpreadsheet />} title="Session report" detail="Schedule, delivery, and runtime status" />
               <ReportLink href={`${exportBase}?report=questions`} icon={<MessageSquareText />} title="Audience questions" detail="Questions, status, and timestamps" />
             </div>
