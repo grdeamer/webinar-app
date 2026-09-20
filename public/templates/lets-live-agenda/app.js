@@ -152,6 +152,49 @@
     return { key: "meeting", label: "Meeting link" };
   }
 
+  function resolveMeetingProvider(url, platform = "") {
+    const detected = detectMeetingProvider(url);
+    if (detected.key !== "meeting") return detected;
+    const normalized = String(platform).toLowerCase();
+    if (normalized.includes("zoom")) return { key: "zoom", label: "Zoom" };
+    if (normalized.includes("team")) return { key: "teams", label: "Microsoft Teams" };
+    if (normalized.includes("google") || normalized.includes("meet")) return { key: "google-meet", label: "Google Meet" };
+    if (normalized.includes("webex")) return { key: "webex", label: "Webex" };
+    if (normalized.includes("youtube")) return { key: "youtube", label: "YouTube Live" };
+    if (normalized.includes("goto")) return { key: "goto", label: "GoTo Meeting" };
+    if (normalized.includes("ringcentral")) return { key: "ringcentral", label: "RingCentral" };
+    if (normalized.includes("chime")) return { key: "chime", label: "Amazon Chime" };
+    if (normalized.includes("bluejeans")) return { key: "bluejeans", label: "BlueJeans" };
+    return detected;
+  }
+
+  const meetingProviderBrandMarkup = {
+    zoom: '<rect width="48" height="48" rx="12" fill="#2D8CFF"/><path d="M10 16.5A4.5 4.5 0 0 1 14.5 12h14A4.5 4.5 0 0 1 33 16.5v15a4.5 4.5 0 0 1-4.5 4.5h-14a4.5 4.5 0 0 1-4.5-4.5Z" fill="#fff"/><path d="m33 20 7-5v18l-7-5Z" fill="#fff"/>',
+    teams: '<rect x="9" y="10" width="26" height="28" rx="5" fill="#5B5FC7"/><circle cx="36" cy="15" r="6" fill="#7B83EB"/><circle cx="12" cy="13" r="5" fill="#5059C9"/><rect x="30" y="21" width="15" height="14" rx="5" fill="#7B83EB"/><rect x="3" y="18" width="23" height="24" rx="4" fill="#4F52B2"/><path d="M9 24h12v4h-4v10h-4V28H9Z" fill="#fff"/>',
+    "google-meet": '<path d="M7 10h23l7 7v21H11a6 6 0 0 1-6-6V12a2 2 0 0 1 2-2Z" fill="#00AC47"/><path d="M30 10v12l7-5v21H30Z" fill="#00832D"/><path d="M37 17 46 10v28l-9-7Z" fill="#00AC47"/><path d="M5 12a2 2 0 0 1 2-2h17L5 29Z" fill="#FFBA00"/><path d="M5 29 24 10h6v12L14 38h-3a6 6 0 0 1-6-6Z" fill="#EA4335"/><path d="M30 22 14 38h16Z" fill="#2684FC"/>',
+    webex: '<circle cx="24" cy="24" r="16" fill="none" stroke="#00BCEB" stroke-width="7" stroke-linecap="round" stroke-dasharray="48 53" transform="rotate(-78 24 24)"/><circle cx="24" cy="24" r="10" fill="none" stroke="#65BC7B" stroke-width="6" stroke-linecap="round" stroke-dasharray="30 33" transform="rotate(102 24 24)"/>',
+    youtube: '<rect x="3" y="10" width="42" height="28" rx="9" fill="#FF0033"/><path d="m20 17 13 7-13 7Z" fill="#fff"/>',
+    goto: '<circle cx="24" cy="24" r="21" fill="#2F3640"/><circle cx="18" cy="19" r="5" fill="#FF6B4A"/><circle cx="30" cy="19" r="5" fill="#FFCF3F"/><circle cx="18" cy="31" r="5" fill="#00C7B1"/><circle cx="30" cy="31" r="5" fill="#7A5CFA"/>',
+    ringcentral: '<circle cx="19" cy="24" r="11" fill="none" stroke="#0684BC" stroke-width="7"/><circle cx="31" cy="24" r="11" fill="none" stroke="#F99B1C" stroke-width="7"/>',
+    chime: '<rect width="48" height="48" rx="12" fill="#FFB000"/><path d="M14 29c5 4 15 4 20 0M17 23c4 3 10 3 14 0M21 17c2 1 4 1 6 0" fill="none" stroke="#fff" stroke-width="3.5" stroke-linecap="round"/>',
+    bluejeans: '<rect width="48" height="48" rx="12" fill="#1473E6"/><path d="M13 14h22v20H13Z" fill="none" stroke="#fff" stroke-width="4"/><path d="m14 31 8-8 5 5 8-9" fill="none" stroke="#EF3340" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>',
+    meeting: '<rect width="48" height="48" rx="12" fill="#4B5563"/><path d="M11 16a4 4 0 0 1 4-4h15a4 4 0 0 1 4 4v16a4 4 0 0 1-4 4H15a4 4 0 0 1-4-4Zm23 5 7-5v16l-7-5Z" fill="#fff"/>'
+  };
+
+  function createMeetingProviderBrand(provider) {
+    const brand = document.createElement("span");
+    brand.className = `district-platform-brand is-${provider.key}`;
+    brand.setAttribute("role", "img");
+    brand.setAttribute("aria-label", provider.label);
+    brand.title = provider.label;
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("viewBox", "0 0 48 48");
+    svg.setAttribute("aria-hidden", "true");
+    svg.innerHTML = meetingProviderBrandMarkup[provider.key] || meetingProviderBrandMarkup.meeting;
+    brand.append(svg);
+    return brand;
+  }
+
   function createMeetingProviderIcon(providerKey) {
     const paths = meetingProviderIconPaths[providerKey] || meetingProviderIconPaths.meeting;
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
@@ -205,17 +248,21 @@
     const zone = parent ? districtDirectoryNodes.find(item => item.id === parent.parent_id) : null;
     els.districtDirectoryDetail.replaceChildren();
     const title = document.createElement("h3"); title.textContent = node.name;
-    const copy = document.createElement("p"); copy.textContent = url ? "Your district destination is ready. It will open in a new browser tab." : "This district does not have a meeting link yet.";
+    const copy = document.createElement("p"); copy.textContent = url ? "Click Open district room below to access your district meeting." : "This district does not have a meeting link yet.";
     const meta = document.createElement("dl");
-    const meetingStatus = url ? (node.platform || detectMeetingProvider(url).label || "Ready") : "Not available";
-    [["Zone", zone?.name], ["Region", parent?.name], ["Meeting link", meetingStatus]].forEach(([label, value]) => {
+    const provider = url ? resolveMeetingProvider(url, node.platform) : null;
+    [["Zone", zone?.name], ["Region", parent?.name], ["Meeting link", provider || "Not available"]].forEach(([label, value]) => {
       if (!value) return;
       const row = document.createElement("div"), term = document.createElement("dt"), description = document.createElement("dd");
-      term.textContent = label; description.textContent = value; row.append(term, description); meta.append(row);
+      term.textContent = label;
+      if (label === "Meeting link" && typeof value === "object") description.append(createMeetingProviderBrand(value));
+      else description.textContent = value;
+      row.append(term, description); meta.append(row);
     });
     els.districtDirectoryDetail.append(title, copy, meta);
     if (url) {
-      const link = document.createElement("a"); link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer nofollow"; link.textContent = "Open district room ↗"; els.districtDirectoryDetail.append(link);
+      const link = document.createElement("a"); link.className = "district-room-link"; link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer nofollow";
+      const label = document.createElement("span"); label.textContent = "Open district room ↗"; link.append(label); els.districtDirectoryDetail.append(link);
     }
   }
 
