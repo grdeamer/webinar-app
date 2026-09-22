@@ -22,19 +22,35 @@ test("display sync bypasses an older district CDN object", async () => {
   assert.match(script, /fetchDistrictDirectory\(nextState\.sync_token\)/)
 })
 
-test("district destinations use accessible platform marks and a motion-safe room gloss", async () => {
+test("district destinations use provider names and a motion-safe room gloss", async () => {
   const [script, styles] = await Promise.all([
     readFile(new URL("app.js", templateRoot), "utf8"),
     readFile(new URL("styles.css", templateRoot), "utf8"),
   ])
 
-  assert.match(script, /createMeetingProviderBrand\(provider\)/)
-  assert.match(script, /brand\.setAttribute\("aria-label", provider\.label\)/)
-  assert.match(script, /wordmark\.src = "zoom-wordmark\.png"/)
+  assert.match(script, /\["Meeting link", provider\?\.label \|\| "Not available"\]/)
+  assert.doesNotMatch(script, /createMeetingProviderBrand|zoom-wordmark\.png/)
+  assert.doesNotMatch(styles, /district-platform-brand/)
   assert.match(script, /link\.className = "district-room-link"/)
   assert.match(script, /copyButton\.className = "district-room-copy"/)
   assert.match(styles, /@keyframes district-room-gloss/)
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
+})
+
+test("meeting providers retain readable names for supported room URLs", async () => {
+  const script = await readFile(new URL("app.js", templateRoot), "utf8")
+  const providerFunctions = script.slice(
+    script.indexOf("  function hostnameMatches(hostname, domain) {"),
+    script.indexOf("  function createMeetingProviderIcon(providerKey) {"),
+  )
+  const labels = runInNewContext(`${providerFunctions}\n[
+    resolveMeetingProvider("https://us02web.zoom.us/j/123").label,
+    resolveMeetingProvider("https://teams.microsoft.com/l/meetup-join/123").label,
+    resolveMeetingProvider("https://meet.google.com/abc-defg-hij").label,
+    resolveMeetingProvider("https://example.com/room", "Webex").label,
+  ]`, { URL }) as string[]
+
+  assert.deepEqual(Array.from(labels), ["Zoom", "Microsoft Teams", "Google Meet", "Webex"])
 })
 
 test("room URL copying falls back when the Clipboard API is unavailable or denied", async () => {
@@ -115,7 +131,6 @@ test("selecting linked groups and districts reveals their room links", async () 
     safeMeetingUrl: (value: string | null) => value?.startsWith("https://") ? value : "",
     copyRoomUrl: async (url: string) => { copiedUrls.push(url); return true },
     resolveMeetingProvider: () => ({ label: "Meeting" }),
-    createMeetingProviderBrand: () => new Element("brand"),
   }
   runInNewContext(`${destination}\n${directory}\nrenderDistrictDirectory();`, context)
 
@@ -126,6 +141,7 @@ test("selecting linked groups and districts reveals their room links", async () 
   }
 
   clickNode("MSL")
+  assert.ok(walk(detail).some((element) => element.tag === "dd" && element.textContent === "Meeting"))
   assert.equal(walk(detail).find((element) => element.tag === "a")?.href, "https://example.com/msl")
   assert.ok(walk(detail).some((element) => element.textContent === "Open group room ↗"))
   const groupCopy = walk(detail).find((element) => element.tag === "button" && element.className === "district-room-copy")
