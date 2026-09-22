@@ -19,6 +19,7 @@ test("the canonical LETS template publishes every managed asset", async () => {
     "styles.css",
     "app.js",
     "jnj-logo.png",
+    "zoom-wordmark.png",
     "favicon.png",
     "JohnsonText-Regular.ttf",
     "JohnsonText-Bold.ttf",

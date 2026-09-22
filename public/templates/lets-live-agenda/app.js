@@ -187,6 +187,15 @@
     brand.setAttribute("role", "img");
     brand.setAttribute("aria-label", provider.label);
     brand.title = provider.label;
+    if (provider.key === "zoom") {
+      const wordmark = document.createElement("img");
+      wordmark.src = "zoom-wordmark.png";
+      wordmark.alt = "";
+      wordmark.width = 640;
+      wordmark.height = 145;
+      brand.append(wordmark);
+      return brand;
+    }
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     svg.setAttribute("viewBox", "0 0 48 48");
     svg.setAttribute("aria-hidden", "true");
@@ -241,6 +250,32 @@
     }
   }
 
+  async function copyRoomUrl(url) {
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        return true;
+      }
+    } catch {
+      // Some mobile browsers deny Clipboard API access even after a tap.
+    }
+
+    const field = document.createElement("textarea");
+    field.value = url;
+    field.setAttribute("readonly", "");
+    field.style.position = "fixed";
+    field.style.opacity = "0";
+    document.body.append(field);
+    field.select();
+    try {
+      return document.execCommand("copy");
+    } catch {
+      return false;
+    } finally {
+      field.remove();
+    }
+  }
+
   function renderDistrictDestination(node) {
     if (!els.districtDirectoryDetail || !node || !["district", "group"].includes(node.node_type)) return;
     const url = safeMeetingUrl(node.meeting_link);
@@ -260,12 +295,23 @@
       term.textContent = label;
       if (label === "Meeting link" && typeof value === "object") description.append(createMeetingProviderBrand(value));
       else description.textContent = value;
+      if (label === "Meeting link") row.classList.add("is-meeting-link");
       row.append(term, description); meta.append(row);
     });
     els.districtDirectoryDetail.append(eyebrow, title, copy, meta);
     if (url) {
       const link = document.createElement("a"); link.className = "district-room-link"; link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer nofollow";
-      const label = document.createElement("span"); label.textContent = `Open ${isGroup ? "group" : "district"} room ↗`; link.append(label); els.districtDirectoryDetail.append(link);
+      const label = document.createElement("span"); label.textContent = `Open ${isGroup ? "group" : "district"} room ↗`; link.append(label);
+      const copyButton = document.createElement("button"); copyButton.type = "button"; copyButton.className = "district-room-copy"; copyButton.textContent = "Copy room URL";
+      const copyStatus = document.createElement("span"); copyStatus.className = "sr-only"; copyStatus.setAttribute("role", "status");
+      copyButton.addEventListener("click", async () => {
+        copyButton.disabled = true;
+        const copied = await copyRoomUrl(url);
+        copyButton.textContent = copied ? "Copied!" : "Copy failed — try again";
+        copyStatus.textContent = copied ? `${isGroup ? "Group" : "District"} room URL copied to clipboard.` : "Could not copy the room URL. Try again, or press and hold the Open room button to copy its link.";
+        copyButton.disabled = false;
+      });
+      els.districtDirectoryDetail.append(link, copyButton, copyStatus);
     }
   }
 

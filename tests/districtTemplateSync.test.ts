@@ -30,9 +30,35 @@ test("district destinations use accessible platform marks and a motion-safe room
 
   assert.match(script, /createMeetingProviderBrand\(provider\)/)
   assert.match(script, /brand\.setAttribute\("aria-label", provider\.label\)/)
+  assert.match(script, /wordmark\.src = "zoom-wordmark\.png"/)
   assert.match(script, /link\.className = "district-room-link"/)
+  assert.match(script, /copyButton\.className = "district-room-copy"/)
   assert.match(styles, /@keyframes district-room-gloss/)
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
+})
+
+test("room URL copying falls back when the Clipboard API is unavailable or denied", async () => {
+  const script = await readFile(new URL("app.js", templateRoot), "utf8")
+  const copyFunction = script.slice(script.indexOf("  async function copyRoomUrl(url) {"), script.indexOf("  function renderDistrictDestination(node) {"))
+  const selected: string[] = []
+  const field = {
+    value: "",
+    style: { position: "", opacity: "" },
+    setAttribute() {},
+    select() { selected.push(this.value) },
+    remove() {},
+  }
+  const context = {
+    navigator: { clipboard: { writeText: async () => { throw new Error("Denied") } } },
+    document: {
+      createElement: () => field,
+      body: { append() {} },
+      execCommand: (command: string) => command === "copy",
+    },
+  }
+  const copied = await runInNewContext(`${copyFunction}\ncopyRoomUrl("https://example.com/room")`, context)
+  assert.equal(copied, true)
+  assert.deepEqual(selected, ["https://example.com/room"])
 })
 
 test("selecting linked groups and districts reveals their room links", async () => {
@@ -48,7 +74,8 @@ test("selecting linked groups and districts reveals their room links", async () 
     hidden = false
     textContent = ""
     href = ""
-    listeners: Record<string, () => void> = {}
+    disabled = false
+    listeners: Record<string, () => void | Promise<void>> = {}
     selected = false
     classList = {
       add: (name: string) => { if (name === "is-selected") this.selected = true },
@@ -59,8 +86,8 @@ test("selecting linked groups and districts reveals their room links", async () 
     append(...children: Element[]) { this.children.push(...children) }
     replaceChildren(...children: Element[]) { this.children = children }
     setAttribute() {}
-    addEventListener(name: string, listener: () => void) { this.listeners[name] = listener }
-    click() { this.listeners.click?.() }
+    addEventListener(name: string, listener: () => void | Promise<void>) { this.listeners[name] = listener }
+    click() { return this.listeners.click?.() }
     querySelectorAll() { return walk(this).filter((element) => element.tag === "button" && element.selected) }
     scrollIntoView() {}
   }
@@ -79,12 +106,14 @@ test("selecting linked groups and districts reveals their room links", async () 
     { id: "region", parent_id: "east", node_type: "region", name: "Mid-Atlantic", sort_order: 0 },
     { id: "baltimore", parent_id: "region", node_type: "district", name: "Baltimore", meeting_link: "https://example.com/baltimore", sort_order: 0 },
   ]
+  const copiedUrls: string[] = []
   const context = {
     document: { createElement: (tag: string) => new Element(tag) },
     els: { districtDirectoryTree: tree, districtDirectoryDetail: detail },
     districtDirectoryNodes: nodes,
     window: { matchMedia: () => ({ matches: false }) },
     safeMeetingUrl: (value: string | null) => value?.startsWith("https://") ? value : "",
+    copyRoomUrl: async (url: string) => { copiedUrls.push(url); return true },
     resolveMeetingProvider: () => ({ label: "Meeting" }),
     createMeetingProviderBrand: () => new Element("brand"),
   }
@@ -99,12 +128,22 @@ test("selecting linked groups and districts reveals their room links", async () 
   clickNode("MSL")
   assert.equal(walk(detail).find((element) => element.tag === "a")?.href, "https://example.com/msl")
   assert.ok(walk(detail).some((element) => element.textContent === "Open group room ↗"))
+  const groupCopy = walk(detail).find((element) => element.tag === "button" && element.className === "district-room-copy")
+  assert.ok(groupCopy)
+  await groupCopy.click()
+  assert.equal(groupCopy.textContent, "Copied!")
+  assert.deepEqual(copiedUrls, ["https://example.com/msl"])
 
   clickNode("Baltimore")
   assert.equal(walk(detail).find((element) => element.tag === "a")?.href, "https://example.com/baltimore")
   assert.ok(walk(detail).some((element) => element.textContent === "Open district room ↗"))
+  const districtCopy = walk(detail).find((element) => element.tag === "button" && element.className === "district-room-copy")
+  assert.ok(districtCopy)
+  await districtCopy.click()
+  assert.deepEqual(copiedUrls, ["https://example.com/msl", "https://example.com/baltimore"])
 
   clickNode("Virtual Team")
   assert.equal(walk(detail).find((element) => element.tag === "a"), undefined)
+  assert.equal(walk(detail).find((element) => element.className === "district-room-copy"), undefined)
   assert.ok(walk(detail).some((element) => element.textContent.includes("does not have a meeting link yet")))
 })
