@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   const { user } = await requireAdmin()
-  const body = await request.json().catch(() => null)
+  const body = await request.json().catch((): null => null)
   const action = body?.action === "sign_in" ? "sign_in" : body?.action === "view_page" ? "view_page" : null
   if (!action) return NextResponse.json({ error: "Unsupported activity." }, { status: 400 })
 
