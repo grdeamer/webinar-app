@@ -1,7 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
 
-import { classifyDistrictNodes, isAssignableDistrictNode } from "../lib/districtTree.ts"
+import { classifyDistrictNodes, getDistrictLinkStatus, isAssignableDistrictNode } from "../lib/districtTree.ts"
 
 test("classifies geographic and non-geographic branches without new database node kinds", () => {
   const nodes = classifyDistrictNodes([
@@ -24,4 +24,23 @@ test("keeps a renamed Other section non-geographic through its storage marker", 
   ])
 
   assert.equal(node.node_type, "other")
+})
+
+test("summarizes link readiness for leaves, regions, and top-level branches", () => {
+  const nodes = [
+    { id: "east", district_parent_id: null, node_type: "zone" as const, external_join_url: null },
+    { id: "mid", district_parent_id: "east", node_type: "region" as const, external_join_url: null },
+    { id: "baltimore", district_parent_id: "mid", node_type: "district" as const, external_join_url: "https://meet.example.com/baltimore" },
+    { id: "philly", district_parent_id: "mid", node_type: "district" as const, external_join_url: "" },
+    { id: "central", district_parent_id: "east", node_type: "region" as const, external_join_url: null },
+    { id: "columbus", district_parent_id: "central", node_type: "district" as const, external_join_url: "https://meet.example.com/columbus" },
+    { id: "other", district_parent_id: null, node_type: "other" as const, external_join_url: null },
+  ]
+
+  assert.equal(getDistrictLinkStatus(nodes[2], nodes), "ready")
+  assert.equal(getDistrictLinkStatus(nodes[3], nodes), "missing")
+  assert.equal(getDistrictLinkStatus(nodes[1], nodes), "partial")
+  assert.equal(getDistrictLinkStatus(nodes[4], nodes), "ready")
+  assert.equal(getDistrictLinkStatus(nodes[0], nodes), "partial")
+  assert.equal(getDistrictLinkStatus(nodes[6], nodes), "missing")
 })

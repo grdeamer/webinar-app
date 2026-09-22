@@ -1,4 +1,5 @@
 export type DistrictNodeType = "zone" | "region" | "district" | "other" | "group"
+export type DistrictLinkStatus = "ready" | "partial" | "missing"
 
 export type DistrictTreeRow = {
   id: string
@@ -11,6 +12,40 @@ export type DistrictTreeRow = {
 
 export function isAssignableDistrictNode(type: DistrictNodeType) {
   return type === "district" || type === "group"
+}
+
+type DistrictLinkNode = {
+  id: string
+  district_parent_id: string | null
+  node_type: DistrictNodeType
+  external_join_url?: string | null
+}
+
+function hasMeetingLink(value?: string | null) {
+  return Boolean(value?.trim())
+}
+
+export function getDistrictLinkStatus(node: DistrictLinkNode, nodes: DistrictLinkNode[]): DistrictLinkStatus {
+  if (isAssignableDistrictNode(node.node_type)) return hasMeetingLink(node.external_join_url) ? "ready" : "missing"
+
+  const descendants: DistrictLinkNode[] = []
+  const pending = [node.id]
+  const visited = new Set<string>()
+  while (pending.length) {
+    const parentId = pending.shift()!
+    if (visited.has(parentId)) continue
+    visited.add(parentId)
+    for (const candidate of nodes) {
+      if (candidate.district_parent_id !== parentId) continue
+      if (isAssignableDistrictNode(candidate.node_type)) descendants.push(candidate)
+      else pending.push(candidate.id)
+    }
+  }
+
+  const readyCount = descendants.filter((candidate) => hasMeetingLink(candidate.external_join_url)).length
+  if (descendants.length > 0 && readyCount === descendants.length) return "ready"
+  if (readyCount > 0) return "partial"
+  return "missing"
 }
 
 function isOtherRoot(row: DistrictTreeRow) {
