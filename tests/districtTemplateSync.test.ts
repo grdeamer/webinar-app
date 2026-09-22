@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import { readFile } from "node:fs/promises"
 import test from "node:test"
+import { runInNewContext } from "node:vm"
 
 const templateRoot = new URL("../public/templates/lets-live-agenda/", import.meta.url)
 
@@ -32,4 +33,78 @@ test("district destinations use accessible platform marks and a motion-safe room
   assert.match(script, /link\.className = "district-room-link"/)
   assert.match(styles, /@keyframes district-room-gloss/)
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/)
+})
+
+test("selecting linked groups and districts reveals their room links", async () => {
+  const script = await readFile(new URL("app.js", templateRoot), "utf8")
+  const destination = script.slice(script.indexOf("  function renderDistrictDestination(node) {"), script.indexOf("  function renderDistrictDirectory(query = \"\") {"))
+  const directory = script.slice(script.indexOf("  function renderDistrictDirectory(query = \"\") {"), script.indexOf("  async function fetchDistrictDirectory("))
+
+  class Element {
+    tag: string
+    children: Element[] = []
+    className = ""
+    dataset: Record<string, string> = {}
+    hidden = false
+    textContent = ""
+    href = ""
+    listeners: Record<string, () => void> = {}
+    selected = false
+    classList = {
+      add: (name: string) => { if (name === "is-selected") this.selected = true },
+      remove: (name: string) => { if (name === "is-selected") this.selected = false },
+    }
+
+    constructor(tag: string) { this.tag = tag }
+    append(...children: Element[]) { this.children.push(...children) }
+    replaceChildren(...children: Element[]) { this.children = children }
+    setAttribute() {}
+    addEventListener(name: string, listener: () => void) { this.listeners[name] = listener }
+    click() { this.listeners.click?.() }
+    querySelectorAll() { return walk(this).filter((element) => element.tag === "button" && element.selected) }
+    scrollIntoView() {}
+  }
+
+  function walk(element: Element): Element[] {
+    return [element, ...element.children.flatMap(walk)]
+  }
+
+  const tree = new Element("nav")
+  const detail = new Element("aside")
+  const nodes = [
+    { id: "other", parent_id: null, node_type: "other", name: "Other", sort_order: 0 },
+    { id: "msl", parent_id: "other", node_type: "group", name: "MSL", meeting_link: "https://example.com/msl", sort_order: 0 },
+    { id: "virtual", parent_id: "other", node_type: "group", name: "Virtual Team", meeting_link: null, sort_order: 1 },
+    { id: "east", parent_id: null, node_type: "zone", name: "East", sort_order: 1 },
+    { id: "region", parent_id: "east", node_type: "region", name: "Mid-Atlantic", sort_order: 0 },
+    { id: "baltimore", parent_id: "region", node_type: "district", name: "Baltimore", meeting_link: "https://example.com/baltimore", sort_order: 0 },
+  ]
+  const context = {
+    document: { createElement: (tag: string) => new Element(tag) },
+    els: { districtDirectoryTree: tree, districtDirectoryDetail: detail },
+    districtDirectoryNodes: nodes,
+    window: { matchMedia: () => ({ matches: false }) },
+    safeMeetingUrl: (value: string | null) => value?.startsWith("https://") ? value : "",
+    resolveMeetingProvider: () => ({ label: "Meeting" }),
+    createMeetingProviderBrand: () => new Element("brand"),
+  }
+  runInNewContext(`${destination}\n${directory}\nrenderDistrictDirectory();`, context)
+
+  function clickNode(name: string) {
+    const button = walk(tree).find((element) => element.tag === "button" && walk(element).some((child) => child.tag === "strong" && child.textContent === name))
+    assert.ok(button, `${name} appears in the tree`)
+    button.click()
+  }
+
+  clickNode("MSL")
+  assert.equal(walk(detail).find((element) => element.tag === "a")?.href, "https://example.com/msl")
+  assert.ok(walk(detail).some((element) => element.textContent === "Open group room ↗"))
+
+  clickNode("Baltimore")
+  assert.equal(walk(detail).find((element) => element.tag === "a")?.href, "https://example.com/baltimore")
+  assert.ok(walk(detail).some((element) => element.textContent === "Open district room ↗"))
+
+  clickNode("Virtual Team")
+  assert.equal(walk(detail).find((element) => element.tag === "a"), undefined)
+  assert.ok(walk(detail).some((element) => element.textContent.includes("does not have a meeting link yet")))
 })

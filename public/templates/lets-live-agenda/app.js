@@ -242,16 +242,19 @@
   }
 
   function renderDistrictDestination(node) {
-    if (!els.districtDirectoryDetail || !node || node.node_type !== "district") return;
+    if (!els.districtDirectoryDetail || !node || !["district", "group"].includes(node.node_type)) return;
     const url = safeMeetingUrl(node.meeting_link);
     const parent = districtDirectoryNodes.find(item => item.id === node.parent_id);
     const zone = parent ? districtDirectoryNodes.find(item => item.id === parent.parent_id) : null;
+    const isGroup = node.node_type === "group";
     els.districtDirectoryDetail.replaceChildren();
+    const eyebrow = document.createElement("p"); eyebrow.className = "eyebrow"; eyebrow.textContent = isGroup ? "Group details" : "District details";
     const title = document.createElement("h3"); title.textContent = node.name;
-    const copy = document.createElement("p"); copy.textContent = url ? "Click Open district room below to access your district meeting." : "This district does not have a meeting link yet.";
+    const copy = document.createElement("p"); copy.textContent = url ? `Click Open ${isGroup ? "group" : "district"} room below to access your meeting.` : `This ${isGroup ? "group" : "district"} does not have a meeting link yet.`;
     const meta = document.createElement("dl");
     const provider = url ? resolveMeetingProvider(url, node.platform) : null;
-    [["Zone", zone?.name], ["Region", parent?.name], ["Meeting link", provider || "Not available"]].forEach(([label, value]) => {
+    const location = isGroup ? [["Section", parent?.name]] : [["Zone", zone?.name], ["Region", parent?.name]];
+    [...location, ["Meeting link", provider || "Not available"]].forEach(([label, value]) => {
       if (!value) return;
       const row = document.createElement("div"), term = document.createElement("dt"), description = document.createElement("dd");
       term.textContent = label;
@@ -259,10 +262,10 @@
       else description.textContent = value;
       row.append(term, description); meta.append(row);
     });
-    els.districtDirectoryDetail.append(title, copy, meta);
+    els.districtDirectoryDetail.append(eyebrow, title, copy, meta);
     if (url) {
       const link = document.createElement("a"); link.className = "district-room-link"; link.href = url; link.target = "_blank"; link.rel = "noopener noreferrer nofollow";
-      const label = document.createElement("span"); label.textContent = "Open district room ↗"; link.append(label); els.districtDirectoryDetail.append(link);
+      const label = document.createElement("span"); label.textContent = `Open ${isGroup ? "group" : "district"} room ↗`; link.append(label); els.districtDirectoryDetail.append(link);
     }
   }
 
@@ -285,7 +288,7 @@
         const copy = document.createElement("span"); copy.className = "district-tree-copy";
         const label = document.createElement("small"); label.textContent = node.node_type;
         const name = document.createElement("strong"); name.textContent = node.name; copy.append(label, name);
-        const count = document.createElement("em"); count.textContent = descendants.length ? `${descendants.length} ${node.node_type === "zone" ? "regions" : "districts"}` : node.meeting_link ? "Link ready" : "Link needed";
+        const count = document.createElement("em"); count.textContent = descendants.length ? `${descendants.length} ${node.node_type === "zone" ? "regions" : node.node_type === "other" ? "groups" : "districts"}` : node.meeting_link ? "Link ready" : "Link needed";
         button.append(marker, copy, count); item.append(button);
         if (descendants.length) {
           const children = branch(node.id, depth + 1); children.hidden = !normalized;
@@ -293,7 +296,14 @@
           button.addEventListener("click", () => { children.hidden = !children.hidden; button.setAttribute("aria-expanded", String(!children.hidden)); marker.textContent = children.hidden ? "›" : "⌄"; });
           item.append(children);
         } else {
-          button.addEventListener("click", () => { els.districtDirectoryTree.querySelectorAll("button.is-selected").forEach(element => element.classList.remove("is-selected")); button.classList.add("is-selected"); renderDistrictDestination(node); });
+          button.addEventListener("click", () => {
+            els.districtDirectoryTree.querySelectorAll("button.is-selected").forEach(element => element.classList.remove("is-selected"));
+            button.classList.add("is-selected");
+            renderDistrictDestination(node);
+            if (window.matchMedia("(max-width: 940px)").matches) {
+              els.districtDirectoryDetail.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+            }
+          });
         }
         list.append(item);
       });
