@@ -3,6 +3,7 @@ import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import { getCustomCodeDocument } from "@/lib/page-editor/customCode"
 import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
 import { readTemplateArtifacts } from "./templateFiles"
+import { versionManagedAssetReferences } from "./assetVersions"
 
 export type PublishArtifact = {
   name: string
@@ -152,5 +153,13 @@ export async function buildLetsPublishArtifacts(args: {
     2,
   )};\n`
 
-  return [...fileEntries, { name: "config.js", content: Buffer.from(config, "utf8") }]
+  const artifacts = [...fileEntries, { name: "config.js", content: Buffer.from(config, "utf8") }]
+  const indexPosition = artifacts.findIndex((entry) => entry.name === "index.html")
+  if (indexPosition !== -1) {
+    artifacts[indexPosition] = {
+      name: "index.html",
+      content: Buffer.from(versionManagedAssetReferences(artifacts[indexPosition].content.toString("utf8"), artifacts), "utf8"),
+    }
+  }
+  return artifacts
 }

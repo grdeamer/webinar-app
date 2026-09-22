@@ -1,4 +1,5 @@
 import assert from "node:assert/strict"
+import { createHash } from "node:crypto"
 import { readFile } from "node:fs/promises"
 import path from "node:path"
 import test from "node:test"
@@ -6,6 +7,7 @@ import JSZip from "jszip"
 import { extractPublishArchive, normalizeArchivePath } from "../lib/external-publishing/archive.ts"
 import { decryptPublishingSecret, encryptPublishingSecret } from "../lib/external-publishing/credentials.ts"
 import { readTemplateArtifacts } from "../lib/external-publishing/templateFiles.ts"
+import { versionManagedAssetReferences } from "../lib/external-publishing/assetVersions.ts"
 
 test("the canonical LETS template publishes every managed asset", async () => {
   const root = path.join(process.cwd(), "public", "templates", "lets-live-agenda")
@@ -24,6 +26,26 @@ test("the canonical LETS template publishes every managed asset", async () => {
 
   assert.equal(names.includes("config.js"), false)
   assert.equal(names.includes("README.txt"), false)
+})
+
+test("published LETS assets use content versions so browsers do not retain an old script", async () => {
+  const root = path.join(process.cwd(), "public", "templates", "lets-live-agenda")
+  const artifacts = await readTemplateArtifacts(root)
+  artifacts.push({ name: "config.js", content: Buffer.from("window.POA_CONFIG = {}") })
+  const html = artifacts.find((artifact) => artifact.name === "index.html")?.content.toString("utf8") || ""
+  const versioned = versionManagedAssetReferences(html, artifacts)
+
+  for (const name of ["styles.css", "config.js", "app.js"]) {
+    const asset = artifacts.find((item) => item.name === name)
+    assert.ok(asset)
+    const version = createHash("sha256").update(asset.content).digest("hex").slice(0, 12)
+    assert.ok(versioned.includes(`${name}?v=${version}`), `${name} must load its current content`)
+  }
+
+  const app = artifacts.find((item) => item.name === "app.js")
+  assert.ok(app)
+  const appVersion = createHash("sha256").update(app.content).digest("hex").slice(0, 12)
+  assert.ok(html.includes(`app.js?v=${appVersion}`), "the standalone template must also bypass stale app.js caches")
 })
 
 test("ZIP deployments strip one wrapper folder and reject unsafe paths", async () => {
