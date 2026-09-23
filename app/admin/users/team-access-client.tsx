@@ -157,8 +157,18 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
         last_active_at: null,
         avatar_url: null,
         is_current: false,
-      } : payload.member
-      setMembers((current) => [...current.filter((item) => !(item.scope === "event" && item.user_id === member.user_id && item.event_id === member.event_id)), member])
+      } : {
+        ...payload.member,
+        user_id: payload.member.id,
+        scope: "global",
+        event_role: null,
+        event_id: null,
+        event_title: null,
+        feature_permissions: [],
+      }
+      setMembers((current) => [...current.filter((item) => member.scope === "global"
+        ? item.user_id !== member.user_id
+        : !(item.scope === "event" && item.user_id === member.user_id && item.event_id === member.event_id)), member])
       setInviteOpen(false)
       setEventInviteOpen(false)
       setEmail("")

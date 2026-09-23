@@ -99,7 +99,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       promoted: true,
       invitationSent: sendInvitation,
-      member: { id: existingUser.id, email, name: resolvedName, team_role: "administrator", is_active: true, invite_status: "active", invited_at: sendInvitation ? now : null, last_active_at: existingUser.last_sign_in_at ?? null, avatar_url: String(existingUser.user_metadata?.avatar_url ?? "") || null, is_current: false },
+      member: { id: existingUser.id, user_id: existingUser.id, scope: "global", event_role: null, event_id: null, event_title: null, feature_permissions: [], email, name: resolvedName, team_role: "administrator", is_active: true, invite_status: "active", invited_at: sendInvitation ? now : null, last_active_at: existingUser.last_sign_in_at ?? null, avatar_url: String(existingUser.user_metadata?.avatar_url ?? "") || null, is_current: false },
     })
   }
 
@@ -147,5 +147,5 @@ export async function POST(request: Request) {
     }
   }
 
-  return NextResponse.json({ invitationSent: sendInvitation, member: { id: data.user.id, email, name: name || null, team_role: "administrator", is_active: true, invite_status: "pending", invited_at: sendInvitation ? now : null, last_active_at: null, avatar_url: null, is_current: false } })
+  return NextResponse.json({ invitationSent: sendInvitation, member: { id: data.user.id, user_id: data.user.id, scope: "global", event_role: null, event_id: null, event_title: null, feature_permissions: [], email, name: name || null, team_role: "administrator", is_active: true, invite_status: "pending", invited_at: sendInvitation ? now : null, last_active_at: null, avatar_url: null, is_current: false } })
 }
