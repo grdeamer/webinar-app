@@ -78,7 +78,6 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     invite_status: authUser.email_confirmed_at ? "active" : "pending",
     invited_at: now,
     invited_by: access.user.id,
-    feature_permissions: featurePermissions,
     updated_at: now,
   }, { onConflict: "id" })
   if (profileResult.error) return NextResponse.json({ error: profileResult.error.message }, { status: 500 })
