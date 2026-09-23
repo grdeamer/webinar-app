@@ -120,7 +120,7 @@ test("selecting linked groups and districts reveals their room links", async () 
     { id: "virtual", parent_id: "other", node_type: "group", name: "Virtual Team", meeting_link: null, sort_order: 1 },
     { id: "east", parent_id: null, node_type: "zone", name: "East", sort_order: 1 },
     { id: "region", parent_id: "east", node_type: "region", name: "Mid-Atlantic", sort_order: 0 },
-    { id: "baltimore", parent_id: "region", node_type: "district", name: "Baltimore", meeting_link: "https://example.com/baltimore", sort_order: 0 },
+    { id: "baltimore", parent_id: "region", node_type: "district", name: "Baltimore", lead: "  Manager One & Manager Two  ", meeting_link: "https://example.com/baltimore", sort_order: 0 },
   ]
   const copiedUrls: string[] = []
   const context = {
@@ -151,6 +151,8 @@ test("selecting linked groups and districts reveals their room links", async () 
   assert.deepEqual(copiedUrls, ["https://example.com/msl"])
 
   clickNode("Baltimore")
+  assert.deepEqual(walk(detail).filter((element) => element.tag === "dt").map((element) => element.textContent), ["Zone", "Region", "District manager(s)", "Meeting link"])
+  assert.ok(walk(detail).some((element) => element.tag === "dd" && element.textContent === "Manager One & Manager Two"))
   assert.equal(walk(detail).find((element) => element.tag === "a")?.href, "https://example.com/baltimore")
   assert.ok(walk(detail).some((element) => element.textContent === "Open district room ↗"))
   const districtCopy = walk(detail).find((element) => element.tag === "button" && element.className === "district-room-copy")
@@ -159,6 +161,7 @@ test("selecting linked groups and districts reveals their room links", async () 
   assert.deepEqual(copiedUrls, ["https://example.com/msl", "https://example.com/baltimore"])
 
   clickNode("Virtual Team")
+  assert.ok(!walk(detail).some((element) => element.textContent === "Group lead(s)"))
   assert.equal(walk(detail).find((element) => element.tag === "a"), undefined)
   assert.equal(walk(detail).find((element) => element.className === "district-room-copy"), undefined)
   assert.ok(walk(detail).some((element) => element.textContent.includes("does not have a meeting link yet")))

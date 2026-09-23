@@ -253,7 +253,8 @@
     const meta = document.createElement("dl");
     const provider = url ? resolveMeetingProvider(url, node.platform) : null;
     const location = isGroup ? [["Section", parent?.name]] : [["Zone", zone?.name], ["Region", parent?.name]];
-    [...location, ["Meeting link", provider?.label || "Not available"]].forEach(([label, value]) => {
+    const manager = typeof node.lead === "string" ? node.lead.trim() : "";
+    [...location, [isGroup ? "Group lead(s)" : "District manager(s)", manager], ["Meeting link", provider?.label || "Not available"]].forEach(([label, value]) => {
       if (!value) return;
       const row = document.createElement("div"), term = document.createElement("dt"), description = document.createElement("dd");
       term.textContent = label;
