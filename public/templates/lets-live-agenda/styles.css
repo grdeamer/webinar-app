@@ -661,39 +661,8 @@ h1 {
   display: none !important;
 }
 
-.next-up {
-  display: flex;
-  flex: 1;
-  flex-direction: column;
-  justify-content: center;
-  min-width: 0;
-  padding: 12px 18px;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  background: rgba(255,255,255,.62);
-}
-
-.next-up span {
-  color: var(--muted);
-  font-size: 10px;
-  font-weight: 900;
-  letter-spacing: .15em;
-  text-transform: uppercase;
-}
-
-.next-up strong {
-  overflow: hidden;
-  margin-top: 3px;
-  font-size: 14px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.next-up small {
-  margin-top: 2px;
-  color: var(--muted);
-  font-size: 12px;
-}
+/* Keep older cached markup suppressed too: this template has no Next up card. */
+.next-up { display: none !important; }
 
 .status-panel {
   display: flex;

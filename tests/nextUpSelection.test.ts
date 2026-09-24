@@ -5,6 +5,7 @@ import { runInNewContext } from "node:vm"
 
 const script = readFileSync(new URL("../public/templates/lets-live-agenda/app.js", import.meta.url), "utf8")
 const styles = readFileSync(new URL("../public/templates/lets-live-agenda/styles.css", import.meta.url), "utf8")
+const markup = readFileSync(new URL("../public/templates/lets-live-agenda/index.html", import.meta.url), "utf8")
 const now = "2026-09-24T18:40:00.000Z"
 
 function section(start: string, end: string) {
@@ -48,7 +49,6 @@ function harness(sessions: Session[], overrides: Record<string, unknown> = {}) {
   const element = () => ({ hidden: false, textContent: "" })
   const els = {
     liveLabel: element(), liveSessionName: element(), liveSessionTime: element(),
-    nextUp: element(), nextSessionName: element(), nextSessionTime: element(),
     countdownCard: element(), countdownLabel: element(), countdownSession: element(), countdownValue: element(),
     agendaSection: element(),
   }
@@ -79,20 +79,40 @@ function harness(sessions: Session[], overrides: Record<string, unknown> = {}) {
   }
 }
 
-test("runtime and timer refreshes preserve hidden attendee components", () => {
+test("the LETS hero has no Next up element or static session placeholder", () => {
+  assert.doesNotMatch(markup, /id=["'](?:nextUp|nextSessionName|nextSessionTime)["']/)
+  assert.doesNotMatch(script, /document\.getElementById\(["'](?:nextUp|nextSessionName|nextSessionTime)["']\)/)
+  assert.doesNotMatch(script, /els\.(?:nextUp|nextSessionName|nextSessionTime)\b/)
+  const heroStart = markup.indexOf('<div class="hero-actions">')
+  const heroEnd = markup.indexOf('<aside class="status-panel">', heroStart)
+  assert.ok(heroStart >= 0 && heroEnd > heroStart)
+  assert.doesNotMatch(markup.slice(heroStart, heroEnd), /Keynote Speaker|Next up/)
+})
+
+test("runtime and timer refreshes work without Next up nodes and preserve hidden controls", () => {
   const page = harness([breakSession, walkthrough, closing], {
     next_session: { id: closing.key },
     attendee_component_state: { next_up: false, countdown: false, agenda: false },
   })
   page.refresh()
-  assert.equal(page.els.nextUp.hidden, true)
   assert.equal(page.els.countdownCard.hidden, true)
   assert.equal(page.els.agendaSection.hidden, true)
 })
 
+test("the countdown still uses the secondary session after Next up is removed", () => {
+  const page = harness([breakSession, walkthrough, closing], {
+    next_session: { id: walkthrough.key },
+    attendee_component_state: { next_up: true, countdown: true, agenda: true },
+  })
+  page.refresh()
+  assert.equal(page.els.liveSessionName.textContent, breakSession.name)
+  assert.equal(page.els.countdownSession.textContent, walkthrough.name)
+  assert.equal(page.els.countdownValue.textContent, "00:05:00")
+})
+
 test("component display styles cannot override attendee visibility controls", () => {
   const rules = Array.from(styles.replace(/\/\*[\s\S]*?\*\//g, "").matchAll(/([^{}]+)\{([^{}]*)\}/g))
-  for (const selector of [".next-up[hidden]", ".countdown-card[hidden]", ".agenda-section[hidden]"]) {
+  for (const selector of [".countdown-card[hidden]", ".agenda-section[hidden]"]) {
     const hiddenRule = rules.find(([, selectors, declarations]) =>
       selectors.split(",").some(value => value.trim() === selector) &&
       /display\s*:\s*none\s*!important\s*;?/.test(declarations),

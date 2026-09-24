@@ -79,9 +79,6 @@
     liveLabel: document.getElementById("liveLabel"),
     liveSessionName: document.getElementById("liveSessionName"),
     liveSessionTime: document.getElementById("liveSessionTime"),
-    nextUp: document.getElementById("nextUp"),
-    nextSessionName: document.getElementById("nextSessionName"),
-    nextSessionTime: document.getElementById("nextSessionTime"),
     eventClock: document.getElementById("eventClock"),
     eventDate: document.getElementById("eventDate"),
     countdownLabel: document.getElementById("countdownLabel"),
@@ -840,7 +837,7 @@
     applySurvey(state.show_survey, state.survey_url);
     if (nextState.agenda?.length) renderAgenda(nextState.agenda);
 
-    const { active, primary, secondary } = resolveDisplaySessions();
+    const { active, primary } = resolveDisplaySessions();
     const componentState = state.attendee_component_state || {};
     if (els.countdownCard) els.countdownCard.hidden = componentState.countdown === false;
     if (els.agendaSection) els.agendaSection.hidden = componentState.agenda === false;
@@ -859,13 +856,6 @@
     if (primary) {
       els.liveSessionName.textContent = primary.name;
       els.liveSessionTime.textContent = primary.displayTime;
-    }
-    if (secondary && componentState.next_up !== false) {
-      els.nextUp.hidden = false;
-      els.nextSessionName.textContent = secondary.name;
-      els.nextSessionTime.textContent = secondary.displayTime;
-    } else {
-      els.nextUp.hidden = true;
     }
 
     const primaryRuntimeSession = active ? state.current_session : state.next_session;
@@ -948,13 +938,6 @@
     if (primary) {
       els.liveSessionName.textContent = primary.name;
       els.liveSessionTime.textContent = primary.displayTime;
-    }
-    if (secondary && componentState.next_up !== false) {
-      els.nextUp.hidden = false;
-      els.nextSessionName.textContent = secondary.name;
-      els.nextSessionTime.textContent = secondary.displayTime;
-    } else {
-      els.nextUp.hidden = true;
     }
     agendaItems.forEach(item => {
       const session = sessionMap.get(item.dataset.session);
