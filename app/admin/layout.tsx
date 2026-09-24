@@ -16,6 +16,7 @@ import { Cloud, Menu, Moon, Sun, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
+import { useAdminSessionGuard } from "@/components/admin/useAdminSessionGuard"
 
 function matches(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin"
@@ -89,6 +90,7 @@ function Section({
 
 export default function AdminLayout({ children }: { children: ReactNode }) {
   const pathname = usePathname()
+  useAdminSessionGuard(pathname)
   const isProducerWorkspace = /^\/admin\/events\/[^/]+\/producer(?:\/.*)?$/.test(pathname)
   const producerMatch = pathname.match(/^\/admin\/events\/([^/]+)\/producer(?:\/.*)?$/)
   const producerEventId = producerMatch?.[1]

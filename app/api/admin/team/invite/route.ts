@@ -43,10 +43,13 @@ export async function POST(request: Request) {
   if (existingUser) {
     const { data: existingProfile, error: existingProfileError } = await supabaseAdmin
       .from("profiles")
-      .select("role,team_role,full_name")
+      .select("role,team_role,full_name,is_active")
       .eq("id", existingUser.id)
       .maybeSingle()
     if (existingProfileError) return NextResponse.json({ error: existingProfileError.message }, { status: 500 })
+    if (existingProfile?.is_active === false) {
+      return NextResponse.json({ code: "account_disabled", error: "This account is disabled. Restore account access before granting administrator access." }, { status: 409 })
+    }
     if (existingProfile?.role === "admin") {
       return NextResponse.json({ code: "already_admin", error: "This person already has Jupiter administrator access." }, { status: 409 })
     }

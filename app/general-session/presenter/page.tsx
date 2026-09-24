@@ -1,5 +1,4 @@
-import { cookies } from "next/headers"
-import { isAdminFromCookie } from "@/lib/adminToken"
+import { isAdminRequest } from "@/lib/app/auth"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import PresenterControlRoom from "./ui"
 
@@ -16,19 +15,17 @@ type SettingsRow = {
 export default async function GeneralSessionPresenterPage({
   searchParams,
 }: {
-  searchParams?: Record<string, string | string[] | undefined>
+  searchParams?: Promise<Record<string, string | string[] | undefined>>
 }) {
+  const params = await searchParams
   const key =
-    typeof searchParams?.key === "string"
-      ? searchParams.key
-      : Array.isArray(searchParams?.key)
-      ? searchParams.key[0]
+    typeof params?.key === "string"
+      ? params.key
+      : Array.isArray(params?.key)
+      ? params.key[0]
       : ""
 
-  const cookieStore = await cookies()
-  const token = cookieStore.get("admin_token")?.value
-
-  const isAdmin = Boolean(await isAdminFromCookie(token))
+  const isAdmin = await isAdminRequest()
 
   const { data } = await supabaseAdmin
     .from("general_session_settings")

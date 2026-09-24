@@ -12,6 +12,12 @@ export default function LoginForm() {
   const [loading, setLoading] = React.useState(false)
   const [error, setError] = React.useState<string | null>(null)
 
+  React.useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("access") === "disabled") {
+      setError("Your session has ended or your access was disabled. Contact the Jupiter owner if you need access restored.")
+    }
+  }, [])
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
     setLoading(true)
@@ -29,6 +35,12 @@ export default function LoginForm() {
         setError(error.message)
         setLoading(false)
         return
+      }
+
+      const access = await fetch("/api/auth/access-status", { cache: "no-store" })
+      if (!access.ok) {
+        await supabase.auth.signOut({ scope: "local" })
+        throw new Error(access.status === 503 ? "Access could not be checked. Please try again." : "Your Jupiter access is disabled or unavailable. Contact the owner.")
       }
 
       await fetch("/api/admin/user-activity", {

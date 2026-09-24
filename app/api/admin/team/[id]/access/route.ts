@@ -17,6 +17,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (actor?.team_role !== "owner") return NextResponse.json({ error: "Only the Owner can change team permissions." }, { status: 403 })
   if (!target) return NextResponse.json({ error: "Team member not found." }, { status: 404 })
   if (target.team_role === "owner") return NextResponse.json({ error: "Owner access is protected." }, { status: 400 })
+  if (target.is_active === false) {
+    return NextResponse.json({ code: "account_disabled", error: "This account is disabled. Restore account access before changing permissions." }, { status: 409 })
+  }
 
   const body = await request.json().catch((): null => null)
   const scope = body?.scope === "global" ? "global" : body?.scope === "event" ? "event" : null
@@ -24,7 +27,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const now = new Date().toISOString()
 
   if (scope === "global") {
-    const { error } = await supabaseAdmin.from("profiles").update({ role: "admin", team_role: "administrator", is_active: true, updated_at: now }).eq("id", id)
+    const { error } = await supabaseAdmin.from("profiles").update({ role: "admin", team_role: "administrator", updated_at: now }).eq("id", id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
     return NextResponse.json({ member: { id, user_id: id, scope: "global", email: target.email, name: target.full_name, team_role: "administrator", event_role: null, event_id: null, event_title: null, feature_permissions: [], is_active: true, invite_status: target.invite_status, invited_at: target.invited_at } })
   }
@@ -39,7 +42,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const { data: event } = await supabaseAdmin.from("events").select("id,title").eq("id", eventId).maybeSingle()
   if (!event) return NextResponse.json({ error: "Event not found." }, { status: 404 })
 
-  const profileResult = await supabaseAdmin.from("profiles").update({ role: "event_member", team_role: null, is_active: true, updated_at: now }).eq("id", id)
+  const profileResult = await supabaseAdmin.from("profiles").update({ role: "event_member", team_role: null, updated_at: now }).eq("id", id)
   if (profileResult.error) return NextResponse.json({ error: profileResult.error.message }, { status: 500 })
   await supabaseAdmin.from("event_team_members").update({ is_active: false, updated_at: now }).eq("user_id", id)
   const { data: membership, error } = await supabaseAdmin.from("event_team_members").upsert({ event_id: eventId, user_id: id, role, feature_permissions: featurePermissions, is_active: true, invite_status: target.invite_status, invited_at: target.invited_at ?? now, invited_by: user.id, updated_at: now }, { onConflict: "event_id,user_id" }).select("id").single()

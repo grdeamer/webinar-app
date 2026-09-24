@@ -23,6 +23,7 @@ export type TeamMember = {
   event_title: string | null
   feature_permissions: EventFeature[] | null
   is_active: boolean
+  account_active?: boolean
   invite_status: "active" | "pending"
   invited_at: string | null
   last_active_at: string | null
@@ -96,8 +97,8 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
   const [activityError, setActivityError] = useState<string | null>(null)
   const avatarFileRef = useRef<HTMLInputElement | null>(null)
 
-  const pendingCount = useMemo(() => members.filter((member) => member.invite_status === "pending").length, [members])
-  const activeCount = members.filter((member) => member.invite_status === "active" && member.is_active).length
+  const pendingCount = useMemo(() => members.filter((member) => member.invite_status === "pending" && member.account_active !== false && member.is_active).length, [members])
+  const activeCount = members.filter((member) => member.invite_status === "active" && member.is_active && member.account_active !== false).length
 
   useEffect(() => {
     if (!editingMember) return
@@ -251,6 +252,40 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
     }
   }
 
+  async function setAccountActive(member: TeamMember, active: boolean) {
+    const message = active
+      ? `Restore sign-in for ${member.email}? Their existing permissions will be kept.`
+      : `Disable ${member.email} across all of Jupiter and sign out all saved sessions? They cannot sign back in until you restore access. Their profile and permissions will be kept.`
+    if (!window.confirm(message)) return
+    setBusy(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await fetch(`/api/admin/team/${member.user_id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_active: active }),
+      })
+      const payload = await response.json().catch((): null => null)
+      if (typeof payload?.is_active === "boolean") {
+        const updateMember = (item: TeamMember) => item.user_id === member.user_id
+          ? { ...item, account_active: payload.is_active, is_active: item.scope === "global" ? payload.is_active : item.is_active }
+          : item
+        setMembers((current) => current.map(updateMember))
+        setEditingMember((current) => current ? updateMember(current) : null)
+      }
+      if (!response.ok) throw new Error(payload?.error || "Could not update account access")
+      setNotice(active
+        ? `Access restored for ${member.email}. They can sign in again.`
+        : `Access disabled for ${member.email}. Saved sessions were revoked and new sign-ins are blocked.`)
+      setMenuId(null)
+    } catch (updateError) {
+      setError(updateError instanceof Error ? updateError.message : "Could not update account access")
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function sendPasswordReset(member: TeamMember) {
     setBusy(true)
     setError(null)
@@ -347,8 +382,8 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
             <div className="flex min-w-0 items-center gap-4"><div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-white/10 bg-[linear-gradient(135deg,#13213f,#17172a)] text-sm font-semibold">{member.avatar_url ? <img src={member.avatar_url} alt="" className="h-full w-full object-cover" /> : initials(member)}</div><div className="min-w-0"><button type="button" onClick={() => openEdit(member)} className="block max-w-full truncate text-left font-semibold text-white underline decoration-blue-400/35 underline-offset-4 transition hover:text-blue-200 hover:decoration-blue-300">{member.name || member.email.split("@")[0]}</button><div className="mt-1 truncate text-sm text-white/45">{member.email}</div><div className="mt-1 text-xs text-white/32">Last signed in: {lastActive(member.last_active_at)}</div></div></div>
             <div><span className="rounded-md border border-white/12 px-2.5 py-1.5 text-xs font-medium text-white/78">{member.scope === "global" ? member.team_role === "owner" ? "Owner" : "Administrator" : roleOptions.find((option) => option.value === member.event_role)?.label ?? "Event member"}</span></div>
             <div className="text-sm text-white/66">{member.scope === "global" ? "All events and administration" : <><span className="block font-medium text-white/78">{member.event_title}</span><span className="mt-1 block text-xs text-white/38">{featuresForEventRole(member.event_role ?? "viewer", member.feature_permissions).length} features</span></>}</div>
-            <div className={`text-sm font-medium ${member.invite_status === "pending" ? "text-amber-200" : member.is_active ? "text-emerald-200" : "text-white/35"}`}>{member.invite_status === "pending" ? "Pending" : member.is_active ? "Active" : "Disabled"}</div>
-            <div className="relative flex justify-end">{canManage ? <><button type="button" aria-label={`Access options for ${member.email}`} onClick={() => setMenuId((current) => current === member.id ? null : member.id)} className="rounded-lg p-2 text-white/42 hover:bg-white/[.06] hover:text-white"><DotsHorizontal className="h-4 w-4" /></button>{menuId === member.id ? <div className="absolute right-0 top-10 z-20 w-64 rounded-xl border border-white/10 bg-[#0b101d] p-1.5 shadow-2xl"><button type="button" disabled={busy} onClick={() => openEdit(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Open full profile</button><button type="button" disabled={busy} onClick={() => void copyTestLogin(member)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Eye className="h-4 w-4 text-blue-200/70" />Copy one-time test login</button><button type="button" disabled={busy} onClick={() => { setAvatarMember(member); setMenuId(null) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Camera className="h-4 w-4 text-violet-200/70" />Change profile photo</button><div className="my-1 h-px bg-white/[.07]" /><button type="button" disabled={busy} onClick={() => void resendInvitation(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.invite_status === "pending" ? "Send invitation" : "Send Jupiter access email"}</button>{member.invite_status !== "pending" ? <button type="button" disabled={busy} onClick={() => void sendPasswordReset(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Send password reset</button> : null}{member.team_role !== "owner" ? <button type="button" disabled={busy} onClick={() => void setActive(member, !member.is_active)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.is_active ? "Disable access" : "Restore access"}</button> : <div className="px-3 py-2 text-xs text-white/35">Owner access is protected</div>}</div> : null}</> : member.team_role === "owner" ? <span title="Protected account"><Lock01 className="h-4 w-4 text-white/38" /></span> : null}</div>
+            <div className={`text-sm font-medium ${member.account_active === false || !member.is_active ? "text-white/35" : member.invite_status === "pending" ? "text-amber-200" : "text-emerald-200"}`}>{member.account_active === false || !member.is_active ? "Disabled" : member.invite_status === "pending" ? "Pending" : "Active"}</div>
+            <div className="relative flex justify-end">{canManage ? <><button type="button" aria-label={`Access options for ${member.email}`} onClick={() => setMenuId((current) => current === member.id ? null : member.id)} className="rounded-lg p-2 text-white/42 hover:bg-white/[.06] hover:text-white"><DotsHorizontal className="h-4 w-4" /></button>{menuId === member.id ? <div className="absolute right-0 top-10 z-20 w-64 rounded-xl border border-white/10 bg-[#0b101d] p-1.5 shadow-2xl"><button type="button" disabled={busy} onClick={() => openEdit(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Open full profile</button><button type="button" disabled={busy} onClick={() => void copyTestLogin(member)} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Eye className="h-4 w-4 text-blue-200/70" />Copy one-time test login</button><button type="button" disabled={busy} onClick={() => { setAvatarMember(member); setMenuId(null) }} className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]"><Camera className="h-4 w-4 text-violet-200/70" />Change profile photo</button><div className="my-1 h-px bg-white/[.07]" /><button type="button" disabled={busy} onClick={() => void resendInvitation(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.invite_status === "pending" ? "Send invitation" : "Send Jupiter access email"}</button>{member.invite_status !== "pending" ? <button type="button" disabled={busy} onClick={() => void sendPasswordReset(member)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">Send password reset</button> : null}{member.team_role !== "owner" && !member.is_current ? <><button type="button" disabled={busy} onClick={() => void setAccountActive(member, false)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-red-200 hover:bg-red-400/10">Disable access &amp; sign out</button>{member.account_active === false || (member.scope === "global" && !member.is_active) ? <button type="button" disabled={busy} onClick={() => void setAccountActive(member, true)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-emerald-200 hover:bg-white/[.06]">Restore account access</button> : null}{member.scope === "event" && member.account_active !== false ? <button type="button" disabled={busy} onClick={() => void setActive(member, !member.is_active)} className="w-full rounded-lg px-3 py-2 text-left text-sm text-white/70 hover:bg-white/[.06]">{member.is_active ? "Disable this event only" : "Restore this event only"}</button> : null}</> : <div className="px-3 py-2 text-xs text-white/35">Owner access is protected</div>}</div> : null}</> : member.team_role === "owner" ? <span title="Protected account"><Lock01 className="h-4 w-4 text-white/38" /></span> : null}</div>
           </div>)}
           {members.length === 0 ? <div className="px-3 py-12 text-sm text-white/45">No administrators found.</div> : null}
         </div>
@@ -381,7 +416,7 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
             <div className="grid gap-0 lg:grid-cols-[250px_minmax(0,1fr)_320px]">
               <aside className="border-b border-white/10 bg-white/[.018] p-5 lg:border-b-0 lg:border-r lg:p-6">
                 <div className="grid grid-cols-2 gap-3 lg:grid-cols-1">
-                  <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Status</div><div className={`mt-1.5 text-sm font-semibold ${editingMember.invite_status === "pending" ? "text-amber-200" : editingMember.is_active ? "text-emerald-200" : "text-white/40"}`}>{editingMember.invite_status === "pending" ? "Pending invitation" : editingMember.is_active ? "Active" : "Disabled"}</div></div>
+                  <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Status</div><div className={`mt-1.5 text-sm font-semibold ${editingMember.account_active === false || !editingMember.is_active ? "text-white/40" : editingMember.invite_status === "pending" ? "text-amber-200" : "text-emerald-200"}`}>{editingMember.account_active === false || !editingMember.is_active ? "Disabled" : editingMember.invite_status === "pending" ? "Pending invitation" : "Active"}</div></div>
                   <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Last signed in</div><div className="mt-1.5 text-sm font-semibold text-white/72">{lastActive(editingMember.last_active_at)}</div></div>
                   <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Current access</div><div className="mt-1.5 text-sm font-semibold text-white/72">{editingMember.scope === "global" ? "All events" : editingMember.event_title}</div></div>
                   <div className="rounded-xl border border-white/[.08] bg-black/15 p-3"><div className="text-[9px] font-semibold uppercase tracking-[.18em] text-white/32">Account</div><div className="mt-1.5 text-sm font-semibold text-white/72">{editingMember.team_role === "owner" ? "Owner" : editingMember.scope === "global" ? "Administrator" : roleOptions.find((option) => option.value === editingMember.event_role)?.label}</div></div>
@@ -389,6 +424,13 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
                 <div className="mt-5 space-y-2">
                   <button type="button" onClick={() => { setAvatarMember(editingMember); setEditingMember(null) }} className="flex w-full items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-left text-sm font-semibold text-white/68 hover:bg-white/[.05]"><Camera className="h-4 w-4 text-violet-200/70" />Change profile photo</button>
                   <button type="button" disabled={busy} onClick={() => void copyTestLogin(editingMember)} className="flex w-full items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-left text-sm font-semibold text-white/68 hover:bg-white/[.05] disabled:opacity-40"><Eye className="h-4 w-4 text-blue-200/70" />Copy test login</button>
+                  {canManage && editingMember.team_role !== "owner" && !editingMember.is_current ? (
+                    <div className="space-y-2 border-t border-white/10 pt-4">
+                      <p className="text-xs leading-5 text-white/45">Account controls apply to all Jupiter events. Profile and permissions are kept.</p>
+                      <button type="button" disabled={busy} onClick={() => void setAccountActive(editingMember, false)} className="w-full rounded-xl border border-red-300/20 bg-red-400/10 px-3 py-3 text-left text-sm font-semibold text-red-200 hover:bg-red-400/20 disabled:opacity-40">Disable access &amp; sign out</button>
+                      {editingMember.account_active === false || (editingMember.scope === "global" && !editingMember.is_active) ? <button type="button" disabled={busy} onClick={() => void setAccountActive(editingMember, true)} className="w-full rounded-xl border border-emerald-300/20 px-3 py-3 text-left text-sm font-semibold text-emerald-200 hover:bg-emerald-400/10 disabled:opacity-40">Restore account access</button> : null}
+                    </div>
+                  ) : null}
                 </div>
               </aside>
 
@@ -419,10 +461,11 @@ export default function TeamAccessClient({ initialMembers, events, canManage }: 
                   </>
                 )}
 
-                {error ? <div className="mt-5 rounded-xl border border-red-300/15 bg-red-400/[.07] px-4 py-3 text-sm text-red-100">{error}</div> : null}
+                {notice ? <div role="status" className="mt-5 rounded-xl border border-emerald-300/15 bg-emerald-400/[.07] px-4 py-3 text-sm text-emerald-100">{notice}</div> : null}
+                {error ? <div role="alert" className="mt-5 rounded-xl border border-red-300/15 bg-red-400/[.07] px-4 py-3 text-sm text-red-100">{error}</div> : null}
                 <div className="mt-7 flex flex-col-reverse justify-end gap-2 border-t border-white/10 pt-5 sm:flex-row">
                   <button type="button" onClick={() => setEditingMember(null)} className="rounded-xl border border-white/10 px-4 py-3 text-sm font-semibold hover:bg-white/[.05]">{editingMember.team_role === "owner" ? "Close" : "Cancel"}</button>
-                  {editingMember.team_role !== "owner" ? <button type="button" disabled={busy || (scope === "event" && (!eventId || features.length === 0))} onClick={() => void saveEventAccess()} className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold hover:bg-violet-500 disabled:opacity-40">{busy ? "Saving…" : "Save permissions"}</button> : null}
+                  {editingMember.team_role !== "owner" ? <button type="button" disabled={busy || editingMember.account_active === false || (scope === "event" && (!eventId || features.length === 0))} onClick={() => void saveEventAccess()} className="rounded-xl bg-violet-600 px-5 py-3 text-sm font-semibold hover:bg-violet-500 disabled:opacity-40">{busy ? "Saving…" : "Save permissions"}</button> : null}
                 </div>
               </div>
 

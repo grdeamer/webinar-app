@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { AccessToken } from "livekit-server-sdk"
 import { getEventBySlug } from "@/lib/events"
 import { getSessionById } from "@/lib/repos/sessionsRepo"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,6 +17,8 @@ export async function POST(
 ): Promise<Response> {
   try {
     const { slug, id } = await ctx.params
+    const access = await requireEventOperatorAccess(slug)
+    if (access instanceof Response) return access
 
     const wsUrl = process.env.LIVEKIT_URL
     const apiKey = process.env.LIVEKIT_API_KEY

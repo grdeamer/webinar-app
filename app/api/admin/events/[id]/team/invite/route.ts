@@ -57,12 +57,16 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
     invitationUrl = inviteResult.data.properties.action_link
   }
 
-  const { data: existingProfile } = await supabaseAdmin
+  const { data: existingProfile, error: existingProfileError } = await supabaseAdmin
     .from("profiles")
-    .select("role,team_role")
+    .select("role,team_role,is_active")
     .eq("id", authUser.id)
     .maybeSingle()
 
+  if (existingProfileError) return NextResponse.json({ error: existingProfileError.message }, { status: 500 })
+  if (existingProfile?.is_active === false) {
+    return NextResponse.json({ code: "account_disabled", error: "This account is disabled. Ask the Owner to restore account access before inviting this person." }, { status: 409 })
+  }
   if (existingProfile?.role === "admin") {
     return NextResponse.json({ error: "This person already has access to every event as a global administrator." }, { status: 400 })
   }

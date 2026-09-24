@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { isAdminRequest } from "@/lib/app/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -63,13 +64,13 @@ export async function GET() {
       publish_state:
         settings?.publish_state ?? (settings?.is_published ? "published" : "draft"),
       publish_at: settings?.publish_at ?? null,
-      presenter_key: settings?.presenter_key ?? null,
       updated_at: settings?.updated_at ?? null,
     },
   })
 }
 
 export async function POST(req: Request) {
+  if (!(await isAdminRequest())) return json({ error: "Unauthorized" }, 401)
   const body = await req.json().catch(() => ({}))
 
   const title =

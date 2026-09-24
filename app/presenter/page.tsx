@@ -1,13 +1,11 @@
 import PresenterDashboard from "@/components/PresenterDashboard"
-import { cookies } from "next/headers"
-import { isAdminFromCookie } from "@/lib/adminToken"
+import { isAdminRequest } from "@/lib/app/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 export default async function PresenterPage() {
-  const token = (await cookies()).get("admin_token")?.value
-  const isAdmin = isAdminFromCookie(token)
+  const isAdmin = await isAdminRequest()
 
   if (!isAdmin) {
     return (

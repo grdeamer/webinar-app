@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabaseAdmin"
 import type { QAStatus } from "@/lib/qa"
+import { isAdminRequest } from "@/lib/app/auth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -12,6 +13,7 @@ function json(data: any, status = 200) {
 const allowedStatuses = new Set<QAStatus>(["pending", "approved", "rejected", "answered"])
 
 export async function POST(req: Request) {
+  if (!(await isAdminRequest())) return json({ error: "Unauthorized" }, 401)
   try {
     const body = await req.json().catch(() => ({}))
 
