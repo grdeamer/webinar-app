@@ -83,7 +83,7 @@ test("the LETS hero has no Next up element or static session placeholder", () =>
   assert.doesNotMatch(markup, /id=["'](?:nextUp|nextSessionName|nextSessionTime)["']/)
   assert.doesNotMatch(script, /document\.getElementById\(["'](?:nextUp|nextSessionName|nextSessionTime)["']\)/)
   assert.doesNotMatch(script, /els\.(?:nextUp|nextSessionName|nextSessionTime)\b/)
-  const heroStart = markup.indexOf('<div class="hero-actions">')
+  const heroStart = markup.indexOf('<div class="hero-copy">')
   const heroEnd = markup.indexOf('<aside class="status-panel">', heroStart)
   assert.ok(heroStart >= 0 && heroEnd > heroStart)
   assert.doesNotMatch(markup.slice(heroStart, heroEnd), /Keynote Speaker|Next up/)

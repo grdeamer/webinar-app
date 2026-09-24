@@ -78,6 +78,7 @@
     meetingProviderLabel: document.getElementById("meetingProviderLabel"),
     liveLabel: document.getElementById("liveLabel"),
     liveSessionName: document.getElementById("liveSessionName"),
+    liveSessionDate: document.getElementById("liveSessionDate"),
     liveSessionTime: document.getElementById("liveSessionTime"),
     eventClock: document.getElementById("eventClock"),
     eventDate: document.getElementById("eventDate"),
@@ -855,6 +856,7 @@
     if (els.liveLabel) els.liveLabel.textContent = active ? "Live now" : "Up next";
     if (primary) {
       els.liveSessionName.textContent = primary.name;
+      if (els.liveSessionDate) els.liveSessionDate.textContent = formatSessionDate(primary.start);
       els.liveSessionTime.textContent = primary.displayTime;
     }
 
@@ -909,6 +911,14 @@
     }).format(eventDate)}`;
   }
 
+  function formatSessionDate(start) {
+    const date = eventMoment(start);
+    if (!date || Number.isNaN(date.getTime())) return "";
+    return new Intl.DateTimeFormat("en-US", {
+      timeZone: activeTimeZone(), weekday: "long", month: "long", day: "numeric", year: "numeric"
+    }).format(date);
+  }
+
   function eventMoment(time) {
     if (!time) return null;
     if (!/^\d{1,2}:\d{2}/.test(time)) {
@@ -937,6 +947,7 @@
     if (els.liveLabel) els.liveLabel.textContent = active ? "Live now" : "Up next";
     if (primary) {
       els.liveSessionName.textContent = primary.name;
+      if (els.liveSessionDate) els.liveSessionDate.textContent = formatSessionDate(primary.start);
       els.liveSessionTime.textContent = primary.displayTime;
     }
     agendaItems.forEach(item => {
