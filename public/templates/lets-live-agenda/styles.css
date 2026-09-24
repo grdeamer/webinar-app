@@ -655,6 +655,12 @@ h1 {
   stroke-linejoin: round;
 }
 
+.next-up[hidden],
+.countdown-card[hidden],
+.agenda-section[hidden] {
+  display: none !important;
+}
+
 .next-up {
   display: flex;
   flex: 1;
