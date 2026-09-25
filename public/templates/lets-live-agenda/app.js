@@ -903,12 +903,13 @@
     const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(value);
     const eventDate = dateOnly ? new Date(`${value}T12:00:00Z`) : new Date(value);
     if (Number.isNaN(eventDate.getTime())) return;
-    els.eventDayDate.textContent = `• ${new Intl.DateTimeFormat("en-US", {
+    els.eventDayDate.textContent = new Intl.DateTimeFormat("en-US", {
+      weekday: "long",
       month: "long",
       day: "numeric",
       year: "numeric",
       timeZone: dateOnly ? "UTC" : activeTimeZone()
-    }).format(eventDate)}`;
+    }).format(eventDate);
   }
 
   function formatSessionDate(start) {
@@ -976,7 +977,7 @@
     } else {
       const activeEnd = eventMoment((active || primary)?.end);
       els.countdownLabel.textContent = "Program status";
-      els.countdownSession.textContent = "Day One";
+      els.countdownSession.textContent = "Event begins";
       els.countdownValue.textContent = activeEnd && activeEnd > now ? formatDuration(activeEnd - now) : "Complete";
     }
   }

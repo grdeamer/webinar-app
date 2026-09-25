@@ -44,6 +44,19 @@ test("workshop dates include weekday, month, day, and year from an ISO start", (
   assert.equal(sessionDate("2026-09-25T13:00:00.000Z"), "Friday, September 25, 2026")
 })
 
+test("agenda heading shows the full date without a hard-coded day number or separator", () => {
+  assert.doesNotMatch(markup, /Day One/)
+  assert.doesNotMatch(script, /Day One/)
+  const label = { textContent: "" }
+  runInNewContext(`${functionSource("updateEventDayDate")}\nupdateEventDayDate()`, {
+    els: { eventDayDate: label },
+    state: { event_date: "2026-09-25" },
+    config: {},
+    activeTimeZone: () => "America/New_York",
+  })
+  assert.equal(label.textContent, "Friday, September 25, 2026")
+})
+
 test("time-only session starts use the configured event date fallback", () => {
   assert.equal(sessionDate("09:00"), "Friday, September 25, 2026")
   assert.equal(sessionDate("09:00", "America/New_York", "2026-09-24"), "Thursday, September 24, 2026")
