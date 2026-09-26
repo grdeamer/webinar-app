@@ -1,5 +1,5 @@
 export const JUPITER_EMAIL_BRAND_LINE = "Jupiter — Events with Gravity"
-export const JUPITER_EMAIL_COMPANY_LINE = "A product of August Black, Inc."
+export const JUPITER_EMAIL_COMPANY_LINE = "A product of August Black Labs, LLC"
 export const JUPITER_EMAIL_URL = "https://jupiter.events"
 
 function escapeHtml(value: string) {

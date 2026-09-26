@@ -31,9 +31,9 @@ export const metadata: Metadata = {
   },
   description:
     "Create, produce, and direct branded virtual events from one live production platform. Your event, written in the stars. This is Jupiter.",
-  authors: [{ name: "August Black, Inc." }],
-  creator: "August Black, Inc.",
-  publisher: "August Black, Inc.",
+  authors: [{ name: "August Black Labs, LLC" }],
+  creator: "August Black Labs, LLC",
+  publisher: "August Black Labs, LLC",
   icons: {
     icon: [
       { url: "/jupiter-planet.svg", type: "image/svg+xml" },

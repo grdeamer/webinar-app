@@ -20,7 +20,7 @@ test("administrator invitations use Jupiter branding and describe admin access",
   assert.match(invitation.html, /width:100%;max-width:600px;height:auto/)
   assert.match(invitation.text, /Accept invitation: https:\/\/example\.supabase\.co/)
   assert.match(invitation.html, /Jupiter — Events with Gravity/)
-  assert.match(invitation.html, /A product of August Black, Inc\./)
+  assert.match(invitation.html, /A product of August Black Labs, LLC/)
   assert.match(invitation.text, /https:\/\/jupiter\.events/)
 })
 

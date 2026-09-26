@@ -13,6 +13,8 @@ test("password reset emails use Jupiter branding and secure recovery language", 
   assert.match(email.html, /Jupiter · Secure access/)
   assert.match(email.html, /Choose a new password/)
   assert.match(email.html, /Events with Gravity/)
+  assert.match(email.html, /A product of August Black Labs, LLC/)
+  assert.match(email.text, /A product of August Black Labs, LLC/)
   assert.match(email.html, /Didn’t request this\?/)
   assert.doesNotMatch(email.html, /Supabase Auth/)
   assert.match(email.text, /Hi Gary/)
