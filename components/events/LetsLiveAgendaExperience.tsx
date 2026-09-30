@@ -1,5 +1,7 @@
 "use client"
 
+import EventHoldScreen from "./EventHoldScreen"
+import { DEFAULT_HOLD_SCREEN, type HoldScreenSettings } from "@/lib/page-editor/holdScreen"
 import { useEffect, useMemo, useState } from "react"
 
 export type LetsAgendaItem = {
@@ -22,6 +24,7 @@ type Props = {
   accessOpen?: boolean
   joinHref?: string | null
   preview?: boolean
+  holdScreen?: HoldScreenSettings
 }
 
 function formatTime(value?: string | null) {
@@ -67,6 +70,7 @@ export default function LetsLiveAgendaExperience({
   accessOpen = true,
   joinHref,
   preview = false,
+  holdScreen = DEFAULT_HOLD_SCREEN,
 }: Props) {
   const [now, setNow] = useState(0)
 
@@ -92,13 +96,7 @@ export default function LetsLiveAgendaExperience({
   return (
     <div className="overflow-hidden rounded-[30px] bg-[radial-gradient(circle_at_8%_8%,rgba(255,255,255,.98),transparent_31rem),radial-gradient(circle_at_93%_4%,rgba(235,23,0,.10),transparent_30rem),linear-gradient(150deg,#fafbfc_0%,#edf1f4_52%,#e2e8ed_100%)] text-[#11161c] shadow-[0_32px_90px_rgba(16,24,40,.14)]">
       {!accessOpen && !preview ? (
-        <div className="grid min-h-[620px] place-items-center p-8">
-          <div className="w-full max-w-2xl rounded-[30px] border border-black/[.09] bg-white/90 px-10 py-16 text-center shadow-[0_32px_90px_rgba(16,24,40,.14)]">
-            <div className="text-[11px] font-black uppercase tracking-[.16em] text-[#eb1700]">{title}</div>
-            <h2 className="mt-4 text-5xl font-black tracking-[-.05em]">The event hasn’t opened yet.</h2>
-            <p className="mx-auto mt-4 max-w-lg text-[#43505f]">Please check back shortly. This page will open automatically when the event team begins the program.</p>
-          </div>
-        </div>
+        <EventHoldScreen settings={holdScreen} eventTitle={title} />
       ) : (
         <>
           <div className="grid gap-5 p-6 lg:grid-cols-[1.35fr_.75fr]">

@@ -7,6 +7,7 @@ import type { RegistrationPreviewState } from "@/components/page-editor/experien
 import type { RegistrationVariant } from "@/components/page-editor/experience-studio/RegistrationVariantCard"
 import type { SessionsDisplayMode } from "@/components/page-editor/experience-studio/SessionsInspector"
 import AssetLibraryCard from "./AssetLibraryCard"
+import { MousePointer2 } from "lucide-react"
 import SystemComponentInspector from "@/components/page-editor/experience-studio/SystemComponentInspector"
 import {
   SECTION_TEMPLATE_OPTIONS,
@@ -168,19 +169,15 @@ interface ExperienceInspectorRailProps {
 }
 
 const EXPERIENCE_EDITOR_RAIL_CLASS =
-  "h-full min-h-0 border-l border-white/[0.075] bg-[linear-gradient(180deg,rgba(6,10,18,0.985),rgba(2,4,9,0.998))] shadow-[-24px_0_72px_rgba(0,0,0,0.42),inset_1px_0_0_rgba(255,255,255,0.026)] backdrop-blur-xl"
+  "h-full min-h-0 border-l border-white/[0.07] bg-[#080b13]"
 
 const EXPERIENCE_EDITOR_RAIL_HEADER_CLASS =
-  "rounded-[18px] border border-white/[0.075] bg-[radial-gradient(circle_at_top_right,rgba(168,85,247,0.12),transparent_42%),linear-gradient(180deg,rgba(255,255,255,0.040),rgba(255,255,255,0.014))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.032)]"
+  "border-b border-white/[0.07] px-4 pt-5"
 
-const EXPERIENCE_EDITOR_RAIL_CARD_CLASS =
-  "rounded-[18px] border border-white/[0.075] bg-[linear-gradient(180deg,rgba(255,255,255,0.034),rgba(255,255,255,0.012))] p-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.024)]"
+const EXPERIENCE_EDITOR_RAIL_CARD_CLASS = "px-4 py-4"
 
 const EXPERIENCE_EDITOR_SAVE_TEMPLATE_BUTTON_CLASS =
-  "mt-6 w-full rounded-[16px] border border-indigo-200/16 bg-indigo-500/18 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-indigo-50/86 shadow-[0_0_24px_rgba(99,102,241,0.10)] transition hover:bg-indigo-500/26"
-
-const EXPERIENCE_EDITOR_SAVE_BUTTON_CLASS =
-  "mt-4 w-full rounded-[16px] border border-emerald-200/16 bg-emerald-500/18 px-4 py-3 text-sm font-black uppercase tracking-[0.12em] text-emerald-50/86 shadow-[0_0_24px_rgba(16,185,129,0.10)] transition hover:bg-emerald-500/26"
+  "mx-4 mt-4 rounded-lg border border-white/10 px-3 py-2 text-xs font-medium text-white/65 transition hover:bg-white/5 hover:text-white"
 
 const FONT_FAMILY_OPTIONS = [
   { label: "Inter", value: "Inter, sans-serif" },
@@ -438,17 +435,17 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
   <div
     className="h-full min-h-0 w-full overflow-x-hidden overflow-y-auto overscroll-contain"
   >
-  <div className="w-full p-4">
+  <div className="w-full">
             <div className={EXPERIENCE_EDITOR_RAIL_HEADER_CLASS}>
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">Selection & settings</div>
+              <div className="text-[11px] font-medium text-white/40">Inspector</div>
 
-<h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
+<h3 className="mt-1 truncate text-sm font-semibold text-white/90">
   {rightRailTab === "inspect"
     ? selectedElement
       ? `${selectedElement.element_type ?? "Element"} settings`
       : selectedSection
         ? String(selectedSection.config.adminLabel || selectedSection.config.title || getSafeSectionLabel(selectedSection.type))
-        : "Select content"
+        : "Properties"
     : rightRailTab === "layers"
       ? "Layers"
       : rightRailTab === "insert"
@@ -456,21 +453,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
         : "Page Settings"}
 </h3>
 
-<div className="mt-2 text-sm leading-6 text-white/52">
-  {rightRailTab === "inspect"
-    ? selectedElement
-      ? "Editing element"
-      : selectedSection
-        ? "Editing section"
-        : "Select something to edit"
-    : rightRailTab === "layers"
-      ? "Composition stack, visibility, locks, and z-order."
-      : rightRailTab === "insert"
-        ? "Add sections, components, and canvas elements."
-        : "Global theme and experience settings."}
-</div>
-
-<div className="mt-4 grid grid-cols-4 gap-1 rounded-2xl border border-white/[0.08] bg-black/24 p-1">
+<div className="mt-4 grid grid-cols-4 gap-1">
   {([
     ["inspect", "Content"],
     ["layers", "Layers"],
@@ -482,10 +465,10 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
       type="button"
       aria-pressed={rightRailTab === tab}
       onClick={() => setRightRailTab(tab)}
-      className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
+      className={`border-b-2 px-1 pb-3 pt-2 text-xs font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/60 ${
         rightRailTab === tab
-          ? "bg-white text-black"
-          : "text-white/42 hover:bg-white/[0.06] hover:text-white/72"
+          ? "border-violet-400 text-violet-200"
+          : "border-transparent text-white/45 hover:text-white/80"
       }`}
     >
       {label}
@@ -676,16 +659,20 @@ onDragEnd={handleLayerDragEnd}
               Save Template
             </button>
 
-            <button
-              onClick={() => void saveLayout(false)}
-              className={EXPERIENCE_EDITOR_SAVE_BUTTON_CLASS}
-            >
-              Save
-            </button>
+            <div className="flex items-start justify-between gap-3 border-b border-white/[0.07] px-4 py-3">
+              <span role="status" className="min-w-0 break-words text-[11px] leading-5 text-white/45">{saveMessage || "Autosave enabled"}</span>
+              <button type="button" onClick={() => void saveLayout(false)} className="shrink-0 rounded-md px-2 py-0.5 text-[11px] font-medium text-white/60 transition hover:bg-white/5 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/60">Save now</button>
+            </div>
 
-            {saveMessage && <div className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>{saveMessage}</div>}
+            {rightRailTab === "inspect" && !selectedElement && !selectedSection ? (
+              <div className="px-6 py-12 text-center">
+                <MousePointer2 aria-hidden="true" className="mx-auto mb-4 h-5 w-5 text-violet-300/65" />
+                <p className="text-sm font-medium text-white/75">Select something to edit</p>
+                <p className="mx-auto mt-2 max-w-[230px] text-xs leading-5 text-white/40">Choose a section or element on the canvas. Its content and design controls will appear here.</p>
+              </div>
+            ) : null}
 
-            <div hidden={rightRailTab !== "inspect" && rightRailTab !== "page"} className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>
+            <div hidden={(rightRailTab !== "inspect" && rightRailTab !== "page") || (rightRailTab === "inspect" && !selectedElement && !selectedSection)} className={EXPERIENCE_EDITOR_RAIL_CARD_CLASS}>
               <SectionPanelHeader
                 title={
                   selectedElement

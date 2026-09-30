@@ -1,3 +1,4 @@
+import { getHoldScreen } from "@/lib/page-editor/holdScreen"
 import { redirect } from "next/navigation"
 import Link from "next/link"
 import RemoteRefreshListener from "@/components/RemoteRefreshListener"
@@ -488,6 +489,7 @@ export default async function EventHomePage(props: {
           button_text: item.button_text,
           button_url: item.button_url,
         }))}
+        holdScreen={getHoldScreen(savedSections ?? [])}
         accessOpen={accessRow?.status === "open"}
         joinHref={liveDestination.href}
       />

@@ -63,6 +63,9 @@ const EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS =
 const EXPERIENCE_EDITOR_SELECT_CLASS =
   "rounded-xl border border-white/10 bg-black/24 px-3 py-2 text-sm text-white/78 outline-none transition hover:border-white/16 focus:border-violet-200/28"
 
+const ADVANCED_ACTION_CLASS =
+  "rounded-md px-2.5 py-1.5 text-xs font-medium text-white/60 transition hover:bg-white/[0.06] hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/60"
+
 const ZOOM_OPTIONS = [0.5, 0.75, 1, 1.25, 1.5] as const
 const ALIGNMENT_ACTIONS: Array<{
   label: string
@@ -128,16 +131,22 @@ export default function PageEditorToolbar(props: Props) {
       </div>
       {props.isEditing || props.isCodeEditorOpen ? <details className="border-t border-white/[0.06] px-5 py-2">
         <summary className="w-fit cursor-pointer rounded-md text-xs font-semibold text-white/50 hover:text-white">Advanced layout</summary>
-        <div className="mt-3 flex flex-wrap items-center gap-2 pb-2">
-          <button type="button" aria-pressed={Boolean(props.showGrid)} onClick={props.onToggleGrid} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Grid {props.showGrid ? "on" : "off"}</button>
-          <button type="button" aria-pressed={Boolean(props.showRulers)} onClick={props.onToggleRulers} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Rulers {props.showRulers ? "on" : "off"}</button>
-          <button type="button" onClick={props.onToggleCodeEditor} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>{props.isCodeEditorOpen ? "Close code" : "HTML + CSS"}</button>
-          <select aria-label="Apply page template" value="" onChange={(event) => props.onSelectTemplate(event.target.value)} className={EXPERIENCE_EDITOR_SELECT_CLASS}><option value="">Apply template</option>{props.templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select>
-          {props.selectedElementCount > 0 ? <div className="flex w-full flex-wrap items-center gap-2 border-t border-white/10 pt-3"><span className="text-xs text-white/45">Selection · {props.selectedElementCount}</span>{alignmentActions.map((action) => <button key={action.command} type="button" onClick={() => props.onAlignElements(action.command)} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>{action.label}</button>)}
-            {props.canGroupElements ? <button type="button" onClick={props.onGroupElements} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Group</button> : null}
-            {props.canUngroupElements ? <button type="button" onClick={props.onUngroupElements} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Ungroup</button> : null}
-            {props.canCopyStyle ? <button type="button" onClick={props.onCopyStyle} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Copy style</button> : null}
-            {props.canPasteStyle ? <button type="button" onClick={props.onPasteStyle} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Paste style</button> : null}
+        <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 pb-1">
+          <div className="flex flex-wrap items-center gap-4">
+            <label className="flex min-h-8 cursor-pointer items-center gap-2 text-xs text-white/65">
+              <input type="checkbox" checked={Boolean(props.showGrid)} onChange={props.onToggleGrid} className="h-3.5 w-3.5 accent-violet-500" />Grid
+            </label>
+            <label className="flex min-h-8 cursor-pointer items-center gap-2 text-xs text-white/65">
+              <input type="checkbox" checked={Boolean(props.showRulers)} onChange={props.onToggleRulers} className="h-3.5 w-3.5 accent-violet-500" />Rulers
+            </label>
+          </div>
+          <button type="button" onClick={props.onToggleCodeEditor} className={ADVANCED_ACTION_CLASS}>{props.isCodeEditorOpen ? "Close code" : "HTML + CSS"}</button>
+          <select aria-label="Apply page template" value="" onChange={(event) => props.onSelectTemplate(event.target.value)} className="max-w-full rounded-md border border-white/[0.08] bg-[#080b13] px-2.5 py-1.5 text-xs text-white/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/60"><option value="">Apply template</option>{props.templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select>
+          {props.selectedElementCount > 0 ? <div className="flex w-full flex-wrap items-center gap-2 border-t border-white/10 pt-3"><span className="text-xs text-white/45">Selection · {props.selectedElementCount}</span>{alignmentActions.map((action) => <button key={action.command} type="button" onClick={() => props.onAlignElements(action.command)} className={ADVANCED_ACTION_CLASS}>{action.label}</button>)}
+            {props.canGroupElements ? <button type="button" onClick={props.onGroupElements} className={ADVANCED_ACTION_CLASS}>Group</button> : null}
+            {props.canUngroupElements ? <button type="button" onClick={props.onUngroupElements} className={ADVANCED_ACTION_CLASS}>Ungroup</button> : null}
+            {props.canCopyStyle ? <button type="button" onClick={props.onCopyStyle} className={ADVANCED_ACTION_CLASS}>Copy style</button> : null}
+            {props.canPasteStyle ? <button type="button" onClick={props.onPasteStyle} className={ADVANCED_ACTION_CLASS}>Paste style</button> : null}
           </div> : null}
         </div>
       </details> : null}

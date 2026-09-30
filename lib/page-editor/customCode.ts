@@ -1,3 +1,4 @@
+import { HOLD_SCREEN_SECTION_ID } from "./holdScreen.ts"
 import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
 
 export const CUSTOM_CODE_SECTION_ID = "__jupiter_custom_code__"
@@ -92,7 +93,7 @@ export function setCustomCodeDocument(
 export function getRenderableSections(
   sections: EventPageSection[] | undefined,
 ): EventPageSection[] | undefined {
-  return sections?.filter((section) => section.id !== CUSTOM_CODE_SECTION_ID)
+  return sections?.filter((section) => section.id !== CUSTOM_CODE_SECTION_ID && section.id !== HOLD_SCREEN_SECTION_ID)
 }
 
 export function createCustomCodeSource(html: string, css: string): string {

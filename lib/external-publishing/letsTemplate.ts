@@ -1,3 +1,4 @@
+import { applyHoldScreenToHtml, getHoldScreen, HOLD_SCREEN_SECTION_ID } from "../page-editor/holdScreen"
 import path from "node:path"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
 import { getCustomCodeDocument } from "@/lib/page-editor/customCode"
@@ -119,6 +120,10 @@ export async function buildLetsPublishArtifacts(args: {
         indexHtml = replaceMetaContent(indexHtml, "description", escapedBodyForMeta)
         indexHtml = replaceBetweenTags(indexHtml, "p", "eventDescription", escapedBodyForHtml)
       }
+    }
+
+    if (sections.some((section) => section.id === HOLD_SCREEN_SECTION_ID)) {
+      indexHtml = applyHoldScreenToHtml(indexHtml, getHoldScreen(sections), title || "Event")
     }
 
     const indexPosition = fileEntries.findIndex((entry) => entry.name === "index.html")

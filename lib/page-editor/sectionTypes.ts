@@ -130,6 +130,7 @@ export type EventTheme = {
 }
 
 export type SectionConfig = {
+  holdScreen?: import("./holdScreen").HoldScreenSettings
   title?: string
   body?: string | null
   visible?: boolean

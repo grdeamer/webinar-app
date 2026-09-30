@@ -39,6 +39,8 @@ import CanvasGridOverlay from "./CanvasGridOverlay"
 import MarqueeSelection from "./MarqueeSelection"
 import ResizeHandles, { type ResizeHandle } from "./ResizeHandles"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
+import HoldScreenEditor from "./HoldScreenEditor"
+import { getHoldScreen, setHoldScreen, HOLD_SCREEN_SECTION_ID } from "@/lib/page-editor/holdScreen"
 import FullCodeEditor from "@/components/page-editor/FullCodeEditor"
 import ImportedSiteVisualEditor from "@/components/page-editor/ImportedSiteVisualEditor"
 import CustomCodePage from "@/components/page-renderer/CustomCodePage"
@@ -451,6 +453,7 @@ const isEmbedded =
   const [hoveredExperienceNodeId, setHoveredExperienceNodeId] = useState<string | null>(null)
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
+  const [previewHoldScreen, setPreviewHoldScreen] = useState(searchParams.get("screen") === "hold")
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
   const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
   const [templates, setTemplates] = useState<PageEditorTemplate[]>([])
@@ -2819,6 +2822,7 @@ const selectedExperienceNode = experienceNodes.find(
     ? `${saveMessage} · ${saveStatusMessage}`
     : saveStatusMessage
   const customCodeDocument = getCustomCodeDocument(sections)
+  const showingHoldScreen = previewHoldScreen && selectedPageKey === "event_home" && documentReady && !isCodeEditorOpen
 
   function downloadRecoveryBackup() {
     const payload = JSON.stringify({
@@ -2931,12 +2935,20 @@ const selectedExperienceNode = experienceNodes.find(
         </div>
       ) : null}
 
-            <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-auto lg:flex-row lg:overflow-hidden">
+      {!isEmbedded && selectedPageKey === "event_home" && documentReady && !isCodeEditorOpen ? (
+        <div className="flex flex-wrap items-center gap-2 border-b border-white/[0.07] bg-[#080b13] px-5 py-2" aria-label="Event screen preview">
+          <span className="mr-2 text-xs text-white/45">Screen</span>
+          {([false, true] as const).map((hold) => <button key={String(hold)} type="button" aria-pressed={previewHoldScreen === hold} onClick={() => { setPreviewHoldScreen(hold); clearSelection() }} className={`rounded-md px-3 py-1.5 text-xs font-medium ${previewHoldScreen === hold ? "bg-violet-500/15 text-violet-100" : "text-white/55 hover:bg-white/5"}`}>{hold ? "Hold screen" : "Open event"}</button>)}
+          <span className="ml-auto text-xs text-white/40">Preview only · event access is unchanged</span>
+        </div>
+      ) : null}
+      {showingHoldScreen ? <HoldScreenEditor settings={getHoldScreen(sections)} eventTitle={eventInfo.title} saveStatus={saveStatusMessage} onChange={(settings) => setSections((current) => setHoldScreen(current, settings))} onSave={() => { void flushCurrentPage() }} editing={isEditing} device={previewDevice} /> : null}
+            {!showingHoldScreen && <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-auto lg:flex-row lg:overflow-hidden">
               {!isEmbedded && isEditing && documentReady && !isCodeEditorOpen ? (
                 <ExperienceJourneySidebar
                   pages={editorPages}
                   selectedPageKey={selectedPageKey}
-                  sections={sections}
+                  sections={sections.filter((section) => section.id !== HOLD_SCREEN_SECTION_ID)}
                   selectedSectionId={selectedSectionId}
                   onSelectPage={(key) => { void selectPage(key) }}
                   onSelectSection={selectSectionFromList}
@@ -3938,7 +3950,7 @@ const selectedExperienceNode = experienceNodes.find(
         />}
                 </>
               )}
-    </div>
+    </div>}
       {collaborationOpen && !isEmbedded ? <EditorCollaborationPanel slug={slug} pageKey={selectedPageKey} selectedElementId={selectedElement?.id ?? null} publicUrl={getPublicEditorPageUrl(slug, selectedPageKey)} teamHref={eventAdminId ? `/admin/events/${eventAdminId}/settings` : null} onClose={() => setCollaborationOpen(false)} /> : null}
   </div>
   )
