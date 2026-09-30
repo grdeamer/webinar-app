@@ -15,6 +15,7 @@ export interface SystemComponentDefinition {
 }
 
 export const SYSTEM_COMPONENTS: SystemComponentDefinition[] = [
+  { key: "live_timeline", label: "Live Timeline", category: "live", description: "Session progress grouped by agenda track, with a moving time indicator." },
   {
     key: "lets_live_agenda",
     label: "LETS Live Agenda",

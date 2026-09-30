@@ -1,5 +1,6 @@
 "use client"
 
+import LiveTimeline from "./LiveTimeline"
 import EventHoldScreen from "./EventHoldScreen"
 import { DEFAULT_HOLD_SCREEN, type HoldScreenSettings } from "@/lib/page-editor/holdScreen"
 import type { SectionBlock } from "@/lib/page-editor/sectionTypes"
@@ -102,8 +103,8 @@ export default function LetsLiveAgendaExperience({
 
   const items = blocks ?? createLiveAgendaBlocks("live-agenda")
   function renderItem(block: SectionBlock) {
-    const props = block.props
-    const role = props.layoutRole
+    const props: Record<string, unknown> = block.props
+    const role = block.type === "system_component" && props.componentKey === "live_timeline" ? "live_timeline" : props.layoutRole
     const text = props.bindEventTitle ? title : props.bindEventDescription ? description : String(props.body ?? "")
     const label = String(props.title ?? "")
     switch (role) {
@@ -119,6 +120,7 @@ export default function LetsLiveAgendaExperience({
       case "notice": return <p className="pt-6 text-xs leading-5 text-[#6e7885]">{text}</p>
       case "agenda-date": return <div className="text-[11px] font-black uppercase tracking-[.17em] text-[#eb1700]">{label ? `${label} • ` : ""}{formatDate(agenda[0]?.start_at)}</div>
       case "agenda-title": return <h3 className="mt-2 text-3xl font-black tracking-[-.04em]">{text}</h3>
+      case "live_timeline": return <LiveTimeline sessions={agenda} timelineTrack={String(props.timelineTrack || "")} showRemaining={props.showRemaining !== false} accentColor={String(props.accentColor || "#eb1700")} previewNow={preview ? Date.parse("2026-09-24T15:15:00Z") : undefined} />
       case "agenda": return <div className="mt-6 space-y-3">{label ? <h3 className="font-bold">{label}</h3> : null}{agenda.map(item => <div key={item.id} className={`grid gap-4 rounded-2xl border p-4 sm:grid-cols-[145px_1fr_auto] sm:items-center ${item.status === "live" ? "border-[#eb1700]/30 bg-red-50" : "border-black/[.08] bg-white/55"}`}><div className="text-sm font-extrabold">{formatTime(item.start_at)}–{formatTime(item.end_at)}</div><div><div className="text-base font-extrabold">{item.title}</div>{item.description ? <div className="mt-1 text-sm text-[#6e7885]">{item.description}</div> : null}</div><div className="text-[10px] font-black uppercase tracking-[.14em] text-[#6e7885]">{item.status === "live" ? "Live now" : item.status || "Upcoming"}</div></div>)}</div>
       case "footer": case "attribution": return <a href={safeLink(String(props.href || "#"))} className={role === "footer" ? "text-sm font-extrabold" : "mt-1 text-[11px] font-semibold"}>{text}</a>
       default: return <div>{label ? <h3 className="font-bold">{label}</h3> : null}<p>{text}</p></div>

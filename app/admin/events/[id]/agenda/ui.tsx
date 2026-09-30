@@ -1788,8 +1788,9 @@ function SessionFields({
       </div>
 
       <div>
-        <div className={labelClass}>Track</div>
-        <input className={fieldClass} value={value.track || ""} onChange={(e) => onChange({ ...value, track: e.target.value || null })} placeholder="Main" />
+        <div className={labelClass}>Track (session group)</div>
+        <input className={fieldClass} value={value.track || ""} onChange={(e) => onChange({ ...value, track: e.target.value || null })} placeholder="Main Stage / Clinical / Commercial" />
+        <p className="mt-1 text-xs text-white/45">Groups related sessions in the Live Timeline. A session has its own start and end; a track can contain many sessions. Location is set separately.</p>
       </div>
       <div>
         <div className={labelClass}>Location</div>

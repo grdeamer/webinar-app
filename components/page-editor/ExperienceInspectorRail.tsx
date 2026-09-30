@@ -1,4 +1,5 @@
 "use client"
+import TimelineControls from "./TimelineControls"
 
 import type { Dispatch, DragEvent, SetStateAction, ReactNode } from "react"
 import type { AgendaDisplayMode } from "@/components/page-editor/experience-studio/AgendaInspector"
@@ -2105,6 +2106,7 @@ onDragEnd={handleLayerDragEnd}
                                   <option value="panel">Panel</option>
                                 </select>
                               </div>
+                              {selectedBlock.props.componentKey === "live_timeline" ? <TimelineControls values={selectedBlock.props} onChange={updateSelectedBlockProps} /> : null}
                               {selectedBlock.props.componentKey === "registration_form" ? (
   <RegistrationInspectorPanel
     componentKey={selectedBlock.props.componentKey}

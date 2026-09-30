@@ -64,6 +64,7 @@ export function moveLiveAgendaBlock(section: EventPageSection, source: string, t
 }
 
 export function liveAgendaLabel(block: SectionBlock): string {
+  if (block.type === "system_component" && block.props.componentKey === "live_timeline") return "Live Timeline"
   const labels: Record<string, string> = { eyebrow: "Welcome label", title: "Event title", description: "Description", current: "Current session", join: "Join button", next: "Next session", status: "Event status", clock: "Clock", countdown: "Countdown", notice: "Update notice", "agenda-date": "Agenda date", "agenda-title": "Agenda heading", agenda: "Agenda", footer: "Company link", attribution: "Attribution" }
   return labels[String(block.props.layoutRole)] || String(block.props.title || "Content")
 }

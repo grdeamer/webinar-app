@@ -1,4 +1,5 @@
 "use client"
+import TimelineControls from "./TimelineControls"
 import type { EventPageSection, SectionBlock } from "@/lib/page-editor/sectionTypes"
 import { LIVE_AGENDA_REGIONS, liveAgendaLabel, liveAgendaRegion } from "@/lib/page-editor/liveAgendaLayout"
 const INPUT = "mt-2 w-full rounded-lg border border-white/10 bg-[#111520] px-3 py-2 text-sm text-white"
@@ -29,6 +30,10 @@ export default function LiveAgendaBlockInspector({ block, section, eventTitle, e
     {role === "title" || role === "description" ? <label className="mt-4 flex gap-2 text-xs text-white/60"><input type="checkbox" checked={bound} onChange={event => onUpdate({ bindEventTitle: role === "title" && event.target.checked, bindEventDescription: role === "description" && event.target.checked, body })} />Follow event {role}</label> : null}
     {!isText ? <p className="mt-3 text-xs leading-5 text-white/45">Session titles, times, and status follow the live agenda. Edit those in the event’s Agenda page.</p> : null}
     {["join", "footer", "attribution"].includes(role) ? <label className="mt-5 block text-xs text-white/65">Link override<input className={INPUT} value={String(block.props.href ?? "")} placeholder={role === "join" ? "Follow the live meeting link" : "https://"} onChange={event => onUpdate({ href: event.target.value })} /></label> : null}
+    {block.type === "system_component" && (role === "agenda" || block.props.componentKey === "live_timeline") ? <>
+      <label className="mt-5 block text-xs text-white/65">Schedule display<select className={INPUT} value={block.props.componentKey === "live_timeline" ? "live_timeline" : "agenda"} onChange={e => onUpdate({ componentKey: e.target.value as "agenda" | "live_timeline", layoutRole: "agenda" })}><option value="agenda">Agenda list</option><option value="live_timeline">Live Timeline</option></select></label>
+      {block.props.componentKey === "live_timeline" ? <TimelineControls values={block.props} onChange={onUpdate} /> : null}
+    </> : null}
     <label className="mt-5 block text-xs text-white/65">Layout area<select className={INPUT} value={liveAgendaRegion(block)} onChange={event => onUpdate({ layoutRegion: event.target.value })}>{LIVE_AGENDA_REGIONS.map(region => <option key={region} value={region}>{region.charAt(0).toUpperCase()+region.slice(1)}</option>)}</select></label>
     <div className="mt-4 flex flex-wrap gap-2"><button type="button" className={BUTTON} onClick={() => onMove("up")}>Move up</button><button type="button" className={BUTTON} onClick={() => onMove("down")}>Move down</button><button type="button" className={BUTTON} onClick={onDuplicate}>Duplicate</button></div>
     <button type="button" className="mt-4 w-full rounded-lg border border-red-300/20 px-3 py-2 text-sm text-red-200 hover:bg-red-500/10" onClick={onDelete}>Delete component</button>

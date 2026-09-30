@@ -510,6 +510,7 @@
     return list.filter(item => item && item.visible !== false && item.is_visible !== false).map((item, index) => ({
       key: sessionKey(item) || `session-${index + 1}`,
       title: firstValue(item.title, item.name, item.session_name, "Session"),
+      track: typeof item.track === "string" ? item.track.trim() : "",
       kicker: firstValue(item.kicker, item.type, item.category, "Program session"),
       start: firstValue(item.start_at, item.start_time, item.start),
       end: firstValue(item.end_at, item.end_time, item.end),
@@ -545,6 +546,7 @@
       item.dataset.session = session.key;
       item.dataset.start = session.start || "";
       item.dataset.end = session.end || "";
+      item.dataset.track = session.track || "";
       item.dataset.status = session.status || "upcoming";
       item.dataset.description = session.description || "";
       item.dataset.speaker = session.speaker || "";

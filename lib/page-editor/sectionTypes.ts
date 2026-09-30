@@ -4,6 +4,7 @@ export type SectionType = "hero" | "content" | "system" | "grid"
 
 export type SystemComponentKey =
   | "lets_live_agenda"
+  | "live_timeline"
   | "live_state"
   | "stage_player"
   | "sessions_list"

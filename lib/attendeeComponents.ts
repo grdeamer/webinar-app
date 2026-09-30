@@ -35,7 +35,7 @@ export function componentIsVisible(
   componentKey: string,
 ): boolean {
   if (componentKey === "countdown") return state.countdown
-  if (componentKey === "agenda") return state.agenda
+  if (componentKey === "agenda" || componentKey === "live_timeline") return state.agenda
   if (componentKey === "next_up") return state.next_up
   return true
 }

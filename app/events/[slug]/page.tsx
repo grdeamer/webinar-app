@@ -1,3 +1,4 @@
+import LiveTimeline from "@/components/events/LiveTimeline"
 import { getHoldScreen } from "@/lib/page-editor/holdScreen"
 import { redirect } from "next/navigation"
 import Link from "next/link"
@@ -473,6 +474,7 @@ export default async function EventHomePage(props: {
   const displayEventTitle = formatDisplayTitle(event.title)
 
   const systemComponents = {
+    live_timeline: <LiveTimeline sessions={agenda.map(item => ({ ...item, title: item.title || "Untitled session" }))} />,
     lets_live_agenda: (
       <LetsLiveAgendaExperience
         title={displayEventTitle}

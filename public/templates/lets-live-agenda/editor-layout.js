@@ -11,7 +11,7 @@
     eyebrow: '.hero-copy > .eyebrow', title: '#eventTitle', description: '#eventDescription',
     current: '#liveSummary', status: '.status-panel-top', clock: '.clock-block',
     countdown: '#countdownCard', notice: '.status-note', 'agenda-date': '#eventDayDate',
-    'agenda-title': '#agendaHeading', agenda: '#agendaList', footer: '.site-footer .footer-brand',
+    'agenda-title': '#agendaHeading', agenda: '#agendaList', live_timeline: '#agendaList', footer: '.site-footer .footer-brand',
     attribution: '.site-footer .footer-credit'
   };
   const sources = Object.fromEntries(Object.entries(selectors).map(([role, selector]) => [role, document.querySelector(selector)]));
@@ -45,14 +45,14 @@
     if (region === hero) hero.insertBefore(container, actions);
     else region.append(container);
     container.addEventListener('click', event => {
-      const source = sources[block.props.layoutRole];
+      const source = sources[block.props.componentKey === "live_timeline" ? "live_timeline" : block.props.layoutRole];
       const target = event.target.closest('[data-editor-action]');
       if (!source || !target || event.target.closest('a')) return;
       const original = [source, ...source.querySelectorAll('*')][Number(target.dataset.editorAction)];
       if (original && original.matches('button')) { event.preventDefault(); original.click(); }
     });
     container.addEventListener('change', event => {
-      const source = sources[block.props.layoutRole];
+      const source = sources[block.props.componentKey === "live_timeline" ? "live_timeline" : block.props.layoutRole];
       if (!source || !event.target.matches('select')) return;
       const original = [source, ...source.querySelectorAll('*')][Number(event.target.dataset.editorAction)];
       if (original) { original.value = event.target.value; original.dispatchEvent(new Event('change', { bubbles: true })); }
@@ -60,17 +60,56 @@
     return { block, container, index, signature: '' };
   });
   function safeLink(value) { return /^(https?:\/\/|mailto:|#|\/(?!\/))/i.test(value) ? value : '#'; }
+  function groupTimeline(copy, props) {
+    copy.classList.add('live-timeline');
+    copy.style.setProperty('--timeline-accent', /^#[0-9a-f]{6}$/i.test(props.accentColor || '') ? props.accentColor : '#eb1700');
+    const groups = new Map();
+    const items = [...copy.querySelectorAll('.agenda-item')].sort((a, b) => (Date.parse(a.dataset.start) || 0) - (Date.parse(b.dataset.start) || 0));
+    items.forEach(item => {
+      const name = item.dataset.track?.trim() || 'General';
+      if (String(props.timelineTrack || '').trim() && name.toLowerCase() !== String(props.timelineTrack).trim().toLowerCase()) { item.remove(); return; }
+      const key = name.toLowerCase();
+      if (!groups.has(key)) {
+        const heading = document.createElement('li'); heading.className = 'timeline-group'; heading.textContent = name + ' · Track';
+        groups.set(key, [heading]);
+      }
+      item.querySelector('.agenda-kicker').textContent = 'Session';
+      groups.get(key).push(item);
+    });
+    copy.replaceChildren(...[...groups.values()].flat());
+    if (!groups.size) { const empty = document.createElement('li'); empty.textContent = 'No sessions in this track.'; copy.append(empty); }
+  }
+  function updateTimeline(container, props) {
+    container.querySelectorAll('.agenda-item').forEach(item => {
+      const start = Date.parse(item.dataset.start), end = Date.parse(item.dataset.end), now = Date.now();
+      let fraction = 0, text = 'Time to be confirmed';
+      if (item.dataset.status === 'cancelled') text = 'Cancelled';
+      else if (Number.isFinite(start) && Number.isFinite(end) && end >= start) {
+        fraction = end === start ? Number(now >= start) : Math.max(0, Math.min(1, (now - start) / (end - start)));
+        text = end === start ? 'Milestone' : now < start ? `Starts in ${Math.ceil((start-now)/60000)} min` : now >= end ? (item.dataset.status === 'live' ? 'Over scheduled time' : 'Scheduled time ended') : `${Math.ceil((end-now)/60000)} min remaining`;
+        if (end !== start && item.dataset.status === 'complete') { fraction = 1; text = 'Complete'; }
+      }
+      const rail = item.querySelector('.agenda-track');
+      if (!rail) return;
+      rail.setAttribute('role', 'progressbar'); rail.setAttribute('aria-label', `${item.querySelector('h3')?.textContent}: scheduled progress`);
+      rail.setAttribute('aria-valuemin', '0'); rail.setAttribute('aria-valuemax', '100'); rail.setAttribute('aria-valuenow', String(Math.round(fraction*100))); rail.setAttribute('aria-valuetext', text);
+      rail.style.setProperty('--progress', `${fraction*100}%`);
+      let label = item.querySelector('.timeline-remaining');
+      if (!label) { label = document.createElement('span'); label.className = 'timeline-remaining'; item.querySelector('.agenda-card-main').append(label); }
+      label.textContent = text; label.hidden = props.showRemaining === false;
+    });
+  }
   function refresh(state) {
     if (state?.next_session) next.textContent = state.next_session.title || state.next_session.name || 'Next session';
     else if (state) next.textContent = 'No next session';
     if (state) next.hidden = !state.next_session;
     entries.forEach(entry => {
       const props = entry.block.props;
-      entry.container.hidden = props.layoutRole === "agenda" && state?.attendee_component_state?.agenda === false;
-      const role = props.layoutRole;
+      entry.container.hidden = (props.layoutRole === "agenda" || props.componentKey === "live_timeline") && state?.attendee_component_state?.agenda === false;
+      const role = props.componentKey === "live_timeline" ? "live_timeline" : props.layoutRole;
       const source = sources[role];
       const signature = source?.outerHTML || '';
-      if (entry.signature === signature && entry.container.childNodes.length) return;
+      if (entry.signature === signature && entry.container.childNodes.length) { if (role === "live_timeline") updateTimeline(entry.container, props); return; }
       entry.signature = signature;
       const copy = source ? source.cloneNode(true) : document.createElement('p');
       const nodes = [copy, ...copy.querySelectorAll('*')];
@@ -98,6 +137,7 @@
       // Keep the selected timezone when cloning a select with a changed value.
       if (source) copy.querySelectorAll('select').forEach((select, index) => { select.value = source.querySelectorAll('select')[index]?.value || select.value; });
       entry.container.replaceChildren(copy);
+      if (role === "live_timeline") { groupTimeline(copy, props); updateTimeline(entry.container, props); }
     });
   }
   window.POA_EDITOR_LAYOUT = { refresh };

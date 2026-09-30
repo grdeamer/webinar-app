@@ -2,6 +2,7 @@
 
 import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
+import LiveTimeline from "@/components/events/LiveTimeline"
 import LetsLiveAgendaExperience from "@/components/events/LetsLiveAgendaExperience"
 
 export function createSystemComponentPreviewRegistry({
@@ -36,6 +37,10 @@ export function createSystemComponentPreviewRegistry({
         "Follow the live agenda, see what is happening now, and enter the correct meeting space from this page."
 
   return {
+    live_timeline: <LiveTimeline previewNow={Date.parse("2026-09-24T15:30:00Z")} sessions={[
+      { id: "timeline-1", title: "Welcome & keynote", track: "Main Stage", start_at: "2026-09-24T15:00:00Z", end_at: "2026-09-24T16:00:00Z" },
+      { id: "timeline-2", title: "Panel discussion", track: "Main Stage", start_at: "2026-09-24T16:15:00Z", end_at: "2026-09-24T17:00:00Z" },
+    ]} />,
     lets_live_agenda: (
       <LetsLiveAgendaExperience
         preview

@@ -1,5 +1,6 @@
 import { isLiveAgendaSection, materializeLiveAgendaSection } from "@/lib/page-editor/liveAgendaLayout"
 import type { LetsLiveAgendaProps } from "@/components/events/LetsLiveAgendaExperience"
+import type { LiveTimelineProps } from "@/components/events/LiveTimeline"
 import { cloneElement, isValidElement, type CSSProperties, type ReactNode } from "react"
 import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import CustomCodePage from "@/components/page-renderer/CustomCodePage"
@@ -187,7 +188,8 @@ function renderBlock(
 
   if (block.type === "system_component") {
     const componentKey = block.props.componentKey
-    const node = systemComponents[componentKey]
+    const baseNode = systemComponents[componentKey]
+    const node = componentKey === "live_timeline" && isValidElement<LiveTimelineProps>(baseNode) ? cloneElement(baseNode, { timelineTrack: String(block.props.timelineTrack || ""), showRemaining: block.props.showRemaining !== false, accentColor: String(block.props.accentColor || "#eb1700") }) : baseNode
 
     if (!node) {
       if (layout === "card-stack") {

@@ -1,3 +1,4 @@
+import { createLiveAgendaBlocks } from "../page-editor/liveAgendaLayout"
 import { applyHoldScreenToHtml, getHoldScreen, HOLD_SCREEN_SECTION_ID } from "../page-editor/holdScreen"
 import path from "node:path"
 import { loadEventPageDocument } from "@/lib/page-editor/loadEventPageDocument"
@@ -95,6 +96,8 @@ export async function buildLetsPublishArtifacts(args: {
     const layouts = sections.filter(section => section.config.liveAgendaLayout === true)
     if (layouts.length > 1) throw new Error("External publishing supports one live agenda layout per event home.")
     if (layouts.length) editorLayout = layouts[0].blocks ?? []
+    const standaloneTimelines = sections.filter(section => !section.config.liveAgendaLayout && section.config.visible !== false).flatMap(section => section.blocks ?? []).filter(block => block.type === "system_component" && block.props.componentKey === "live_timeline")
+    if (standaloneTimelines.length) editorLayout = [...(editorLayout ?? createLiveAgendaBlocks("published")), ...standaloneTimelines.map(block => block.type === "system_component" ? { ...block, props: { ...block.props, layoutRegion: "agenda" } } : block)]
     const customCode = getCustomCodeDocument(sections)
     const hero = sections.find((section) => section.type === "hero" || section.id === "hero")
     const title = typeof hero?.config?.title === "string" ? hero.config.title.trim() : ""

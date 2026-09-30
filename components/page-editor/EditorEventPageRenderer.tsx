@@ -1,5 +1,6 @@
 "use client"
 
+import type { LiveTimelineProps } from "@/components/events/LiveTimeline"
 import { cloneElement, isValidElement, type DragEvent, type ReactNode } from "react"
 import type {
   EventPageSection,
@@ -262,7 +263,7 @@ function renderBlock(
       previewRegistrationState?: unknown
       variant?: unknown
     }
-    const node =
+    const baseNode =
       componentKey === "registration_form" ? (
         <RegistrationFlowPreview
           title={typeof block.props.title === "string" ? block.props.title : undefined}
@@ -290,6 +291,7 @@ variant={
       ) : (
         systemComponents[componentKey]
       )
+    const node = componentKey === "live_timeline" && isValidElement<LiveTimelineProps>(baseNode) ? cloneElement(baseNode, { timelineTrack: String(block.props.timelineTrack || ""), showRemaining: block.props.showRemaining !== false, accentColor: String(block.props.accentColor || "#eb1700") }) : baseNode
     if (!node) return null
 
     const cardClass = getCardClass(block.props.containerStyle ?? "panel")
