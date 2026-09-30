@@ -657,7 +657,7 @@ onDragEnd={handleLayerDragEnd}
               onClick={() => void saveCurrentTemplate()}
               className={EXPERIENCE_EDITOR_SAVE_TEMPLATE_BUTTON_CLASS}
             >
-              Save Template
+              Save as shared template
             </button>
 
             <div className="flex items-start justify-between gap-3 border-b border-white/[0.07] px-4 py-3">

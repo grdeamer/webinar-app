@@ -14,6 +14,7 @@ type Props = {
   onSelectSection: (section: EventPageSection) => void
   onAddContent: () => void
   onAddPage: () => void
+  onSaveTemplate: () => void
   onRenamePage: (page: EditorPageManifestItem) => void
   onDuplicatePage: (page: EditorPageManifestItem) => void
   onDeletePage: (page: EditorPageManifestItem) => void
@@ -41,6 +42,7 @@ export default function ExperienceJourneySidebar(props: Props) {
         {props.pages.map((item) => <button key={item.pageKey} type="button" aria-current={item.pageKey === props.selectedPageKey ? "page" : undefined} onClick={() => props.onSelectPage(item.pageKey)} className={`${CONTROL} flex min-w-0 items-center gap-2 ${item.pageKey === props.selectedPageKey ? "bg-violet-500/15 text-violet-100 shadow-[inset_2px_0_0_#8b5cf6]" : ""}`}><FileText aria-hidden="true" className="h-4 w-4 shrink-0" /><span className="break-words">{item.title}</span></button>)}
       </nav>
       {page ? <details className="mt-3 border-t border-white/[0.07] pt-3"><summary className={`${CONTROL} cursor-pointer`}>Manage page</summary><div className="mt-1 grid gap-1">
+        <button type="button" className={CONTROL} onClick={props.onSaveTemplate}>Save as shared template</button>
         <button type="button" className={CONTROL} onClick={() => props.onRenamePage(page)}>Rename</button><button type="button" className={CONTROL} onClick={() => props.onDuplicatePage(page)}>Duplicate</button>
         <button type="button" disabled={index <= 0} className={`${CONTROL} disabled:opacity-30`} onClick={() => movePage(-1)}>Move up</button><button type="button" disabled={index === props.pages.length - 1} className={`${CONTROL} disabled:opacity-30`} onClick={() => movePage(1)}>Move down</button>
         {!page.isSystem ? <button type="button" className={`${CONTROL} text-red-200`} onClick={() => props.onDeletePage(page)}>Delete page</button> : null}
@@ -50,7 +52,7 @@ export default function ExperienceJourneySidebar(props: Props) {
         {!props.sections.length ? <p className="px-2 text-xs text-white/45">Add a section to get started.</p> : null}
       </div></div>
       <div className="mt-5 grid gap-2 border-t border-white/[0.07] pt-4"><button type="button" className={`${CONTROL} flex items-center gap-2 border border-violet-300/20 bg-violet-500/10 text-violet-100`} onClick={props.onAddContent}><Plus aria-hidden="true" className="h-4 w-4" />Add content</button><button type="button" className={`${CONTROL} flex items-center gap-2`} onClick={() => props.onOpenTool("brand")}><Palette aria-hidden="true" className="h-4 w-4" />Brand & background</button>
-        <details><summary className={`${CONTROL} cursor-pointer`}>Content tools</summary><div className="grid gap-1">{([['elements', 'Elements'], ['text', 'Text'], ['media', 'Media library'], ['apps', 'Event components'], ['design', 'Templates & layouts']] as const).map(([tool, label]) => <button type="button" key={tool} className={CONTROL} onClick={() => props.onOpenTool(tool)}>{label}</button>)}</div></details>
+        <details><summary className={`${CONTROL} cursor-pointer`}>Content tools</summary><div className="grid gap-1">{([['elements', 'Elements'], ['text', 'Text'], ['media', 'Media library'], ['apps', 'Event components'], ['design', 'Shared templates']] as const).map(([tool, label]) => <button type="button" key={tool} className={CONTROL} onClick={() => props.onOpenTool(tool)}>{label}</button>)}</div></details>
       </div>
     </aside>
   )

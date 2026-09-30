@@ -86,9 +86,9 @@ export default function EditorToolPanel({
 
   return (
     <aside aria-label={`${activePanel} tools`} className="w-[246px] shrink-0 overflow-y-auto border-r border-white/[0.07] bg-[#0b0e17] p-4">
-      <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-bold capitalize text-white">{activePanel}</h2><button type="button" aria-label="Close tool panel" onClick={onClose} className="grid h-7 w-7 place-items-center rounded-lg text-white/40 hover:bg-white/10 hover:text-white">×</button></div>
+      <div className="flex items-center justify-between gap-3"><h2 className="text-sm font-bold capitalize text-white">{activePanel === "design" ? "Shared templates" : activePanel}</h2><button type="button" aria-label="Close tool panel" onClick={onClose} className="grid h-7 w-7 place-items-center rounded-lg text-white/40 hover:bg-white/10 hover:text-white">×</button></div>
       <p className="mt-1 text-[11px] leading-5 text-white/40">
-        {activePanel === "design" ? "Templates and page appearance." : activePanel === "elements" ? "Add content to the active page." : activePanel === "text" ? "Typography presets and text blocks." : activePanel === "media" ? "Upload and reuse event media." : activePanel === "brand" ? "Apply consistent event colors." : "Add live Jupiter experiences."}
+        {activePanel === "design" ? "Reusable pages available across events. Applying a template creates an independent copy." : activePanel === "elements" ? "Add content to the active page." : activePanel === "text" ? "Typography presets and text blocks." : activePanel === "media" ? "Upload and reuse event media." : activePanel === "brand" ? "Apply consistent event colors." : "Add live Jupiter experiences."}
       </p>
 
       <div className="mt-5 space-y-2">
@@ -101,7 +101,7 @@ export default function EditorToolPanel({
               <span className="block">{importing ? "Importing site…" : "+ Import site template"}</span>
               <span className="mt-1 block text-[10px] font-normal leading-4 text-white/40">ZIP with index.html · up to 20 MB</span>
             </button>
-            <PanelLabel>All templates</PanelLabel>
+            <PanelLabel>Shared & built-in templates</PanelLabel>
             {visibleTemplates.length ? visibleTemplates.map((template) => <button key={template.id} type="button" className={`${CONTROL} overflow-hidden p-0`} onClick={() => { if (window.confirm(`Apply “${template.name || "Untitled template"}” to this page? You can undo this change.`)) onApplyTemplate(template.id) }}><span className="block h-20 bg-[radial-gradient(circle_at_75%_35%,rgba(139,92,246,.65),transparent_30%),linear-gradient(135deg,#071426,#101328)]" /><span className="block px-3 py-2">{template.name || "Untitled template"}</span></button>) : <Empty>No matching templates.</Empty>}
           </> : <>
             <PanelLabel>Page sections</PanelLabel>

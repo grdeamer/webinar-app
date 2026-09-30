@@ -51,6 +51,7 @@ import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import PageEditorToolbar from "./PageEditorToolbar"
+import SaveSharedTemplateDialog from "./SaveSharedTemplateDialog"
 import ExperienceJourneySidebar from "./ExperienceJourneySidebar"
 import { type EditorToolPanel } from "./EditorToolDock"
 import EditorToolPanelContent from "./EditorToolPanel"
@@ -458,6 +459,7 @@ const isEmbedded =
   const [previewHoldScreen, setPreviewHoldScreen] = useState(searchParams.get("screen") === "hold")
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
   const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
+  const [templateDraft, setTemplateDraft] = useState<{ sections: EventPageSection[]; elements: EventPageElement[]; eventTheme: EventTheme; pageTitle: string } | null>(null)
   const [templates, setTemplates] = useState<PageEditorTemplate[]>([])
   const [generalSession, setGeneralSession] =
     useState<GeneralSessionPresentationSource>(null)
@@ -2584,9 +2586,13 @@ function addRegistrationFormSection() {
   }
 
   async function saveCurrentTemplate() {
-    const name = await promptNotice({ title: "Save page template", message: "Give this reusable Jupiter template a clear name.", placeholder: "Template name", confirmLabel: "Save template" })
-    if (!name) return
+    if (!documentReady) return
+    setToolPanelOpen(false)
+    setTemplateDraft(structuredClone({ sections, elements, eventTheme, pageTitle: editorPages.find(page => page.pageKey === selectedPageKey)?.title || "Current page" }))
+  }
 
+  async function persistSharedTemplate(name: string) {
+    if (!templateDraft) throw new Error("Reopen the template dialog and try again.")
     const response = await fetch("/api/admin/page-editor/templates", {
       method: "POST",
       headers: {
@@ -2594,19 +2600,20 @@ function addRegistrationFormSection() {
       },
       body: JSON.stringify({
         name,
-        sections,
-        elements,
-        eventTheme,
+        sections: templateDraft.sections,
+        elements: templateDraft.elements,
+        eventTheme: templateDraft.eventTheme,
       }),
     })
     const data = await response.json().catch((): null => null)
     if (!response.ok || !data?.template) {
-      await showNotice({ title: "Template not saved", message: String(data?.error ?? "The template service did not accept this page."), tone: "danger" })
-      return
+      throw new Error(String(data?.error ?? "The template service did not accept this page."))
     }
     setTemplates((current) => [data.template as PageEditorTemplate, ...current.filter((template) => template.id !== data.template.id)])
 
-    await showNotice({ title: "Template saved", message: `“${name}” is now available in the page editor.`, tone: "success" })
+    setActiveToolPanel("design")
+    setToolPanelOpen(true)
+    setSaveMessage(`Shared template “${name}” saved — available across events`)
   }
 
   async function uploadSelectedImage(file: File) {
@@ -2847,6 +2854,7 @@ const selectedExperienceNode = experienceNodes.find(
 
   return (
     <div className={EXPERIENCE_EDITOR_ROOT_CLASS}>
+      {templateDraft ? <SaveSharedTemplateDialog pageTitle={templateDraft.pageTitle} elementCount={templateDraft.elements.length} onClose={() => setTemplateDraft(null)} onSave={persistSharedTemplate} preview={<EditorEventPageRenderer event={eventInfo} sections={templateDraft.sections} eventTheme={templateDraft.eventTheme} systemComponents={createSystemComponentPreviewRegistry({ sections: templateDraft.sections, event: eventInfo })} />} /> : null}
       {!isEmbedded && (
         <PageEditorToolbar
           isEmbedded={isEmbedded}
@@ -2966,6 +2974,7 @@ const selectedExperienceNode = experienceNodes.find(
                   onSelectSection={selectSectionFromList}
                   onAddContent={() => { setToolPanelOpen(false); setRightRailTab("insert") }}
                   onAddPage={() => { void createEditorPage() }}
+                  onSaveTemplate={() => { void saveCurrentTemplate() }}
                   onRenamePage={(page) => { void renameEditorPage(page) }}
                   onDuplicatePage={(page) => { void createEditorPage(page.pageKey) }}
                   onDeletePage={(page) => { void deleteEditorPage(page) }}
