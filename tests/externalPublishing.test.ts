@@ -34,9 +34,9 @@ test("published LETS assets use content versions so browsers do not retain an ol
   const artifacts = await readTemplateArtifacts(root)
   artifacts.push({ name: "config.js", content: Buffer.from("window.POA_CONFIG = {}") })
   const html = artifacts.find((artifact) => artifact.name === "index.html")?.content.toString("utf8") || ""
-  const versioned = versionManagedAssetReferences(html, artifacts)
+  const versioned = versionManagedAssetReferences(html.replace("</head>", '<script src="editor-layout.js" defer></script></head>'), artifacts)
 
-  for (const name of ["styles.css", "config.js", "app.js"]) {
+  for (const name of ["styles.css", "config.js", "app.js", "editor-layout.js"]) {
     const asset = artifacts.find((item) => item.name === name)
     assert.ok(asset)
     const version = createHash("sha256").update(asset.content).digest("hex").slice(0, 12)

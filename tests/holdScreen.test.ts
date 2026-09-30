@@ -54,3 +54,14 @@ test("unsupported imported templates fail clearly instead of silently ignoring h
   assert.throws(() => applyHoldScreenToHtml("<html><head></head><body>No gate</body></html>", DEFAULT_HOLD_SCREEN, "Event"), /no eventGate/)
   assert.deepEqual(getHoldScreen([]), DEFAULT_HOLD_SCREEN)
 })
+
+test("removed hold components stay absent after save and export, with copy preserved for restore", () => {
+  const settings = { ...DEFAULT_HOLD_SCREEN, hiddenFields: ["status", "title", "logoUrl"] as const }
+  const saved = setHoldScreen([], { ...settings, hiddenFields: [...settings.hiddenFields] })
+  const reloaded = getHoldScreen(JSON.parse(JSON.stringify(saved)))
+  const html = applyHoldScreenToHtml(template, reloaded, "Event")
+  const gate = html.slice(html.indexOf('<section class="event-gate'), html.indexOf('<section class="survey-page'))
+  assert.doesNotMatch(gate, /hold-status|hold-title|hold-logo/)
+  assert.equal(reloaded.status, DEFAULT_HOLD_SCREEN.status)
+  assert.match(applyHoldScreenToHtml(template, { ...reloaded, hiddenFields: [] }, "Event"), /class="hold-status"/)
+})

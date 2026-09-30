@@ -429,7 +429,7 @@
   }
 
   function refreshAgendaIndex() {
-    agendaItems = Array.from(document.querySelectorAll(".agenda-item"));
+    agendaItems = Array.from(agendaList?.querySelectorAll(".agenda-item") || []);
     sessionMap = new Map(agendaItems.map((item, index) => {
       const key = item.dataset.session;
       const localProfile = config.SPEAKER_PROFILES?.[key] || {};
@@ -889,6 +889,7 @@
     }
     updateEventDayDate(state.event_date);
     updateCountdown();
+    globalThis.POA_EDITOR_LAYOUT?.refresh(state);
     if (animate) animateUpdate();
   }
 
@@ -896,6 +897,7 @@
     const now = new Date();
     els.eventClock.textContent = new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), hour: "numeric", minute: "2-digit", hour12: true }).format(now);
     els.eventDate.textContent = new Intl.DateTimeFormat("en-US", { timeZone: activeTimeZone(), weekday: "long", month: "long", day: "numeric", year: "numeric" }).format(now);
+    globalThis.POA_EDITOR_LAYOUT?.refresh(state);
   }
 
   function updateEventDayDate(value = state.event_date || config.EVENT_DATE) {
@@ -1039,7 +1041,7 @@
   updateEventDayDate();
   updateClock();
   setInterval(updateClock, 1000);
-  setInterval(updateCountdown, 1000);
+  setInterval(() => { updateCountdown(); globalThis.POA_EDITOR_LAYOUT?.refresh(state); }, 1000);
   fetchState();
   fetchDistrictDirectory();
   setInterval(fetchState, Math.max(10000, Number(config.POLL_INTERVAL_MS) || 10000));

@@ -1,7 +1,9 @@
 import type { EventPageSection } from "./sectionTypes"
 
 export const HOLD_SCREEN_SECTION_ID = "__jupiter_hold_screen__"
+export type HoldScreenPart = "logoUrl" | "title" | "heading" | "message" | "status"
 export type HoldScreenSettings = {
+  hiddenFields?: HoldScreenPart[]
   logoUrl: string
   logoAlt: string
   title: string
@@ -33,12 +35,15 @@ export function safeHoldLogo(value: string): string {
 export function normalizeHoldScreen(value: unknown): HoldScreenSettings {
   const input = value && typeof value === "object" ? value as Record<string, unknown> : {}
   const settings = { ...DEFAULT_HOLD_SCREEN }
-  for (const key of Object.keys(settings) as (keyof HoldScreenSettings)[]) {
+  for (const key of Object.keys(DEFAULT_HOLD_SCREEN) as Exclude<keyof HoldScreenSettings, "hiddenFields">[]) {
     if (typeof input[key] !== "string") continue
     const text = input[key] as string
     settings[key] = key.endsWith("Color")
       ? /^#[0-9a-f]{6}$/i.test(text) ? text : DEFAULT_HOLD_SCREEN[key]
       : text
+  }
+  if (Array.isArray(input.hiddenFields)) {
+    settings.hiddenFields = input.hiddenFields.filter((field): field is HoldScreenPart => typeof field === "string" && ["logoUrl", "title", "heading", "message", "status"].includes(field))
   }
   return settings
 }
@@ -85,11 +90,11 @@ export function applyHoldScreenToHtml(html: string, settings: HoldScreenSettings
   const gate = /<section\b[^>]*\bid=["']eventGate["'][^>]*>[\s\S]*?<\/section>/i
   if (!gate.test(html)) throw new Error("This imported site has no eventGate hold screen. Add an eventGate section before publishing hold-screen changes.")
   const value = normalizeHoldScreen(settings)
-  if (value.logoUrl && !safeHoldLogo(value.logoUrl)) throw new Error("Use a valid HTTPS logo URL or remove the logo before publishing.")
-  const logo = value.logoUrl === DEFAULT_HOLD_SCREEN.logoUrl ? "jnj-logo.png" : value.logoUrl
+  if (!value.hiddenFields?.includes("logoUrl") && value.logoUrl && !safeHoldLogo(value.logoUrl)) throw new Error("Use a valid HTTPS logo URL or remove the logo before publishing.")
+  const logo = value.hiddenFields?.includes("logoUrl") ? "" : value.logoUrl === DEFAULT_HOLD_SCREEN.logoUrl ? "jnj-logo.png" : value.logoUrl
   // External sites cannot resolve root-relative assets against the Jupiter host.
   if (logo.startsWith("/")) throw new Error("Use a full HTTPS logo URL when publishing to an external site.")
   const style = Object.entries(holdScreenStyle(value)).map(([key, content]) => `${key}:${content}`).join(";")
-  const gateHtml = `<section class="event-gate jupiter-hold" id="eventGate" aria-live="polite" style="${style}"><div class="hold-card">${logo ? `<img class="hold-logo" src="${escapeHtml(logo)}" alt="${escapeHtml(value.logoAlt)}">` : ""}<span class="hold-title"${value.title ? "" : ' id="eventGateTitle"'}>${escapeHtml(value.title || eventTitle)}</span><h1 class="hold-heading">${escapeHtml(value.heading)}</h1><p class="hold-message">${escapeHtml(value.message)}</p>${value.status ? `<div class="hold-status"><span class="hold-dot"></span>${escapeHtml(value.status)}</div>` : ""}</div></section>`
+  const gateHtml = `<section class="event-gate jupiter-hold" id="eventGate" aria-live="polite" style="${style}"><div class="hold-card">${logo ? `<img class="hold-logo" src="${escapeHtml(logo)}" alt="${escapeHtml(value.logoAlt)}">` : ""}${value.hiddenFields?.includes("title") ? "" : `<span class="hold-title"${value.title ? "" : ' id="eventGateTitle"'}>${escapeHtml(value.title || eventTitle)}</span>`}${value.hiddenFields?.includes("heading") ? "" : `<h1 class="hold-heading">${escapeHtml(value.heading)}</h1>`}${value.hiddenFields?.includes("message") ? "" : `<p class="hold-message">${escapeHtml(value.message)}</p>`}${value.status && !value.hiddenFields?.includes("status") ? `<div class="hold-status"><span class="hold-dot"></span>${escapeHtml(value.status)}</div>` : ""}</div></section>`
   return html.replace(gate, () => gateHtml).replace(/<\/head>/i, () => `<style>${HOLD_SCREEN_CSS}\n.event-gate.jupiter-hold{overflow:auto;min-height:100%}.event-gate.jupiter-hold[hidden]{display:none}</style></head>`)
 }

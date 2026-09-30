@@ -1,4 +1,6 @@
-import type { CSSProperties, ReactNode } from "react"
+import { isLiveAgendaSection, materializeLiveAgendaSection } from "@/lib/page-editor/liveAgendaLayout"
+import type { LetsLiveAgendaProps } from "@/components/events/LetsLiveAgendaExperience"
+import { cloneElement, isValidElement, type CSSProperties, type ReactNode } from "react"
 import PersistedPageElementLayer from "@/components/page-renderer/PersistedPageElementLayer"
 import CustomCodePage from "@/components/page-renderer/CustomCodePage"
 import {
@@ -340,6 +342,11 @@ function renderCardStackSection(
 ): ReactNode {
   const config = section.config ?? {}
   if (config.visible === false) return null
+  const liveNode = systemComponents.lets_live_agenda
+  if (isLiveAgendaSection(section) && isValidElement<LetsLiveAgendaProps>(liveNode)) {
+    return <div key={`${section.id}-${index}`} data-page-section-id={section.id} className={getSectionResponsiveVisibilityClass(config)}>{cloneElement(liveNode, { blocks: materializeLiveAgendaSection(section).blocks ?? [] })}</div>
+  }
+
 
   const responsiveVisibilityClass =
     getSectionResponsiveVisibilityClass(config)
@@ -430,6 +437,11 @@ function renderFullBleedSection(
   const config = section.config ?? {}
 
   if (config.visible === false) return null
+  const liveNode = systemComponents.lets_live_agenda
+  if (isLiveAgendaSection(section) && isValidElement<LetsLiveAgendaProps>(liveNode)) {
+    return <div key={`${section.id}-${index}`} data-page-section-id={section.id} className={getSectionResponsiveVisibilityClass(config)}>{cloneElement(liveNode, { blocks: materializeLiveAgendaSection(section).blocks ?? [] })}</div>
+  }
+
   const responsiveVisibilityClass =
     getSectionResponsiveVisibilityClass(config)
 

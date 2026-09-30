@@ -27,11 +27,11 @@ export default function EventHoldScreen({ settings, eventTitle, selectedField, o
   return <div className="jupiter-hold" style={holdScreenStyle(settings) as CSSProperties}>
     <style>{HOLD_SCREEN_CSS}</style>
     <div className="hold-card">
-      {settings.logoUrl ? <div {...editable("logoUrl")}><img className="hold-logo" src={safeHoldLogo(settings.logoUrl) || undefined} alt={settings.logoAlt} /></div> : onSelect ? <button type="button" onClick={() => onSelect("logoUrl")} className="mb-6 text-sm underline">Add logo</button> : null}
-      <div className="hold-title" {...editable("title")}>{settings.title || eventTitle}</div>
-      <h2 className="hold-heading" {...editable("heading")}>{settings.heading || (onSelect ? "Add heading" : "")}</h2>
-      <p className="hold-message" {...editable("message")}>{settings.message || (onSelect ? "Add message" : "")}</p>
-      {settings.status || onSelect ? <div className="hold-status" {...editable("status")}><span className="hold-dot" />{settings.status || "Add status"}</div> : null}
+      {!settings.hiddenFields?.includes("logoUrl") && (settings.logoUrl ? <div {...editable("logoUrl")}><img className="hold-logo" src={safeHoldLogo(settings.logoUrl) || undefined} alt={settings.logoAlt} /></div> : onSelect ? <button type="button" onClick={() => onSelect("logoUrl")} className="mb-6 text-sm underline">Add logo</button> : null)}
+      {!settings.hiddenFields?.includes("title") && <div className="hold-title" {...editable("title")}>{settings.title || eventTitle}</div>}
+      {!settings.hiddenFields?.includes("heading") && <h2 className="hold-heading" {...editable("heading")}>{settings.heading || (onSelect ? "Add heading" : "")}</h2>}
+      {!settings.hiddenFields?.includes("message") && <p className="hold-message" {...editable("message")}>{settings.message || (onSelect ? "Add message" : "")}</p>}
+      {!settings.hiddenFields?.includes("status") && (settings.status || onSelect) ? <div className="hold-status" {...editable("status")}><span className="hold-dot" />{settings.status || "Add status"}</div> : null}
     </div>
   </div>
 }

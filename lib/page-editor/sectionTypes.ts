@@ -47,6 +47,14 @@ export type SectionBlock =
         title?: string
         body?: string | null
         align?: "left" | "center"
+        layoutRole?: string
+        layoutRegion?: string
+        bindEventTitle?: boolean
+        bindEventDescription?: boolean
+        href?: string
+        textColor?: string
+        fontSize?: number
+        visible?: boolean
       }
     }
   | {
@@ -131,6 +139,7 @@ export type EventTheme = {
 
 export type SectionConfig = {
   holdScreen?: import("./holdScreen").HoldScreenSettings
+  liveAgendaLayout?: boolean
   title?: string
   body?: string | null
   visible?: boolean

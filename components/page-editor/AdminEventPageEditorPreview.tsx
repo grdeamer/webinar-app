@@ -39,6 +39,8 @@ import CanvasGridOverlay from "./CanvasGridOverlay"
 import MarqueeSelection from "./MarqueeSelection"
 import ResizeHandles, { type ResizeHandle } from "./ResizeHandles"
 import EditorEventPageRenderer from "@/components/page-editor/EditorEventPageRenderer"
+import { materializeLiveAgendaSection, moveLiveAgendaBlock, liveAgendaRegion } from "@/lib/page-editor/liveAgendaLayout"
+import LiveAgendaBlockInspector from "./LiveAgendaBlockInspector"
 import HoldScreenEditor from "./HoldScreenEditor"
 import { getHoldScreen, setHoldScreen, HOLD_SCREEN_SECTION_ID } from "@/lib/page-editor/holdScreen"
 import FullCodeEditor from "@/components/page-editor/FullCodeEditor"
@@ -419,7 +421,7 @@ const isEmbedded =
 
   const eventInfo = {
     title: eventTitle,
-    description: "Renderer mode is now active inside the Page Editor.",
+    description: "Follow the live agenda, see what is happening now, and enter the correct meeting space from this page.",
   }
 
   const [isEditing, setIsEditing] = useState(
@@ -1905,7 +1907,10 @@ function removeRegistrationField(fieldId: string) {
         const index = blocks.findIndex((block) => block.id === selectedBlockId)
         if (index === -1) return section
 
-        const targetIndex = direction === "up" ? index - 1 : index + 1
+        const siblings = section.config.liveAgendaLayout ? blocks.filter(block => liveAgendaRegion(block) === liveAgendaRegion(blocks[index])) : blocks
+        const siblingIndex = siblings.findIndex(block => block.id === selectedBlockId)
+        const target = siblings[siblingIndex + (direction === "up" ? -1 : 1)]
+        const targetIndex = target ? blocks.findIndex(block => block.id === target.id) : -1
         if (targetIndex < 0 || targetIndex >= blocks.length) return section
 
         const [moved] = blocks.splice(index, 1)
@@ -1927,7 +1932,7 @@ function removeRegistrationField(fieldId: string) {
     const nextSelectedBlockId =
       currentIndex === -1
         ? null
-        : currentBlocks[Math.max(0, currentIndex - 1)]?.id ??
+        : currentBlocks[currentIndex - 1]?.id ??
           currentBlocks[currentIndex + 1]?.id ??
           null
 
@@ -2942,7 +2947,14 @@ const selectedExperienceNode = experienceNodes.find(
           <span className="ml-auto text-xs text-white/40">Preview only · event access is unchanged</span>
         </div>
       ) : null}
-      {showingHoldScreen ? <HoldScreenEditor settings={getHoldScreen(sections)} eventTitle={eventInfo.title} saveStatus={saveStatusMessage} onChange={(settings) => setSections((current) => setHoldScreen(current, settings))} onSave={() => { void flushCurrentPage() }} editing={isEditing} device={previewDevice} /> : null}
+      {showingHoldScreen ? <HoldScreenEditor settings={getHoldScreen(sections)} eventTitle={eventInfo.title} saveStatus={saveStatusMessage} onChange={(settings) => setSections((current) => setHoldScreen(current, settings))} onSave={() => { void flushCurrentPage() }} onUpload={async (file, onProgress) => {
+        const uploaded = await uploadMediaFile(file, onProgress)
+        setSections((current) => {
+          const settings = getHoldScreen(current)
+          return setHoldScreen(current, { ...settings, logoUrl: String(uploaded.url), hiddenFields: settings.hiddenFields?.filter(field => field !== "logoUrl") })
+        })
+        setEditorAssets((current) => [...current.filter(asset => asset.url !== uploaded.url), { id: String(uploaded.path), path: String(uploaded.path), url: String(uploaded.url), name: file.name, type: file.type }])
+      }} editing={isEditing} device={previewDevice} /> : null}
             {!showingHoldScreen && <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-auto lg:flex-row lg:overflow-hidden">
               {!isEmbedded && isEditing && documentReady && !isCodeEditorOpen ? (
                 <ExperienceJourneySidebar
@@ -3239,6 +3251,19 @@ const selectedExperienceNode = experienceNodes.find(
   sections={sections}
   isEditing={isEditing}
   selectedSectionId={selectedSectionId}
+  selectedBlockId={selectedBlockId}
+  onSelectBlock={(sectionId, blockId) => {
+    setSections((current) => current.map((section) => section.id === sectionId ? materializeLiveAgendaSection(section) : section))
+    setSelectedSectionId(sectionId)
+    setSelectedBlockId(blockId)
+    setSelectedId(null)
+    setSelectedIds([])
+    setRightRailTab("inspect")
+    setEditorDetailsOpen(true)
+  }}
+  onMoveBlock={(sectionId, source, target) => {
+    setSections((current) => current.map((section) => section.id === sectionId ? moveLiveAgendaBlock(materializeLiveAgendaSection(section), source, target) : section))
+  }}
   draggingSectionId={draggingSectionId}
   dragOverSectionId={dragOverSectionId}
   onSectionDragStart={handleSectionDragStart}
@@ -3847,7 +3872,20 @@ const selectedExperienceNode = experienceNodes.find(
           </div>
         </div>
 
-        {documentReady && (isEmbedded || isEditing) && !isCodeEditorOpen && <ExperienceInspectorRail
+        {documentReady && (isEmbedded || isEditing) && !isCodeEditorOpen && selectedSection?.config.liveAgendaLayout && selectedBlock ? <LiveAgendaBlockInspector
+          block={selectedBlock} section={selectedSection}
+          eventTitle={eventInfo.title} eventDescription={eventInfo.description}
+          saveStatus={saveStatusMessage} onSave={() => { void flushCurrentPage() }}
+          onSelect={(id) => setSelectedBlockId(id)}
+          onUpdate={updateSelectedBlockProps}
+          onDelete={deleteSelectedBlock}
+          onMove={moveSelectedBlock}
+          onDuplicate={() => {
+            const copy = { ...structuredClone(selectedBlock), id: crypto.randomUUID() }
+            setSections((current) => current.map((section) => section.id === selectedSection.id ? { ...section, blocks: [...(section.blocks ?? []), copy] } : section))
+            setSelectedBlockId(copy.id)
+          }}
+        /> : documentReady && (isEmbedded || isEditing) && !isCodeEditorOpen && <ExperienceInspectorRail
           {...{
             addElement,
             addElementOpen,

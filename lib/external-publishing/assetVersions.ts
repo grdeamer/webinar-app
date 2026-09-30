@@ -4,7 +4,7 @@ type Asset = { name: string; content: Buffer }
 
 export function versionManagedAssetReferences(indexHtml: string, artifacts: Asset[]): string {
   let html = indexHtml
-  for (const name of ["styles.css", "config.js", "app.js"]) {
+  for (const name of ["styles.css", "config.js", "app.js", "editor-layout.js"]) {
     const asset = artifacts.find((item) => item.name === name)
     if (!asset) continue
     const version = createHash("sha256").update(asset.content).digest("hex").slice(0, 12)

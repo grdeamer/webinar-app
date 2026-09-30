@@ -86,11 +86,15 @@ export async function buildLetsPublishArtifacts(args: {
   let indexHtml = fileEntries.find((entry) => entry.name === "index.html")?.content.toString("utf8") ?? ""
   let stylesCss = fileEntries.find((entry) => entry.name === "styles.css")?.content.toString("utf8") ?? ""
 
+  let editorLayout: EventPageSection["blocks"] | null = null
   if (args.eventId) {
     const pageDoc = await loadEventPageDocument(args.eventId, "event_home")
     const sections = Array.isArray(pageDoc.sections)
       ? (pageDoc.sections as EventPageSection[])
       : []
+    const layouts = sections.filter(section => section.config.liveAgendaLayout === true)
+    if (layouts.length > 1) throw new Error("External publishing supports one live agenda layout per event home.")
+    if (layouts.length) editorLayout = layouts[0].blocks ?? []
     const customCode = getCustomCodeDocument(sections)
     const hero = sections.find((section) => section.type === "hero" || section.id === "hero")
     const title = typeof hero?.config?.title === "string" ? hero.config.title.trim() : ""
@@ -126,6 +130,11 @@ export async function buildLetsPublishArtifacts(args: {
       indexHtml = applyHoldScreenToHtml(indexHtml, getHoldScreen(sections), title || "Event")
     }
 
+    if (editorLayout) {
+      if (customCode.enabled) throw new Error("Independent agenda components cannot be combined with an imported HTML page. Switch to the component layout before publishing.")
+      indexHtml = indexHtml.replace(/(<script src="app\.js[^>]*>)/, '<script src="editor-layout.js" defer></script>\n$1')
+      stylesCss += "\n.editor-layout-item{min-width:0}.hero-actions>.editor-layout-item{flex:1}.editor-layout-item .enter-button{width:100%}.editor-layout-item .editor-next-session{padding:16px;border:1px solid #11161c17;border-radius:20px}.editor-layout-item #eventDayDate{display:block}\n"
+    }
     const indexPosition = fileEntries.findIndex((entry) => entry.name === "index.html")
     if (indexPosition !== -1) {
       fileEntries[indexPosition] = { name: "index.html", content: Buffer.from(indexHtml, "utf8") }
@@ -140,6 +149,7 @@ export async function buildLetsPublishArtifacts(args: {
   const origin = args.jupiterOrigin.replace(/\/$/, "")
   const config = `window.POA_CONFIG = ${JSON.stringify(
     {
+      EDITOR_LAYOUT: editorLayout,
       STATE_ENDPOINT: `${origin}/api/public/events/${args.eventSlug}/runtime`,
       DISTRICT_ACCESS_ENDPOINT: `${origin}/api/public/events/${args.eventSlug}/district-access`,
       DISTRICT_DIRECTORY_ENDPOINT: `${origin}/api/public/events/${args.eventSlug}/district-directory`,

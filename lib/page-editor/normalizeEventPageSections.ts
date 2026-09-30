@@ -48,6 +48,7 @@ function normalizeBlock(
       id,
       type: "rich_text",
       props: {
+        ...props,
         title: typeof props.title === "string" ? props.title : undefined,
         body: normalizedBody,
         align: props.align === "center" ? "center" : "left",

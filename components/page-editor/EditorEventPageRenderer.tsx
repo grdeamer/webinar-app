@@ -1,6 +1,6 @@
 "use client"
 
-import type { DragEvent, ReactNode } from "react"
+import { cloneElement, isValidElement, type DragEvent, type ReactNode } from "react"
 import type {
   EventPageSection,
   SectionBlock,
@@ -11,6 +11,9 @@ import type {
 import { getPageBackgroundStyle } from "@/lib/page-editor/themeBackground"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
 import { getRenderableSections } from "@/lib/page-editor/customCode"
+
+import { isLiveAgendaSection, materializeLiveAgendaSection } from "@/lib/page-editor/liveAgendaLayout"
+import type { LetsLiveAgendaProps } from "@/components/events/LetsLiveAgendaExperience"
 
 type EventLike = {
   title: string
@@ -406,6 +409,7 @@ export default function EditorEventPageRenderer({
   draggingSectionId = null,
   dragOverSectionId = null,
   onSelectSection,
+  selectedBlockId, onSelectBlock, onMoveBlock,
   onSectionDragStart,
   onSectionDragOver,
   onSectionDrop,
@@ -421,6 +425,9 @@ export default function EditorEventPageRenderer({
   selectedSectionId?: string | null
   draggingSectionId?: string | null
   dragOverSectionId?: string | null
+  selectedBlockId?: string | null
+  onSelectBlock?: (sectionId: string, blockId: string) => void
+  onMoveBlock?: (sectionId: string, source: string, target: string) => void
   onSelectSection?: (id: string | null) => void
   onSectionDragStart?: (id: string) => void
   onSectionDragOver?: (event: DragEvent<HTMLElement>, id: string) => void
@@ -468,6 +475,17 @@ export default function EditorEventPageRenderer({
 
         if (config.visible === false) return null
         if (isMobilePreview && config.hideOnMobile) return null
+
+        const liveNode = systemComponents.lets_live_agenda
+        if (isLiveAgendaSection(section) && isValidElement<LetsLiveAgendaProps>(liveNode)) {
+          const layout = materializeLiveAgendaSection(section)
+          return <div key={section.id} data-page-section-id={section.id}>{cloneElement(liveNode, {
+            blocks: layout.blocks ?? [],
+            selectedBlockId: selectedSectionId === section.id ? selectedBlockId : null,
+            onSelectBlock: isEditing && onSelectBlock ? (id: string) => onSelectBlock(section.id, id) : undefined,
+            onMoveBlock: isEditing && onMoveBlock ? (source: string, target: string) => onMoveBlock(section.id, source, target) : undefined,
+          })}</div>
+        }
 
         const isHeroSection = section.type === "hero"
         const isSectionDragging = draggingSectionId === section.id
