@@ -407,7 +407,7 @@ export default function AdminEventPageEditorPreview({
   eventSlug?: string
   eventAdminId?: string
 } = {}) {
-const { alert: showNotice, prompt: promptNotice } = useJupiterNotice()
+const { alert: showNotice } = useJupiterNotice()
 const params = useParams()
 const pathname = usePathname()
 const searchParams = useSearchParams()
