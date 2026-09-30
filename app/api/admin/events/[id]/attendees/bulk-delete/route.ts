@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -10,22 +10,30 @@ export async function POST(
   context: { params: Promise<{ id: string }> }
 ): Promise<Response> {
   try {
-    const auth = await requireAdmin()
-    if (auth instanceof Response) return auth
-
     const { id: eventId } = await context.params
+    const access = await requireEventOperatorAccess(eventId, ["event_admin"], "people")
+    if (access instanceof Response) return access
     const body = await request.json()
     const { attendee_ids } = body
 
-    if (!Array.isArray(attendee_ids) || attendee_ids.length === 0) {
+    if (!Array.isArray(attendee_ids) || attendee_ids.length === 0 || attendee_ids.length > 1000 || attendee_ids.some((id: unknown) => typeof id !== "string" || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id))) {
       return NextResponse.json({ error: "attendee_ids array required" }, { status: 400 })
     }
 
-    // Delete from event_registrant_sessions first (foreign key constraint)
+    const { data: people, error: lookupError } = await supabaseAdmin
+      .from("event_registrants").select("id").eq("event_id", access.eventId).in("id", attendee_ids)
+    if (lookupError) return NextResponse.json({ error: "Unable to validate attendees" }, { status: 500 })
+    const ids = [...new Set(attendee_ids)]
+    if (!people || people.length !== ids.length) {
+      return NextResponse.json({ error: "One or more attendees do not belong to this event" }, { status: 400 })
+    }
+
+    // Scope every mutation, even after validating the complete requested set.
     const { error: sessionsError } = await supabaseAdmin
       .from("event_registrant_sessions")
       .delete()
-      .in("registrant_id", attendee_ids)
+      .eq("event_id", access.eventId)
+      .in("registrant_id", ids)
 
     if (sessionsError) {
       console.error("Error deleting registrant sessions:", sessionsError)
@@ -36,7 +44,8 @@ export async function POST(
     const { error: registrantsError } = await supabaseAdmin
       .from("event_registrants")
       .delete()
-      .in("id", attendee_ids)
+      .eq("event_id", access.eventId)
+      .in("id", ids)
 
     if (registrantsError) {
       console.error("Error deleting registrants:", registrantsError)
@@ -45,7 +54,7 @@ export async function POST(
 
     return NextResponse.json({ 
       success: true, 
-      deleted_count: attendee_ids.length 
+      deleted_count: ids.length
     })
   } catch (err) {
     console.error("Bulk delete error:", err)

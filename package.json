@@ -9,7 +9,8 @@
     "set-admin": "node scripts/set-admin-password.mjs",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --test tests/*.test.ts"
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "check:secrets": "node scripts/check-secrets.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

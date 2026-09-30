@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { recordAuditEvent } from "@/lib/cloud/audit"
 
 export const runtime = "nodejs"
@@ -113,6 +114,9 @@ export async function PUT(req: Request) {
     return json({ error: "Missing id" }, 400)
   }
 
+  const access = await requireEventOperatorAccess(String(body.id), ["event_admin"], "event_details")
+  if (access instanceof Response) return access
+
   const updatedAt = new Date().toISOString()
   const patch: Record<string, unknown> = { updated_at: updatedAt }
 
@@ -140,7 +144,7 @@ export async function PUT(req: Request) {
   const { error } = await supabaseAdmin
     .from("events")
     .update(patch)
-    .eq("id", body.id)
+    .eq("id", access.eventId)
 
   if (error) {
     return json({ error: error.message }, 400)
@@ -149,7 +153,7 @@ export async function PUT(req: Request) {
   const { error: syncError } = await supabaseAdmin
     .from("event_live_state")
     .update({ updated_at: updatedAt })
-    .eq("event_id", body.id)
+    .eq("event_id", access.eventId)
 
   if (syncError) {
     return json({ error: `Event saved, but display sync failed: ${syncError.message}` }, 500)

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { requireAdmin } from "@/lib/requireAdmin"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -16,9 +16,6 @@ function isUuid(value: string): boolean {
 }
 
 export async function DELETE(_req: Request, context: RouteContext): Promise<Response> {
-  const authResult = await requireAdmin()
-  if (authResult instanceof Response) return authResult
-
   const { id } = await context.params
 
   if (!isUuid(id)) {
@@ -26,10 +23,17 @@ export async function DELETE(_req: Request, context: RouteContext): Promise<Resp
   }
 
   try {
+    const { data: session, error: lookupError } = await supabaseAdmin
+      .from("event_sessions").select("event_id").eq("id", id).maybeSingle()
+    if (lookupError) return NextResponse.json({ error: "Unable to load session" }, { status: 500 })
+    if (!session) return NextResponse.json({ error: "Session not found" }, { status: 404 })
+    const access = await requireEventOperatorAccess(session.event_id, ["event_admin"], "program")
+    if (access instanceof Response) return access
     const { error } = await supabaseAdmin
       .from("event_sessions")
       .delete()
       .eq("id", id)
+      .eq("event_id", access.eventId)
 
     if (error) {
       console.error("Delete session error:", error)
