@@ -1,6 +1,6 @@
 "use client"
 
-import type { Dispatch, DragEvent, SetStateAction } from "react"
+import type { Dispatch, DragEvent, SetStateAction, ReactNode } from "react"
 import type { AgendaDisplayMode } from "@/components/page-editor/experience-studio/AgendaInspector"
 import type { RegistrationInspectorField } from "@/components/page-editor/experience-studio/RegistrationFieldsCard"
 import type { RegistrationPreviewState } from "@/components/page-editor/experience-studio/RegistrationPreviewStateCard"
@@ -354,7 +354,6 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     canMoveDown,
     canMoveUp,
     canSendBackward,
-    canvasScale,
     deleteSelectedBlock,
     deleteSelectedElement,
     deleteSelectedSection,
@@ -374,9 +373,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     handleSectionDragStart,
     handleSectionDrop,
     hoveredExperienceNodeId,
-    isEditing,
     isEmbedded,
-    isMobilePreview,
     previewDevice,
     moveRegistrationFieldInSelectedBlock,
     moveSelectedBlock,
@@ -425,9 +422,6 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     ? getSafeSectionRegistryItem(selectedSection.type)
     : null
   const experienceNodeCount = orderedExperienceNodes.length
-  const elementLayerCount = orderedExperienceNodes.filter(
-    (node) => node.sourceType === "element"
-  ).length
   const selectedElementAnimation = getElementAnimationConfig(
     selectedElement?.props
   )
@@ -438,11 +432,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
   className={`${EXPERIENCE_EDITOR_RAIL_CLASS} ${
     isEmbedded
       ? "w-[300px] shrink-0 overflow-visible opacity-100"
-      : `absolute inset-y-0 right-0 z-[60] w-[360px] max-w-[calc(100%-4rem)] overflow-visible transition-[transform,opacity] duration-300 ${
-          isEditing
-            ? "translate-x-0 opacity-100"
-            : "pointer-events-none translate-x-full opacity-0"
-        }`
+      : "relative w-full shrink-0 border-t border-white/[0.07] lg:w-[300px] lg:border-t-0 xl:w-[320px]"
   }`}
 >
   <div
@@ -450,17 +440,17 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
   >
   <div className="w-full p-4">
             <div className={EXPERIENCE_EDITOR_RAIL_HEADER_CLASS}>
-              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">Experience Composer</div>
+              <div className="text-[10px] font-black uppercase tracking-[0.22em] text-violet-100/48">Selection & settings</div>
 
 <h3 className="mt-2 text-xl font-semibold tracking-[-0.03em] text-white">
   {rightRailTab === "inspect"
     ? selectedElement
-      ? "Element Settings"
+      ? `${selectedElement.element_type ?? "Element"} settings`
       : selectedSection
-        ? "Section Settings"
-        : "Inspector"
+        ? String(selectedSection.config.adminLabel || selectedSection.config.title || getSafeSectionLabel(selectedSection.type))
+        : "Select content"
     : rightRailTab === "layers"
-      ? "Scene Layers"
+      ? "Layers"
       : rightRailTab === "insert"
         ? "Insert"
         : "Page Settings"}
@@ -482,7 +472,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
 
 <div className="mt-4 grid grid-cols-4 gap-1 rounded-2xl border border-white/[0.08] bg-black/24 p-1">
   {([
-    ["inspect", "Inspect"],
+    ["inspect", "Content"],
     ["layers", "Layers"],
     ["insert", "Insert"],
     ["page", "Page"],
@@ -490,6 +480,7 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
     <button
       key={tab}
       type="button"
+      aria-pressed={rightRailTab === tab}
       onClick={() => setRightRailTab(tab)}
       className={`rounded-xl px-2 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition ${
         rightRailTab === tab
@@ -502,16 +493,9 @@ export default function ExperienceInspectorRail(props: ExperienceInspectorRailPr
   ))}
 </div>
 
-              <div className="mt-4 inline-flex rounded-full border border-white/[0.07] bg-black/22 px-3 py-1 text-[10px] font-black uppercase tracking-[0.16em] text-white/42">
-                Preview · {isMobilePreview ? "Mobile" : "Desktop"} · {Math.round(canvasScale * 100)}%
               </div>
 
-<div className="mt-3 rounded-2xl border border-white/[0.07] bg-black/22 px-3 py-2 text-[10px] font-black uppercase tracking-[0.16em] text-white/36">
-  {experienceNodeCount} nodes · {sections.length} sections · {elementLayerCount} layers
-</div>
-              </div>
-
-              <div className="mt-3 space-y-3">
+              <div hidden={rightRailTab !== "layers"} className="mt-3 space-y-3">
                   <div className="rounded-2xl border border-violet-200/10 bg-violet-500/10 px-3 py-2 text-[11px] font-semibold text-violet-50/70">
                     {selectedExperienceNode
                       ? `Selected node · ${selectedExperienceNode.nodeType}`
@@ -685,6 +669,7 @@ onDragEnd={handleLayerDragEnd}
             </div>
 
             <button
+              hidden={rightRailTab !== "page"}
               onClick={() => void saveCurrentTemplate()}
               className={EXPERIENCE_EDITOR_SAVE_TEMPLATE_BUTTON_CLASS}
             >
@@ -700,7 +685,7 @@ onDragEnd={handleLayerDragEnd}
 
             {saveMessage && <div className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>{saveMessage}</div>}
 
-            <div className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>
+            <div hidden={rightRailTab !== "inspect" && rightRailTab !== "page"} className={`mt-4 ${EXPERIENCE_EDITOR_RAIL_CARD_CLASS}`}>
               <SectionPanelHeader
                 title={
                   selectedElement
@@ -715,7 +700,7 @@ onDragEnd={handleLayerDragEnd}
 
               {editorDetailsOpen && (
                 <div className="mt-4">
-                  {!selectedElement && !selectedSection && (
+                  {rightRailTab === "page" && !selectedElement && !selectedSection && (
   <div className="space-y-4">
     <div className="rounded-[20px] border border-white/[0.075] bg-black/22 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.025)]">
       <div className="text-xs uppercase tracking-[0.18em] text-white/40">
@@ -1596,85 +1581,11 @@ onDragEnd={handleLayerDragEnd}
                   ) : selectedSection ? (
                 
                     <div className="mt-4 space-y-4">
-                      {selectedSection.type !== "hero" && (
-                        <>
-                          <div className="grid grid-cols-2 gap-3">
-                            <button
-                              onClick={() => moveSelectedSection("up")}
-                              disabled={!canMoveUp}
-                              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                                canMoveUp
-                                  ? "bg-white text-slate-950 hover:bg-white/90"
-                                  : "cursor-not-allowed bg-white/10 text-white/35"
-                              }`}
-                            >
-                              Move Up
-                            </button>
-
-                            <button
-                              onClick={() => moveSelectedSection("down")}
-                              disabled={!canMoveDown}
-                              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
-                                canMoveDown
-                                  ? "bg-white text-slate-950 hover:bg-white/90"
-                                  : "cursor-not-allowed bg-white/10 text-white/35"
-                              }`}
-                            >
-                              Move Down
-                            </button>
-                          </div>
-
-                          <button
-                            onClick={duplicateSelectedSection}
-                            disabled={!canDuplicateSection}
-                            className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
-                              canDuplicateSection
-                                ? "bg-blue-600 text-white hover:bg-blue-500"
-                                : "cursor-not-allowed bg-white/10 text-white/35"
-                            }`}
-                          >
-                            Duplicate Section
-                          </button>
-
-                          <button
-                            onClick={deleteSelectedSection}
-                            disabled={!canDeleteSection}
-                            className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
-                              canDeleteSection
-                                ? "bg-red-600 text-white hover:bg-red-500"
-                                : "cursor-not-allowed bg-white/10 text-white/35"
-                            }`}
-                          >
-                            Delete Section
-                          </button>
-                        </>
-                      )}
-
-{selectedSection.config.themeMode === "custom" &&
-  (selectedSection.config.sectionBackgroundColor ||
-    selectedSection.config.sectionBorderColor ||
-    selectedSection.config.sectionTextColor ||
-    selectedSection.config.sectionGradientColorA ||
-    selectedSection.config.sectionGradientColorB) && (
-    <button
-      type="button"
-      onClick={() =>
-        updateSectionConfig(selectedSection.id, {
-          sectionBackgroundColor: "",
-          sectionBorderColor: "",
-          sectionTextColor: "",
-          sectionGradientColorA: "",
-          sectionGradientColorB: "",
-          sectionGradientAngle: "",
-        })
-      }
-      className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
-    >
-      Reset Section Colors
-    </button>
-  )}
-
-                      {registryItem?.fields.map((field) => {
+                      {([false, true] as const).map((advanced) => (
+                        <SectionSettingsGroup key={String(advanced)} advanced={advanced}>
+                      {registryItem?.fields.filter((field) =>
+                        advanced !== ["title", "body", "visible"].includes(field.key)
+                      ).map((field) => {
                         const value = (selectedSection.config as Record<string, unknown>)[field.key]
                         const fillType =
                           (selectedSection.config.sectionBackgroundFillType as string) || "solid"
@@ -1950,6 +1861,91 @@ onDragEnd={handleLayerDragEnd}
                           </div>
                         )
                       })}
+                        </SectionSettingsGroup>
+                      ))}
+                      <details className="rounded-xl border border-white/10 bg-black/20 p-3">
+                        <summary className="cursor-pointer text-xs font-semibold text-white/60">Section actions</summary>
+                        <div className="mt-3 space-y-3">
+                      {selectedSection.type !== "hero" && (
+                        <>
+                          <div className="grid grid-cols-2 gap-3">
+                            <button
+                              onClick={() => moveSelectedSection("up")}
+                              disabled={!canMoveUp}
+                              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                                canMoveUp
+                                  ? "bg-white text-slate-950 hover:bg-white/90"
+                                  : "cursor-not-allowed bg-white/10 text-white/35"
+                              }`}
+                            >
+                              Move Up
+                            </button>
+
+                            <button
+                              onClick={() => moveSelectedSection("down")}
+                              disabled={!canMoveDown}
+                              className={`rounded-xl px-4 py-2 text-sm font-semibold ${
+                                canMoveDown
+                                  ? "bg-white text-slate-950 hover:bg-white/90"
+                                  : "cursor-not-allowed bg-white/10 text-white/35"
+                              }`}
+                            >
+                              Move Down
+                            </button>
+                          </div>
+
+                          <button
+                            onClick={duplicateSelectedSection}
+                            disabled={!canDuplicateSection}
+                            className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
+                              canDuplicateSection
+                                ? "bg-blue-600 text-white hover:bg-blue-500"
+                                : "cursor-not-allowed bg-white/10 text-white/35"
+                            }`}
+                          >
+                            Duplicate Section
+                          </button>
+
+                          <button
+                            onClick={deleteSelectedSection}
+                            disabled={!canDeleteSection}
+                            className={`w-full rounded-xl px-4 py-2 text-sm font-semibold ${
+                              canDeleteSection
+                                ? "bg-red-600 text-white hover:bg-red-500"
+                                : "cursor-not-allowed bg-white/10 text-white/35"
+                            }`}
+                          >
+                            Delete Section
+                          </button>
+                        </>
+                      )}
+
+{selectedSection.config.themeMode === "custom" &&
+  (selectedSection.config.sectionBackgroundColor ||
+    selectedSection.config.sectionBorderColor ||
+    selectedSection.config.sectionTextColor ||
+    selectedSection.config.sectionGradientColorA ||
+    selectedSection.config.sectionGradientColorB) && (
+    <button
+      type="button"
+      onClick={() =>
+        updateSectionConfig(selectedSection.id, {
+          sectionBackgroundColor: "",
+          sectionBorderColor: "",
+          sectionTextColor: "",
+          sectionGradientColorA: "",
+          sectionGradientColorB: "",
+          sectionGradientAngle: "",
+        })
+      }
+      className="w-full rounded-xl border border-white/10 bg-black/20 px-4 py-3 text-sm font-semibold text-white hover:bg-white/5"
+    >
+      Reset Section Colors
+    </button>
+  )}
+
+                        </div>
+                      </details>
 
                       <div className="mt-6 rounded-2xl border border-white/10 bg-black/20 p-4">
                         <div className="text-xs uppercase tracking-[0.18em] text-white/40">
@@ -2391,7 +2387,7 @@ onDragEnd={handleLayerDragEnd}
               )}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div hidden={rightRailTab !== "insert"} className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
               <SectionPanelHeader
                 title="Section Templates"
                 open={sectionTemplatesOpen}
@@ -2422,7 +2418,7 @@ onDragEnd={handleLayerDragEnd}
               )}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div hidden={rightRailTab !== "insert"} className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
               <SectionPanelHeader
                 title="Add Element"
                 open={addElementOpen}
@@ -2476,7 +2472,7 @@ onDragEnd={handleLayerDragEnd}
               )}
             </div>
 
-            <div className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
+            <div hidden={rightRailTab !== "layers"} className="mt-6 rounded-2xl border border-white/10 bg-white/5 p-4">
               <SectionPanelHeader
                 title="Sections"
                 open={sectionsListOpen}
@@ -2637,10 +2633,20 @@ onDragEnd={handleLayerDragEnd}
               )}
             </div>
 
-            {onUploadAsset && onInsertAsset ? (
+            {rightRailTab === "insert" && onUploadAsset && onInsertAsset ? (
               <AssetLibraryCard onUpload={onUploadAsset} onInsertAsset={onInsertAsset} />
             ) : null}
   </div>
       </aside>
+  )
+}
+
+function SectionSettingsGroup({ advanced, children }: { advanced: boolean; children: ReactNode }) {
+  if (!advanced) return <div className="space-y-4">{children}</div>
+  return (
+    <details className="rounded-xl border border-white/10 bg-black/20 p-3">
+      <summary className="cursor-pointer text-xs font-semibold text-white/60">Design & layout</summary>
+      <div className="mt-4 space-y-4">{children}</div>
+    </details>
   )
 }

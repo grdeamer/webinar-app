@@ -47,9 +47,10 @@ import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
 import PageEditorToolbar from "./PageEditorToolbar"
-import EditorToolDock, { type EditorToolPanel } from "./EditorToolDock"
+import ExperienceJourneySidebar from "./ExperienceJourneySidebar"
+import { type EditorToolPanel } from "./EditorToolDock"
 import EditorToolPanelContent from "./EditorToolPanel"
-import PageFilmstrip, { type EditorPageManifestItem, type PageThumbnailDocument } from "./PageFilmstrip"
+import { type EditorPageManifestItem } from "./PageFilmstrip"
 import { EDITOR_PAGES, getPublicEditorPageUrl } from "./editorPages"
 import TextContextToolbar from "./TextContextToolbar"
 import EditorCollaborationPanel from "./EditorCollaborationPanel"
@@ -420,7 +421,7 @@ const isEmbedded =
   }
 
   const [isEditing, setIsEditing] = useState(
-    isEmbedded || requestedMode === "edit",
+    isEmbedded || requestedMode !== "preview",
   )
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -438,16 +439,15 @@ const isEmbedded =
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop")
   const isMobilePreview = previewDevice === "mobile"
   const [canvasZoom, setCanvasZoom] = useState(1)
-  const [showGrid, setShowGrid] = useState(true)
+  const [showGrid, setShowGrid] = useState(false)
   const [showRulers, setShowRulers] = useState(false)
   const [copiedElementStyle, setCopiedElementStyle] = useState<Record<string, unknown> | null>(null)
   const [rightRailTab, setRightRailTab] = useState<RightRailTab>("inspect")
   const [activeToolPanel, setActiveToolPanel] = useState<EditorToolPanel>("design")
-  const [toolPanelOpen, setToolPanelOpen] = useState(true)
+  const [toolPanelOpen, setToolPanelOpen] = useState(false)
   const [collaborationOpen, setCollaborationOpen] = useState(false)
   const [editorAssets, setEditorAssets] = useState<EditorAsset[]>([])
   const [editorPages, setEditorPages] = useState<EditorPageManifestItem[]>(() => EDITOR_PAGES.map((page) => ({ pageKey: page.value, title: page.label, isSystem: true })))
-  const [pageThumbnails, setPageThumbnails] = useState<Record<string, PageThumbnailDocument>>({})
   const [hoveredExperienceNodeId, setHoveredExperienceNodeId] = useState<string | null>(null)
   const [sectionTemplatesOpen, setSectionTemplatesOpen] = useState(true)
   const [addElementOpen, setAddElementOpen] = useState(true)
@@ -760,24 +760,6 @@ const isEmbedded =
     }
     void loadPageManifest()
   }, [slug])
-
-  useEffect(() => {
-    if (!editorPages.length) return
-    const abortController = new AbortController()
-    async function loadThumbnails() {
-      const entries = await Promise.all(editorPages.filter((page) => page.pageKey !== selectedPageKey).map(async (page) => {
-        try {
-          const response = await fetch(`/api/admin/page-editor/event/${slug}/elements?pageKey=${encodeURIComponent(page.pageKey)}`, { cache: "no-store", signal: abortController.signal })
-          const data = await response.json().catch((): null => null)
-          if (!response.ok || !data) return null
-          return [page.pageKey, { elements: normalizeEventPageElements(data.elements), sections: normalizeSections(data.sections), eventTheme: data.eventTheme && typeof data.eventTheme === "object" ? data.eventTheme as EventTheme : eventThemeRef.current }] as const
-        } catch { return null }
-      }))
-      if (!abortController.signal.aborted) setPageThumbnails(Object.fromEntries(entries.filter((entry): entry is NonNullable<typeof entry> => entry !== null)))
-    }
-    void loadThumbnails()
-    return () => abortController.abort()
-  }, [editorPages, selectedPageKey, slug])
 
   async function persistPageOrder(pages: EditorPageManifestItem[]) {
     const previousPages = editorPages
@@ -1527,6 +1509,9 @@ const isEmbedded =
 
     if (isEditing) {
       void flushCurrentPage()
+      clearSelection()
+      setHoveredExperienceNodeId(null)
+      setToolPanelOpen(false)
     }
     setIsEditing((value) => !value)
   }
@@ -2890,13 +2875,13 @@ const selectedExperienceNode = experienceNodes.find(
           onToggleEditing={toggleEditing}
           onToggleCodeEditor={() => {
             setIsCodeEditorOpen((value) => !value)
-            setIsEditing(false)
+            setIsEditing(isCodeEditorOpen)
             clearSelection()
           }}
           onAlignElements={executeElementAlignmentCommand}
           onGroupElements={groupSelectedElements}
           onUngroupElements={ungroupSelectedElements}
-          onPreview={() => window.open(getPublicEditorPageUrl(slug, selectedPageKey), "_blank", "noopener,noreferrer")}
+          onPreview={toggleEditing}
           onShare={() => setCollaborationOpen(true)}
           onPublish={() => {
             void flushCurrentPage().then((saved) => {
@@ -2946,26 +2931,26 @@ const selectedExperienceNode = experienceNodes.find(
         </div>
       ) : null}
 
-            <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 overflow-hidden">
-              {!isEmbedded && !isCodeEditorOpen ? (
-                <EditorToolDock
-                  activePanel={activeToolPanel}
-                  saveStatus={activePageSaveState.status}
-                  onSaveAction={() => {
-                    if (activePageSaveState.status === "conflict") {
-                      downloadRecoveryBackup()
-                      return
-                    }
-                    void flushCurrentPage()
-                  }}
-                  onChangePanel={(panel) => {
-                    setToolPanelOpen((open) => panel === activeToolPanel ? !open : true)
-                    setActiveToolPanel(panel)
-                    setIsEditing(true)
-                  }}
+            <div className="relative flex min-h-0 min-w-0 max-w-full flex-1 flex-col overflow-auto lg:flex-row lg:overflow-hidden">
+              {!isEmbedded && isEditing && documentReady && !isCodeEditorOpen ? (
+                <ExperienceJourneySidebar
+                  pages={editorPages}
+                  selectedPageKey={selectedPageKey}
+                  sections={sections}
+                  selectedSectionId={selectedSectionId}
+                  onSelectPage={(key) => { void selectPage(key) }}
+                  onSelectSection={selectSectionFromList}
+                  onAddContent={() => { setToolPanelOpen(false); setRightRailTab("insert") }}
+                  onAddPage={() => { void createEditorPage() }}
+                  onRenamePage={(page) => { void renameEditorPage(page) }}
+                  onDuplicatePage={(page) => { void createEditorPage(page.pageKey) }}
+                  onDeletePage={(page) => { void deleteEditorPage(page) }}
+                  onReorderPages={(pages) => { void persistPageOrder(pages) }}
+                  onOpenTool={(tool) => { setActiveToolPanel(tool); setToolPanelOpen(true) }}
                 />
               ) : null}
-              {!isEmbedded && !isCodeEditorOpen && toolPanelOpen ? (
+              {!isEmbedded && isEditing && !isCodeEditorOpen && toolPanelOpen ? (
+                <div className="absolute inset-y-0 left-0 z-[65] flex max-w-full shadow-2xl lg:left-[210px]">
                 <EditorToolPanelContent
                   activePanel={activeToolPanel}
                   templates={templates}
@@ -2991,6 +2976,7 @@ const selectedExperienceNode = experienceNodes.find(
                   }}
                   onClose={() => setToolPanelOpen(false)}
                 />
+                </div>
               ) : null}
               {isCodeEditorOpen && documentReady ? (
                 <FullCodeEditor
@@ -3022,7 +3008,7 @@ const selectedExperienceNode = experienceNodes.find(
               ) : (
                 <>
                 <div
-                  className="min-w-0 flex-1 overflow-auto overscroll-contain"
+                  className="min-w-0 shrink-0 lg:flex-1 lg:overflow-auto lg:overscroll-contain"
                   data-experience-editor-canvas
                 >
           <div className={isEmbedded ? "w-full px-0 py-0" : "mx-auto max-w-7xl px-5 py-6"}>
@@ -3069,40 +3055,9 @@ const selectedExperienceNode = experienceNodes.find(
                     />
                   ) : null}
                   {!isEmbedded && (
-                    <div className="pointer-events-none sticky top-3 z-30 mx-2 mb-2 flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-black/70 px-3 py-2 text-[11px] font-black uppercase tracking-[0.16em] text-white/50 shadow-2xl backdrop-blur-xl">
-                      <div className="flex items-center gap-3">
-                        <span className={isEditing ? "text-emerald-200/80" : undefined}>
-                          {isEditing ? "Editing on" : "Preview"}
-                        </span>
-                        <span className="h-1 w-1 rounded-full bg-white/25" />
-                        <span className="normal-case tracking-normal text-white/62">
-                          {isEditing
-                            ? selectedElement
-                              ? `Editing ${selectedElement.element_type ?? "element"}`
-                              : selectedSection
-                                ? `Editing ${selectedSection.config.adminLabel || selectedSection.config.title || selectedSection.type}`
-                                : "Click any section or element to edit it"
-                            : "Use Edit Page to change this experience"}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <span>{Math.round(canvasScale * 100)}%</span>
-                        <span className="h-1 w-1 rounded-full bg-white/25" />
-                        <span>{customCodeDocument.enabled ? "Imported site" : `${experienceNodes.length} nodes · ${normalizedElements.length} layers`}</span>
-                        <div className="relative h-10 w-20 overflow-hidden rounded-lg border border-white/10 bg-white/[0.035]">
-                          <div className="absolute inset-x-2 top-1 h-2 rounded-sm bg-violet-300/25" />
-                          <div className="absolute inset-x-3 top-4 h-2 rounded-sm bg-sky-300/20" />
-                          <div className="absolute bottom-1 left-5 h-2 w-8 rounded-sm bg-amber-300/25" />
-                          <div
-                            className="absolute rounded-md border border-white/45 bg-white/10"
-                            style={{
-                              inset: canvasScale > 1 ? "10px 18px" : canvasScale < 1 ? "5px 8px" : "7px 12px",
-                            }}
-                          />
-                        </div>
-                        <span>Minimap</span>
-                      </div>
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-white/50">
+                      <span>{isEditing ? "Select content to edit" : "Preview · current changes"}</span>
+                      <span>Event components may show sample content</span>
                     </div>
                   )}
 
@@ -3237,8 +3192,8 @@ const selectedExperienceNode = experienceNodes.find(
                     }}
                   >
                     <CanvasGridOverlay
-                      showGrid={showGrid}
-                      showRulers={showRulers}
+                      showGrid={isEditing && showGrid}
+                      showRulers={isEditing && showRulers}
                       gridSize={GRID_SIZE}
                       scale={canvasZoom}
                     />
@@ -3445,8 +3400,8 @@ const selectedExperienceNode = experienceNodes.find(
                     .filter((el) => el.visible !== false)
                     .filter((el) => !((previewDevice === "mobile" && Boolean(el.props?.hideOnMobile)) || (previewDevice === "tablet" && Boolean(el.props?.hideOnTablet)) || (previewDevice === "desktop" && Boolean(el.props?.hideOnDesktop))))
                     .map((el) => {
-                        const isInlineEditing = editingElementId === el.id
-                        const isLayerHovered = hoveredExperienceNodeId === el.id
+                        const isInlineEditing = isEditing && editingElementId === el.id
+                        const isLayerHovered = isEditing && hoveredExperienceNodeId === el.id
                         const isLocked = el.locked === true
                         const groupMemberIds = getElementGroupMemberIds(elements, el)
                         const showInlineEditor =
@@ -3485,6 +3440,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 dragRef.current = null
                                 groupDragRef.current = null
                                 setSelectedSectionId(null)
+                                setRightRailTab("inspect")
                                 setSelectedBlockId(null)
                                 return
                               }
@@ -3495,6 +3451,7 @@ const selectedExperienceNode = experienceNodes.find(
                               }
 
                               setSelectedSectionId(null)
+                                setRightRailTab("inspect")
                               setSelectedBlockId(null)
 
                               if (
@@ -3549,6 +3506,7 @@ const selectedExperienceNode = experienceNodes.find(
   setSelectedId(el.id)
   setSelectedIds(groupMemberIds)
   setSelectedSectionId(null)
+                                setRightRailTab("inspect")
   setSelectedBlockId(null)
 
   if (
@@ -3594,6 +3552,7 @@ const selectedExperienceNode = experienceNodes.find(
                               }
 
                               setSelectedSectionId(null)
+                                setRightRailTab("inspect")
                               setSelectedBlockId(null)
                             }}
                             className={`absolute overflow-hidden rounded-xl shadow-lg ${
@@ -3603,9 +3562,9 @@ const selectedExperienceNode = experienceNodes.find(
                                 : "cursor-grab active:cursor-grabbing"
                               : "cursor-default"
                             } ${
-                              selectedIds.includes(el.id)
+                              isEditing && selectedIds.includes(el.id)
                                 ? "border border-sky-300/70 ring-2 ring-sky-400"
-                                : selectedId === el.id
+                                : isEditing && selectedId === el.id
                                 ? "border border-white/60 ring-2 ring-white"
                                 : "border border-transparent"
                             } ${
@@ -3618,7 +3577,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 ? "ring-2 ring-violet-300/70 shadow-[0_0_0_1px_rgba(196,181,253,0.55),0_0_30px_rgba(167,139,250,0.24)]"
                                 : ""
                             } ${
-                              isLocked
+                              isEditing && isLocked
                                 ? "before:pointer-events-none before:absolute before:inset-0 before:z-20 before:rounded-[inherit] before:border before:border-amber-300/45 before:shadow-[inset_0_0_0_1px_rgba(251,191,36,0.24),0_0_22px_rgba(251,191,36,0.12)]"
                                 : ""
                             } ${
@@ -3636,7 +3595,7 @@ const selectedExperienceNode = experienceNodes.find(
                             }`}
                             style={{ ...getElementFrameStyle(el), ...getElementIntroAnimationStyle(el) }}
                           >
-                                                        {isLocked && (
+                                                        {isEditing && isLocked && (
                               <div className="pointer-events-none absolute right-2 top-2 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-amber-300/30 bg-amber-500/12 text-[10px] font-black text-amber-100/70 shadow-[0_0_18px_rgba(251,191,36,0.18)] backdrop-blur-sm">
                                 L
                               </div>
@@ -3703,6 +3662,7 @@ const selectedExperienceNode = experienceNodes.find(
                                         setSelectedId(el.id)
                                         setSelectedIds(groupMemberIds)
                                         setSelectedSectionId(null)
+                                setRightRailTab("inspect")
                                         setSelectedBlockId(null)
                                       }}
                                     >
@@ -3740,6 +3700,7 @@ const selectedExperienceNode = experienceNodes.find(
                                       setSelectedId(el.id)
                                       setSelectedIds(groupMemberIds)
                                       setSelectedSectionId(null)
+                                setRightRailTab("inspect")
                                       setSelectedBlockId(null)
                                     }}
                                     className="relative block h-full w-full bg-black text-left"
@@ -3874,7 +3835,7 @@ const selectedExperienceNode = experienceNodes.find(
           </div>
         </div>
 
-        {documentReady && !isCodeEditorOpen && <ExperienceInspectorRail
+        {documentReady && (isEmbedded || isEditing) && !isCodeEditorOpen && <ExperienceInspectorRail
           {...{
             addElement,
             addElementOpen,
@@ -3956,7 +3917,10 @@ const selectedExperienceNode = experienceNodes.find(
             setAddElementOpen,
             setEditorDetailsOpen,
             setHoveredExperienceNodeId,
-            setRightRailTab,
+            setRightRailTab: (tab) => {
+              if (tab === "page") clearSelection()
+              setRightRailTab(tab)
+            },
             setSectionsListOpen,
             setSectionTemplatesOpen,
             updateElement,
@@ -3975,22 +3939,6 @@ const selectedExperienceNode = experienceNodes.find(
                 </>
               )}
     </div>
-      {!isEmbedded && documentReady && !isCodeEditorOpen ? (
-        <PageFilmstrip
-          selectedPageKey={selectedPageKey}
-          pages={editorPages}
-          onSelectPage={(pageKey) => {
-            void selectPage(pageKey)
-          }}
-          onAddPage={() => { void createEditorPage() }}
-          onRenamePage={(page) => { void renameEditorPage(page) }}
-          onDuplicatePage={(page) => { void createEditorPage(page.pageKey) }}
-          onDeletePage={(page) => { void deleteEditorPage(page) }}
-          onReorderPages={(pages) => { void persistPageOrder(pages) }}
-          thumbnailDocuments={pageThumbnails}
-          currentDocument={{ elements: normalizedElements, sections, eventTheme }}
-        />
-      ) : null}
       {collaborationOpen && !isEmbedded ? <EditorCollaborationPanel slug={slug} pageKey={selectedPageKey} selectedElementId={selectedElement?.id ?? null} publicUrl={getPublicEditorPageUrl(slug, selectedPageKey)} teamHref={eventAdminId ? `/admin/events/${eventAdminId}/settings` : null} onClose={() => setCollaborationOpen(false)} /> : null}
   </div>
   )

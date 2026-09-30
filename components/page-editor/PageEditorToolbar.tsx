@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Monitor, Smartphone, Tablet, Undo2, Redo2 } from "lucide-react"
 import type { ElementAlignmentCommand } from "./elementAlignmentCommands"
 import { EDITOR_PAGES } from "./editorPages"
 import type { EditorPageManifestItem } from "./PageFilmstrip"
@@ -55,10 +55,7 @@ type Props = {
 }
 
 const EXPERIENCE_EDITOR_TOPBAR_CLASS =
-  "relative z-40 w-full min-w-0 max-w-full shrink-0 overflow-hidden border-b border-white/[0.07] bg-[linear-gradient(180deg,rgba(6,10,18,0.92),rgba(3,6,13,0.78))] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl"
-
-const EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS =
-  "rounded-xl bg-white px-4 py-2 text-sm font-semibold text-black shadow-[0_12px_34px_rgba(255,255,255,0.08)] transition hover:bg-white/90"
+  "relative z-40 w-full min-w-0 max-w-full shrink-0 border-b border-white/[0.07] bg-[linear-gradient(180deg,rgba(6,10,18,0.92),rgba(3,6,13,0.78))] shadow-[0_12px_34px_rgba(0,0,0,0.24)] backdrop-blur-xl"
 
 const EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS =
   "rounded-xl border border-white/10 bg-black/20 px-4 py-2 text-sm font-semibold text-white/72 transition hover:bg-white/10 hover:text-white"
@@ -93,282 +90,57 @@ const DISTRIBUTION_ACTIONS: Array<{
   { label: "Distribute V", command: "distribute-vertically" },
 ]
 
-export default function PageEditorToolbar({
-  isEmbedded,
-  eventTitle,
-  eventAdminHref,
-  selectedPageKey,
-  pages,
-  templates,
-  canUndo,
-  canRedo,
-  canvasZoom,
-  isMobilePreview,
-  previewDevice,
-  isEditing,
-  isCodeEditorOpen,
-  selectedElementCount,
-  canGroupElements,
-  canUngroupElements,
-  showGrid,
-  showRulers,
-  canCopyStyle,
-  canPasteStyle,
-  saveStatus,
-  eventStage,
-  onSelectPage,
-  onSelectTemplate,
-  onUndo,
-  onRedo,
-  onChangeZoom,
-  onChangePreviewDevice,
-  onToggleEditing,
-  onToggleCodeEditor,
-  onToggleGrid,
-  onToggleRulers,
-  onCopyStyle,
-  onPasteStyle,
-  onAlignElements,
-  onGroupElements,
-  onUngroupElements,
-  onPreview,
-  onShare,
-  onPublish,
-}: Props) {
+export default function PageEditorToolbar(props: Props) {
+  const pageTitle = props.pages.find((page) => page.pageKey === props.selectedPageKey)?.title
+    ?? EDITOR_PAGES.find((page) => page.value === props.selectedPageKey)?.label
+    ?? props.selectedPageKey
+  const alignmentActions = [
+    ...ALIGNMENT_ACTIONS,
+    ...(props.selectedElementCount === 1 ? SINGLE_ELEMENT_ALIGNMENT_ACTIONS : []),
+    ...(props.selectedElementCount >= 3 ? DISTRIBUTION_ACTIONS : []),
+  ]
   return (
-    <div className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
-      <div className="flex min-h-[72px] w-full min-w-0 flex-wrap items-center justify-between gap-4 px-5 py-3">
+    <header className={EXPERIENCE_EDITOR_TOPBAR_CLASS}>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 px-5 py-3">
         <div className="min-w-0">
-          {eventAdminHref ? (
-            <Link
-              href={`${eventAdminHref}/page-editor`}
-              className="mb-2 inline-flex items-center gap-2 rounded-lg border border-white/10 bg-white/[0.06] px-2.5 py-1.5 text-xs font-semibold text-white/72 transition hover:border-white/18 hover:bg-white/10 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-300/60"
-            >
-              <ArrowLeft aria-hidden="true" className="h-3.5 w-3.5" />
-              Back to Experience
-            </Link>
-          ) : null}
-          <div className="flex min-w-0 items-center gap-2 text-xs font-semibold text-white/60">
-            {!isEmbedded ? <Link href="/admin/events" className="hover:text-white">Events</Link> : <span>Experience Builder</span>}
-            <span className="text-white/25">›</span>
-            {eventAdminHref ? <Link href={eventAdminHref} className="max-w-[260px] truncate text-white/80 hover:text-white">{eventTitle}</Link> : <span className="max-w-[260px] truncate text-white/80">{eventTitle}</span>}
-            <span className="text-white/25">›</span>
-            <span className="capitalize text-white">{pages.find((page) => page.pageKey === selectedPageKey)?.title ?? EDITOR_PAGES.find((page) => page.value === selectedPageKey)?.label ?? selectedPageKey}</span>
-          </div>
-          <div className="mt-2 flex items-center gap-3 text-[10px] font-bold uppercase tracking-[0.12em]">
-            <span className={`rounded-full border px-2 py-1 ${eventStage === "live" ? "border-emerald-300/20 bg-emerald-400/10 text-emerald-200" : eventStage === "archived" ? "border-white/10 bg-white/5 text-white/45" : "border-amber-300/20 bg-amber-400/10 text-amber-100"}`}>{eventStage === "live" ? "Live" : eventStage === "archived" ? "Archived" : "Build"}</span>
-            <span className="normal-case tracking-normal text-white/38">{saveStatus}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            {props.eventAdminHref ? <Link href={`${props.eventAdminHref}/page-editor`} aria-label="Back to Experience" className="rounded-lg p-2 text-white/55 hover:bg-white/10 hover:text-white"><ArrowLeft className="h-4 w-4" /></Link> : null}
+            <div><h1 className="text-sm font-semibold text-white">Experience Builder</h1><p className="max-w-[300px] truncate text-xs text-white/50">{props.eventTitle}</p></div>
+            <span className="rounded-full border border-white/10 bg-white/5 px-2 py-1 text-[10px] capitalize text-white/55">{props.eventStage === "live" ? "Event live" : props.eventStage === "archived" ? "Archived" : "Event setup"}</span>
           </div>
         </div>
-
-        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-end gap-3">
-          <select
-            value={selectedPageKey}
-            onChange={(event) => onSelectPage(event.target.value)}
-            className={EXPERIENCE_EDITOR_SELECT_CLASS}
-          >
-            {pages.map((page) => (
-              <option key={page.pageKey} value={page.pageKey}>
-                {page.title}
-              </option>
-            ))}
-          </select>
-
-          <select
-            onChange={(event) => onSelectTemplate(event.target.value)}
-            className={EXPERIENCE_EDITOR_SELECT_CLASS}
-          >
-            <option value="">Apply Template</option>
-
-            {templates.map((template) => (
-              <option key={template.id} value={template.id}>
-                {template.name}
-              </option>
-            ))}
-          </select>
-
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={onUndo}
-              disabled={!canUndo}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                canUndo
-                  ? "border-white/10 bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
-                  : "cursor-not-allowed border-white/5 bg-white/[0.025] text-white/28"
-              }`}
-            >
-              Undo
-            </button>
-
-            <button
-              type="button"
-              onClick={onRedo}
-              disabled={!canRedo}
-              className={`rounded-xl border px-3 py-2 text-sm font-semibold transition ${
-                canRedo
-                  ? "border-white/10 bg-black/20 text-white/70 hover:bg-white/10 hover:text-white"
-                  : "cursor-not-allowed border-white/5 bg-white/[0.025] text-white/28"
-              }`}
-            >
-              Redo
-            </button>
-          </div>
-
-          <select aria-label="Canvas zoom" value={canvasZoom} onChange={(event) => onChangeZoom(Number(event.target.value))} disabled={isMobilePreview} className={EXPERIENCE_EDITOR_SELECT_CLASS}>{ZOOM_OPTIONS.map((zoom) => <option key={zoom} value={zoom}>{Math.round(zoom * 100)}%</option>)}</select>
-
-          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1">
-            <button
-              type="button"
-              onClick={onToggleGrid}
-              title="Toggle grid (G)"
-              className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
-                showGrid
-                  ? "bg-white text-black"
-                  : "text-white/56 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              Grid
-            </button>
-            <button
-              type="button"
-              onClick={onToggleRulers}
-              title="Toggle rulers (R)"
-              className={`rounded-lg px-2.5 py-1.5 text-xs font-black transition ${
-                showRulers
-                  ? "bg-white text-black"
-                  : "text-white/56 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              Rulers
-            </button>
-          </div>
-
-          <div className="flex items-center gap-1 rounded-xl border border-white/10 bg-black/20 p-1" aria-label="Preview device">
-            {(["desktop", "tablet", "mobile"] as const).map((device) => (
-              <button
-                key={device}
-                type="button"
-                aria-pressed={previewDevice === device}
-                onClick={() => onChangePreviewDevice(device)}
-                className={`rounded-lg px-2.5 py-1.5 text-[10px] font-bold capitalize transition ${previewDevice === device ? "bg-white text-black" : "text-white/52 hover:bg-white/10 hover:text-white"}`}
-              >
-                {device}
-              </button>
-            ))}
-          </div>
-
-          <button
-            type="button"
-            onClick={onToggleCodeEditor}
-            className={
-              isCodeEditorOpen
-                ? "rounded-xl border border-violet-300/25 bg-violet-400/15 px-4 py-2 text-sm font-semibold text-violet-50 shadow-[0_0_24px_rgba(139,92,246,0.12)]"
-                : EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS
-            }
-          >
-            {isCodeEditorOpen ? "Close Code" : "HTML + CSS"}
-          </button>
-
-          <button type="button" onClick={onPreview} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Preview</button>
-          <button type="button" onClick={onShare} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Share</button>
-          <button type="button" onClick={onPublish} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,58,237,0.28)] transition hover:bg-violet-500">Publish</button>
-
-          <button
-            onClick={onToggleEditing}
-            disabled={isCodeEditorOpen}
-            className={`${EXPERIENCE_EDITOR_PRIMARY_BUTTON_CLASS} disabled:cursor-not-allowed disabled:opacity-35`}
-          >
-            {isCodeEditorOpen
-              ? "Visual Editor"
-              : isEditing
-                ? "Close Editor"
-                : "Edit Page"}
-          </button>
+        <div className="flex flex-wrap items-center gap-2">
+          <button type="button" onClick={props.onShare} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Share</button>
+          <button type="button" disabled={props.isCodeEditorOpen} onClick={props.onPreview} className={`${EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS} disabled:opacity-35`}>{props.isEditing ? "Preview" : "Back to editor"}</button>
+          <button type="button" onClick={props.onPublish} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,58,237,0.28)] transition hover:bg-violet-500">Publishing settings</button>
         </div>
       </div>
-
-      {isEditing && selectedElementCount > 0 ? (
-        <div className="border-t border-white/[0.06] bg-black/15">
-          <div className="mx-auto flex max-w-7xl items-center gap-2 px-6 py-2">
-            <span className="mr-1 text-[10px] font-black uppercase tracking-[0.18em] text-white/38">
-              Align{selectedElementCount > 1 ? ` · ${selectedElementCount}` : ""}
-            </span>
-            {ALIGNMENT_ACTIONS.map((action) => (
-              <button
-                key={action.command}
-                type="button"
-                onClick={() => onAlignElements(action.command)}
-                className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-[10px] font-bold text-white/62 transition hover:bg-white/10 hover:text-white"
-              >
-                {action.label}
-              </button>
-            ))}
-            {selectedElementCount === 1
-              ? SINGLE_ELEMENT_ALIGNMENT_ACTIONS.map((action) => (
-                  <button
-                    key={action.command}
-                    type="button"
-                    onClick={() => onAlignElements(action.command)}
-                    className="rounded-lg border border-white/10 bg-black/20 px-2.5 py-1.5 text-[10px] font-bold text-white/62 transition hover:bg-white/10 hover:text-white"
-                  >
-                    {action.label}
-                  </button>
-                ))
-              : null}
-            {selectedElementCount >= 3
-              ? DISTRIBUTION_ACTIONS.map((action) => (
-                  <button
-                    key={action.command}
-                    type="button"
-                    onClick={() => onAlignElements(action.command)}
-                    className="rounded-lg border border-fuchsia-300/15 bg-fuchsia-400/10 px-2.5 py-1.5 text-[10px] font-bold text-fuchsia-50/70 transition hover:bg-fuchsia-400/20 hover:text-white"
-                  >
-                    {action.label}
-                  </button>
-                ))
-              : null}
-            {canGroupElements ? (
-              <button
-                type="button"
-                onClick={onGroupElements}
-                className="ml-1 rounded-lg border border-emerald-300/15 bg-emerald-400/10 px-2.5 py-1.5 text-[10px] font-bold text-emerald-50/70 transition hover:bg-emerald-400/20 hover:text-white"
-              >
-                Group
-              </button>
-            ) : null}
-            {canUngroupElements ? (
-              <button
-                type="button"
-                onClick={onUngroupElements}
-                className="ml-1 rounded-lg border border-amber-300/15 bg-amber-400/10 px-2.5 py-1.5 text-[10px] font-bold text-amber-50/70 transition hover:bg-amber-400/20 hover:text-white"
-              >
-                Ungroup
-              </button>
-            ) : null}
-            {canCopyStyle ? (
-              <button
-                type="button"
-                onClick={onCopyStyle}
-                title="Copy style (Cmd+Shift+C)"
-                className="ml-1 rounded-lg border border-sky-300/15 bg-sky-400/10 px-2.5 py-1.5 text-[10px] font-bold text-sky-50/70 transition hover:bg-sky-400/20 hover:text-white"
-              >
-                Copy Style
-              </button>
-            ) : null}
-            {canPasteStyle ? (
-              <button
-                type="button"
-                onClick={onPasteStyle}
-                title="Paste style (Cmd+Shift+V)"
-                className="ml-1 rounded-lg border border-violet-300/15 bg-violet-400/10 px-2.5 py-1.5 text-[10px] font-bold text-violet-50/70 transition hover:bg-violet-400/20 hover:text-white"
-              >
-                Paste Style
-              </button>
-            ) : null}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] bg-black/15 px-5 py-2">
+        <div className="flex flex-wrap items-center gap-3 text-xs"><span className="font-semibold text-white/80">{pageTitle}</span><span role="status" className="text-white/60">{props.saveStatus}</span><span className="text-[11px] text-amber-100/65">Autosave updates the attendee page</span></div>
+        <div className="flex flex-wrap items-center gap-2">
+          {props.isEditing ? <><button type="button" aria-label="Undo" onClick={props.onUndo} disabled={!props.canUndo} className="rounded-lg p-2 text-white/65 hover:bg-white/10 disabled:opacity-25"><Undo2 className="h-4 w-4" /></button><button type="button" aria-label="Redo" onClick={props.onRedo} disabled={!props.canRedo} className="rounded-lg p-2 text-white/65 hover:bg-white/10 disabled:opacity-25"><Redo2 className="h-4 w-4" /></button></> : null}
+          <div className="flex gap-1 rounded-xl border border-white/10 bg-black/20 p-1" aria-label="Preview device">
+            {([{ device: "desktop", Icon: Monitor }, { device: "tablet", Icon: Tablet }, { device: "mobile", Icon: Smartphone }] as const).map(({ device, Icon }) => <button key={device} type="button" aria-label={`${device} preview`} aria-pressed={props.previewDevice === device} onClick={() => props.onChangePreviewDevice(device)} className={`rounded-lg p-2 transition ${props.previewDevice === device ? "bg-white text-black" : "text-white/55 hover:bg-white/10 hover:text-white"}`}><Icon className="h-4 w-4" /></button>)}
           </div>
+          <select aria-label="Canvas zoom" value={props.canvasZoom} onChange={(event) => props.onChangeZoom(Number(event.target.value))} disabled={props.isMobilePreview} className={EXPERIENCE_EDITOR_SELECT_CLASS}>{ZOOM_OPTIONS.map((zoom) => <option key={zoom} value={zoom}>{Math.round(zoom * 100)}%</option>)}</select>
+          {props.isCodeEditorOpen ? <button type="button" onClick={props.onToggleCodeEditor} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Close code</button> : null}
         </div>
-      ) : null}
-    </div>
+      </div>
+      {props.isEditing || props.isCodeEditorOpen ? <details className="border-t border-white/[0.06] px-5 py-2">
+        <summary className="w-fit cursor-pointer rounded-md text-xs font-semibold text-white/50 hover:text-white">Advanced layout</summary>
+        <div className="mt-3 flex flex-wrap items-center gap-2 pb-2">
+          <button type="button" aria-pressed={Boolean(props.showGrid)} onClick={props.onToggleGrid} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Grid {props.showGrid ? "on" : "off"}</button>
+          <button type="button" aria-pressed={Boolean(props.showRulers)} onClick={props.onToggleRulers} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Rulers {props.showRulers ? "on" : "off"}</button>
+          <button type="button" onClick={props.onToggleCodeEditor} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>{props.isCodeEditorOpen ? "Close code" : "HTML + CSS"}</button>
+          <select aria-label="Apply page template" value="" onChange={(event) => props.onSelectTemplate(event.target.value)} className={EXPERIENCE_EDITOR_SELECT_CLASS}><option value="">Apply template</option>{props.templates.map((template) => <option key={template.id} value={template.id}>{template.name}</option>)}</select>
+          {props.selectedElementCount > 0 ? <div className="flex w-full flex-wrap items-center gap-2 border-t border-white/10 pt-3"><span className="text-xs text-white/45">Selection · {props.selectedElementCount}</span>{alignmentActions.map((action) => <button key={action.command} type="button" onClick={() => props.onAlignElements(action.command)} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>{action.label}</button>)}
+            {props.canGroupElements ? <button type="button" onClick={props.onGroupElements} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Group</button> : null}
+            {props.canUngroupElements ? <button type="button" onClick={props.onUngroupElements} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Ungroup</button> : null}
+            {props.canCopyStyle ? <button type="button" onClick={props.onCopyStyle} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Copy style</button> : null}
+            {props.canPasteStyle ? <button type="button" onClick={props.onPasteStyle} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Paste style</button> : null}
+          </div> : null}
+        </div>
+      </details> : null}
+    </header>
   )
 }
