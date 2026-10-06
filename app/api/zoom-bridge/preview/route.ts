@@ -10,6 +10,7 @@ export async function POST(request: Request) {
   const id = request.headers.get("x-satellite-id")
   const audio = request.headers.get("content-type") === "application/json"
   if (!id || !/^[0-9a-f-]{36}$/i.test(id) || (!audio && request.headers.get("content-type") !== "image/jpeg")) return new Response(null, { status: 400, headers })
+  if (!audio) return new Response(null, { status: 410, headers })
   const declared = Number(request.headers.get("content-length"))
   if (!declared || declared > (audio ? 1024 : 180000)) return new Response(null, { status: 413, headers })
   const { data } = await supabaseAdmin.from(TABLE).select("preview_until,desired_running,observed,last_seen").eq("id", id).maybeSingle()

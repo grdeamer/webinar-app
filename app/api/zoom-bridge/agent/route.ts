@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   if (!agentAuthorized(request)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   try {
     const body = await request.json()
-    if (!Array.isArray(body.reports) || body.reports.length > 21) throw new Error("Invalid reports")
+    if (!Array.isArray(body.reports) || body.reports.length > 50) throw new Error("Invalid reports")
     const all = await rows()
     for (const report of body.reports) {
       if (!all.some(r => r.id === report.id)) continue
