@@ -33,6 +33,7 @@ export function getAdminPageLabel(pathname: string, eventBasePath?: string) {
   if (pathname.startsWith("/admin/events/new")) return "New Event"
   if (pathname.startsWith("/admin/events")) return "Events"
   if (pathname.startsWith("/admin/activity")) return "Live Activity"
+  if (pathname.startsWith("/admin/zoom-bridge")) return "Jupiter Io"
   if (pathname.startsWith("/admin/cloud")) return "Jupiter Cloud"
   if (pathname.startsWith("/admin/users/")) return "Team Member"
   if (pathname.startsWith("/admin/users")) return "Team & Access"

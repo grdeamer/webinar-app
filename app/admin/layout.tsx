@@ -12,7 +12,7 @@ import {
   Tool02,
   Users01,
 } from "@untitledui/icons"
-import { Cloud, Menu, Moon, Sun, X } from "lucide-react"
+import { Cloud, Radio, Menu, Moon, Sun, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
@@ -282,6 +282,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 </NavLink> : null}
                 {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/cloud" icon={<Cloud className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Jupiter Cloud
+                </NavLink> : null}
+                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/zoom-bridge" icon={<Radio className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                  Jupiter Io
                 </NavLink> : null}
               </Section>
 
