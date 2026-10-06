@@ -4,8 +4,8 @@ import Image from "next/image"
 import { Eye, EyeOff, Radio } from "lucide-react"
 import type { ZoomRoom } from "@/lib/zoom-bridge/types"
 import { ioButton, reporting } from "./SatelliteCard"
-export default function SatellitePreview({ room }: { room: ZoomRoom }) {
-  const [watch, setWatch] = useState(false)
+export default function SatellitePreview({ room, autoWatch = false }: { room: ZoomRoom; autoWatch?: boolean }) {
+  const [watch, setWatch] = useState(autoWatch)
   const [frame, setFrame] = useState<{ jpeg: string; sentAt: number } | null>(null)
   const [notice, setNotice] = useState("Connecting preview…")
   const [now, setNow] = useState(Date.now())

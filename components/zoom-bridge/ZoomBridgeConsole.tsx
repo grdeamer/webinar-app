@@ -1,6 +1,7 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
-import { Mic, MicOff, Play, Square, Radio, MonitorUp, MonitorOff, Plus } from "lucide-react"
+import "./jupiter-io.css"
+import { Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Plus } from "lucide-react"
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
 import ZoomSourcePanel from "./ZoomSourcePanel"
 import SatelliteCard, { ioButton, ioField, reporting } from "./SatelliteCard"
@@ -60,24 +61,26 @@ export default function ZoomBridgeConsole() {
     if (await mutate("PUT", draft)) { setDrafts(d => d.filter(x => x.key !== draft.key)); setMessage("Satellite saved.") }
   }
   const joined = rooms.filter(r => reporting(r) && r.observed.status === "joined").length
-  return <div className="mx-auto max-w-[1450px] space-y-6 text-white">
-    <header className="relative overflow-hidden rounded-[28px] border border-blue-300/15 bg-[radial-gradient(ellipse_at_top_right,rgba(75,88,230,.25),transparent_60%)] p-8">
-      <div className="text-[11px] font-semibold uppercase tracking-[.25em] text-blue-200/60">Cloud Broadcast Infrastructure</div>
-      <div className="mt-4 flex flex-wrap items-end justify-between gap-4"><div><h1 className="text-4xl font-semibold tracking-tight">Jupiter Io</h1><p className="mt-3 max-w-2xl text-white/55">One program. Every room. Manage your source and send picture and audio to your satellites.</p></div><div className="rounded-2xl border border-white/10 bg-black/20 px-5 py-3"><Radio className="mb-2 text-blue-300" size={20} /><span className="text-xl font-semibold">{joined}</span><span className="ml-2 text-sm text-white/45">connected / {rooms.length} satellites</span></div></div>
+  const selected = rooms.find(r => r.id === selectedId) || rooms.find(r => reporting(r) && r.observed.status === "joined") || rooms[0]
+  return <div className="io-console space-y-3 text-white">
+    <header className="io-header flex flex-wrap items-center justify-between gap-4 px-3 py-2">
+      <div><h1 className="text-4xl font-semibold tracking-tight">Jupiter Io</h1><p className="mt-2 text-lg tracking-wide text-slate-300">Broadcast control</p></div>
+      <div className="mr-[15%] flex items-center gap-2 rounded-full border border-slate-500/30 bg-[#07111b]/80 px-4 py-2 text-sm"><span className={`h-2.5 w-2.5 rounded-full ${joined ? "bg-emerald-400" : "bg-slate-500"}`} />{joined} satellite{joined === 1 ? "" : "s"} connected</div>
     </header>
     <ZoomSourcePanel />
-    <section className="rounded-2xl border border-white/10 bg-white/[.025] p-5">
-      <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Satellite fleet</h2><p className="mt-1 text-xs text-white/45">Current test server: 2 simultaneous satellites. Up to 21 destination profiles.</p></div><div className="flex items-end gap-3"><label className="text-xs text-white/65">Number of satellites<select value={count} onChange={e => setCount(Number(e.target.value))} className={`${ioField} w-28`}>{Array.from({ length: 21 }, (_, i) => <option key={i + 1} value={i + 1} className="bg-slate-950">{i + 1}</option>)}</select></label><button type="button" className={ioButton} disabled={busy || !loaded} onClick={addProfiles}><Plus size={16} />Set up</button></div></div>
-      <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
-        <button type="button" className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", "start") }}><Play size={16} />Connect all</button>
-        <button type="button" className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", "stop") }}><Square size={16} />Disconnect all</button>
-        {([['camera_on', 'Picture on', MonitorUp], ['camera_off', 'Picture off', MonitorOff], ['microphone_on', 'Unmute all', Mic], ['microphone_off', 'Mute all', MicOff], ['original_sound_on', 'Original Sound on all', Mic], ['original_sound_off', 'Original Sound off all', MicOff]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
-      </div><p className="mt-3 text-xs text-white/35">Picture controls each satellite’s selected output: camera or screen share. Audio controls the program microphone.</p>
+    <section className="io-panel io-fleet p-5">
+      <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Satellites</h2><p className="mt-1 text-xs text-white/45">2 simultaneous connections · 21 destination profiles</p></div><div className="flex items-end gap-3"><label className="text-xs text-white/65">Number of satellites<select value={count} onChange={e => setCount(Number(e.target.value))} className={`${ioField} w-28`}>{Array.from({ length: 21 }, (_, i) => <option key={i + 1} value={i + 1} className="bg-slate-950">{i + 1}</option>)}</select></label><button type="button" className={ioButton} disabled={busy || !loaded} onClick={addProfiles}><Plus size={16} />Set up</button></div></div>
+      <div className="io-master flex flex-wrap gap-2">
+        {([['camera_on', 'Picture on', MonitorUp], ['microphone_off', 'Mute all', MicOff], ['original_sound_on', 'Original Sound on all', Mic]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
+        <details className="relative"><summary className={`${ioButton} cursor-pointer`}>More controls</summary><div className="absolute right-0 top-full z-20 mt-2 flex w-56 flex-col gap-2 rounded-lg border border-slate-600 bg-[#081321] p-3">
+          {([['start', 'Connect all', Play], ['stop', 'Disconnect all', Square], ['camera_off', 'Picture off', MonitorOff], ['microphone_on', 'Unmute all', Mic], ['original_sound_off', 'Original Sound off all', MicOff]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
+        </div></details>
+      </div>
+      <div className="mt-4 flex flex-wrap gap-4">{rooms.map(room => <SatelliteCard compact selected={selected?.id === room.id} open={() => setSelectedId(room.id)} key={room.id} room={room} busy={busy} command={(id, action) => { void command(id, action) }} edit={edit} remove={r => { void mutate("DELETE", { id: r.id }) }} />)}</div>
     </section>
     {error ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-200">{error}</p> : null}
     {message ? <p role="status" className="text-sm text-blue-200">{message}</p> : null}
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rooms.map(room => <SatelliteCard compact open={() => setSelectedId(room.id)} key={room.id} room={room} busy={busy} command={(id, action) => { void command(id, action) }} edit={edit} remove={r => { void mutate("DELETE", { id: r.id }) }} />)}</div>
-    {rooms.find(r => r.id === selectedId) ? <SatelliteDetail room={rooms.find(r => r.id === selectedId)!} busy={busy} close={() => setSelectedId(null)} command={(id, action) => { void command(id, action) }} save={draft => mutate("PUT", draft)} remove={async room => { if (await mutate("DELETE", { id: room.id })) setSelectedId(null) }} /> : null}
+    {selected ? <SatelliteDetail inline key={selected.id} room={selected} busy={busy} close={() => setSelectedId(null)} command={(id, action) => { void command(id, action) }} save={draft => mutate("PUT", draft)} remove={async room => { if (await mutate("DELETE", { id: room.id })) setSelectedId(null) }} /> : null}
     {!rooms.length && loaded && !drafts.length ? <p className="py-6 text-center text-white/45">Choose your satellite count above to create your first destinations.</p> : null}
     {drafts.map(draft => <SatelliteEditor key={draft.key} draft={draft} running={rooms.find(r => r.id === draft.id)?.running ?? false} busy={busy} change={changed => setDrafts(d => d.map(x => x.key === changed.key ? changed : x))} save={() => { void save(draft) }} cancel={() => setDrafts(d => d.filter(x => x.key !== draft.key))} />)}
     <p className="text-xs leading-5 text-white/35">New satellites start with picture and audio off. Saved controls are retained on reconnect. Destination host permissions apply. Submitted resolution describes the feed sent to Zoom; viewer quality may vary.</p>
