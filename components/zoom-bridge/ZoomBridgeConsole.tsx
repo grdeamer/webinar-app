@@ -4,8 +4,10 @@ import { Mic, MicOff, Play, Square, Radio, MonitorUp, MonitorOff, Plus } from "l
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
 import ZoomSourcePanel from "./ZoomSourcePanel"
 import SatelliteCard, { ioButton, ioField, reporting } from "./SatelliteCard"
+import SatelliteDetail from "./SatelliteDetail"
 import SatelliteEditor, { type SatelliteDraft } from "./SatelliteEditor"
 export default function ZoomBridgeConsole() {
+  const [selectedId, setSelectedId] = useState<string | null>(null)
   const [rooms, setRooms] = useState<ZoomRoom[]>([])
   const [drafts, setDrafts] = useState<SatelliteDraft[]>([])
   const [count, setCount] = useState(2)
@@ -74,7 +76,8 @@ export default function ZoomBridgeConsole() {
     </section>
     {error ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-200">{error}</p> : null}
     {message ? <p role="status" className="text-sm text-blue-200">{message}</p> : null}
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rooms.map(room => <SatelliteCard key={room.id} room={room} busy={busy} command={(id, action) => { void command(id, action) }} edit={edit} remove={r => { void mutate("DELETE", { id: r.id }) }} />)}</div>
+    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">{rooms.map(room => <SatelliteCard compact open={() => setSelectedId(room.id)} key={room.id} room={room} busy={busy} command={(id, action) => { void command(id, action) }} edit={edit} remove={r => { void mutate("DELETE", { id: r.id }) }} />)}</div>
+    {rooms.find(r => r.id === selectedId) ? <SatelliteDetail room={rooms.find(r => r.id === selectedId)!} busy={busy} close={() => setSelectedId(null)} command={(id, action) => { void command(id, action) }} save={draft => mutate("PUT", draft)} remove={async room => { if (await mutate("DELETE", { id: room.id })) setSelectedId(null) }} /> : null}
     {!rooms.length && loaded && !drafts.length ? <p className="py-6 text-center text-white/45">Choose your satellite count above to create your first destinations.</p> : null}
     {drafts.map(draft => <SatelliteEditor key={draft.key} draft={draft} running={rooms.find(r => r.id === draft.id)?.running ?? false} busy={busy} change={changed => setDrafts(d => d.map(x => x.key === changed.key ? changed : x))} save={() => { void save(draft) }} cancel={() => setDrafts(d => d.filter(x => x.key !== draft.key))} />)}
     <p className="text-xs leading-5 text-white/35">New satellites start with picture and audio off. Saved controls are retained on reconnect. Destination host permissions apply. Submitted resolution describes the feed sent to Zoom; viewer quality may vary.</p>
