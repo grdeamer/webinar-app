@@ -1,6 +1,6 @@
 # Jupiter Io
 
-Admin screen: `/admin/zoom-bridge` (global administrators only).
+Admin screen: `/admin/jupiter-io` (global administrators only).
 
 Satellite profiles support a display name, meeting ID, encrypted passcode, connection state, and independent camera/microphone desired states. The Lightsail controller polls the authenticated agent endpoint every two seconds and reports the SDK's actual media state. Renaming a connected profile calls Zoom's `ChangeUserName`; host restrictions are reported as numeric SDK errors.
 

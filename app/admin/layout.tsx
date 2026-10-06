@@ -283,7 +283,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/cloud" icon={<Cloud className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Jupiter Cloud
                 </NavLink> : null}
-                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/zoom-bridge" icon={<Radio className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/jupiter-io" icon={<Radio className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Jupiter Io
                 </NavLink> : null}
               </Section>
