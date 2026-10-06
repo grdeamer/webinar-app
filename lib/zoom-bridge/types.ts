@@ -1,11 +1,12 @@
+import type { SourceProfile } from "./source-profile"
 export type PublishMode = "camera" | "share"
 export type ZoomRoom = {
   id: string; name: string; meetingId: string; hasPasscode: boolean;
-  running: boolean; camera: boolean; microphone: boolean; publishMode: PublishMode; revision: string;
+  running: boolean; originalSound: boolean; camera: boolean; microphone: boolean; publishMode: PublishMode; revision: string;
   observed: { publishMode?: PublishMode; originalSound?: boolean; videoResolution?: string; sourceVideo?: boolean; sourceAudio?: boolean; status?: string; camera?: boolean; microphone?: boolean; name?: string; error?: string; revision?: string };
   lastSeen: string | null;
 }
-export type ZoomAction = "start" | "stop" | "camera_on" | "camera_off" | "microphone_on" | "microphone_off"
+export type ZoomAction = "start" | "stop" | "camera_on" | "camera_off" | "microphone_on" | "microphone_off" | "original_sound_on" | "original_sound_off"
 export function normalizeMeetingId(value: string) {
   const id = value.replace(/[\s-]/g, "")
   if (!/^\d{9,11}$/.test(id)) throw new Error("Enter a Zoom meeting ID with 9–11 digits.")
@@ -13,6 +14,8 @@ export function normalizeMeetingId(value: string) {
 }
 export function actionPatch(action: ZoomAction) {
   switch (action) {
+    case "original_sound_on": return { desired_original_sound: true }
+    case "original_sound_off": return { desired_original_sound: false }
     case "start": return { desired_running: true }
     case "stop": return { desired_running: false }
     case "camera_on": return { desired_camera: true }
@@ -23,7 +26,7 @@ export function actionPatch(action: ZoomAction) {
   }
 }
 export type ZoomSource = {
-  kind: "srt" | "zoom";
+  kind: "srt" | "zoom"; profile?: SourceProfile;
   meetingId: string; hasPasscode: boolean; running: boolean; revision: string;
   observed: { kind?: "srt" | "zoom"; inputResolutions?: string; status?: string; presenter?: string; spotlightCount?: number; video?: boolean; audio?: boolean; error?: string; revision?: string; videoFrames?: number; audioBlocks?: number };
   lastSeen: string | null;

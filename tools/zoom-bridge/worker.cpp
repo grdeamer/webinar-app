@@ -274,9 +274,14 @@ gboolean controls(gpointer) {
     std::cout<<"Program share command="<<ve<<std::endl;
    } else ve=vc?(camera?vc->UnmuteVideo():vc->MuteVideo()):SDKERR_UNINITIALIZE;
    auto ae=ac?(mic?ac->UnMuteAudio(me->GetUserID()):ac->MuteAudio(me->GetUserID())):SDKERR_UNINITIALIZE;
+   bool requestedOriginal=g_key_file_has_key(file,"control","original_sound",nullptr)?g_key_file_get_boolean(file,"control","original_sound",nullptr):true;
+   auto* audioSettings=settings?settings->GetAudioSettings():nullptr;
+   auto oe=audioSettings?audioSettings->EnableMicOriginalInput(requestedOriginal):SDKERR_UNINITIALIZE;
+   if(oe==SDKERR_SUCCESS)originalSound=requestedOriginal;
+   std::cout<<"Original sound command="<<requestedOriginal<<" result="<<oe<<std::endl;
    auto ne=newName&&name!=newName?pc->ChangeUserName(me->GetUserID(),newName,false):SDKERR_SUCCESS;
    if(newName&&ne==SDKERR_SUCCESS)name=newName;
-   controlError=(ve||ae||ne)?"Zoom command results video:"+std::to_string(ve)+" audio:"+std::to_string(ae)+" rename:"+std::to_string(ne):"";
+   controlError=(ve||ae||ne||oe)?"Zoom command results video:"+std::to_string(ve)+" audio:"+std::to_string(ae)+" rename:"+std::to_string(ne)+" original sound:"+std::to_string(oe):"";
    appliedRevision=revision;g_free(newName);
   }
   g_free(revision);
