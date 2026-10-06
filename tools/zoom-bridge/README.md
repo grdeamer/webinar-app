@@ -23,7 +23,7 @@ g++ -std=c++17 worker.cpp -I sdk/h -L sdk -Wl,-rpath,/home/ubuntu/jupiter-zoom/s
 
 Dependencies include build-essential, pkg-config, libglib2.0-dev, libcairo2-dev, PulseAudio, and the SDK's X11/XCB/OpenGL runtime libraries. Start PulseAudio under the same user as the controller.
 
-The private `.env` file on the host contains `ZOOM_CLIENT_ID` and `ZOOM_CLIENT_SECRET`. `controller.json` contains `url` (the Jupiter HTTPS base URL), `token` (the shared agent token), and `capacity` (currently 2). Both files must have permissions 0600.
+The private `.env` file on the host contains `ZOOM_CLIENT_ID` and `ZOOM_CLIENT_SECRET`. `controller.json` contains `url` (the Jupiter HTTPS base URL), `token` (the shared agent token), ; the controller supports up to 50 satellites. Both files must have permissions 0600.
 
 Run `python3 controller.py` under the ubuntu user. For a production deployment install the accompanying systemd service, point controller.json at the published Jupiter HTTPS URL, and enable the service. The local review setup uses an SSH reverse tunnel to a local app instance; that tunnel is not the production transport.
 
@@ -35,14 +35,14 @@ Run `python3 controller.py` under the ubuntu user. For a production deployment i
 - Host camera, microphone, and rename permissions still apply. The reported state may differ from the requested state when Zoom denies a command.
 - Controller loss stops its workers after 60 seconds; desired profiles reconnect when communication recovers.
 - Failed/expired workers wait for a new command before retrying. A worker session is capped at four hours, matching its SDK token lifetime.
-- The current budget server is limited to two active workers. More profiles can be saved, but excess connections report capacity until another worker stops.
+- Up to 50 satellite profiles and connections are permitted. This is a software limit, not a guarantee of host capacity; only two simultaneous satellites have been validated on the budget server.
 - Configure a Zoom Meeting source above the satellites. The source receiver joins as `Jupiter Io Source`, with camera off and microphone muted. The host must admit it and grant local recording permission for raw media access. No persistent meeting recordings are written.
 - Video composes up to nine presenters in Zoom's spotlight list into one program frame (one full frame, two side by side, then a grid). Spotlight changes are polled every 500 ms. With no spotlight, satellites send black video; an inactive presenter camera blanks only that presenter’s tile rather than substituting another participant. Camera-off tiles stay black. Screen-share capture is not implemented.
 - Mixed source-meeting audio is relayed; destination meeting audio is never sent back into the source. The app and controller both reject using the source meeting as a destination.
 - One shared latest I420 frame lives in a private RAM-backed `/dev/shm` directory. PCM audio is distributed using nonblocking Unix datagram sockets. Frames/blocks older than two seconds are rejected. Each satellite scales and letterboxes video to Zoom's negotiated dimensions, including rotation.
 - Saving a source changes existing satellites from countdown mode to relay mode and reconnects them once. While a configured source is disconnected, satellites send black video and no audio. The legacy countdown/tone runs only when no source is configured.
 - Source disconnect or lost permissions clears the latest frame. Controller shutdown cleans up the ephemeral media directory. This is a one-host prototype; scaling to multiple satellite hosts requires a network media transport.
-- The budget server currently allows two destination satellites plus one source receiver. Benchmark CPU, bandwidth, quality, and delay before raising this limit. Independent Zoom meetings do not guarantee frame-perfect playback synchronization.
+- Only two destination satellites plus one source receiver have been validated on the budget server. Benchmark CPU, bandwidth, quality, and delay before running more. Independent Zoom meetings do not guarantee frame-perfect playback synchronization.
 
 ## Validation
 
