@@ -82,7 +82,7 @@ def main():
     # /dev/shm is RAM-backed on Linux. One latest frame; audio uses local sockets.
     relay_root=Path(tempfile.mkdtemp(prefix='jupiter-io-',dir='/dev/shm'));relay_root.chmod(0o700)
     preview=Preview(relay_root,settings);preview.start()
-    capacity = int(settings.get('capacity',2))
+    capacity = 50
     srt_mode=settings.get('sourceType')=='srt'
     ingest=None;ingest_thread=None;ingest_key_revision="legacy"
     last_ok = time.monotonic();reports=[];source_status=None;source_item=None;source_failure=None
@@ -153,7 +153,7 @@ def main():
                     failures.pop(rid,None)
                     if not item:
                         if len(children)>=capacity:
-                            reports.append({'id':rid,'status':'capacity','error':'Test server capacity reached. Disconnect another satellite.'});continue
+                            reports.append({'id':rid,'status':'capacity','error':'Maximum of 50 satellites reached.'});continue
                         item=launch(room,relay_root if source else None);item['mode']=mode;item['publishMode']=room.get('publishMode','camera');children[rid]=item
                     cfg=configparser.ConfigParser(interpolation=None)
                     preview_expires=preview.request(room)

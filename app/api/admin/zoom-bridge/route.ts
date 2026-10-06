@@ -21,7 +21,7 @@ export async function PUT(request: Request) {
     const all = await rows()
     const old = typeof body.id === "string" ? all.find(r => r.id === body.id) : undefined
     if (body.id && !old) return error("Profile not found", 404)
-    if (!old && all.length >= 21) return error("A maximum of 21 profiles is supported.")
+    if (!old && all.length >= 50) return error("A maximum of 50 profiles is supported.")
     const name = typeof body.name === "string" ? body.name.trim() : ""
     if (!name || name.length > 64 || /[\r\n\x00-\x1f]/.test(name)) return error("Satellite name must be 1–64 characters.")
     const meetingId = normalizeMeetingId(String(body.meetingId ?? ""))
