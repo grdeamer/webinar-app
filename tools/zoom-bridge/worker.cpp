@@ -189,7 +189,7 @@ struct Receiver: IZoomSDKAudioRawDataDelegate {
 gboolean receiverTick(gpointer){if(!sourceMode)tone.relayTick();return G_SOURCE_CONTINUE;}
 struct ProgramShare: IZoomSDKShareSource {
  IZoomSDKShareSender* sender=nullptr;
- int width=1280,height=720;unsigned frames=0;SDKError lastResult=SDKERR_SUCCESS;
+ int width=1920,height=1080;unsigned frames=0;SDKError lastResult=SDKERR_SUCCESS;
  void onStartSend(IZoomSDKShareSender* p) override {sender=p;std::cout<<"Program share sender started"<<std::endl;}
  void onStopSend() override {sender=nullptr;}
  void tick(){
