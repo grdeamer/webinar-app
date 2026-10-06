@@ -39,6 +39,14 @@ int result=0;
 bool sourceMode=false;std::string relayRoot;int audioFD=-1;std::string audioPath;
 bool shareMode=false;
 bool originalSound=false;
+int64_t previewExpires=0;uint64_t previewTime=0;
+void previewFrame(const std::vector<char>& frame,int width,int height) {
+ if(sourceMode||relayRoot.empty()||previewExpires<=std::time(nullptr)||relay::now()-previewTime<1000)return;
+ const char* id=std::getenv("ZOOM_ROOM_ID");if(!id)return;
+ auto root=relayRoot+"/preview-"+id;
+ relay::Header h;h.width=width;h.height=height;h.bytes=frame.size();h.time=relay::now();
+ if(relay::writeVideo(root,h,frame.data(),frame.data()+width*height,frame.data()+width*height*5/4))previewTime=h.time;
+}
 std::atomic<uint64_t> relayVideoTime{0},relayAudioTime{0};
 std::string workerStatus="starting", appliedRevision="", controlError="";bool mediaReady=false;
 void fail(int code) { result=code?code:1; g_main_loop_quit(loop); }
@@ -55,7 +63,7 @@ struct Pattern: IZoomSDKVideoSource {
   if(!active||!sender)return;
   if(!relayRoot.empty()) {
    relay::Header h;std::vector<char> input;
-   if(relay::readVideo(relayRoot,h,input)){auto f=relay::fit(h,input,width,height);sender->sendVideoFrame(f.data(),width,height,f.size(),0);relayVideoTime=h.time;return;}
+   if(relay::readVideo(relayRoot,h,input)){auto f=relay::fit(h,input,width,height);auto e=sender->sendVideoFrame(f.data(),width,height,f.size(),0);if(e==SDKERR_SUCCESS){relayVideoTime=h.time;previewFrame(f,width,height);}return;}
    // A disconnected/missing source never falls back to the countdown.
    std::vector<char> blank(width*height*3/2,char(128));std::fill(blank.begin(),blank.begin()+width*height,char(16));
    sender->sendVideoFrame(blank.data(),width,height,blank.size(),0);return;
@@ -191,7 +199,7 @@ struct ProgramShare: IZoomSDKShareSource {
   if(fresh){width=h.width;height=h.height;}
   else {input.assign(width*height*3/2,char(128));std::fill(input.begin(),input.begin()+width*height,char(16));}
   lastResult=sender->sendShareFrame(input.data(),width,height,input.size(),FrameDataFormat_I420_LIMITED);
-  if(lastResult==SDKERR_SUCCESS&&fresh){relayVideoTime=h.time;if(!frames++)std::cout<<"Program share frame accepted="<<width<<"x"<<height<<std::endl;}
+  if(lastResult==SDKERR_SUCCESS&&fresh){previewFrame(input,width,height);relayVideoTime=h.time;if(!frames++)std::cout<<"Program share frame accepted="<<width<<"x"<<height<<std::endl;}
  }
 } programShare;
 gboolean videoTick(gpointer){if(sourceMode&&mediaReady)receiver.compose();else if(shareMode)programShare.tick();else pattern.tick();return G_SOURCE_CONTINUE;}
@@ -253,6 +261,7 @@ gboolean controls(gpointer) {
  auto* pc=meeting->GetMeetingParticipantsController();auto* me=pc?pc->GetMySelfUser():nullptr;
  auto* file=g_key_file_new();
  if(!sourceMode&&mediaReady&&me&&g_key_file_load_from_file(file,"control.ini",G_KEY_FILE_NONE,nullptr)) {
+  previewExpires=g_key_file_get_int64(file,"control","preview_expires",nullptr);
   gchar* revision=g_key_file_get_string(file,"control","revision",nullptr);
   if(revision&&appliedRevision!=revision) {
    bool camera=g_key_file_get_boolean(file,"control","camera",nullptr),mic=g_key_file_get_boolean(file,"control","microphone",nullptr);

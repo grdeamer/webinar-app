@@ -1,6 +1,7 @@
 """Outbound Jupiter controller. SDK credentials never leave this host."""
 import io, tempfile, shutil, threading
 from srt_ingest import Ingest
+from preview import Preview
 import base64, configparser, hashlib, hmac, json, os, signal, subprocess, time, urllib.request, uuid
 from pathlib import Path
 ROOT = Path.home() / 'jupiter-zoom'
@@ -75,6 +76,7 @@ def main():
     if not (url.startswith('https://') or url.startswith('http://127.0.0.1:')): raise ValueError('HTTPS required')
     # /dev/shm is RAM-backed on Linux. One latest frame; audio uses local sockets.
     relay_root=Path(tempfile.mkdtemp(prefix='jupiter-io-',dir='/dev/shm'));relay_root.chmod(0o700)
+    preview=Preview(relay_root,settings);preview.start()
     capacity = int(settings.get('capacity',2))
     srt_mode=settings.get('sourceType')=='srt'
     ingest=None;ingest_thread=None
@@ -134,7 +136,8 @@ def main():
                             reports.append({'id':rid,'status':'capacity','error':'Test server capacity reached. Disconnect another satellite.'});continue
                         item=launch(room,relay_root if source else None);item['mode']=mode;item['publishMode']=room.get('publishMode','camera');children[rid]=item
                     cfg=configparser.ConfigParser(interpolation=None)
-                    cfg['control']={'name':room['name'],'camera':str(room['camera']).lower(),'microphone':str(room['microphone']).lower(),'revision':room['revision']}
+                    preview_expires=preview.request(room)
+                    cfg['control']={'preview_expires':str(preview_expires),'name':room['name'],'camera':str(room['camera']).lower(),'microphone':str(room['microphone']).lower(),'revision':room['revision']}
                     content=io.StringIO();cfg.write(content);atomic(item['home']/'control.ini',content.getvalue());reports.append(report(rid,item))
             except Exception as exc:
                 print('Controller exchange failed:',type(exc).__name__,flush=True)
@@ -147,6 +150,7 @@ def main():
                     clear_media(relay_root);source_status={'kind':'srt' if srt_mode else 'zoom','status':'failed','error':'Controller connection lost.'}
             time.sleep(2)
     finally:
+        preview.close()
         for item in children.values():terminate(item)
         if source_item:terminate(source_item)
         if ingest:

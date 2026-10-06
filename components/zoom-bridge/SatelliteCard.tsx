@@ -1,11 +1,11 @@
 "use client"
-import { Camera, CameraOff, Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Pencil, Trash2, AudioLines } from "lucide-react"
+import { Camera, CameraOff, Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Pencil, Trash2, AudioLines, ChevronRight, Radio } from "lucide-react"
 import { outputLabel, type ZoomRoom, type ZoomAction } from "@/lib/zoom-bridge/types"
 export const ioButton = "inline-flex items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 px-3 py-2 text-sm hover:bg-white/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-blue-300 disabled:cursor-not-allowed disabled:opacity-40"
 export const ioField = "mt-2 w-full rounded-xl border border-white/15 bg-black/25 px-3 py-2.5 text-white outline-none focus:border-blue-400"
 export function reporting(room: ZoomRoom) { return Boolean(room.lastSeen && Date.now() - new Date(room.lastSeen).getTime() < 15000) }
-export default function SatelliteCard({ room, busy, command, edit, remove }: {
-  room: ZoomRoom; busy: boolean; command: (id: string, action: ZoomAction) => void; edit: (room: ZoomRoom) => void; remove: (room: ZoomRoom) => void;
+export default function SatelliteCard({ room, busy, command, edit, remove, compact = false, open }: {
+  compact?: boolean; open?: () => void; room: ZoomRoom; busy: boolean; command: (id: string, action: ZoomAction) => void; edit: (room: ZoomRoom) => void; remove: (room: ZoomRoom) => void;
 }) {
   const fresh = reporting(room)
   const joined = fresh && room.observed.status === "joined"
@@ -19,6 +19,11 @@ export default function SatelliteCard({ room, busy, command, edit, remove }: {
   const AudioIcon = audioOn ? Mic : MicOff
   const outputTarget = applied && joined ? outputOn : room.camera
   const audioTarget = applied && joined ? audioOn : room.microphone
+  if (compact) return <button type="button" onClick={open} className="group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-[#0b1222] p-4 text-left transition hover:border-blue-300/40 hover:bg-blue-300/[.06] focus-visible:outline-2 focus-visible:outline-blue-300" aria-label={`Open ${room.name} details`}>
+    <span className={`rounded-xl p-3 ${joined ? "bg-emerald-300/10 text-emerald-200" : "bg-white/5 text-white/40"}`}><Radio size={20} /></span>
+    <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{room.name}</span><span className="mt-1 block text-xs text-white/45">{state} · {outputLabel(room.publishMode)}</span></span>
+    <span className="flex items-center gap-2"><OutputIcon size={17} className={outputOn ? "text-emerald-200" : "text-white/30"} /><AudioIcon size={17} className={audioOn ? "text-emerald-200" : "text-white/30"} /><ChevronRight size={17} className="text-white/40 group-hover:text-blue-200" /></span>
+  </button>
   return <article className="rounded-2xl border border-white/10 bg-[#0b1222] p-5">
     <div className="flex items-start justify-between gap-3">
       <div className="min-w-0"><h2 className="break-words text-lg font-semibold">{room.name}</h2><p className="mt-1 font-mono text-xs text-white/45">Meeting {room.meetingId}</p></div>

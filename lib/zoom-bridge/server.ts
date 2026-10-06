@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { ZoomRoom } from "./types"
 export const TABLE = "zoom_bridge_rooms"
-export type RoomRow = { id: string; worker_name: string; meeting_id: string; passcode_ciphertext: string; desired_running: boolean; desired_camera: boolean; desired_microphone: boolean; publish_mode: ZoomRoom["publishMode"]; revision: string; observed: ZoomRoom["observed"]; last_seen: string | null }
+export type RoomRow = { id: string; worker_name: string; meeting_id: string; passcode_ciphertext: string; desired_running: boolean; desired_camera: boolean; desired_microphone: boolean; publish_mode: ZoomRoom["publishMode"]; revision: string; observed: ZoomRoom["observed"]; last_seen: string | null; preview_until?: string | null }
 function key() {
   const k = Buffer.from(process.env.ZOOM_BRIDGE_ENCRYPTION_KEY || "", "base64")
   if (k.length !== 32) throw new Error("Zoom Bridge encryption is not configured.")
