@@ -4,8 +4,12 @@ FFmpeg decodes one MPEG-TS input to bounded raw pipes; the sender owns A/V times
 import json, os, signal, socket, struct, subprocess, threading, time
 from pathlib import Path
 HEADER = struct.Struct('=8IQ')
-WIDTH, HEIGHT = 1280, 720
-FRAME_BYTES = WIDTH * HEIGHT * 3 // 2
+def output_profile(settings):
+    width, height = int(settings.get('width', 1920)), int(settings.get('height', 1080))
+    fps = int(settings.get('fps', 15))
+    if (width, height) not in ((1280, 720), (1920, 1080)) or fps != 15:
+        raise ValueError('Supported relay profiles: 720p or 1080p at 15 fps')
+    return width, height, fps
 
 def stamp(size, width=0, height=0, rate=0, channels=0):
     return HEADER.pack(0x4a494f31,width,height,0,size,rate,channels,0,int(time.monotonic()*1000))
@@ -21,17 +25,19 @@ def exact(stream, size):
 class Ingest:
     def __init__(self, root, settings, home):
         self.root, self.settings, self.home = Path(root), settings, Path(home)
+        self.width, self.height, self.fps = output_profile(settings)
+        self.frame_bytes = self.width * self.height * 3 // 2
         self.stop = threading.Event(); self.video_time = self.audio_time = 0
         self.frames = self.blocks = 0; self.proc = None
     def status(self):
         now=time.monotonic()
-        return {'status':'receiving' if now-self.video_time<2 else 'starting','kind':'srt','presenter':'HDMI program','inputResolutions':'1280x720' if self.frames else '', 'video':now-self.video_time<2,'audio':now-self.audio_time<2,'videoFrames':self.frames,'audioBlocks':self.blocks,'error':''}
+        return {'status':'receiving' if now-self.video_time<2 else 'starting','kind':'srt','presenter':'HDMI program','inputResolutions':f'{self.width}x{self.height}' if self.frames else '', 'video':now-self.video_time<2,'audio':now-self.audio_time<2,'videoFrames':self.frames,'audioBlocks':self.blocks,'error':''}
     def video(self, stream):
         while not self.stop.is_set():
-            frame=exact(stream,FRAME_BYTES)
+            frame=exact(stream,self.frame_bytes)
             if frame is None: break
             temp=self.root/'video.tmp'
-            with open(temp,'wb') as f: f.write(stamp(len(frame),WIDTH,HEIGHT)+frame)
+            with open(temp,'wb') as f: f.write(stamp(len(frame),self.width,self.height)+frame)
             temp.chmod(0o600);temp.replace(self.root/'video.i420')
             self.video_time=time.monotonic();self.frames+=1
     def audio(self, stream):
@@ -55,7 +61,7 @@ class Ingest:
             port=int(self.settings.get('port',9000))
             url=f'srt://0.0.0.0:{port}?mode=listener&transtype=live&latency=200000&passphrase={secret}&pbkeylen=32&enforced_encryption=1&timeout=5000000'
             args=['ffmpeg','-hide_banner','-loglevel','error','-nostdin','-threads','2','-i',url,
-                '-map','0:v:0','-vf','scale=1280:720:force_original_aspect_ratio=decrease,pad=1280:720:(ow-iw)/2:(oh-ih)/2,fps=15','-pix_fmt','yuv420p','-f','rawvideo','pipe:1',
+                '-map','0:v:0','-vf',f'scale={self.width}:{self.height}:force_original_aspect_ratio=decrease,pad={self.width}:{self.height}:(ow-iw)/2:(oh-ih)/2,fps={self.fps}','-pix_fmt','yuv420p','-f','rawvideo','pipe:1',
                 '-map','0:a:0','-ac','1','-ar','32000','-f','s16le',f'pipe:{audio_write}']
             # Suppress FFmpeg stderr because network errors may include the secret URL.
             self.proc=subprocess.Popen(args,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,pass_fds=(audio_write,),bufsize=0)
