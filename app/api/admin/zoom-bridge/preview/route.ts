@@ -42,8 +42,7 @@ export async function GET(request: Request) {
         request.signal.removeEventListener("abort", cleanup)
         void client.removeChannel(channel); controller.close()
       }
-      channel.on("broadcast", { event: "frame" }, ({ payload }) => send("frame", payload))
-        .on("broadcast", { event: "audio" }, ({ payload }) => send("audio", payload))
+      channel.on("broadcast", { event: "audio" }, ({ payload }) => send("audio", payload))
         .subscribe(status => {
           if (status === "SUBSCRIBED") send("ready", {})
           if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") { send("unavailable", {}); cleanup() }

@@ -27,10 +27,13 @@ class PreviewTest(unittest.TestCase):
             room = {'id': 'test', 'running': True, 'previewUntil': until.isoformat()}
             expires = preview.request(room)
             self.assertLessEqual(expires - datetime.datetime.now().timestamp(), 45)
-            self.assertEqual((root / 'preview-test').stat().st_mode & 0o777, 0o700)
+            self.assertEqual(expires, 0)
+            self.assertIn("test", preview.requests)
+            self.assertFalse((root / "preview-test").exists())
             room['running'] = False
             self.assertEqual(preview.request(room), 0)
-            self.assertFalse((root / 'preview-test').exists())
+            self.assertNotIn("test", preview.requests)
+            self.assertFalse((root / "preview-test").exists())
 
 
 if __name__ == '__main__':
