@@ -1,5 +1,5 @@
 /* Planetary backdrop and operator console, scoped to Jupiter Io. */
-.admin-theme-shell[data-admin-theme] .admin-workspace:has(.io-console) { background:#02080e url('/images/jupiter-io/io-jupiter.jpg') no-repeat right top / cover; background-attachment:fixed; }
+.admin-theme-shell[data-admin-theme] .admin-workspace:has(.io-console) { background:linear-gradient(rgba(2,8,14,.62),rgba(2,8,14,.62)), url('/images/jupiter-io/io-jupiter.jpg') no-repeat right top / cover; background-color:#02080e; background-size:cover; background-attachment:fixed; }
 .admin-workspace:has(.io-console) > main { padding:20px; }
 .io-console { width:calc(100% - clamp(0px,8vw,150px)); max-width:1280px; margin-right:0; isolation:isolate; }
 .io-header { min-height:90px; }
