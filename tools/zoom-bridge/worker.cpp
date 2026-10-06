@@ -100,9 +100,12 @@ struct Tone: IZoomSDKVirtualAudioMicEvent {
  void onMicStartSend() override {active=true;std::cout<<"Audio sender started"<<std::endl;}
  void onMicStopSend() override {active=false;}
  void onMicUninitialized() override {active=false;sender=nullptr;}
- void relayTick(){if(!active||!sender||audioFD<0)return;char packet[24576];
+ double meterPeak=0,meterSquares=0;uint64_t meterSamples=0,meterStamp=0;
+ void relayTick(){if(audioFD<0)return;char packet[24576];
   for(int i=0;i<12;i++){auto n=recv(audioFD,packet,sizeof(packet),MSG_DONTWAIT);if(n<0)break;if(n<ssize_t(sizeof(relay::Header)))continue;relay::Header h;memcpy(&h,packet,sizeof(h));
    if(h.magic!=0x4a494f31||!relay::fresh(h)||h.bytes!=n-sizeof(h)||h.channels<1||h.channels>2||(h.rate!=8000&&h.rate!=16000&&h.rate!=32000&&h.rate!=44100&&h.rate!=48000)||h.bytes%(2*h.channels))continue;
+   for(unsigned offset=0;offset<h.bytes;offset+=2){int16_t sample;memcpy(&sample,packet+sizeof(h)+offset,2);double amplitude=std::abs(double(sample))/32768.0;meterPeak=std::max(meterPeak,amplitude);meterSquares+=amplitude*amplitude;++meterSamples;}meterStamp=h.time;
+   if(!active||!sender)continue;
    auto e=sender->send(packet+sizeof(h),h.bytes,h.rate,h.channels==2?ZoomSDKAudioChannel_Stereo:ZoomSDKAudioChannel_Mono);if(e==SDKERR_SUCCESS)relayAudioTime=h.time;
   }
  }
@@ -290,6 +293,11 @@ gboolean controls(gpointer) {
  auto* output=g_key_file_new();g_key_file_set_string(output,"worker","status",workerStatus.c_str());
  g_key_file_set_boolean(output,"worker","hdEnabled",settings&&settings->GetVideoSettings()&&settings->GetVideoSettings()->IsHDVideoEnabled());
  g_key_file_set_boolean(output,"worker","originalSound",originalSound);
+ bool meterFresh=tone.meterStamp&&relay::now()-tone.meterStamp<1000;
+ g_key_file_set_double(output,"worker","audioPeak",meterFresh?tone.meterPeak:0);
+ g_key_file_set_double(output,"worker","audioRms",meterFresh&&tone.meterSamples?std::sqrt(tone.meterSquares/tone.meterSamples):0);
+ g_key_file_set_uint64(output,"worker","audioMeterStamp",meterFresh?tone.meterStamp:0);
+ tone.meterPeak=0;tone.meterSquares=0;tone.meterSamples=0;
  g_key_file_set_boolean(output,"worker","camera",mediaReady&&(shareMode?programShare.sender!=nullptr:(me&&me->IsVideoOn())));
  g_key_file_set_boolean(output,"worker","microphone",mediaReady&&me&&!me->IsAudioMuted());
  g_key_file_set_string(output,"worker","name",name.c_str());g_key_file_set_string(output,"worker","revision",appliedRevision.c_str());g_key_file_set_string(output,"worker","error",controlError.c_str());

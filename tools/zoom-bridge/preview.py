@@ -3,6 +3,10 @@
 JPEG encoding uses pipes; frames go directly to an authenticated ephemeral
 Realtime broadcast. No media is written to the database or persistent storage.
 """
+import configparser
+import json
+import math
+from pathlib import Path
 import datetime
 import shutil
 import struct
@@ -28,10 +32,12 @@ class Preview:
         self.requests = {}
         self.lock = threading.Lock()
         self.stopped = threading.Event()
+        self.meter_thread = threading.Thread(target=self.meters, daemon=True)
         self.thread = threading.Thread(target=self.run, daemon=True)
 
     def start(self):
         self.thread.start()
+        self.meter_thread.start()
 
     def request(self, room):
         try:
@@ -48,6 +54,25 @@ class Preview:
                 self.requests.pop(room['id'], None)
                 shutil.rmtree(path, ignore_errors=True)
         return expires
+
+    def meters(self):
+        while not self.stopped.wait(0.5):
+            with self.lock:
+                requests = list(self.requests.items())
+            for rid, expires in requests:
+                if expires <= time.time(): continue
+                try:
+                    cfg = configparser.ConfigParser(interpolation=None)
+                    cfg.read(Path.home() / 'jupiter-zoom' / 'rooms' / rid / 'status.ini')
+                    status = cfg['worker']
+                    stamp = status.getfloat('audioMeterStamp', 0)
+                    if status.get('status') != 'joined' or not 0 <= time.monotonic() * 1000 - stamp < 1500: continue
+                    peak, rms = status.getfloat('audioPeak', 0), status.getfloat('audioRms', 0)
+                    if not all(math.isfinite(v) and 0 <= v <= 1 for v in (peak, rms)): continue
+                    payload = json.dumps({'peak': peak, 'rms': rms, 'muted': not status.getboolean('microphone', False)}).encode()
+                    req = urllib.request.Request(self.settings['url'].rstrip('/') + '/api/zoom-bridge/preview', data=payload, headers={'Content-Type': 'application/json', 'X-Satellite-Id': rid, 'Authorization': 'Bearer ' + self.settings['token']})
+                    with urllib.request.urlopen(req, timeout=3) as response: response.read(1024)
+                except (OSError, ValueError, KeyError, configparser.Error): continue
 
     def run(self):
         while not self.stopped.wait(2):
@@ -76,3 +101,4 @@ class Preview:
     def close(self):
         self.stopped.set()
         self.thread.join(timeout=10)
+        if self.meter_thread.is_alive(): self.meter_thread.join(timeout=5)
