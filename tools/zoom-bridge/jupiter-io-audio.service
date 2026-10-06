@@ -1,0 +1,17 @@
+[Unit]
+Description=Jupiter Io audio runtime
+After=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+RuntimeDirectory=jupiter-io-audio
+RuntimeDirectoryMode=0700
+Environment=XDG_RUNTIME_DIR=/run/jupiter-io-audio
+ExecStart=/usr/bin/pulseaudio --daemonize=no --exit-idle-time=-1
+Restart=on-failure
+RestartSec=3
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

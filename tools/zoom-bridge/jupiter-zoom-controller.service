@@ -1,16 +1,15 @@
 [Unit]
 Description=Jupiter Zoom Bridge controller
-After=network-online.target
+After=network-online.target jupiter-io-audio.service
 Wants=network-online.target
+Requires=jupiter-io-audio.service
 
 [Service]
 Type=simple
 User=ubuntu
 WorkingDirectory=/home/ubuntu/jupiter-zoom
-RuntimeDirectory=jupiter-zoom-pulse
-Environment=XDG_RUNTIME_DIR=/run/jupiter-zoom-pulse
-Environment=PULSE_SERVER=unix:/run/jupiter-zoom-pulse/pulse/native
-ExecStartPre=/usr/bin/pulseaudio --start --exit-idle-time=-1
+Environment=XDG_RUNTIME_DIR=/run/jupiter-io-audio
+Environment=PULSE_SERVER=unix:/run/jupiter-io-audio/pulse/native
 ExecStart=/usr/bin/python3 /home/ubuntu/jupiter-zoom/controller.py
 Restart=on-failure
 RestartSec=5
