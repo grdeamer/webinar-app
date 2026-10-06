@@ -22,6 +22,7 @@ struct CaptureDevice: Identifiable { let id: String; let name: String }
     @Published var notice = "Select your capture device and audio source. Preview stays on this Mac."
     private var process: Process?
     private var generation = UUID()
+    private var localError = ""
     var encoder: URL? { Bundle.main.url(forResource: "ffmpeg", withExtension: nil) }
     init() { connection = SecretStore.read(); refreshDevices() }
     func refreshDevices() {
@@ -60,24 +61,28 @@ struct CaptureDevice: Identifiable { let id: String; let name: String }
     func start(send: Bool) {
         if send && validatedConnection() == nil { notice = "Paste an encrypted caller SRT connection from Jupiter Io."; return }
         guard !videos.isEmpty, !audios.isEmpty else { notice = "Connect a video capture device and audio source, then refresh."; return }
-        Task {
-            let camera = await AVCaptureDevice.requestAccess(for: .video)
-            let mic = await AVCaptureDevice.requestAccess(for: .audio)
-            guard camera && mic else { notice = "Enable camera and microphone for Jupiter Send in System Settings > Privacy & Security."; return }
-            let prior = process
-            stop()
-            if let prior, prior.isRunning {
-                await withCheckedContinuation { (continuation: CheckedContinuation<Void, Never>) in
-                    DispatchQueue.global().async { prior.waitUntilExit(); continuation.resume() }
+        state = "Checking permissions"
+        func allowed(_ media: AVMediaType, completion: @escaping (Bool) -> Void) {
+            if AVCaptureDevice.authorizationStatus(for: media) == .authorized { completion(true) }
+            else { AVCaptureDevice.requestAccess(for: media) { value in DispatchQueue.main.async { completion(value) } } }
+        }
+        allowed(.video) { camera in
+            allowed(.audio) { mic in
+                guard camera && mic else { self.state = "Ready"; self.notice = "Enable camera and microphone for Jupiter Send in System Settings > Privacy & Security."; return }
+                let prior = self.process
+                self.stop()
+                DispatchQueue.global().async {
+                    if let prior, prior.isRunning { prior.waitUntilExit() }
+                    DispatchQueue.main.async { self.launch(send: send) }
                 }
             }
-            launch(send: send)
         }
     }
     private func launch(send: Bool) {
         stop()
         guard let encoder else { return }
         let id = UUID(); generation = id
+        localError = ""
         let p = Process(), pictures = Pipe(), diagnostics = Pipe()
         var args = ["-hide_banner", "-nostdin", "-loglevel", "info", "-f", "avfoundation", "-framerate", String(fps), "-video_size", resolution, "-i", "\(video):\(audio)"]
         let meterFilter = "astats=metadata=1:reset=1,ametadata=print:key=lavfi.astats.Overall.RMS_level"
@@ -93,7 +98,7 @@ struct CaptureDevice: Identifiable { let id: String; let name: String }
         p.executableURL = encoder; p.arguments = args; p.standardOutput = pictures; p.standardError = diagnostics
         p.terminationHandler = { proc in
             DispatchQueue.main.async {
-                if self.generation == id { self.running = false; self.sending = false; self.state = "Stopped"; self.meter = -60; if proc.terminationStatus != 0 { self.notice = "Encoder stopped. Check device availability, supported format, receiver, sender-IP firewall and connection. No automatic retry." } }
+                if self.generation == id { self.running = false; self.sending = false; self.state = "Stopped"; self.meter = -60; if proc.terminationStatus != 0 { self.notice = self.localError.isEmpty ? "Encoder stopped. Check device availability, supported format, receiver, sender-IP firewall and connection. No automatic retry." : self.localError } }
             }
         }
         do { try p.run(); process = p; running = true; sending = send; state = send ? "Sending to Jupiter Io" : "Local preview"; notice = send ? "Encrypted SRT send active. Verify reception in Jupiter Io and the destination Zoom meeting." : "Local picture and audio monitoring. No program is being sent." }
@@ -118,6 +123,10 @@ struct CaptureDevice: Identifiable { let id: String; let name: String }
                 pending += String(decoding: data, as: UTF8.self)
                 let lines = pending.components(separatedBy: .newlines); pending = lines.last ?? ""
                 for line in lines.dropLast() {
+                    if !send && !line.isEmpty && !line.contains("RMS_level") {
+                        let safe = String(line.suffix(300))
+                        DispatchQueue.main.async { if self.generation == id { self.localError = String((self.localError + "\n" + safe).suffix(1800)); if !self.running { self.notice = self.localError } } }
+                    }
                     if let range = line.range(of: "lavfi.astats.Overall.RMS_level="), let level = Double(line[range.upperBound...]), level.isFinite {
                         DispatchQueue.main.async { if self.generation == id { self.meter = max(-60, min(0, level)) } }
                     }
