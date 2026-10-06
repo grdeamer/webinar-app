@@ -5,6 +5,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { rows, seal } from "@/lib/zoom-bridge/server"
 import { sourceRow, publicSource, SOURCE_TABLE } from "@/lib/zoom-bridge/source"
 import { normalizeMeetingId, assertSourceIsSeparate } from "@/lib/zoom-bridge/types"
+import { parseSourceProfile, defaultSourceProfile } from "@/lib/zoom-bridge/source-profile"
 import { ingestInfo, privateIngestUrl } from "@/lib/zoom-bridge/ingest"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -46,4 +47,21 @@ export async function POST(request: Request) {
     if (failure) throw new Error("Source command could not be saved.")
     const saved = await sourceRow(); return NextResponse.json({ source: saved ? publicSource(saved) : null })
   } catch (cause) { return error(cause instanceof Error ? cause.message : "Invalid command.") }
+}
+
+export async function PATCH(request: Request) {
+  if (!await authorized()) return error("Administrator access required", 403)
+  try {
+    const old = await sourceRow()
+    if (!old || old.source_kind !== "srt") return error("An HDMI / SRT source is required.")
+    const body = await request.json()
+    const profile = parseSourceProfile(body.profile)
+    const previous = { ...defaultSourceProfile, ...old.source_profile }
+    const qualityChanged = profile.relayResolution !== previous.relayResolution
+    if (qualityChanged && old.desired_running) return error("Stop receiving before changing relay resolution.")
+    const { error: failure } = await supabaseAdmin.from(SOURCE_TABLE).update({ source_profile: profile, ...(qualityChanged ? { revision: randomUUID() } : {}) }).eq("id", "program")
+    if (failure) throw new Error("Source profile could not be saved.")
+    const saved = await sourceRow()
+    return NextResponse.json({ source: saved ? publicSource(saved) : null }, { headers: { "Cache-Control": "no-store" } })
+  } catch (cause) { return error(cause instanceof Error ? cause.message : "Invalid source profile.") }
 }

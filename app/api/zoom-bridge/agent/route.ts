@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { agentAuthorized, rows, unseal, TABLE } from "@/lib/zoom-bridge/server"
+import { defaultSourceProfile } from "@/lib/zoom-bridge/source-profile"
 import { sourceRow, SOURCE_TABLE } from "@/lib/zoom-bridge/source"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 export const runtime = "nodejs"
@@ -28,6 +29,6 @@ export async function POST(request: Request) {
         if (error) throw error
       }
     }
-    return NextResponse.json({ source: source ? { id: "program", kind: source.source_kind, name: "Jupiter Io Source", meetingId: source.meeting_id, passcode: unseal(source.passcode_ciphertext), running: source.desired_running, revision: source.revision } : null, rooms: all.map(r => ({ id: r.id, name: r.worker_name, meetingId: r.meeting_id, passcode: unseal(r.passcode_ciphertext), running: r.desired_running, previewUntil: r.preview_until ?? null, publishMode: r.publish_mode, camera: r.desired_camera, microphone: r.desired_microphone, revision: r.revision })) }, { headers: { "Cache-Control": "no-store" } })
+    return NextResponse.json({ source: source ? { id: "program", profile: { ...defaultSourceProfile, ...source.source_profile }, kind: source.source_kind, name: "Jupiter Io Source", meetingId: source.meeting_id, passcode: unseal(source.passcode_ciphertext), running: source.desired_running, revision: source.revision } : null, rooms: all.map(r => ({ id: r.id, name: r.worker_name, meetingId: r.meeting_id, passcode: unseal(r.passcode_ciphertext), running: r.desired_running, originalSound: r.desired_original_sound, previewUntil: r.preview_until ?? null, publishMode: r.publish_mode, camera: r.desired_camera, microphone: r.desired_microphone, revision: r.revision })) }, { headers: { "Cache-Control": "no-store" } })
   } catch { return NextResponse.json({ error: "Controller exchange failed" }, { status: 503 }) }
 }

@@ -71,7 +71,7 @@ export default function ZoomBridgeConsole() {
       <div className="mt-5 flex flex-wrap gap-2 border-t border-white/10 pt-4">
         <button type="button" className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", "start") }}><Play size={16} />Connect all</button>
         <button type="button" className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", "stop") }}><Square size={16} />Disconnect all</button>
-        {([['camera_on', 'Picture on', MonitorUp], ['camera_off', 'Picture off', MonitorOff], ['microphone_on', 'Unmute all', Mic], ['microphone_off', 'Mute all', MicOff]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
+        {([['camera_on', 'Picture on', MonitorUp], ['camera_off', 'Picture off', MonitorOff], ['microphone_on', 'Unmute all', Mic], ['microphone_off', 'Mute all', MicOff], ['original_sound_on', 'Original Sound on all', Mic], ['original_sound_off', 'Original Sound off all', MicOff]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
       </div><p className="mt-3 text-xs text-white/35">Picture controls each satellite’s selected output: camera or screen share. Audio controls the program microphone.</p>
     </section>
     {error ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-200">{error}</p> : null}

@@ -3,7 +3,7 @@ import { createCipheriv, createDecipheriv, randomBytes, timingSafeEqual } from "
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import type { ZoomRoom } from "./types"
 export const TABLE = "zoom_bridge_rooms"
-export type RoomRow = { id: string; worker_name: string; meeting_id: string; passcode_ciphertext: string; desired_running: boolean; desired_camera: boolean; desired_microphone: boolean; publish_mode: ZoomRoom["publishMode"]; revision: string; observed: ZoomRoom["observed"]; last_seen: string | null; preview_until?: string | null }
+export type RoomRow = { id: string; worker_name: string; meeting_id: string; passcode_ciphertext: string; desired_running: boolean; desired_original_sound: boolean; desired_camera: boolean; desired_microphone: boolean; publish_mode: ZoomRoom["publishMode"]; revision: string; observed: ZoomRoom["observed"]; last_seen: string | null; preview_until?: string | null }
 function key() {
   const k = Buffer.from(process.env.ZOOM_BRIDGE_ENCRYPTION_KEY || "", "base64")
   if (k.length !== 32) throw new Error("Zoom Bridge encryption is not configured.")
@@ -30,5 +30,5 @@ export async function rows(): Promise<RoomRow[]> {
   return data ?? []
 }
 export function publicRoom(r: RoomRow): ZoomRoom {
-  return { id: r.id, name: r.worker_name, meetingId: r.meeting_id, hasPasscode: Boolean(r.passcode_ciphertext), running: r.desired_running, camera: r.desired_camera, microphone: r.desired_microphone, publishMode: r.publish_mode, revision: r.revision, observed: r.observed ?? {}, lastSeen: r.last_seen }
+  return { id: r.id, name: r.worker_name, meetingId: r.meeting_id, hasPasscode: Boolean(r.passcode_ciphertext), running: r.desired_running, originalSound: r.desired_original_sound, camera: r.desired_camera, microphone: r.desired_microphone, publishMode: r.publish_mode, revision: r.revision, observed: r.observed ?? {}, lastSeen: r.last_seen }
 }

@@ -24,3 +24,8 @@ test("A Zoom source cannot be routed back into the same meeting", async () => {
   assert.doesNotThrow(() => assertSourceIsSeparate("84528164431", ["89168845873"]))
   assert.throws(() => assertSourceIsSeparate("84528164431", ["89168845873", "84528164431"]), /cannot also/)
 })
+
+test("Original Sound commands change only processing, never mute or reconnect", () => {
+  assert.deepEqual(actionPatch("original_sound_on"), { desired_original_sound: true })
+  assert.deepEqual(actionPatch("original_sound_off"), { desired_original_sound: false })
+})

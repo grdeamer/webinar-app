@@ -91,7 +91,11 @@ def main():
                 if srt_mode:
                     if source and source['running']:
                         if ingest is None:
-                            ingest=Ingest(relay_root,json.loads((ROOT/'srt-settings.json').read_text()),ROOT/'srt')
+                            ingest_settings=json.loads((ROOT/'srt-settings.json').read_text())
+                            resolution=(source.get('profile') or {}).get('relayResolution','1080p')
+                            if resolution not in ('720p','1080p'):raise ValueError('Invalid source relay resolution')
+                            ingest_settings.update(width=1920 if resolution=='1080p' else 1280,height=1080 if resolution=='1080p' else 720,fps=15)
+                            ingest=Ingest(relay_root,ingest_settings,ROOT/'srt')
                             ingest_thread=threading.Thread(target=ingest.run,daemon=True);ingest_thread.start()
                         source_status=ingest.status();source_status['revision']=source['revision']
                         if not ingest_thread.is_alive():source_status.update(status='failed',error='SRT receiver stopped. Disconnect source and reconnect to retry.')
@@ -137,7 +141,7 @@ def main():
                         item=launch(room,relay_root if source else None);item['mode']=mode;item['publishMode']=room.get('publishMode','camera');children[rid]=item
                     cfg=configparser.ConfigParser(interpolation=None)
                     preview_expires=preview.request(room)
-                    cfg['control']={'preview_expires':str(preview_expires),'name':room['name'],'camera':str(room['camera']).lower(),'microphone':str(room['microphone']).lower(),'revision':room['revision']}
+                    cfg['control']={'preview_expires':str(preview_expires),'original_sound':str(room.get('originalSound',True)).lower(),'name':room['name'],'camera':str(room['camera']).lower(),'microphone':str(room['microphone']).lower(),'revision':room['revision']}
                     content=io.StringIO();cfg.write(content);atomic(item['home']/'control.ini',content.getvalue());reports.append(report(rid,item))
             except Exception as exc:
                 print('Controller exchange failed:',type(exc).__name__,flush=True)
