@@ -3,7 +3,7 @@ import { supabaseAdmin } from "@/lib/supabase/admin"
 import { defaultSourceProfile, type SourceProfile } from "./source-profile"
 import type { ZoomSource } from "./types"
 export const SOURCE_TABLE = "zoom_bridge_source"
-export type SourceRow = { id: string; source_profile?: SourceProfile; source_kind: ZoomSource["kind"]; meeting_id: string; passcode_ciphertext: string; desired_running: boolean; revision: string; observed: ZoomSource["observed"]; last_seen: string | null }
+export type SourceRow = { id: string; ingest_passphrase_ciphertext?: string | null; ingest_key_revision?: string | null; ingest_key_updated_at?: string | null; source_profile?: SourceProfile; source_kind: ZoomSource["kind"]; meeting_id: string; passcode_ciphertext: string; desired_running: boolean; revision: string; observed: ZoomSource["observed"]; last_seen: string | null }
 export async function sourceRow(): Promise<SourceRow | null> {
   const { data, error } = await supabaseAdmin.from(SOURCE_TABLE).select("*").eq("id", "program").maybeSingle()
   if (error) throw new Error("Program source could not be loaded.")

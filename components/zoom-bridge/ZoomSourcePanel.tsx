@@ -5,8 +5,9 @@ import SourceProfileEditor from "./SourceProfileEditor"
 import { defaultSourceProfile, type SourceProfile } from "@/lib/zoom-bridge/source-profile"
 import type { ZoomSource } from "@/lib/zoom-bridge/types"
 import { ioButton, ioField } from "./SatelliteCard"
-type IngestInfo = { configured: boolean; host: string; port: number }
+import IngestConnectionManager, { type IngestInfo } from "./IngestConnectionManager"
 export default function ZoomSourcePanel() {
+  const [manageIngest, setManageIngest] = useState(false)
   const [profileEditing, setProfileEditing] = useState(false)
   const [source, setSource] = useState<ZoomSource | null>(null)
   const [ingest, setIngest] = useState<IngestInfo | null>(null)
@@ -68,6 +69,16 @@ export default function ZoomSourcePanel() {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Source profile failed"); return false }
     finally { setBusy(false) }
   }
+  async function regenerateConnection() {
+    setBusy(true); setError(""); setMessage("")
+    try {
+      const data = await request("POST", { action: "regenerate_connection" })
+      setSource(data.source); setIngest(data.ingest); setConnection(""); setRevealed(false)
+      setMessage("New key requested. Wait for the receiver to apply it, then copy the connection into your encoder and restart streaming.")
+      return true
+    } catch (cause) { setError(cause instanceof Error ? cause.message : "Key regeneration failed"); return false }
+    finally { setBusy(false) }
+  }
   const profile = source?.profile || defaultSourceProfile
   const dimensions = profile.relayResolution === "1080p" ? "1920 × 1080" : "1280 × 720"
   const srt = source?.kind === "srt"
@@ -82,9 +93,10 @@ export default function ZoomSourcePanel() {
     </div>
     {source && !editing ? <div className="mt-5 flex flex-wrap items-center gap-3">
       <span className="mr-auto flex items-center gap-2 text-sm text-white/70"><Cable size={17} />{srt ? "HDMI / encrypted SRT" : `Meeting ${source.meetingId}`}</span>
-      {srt ? <><button type="button" className={ioButton} disabled={busy || !ingest?.configured} onClick={() => { void getConnection(true) }}><Copy size={16} />Copy encoder connection</button><button type="button" className={ioButton} aria-expanded={setupOpen} onClick={() => setSetupOpen(v => !v)}>Encoder setup</button><button type="button" className={ioButton} disabled={busy} onClick={() => setProfileEditing(v => !v)}><Pencil size={16} />Edit source</button></> : <button type="button" className={ioButton} disabled={busy} onClick={() => { setMeetingId(source.meetingId); setPasscode(""); setEditing(true) }}>Edit source</button>}
+      {srt ? <><button type="button" className={ioButton} disabled={busy || !ingest?.configured} onClick={() => { void getConnection(true) }}><Copy size={16} />Copy encoder connection</button><button type="button" className={ioButton} aria-expanded={manageIngest} onClick={() => setManageIngest(v => !v)}>Manage ingest connection</button><button type="button" className={ioButton} aria-expanded={setupOpen} onClick={() => setSetupOpen(v => !v)}>Encoder setup</button><button type="button" className={ioButton} disabled={busy} onClick={() => setProfileEditing(v => !v)}><Pencil size={16} />Edit source</button></> : <button type="button" className={ioButton} disabled={busy} onClick={() => { setMeetingId(source.meetingId); setPasscode(""); setEditing(true) }}>Edit source</button>}
       <button type="button" className={ioButton} disabled={busy} onClick={() => { void mutate("POST", { action: source.running ? "stop" : "start" }) }}>{source.running ? <Square size={16} /> : <Play size={16} />}{source.running ? "Stop receiving" : "Start receiving"}</button>
     </div> : null}
+    {srt && manageIngest ? <IngestConnectionManager ingest={ingest} receiving={state === "receiving"} fresh={fresh} busy={busy} copy={() => { void getConnection(true) }} regenerate={regenerateConnection} /> : null}
     {srt && profileEditing ? <SourceProfileEditor profile={profile} running={source.running} busy={busy} save={saveProfile} cancel={() => setProfileEditing(false)} /> : null}
     {srt && setupOpen ? <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">
       <div className="grid gap-4 md:grid-cols-2"><div><h3 className="font-semibold text-white/85">{profile.encoderName} connection</h3><p className="mt-2">Settings → Stream → Custom. Paste the copied URL into Server. Leave Stream Key blank, then Start Streaming.</p><p className="mt-2 text-xs text-white/40">Receiver: {ingest?.configured ? `${ingest.host} · UDP ${ingest.port}` : "Connection not configured on this Jupiter server"}</p></div><div><h3 className="font-semibold text-white/85">Saved encoder guidance</h3><p className="mt-2">{dimensions} · {profile.encoderFps} fps · H.264 at {profile.encoderBitrate.toLocaleString()} Kbps · keyframe 2 seconds · AAC at 160 Kbps / 48 kHz.</p><p className="mt-2 text-xs text-white/40">Cloud relay targets {profile.relayResolution} at 15 fps and 32 kHz mono audio. Set the capture source and encoder output to {profile.relayResolution}; a larger relay canvas cannot recover detail from a lower-resolution input.</p></div></div>

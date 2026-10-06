@@ -1,5 +1,5 @@
 """Outbound Jupiter controller. SDK credentials never leave this host."""
-import io, tempfile, shutil, threading
+import io, tempfile, shutil, threading, re
 from srt_ingest import Ingest
 from preview import Preview
 import base64, configparser, hashlib, hmac, json, os, signal, subprocess, time, urllib.request, uuid
@@ -8,6 +8,11 @@ ROOT = Path.home() / 'jupiter-zoom'
 children = {}
 failures = {}
 stop_requested = False
+
+def validate_ingest_key(key):
+    if not isinstance(key,dict) or not isinstance(key.get('passphrase'),str) or not re.fullmatch(r'[0-9a-f]{48}',key['passphrase']):raise ValueError('Invalid ingest key')
+    revision=str(uuid.UUID(key['revision']))
+    return revision,key['passphrase']
 
 def atomic(path, content):
     temp = path.with_suffix('.tmp')
@@ -79,7 +84,7 @@ def main():
     preview=Preview(relay_root,settings);preview.start()
     capacity = int(settings.get('capacity',2))
     srt_mode=settings.get('sourceType')=='srt'
-    ingest=None;ingest_thread=None
+    ingest=None;ingest_thread=None;ingest_key_revision="legacy"
     last_ok = time.monotonic();reports=[];source_status=None;source_item=None;source_failure=None
     try:
         while not stop_requested:
@@ -89,6 +94,16 @@ def main():
                 rooms=config['rooms'];source=config.get('source');last_ok=time.monotonic()
                 srt_mode=bool(source and source.get('kind',settings.get('sourceType','zoom'))=='srt')
                 if srt_mode:
+                    key=source.get('ingestKey')
+                    if key and key['revision']!=ingest_key_revision:
+                        key_revision,secret=validate_ingest_key(key)
+                        if ingest:
+                            ingest.close();ingest_thread.join(timeout=8)
+                            if ingest_thread.is_alive():raise RuntimeError('Previous receiver has not stopped')
+                            ingest=None;clear_media(relay_root)
+                        ingest_settings=json.loads((ROOT/'srt-settings.json').read_text())
+                        atomic(Path(ingest_settings['passphraseFile']),secret)
+                        ingest_key_revision=key_revision
                     if source and source['running']:
                         if ingest is None:
                             ingest_settings=json.loads((ROOT/'srt-settings.json').read_text())
@@ -103,6 +118,7 @@ def main():
                         if ingest:
                             ingest.close();ingest_thread.join(timeout=8);ingest=None;clear_media(relay_root)
                         source_status={'kind':'srt','status':'stopped','revision':source['revision'] if source else ''}
+                if srt_mode and source_status:source_status['ingestKeyRevision']=ingest_key_revision
                 if source_item and (not source or not source['running'] or source_item['revision']!=source['revision']):
                     terminate(source_item);source_item=None;clear_media(relay_root)
                 if source_item and source_item['proc'].poll() is not None:

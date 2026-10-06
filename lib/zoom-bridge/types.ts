@@ -28,7 +28,7 @@ export function actionPatch(action: ZoomAction) {
 export type ZoomSource = {
   kind: "srt" | "zoom"; profile?: SourceProfile;
   meetingId: string; hasPasscode: boolean; running: boolean; revision: string;
-  observed: { kind?: "srt" | "zoom"; inputResolutions?: string; status?: string; presenter?: string; spotlightCount?: number; video?: boolean; audio?: boolean; error?: string; revision?: string; videoFrames?: number; audioBlocks?: number };
+  observed: { ingestKeyRevision?: string; kind?: "srt" | "zoom"; inputResolutions?: string; status?: string; presenter?: string; spotlightCount?: number; video?: boolean; audio?: boolean; error?: string; revision?: string; videoFrames?: number; audioBlocks?: number };
   lastSeen: string | null;
 }
 export function parsePublishMode(value: unknown): PublishMode {

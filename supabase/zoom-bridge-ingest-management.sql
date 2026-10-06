@@ -1,0 +1,1 @@
+alter table public.zoom_bridge_source add column if not exists ingest_passphrase_ciphertext text, add column if not exists ingest_key_revision uuid, add column if not exists ingest_key_updated_at timestamptz;

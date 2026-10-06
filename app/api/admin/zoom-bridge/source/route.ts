@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { randomUUID } from "node:crypto"
+import { randomUUID, randomBytes } from "node:crypto"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { rows, seal } from "@/lib/zoom-bridge/server"
@@ -13,7 +13,7 @@ async function authorized() { return (await requireAdmin()).profile.role === "ad
 function error(message: string, status = 400) { return NextResponse.json({ error: message }, { status }) }
 export async function GET() {
   if (!await authorized()) return error("Administrator access required", 403)
-  try { const row = await sourceRow(); return NextResponse.json({ source: row ? publicSource(row) : null, ingest: ingestInfo() }, { headers: { "Cache-Control": "no-store" } }) }
+  try { const row = await sourceRow(); return NextResponse.json({ source: row ? publicSource(row) : null, ingest: ingestInfo(row) }, { headers: { "Cache-Control": "no-store" } }) }
   catch { return error("Unable to load program source", 503) }
 }
 export async function PUT(request: Request) {
@@ -38,7 +38,18 @@ export async function POST(request: Request) {
     const { action } = await request.json(), old = await sourceRow()
     if (action === "connection") {
       if (old?.source_kind !== "srt") return error("Select an HDMI / SRT source first.")
-      return NextResponse.json({ url: privateIngestUrl() }, { headers: { "Cache-Control": "no-store", "Pragma": "no-cache" } })
+      if (old.ingest_key_revision && old.observed?.ingestKeyRevision !== old.ingest_key_revision) return error("Wait for the receiver to apply the new key before copying the connection.", 409)
+      return NextResponse.json({ url: privateIngestUrl(old) }, { headers: { "Cache-Control": "no-store", "Pragma": "no-cache" } })
+    }
+    if (action === "regenerate_connection") {
+      if (request.headers.get("origin") && request.headers.get("origin") !== new URL(request.url).origin) return error("Invalid request origin.", 403)
+      if (old?.source_kind !== "srt") return error("An HDMI / SRT source is required.")
+      let query = supabaseAdmin.from(SOURCE_TABLE).update({ ingest_passphrase_ciphertext: seal(randomBytes(24).toString("hex")), ingest_key_revision: randomUUID(), ingest_key_updated_at: new Date().toISOString() }).eq("id", "program")
+      query = old.ingest_key_revision ? query.eq("ingest_key_revision", old.ingest_key_revision) : query.is("ingest_key_revision", null)
+      const { data, error: failure } = await query.select("id").maybeSingle()
+      if (failure || !data) return error("Connection changed or could not be regenerated. Refresh and retry.", 409)
+      const saved = await sourceRow()
+      return NextResponse.json({ source: saved ? publicSource(saved) : null, ingest: ingestInfo(saved) }, { headers: { "Cache-Control": "no-store", "Pragma": "no-cache" } })
     }
     if (!old) return error("Save a source meeting first.")
     if (action !== "start" && action !== "stop") return error("Invalid source command.")
