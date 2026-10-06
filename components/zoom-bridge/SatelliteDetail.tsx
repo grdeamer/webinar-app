@@ -3,6 +3,7 @@ import { useState } from "react"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import SatelliteCard from "./SatelliteCard"
 import SatelliteEditor, { type SatelliteDraft } from "./SatelliteEditor"
+import SatelliteAudioMeter from "./SatelliteAudioMeter"
 import SatellitePreview from "./SatellitePreview"
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
 export default function SatelliteDetail({ room, busy, close, command, save, remove }: {
@@ -16,6 +17,7 @@ export default function SatelliteDetail({ room, busy, close, command, save, remo
       <div className="grid items-start gap-5 lg:grid-cols-[1.4fr_1fr]">
         <SatellitePreview room={room} />
         <div className="space-y-4"><SatelliteCard room={room} busy={busy} command={command} edit={r => setDraft({ key: r.id, id: r.id, name: r.name, meetingId: r.meetingId, passcode: "", publishMode: r.publishMode })} remove={remove} />
+          <SatelliteAudioMeter room={room} />
           <dl className="grid grid-cols-2 gap-4 rounded-xl border border-white/10 p-4 text-xs">
             <div><dt className="text-white/40">Meeting passcode</dt><dd className="mt-1">{room.hasPasscode ? "Saved securely" : "Not configured"}</dd></div>
             <div><dt className="text-white/40">Last controller report</dt><dd className="mt-1">{room.lastSeen ? new Date(room.lastSeen).toLocaleTimeString() : "No report yet"}</dd></div>
