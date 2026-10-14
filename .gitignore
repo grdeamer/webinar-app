@@ -52,3 +52,6 @@ __MACOSX/
 env.local*
 env.production*
 env.development*
+
+# Local registration input files stay outside versioned application releases.
+/*.csv

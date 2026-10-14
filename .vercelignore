@@ -1,1 +1,7 @@
 artifacts/
+
+# Registration input files and private local configuration are never deployment assets.
+*.csv
+*.xlsx
+*.xls
+.env*
