@@ -1,108 +1,29 @@
-import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { eventEmailCookieName, eventUserCookieName } from "@/lib/eventAuth"
-
+import { NextResponse } from "next/server"
+import { consumeEmailCode, getActiveRegistrant, getRegistrationEvent, requestEmailCode } from "@/lib/registration/server"
+import { createAttendeeToken } from "@/lib/registration/tokens"
+import { isEmail, record } from "@/lib/registration/schema"
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-async function getUserByEmail(email: string) {
-  const normalized = email.trim().toLowerCase()
-
-  const { data, error } = await supabaseAdmin
-    .from("users")
-    .select("id,email")
-    .ilike("email", normalized)
-    .maybeSingle()
-
-  if (error) {
-    console.error("login getUserByEmail failed:", error.message)
-    return null
-  }
-
-  return data ?? null
-}
-
-export async function POST(req: Request): Promise<Response> {
+export async function POST(req: Request) {
   try {
-    const body = await req.json().catch((): null => null)
-    const slug = String(body?.slug || "").trim()
-    const emailRaw = String(body?.email || "").trim().toLowerCase()
-
-    if (!slug) {
-      return NextResponse.json({ error: "Missing event slug" }, { status: 400 })
+    const body = record(await req.json()), email = String(body.email ?? "").trim().toLowerCase(), slug = String(body.slug ?? "").trim()
+    if (!isEmail(email)) return NextResponse.json({ error: "Enter a valid email" }, { status: 400 })
+    const event = slug ? await getRegistrationEvent(slug) : null
+    if (slug && !event) return NextResponse.json({ error: "Event not found" }, { status: 404 })
+    if (body.challengeId) {
+      const challenge = await consumeEmailCode(String(body.challengeId), String(body.code ?? ""))
+      if (challenge.purpose !== "login" || challenge.event_id !== (event?.id ?? null) || challenge.email !== email) throw new Error("Code does not match this event and email")
+      if (event && !await getActiveRegistrant(event.id, email)) return NextResponse.json({ error: "No active registration found. Register or contact the organizer." }, { status: 403 })
+      const { data: user, error: userError } = await supabaseAdmin.from("users").upsert({ email }, { onConflict: "email" }).select("id").single()
+      if (userError) throw new Error("Unable to establish attendee session")
+      const response = NextResponse.json({ ok: true, verified: true, redirect: event ? `/events/${encodeURIComponent(event.slug)}` : "/my-webinars" })
+      response.cookies.set("user_token", createAttendeeToken({ email, userId: user.id, eventId: event?.id ?? null, slug: event?.slug ?? null }), { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", path: "/", maxAge: 7 * 86400 })
+      response.headers.set("Cache-Control", "no-store")
+      return response
     }
-
-    if (!emailRaw || !emailRaw.includes("@")) {
-      return NextResponse.json({ error: "Enter a valid email" }, { status: 400 })
-    }
-
-    const { data: event, error: eventError } = await supabaseAdmin
-      .from("events")
-      .select("id,slug,title")
-      .eq("slug", slug)
-      .maybeSingle()
-
-    if (eventError) {
-      return NextResponse.json({ error: eventError.message }, { status: 400 })
-    }
-
-    if (!event) {
-      return NextResponse.json({ error: "Event not found" }, { status: 404 })
-    }
-
-    const user = await getUserByEmail(emailRaw)
-
-    if (!user) {
-      return NextResponse.json(
-        {
-          error:
-            "Email not found for this event. Make sure you were added in the admin tools or CSV import.",
-        },
-        { status: 403 }
-      )
-    }
-
-    const response = NextResponse.json({
-      ok: true,
-      slug,
-      email: emailRaw,
-      userId: user.id,
-    })
-
-    response.cookies.set(eventEmailCookieName(slug), emailRaw, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    })
-
-    response.cookies.set(eventUserCookieName(slug), user.id, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    })
-
-    response.cookies.set("evt_email_last", emailRaw, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    })
-
-    response.cookies.set("evt_user_last", user.id, {
-      httpOnly: true,
-      sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 7,
-    })
-
-    return response
-  } catch (e: any) {
-    return NextResponse.json({ error: e?.message || "Login failed" }, { status: 400 })
-  }
+    // Do not disclose whether an email is registered before ownership is verified.
+    const challengeId = await requestEmailCode({ email, eventId: event?.id ?? null, purpose: "login", request: req })
+    return NextResponse.json({ ok: true, challengeId, verificationRequired: true }, { headers: { "Cache-Control": "no-store" } })
+  } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Unable to verify email" }, { status: 400 }) }
 }

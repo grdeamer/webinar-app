@@ -77,6 +77,7 @@ export async function getAssignedDistrictSessions(eventId: string, email: string
   const { data: registrant, error: registrantError } = await supabaseAdmin
     .from("event_registrants")
     .select("id")
+    .in("registration_status", ["registered", "approved", "checked_in"])
     .eq("event_id", eventId)
     .eq("email", normalizeDistrictEmail(email))
     .maybeSingle()

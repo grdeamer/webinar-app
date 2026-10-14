@@ -14,7 +14,7 @@ export async function buildEventViewerContext(
       email: authedUser.user.email ?? null,
       userId: authedUser.user.id,
       eventId,
-      assignedSessionIds: [],
+      assignedSessionIds: await getAssignedSessionIdsForRegistrantEmail(eventId, authedUser.user.email ?? ""),
     }
   }
 

@@ -273,7 +273,7 @@ export default function PersistedPageElementLayer({
             style={getElementContentAlignmentStyle(element)}
           >
             <a
-              href={String(element.props?.href ?? "#")}
+              href={(!element.props?.href || element.props.href === "#") && /register|sign up/i.test(element.content) ? "#registration" : String(element.props?.href ?? "#")}
               className="no-underline"
               style={getButtonElementPresentationStyle(element)}
             >

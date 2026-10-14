@@ -1,4 +1,5 @@
 "use client"
+import RegistrationSettingsCard from "./RegistrationSettingsCard"
 import TimelineControls from "./TimelineControls"
 
 import type { Dispatch, DragEvent, SetStateAction, ReactNode } from "react"
@@ -2108,6 +2109,8 @@ onDragEnd={handleLayerDragEnd}
                               </div>
                               {selectedBlock.props.componentKey === "live_timeline" ? <TimelineControls values={selectedBlock.props} onChange={updateSelectedBlockProps} /> : null}
                               {selectedBlock.props.componentKey === "registration_form" ? (
+  <>
+  <RegistrationSettingsCard value={selectedBlock.props.registrationSettings} onChange={(registrationSettings) => updateSelectedBlockProps({ registrationSettings })} />
   <RegistrationInspectorPanel
     componentKey={selectedBlock.props.componentKey}
     title={
@@ -2170,6 +2173,7 @@ onDragEnd={handleLayerDragEnd}
     onAddFieldTemplate={addRegistrationFieldFromTemplate}
     onRemoveField={removeRegistrationField}
   />
+  </>
 ) : null}
 {selectedBlock.props.componentKey === "agenda" ? (
   <AgendaInspectorPanel

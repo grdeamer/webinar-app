@@ -20,15 +20,16 @@ export async function loadEventPageDocument(
 ): Promise<LoadedEventPageDocument> {
   const { data } = await supabaseAdmin
     .from("event_page_sections")
-    .select("sections, elements, page_theme, document_revision")
+    .select("published_document")
     .eq("event_id", eventId)
     .eq("page_key", pageKey)
     .maybeSingle()
 
+  const published = data?.published_document && typeof data.published_document === "object" ? data.published_document : {}
   return {
-    sections: data?.sections ?? null,
-    elements: normalizeEventPageElements(data?.elements),
-    eventTheme: data?.page_theme && typeof data.page_theme === "object" && !Array.isArray(data.page_theme) ? data.page_theme as EventTheme : null,
-    revision: normalizeRevision(data?.document_revision),
+    sections: published.sections ?? null,
+    elements: normalizeEventPageElements(published.elements),
+    eventTheme: published.eventTheme && typeof published.eventTheme === "object" && !Array.isArray(published.eventTheme) ? published.eventTheme as EventTheme : null,
+    revision: normalizeRevision(published.revision),
   }
 }

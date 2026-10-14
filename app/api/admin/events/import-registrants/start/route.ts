@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server"
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
+import { NextResponse, after } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
 
@@ -13,6 +14,12 @@ export async function POST(req: Request) {
   const file = form.get("file")
   const eventId = String(form.get("event_id") || "").trim() || null
 
+  if (eventId) {
+    const access = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
+    if (access instanceof Response) return access
+  } else if (authResult.profile.role !== "admin") {
+    return NextResponse.json({ error: "Choose an event you manage before importing" }, { status: 403 })
+  }
   if (!(file instanceof File)) {
     return NextResponse.json({ error: "CSV file is required" }, { status: 400 })
   }
@@ -50,22 +57,13 @@ export async function POST(req: Request) {
 
   const importUrl = new URL("/api/admin/events/import-registrants", req.url)
 
-  void fetch(importUrl, {
-    method: "POST",
-    body: fd,
-    headers: {
-      cookie: req.headers.get("cookie") || "",
-    },
-  }).catch(async (err) => {
-    await supabaseAdmin
-      .from("import_jobs")
-      .update({
-        status: "error",
-        error_message: err?.message || "Failed to dispatch import job",
-        finished_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", job.id)
+  after(async () => {
+    try {
+      const response = await fetch(importUrl, { method: "POST", body: fd, headers: { cookie: req.headers.get("cookie") || "" } })
+      if (!response.ok) throw new Error(`Import failed with HTTP ${response.status}`)
+    } catch (error) {
+      await supabaseAdmin.from("import_jobs").update({ status: "error", error_message: error instanceof Error ? error.message : "Import failed", finished_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq("id", job.id)
+    }
   })
 
   return NextResponse.json({

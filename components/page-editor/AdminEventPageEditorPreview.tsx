@@ -2901,10 +2901,16 @@ const selectedExperienceNode = experienceNodes.find(
           onPreview={toggleEditing}
           onShare={() => setCollaborationOpen(true)}
           onPublish={() => {
-            void flushCurrentPage().then((saved) => {
-              if (!saved || !eventAdminId) return
-              window.location.assign(`/admin/events/${eventAdminId}/publishing`)
-            })
+            void (async () => {
+              if (!await flushCurrentPage()) return
+              const latest = await fetch(`/api/admin/page-editor/event/${slug}/elements?pageKey=${encodeURIComponent(selectedPageKey)}`).then((r) => r.json())
+              const response = await fetch(`/api/admin/page-editor/event/${slug}/publish`, {
+                method: "POST", headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ pageKey: selectedPageKey, revision: latest.revision }),
+              })
+              const data = await response.json()
+              setSaveMessage(response.ok ? "Page published" : data.error || "Publish failed")
+            })().catch(() => setSaveMessage("Publish failed. Please try again."))
           }}
           onToggleGrid={() => setShowGrid((value) => !value)}
           onToggleRulers={() => setShowRulers((value) => !value)}

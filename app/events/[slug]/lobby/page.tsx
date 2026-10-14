@@ -1,3 +1,4 @@
+import { getAssignedSessionIdsForRegistrantEmail, listEventSessions } from "@/lib/repos/sessionsRepo"
 import Link from "next/link"
 import { getEventBySlug } from "@/lib/events"
 import { getEventUserOrNull } from "@/lib/eventAuth"
@@ -436,7 +437,11 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
   const sections =
     savedSections.length > 0 ? savedSections : getLobbyFallbackSections()
   const liveRouting = renderLiveRoutingBlock({ liveDestination, liveState })
-  const sessionsPreview = renderSessionsPreviewBlock({ webinars, slug })
+  const [assignedIds, canonicalSessions] = await Promise.all([
+    getAssignedSessionIdsForRegistrantEmail(event.id, user.email ?? ""), listEventSessions(event.id),
+  ])
+  const assignedSessions = canonicalSessions.filter((session) => assignedIds.includes(session.id))
+  const sessionsPreview = assignedSessions.length ? <section className="space-y-3 rounded-2xl border border-white/10 p-5"><h2 className="text-xl font-semibold">Your sessions</h2>{assignedSessions.map((session) => <Link key={session.id} href={`/events/${slug}/sessions/${session.id}`} className="block rounded-xl border border-white/15 p-4">{session.title} →</Link>)}</section> : renderSessionsPreviewBlock({ webinars, slug })
   const speakerCards = (
     <EventSpeakerCards speakers={speakers} title="Session speakers" compact />
   )

@@ -31,7 +31,8 @@ function toDateISO(dateRaw: string) {
 
 export async function POST(req: Request): Promise<Response> {
   try {
-    await requireAdmin()
+    const auth = await requireAdmin()
+  if (auth.profile.role !== "admin") return NextResponse.json({ error: "Global administrator required" }, { status: 403 })
 
     const form = await req.formData()
     const file = form.get("file")

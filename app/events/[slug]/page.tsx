@@ -474,6 +474,7 @@ export default async function EventHomePage(props: {
   const displayEventTitle = formatDisplayTitle(event.title)
 
   const systemComponents = {
+    registration_event_slug: slug,
     live_timeline: <LiveTimeline sessions={agenda.map(item => ({ ...item, title: item.title || "Untitled session" }))} />,
     lets_live_agenda: (
       <LetsLiveAgendaExperience

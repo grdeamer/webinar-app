@@ -1,3 +1,4 @@
+import { readAllRows } from "@/lib/registration/paginate"
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
@@ -109,15 +110,10 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     return NextResponse.json({ error: "Event not found" }, { status: 404 })
   }
 
-  const { data: registrants, error: registrantsError } = await supabaseAdmin
-    .from("event_registrants")
-    .select("id,email,first_name,last_name")
-    .eq("event_id", eventId)
-    .order("email", { ascending: true })
-
-  if (registrantsError) {
-    return NextResponse.json({ error: registrantsError.message }, { status: 500 })
-  }
+  let registrants: RegistrantRow[]
+  try {
+    registrants = await readAllRows<RegistrantRow>((from, to) => supabaseAdmin.from("event_registrants").select("id,email,first_name,last_name").eq("event_id", eventId).in("registration_status", ["registered", "approved", "checked_in"]).order("email").range(from, to))
+  } catch { return NextResponse.json({ error: "Unable to load all recipients" }, { status: 500 }) }
 
   const registrantRows = Array.from(
     new Map(
@@ -127,14 +123,10 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     ).values()
   )
 
-  const { data: assignments, error: assignmentsError } = await supabaseAdmin
-    .from("event_registrant_sessions")
-    .select("registrant_id,session_id")
-    .eq("event_id", eventId)
-
-  if (assignmentsError) {
-    return NextResponse.json({ error: assignmentsError.message }, { status: 500 })
-  }
+  let assignments: { registrant_id: string; session_id: string }[]
+  try {
+    assignments = await readAllRows<{ registrant_id: string; session_id: string }>((from, to) => supabaseAdmin.from("event_registrant_sessions").select("registrant_id,session_id").eq("event_id", eventId).order("id").range(from, to))
+  } catch { return NextResponse.json({ error: "Unable to load all assignments" }, { status: 500 }) }
 
   const sessionIds = Array.from(
     new Set((assignments || []).map((assignment) => assignment.session_id).filter(Boolean))
@@ -258,7 +250,7 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
     idempotencyKey: `confirmation:production:${eventId}:${requestKey}`,
     recipientCount: registrantRows.length,
   })
-  const results: Array<{ email: string; ok: boolean; error?: string }> = []
+  const results: Array<{ email: string; ok: boolean; error?: string; resendEmailId?: string }> = []
 
   for (let offset = 0; offset < registrantRows.length; offset += 100) {
     const chunk = registrantRows.slice(offset, offset + 100)
@@ -288,16 +280,17 @@ export async function POST(req: Request, context: RouteContext): Promise<Respons
       continue
     }
     const failures = new Map(response.data.errors.map((failure) => [failure.index, failure.message]))
+    let acceptedIndex = 0
     chunk.forEach((registrant, index) => {
       const failure = failures.get(index)
-      results.push(failure ? { email: registrant.email, ok: false, error: failure } : { email: registrant.email, ok: true })
+      results.push(failure ? { email: registrant.email, ok: false, error: failure } : { email: registrant.email, ok: true, resendEmailId: response.data?.data[acceptedIndex++]?.id })
     })
   }
 
   await recordEmailMessages({
     campaignId,
     eventId,
-    messages: results.map((result) => ({ recipientEmail: result.email, status: result.ok ? "accepted" : "failed", errorMessage: result.error })),
+    messages: results.map((result) => ({ recipientEmail: result.email, resendEmailId: result.resendEmailId, status: result.ok ? "accepted" : "failed", errorMessage: result.error })),
   })
   const sent = results.filter((result) => result.ok).length
   const failed = results.length - sent

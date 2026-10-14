@@ -36,6 +36,7 @@ export async function getAssignedSessionIdsForRegistrantEmail(eventId: string, e
   const { data: registrants, error: registrantsError } = await supabaseAdmin
     .from("event_registrants")
     .select("id")
+    .in("registration_status", ["registered", "approved", "checked_in"])
     .eq("event_id", eventId)
     .eq("email", normalizedEmail)
 

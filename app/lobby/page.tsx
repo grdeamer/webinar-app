@@ -1,6 +1,7 @@
+import Link from "next/link"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import jwt from "jsonwebtoken"
+import { verifyAttendeeToken } from "@/lib/registration/tokens"
 import JoinButton from "../../components/JoinButton"
 import { supabaseAdmin } from "../../lib/supabaseAdmin"
 
@@ -83,7 +84,7 @@ export default async function MyWebinarsPage() {
 
   let userId: string | null = null
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as { userId?: string }
+    const decoded = verifyAttendeeToken(token)
     userId = decoded?.userId ?? null
   } catch {
     redirect("/")
@@ -151,18 +152,18 @@ export default async function MyWebinarsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <a
+            <Link
               href="/webinars"
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:bg-white/10"
             >
               Public List
-            </a>
-            <a
+            </Link>
+            <Link
               href="/access"
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium transition hover:bg-white/10"
             >
               Change Email
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -178,18 +179,18 @@ export default async function MyWebinarsPage() {
             </p>
 
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <a
+              <Link
                 href="/access"
                 className="rounded-xl bg-indigo-600 px-5 py-3 font-medium transition hover:bg-indigo-700"
               >
                 Re-enter email →
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/webinars"
                 className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 font-medium transition hover:bg-white/10"
               >
                 Browse public list
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -235,12 +236,12 @@ export default async function MyWebinarsPage() {
                       </button>
                     )}
 
-                    <a
+                    <Link
                       href={`/webinars/${w.id}`}
                       className="inline-flex mt-6 items-center justify-center rounded-xl bg-white/10 px-5 py-3 font-medium transition hover:bg-white/20"
                     >
                       Details
-                    </a>
+                    </Link>
                   </div>
                 </div>
               )

@@ -87,6 +87,7 @@ export async function POST(req: Request) {
   try {
     const authResult = await requireAdmin()
     if (authResult instanceof Response) return authResult
+    if (authResult.profile.role !== "admin") return NextResponse.json({ error: "Global administrator required" }, { status: 403 })
 
     const form = await req.formData()
     const file = form.get("file")

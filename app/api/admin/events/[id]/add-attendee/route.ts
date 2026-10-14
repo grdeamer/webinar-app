@@ -42,58 +42,15 @@ export async function POST(
       return json({ error: "Valid email required" }, 400)
     }
 
-    // Keep legacy access records in sync while event_registrants remains the
-    // canonical event directory used by People and Communications.
-    const { data: user, error: userErr } = await supabaseAdmin
-      .from("users")
-      .upsert(
-        { email },
-        { onConflict: "email" }
-      )
-      .select("id,email")
-      .single()
-
-    if (userErr || !user?.id) {
-      return json({ error: userErr?.message || "User upsert failed" }, 400)
-    }
-
-    // 2️⃣ event_attendees (legacy / access control)
-    const { error: attendeeErr } = await supabaseAdmin
-      .from("event_attendees")
-      .upsert(
-        {
-          event_id,
-          user_id: user.id,
-        },
-        { onConflict: "event_id,user_id" }
-      )
-
-    if (attendeeErr) {
-      return json({ error: attendeeErr.message }, 400)
-    }
-
-    // ✅ 3️⃣ CRITICAL FIX: event_registrants (what UI reads)
-    const { error: registrantErr } = await supabaseAdmin
-      .from("event_registrants")
-      .upsert(
-        {
-          event_id,
-          email,
-          first_name,
-          last_name,
-          tag,
-        },
-        { onConflict: "event_id,email" }
-      )
-
-    if (registrantErr) {
-      return json({ error: registrantErr.message }, 400)
-    }
-
+    const { data: saved, error: saveError } = await supabaseAdmin.rpc("save_event_registration", {
+      p_event_id: event_id, p_email: email, p_first_name: first_name, p_last_name: last_name,
+      p_answers: {}, p_session_ids: null, p_source: "admin", p_tag: tag,
+    })
+    if (saveError) return json({ error: saveError.message }, 400)
     return json({
       success: true,
       attendee: {
-        user_id: user.id,
+        user_id: saved.userId,
         email,
         first_name,
         last_name,

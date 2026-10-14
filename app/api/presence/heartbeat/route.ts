@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import jwt from "jsonwebtoken"
+import { verifyAttendeeToken } from "@/lib/registration/tokens"
 import { cookies } from "next/headers"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
@@ -14,9 +14,9 @@ export async function POST(req: Request) {
   const token = cookieStore.get("user_token")?.value
   if (!token) return NextResponse.json({ error: "Not signed in" }, { status: 401 })
 
-  let payload: any
+  let payload: ReturnType<typeof verifyAttendeeToken>
   try {
-    payload = jwt.verify(token, JWT_SECRET)
+    payload = verifyAttendeeToken(token)
   } catch {
     return NextResponse.json({ error: "Invalid session" }, { status: 401 })
   }

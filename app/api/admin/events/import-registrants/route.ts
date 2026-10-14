@@ -1,3 +1,4 @@
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
@@ -166,6 +167,12 @@ export async function POST(req: Request) {
     const forcedEventId = String(form.get("event_id") || "").trim() || null
     const existingJobId = String(form.get("job_id") || "").trim() || null
 
+  if (forcedEventId) {
+    const access = await requireEventOperatorAccess(forcedEventId, ["event_admin", "producer"], "people")
+    if (access instanceof Response) return access
+  } else if (authResult.profile.role !== "admin") {
+    return NextResponse.json({ error: "Choose an event you manage before importing" }, { status: 403 })
+  }
     if (!(file instanceof File)) {
       return NextResponse.json({ error: "CSV file is required" }, { status: 400 })
     }
@@ -180,6 +187,8 @@ export async function POST(req: Request) {
     }
 
     if (existingJobId) {
+      const { data: existingJob, error: jobLookupError } = await supabaseAdmin.from("import_jobs").select("event_id").eq("id", existingJobId).single()
+      if (jobLookupError || !existingJob || existingJob.event_id !== forcedEventId) return NextResponse.json({ error: "Import job does not belong to this event" }, { status: 403 })
       jobId = existingJobId
 
       await supabaseAdmin
@@ -510,69 +519,14 @@ export async function POST(req: Request) {
 
     for (const row of validatedRows) {
       const eventId = row.resolvedEventId!
-      const upsertPayload = {
-        event_id: eventId,
-        email: row.email,
-        first_name: row.firstName,
-        last_name: row.lastName,
-        tag: row.tag,
-        notes: row.notes,
-      }
-
-      const { data: existingRegistrant } = await supabaseAdmin
-        .from("event_registrants")
-        .select("id")
-        .eq("event_id", eventId)
-        .eq("email", row.email)
-        .maybeSingle()
-
-      const { data: registrant, error: upsertError } = await supabaseAdmin
-        .from("event_registrants")
-        .upsert(upsertPayload, { onConflict: "event_id,email" })
-        .select("id")
-        .single()
-
-      if (upsertError || !registrant?.id) {
-        throw new Error(
-          `Failed to upsert registrant for ${row.email}: ${upsertError?.message || "Unknown error"}`
-        )
-      }
-
-      if (existingRegistrant?.id) registrantsUpdated++
-      else registrantsCreated++
-
-      const registrantId = registrant.id
-
-      const { error: deleteError } = await supabaseAdmin
-        .from("event_registrant_sessions")
-        .delete()
-        .eq("registrant_id", registrantId)
-
-      if (deleteError) {
-        throw new Error(
-          `Failed clearing existing session assignments for ${row.email}: ${deleteError.message}`
-        )
-      }
-
-      if (row.resolvedSessionIds.length) {
-        const insertRows = row.resolvedSessionIds.map((sessionId) => ({
-          event_id: eventId,
-          registrant_id: registrantId,
-          session_id: sessionId,
-        }))
-
-        const { error: insertError } = await supabaseAdmin
-          .from("event_registrant_sessions")
-          .insert(insertRows)
-
-        if (insertError) {
-          throw new Error(
-            `Failed inserting session assignments for ${row.email}: ${insertError.message}`
-          )
-        }
-
-        assignmentsWritten += insertRows.length
-      }
+      const { data: existingRegistrant } = await supabaseAdmin.from("event_registrants").select("id").eq("event_id", eventId).eq("email", row.email).maybeSingle()
+      const { error: saveError } = await supabaseAdmin.rpc("save_event_registration", {
+        p_event_id: eventId, p_email: row.email, p_first_name: row.firstName, p_last_name: row.lastName,
+        p_answers: {}, p_session_ids: row.resolvedSessionIds, p_source: "admin", p_tag: row.tag, p_notes: row.notes,
+      })
+      if (saveError) throw new Error(`Import failed on row ${processed + 1}: ${saveError.message}. Previous completed rows were saved.`)
+      if (existingRegistrant) registrantsUpdated++; else registrantsCreated++
+      assignmentsWritten += row.resolvedSessionIds.length
 
       processed++
 

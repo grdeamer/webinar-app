@@ -1,16 +1,11 @@
+import Link from "next/link"
 import { cookies } from "next/headers"
 import { redirect } from "next/navigation"
-import jwt from "jsonwebtoken"
-import AttendeePresenceHeartbeat from "@/components/AttendeePresenceHeartbeat"
+import { verifyAttendeeToken } from "@/lib/registration/tokens"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-type UserTokenPayload = {
-  userId?: string
-  email?: string
-}
 
 type SessionRow = {
   id: string
@@ -78,24 +73,26 @@ export default async function MyWebinarsPage() {
   let userEmail: string | null = null
 
   try {
-    const decoded = jwt.verify(token, JWT_SECRET) as UserTokenPayload
-    userEmail = decoded.email ?? null
+    const decoded = verifyAttendeeToken(token)
+    userEmail = decoded?.email ?? null
   } catch {
     redirect("/")
   }
 
   if (!userEmail) redirect("/")
+  const scopedIdentity = verifyAttendeeToken(token)
 
   const { data: registrants, error: registrantError } = await supabaseAdmin
     .from("event_registrants")
     .select("id,event_id,email")
+    .in("registration_status", ["registered", "approved", "checked_in"])
     .eq("email", userEmail)
 
   if (registrantError) {
     console.error("event_registrants query error:", registrantError)
   }
 
-  const registrantIds = (registrants ?? []).map((r: any) => r.id).filter(Boolean)
+  const registrantIds = (registrants ?? []).filter((r) => !scopedIdentity?.eventId || r.event_id === scopedIdentity.eventId).map((r) => r.id).filter(Boolean)
 
   let sessions: SessionRow[] = []
 
@@ -111,8 +108,8 @@ export default async function MyWebinarsPage() {
           code,
           title,
           description,
-          start_at,
-          end_at,
+          start_at:starts_at,
+          end_at:ends_at,
           join_link
         )
       `
@@ -124,13 +121,13 @@ export default async function MyWebinarsPage() {
     } else {
       sessions =
         (assignments ?? [])
-          .map((row: any) =>
+          .map((row) =>
             Array.isArray(row.event_sessions)
               ? row.event_sessions[0] ?? null
               : row.event_sessions
           )
-          .filter(Boolean)
-          .map((s: any) => ({
+          .filter((s) => s != null)
+          .map((s) => ({
             id: String(s.id),
             event_id: String(s.event_id),
             code: s.code ?? null,
@@ -170,18 +167,18 @@ export default async function MyWebinarsPage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <a
+            <Link
               href="/webinars"
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium hover:bg-white/10 transition"
             >
               Public List
-            </a>
-            <a
+            </Link>
+            <Link
               href="/access"
               className="rounded-xl border border-white/10 bg-white/5 px-4 py-2 text-sm font-medium hover:bg-white/10 transition"
             >
               Change Email
-            </a>
+            </Link>
           </div>
         </div>
 
@@ -193,18 +190,18 @@ export default async function MyWebinarsPage() {
             </p>
 
             <div className="mt-6 flex flex-col items-center justify-center gap-3 sm:flex-row">
-              <a
+              <Link
                 href="/access"
                 className="rounded-xl bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-700 transition"
               >
                 Re-enter email →
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/webinars"
                 className="rounded-xl border border-white/10 bg-white/5 px-5 py-3 font-medium hover:bg-white/10 transition"
               >
                 Browse public list
-              </a>
+              </Link>
             </div>
           </div>
         )}
@@ -246,12 +243,12 @@ export default async function MyWebinarsPage() {
 
                   <div className="mt-6 flex gap-3">
                     {session.join_link ? (
-                      <a
+                      <Link
                         href={session.join_link}
                         className="inline-flex items-center justify-center rounded-xl bg-indigo-600 px-5 py-3 font-medium hover:bg-indigo-700 transition"
                       >
                         Join session
-                      </a>
+                      </Link>
                     ) : (
                       <button
                         disabled

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import jwt from "jsonwebtoken"
+import { verifyAttendeeToken } from "@/lib/registration/tokens"
 import { cookies } from "next/headers"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
@@ -27,7 +27,7 @@ export async function POST(req: Request) {
     let userId: string | null = null
     if (token && JWT_SECRET) {
       try {
-        const payload = jwt.verify(token, JWT_SECRET) as any
+        const payload = verifyAttendeeToken(token)
         if (payload?.userId && typeof payload.userId === "string") {
           userId = payload.userId
         }

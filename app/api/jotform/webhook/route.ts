@@ -1,3 +1,6 @@
+import { timingSafeEqual } from "node:crypto"
+import { supabaseAdmin } from "@/lib/supabase/admin"
+import { isEmail } from "@/lib/registration/schema"
 import { NextResponse } from "next/server"
 
 export const runtime = "nodejs"
@@ -102,14 +105,15 @@ export async function POST(req: Request): Promise<Response> {
     )
   }
 
-  if (secret !== process.env.JOTFORM_WEBHOOK_SECRET) {
+  const supplied = Buffer.from(secret || ""), expected = Buffer.from(process.env.JOTFORM_WEBHOOK_SECRET)
+  if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
   }
 
-  const body = (await req
-  .json()
-  .catch((): null => null)) as JotformWebhookBody | null
-
+  let body: JotformWebhookBody | null = null
+  try {
+    body = req.headers.get("content-type")?.includes("application/json") ? await req.json() : Object.fromEntries(await req.formData())
+  } catch { body = null }
   if (!body) {
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 })
   }
@@ -129,9 +133,15 @@ if (!registration.eventSlug || !registration.email) {
   )
 }
 
-return NextResponse.json({
-  ok: true,
-  submission,
-  registration,
+if (!submission.submissionId || !submission.formId || !isEmail(registration.email)) return NextResponse.json({ error: "A submission ID, form ID, and valid email are required" }, { status: 400 })
+const { data: event } = await supabaseAdmin.from("events").select("id").eq("slug", registration.eventSlug).maybeSingle()
+if (!event) return NextResponse.json({ error: "Event not found" }, { status: 404 })
+const { data, error } = await supabaseAdmin.rpc("save_jotform_registration", {
+  p_submission_id: `${submission.formId}:${submission.submissionId}`, p_event_id: event.id,
+  p_email: registration.email, p_first_name: registration.firstName, p_last_name: registration.lastName,
+  p_answers: { organization: registration.company }, p_session_ids: registration.sessionIds,
+  p_tag: registration.role === "presenter" ? "Presenter" : "Registrant",
 })
+if (error) return NextResponse.json({ error: "Unable to save submission; verify event and session mapping" }, { status: 400 })
+return NextResponse.json({ ok: true, registrantId: data.id })
 }

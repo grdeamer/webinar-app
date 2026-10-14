@@ -1,3 +1,5 @@
+import RegistrationForm from "@/components/registration/RegistrationForm"
+import { normalizeRegistrationConfig } from "@/lib/registration/schema"
 import { isLiveAgendaSection, materializeLiveAgendaSection } from "@/lib/page-editor/liveAgendaLayout"
 import type { LetsLiveAgendaProps } from "@/components/events/LetsLiveAgendaExperience"
 import type { LiveTimelineProps } from "@/components/events/LiveTimeline"
@@ -188,7 +190,9 @@ function renderBlock(
 
   if (block.type === "system_component") {
     const componentKey = block.props.componentKey
-    const baseNode = systemComponents[componentKey]
+    const baseNode = componentKey === "registration_form"
+      ? <RegistrationForm slug={typeof systemComponents.registration_event_slug === "string" ? systemComponents.registration_event_slug : undefined} config={normalizeRegistrationConfig(block.props)} />
+      : systemComponents[componentKey]
     const node = componentKey === "live_timeline" && isValidElement<LiveTimelineProps>(baseNode) ? cloneElement(baseNode, { timelineTrack: String(block.props.timelineTrack || ""), showRemaining: block.props.showRemaining !== false, accentColor: String(block.props.accentColor || "#eb1700") }) : baseNode
 
     if (!node) {
@@ -203,7 +207,9 @@ function renderBlock(
         )
       }
 
-      const cardClass = getCardClass(block.props.containerStyle ?? "panel")
+      if (componentKey === "registration_form") return <div key={block.id}>{node}</div>
+
+    const cardClass = getCardClass(block.props.containerStyle ?? "panel")
 
       return (
         <div key={block.id} className={cardClass || undefined}>
@@ -222,6 +228,8 @@ function renderBlock(
     if (layout === "card-stack") {
       return <div key={block.id}>{node}</div>
     }
+
+    if (componentKey === "registration_form") return <div key={block.id}>{node}</div>
 
     const cardClass = getCardClass(block.props.containerStyle ?? "panel")
 

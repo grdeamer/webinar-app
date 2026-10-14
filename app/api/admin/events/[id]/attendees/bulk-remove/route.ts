@@ -1,3 +1,4 @@
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { NextResponse } from "next/server"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { supabaseAdmin } from "@/lib/supabase/admin"
@@ -21,6 +22,8 @@ export async function POST(
     if (auth instanceof Response) return auth
 
     const { id: eventId } = await context.params
+    const access = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
+    if (access instanceof Response) return access
     const body = await request.json().catch(() => ({}))
     
     console.log("Bulk removal request:", { eventId, attendeeIdsCount: body.attendee_ids?.length, bodyKeys: Object.keys(body) })
@@ -130,21 +133,9 @@ export async function POST(
         }
         
         for (const userIdBatch of userIdBatches) {
-          // Try to delete from legacy tables if they exist, but don't fail if they don't
-          try {
-            await supabaseAdmin.from("event_user_webinars").delete().eq("event_id", eventId).in("user_id", userIdBatch)
-            console.log("event_user_webinars deletion attempted for batch")
-          } catch (webinarError) {
-            // Table might not exist, log but continue
-            console.warn("event_user_webinars table doesn't exist or deletion failed:", webinarError)
-          }
-          
-          try {
-            await supabaseAdmin.from("event_attendees").delete().eq("event_id", eventId).in("user_id", userIdBatch)
-            console.log("event_attendees deletion attempted for batch")
-          } catch (attendeeError) {
-            // Table might not exist, log but continue
-            console.warn("event_attendees table doesn't exist or deletion failed:", attendeeError)
+          for (const table of ["event_user_webinars", "event_attendees"]) {
+            const { error } = await supabaseAdmin.from(table).delete().eq("event_id", eventId).in("user_id", userIdBatch)
+            if (error) throw new Error(`Access cleanup failed: ${error.message}`)
           }
         }
       }

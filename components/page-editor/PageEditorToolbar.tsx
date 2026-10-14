@@ -115,11 +115,11 @@ export default function PageEditorToolbar(props: Props) {
         <div className="flex flex-wrap items-center gap-2">
           <button type="button" onClick={props.onShare} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Share</button>
           <button type="button" disabled={props.isCodeEditorOpen} onClick={props.onPreview} className={`${EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS} disabled:opacity-35`}>{props.isEditing ? "Preview" : "Back to editor"}</button>
-          <button type="button" onClick={props.onPublish} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,58,237,0.28)] transition hover:bg-violet-500">Publishing settings</button>
+          <button type="button" onClick={props.onPublish} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,58,237,0.28)] transition hover:bg-violet-500">Publish page</button>
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3 border-t border-white/[0.06] bg-black/15 px-5 py-2">
-        <div className="flex flex-wrap items-center gap-3 text-xs"><span className="font-semibold text-white/80">{pageTitle}</span><span role="status" className="text-white/60">{props.saveStatus}</span><span className="text-[11px] text-amber-100/65">Autosave updates the attendee page</span></div>
+        <div className="flex flex-wrap items-center gap-3 text-xs"><span className="font-semibold text-white/80">{pageTitle}</span><span role="status" className="text-white/60">{props.saveStatus}</span><span className="text-[11px] text-amber-100/65">Autosave saves a draft · Publish page makes it live</span></div>
         <div className="flex flex-wrap items-center gap-2">
           {props.isEditing ? <><button type="button" aria-label="Undo" onClick={props.onUndo} disabled={!props.canUndo} className="rounded-lg p-2 text-white/65 hover:bg-white/10 disabled:opacity-25"><Undo2 className="h-4 w-4" /></button><button type="button" aria-label="Redo" onClick={props.onRedo} disabled={!props.canRedo} className="rounded-lg p-2 text-white/65 hover:bg-white/10 disabled:opacity-25"><Redo2 className="h-4 w-4" /></button></> : null}
           <div className="flex gap-1 rounded-xl border border-white/10 bg-black/20 p-1" aria-label="Preview device">

@@ -1,3 +1,4 @@
+import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
@@ -19,6 +20,11 @@ export async function GET(
     .select("*")
     .eq("id", id)
     .single()
+
+  if (data?.event_id) {
+    const access = await requireEventOperatorAccess(data.event_id, ["event_admin", "producer"], "people")
+    if (access instanceof Response) return access
+  } else if (authResult.profile.role !== "admin") return NextResponse.json({ error: "Import access denied" }, { status: 403 })
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 })

@@ -8,6 +8,8 @@ import JupiterLogo from "@/components/brand/JupiterLogo"
 export default function AccessPage() {
   const router = useRouter()
 
+  const [challengeId, setChallengeId] = useState<string | null>(null)
+  const [code, setCode] = useState("")
   const [email, setEmail] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -21,7 +23,7 @@ export default function AccessPage() {
       const res = await fetch("/api/access", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, challengeId, code }),
       })
 
       const data = await res.json().catch(() => ({}))
@@ -32,13 +34,8 @@ export default function AccessPage() {
         return
       }
 
-      if (!data?.slug) {
-        setError("No event slug was returned for this attendee.")
-        setLoading(false)
-        return
-      }
-
-      router.push(`/events/${data.slug}/sessions`)
+      if (data.verificationRequired) { setChallengeId(data.challengeId); setLoading(false); return }
+      router.push(data.redirect || "/my-webinars")
       router.refresh()
     } catch {
       setError("Network error. Try again.")
@@ -76,6 +73,8 @@ export default function AccessPage() {
             />
           </div>
 
+          {challengeId ? <label>Verification code<input aria-label="Verification code" required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} className="block w-full rounded-xl bg-black/30 p-3" /></label> : null}
+          {challengeId ? <button type="button" onClick={() => { setChallengeId(null); setCode("") }}>Request a new code</button> : null}
           {error ? (
             <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
               {error}
@@ -86,7 +85,7 @@ export default function AccessPage() {
             disabled={loading}
             className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 transition px-5 py-3 font-medium shadow-lg shadow-indigo-600/20"
           >
-            {loading ? "Continuing..." : "Continue →"}
+            {loading ? "Please wait..." : challengeId ? "Verify and enter" : "Email me a code"}
           </button>
         </form>
 

@@ -56,6 +56,8 @@ export async function POST(req: Request): Promise<Response> {
 
   const status = MESSAGE_STATUSES[eventType]
   if (status && resendEmailId) {
+    const { error: receiptError } = await supabaseAdmin.from("event_registration_receipts").update({ status }).eq("resend_email_id", resendEmailId)
+    if (receiptError) return NextResponse.json({ error: "Unable to update receipt delivery" }, { status: 500 })
     const { error: updateError } = await supabaseAdmin
       .from("event_email_messages")
       .update({ status, updated_at: new Date().toISOString() })

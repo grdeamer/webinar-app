@@ -266,6 +266,7 @@ function renderBlock(
     const baseNode =
       componentKey === "registration_form" ? (
         <RegistrationFlowPreview
+          registrationSettings={block.props.registrationSettings}
           title={typeof block.props.title === "string" ? block.props.title : undefined}
           body={typeof block.props.body === "string" ? block.props.body : undefined}
           ctaLabel={typeof registrationProps.ctaLabel === "string" ? registrationProps.ctaLabel : undefined}
@@ -293,6 +294,8 @@ variant={
       )
     const node = componentKey === "live_timeline" && isValidElement<LiveTimelineProps>(baseNode) ? cloneElement(baseNode, { timelineTrack: String(block.props.timelineTrack || ""), showRemaining: block.props.showRemaining !== false, accentColor: String(block.props.accentColor || "#eb1700") }) : baseNode
     if (!node) return null
+
+    if (componentKey === "registration_form") return <div key={block.id}>{node}</div>
 
     const cardClass = getCardClass(block.props.containerStyle ?? "panel")
 

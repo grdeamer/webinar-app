@@ -35,7 +35,8 @@ function detectDelimiter(sample: string): string {
 }
 
 export async function POST(req: Request): Promise<Response> {
-  await requireAdmin()
+  const auth = await requireAdmin()
+  if (auth.profile.role !== "admin") return NextResponse.json({ error: "Global administrator required" }, { status: 403 })
 
   try {
     const formData = await req.formData()
