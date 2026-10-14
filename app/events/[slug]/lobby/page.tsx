@@ -284,14 +284,15 @@ function renderSessionsPreviewBlock(args: {
 
 function renderMetricGridBlock(args: {
   webinars: EventAssignedWebinar[]
+  sessionsCount: number
 }) {
-  const { webinars } = args
+  const { webinars, sessionsCount } = args
 
   return (
     <section className="grid gap-4 md:grid-cols-3">
       <MetricCard
         label="Sessions"
-        value={String(webinars.length)}
+        value={String(sessionsCount)}
         hint="Assigned to your event access"
       />
       <MetricCard
@@ -452,9 +453,9 @@ export default async function LobbyPage(props: { params: Promise<{ slug: string 
         eventTitle: event.title,
         eventDescription: event.description,
         userEmail: user.email ?? "Unknown attendee",
-        webinarsCount: webinars.length,
+        webinarsCount: assignedSessions.length || webinars.length,
       })}
-      {renderMetricGridBlock({ webinars })}
+      {renderMetricGridBlock({ webinars, sessionsCount: assignedSessions.length || webinars.length })}
       <div className="grid gap-6 lg:grid-cols-[1.45fr_0.95fr]">
         {sessionsPreview}
         {renderNavigationCardsBlock({ slug })}

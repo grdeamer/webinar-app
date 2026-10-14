@@ -1,7 +1,8 @@
+import { buildVerificationEmail } from "@/lib/email/registration"
 import { randomInt, randomUUID } from "node:crypto"
 import { supabaseAdmin } from "@/lib/supabase/admin"
-import { getEmailFrom, getResendClient } from "@/lib/email/resend"
-import { digest } from "./tokens"
+import { getAppUrl, getEmailFrom, getResendClient } from "@/lib/email/resend"
+import { createVerificationLink, digest } from "./tokens"
 import { normalizeRegistrationConfig, type RegistrationConfig } from "./schema"
 export async function getRegistrationEvent(slug: string) {
   const { data, error } = await supabaseAdmin.from("events").select("id,slug,title").eq("slug", slug).maybeSingle()
@@ -23,7 +24,12 @@ export async function requestEmailCode(input: { email: string; eventId: string |
   })
   if (error) throw new Error("Unable to request verification")
   if (!data) throw new Error("Too many requests. Please wait ten minutes and try again.")
-  const response = await getResendClient().emails.send({ from: getEmailFrom(), to: input.email, subject: "Your Jupiter verification code", text: `Your Jupiter verification code is ${code}. It expires in 10 minutes. If you did not request this code, ignore this email.` }, { idempotencyKey: `registration-code-${id}` })
+  const event = input.eventId ? await supabaseAdmin.from("events").select("slug").eq("id", input.eventId).single() : null
+  // Preview links stay on the exact deployment that requested verification.
+  const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : getAppUrl()
+  const token = createVerificationLink({ challengeId: id, code, email: input.email, slug: event?.data?.slug ?? null, action: input.purpose })
+  const email = buildVerificationEmail({ code, url: `${origin}/verify-email#${token}`, logoUrl: `${getAppUrl()}/jupiter-email-logo-inverted.png?v=1`, registering: input.purpose === "register" })
+  const response = await getResendClient().emails.send({ from: getEmailFrom(), to: input.email, ...email }, { idempotencyKey: `registration-code-${id}` })
   if (response.error) {
     await supabaseAdmin.from("event_registration_challenges").update({ consumed_at: new Date().toISOString() }).eq("id", id)
     throw new Error("The verification email could not be sent. Please try again.")

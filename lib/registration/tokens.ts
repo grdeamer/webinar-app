@@ -16,3 +16,21 @@ export function verifyAttendeeToken(token: string | undefined, slug?: string): A
     return p
   } catch { return null }
 }
+
+export type VerificationLink = { challengeId: string; code: string; email: string; slug: string | null; action: "register" | "login"; expiresAt: number }
+export function createVerificationLink(input: Omit<VerificationLink, "expiresAt">) {
+  const body = Buffer.from(JSON.stringify({ ...input, expiresAt: Date.now() + 10 * 60000 })).toString("base64url")
+  return `${body}.${digest(`verification-link:${body}`)}`
+}
+export function verifyVerificationLink(token: string): VerificationLink | null {
+  try {
+    if (!token || token.length > 4096) return null
+    const [body, signature, extra] = token.split(".")
+    if (!body || !signature || extra) return null
+    const a = Buffer.from(signature), b = Buffer.from(digest(`verification-link:${body}`))
+    if (a.length !== b.length || !timingSafeEqual(a, b)) return null
+    const value = JSON.parse(Buffer.from(body, "base64url").toString()) as VerificationLink
+    if (!Number.isFinite(value.expiresAt) || value.expiresAt <= Date.now() || !/^[0-9a-f-]{36}$/i.test(value.challengeId) || !/^\d{6}$/.test(value.code) || typeof value.email !== "string" || (value.action !== "login" && value.action !== "register") || (value.slug !== null && typeof value.slug !== "string") || (value.action === "register" && !value.slug)) return null
+    return value
+  } catch { return null }
+}
