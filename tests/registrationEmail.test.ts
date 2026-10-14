@@ -29,3 +29,11 @@ test("verification and receipts use Jupiter branding, escape input and include t
  assert.match(receipt.html, /Your place is confirmed/)
  assert.doesNotMatch(buildRegistrationReceiptEmail({ title: "Test", status: "waitlisted", url: "https://example.com", logoUrl: "https://example.com/logo.png" }).html, /Your place is confirmed/)
 })
+
+test("event verification emails identify the correct event without injecting HTML", () => {
+ const email = buildVerificationEmail({ code: "123456", url: "https://example.com/verify-email#token", logoUrl: "https://example.com/logo.png", registering: true, eventTitle: "Jupiter <Final Check>" })
+ assert.equal(email.subject, "Verify your email: Jupiter <Final Check>")
+ assert.match(email.html, /Jupiter &lt;Final Check&gt;/)
+ assert.doesNotMatch(email.html, /<Final Check>/)
+ assert.match(email.text, /complete your registration for Jupiter <Final Check>/)
+})

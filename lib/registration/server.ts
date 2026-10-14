@@ -24,11 +24,11 @@ export async function requestEmailCode(input: { email: string; eventId: string |
   })
   if (error) throw new Error("Unable to request verification")
   if (!data) throw new Error("Too many requests. Please wait ten minutes and try again.")
-  const event = input.eventId ? await supabaseAdmin.from("events").select("slug").eq("id", input.eventId).single() : null
+  const event = input.eventId ? await supabaseAdmin.from("events").select("slug,title").eq("id", input.eventId).single() : null
   // Preview links stay on the exact deployment that requested verification.
   const origin = process.env.VERCEL_ENV === "preview" && process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : getAppUrl()
   const token = createVerificationLink({ challengeId: id, code, email: input.email, slug: event?.data?.slug ?? null, action: input.purpose })
-  const email = buildVerificationEmail({ code, url: `${origin}/verify-email#${token}`, logoUrl: `${getAppUrl()}/jupiter-email-logo-inverted.png?v=1`, registering: input.purpose === "register" })
+  const email = buildVerificationEmail({ code, url: `${origin}/verify-email#${token}`, logoUrl: `${getAppUrl()}/jupiter-email-logo-inverted.png?v=1`, registering: input.purpose === "register", eventTitle: event?.data?.title ?? undefined })
   const response = await getResendClient().emails.send({ from: getEmailFrom(), to: input.email, ...email }, { idempotencyKey: `registration-code-${id}` })
   if (response.error) {
     await supabaseAdmin.from("event_registration_challenges").update({ consumed_at: new Date().toISOString() }).eq("id", id)
