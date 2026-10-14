@@ -10,7 +10,8 @@ export default function RegistrationForm({ slug, preview = false, config: initia
   const [loading, setLoading] = useState(!preview)
   const [liveConfig, setConfig] = useState(() => normalizeRegistrationConfig({}, false))
   const config = preview ? initialConfig ?? normalizeRegistrationConfig({}, false) : liveConfig
-  const [sessions, setSessions] = useState(initialSessions)
+  const [liveSessions, setSessions] = useState(initialSessions)
+  const sessions = preview ? initialSessions : liveSessions
   const [values, setValues] = useState<Record<string, string>>({})
   const [selected, setSelected] = useState<string[]>([])
   const [step, setStep] = useState(0), [busy, setBusy] = useState(false), [error, setError] = useState("")
