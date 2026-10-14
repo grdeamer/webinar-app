@@ -73,8 +73,8 @@ export default function AccessPage() {
             />
           </div>
 
-          {challengeId ? <label>Verification code<input aria-label="Verification code" required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} className="block w-full rounded-xl bg-black/30 p-3" /></label> : null}
-          {challengeId ? <button type="button" onClick={() => { setChallengeId(null); setCode("") }}>Request a new code</button> : null}
+          {challengeId ? <label>Click “Verify and continue” in your email, or enter the six-digit code below<input aria-label="Verification code" required pattern="[0-9]{6}" maxLength={6} inputMode="numeric" autoComplete="one-time-code" value={code} onChange={(e) => setCode(e.target.value)} className="block w-full rounded-xl bg-black/30 p-3" /></label> : null}
+          {challengeId ? <button type="button" onClick={() => { setChallengeId(null); setCode("") }}>Request a new email</button> : null}
           {error ? (
             <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-100">
               {error}
@@ -85,7 +85,7 @@ export default function AccessPage() {
             disabled={loading}
             className="w-full rounded-2xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 transition px-5 py-3 font-medium shadow-lg shadow-indigo-600/20"
           >
-            {loading ? "Please wait..." : challengeId ? "Verify and enter" : "Email me a code"}
+            {loading ? "Please wait..." : challengeId ? "Verify and enter" : "Email me a secure link"}
           </button>
         </form>
 

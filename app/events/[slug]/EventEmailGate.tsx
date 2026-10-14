@@ -69,8 +69,8 @@ export default function EventEmailGate(props: {
           className="w-full rounded-2xl border border-white/10 bg-black/30 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:border-sky-400/40"
         />
 
-        {challengeId ? <label className="block text-sm">Check your email for a six-digit code<input aria-label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value)} className="mt-2 w-full rounded-xl bg-black/30 p-3" /></label> : null}
-        {challengeId ? <button type="button" onClick={() => { setChallengeId(null); setCode("") }}>Use another email or request a new code</button> : null}
+        {challengeId ? <label className="block text-sm">Click “Verify and continue” in your email, or enter the six-digit code below<input aria-label="Verification code" inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} required value={code} onChange={(e) => setCode(e.target.value)} className="mt-2 w-full rounded-xl bg-black/30 p-3" /></label> : null}
+        {challengeId ? <button type="button" onClick={() => { setChallengeId(null); setCode("") }}>Use another email or request a new email</button> : null}
         {error ? (
           <div className="rounded-2xl border border-red-400/20 bg-red-500/10 px-4 py-3 text-sm text-red-200">
             {error}
@@ -82,7 +82,7 @@ export default function EventEmailGate(props: {
           disabled={busy}
           className="w-full rounded-2xl bg-white px-4 py-3 font-semibold text-slate-950 transition hover:bg-slate-100 disabled:opacity-60"
         >
-          {busy ? "Please wait..." : challengeId ? "Verify and enter" : "Email me a code"}
+          {busy ? "Please wait..." : challengeId ? "Verify and enter" : "Email me a secure link"}
         </button>
       </form>
 
