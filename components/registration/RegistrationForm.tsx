@@ -7,6 +7,7 @@ const INPUT = "mt-1 w-full rounded-xl border border-white/20 bg-black/25 px-3 py
 const BUTTON = "rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white disabled:opacity-50"
 export default function RegistrationForm({ slug, preview = false, config: initialConfig, sessions: initialSessions = [], previewState }: Props) {
   const id = useId()
+  const [loading, setLoading] = useState(!preview)
   const [liveConfig, setConfig] = useState(() => normalizeRegistrationConfig({}, false))
   const config = preview ? initialConfig ?? normalizeRegistrationConfig({}, false) : liveConfig
   const [sessions, setSessions] = useState(initialSessions)
@@ -18,7 +19,8 @@ export default function RegistrationForm({ slug, preview = false, config: initia
   useEffect(() => {
     if (preview || !slug) return
     let cancelled = false
-    fetch(`/api/events/${encodeURIComponent(slug)}/registration`).then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error); if (!cancelled) { setConfig(data.config); setSessions(data.sessions ?? []) } }).catch(() => { if (!cancelled) setError("Unable to load registration. Please refresh.") })
+    setLoading(true)
+    fetch(`/api/events/${encodeURIComponent(slug)}/registration`).then(async (r) => { const data = await r.json(); if (!r.ok) throw new Error(data.error); if (!cancelled) { setConfig(data.config); setSessions(data.sessions ?? []) } }).catch(() => { if (!cancelled) setError("Unable to load registration. Please refresh.") }).finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [slug, preview])
   const displayedStep = preview && previewState === "success" ? 4 : preview && previewState === "registered" ? 4 : step
@@ -37,6 +39,8 @@ export default function RegistrationForm({ slug, preview = false, config: initia
       else { setResult(data); setStep(4) }
     } catch (err) { setError(err instanceof Error ? err.message : "Registration failed") } finally { setBusy(false) }
   }
+  if (!preview && loading) return <section id="registration" aria-busy="true" className="rounded-3xl border border-white/15 bg-slate-950/80 p-6 text-white"><p role="status">Loading registration…</p></section>
+  if (!preview && error && !liveConfig.enabled) return <section id="registration" className="rounded-3xl border border-white/15 bg-slate-950/80 p-6 text-white"><p role="alert">{error}</p></section>
   const active = result && ["registered", "approved", "checked_in"].includes(result.status)
   return <section id="registration" className={config.variant === "minimal" ? "rounded-xl border border-white/15 bg-slate-950/80 p-4 text-white" : "rounded-3xl border border-white/15 bg-slate-950/80 p-6 text-white"}>
     {preview ? <p className="mb-4 text-xs text-sky-200">Preview only · no attendee is created and no email is sent</p> : null}

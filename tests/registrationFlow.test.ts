@@ -5,7 +5,7 @@ import { createAttendeeToken, verifyAttendeeToken } from "../lib/registration/to
 import { readAllRows } from "../lib/registration/paginate.ts"
 process.env.JWT_SECRET = "registration-test-secret-with-more-than-32-characters"
 test("identity fields cannot be removed, hidden, or made optional by the builder", () => {
- const c = normalizeRegistrationConfig({ registrationFields: [{ id: "email", label: "Email", visible: false, required: false }, { id: "email" }, { id: "bad-key" }] })
+ const c = normalizeRegistrationConfig({ registrationFields: [{ id: "email", label: "Email", visible: false, required: false }, { id: "email" }, { id: "bad key" }] })
  assert.equal(c.fields.filter((f) => f.id === "email").length, 1)
  for (const id of ["firstName", "lastName", "email"]) { assert.equal(c.fields.find((f) => f.id === id)?.required, true); assert.equal(c.fields.find((f) => f.id === id)?.visible, true) }
 })
@@ -53,4 +53,13 @@ test("session access requires an active verified attendee context and the correc
 test("builder variants and button copy survive publication normalization", () => {
  const config = normalizeRegistrationConfig({ variant: "minimal", ctaLabel: "Reserve my place" })
  assert.equal(config.variant, "minimal"); assert.equal(config.ctaLabel, "Reserve my place")
+})
+
+test("builder-created fields retain their stable hyphenated IDs and validation", () => {
+ const id = "jobTitle-1791994000000"
+ const config = normalizeRegistrationConfig({ registrationFields: [{ id, label: "Your role", required: true, visible: true, fieldType: "text" }] })
+ assert.equal(config.fields.find((field) => field.id === id)?.label, "Your role")
+ const values = { firstName: "Gary", lastName: "Test", email: "gary@example.com" }
+ assert.throws(() => validateRegistration(config, { values }), /Your role is required/)
+ assert.equal(validateRegistration(config, { values: { ...values, [id]: "Producer" } }).answers[id], "Producer")
 })

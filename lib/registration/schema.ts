@@ -20,7 +20,7 @@ export function normalizeRegistrationConfig(props: unknown, enabled = true): Reg
   const seen = new Set<string>()
   const normalized: RegistrationField[] = fields.slice(0, 30).flatMap((input) => {
     const f = record(input); const id = text(f.id, "", 50)
-    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(id) || seen.has(id)) return []
+    if (!/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(id) || seen.has(id)) return []
     seen.add(id)
     const locked = ["firstName", "lastName", "email"].includes(id)
     return [{ id, label: text(f.label, id, 100), placeholder: text(f.placeholder, "", 150), fieldType: id === "email" ? "email" : ["textarea", "tel", "email"].includes(String(f.fieldType)) ? String(f.fieldType) : "text", required: locked || f.required === true, visible: locked || f.visible !== false, width: f.width === "half" ? "half" as const : "full" as const, locked }]
