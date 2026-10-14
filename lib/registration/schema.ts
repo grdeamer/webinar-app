@@ -1,6 +1,6 @@
 export type RegistrationField = { id: string; label: string; placeholder?: string; fieldType: string; required: boolean; visible: boolean; width: "half" | "full"; locked?: boolean }
 export type RegistrationConfig = {
-  enabled: boolean; mode: "open" | "approval_required" | "invite_only" | "closed";
+  enabled: boolean; variant: "editorial" | "minimal"; mode: "open" | "approval_required" | "invite_only" | "closed";
   title: string; body: string; ctaLabel: string; confirmationTitle: string; confirmationBody: string;
   fields: RegistrationField[]; capacity: number | null; allowWaitlist: boolean;
   sessions: { id: string; title?: string; capacity: number | null; allowWaitlist: boolean }[];
@@ -27,7 +27,7 @@ export function normalizeRegistrationConfig(props: unknown, enabled = true): Reg
   })
   for (const f of DEFAULT_FIELDS.slice(0, 3)) if (!seen.has(f.id)) normalized.push(f)
   return {
-    enabled, mode: ["open", "approval_required", "invite_only", "closed"].includes(String(settings.mode)) ? settings.mode as RegistrationConfig["mode"] : "open",
+    enabled, variant: p.variant === "minimal" ? "minimal" : "editorial", mode: ["open", "approval_required", "invite_only", "closed"].includes(String(settings.mode)) ? settings.mode as RegistrationConfig["mode"] : "open",
     title: text(p.title, "Reserve your place", 200), body: text(p.body, "Register for this event."),
     ctaLabel: text(p.ctaLabel, "Register", 80), confirmationTitle: text(p.confirmationTitle, "Registration received", 200), confirmationBody: text(p.confirmationBody, "Your registration has been saved."),
     fields: normalized, capacity: capacity(settings.capacity), allowWaitlist: settings.allowWaitlist === true,

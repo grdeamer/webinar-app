@@ -517,6 +517,7 @@ const isEmbedded =
   const {
     activePageSaveState,
     activePageIsDirty,
+    getPageSaveState,
     registerLoadedPage,
     getRecoverySnapshot,
     clearRecoverySnapshot,
@@ -2877,7 +2878,7 @@ const selectedExperienceNode = experienceNodes.find(
           showRulers={showRulers}
           canCopyStyle={documentReady && Boolean(selectedElement)}
           canPasteStyle={documentReady && Boolean(copiedElementStyle) && Boolean(selectedElement || selectedIds.length > 0)}
-          saveStatus={saveStatusMessage}
+          saveStatus={saveMessage || saveStatusMessage}
           eventStage={eventStage}
           onSelectPage={(pageKey) => {
             void selectPage(pageKey)
@@ -2903,10 +2904,11 @@ const selectedExperienceNode = experienceNodes.find(
           onPublish={() => {
             void (async () => {
               if (!await flushCurrentPage()) return
-              const latest = await fetch(`/api/admin/page-editor/event/${slug}/elements?pageKey=${encodeURIComponent(selectedPageKey)}`).then((r) => r.json())
+              setSaveMessage("Publishing…")
+              const revision = getPageSaveState(selectedPageKey).serverRevision
               const response = await fetch(`/api/admin/page-editor/event/${slug}/publish`, {
                 method: "POST", headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ pageKey: selectedPageKey, revision: latest.revision }),
+                body: JSON.stringify({ pageKey: selectedPageKey, revision }),
               })
               const data = await response.json()
               setSaveMessage(response.ok ? "Page published" : data.error || "Publish failed")
@@ -3023,7 +3025,7 @@ const selectedExperienceNode = experienceNodes.find(
                   initialHtml={customCodeDocument.html}
                   initialCss={customCodeDocument.css}
                   enabled={customCodeDocument.enabled}
-                  saveStatus={saveStatusMessage}
+                  saveStatus={saveMessage || saveStatusMessage}
                   onApply={(html, css) => {
                     setSections((current) =>
                       setCustomCodeDocument(current, {
@@ -3890,7 +3892,7 @@ const selectedExperienceNode = experienceNodes.find(
         {documentReady && (isEmbedded || isEditing) && !isCodeEditorOpen && selectedSection?.config.liveAgendaLayout && selectedBlock ? <LiveAgendaBlockInspector
           block={selectedBlock} section={selectedSection}
           eventTitle={eventInfo.title} eventDescription={eventInfo.description}
-          saveStatus={saveStatusMessage} onSave={() => { void flushCurrentPage() }}
+          saveStatus={saveMessage || saveStatusMessage} onSave={() => { void flushCurrentPage() }}
           onSelect={(id) => setSelectedBlockId(id)}
           onUpdate={updateSelectedBlockProps}
           onDelete={deleteSelectedBlock}

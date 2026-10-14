@@ -18,7 +18,7 @@ export async function POST(req: Request, context: { params: Promise<{ slug: stri
     const { data: sessions, error: sessionError } = await supabaseAdmin.from("event_sessions").select("id").eq("event_id", access.eventId).in("id", config.sessions.map((s) => s.id))
     if (sessionError || sessions?.length !== new Set(config.sessions.map((s) => s.id)).size) return NextResponse.json({ error: "All registration sessions must belong to this event" }, { status: 400 })
   }
-  const { error: publishError } = await supabaseAdmin.rpc("publish_event_registration_page", { p_event_id: access.eventId, p_page_key: pageKey, p_revision: data.document_revision, p_config: pageKey === "event_home" ? config : null })
+  const { error: publishError } = await supabaseAdmin.rpc("publish_event_registration_page", { p_event_id: access.eventId, p_page_key: pageKey, p_revision: data.document_revision, p_config: props || pageKey === "event_home" ? config : null })
   if (publishError) return NextResponse.json({ error: publishError.message }, { status: 409 })
   return NextResponse.json({ ok: true, revision: data.document_revision })
 }

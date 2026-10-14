@@ -40,3 +40,17 @@ test("recipient pagination retrieves past the default API row limit and fails on
  assert.deepEqual(await readAllRows<number>(async (a,b) => ({ data: expected.slice(a,b+1), error: null })), expected)
  await assert.rejects(() => readAllRows<number>(async () => ({ data: null, error: { message: "failed" } })), /failed/)
 })
+
+test("session access requires an active verified attendee context and the correct assignment", async () => {
+ const { canViewerAccessSession } = await import("../lib/domain/access.ts")
+ const session = { id: "session-one", visibilityMode: "assigned" } as Parameters<typeof canViewerAccessSession>[0]
+ const guest = { type: "guest", email: null, userId: null, eventId: "one", assignedSessionIds: [] } as Parameters<typeof canViewerAccessSession>[1]
+ assert.equal(canViewerAccessSession(session, guest).canView, false)
+ assert.equal(canViewerAccessSession(session, { ...guest, type: "attendee", email: "gary@example.com" }).canView, false)
+ assert.equal(canViewerAccessSession(session, { ...guest, type: "attendee", email: "gary@example.com", assignedSessionIds: [session.id] }).canView, true)
+})
+
+test("builder variants and button copy survive publication normalization", () => {
+ const config = normalizeRegistrationConfig({ variant: "minimal", ctaLabel: "Reserve my place" })
+ assert.equal(config.variant, "minimal"); assert.equal(config.ctaLabel, "Reserve my place")
+})

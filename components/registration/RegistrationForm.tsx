@@ -38,7 +38,7 @@ export default function RegistrationForm({ slug, preview = false, config: initia
     } catch (err) { setError(err instanceof Error ? err.message : "Registration failed") } finally { setBusy(false) }
   }
   const active = result && ["registered", "approved", "checked_in"].includes(result.status)
-  return <section id="registration" className="rounded-3xl border border-white/15 bg-slate-950/80 p-6 text-white">
+  return <section id="registration" className={config.variant === "minimal" ? "rounded-xl border border-white/15 bg-slate-950/80 p-4 text-white" : "rounded-3xl border border-white/15 bg-slate-950/80 p-6 text-white"}>
     {preview ? <p className="mb-4 text-xs text-sky-200">Preview only · no attendee is created and no email is sent</p> : null}
     <h2 className="text-2xl font-semibold">{config.title}</h2><p className="mt-2 text-sm text-white/70">{config.body}</p>
     {closed ? <p role="status" className="mt-5">Registration is currently closed. Contact the organizer for help.</p> : displayedStep === 4 ? <div role="status" className="mt-6 space-y-3">
@@ -54,7 +54,7 @@ export default function RegistrationForm({ slug, preview = false, config: initia
       {displayedStep === 2 ? <div><h3 className="font-semibold">Review your registration</h3><dl className="mt-3 space-y-2">{config.fields.filter((f) => f.visible).map((f) => <div key={f.id}><dt className="text-sm text-white/60">{f.label}</dt><dd className="whitespace-pre-wrap">{values[f.id] || "—"}</dd></div>)}</dl><p className="mt-3">Sessions: {sessions.filter((s) => selected.includes(s.id)).map((s) => s.title).join(", ") || "None selected"}</p><p className="mt-3 text-sm text-white/60">We’ll email you a code to verify your address before saving your registration.</p></div> : null}
       {displayedStep === 3 ? <label className="block">{preview ? "Preview verification code (any six digits)" : `Enter the six-digit code sent to ${values.email}`}<input aria-label="Verification code" inputMode="numeric" autoComplete="one-time-code" required pattern="[0-9]{6}" maxLength={6} value={code} onChange={(e) => setCode(e.target.value)} className={INPUT} /></label> : null}
       {error ? <p role="alert" className="text-red-200">{error}</p> : null}
-      <div className="flex flex-wrap gap-3">{step > 0 ? <button type="button" disabled={busy} onClick={() => { setStep(step === 3 ? 2 : step - 1); setChallengeId(null); setCode(""); setError("") }} className="rounded-xl border border-white/20 px-4 py-3">Back</button> : null}<button type="submit" disabled={busy} className={BUTTON}>{busy ? "Please wait…" : step === 3 ? "Verify and register" : step === 2 ? "Email verification code" : step === 0 ? "Continue" : "Review registration"}</button></div>
+      <div className="flex flex-wrap gap-3">{step > 0 ? <button type="button" disabled={busy} onClick={() => { setStep(step === 3 ? 2 : step - 1); setChallengeId(null); setCode(""); setError("") }} className="rounded-xl border border-white/20 px-4 py-3">Back</button> : null}<button type="submit" disabled={busy} className={BUTTON}>{busy ? "Please wait…" : step === 3 ? "Verify and register" : step === 2 ? config.ctaLabel || "Email verification code" : step === 0 ? "Continue" : "Review registration"}</button></div>
     </form>}
     {closed && error ? <p role="alert" className="mt-3 text-red-200">{error}</p> : null}
   </section>

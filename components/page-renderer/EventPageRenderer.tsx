@@ -20,6 +20,7 @@ import type {
 import { getPageBackgroundStyle } from "@/lib/page-editor/themeBackground"
 
 type EventLike = {
+  slug?: string
   title: string
   description?: string | null
 }
@@ -723,7 +724,7 @@ export default function EventPageRenderer({
   onSelectSection,
   isMobilePreview = false,
   generalSession = null,
-  systemComponents,
+  systemComponents: providedSystemComponents,
   eventTheme,
   layout = "full-bleed",
   stackedPadding = "default",
@@ -748,6 +749,7 @@ export default function EventPageRenderer({
   beforeSections?: ReactNode
   afterSections?: ReactNode
 }) {
+  const systemComponents = { ...providedSystemComponents, registration_event_slug: event.slug ?? providedSystemComponents.registration_event_slug }
   void mode
   void isEditing
   void selectedSectionId

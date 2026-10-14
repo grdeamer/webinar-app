@@ -316,12 +316,12 @@ export function createDefaultEventHomeSections(event: {
         ...getDefaultSectionConfig("system"),
         adminLabel: "Registration",
         title: "Reserve Your Place",
-        body: "Native registration flow preview.",
+        body: "Save your place and choose your sessions.",
       },
       blocks: [
         makeSystemBlock("registration_form", {
           title: "Reserve Your Place",
-          body: "Native registration flow preview.",
+          body: "Save your place and choose your sessions.",
           containerStyle: "panel",
         }),
       ],
