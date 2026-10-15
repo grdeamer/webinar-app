@@ -3,12 +3,13 @@ import { Save } from "lucide-react"
 import type { PublishMode } from "@/lib/zoom-bridge/types"
 import { ioButton, ioField } from "./SatelliteCard"
 export type SatelliteDraft = { key: string; id?: string; name: string; meetingId: string; passcode: string; publishMode: PublishMode }
-export default function SatelliteEditor({ draft, running, busy, change, save, cancel }: {
+export default function SatelliteEditor({ draft, running, busy, change, save, cancel, compact = false }: {
   draft: SatelliteDraft; running: boolean; busy: boolean; change: (draft: SatelliteDraft) => void; save: () => void; cancel: () => void;
+  compact?: boolean;
 }) {
   return <form className="rounded-2xl border border-blue-300/20 bg-blue-300/[.035] p-5" onSubmit={e => { e.preventDefault(); save() }}>
-    <h2 className="mb-4 text-sm font-semibold">{draft.id ? "Edit satellite" : "New satellite"}</h2>
-    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    {!compact ? <h2 className="mb-4 text-sm font-semibold">{draft.id ? "Edit satellite" : "New satellite"}</h2> : null}
+    <div className={`grid gap-4 ${compact ? "sm:grid-cols-2" : "md:grid-cols-2 xl:grid-cols-4"}`}>
       <label className="text-xs text-white/60">Satellite name<input className={ioField} required maxLength={64} value={draft.name} disabled={busy} autoComplete="off" onChange={e => change({ ...draft, name: e.target.value })} /></label>
       <label className="text-xs text-white/60">Meeting ID<input className={ioField} required maxLength={20} value={draft.meetingId} disabled={busy || running} inputMode="numeric" autoComplete="off" onChange={e => change({ ...draft, meetingId: e.target.value })} /></label>
       <label className="text-xs text-white/60">{draft.id ? "Passcode · blank keeps saved" : "Meeting passcode"}<input className={ioField} required={!draft.id} type="password" maxLength={64} value={draft.passcode} disabled={busy || running} autoComplete="new-password" onChange={e => change({ ...draft, passcode: e.target.value })} /></label>

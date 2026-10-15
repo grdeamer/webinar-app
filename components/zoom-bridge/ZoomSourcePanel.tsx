@@ -86,7 +86,7 @@ export default function ZoomSourcePanel() {
   const state = !loaded ? "Loading" : fresh ? source?.observed.status || "starting" : source?.running ? "Controller offline" : "Disconnected"
   const video = fresh && source?.observed.video
   const audio = fresh && source?.observed.audio
-  return <><section className="io-panel io-source p-5">
+  return <><section data-io-tour="source" className="io-panel io-source p-5">
     <div className="flex flex-wrap items-start justify-between gap-4">
       <div><div className="flex items-center gap-2 text-lg font-semibold"><Radio size={20} className="text-blue-300" />Program source</div><p className="mt-2 text-sm text-white/50">{srt ? `${profile.switcherName} → ${profile.captureName} → ${profile.encoderName} → Jupiter Io → satellites` : "Zoom meeting → Jupiter Io → satellites"}</p></div>
       <span role="status" className={`rounded-full border px-3 py-1 text-xs ${video && audio ? "border-emerald-300/20 bg-emerald-300/10 text-emerald-200" : "border-white/10 text-blue-200"}`}>{state}</span>
@@ -107,7 +107,7 @@ export default function ZoomSourcePanel() {
       <div className="grid gap-4 md:grid-cols-2"><label className="text-xs text-white/60">Source meeting ID<input className={ioField} required maxLength={20} value={meetingId} disabled={busy || source?.running} onChange={e => setMeetingId(e.target.value)} /></label><label className="text-xs text-white/60">{source ? "New passcode (blank keeps saved)" : "Source meeting passcode"}<input className={ioField} required={!source} type="password" autoComplete="new-password" maxLength={64} value={passcode} disabled={busy || source?.running} onChange={e => setPasscode(e.target.value)} /></label></div>
       <div className="mt-4 flex gap-2"><button className={ioButton} disabled={busy || source?.running}><Save size={16} />Save source</button>{source ? <button type="button" className={ioButton} disabled={busy} onClick={() => { setPasscode(""); setEditing(false) }}>Cancel</button> : null}</div>
     </form> : null}
-    {source ? <div className="io-source-health mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-3">
+    {source ? <div data-io-tour="source-health" className="io-source-health mt-5 grid gap-3 border-t border-white/10 pt-4 sm:grid-cols-3">
       <div className={`rounded-xl bg-black/15 p-3 text-sm ${video ? "text-emerald-200" : "text-white/40"}`}><Camera size={16} className="mr-2 inline" />{video ? "Video receiving" : "Waiting for video"}<p className="mt-1 font-mono text-xs text-white/45">{fresh ? source.observed.inputResolutions || "—" : "—"}{srt ? " · decoded" : " · input"}</p></div>
       <div className={`rounded-xl bg-black/15 p-3 text-sm ${audio ? "text-emerald-200" : "text-white/40"}`}><Mic size={16} className="mr-2 inline" />{audio ? "Audio receiving" : "Waiting for audio"}<p className="mt-1 text-xs text-white/45">{srt ? `${profile.audioName} · mono relay` : "Source meeting mix"}</p></div>
       <div className="rounded-xl bg-black/15 p-3 text-sm text-white/60">{srt ? profile.programName : fresh ? source.observed.presenter || "Waiting for spotlight" : "Presenter unavailable"}<p className="mt-1 text-xs text-white/45">{fresh && source.observed.revision !== source.revision ? "Applying command…" : fresh ? "Controller reporting" : "No recent controller report"}</p></div>
@@ -116,7 +116,7 @@ export default function ZoomSourcePanel() {
     {source?.observed.error ? <p role="alert" className="mt-3 text-sm text-amber-200">{!fresh ? "Last report: " : ""}{source.observed.error}</p> : null}
     {error ? <p role="alert" className="mt-3 text-sm text-red-200">{error}</p> : null}
     {message ? <p role="status" className="mt-3 text-sm text-blue-200">{message}</p> : null}
-    <details className="io-source-help"><summary className="cursor-pointer text-xs text-white/45">Source setup &amp; information</summary><button type="button" className={`${ioButton} mt-3`} aria-expanded={setupOpen} onClick={() => setSetupOpen(v => !v)}>Encoder setup</button><p className="mt-3 text-xs leading-5 text-white/35">{srt ? "Jupiter Io receives the approved HDMI program. Source Zoom recording permission is unnecessary for this path." : "The source host must admit Jupiter Io Source and grant SDK recording permission for raw media access."}</p>
+    <details data-io-tour="source-help" className="io-source-help"><summary className="cursor-pointer text-xs text-white/45">Source setup &amp; information</summary><button type="button" className={`${ioButton} mt-3`} aria-expanded={setupOpen} onClick={() => setSetupOpen(v => !v)}>Encoder setup</button><p className="mt-3 text-xs leading-5 text-white/35">{srt ? "Jupiter Io receives the approved HDMI program. Source Zoom recording permission is unnecessary for this path." : "The source host must admit Jupiter Io Source and grant SDK recording permission for raw media access."}</p>
     </details>
   </section>
     {srt && manageIngest ? <IngestConnectionManager ingest={ingest} receiving={state === "receiving"} fresh={fresh} busy={busy} copy={() => { void getConnection(true) }} regenerate={regenerateConnection} /> : null}

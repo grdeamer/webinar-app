@@ -8,7 +8,7 @@ export default function IngestConnectionManager({ ingest, receiving, fresh, busy
 }) {
   const [confirming, setConfirming] = useState(false)
   const pending = ingest?.keyRevision !== ingest?.appliedKeyRevision
-  return <section className="io-panel io-ingest p-5">
+  return <section data-io-tour="ingest" className="io-panel io-ingest p-5">
     <h3 className="font-semibold">Manage ingest connection</h3>
     <div className="io-ingest-status grid gap-4 text-sm sm:grid-cols-3"><div><p className="text-xs text-white/40">Receiver</p><p className="mt-1">{ingest?.configured ? `${ingest.host} · UDP ${ingest.port}` : "Not configured"}</p></div><div><p className="text-xs text-white/40">Connection status</p><p className="mt-1">{!fresh ? "Controller unavailable" : pending ? "Applying new key…" : receiving ? "Program receiving" : "Waiting for encoder"}</p></div><div><p className="text-xs text-white/40">Key last regenerated</p><p className="mt-1">{ingest?.keyUpdatedAt ? new Date(ingest.keyUpdatedAt).toLocaleString() : "Original connection"}</p></div></div>
     <details className="io-ingest-help"><summary className="cursor-pointer text-xs text-white/45">Connection details</summary><p className="mt-3 text-xs leading-5 text-white/45">Reuse this connection for normal sessions. Jupiter securely manages the encrypted SRT passphrase and updates the receiver automatically. AWS console access is not required. The encoder’s public IP must already be allowed by the receiver firewall.</p></details>
