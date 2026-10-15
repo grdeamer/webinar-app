@@ -1,5 +1,6 @@
 "use client"
-import { Camera, CameraOff, Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Pencil, AudioLines, ChevronRight, Satellite } from "lucide-react"
+import { Camera, CameraOff, Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Pencil, AudioLines, ChevronRight } from "lucide-react"
+import SatelliteGlyph from "./SatelliteGlyph"
 import SatelliteDeleteButton from "./SatelliteDeleteButton"
 import SatelliteFailureReport from "./SatelliteFailureReport"
 import { outputLabel, type ZoomRoom, type ZoomAction } from "@/lib/zoom-bridge/types"
@@ -21,9 +22,9 @@ export default function SatelliteCard({ room, busy, command, edit, remove, compa
   const AudioIcon = audioOn ? Mic : MicOff
   const outputTarget = applied && joined ? outputOn : room.camera
   const audioTarget = applied && joined ? audioOn : room.microphone
-  if (compact) return <div className="flex flex-col gap-2"><button type="button" onClick={open} aria-pressed={selected} className="io-satellite group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-[#0b1222] p-4 text-left transition hover:border-blue-300/40 hover:bg-blue-300/[.06] focus-visible:outline-2 focus-visible:outline-blue-300" aria-label={`Open ${room.name} details`}>
-    <span aria-hidden="true" className={`io-satellite-icon ${joined ? "is-connected" : "is-disconnected"}`}><Satellite size={26} /></span>
-    <span className="min-w-0 flex-1"><span className="block truncate font-semibold">{room.name}</span><span className="mt-1 block text-xs text-white/45">{state} · {outputLabel(room.publishMode)}</span></span>
+  if (compact) return <div className="io-satellite-tile flex flex-col gap-2"><button type="button" onClick={open} aria-pressed={selected} className="io-satellite group flex w-full items-center gap-4 rounded-2xl border border-white/10 bg-[#0b1222] p-4 text-left transition hover:border-blue-300/40 hover:bg-blue-300/[.06] focus-visible:outline-2 focus-visible:outline-blue-300" aria-label={`Open ${room.name} details`}>
+    <span aria-hidden="true" className={`io-satellite-icon ${joined ? "is-connected" : "is-disconnected"}`}><SatelliteGlyph size={32} /></span>
+    <span className="min-w-0 flex-1"><span className="block truncate font-medium">{room.name}</span><span className="mt-1 line-clamp-2 text-xs text-white/45">{state} · {outputLabel(room.publishMode)}</span></span>
     <span className="flex items-center gap-2"><OutputIcon size={17} className={outputOn ? "text-emerald-200" : "text-white/30"} /><AudioIcon size={17} className={audioOn ? "text-emerald-200" : "text-white/30"} /><ChevronRight size={17} className="text-white/40 group-hover:text-blue-200" /></span>
   </button><button type="button" className={ioButton} disabled={busy} aria-label={`${room.running ? "Disconnect" : "Connect"} ${room.name}`} onClick={() => command(room.id, room.running ? "stop" : "start")}>{room.running ? <Square size={16} /> : <Play size={16} />}{room.running ? "Disconnect" : "Connect"}</button><button type="button" className={ioButton} disabled={busy} aria-label={`Edit ${room.name}`} onClick={() => edit(room)}><Pencil size={15} />Edit satellite</button><SatelliteDeleteButton room={room} busy={busy} remove={remove}/><SatelliteFailureReport room={room}/></div>
   return <article className="io-satellite-controls rounded-2xl border border-white/10 bg-[#0b1222] p-5">

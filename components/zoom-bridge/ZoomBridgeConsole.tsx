@@ -7,6 +7,7 @@ import ZoomSourcePanel from "./ZoomSourcePanel"
 import SatelliteCard, { ioButton, ioField, reporting } from "./SatelliteCard"
 import SatelliteDetail from "./SatelliteDetail"
 import SatelliteEditor, { type SatelliteDraft } from "./SatelliteEditor"
+import SatelliteMatrix from "./SatelliteMatrix"
 import IoSetupHelp from "./IoSetupHelp"
 import SatelliteEditDialog from "./SatelliteEditDialog"
 export default function ZoomBridgeConsole() {
@@ -23,7 +24,12 @@ export default function ZoomBridgeConsole() {
     const response = await fetch("/api/admin/zoom-bridge", { cache: "no-store", signal })
     if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) throw new Error("Unable to load satellites. Check your administrator session.")
     const data = await response.json()
-    if (!signal.aborted) { setRooms(data.rooms); setLoaded(true) }
+    if (!signal.aborted) {
+      const nextRooms: ZoomRoom[] = data.rooms
+      setRooms(nextRooms)
+      setSelectedId(current => nextRooms.some(room => room.id === current) ? current : nextRooms[0]?.id ?? null)
+      setLoaded(true)
+    }
   }, [])
   useEffect(() => {
     const controller = new AbortController()
@@ -77,12 +83,13 @@ export default function ZoomBridgeConsole() {
     <section data-io-tour="fleet" className="io-panel io-fleet p-5">
       <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Satellites</h2><p className="mt-1 text-xs text-white/45">Up to 50 satellite profiles</p></div><div className="flex items-end gap-3"><label className="text-xs text-white/65">Number of satellites<select value={count} onChange={e => setCount(Number(e.target.value))} className={`${ioField} w-28`}>{Array.from({ length: 50 }, (_, i) => <option key={i + 1} value={i + 1} className="bg-slate-950">{i + 1}</option>)}</select></label><button type="button" className={ioButton} disabled={busy || !loaded} onClick={addProfiles}><Plus size={16} />Set up</button></div></div>
       <div className="io-master flex flex-wrap gap-2">
+        <SatelliteMatrix rooms={rooms} selectedId={selected?.id} select={setSelectedId} busy={busy} command={command}/>
         {([['camera_on', 'Picture on', MonitorUp], ['microphone_off', 'Mute all', MicOff], ['original_sound_on', 'Original Sound on all', Mic]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
         <details className="relative"><summary className={`${ioButton} cursor-pointer`}>More controls</summary><div className="absolute right-0 top-full z-20 mt-2 flex w-56 flex-col gap-2 rounded-lg border border-slate-600 bg-[#081321] p-3">
           {([['start', 'Connect all', Play], ['stop', 'Disconnect all', Square], ['camera_off', 'Picture off', MonitorOff], ['microphone_on', 'Unmute all', Mic], ['original_sound_off', 'Original Sound off all', MicOff]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
         </div></details>
       </div>
-      <div className="mt-4 flex flex-wrap gap-4">{rooms.map(room => <SatelliteCard compact selected={selected?.id === room.id} open={() => setSelectedId(room.id)} key={room.id} room={room} busy={busy} command={(id, action) => { void command(id, action) }} edit={edit} remove={r => { void mutate("DELETE", { id: r.id }) }} />)}</div>
+      <div className="io-fleet-grid mt-4">{rooms.map(room => <SatelliteCard compact selected={selected?.id === room.id} open={() => setSelectedId(room.id)} key={room.id} room={room} busy={busy} command={(id, action) => { void command(id, action) }} edit={edit} remove={r => { void mutate("DELETE", { id: r.id }) }} />)}</div>
     </section>
     {error ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-200">{error}</p> : null}
     {message ? <p role="status" className="text-sm text-blue-200">{message}</p> : null}

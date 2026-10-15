@@ -1,0 +1,36 @@
+{
+  "family": "Streamline Sharp Line",
+  "project": "Jupiter",
+  "acquired": "2026-10-15",
+  "license": "Streamline Icons paid subscription; project usage only. Not a standalone icon library.",
+  "assets": {
+    "calendar": {
+      "name": "Calendar Blank Solo",
+      "source": "https://www.streamlinehq.com/icons/sharp-line-style?search=calendar&icon=ico_Zb13aKO2CtY3m2y4"
+    },
+    "cloud": {
+      "name": "Cloud",
+      "source": "https://www.streamlinehq.com/icons/sharp-line-style?search=cloud&icon=ico_MFhwAazonjhBniAj"
+    },
+    "users": {
+      "name": "Users Group Solo",
+      "source": "https://www.streamlinehq.com/icons/sharp-line-style?search=users&icon=ico_1SeIGs3ziFPaEIGx"
+    },
+    "broadcast": {
+      "name": "Screen Broadcast",
+      "source": "https://www.streamlinehq.com/icons/sharp-line-style?search=broadcast&icon=ico_noN6ASDFYneZtTrW"
+    },
+    "activity": {
+      "name": "Desktop Monitor Browse Activity Performance",
+      "source": "https://www.streamlinehq.com/icons/sharp-line-style?search=activity&icon=ico_3HGxZT9dO40u1aaQ"
+    },
+    "code": {
+      "name": "Code Block",
+      "source": "https://www.streamlinehq.com/icons/sharp-line-style?search=code&icon=ico_mGNkgZQLJ5VYvrS7"
+    },
+    "dashboard": {
+      "name": "Dashboard 3",
+      "source": "https://www.streamlinehq.com/icons/download/dashboard-3--25006"
+    }
+  }
+}

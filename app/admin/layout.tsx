@@ -4,15 +4,11 @@ import Link from "next/link"
 import { CSSProperties, ReactNode, useEffect, useState } from "react"
 import { usePathname } from "next/navigation"
 import {
-  Activity,
   ArrowLeft,
-  CalendarDate,
-  Home03,
   Signal02,
-  Tool02,
-  Users01,
 } from "@untitledui/icons"
-import { Cloud, Radio, Menu, Moon, Sun, X } from "lucide-react"
+import { Menu, Moon, Sun, X } from "lucide-react"
+import { SharpDashboard, SharpCalendar, SharpCloud, SharpUsers, SharpBroadcast, SharpActivity, SharpCode } from "@/components/icons/StreamlineSharp"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
@@ -271,28 +267,28 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
             <div className={`${compactNavigation ? "space-y-3 px-2" : "space-y-6 px-3"} flex-1 overflow-y-auto pb-[calc(1rem+env(safe-area-inset-bottom))]`}>
               <Section title="Global" compact={compactNavigation}>
-                <NavLink compact={compactNavigation} href="/admin" icon={<Home03 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                <NavLink compact={compactNavigation} href="/admin" icon={<SharpDashboard className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Dashboard
                 </NavLink>
-                <NavLink compact={compactNavigation} href="/admin/events" icon={<CalendarDate className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                <NavLink compact={compactNavigation} href="/admin/events" icon={<SharpCalendar className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Events
                 </NavLink>
-                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/activity" icon={<Activity className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/activity" icon={<SharpActivity className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Live Activity
                 </NavLink> : null}
-                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/cloud" icon={<Cloud className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/cloud" icon={<SharpCloud className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Jupiter Cloud
                 </NavLink> : null}
-                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/jupiter-io" icon={<Radio className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/jupiter-io" icon={<SharpBroadcast className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Jupiter Io
                 </NavLink> : null}
               </Section>
 
               {!isEventMember ? <Section title="Administration" compact={compactNavigation}>
-                <NavLink compact={compactNavigation} href="/admin/users" icon={<Users01 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                <NavLink compact={compactNavigation} href="/admin/users" icon={<SharpUsers className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Team &amp; Access
                 </NavLink>
-                <NavLink compact={compactNavigation} href="/admin/dev-tools" icon={<Tool02 className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                <NavLink compact={compactNavigation} href="/admin/dev-tools" icon={<SharpCode className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Dev Tools
                 </NavLink>
               </Section> : null}

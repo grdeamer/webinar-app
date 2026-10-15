@@ -1437,6 +1437,8 @@ button, a, input, select, textarea {
 }
 
 @theme inline {
+  --font-weight-semibold: 500;
+  --font-weight-bold: 500;
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -1645,3 +1647,12 @@ button, a, input, select, textarea {
 @media (prefers-reduced-motion: reduce) {
   [data-element-animation] { animation: none !important; }
 }
+
+/* Jupiter Broadcast typography. Authored event content can override these defaults. */
+body { --font-sans:var(--font-jupiter); --font-inter:var(--font-jupiter); --font-display:var(--font-jupiter); --font-instrument:var(--font-jupiter); font-family:var(--font-jupiter),sans-serif; font-weight:400; }
+:where(h1,h2,h3,h4,h5,h6) { font-family:var(--font-jupiter),sans-serif; font-weight:500; }
+:where(button,input,select,textarea) { font-family:inherit; }
+.jv1-shell :where(h1,h2,h3,h4), .events-editorial-page :where(h1,h2,h3,h4) { font-weight:500; }
+.jv1-rail-section-label,.jv1-system-label,.events-editorial-kicker { font-weight:500; letter-spacing:.08em; }
+
+:where(h1), .jv1-shell :where(h1), .events-editorial-page :where(h1) { font-weight:400; }
