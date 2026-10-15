@@ -2,12 +2,13 @@ import { NextResponse } from "next/server"
 import { getEventBySlug } from "@/lib/events"
 import { createLiveKitToken } from "@/lib/live/livekit/token"
 import { ensureEventLiveRoom } from "@/lib/live/stageState"
+import { getEventEmailFromCookies } from "@/lib/eventAuth"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
-function json(data: any, status = 200) {
-  return NextResponse.json(data, { status })
+function json(data: unknown, status = 200) {
+  return NextResponse.json(data, { status, headers: { "Cache-Control": "no-store" } })
 }
 
 export async function POST(
@@ -21,6 +22,13 @@ export async function POST(
 
     if (!event?.id) {
       return json({ error: "Event not found" }, 404)
+    }
+
+    // Validate the signed attendee session and current event registration before
+    // creating a room or issuing any LiveKit credentials.
+    const email = await getEventEmailFromCookies(slug)
+    if (!email) {
+      return json({ error: "Sign in with an active registration for this event" }, 401)
     }
 
     const room = await ensureEventLiveRoom({ eventId: String(event.id) })
@@ -40,7 +48,7 @@ export async function POST(
     })
 
     return json(token)
-  } catch (err: any) {
-    return json({ error: err?.message || "Failed to create audience token" }, 500)
+  } catch {
+    return json({ error: "Failed to create audience token" }, 500)
   }
 }
