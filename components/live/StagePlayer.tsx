@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react"
 import {
   LiveKitRoom,
-  RoomAudioRenderer,
   useParticipants,
   useTracks,
   VideoTrack,
@@ -12,6 +11,7 @@ import { Track } from "livekit-client"
 import { isTrackReference } from "@livekit/components-core"
 import type { TrackReference } from "@livekit/components-core"
 import type { BroadcastOutputProfile } from "@/lib/broadcast/outputProfiles"
+import ProgramAudioRenderer from "@/components/live/ProgramAudioRenderer"
 
 type PublicStageState = {
   event_id: string
@@ -976,9 +976,10 @@ export default function StagePlayer({
       connect
       video={false}
       audio={false}
+      connectOptions={{ autoSubscribe: false }}
       onConnected={onConnected}
     >
-      <RoomAudioRenderer />
+      <ProgramAudioRenderer state={stageState} />
 
       <AudienceStageTracks
         stageState={stageState}

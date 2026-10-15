@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   LiveKitRoom,
-  RoomAudioRenderer,
   useParticipants,
   useTracks,
   VideoTrack,
@@ -12,6 +11,7 @@ import { Track } from "livekit-client"
 import { GENERAL_SESSION_EVENT_SLUG } from "@/lib/live/generalSessionEvent"
 import { isTrackReference } from "@livekit/components-core"
 import type { TrackReference } from "@livekit/components-core"
+import ProgramAudioRenderer from "@/components/live/ProgramAudioRenderer"
 
 type PublicProgramState = {
   event_id: string
@@ -382,8 +382,8 @@ export default function ProgramStageRenderer() {
   }
 
   return (
-    <LiveKitRoom token={token} serverUrl={serverUrl} connect video audio>
-      <RoomAudioRenderer />
+    <LiveKitRoom token={token} serverUrl={serverUrl} connect video={false} audio={false} connectOptions={{ autoSubscribe: false }}>
+      <ProgramAudioRenderer state={programState} />
 
       <div className="relative overflow-hidden rounded-[28px] border border-white/10 bg-[radial-gradient(circle_at_top,rgba(59,130,246,0.14),transparent_30%),linear-gradient(180deg,#020617_0%,#030712_100%)] shadow-[0_24px_80px_rgba(0,0,0,0.45)]">
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.03),transparent_22%,transparent_78%,rgba(255,255,255,0.02))]" />

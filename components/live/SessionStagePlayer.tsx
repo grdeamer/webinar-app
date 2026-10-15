@@ -4,11 +4,11 @@ import ProgramMomentOverlay from "@/components/live/ProgramMomentOverlay"
 import { useEffect, useMemo, useState } from "react"
 import {
   LiveKitRoom,
-  RoomAudioRenderer,
   VideoTrack,
   useTracks,
 } from "@livekit/components-react"
 import { Track } from "livekit-client"
+import ProgramAudioRenderer from "@/components/live/ProgramAudioRenderer"
 import type {
   TrackReference,
   TrackReferenceOrPlaceholder,
@@ -68,13 +68,16 @@ function PlayerFrame({
   children,
   lowerThird,
   transitionOverlay,
+  audio,
 }: {
   children: React.ReactNode
   lowerThird?: React.ReactNode
   transitionOverlay?: React.ReactNode
+  audio?: React.ReactNode
 }) {
   return (
     <div className="rounded-[30px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(2,6,23,0.96))] p-4 shadow-[0_30px_100px_rgba(0,0,0,0.45)]">
+      {audio}
       <div className="relative overflow-hidden rounded-[24px] bg-black">
         <div className="pointer-events-none absolute inset-0 z-0 bg-[radial-gradient(circle_at_top,rgba(56,189,248,0.10),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(139,92,246,0.10),transparent_35%)]" />
         {children}
@@ -272,9 +275,18 @@ if (visible) {
     />
   ) : null
 
+  const programAudio = <ProgramAudioRenderer state={{
+    is_live: true,
+    layout,
+    stage_participant_ids: stageIds,
+    primary_participant_id: primaryId,
+    screen_share_participant_id: primaryScreenTrack?.participant.identity ?? null,
+  }} />
+
   if (layout === "screen_speaker" && primaryScreenTrack) {
     return (
       <PlayerFrame
+        audio={programAudio}
         transitionOverlay={transitionOverlay}
         lowerThird={
           <div className="flex items-center justify-between gap-3">
@@ -329,6 +341,7 @@ if (visible) {
   if (layout === "grid" && cameraTracks.length > 1) {
     return (
       <PlayerFrame
+        audio={programAudio}
         transitionOverlay={transitionOverlay}
         lowerThird={
           <div className="flex items-center justify-between gap-3">
@@ -379,6 +392,7 @@ if (visible) {
   if (primaryCameraTrack) {
     return (
       <PlayerFrame
+        audio={programAudio}
         transitionOverlay={transitionOverlay}
         lowerThird={
           <div className="flex items-center justify-between gap-3">
@@ -418,7 +432,7 @@ if (visible) {
   }
 
   return (
-    <PlayerFrame transitionOverlay={transitionOverlay}>
+    <PlayerFrame audio={programAudio} transitionOverlay={transitionOverlay}>
       <div className="relative flex aspect-video w-full items-center justify-center bg-black">
         <LiveBadge />
 
@@ -537,11 +551,11 @@ export default function SessionStagePlayer({
         token={token}
         serverUrl={serverUrl}
         connect
-        audio
+        audio={false}
         video={false}
+        connectOptions={{ autoSubscribe: false }}
         className="contents"
       >
-        <RoomAudioRenderer />
         <StageCanvas stageEndpoint={stageEndpoint} />
       </LiveKitRoom>
     </div>
