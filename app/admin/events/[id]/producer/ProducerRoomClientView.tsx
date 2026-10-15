@@ -1,8 +1,10 @@
 "use client";
 
+import ProtectedLiveKitRoom from "@/components/live/ProtectedLiveKitRoom"
+
 import React from "react";
 import type { JSX } from "react";
-import { LiveKitRoom, RoomAudioRenderer } from "@livekit/components-react";
+import { RoomAudioRenderer } from "@livekit/components-react";
 
 import { ProducerRoomAtmosphere } from "./ProducerRoomClientChrome";
 import ProducerLeftRail from "./ProducerLeftRail";
@@ -174,7 +176,7 @@ export default function ProducerRoomClientView(
   }
 
   return (
-    <LiveKitRoom
+    <ProtectedLiveKitRoom
       key={liveKitRoomKey}
       token={token}
       serverUrl={serverUrl}
@@ -323,6 +325,6 @@ export default function ProducerRoomClientView(
           </div>
         </ProducerRoomContentStack>
       </div>
-    </LiveKitRoom>
+    </ProtectedLiveKitRoom>
   );
 }

@@ -64,6 +64,7 @@ function setup(cookie: string | undefined, status: string | null = "registered",
     "next/server": { NextResponse: { json: (data: unknown, init: ResponseInit) => Response.json(data, init) } },
     "@/lib/events": { getEventBySlug: async () => ({ id: "event-id" }) },
     "@/lib/eventAuth": auth,
+    "@/lib/live/protectedPublishers": { roomPublishersAreProtected: async () => true },
     "@/lib/live/stageState": { ensureEventLiveRoom: async () => { roomCalls++; return { room_name: "event-room" } } },
     "@/lib/live/livekit/token": { createLiveKitToken: async (input: TokenInput) => { issued.push(input); return { token: "viewing-token" } } },
   })

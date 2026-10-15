@@ -51,6 +51,7 @@ export async function POST(
     const token = new AccessToken(apiKey, apiSecret, {
       identity,
       name: displayName,
+      metadata: JSON.stringify({ eventId: String(event.id), sessionId: String(session.id), publisherPolicyVersion: 1 }),
       ttl: "1h",
     })
 

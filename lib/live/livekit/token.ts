@@ -34,6 +34,7 @@ export async function createLiveKitToken(args: {
     name: args.name,
     metadata: JSON.stringify({
       role: args.role,
+      ...(canPublish(args.role) ? { publisherPolicyVersion: 1 } : {}),
       ...(args.metadata || {}),
     }),
     ttl: "6h",
@@ -45,6 +46,7 @@ export async function createLiveKitToken(args: {
     canPublish: canPublish(args.role),
     canSubscribe: canSubscribe(args.role),
     canPublishData: canPublishData(args.role),
+    canUpdateOwnMetadata: false,
   })
 
   const token = await at.toJwt()

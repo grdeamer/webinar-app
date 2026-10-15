@@ -3,6 +3,7 @@ import { getEventBySlug } from "@/lib/events"
 import { createLiveKitToken } from "@/lib/live/livekit/token"
 import { ensureEventLiveRoom } from "@/lib/live/stageState"
 import { getEventEmailFromCookies } from "@/lib/eventAuth"
+import { roomPublishersAreProtected } from "@/lib/live/protectedPublishers"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -32,6 +33,9 @@ export async function POST(
     }
 
     const room = await ensureEventLiveRoom({ eventId: String(event.id) })
+    if (!(await roomPublishersAreProtected(room.room_name))) {
+      return json({ error: "The production clients need to reconnect before audience access can open" }, 503)
+    }
 
     const identity = `audience_${crypto.randomUUID()}`
 

@@ -4,6 +4,7 @@ import { getEventBySlug } from "@/lib/events"
 import { getSessionById } from "@/lib/repos/sessionsRepo"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
 import { resolveSessionExperience } from "@/lib/services/sessions/resolveSessionExperience"
+import { roomPublishersAreProtected } from "@/lib/live/protectedPublishers"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -55,6 +56,14 @@ export async function POST(
     typeof viewer.email === "string" && viewer.email.trim()
       ? viewer.email.trim().toLowerCase()
       : null
+
+  try {
+    if (!(await roomPublishersAreProtected(roomName))) {
+      return json({ error: "The production clients need to reconnect before audience access can open" }, 503)
+    }
+  } catch {
+    return json({ error: "Audience protection is unavailable" }, 503)
+  }
 
   const attendeeName = attendeeEmail || "Attendee"
 

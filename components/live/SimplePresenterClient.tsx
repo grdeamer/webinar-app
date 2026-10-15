@@ -1,5 +1,7 @@
 "use client"
 
+import ProtectedLiveKitRoom from "@/components/live/ProtectedLiveKitRoom"
+
 import { useEffect, useRef, useState } from "react"
 import { motion, AnimatePresence } from "motion/react"
 import {
@@ -1229,7 +1231,7 @@ export default function SimplePresenterClient({
         </div>
       </div>
 
-      <LiveKitRoom
+      <ProtectedLiveKitRoom
         token={token}
         serverUrl={serverUrl}
         connect
@@ -1243,7 +1245,7 @@ export default function SimplePresenterClient({
         }}
       >
         <PresenterControls statusChannelKey={statusChannelKey} />
-      </LiveKitRoom>
+      </ProtectedLiveKitRoom>
     </div>
   )
 }

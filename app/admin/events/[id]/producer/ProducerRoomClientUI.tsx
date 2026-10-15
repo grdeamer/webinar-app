@@ -1,7 +1,9 @@
 "use client";
 
+import ProtectedLiveKitRoom from "@/components/live/ProtectedLiveKitRoom"
+
 import { useEffect, useRef, type JSX } from "react";
-import { LiveKitRoom, RoomAudioRenderer, useRoomContext } from "@livekit/components-react";
+import { RoomAudioRenderer, useRoomContext } from "@livekit/components-react";
 import { RoomEvent } from "livekit-client";
 import {
   encodePresenterSignal,
@@ -231,7 +233,7 @@ export default function ProducerRoomClientUI({
   }
 
   return (
-    <LiveKitRoom
+    <ProtectedLiveKitRoom
       key={liveKitRoomKey}
       token={token}
       serverUrl={serverUrl}
@@ -342,6 +344,6 @@ export default function ProducerRoomClientUI({
           </div>
         </ProducerRoomContentStack>
       </div>
-    </LiveKitRoom>
+    </ProtectedLiveKitRoom>
   );
 }

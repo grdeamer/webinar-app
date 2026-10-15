@@ -1,8 +1,9 @@
 "use client"
 
+import ProtectedLiveKitRoom from "@/components/live/ProtectedLiveKitRoom"
+
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import {
-  LiveKitRoom,
   RoomAudioRenderer,
   useTracks,
   VideoTrack,
@@ -2121,7 +2122,7 @@ export default function ProducerRoomClient({
   roomName: string
 }) {
   return (
-    <LiveKitRoom
+    <ProtectedLiveKitRoom
       token={token}
       serverUrl={serverUrl}
       connect
@@ -2137,6 +2138,6 @@ export default function ProducerRoomClient({
         roomName={roomName}
         token={token}
       />
-    </LiveKitRoom>
+    </ProtectedLiveKitRoom>
   )
 }

@@ -66,6 +66,7 @@ export async function POST(
     name: displayName,
     metadata: JSON.stringify({
       role: "presenter",
+      publisherPolicyVersion: 1,
       eventId: String(event.id),
       sessionId: String(session.id),
     }),

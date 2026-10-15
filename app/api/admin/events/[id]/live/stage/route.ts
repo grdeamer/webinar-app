@@ -66,6 +66,15 @@ function json(data: unknown, status = 200): Response {
   return NextResponse.json(data, { status })
 }
 
+function stageMetadata(metadata: string, onStage: boolean): string {
+  let existing: Record<string, unknown> = {}
+  try {
+    const parsed: unknown = JSON.parse(metadata || "{}")
+    if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) existing = parsed as Record<string, unknown>
+  } catch { /* Older external participants may have non-JSON metadata. */ }
+  return JSON.stringify({ ...existing, onStage })
+}
+
 export async function POST(
   req: Request,
   ctx: { params: Promise<{ id: string }> }
@@ -120,18 +129,20 @@ export async function POST(
       const room = await ensureEventLiveRoom({ eventId: auth.eventId })
 
       if (body.action === "add_to_stage") {
+        const participant = await roomService.getParticipant(room.room_name, body.participantId)
         await roomService.updateParticipant(
           room.room_name,
           body.participantId,
-          JSON.stringify({ onStage: true })
+          stageMetadata(participant.metadata, true)
         )
       }
 
       if (body.action === "remove_from_stage") {
+        const participant = await roomService.getParticipant(room.room_name, body.participantId)
         await roomService.updateParticipant(
           room.room_name,
           body.participantId,
-          JSON.stringify({ onStage: false })
+          stageMetadata(participant.metadata, false)
         )
       }
     }
