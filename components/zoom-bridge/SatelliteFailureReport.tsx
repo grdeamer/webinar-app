@@ -1,0 +1,12 @@
+"use client"
+import { useState } from "react"
+import { AlertTriangle } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
+import type { ZoomRoom } from "@/lib/zoom-bridge/types"
+import { ioButton, reporting } from "./SatelliteCard"
+export default function SatelliteFailureReport({ room }: { room: ZoomRoom }) {
+ const [open,setOpen]=useState(false)
+ const failed=room.observed.status==="failed"||room.observed.status==="capacity"||Boolean(room.observed.error)
+ if(!failed) return null
+ return <><button type="button" className={`${ioButton} text-amber-200`} onClick={()=>setOpen(true)} aria-label={`Failure report for ${room.name}`}><AlertTriangle size={15}/>Failure report</button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[85dvh] overflow-y-auto border border-slate-600 bg-[#0b1222] text-white sm:max-w-xl"><DialogTitle>{room.name} · Failure report</DialogTitle><DialogDescription className="text-slate-300">Latest controller diagnostic. No meeting passcodes or connection keys are included.</DialogDescription><dl className="space-y-4 text-sm"><div><dt className="text-slate-400">Reported state</dt><dd>{room.observed.status || "Unknown"}{!reporting(room)?" · report is stale":""}</dd></div><div><dt className="text-slate-400">Reported reason</dt><dd className="mt-1 break-words rounded border border-amber-300/20 bg-amber-300/5 p-3 text-amber-100">{room.observed.error || "The controller did not provide a specific error."}</dd></div><div><dt className="text-slate-400">Last controller update</dt><dd>{room.lastSeen?new Date(room.lastSeen).toLocaleString():"No update received"}</dd></div><div><dt className="text-slate-400">Requested connection</dt><dd>{room.running?"Connect requested":"Disconnected"}</dd></div></dl><div className="mt-2 space-y-2 text-sm text-slate-300"><h3 className="font-semibold text-white">What to check</h3>{room.observed.error?.includes("Satellite exited")?<p>The satellite process stopped. This report does not include its exit code or a Zoom rejection reason. Controller worker logs are needed to distinguish a startup problem from a meeting rejection.</p>:<p>Check the reported reason, meeting details, and host permissions. A stale report can also mean the controller is unavailable.</p>}<p>To retry, close this report, click Disconnect if offered, wait for stopped, then Connect. If it fails again, investigate the controller before repeating.</p></div></DialogContent></Dialog></>
+}
