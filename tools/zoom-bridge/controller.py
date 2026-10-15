@@ -24,6 +24,7 @@ def read_env(path):
     return dict(line.split('=', 1) for line in path.read_text().splitlines() if '=' in line)
 
 def launch(room, relay_root=None, source=False):
+    if relay_root: ensure_relay_root(relay_root)
     creds = read_env(ROOT / '.env')
     def enc(value):
         return base64.urlsafe_b64encode(json.dumps(value,separators=(',', ':')).encode()).decode().rstrip('=')
@@ -70,6 +71,24 @@ def source_report(item):
         return {'status':status.get('status','starting'),'inputResolutions':status.get('inputResolutions',''),'presenter':status.get('presenter',''),'spotlightCount':status.getint('spotlightCount',0),'video':status.getboolean('video',False),'audio':status.getboolean('audio',False),'videoFrames':status.getint('videoFrames',0),'audioBlocks':status.getint('audioBlocks',0),'revision':status.get('revision',''),'error':status.get('error','')}
     except (KeyError,configparser.Error,ValueError): return {'status':'starting'}
 
+def ensure_relay_root(root):
+    """Recreate vanished RAM storage; never follow a substituted symlink."""
+    recreated = not root.exists()
+    if root.is_symlink(): raise RuntimeError("Relay directory must not be a symlink")
+    root.mkdir(mode=0o700, exist_ok=True)
+    if not root.is_dir() or root.stat().st_uid != os.getuid():
+        raise RuntimeError("Relay directory ownership is invalid")
+    root.chmod(0o700)
+    return recreated
+
+def recover_relay(root):
+    if not ensure_relay_root(root): return False
+    # Existing UNIX socket names disappear with the directory: rebind workers.
+    for rid in list(children): terminate(children.pop(rid))
+    failures.clear()
+    print("Relay directory recovered; satellite sockets will be recreated", flush=True)
+    return True
+
 def clear_media(root):
     (root/'video.i420').unlink(missing_ok=True)
     (root/'video.tmp').unlink(missing_ok=True)
@@ -89,6 +108,7 @@ def main():
     try:
         while not stop_requested:
             try:
+                if recover_relay(relay_root): reports=[]
                 req = urllib.request.Request(url,data=json.dumps({'reports':reports,'sourceReport':source_status}).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+settings['token']})
                 with urllib.request.urlopen(req,timeout=12) as response: config=json.load(response)
                 rooms=config['rooms'];source=config.get('source');last_ok=time.monotonic()
@@ -146,7 +166,7 @@ def main():
                         reports.append({'id':rid,'status':'failed','error':'Source meeting cannot be a satellite destination.'});continue
                     item=children.get(rid)
                     if item and item['proc'].poll() is not None:
-                        children.pop(rid);failures[rid]={'revision':room['revision'],'status':'failed','error':'Satellite exited. Disconnect and reconnect to retry.'};item=None
+                        children.pop(rid);failures[rid]={'revision':room['revision'],'status':'failed','error':f"Satellite exited (process code {item['proc'].returncode}). Disconnect and reconnect to retry."};item=None
                     failure=failures.get(rid)
                     if failure and failure['revision']==room['revision']:
                         reports.append({'id':rid,**failure});continue
