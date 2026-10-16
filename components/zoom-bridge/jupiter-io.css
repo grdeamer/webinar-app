@@ -1,5 +1,5 @@
 /* Planetary backdrop and operator console, scoped to Jupiter Io. */
-.admin-theme-shell[data-admin-theme] .admin-workspace:has(.io-console) { background:linear-gradient(rgba(2,8,14,.62),rgba(2,8,14,.62)), url('/images/jupiter-io/io-jupiter.jpg') no-repeat right top / cover; background-color:#02080e; background-size:cover; background-attachment:fixed; }
+.admin-theme-shell[data-admin-theme] .admin-workspace:has(.io-console) { background:transparent; }
 .admin-workspace:has(.io-console) > main { padding:20px; }
 .io-console { width:calc(100% - clamp(0px,8vw,150px)); max-width:1280px; margin-right:0; isolation:isolate; }
 .io-header { min-height:90px; }
@@ -90,6 +90,7 @@
 /* Space imagery belongs to the expanded spatial view, never behind controls. */
 .io-matrix-space {
   background-color: #040b18;
-  background-image: radial-gradient(circle at 12% 18%, #aec7f244 0 .7px, transparent 1px), radial-gradient(circle at 68% 43%, #dae7ff30 0 .6px, transparent 1px), radial-gradient(ellipse at 50% 50%, #1a315133, transparent 68%);
-  background-size: 180px 210px, 270px 290px, auto;
+  background-image: radial-gradient(circle at 12% 18%, #aec7f244 0 .7px, transparent 1px), radial-gradient(circle at 68% 43%, #dae7ff30 0 .6px, transparent 1px), linear-gradient(#040b18e8, #040b18ed), url("/images/jupiter-io/io-jupiter.jpg");
+  background-size: 180px 210px, 270px 290px, auto, cover;
+  background-position: 0 0, 0 0, center, right center;
 }
