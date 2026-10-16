@@ -96,6 +96,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isDashboard = pathname === "/admin"
   const isActivity = pathname === "/admin/activity"
   const isCloud = pathname === "/admin/cloud"
+  const isIoWorkspace = pathname === "/admin/jupiter-io"
   const isTeamAccess = pathname === "/admin/users"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
@@ -194,7 +195,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       data-admin-theme={adminTheme}
       className={`${
         isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
-      } admin-theme-shell bg-transparent text-white`}
+      } admin-theme-shell ${isIoWorkspace ? "io-workspace" : "bg-transparent"} text-white`}
     >
       <AdminDocumentTitle />
       <div
@@ -217,7 +218,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
           </button>
         </div>
         {mobileNavOpen ? <button type="button" aria-label="Close navigation" onClick={() => setMobileNavOpen(false)} className="fixed inset-0 z-[55] bg-black/60 backdrop-blur-sm lg:hidden" /> : null}
-        {!isEventWorkspace && !isPageEditorWorkspace && !isDashboard && !isTeamAccess ? (
+        {!isEventWorkspace && !isPageEditorWorkspace && !isDashboard && !isTeamAccess && !isIoWorkspace ? (
           <div
             aria-hidden="true"
             className={`global-jupiter-backdrop ${isEventsDirectory ? "global-jupiter-backdrop--events" : ""} ${isActivity ? "global-jupiter-backdrop--activity" : ""} ${isCloud ? "global-jupiter-backdrop--cloud" : ""}`}

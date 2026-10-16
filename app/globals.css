@@ -1656,3 +1656,8 @@ body { --font-sans:var(--font-jupiter); --font-inter:var(--font-jupiter); --font
 .jv1-rail-section-label,.jv1-system-label,.events-editorial-kicker { font-weight:500; letter-spacing:.08em; }
 
 :where(h1), .jv1-shell :where(h1), .events-editorial-page :where(h1) { font-weight:400; }
+
+/* Io keeps operational controls on a calm, opaque canvas. */
+.admin-theme-shell.io-workspace {
+  background: radial-gradient(ellipse at 90% 0%, rgba(161, 108, 133, .19), transparent 58%), linear-gradient(145deg, #392b3d 0%, #2b2333 36%, #1b1b2b 72%, #101522 100%);
+}
