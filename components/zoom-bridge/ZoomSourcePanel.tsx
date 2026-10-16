@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useState } from "react"
 import { Radio, Play, Square, Save, Camera, Mic, Cable, Eye, EyeOff, Pencil } from "lucide-react"
 import SourceProfileEditor from "./SourceProfileEditor"
+import LiveProgramPreview from "./LiveProgramPreview"
 import { defaultSourceProfile, type SourceProfile } from "@/lib/zoom-bridge/source-profile"
 import type { ZoomSource } from "@/lib/zoom-bridge/types"
 import { ioButton, ioField } from "./SatelliteCard"
@@ -112,6 +113,7 @@ export default function ZoomSourcePanel() {
       <div className={`rounded-xl bg-black/15 p-3 text-sm ${audio ? "text-emerald-200" : "text-white/40"}`}><Mic size={16} className="mr-2 inline" />{audio ? "Audio receiving" : "Waiting for audio"}<p className="mt-1 text-xs text-white/45">{srt ? `${profile.audioName} · mono relay` : "Source meeting mix"}</p></div>
       <div className="rounded-xl bg-black/15 p-3 text-sm text-white/60">{srt ? profile.programName : fresh ? source.observed.presenter || "Waiting for spotlight" : "Presenter unavailable"}<p className="mt-1 text-xs text-white/45">{fresh && source.observed.revision !== source.revision ? "Applying command…" : fresh ? "Controller reporting" : "No recent controller report"}</p></div>
     </div> : null}
+    {srt ? <LiveProgramPreview /> : null}
     {srt && profile.notes ? <p className="mt-4 whitespace-pre-wrap break-words text-sm text-white/55">{profile.notes}</p> : null}
     {source?.observed.error ? <p role="alert" className="mt-3 text-sm text-amber-200">{!fresh ? "Last report: " : ""}{source.observed.error}</p> : null}
     {error ? <p role="alert" className="mt-3 text-sm text-red-200">{error}</p> : null}
