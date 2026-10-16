@@ -6,6 +6,11 @@ from pathlib import Path
 import subprocess
 from preview import decode_frame
 
+if os.environ.get('SSH_ORIGINAL_COMMAND') == 'live-preview':
+    from live_preview import run
+    run()
+    raise SystemExit(0)
+
 lock = open('/tmp/jupiter-snapshot.lock', 'w')
 try:
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
