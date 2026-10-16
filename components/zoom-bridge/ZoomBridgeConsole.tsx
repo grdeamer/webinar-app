@@ -8,6 +8,7 @@ import SatelliteCard, { ioButton, ioField, reporting } from "./SatelliteCard"
 import SatelliteDetail from "./SatelliteDetail"
 import SatelliteEditor, { type SatelliteDraft } from "./SatelliteEditor"
 import SatelliteMatrix from "./SatelliteMatrix"
+import IoGuideDialog from "./IoGuideDialog"
 import IoSetupHelp from "./IoSetupHelp"
 import SatelliteEditDialog from "./SatelliteEditDialog"
 export default function ZoomBridgeConsole() {
@@ -75,8 +76,8 @@ export default function ZoomBridgeConsole() {
   const editing = rooms.find(room => room.id === editingId)
   return <div className="io-console space-y-3 text-white">
     <header className="io-header flex flex-wrap items-center justify-between gap-4 px-3 py-2">
-      <div><h1 className="text-4xl font-semibold tracking-tight">Jupiter Io</h1><p className="mt-2 text-lg tracking-wide text-slate-300">Broadcast control</p></div>
-      <div className="mr-[15%] flex items-center gap-2 rounded-full border border-slate-500/30 bg-[#07111b]/80 px-4 py-2 text-sm"><span className={`h-2.5 w-2.5 rounded-full ${joined ? "bg-emerald-400" : "bg-slate-500"}`} />{joined} satellite{joined === 1 ? "" : "s"} connected</div>
+      <div><h1 className="text-4xl font-semibold tracking-tight">Jupiter Io</h1><p className="mt-2 text-lg tracking-wide text-slate-300">Route your program feed to multiple Zoom rooms.</p></div>
+      <div className="flex flex-wrap items-center gap-3"><IoGuideDialog /><div className="flex items-center gap-2 rounded-full border border-slate-500/30 bg-[#07111b]/80 px-4 py-2 text-sm"><span className={`h-2.5 w-2.5 rounded-full ${joined ? "bg-emerald-400" : "bg-slate-500"}`} />{joined} satellite{joined === 1 ? "" : "s"} connected</div></div>
     </header>
     <IoSetupHelp />
     <ZoomSourcePanel />
