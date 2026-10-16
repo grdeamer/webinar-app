@@ -1,0 +1,7 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Sid":"ReadFirewallStatusInVirginia","Effect":"Allow","Action":"lightsail:GetInstancePortStates","Resource":"*","Condition":{"StringEquals":{"aws:RequestedRegion":"us-east-1"}}},
+    {"Sid":"UpdateOnlyIoInstanceFirewall","Effect":"Allow","Action":"lightsail:OpenInstancePublicPorts","Resource":"arn:aws:lightsail:us-east-1:327614158380:Instance/10da764f-e02d-42ce-ada6-0d9338c35289","Condition":{"StringEquals":{"aws:RequestedRegion":"us-east-1"}}}
+  ]
+}
