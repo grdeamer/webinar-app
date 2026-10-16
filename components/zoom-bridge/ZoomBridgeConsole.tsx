@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import "./jupiter-io.css"
 import { Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Plus } from "lucide-react"
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
+import { newSatelliteNames } from "@/lib/zoom-bridge/new-satellites"
 import { orderRooms } from "@/lib/zoom-bridge/room-order"
 import ZoomSourcePanel from "./ZoomSourcePanel"
 import SatelliteCard, { ioButton, ioField, reporting } from "./SatelliteCard"
@@ -17,7 +18,7 @@ export default function ZoomBridgeConsole() {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [rooms, setRooms] = useState<ZoomRoom[]>([])
   const [drafts, setDrafts] = useState<SatelliteDraft[]>([])
-  const [count, setCount] = useState(2)
+  const [addCount, setAddCount] = useState(1)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState("")
   const [message, setMessage] = useState("")
@@ -61,10 +62,13 @@ export default function ZoomBridgeConsole() {
     setMessage("")
     setEditingId(room.id)
   }
+  const remainingSlots = Math.max(0, 50 - rooms.length - drafts.filter(draft => !draft.id).length)
+  const quantityToAdd = Math.min(addCount, remainingSlots)
   function addProfiles() {
-    const extra = Math.max(0, count - rooms.length - drafts.filter(d => !d.id).length)
-    setDrafts(d => [...d, ...Array.from({ length: extra }, (_, i): SatelliteDraft => ({ key: crypto.randomUUID(), name: `Jupiter Satellite ${String(rooms.length + d.filter(x => !x.id).length + i + 1).padStart(2, "0")}`, meetingId: "", passcode: "", publishMode: "share" }))])
-    if (!extra) setMessage("That many satellites are already set up. Disconnect and remove satellites individually to reduce the number.")
+    setDrafts(current => {
+      const existing = [...rooms.map(room => room.name), ...current.filter(draft => !draft.id).map(draft => draft.name)]
+      return [...current, ...newSatelliteNames(existing, quantityToAdd).map(name => ({ key: crypto.randomUUID(), name, meetingId: "", passcode: "", publishMode: "share" as const }))]
+    })
   }
   async function command(id: string, action: ZoomAction) {
     if (await mutate("POST", { id, action })) setMessage("Command sent. Reported state updates when the satellite responds.")
@@ -84,7 +88,7 @@ export default function ZoomBridgeConsole() {
     <div className="io-source-column"><IoSetupHelp /><ZoomSourcePanel /></div>
     <div className="io-destination-column">
     <section data-io-tour="fleet" className="io-panel io-fleet p-5">
-      <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Satellites</h2><p className="mt-1 text-xs text-white/45">Up to 50 satellite profiles</p></div><div className="flex items-end gap-3"><label className="text-xs text-white/65">Number of satellites<select value={count} onChange={e => setCount(Number(e.target.value))} className={`${ioField} w-28`}>{Array.from({ length: 50 }, (_, i) => <option key={i + 1} value={i + 1} className="bg-slate-950">{i + 1}</option>)}</select></label><button type="button" className={ioButton} disabled={busy || !loaded} onClick={addProfiles}><Plus size={16} />Set up</button></div></div>
+      <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Satellites</h2><p className="mt-1 text-xs text-white/45">Up to 50 satellite profiles</p></div><div className="flex items-end gap-3"><label className="text-xs text-white/65">Quantity to add<select aria-label="Quantity to add" disabled={busy || !loaded || !remainingSlots} value={quantityToAdd || 1} onChange={e => setAddCount(Number(e.target.value))} className={`${ioField} w-28`}>{Array.from({ length: Math.max(1, remainingSlots) }, (_, i) => <option key={i + 1} value={i + 1} className="bg-slate-950">{i + 1}</option>)}</select></label><button type="button" className={ioButton} disabled={busy || !loaded || !remainingSlots} onClick={addProfiles}><Plus size={16} />{quantityToAdd > 1 ? `Add ${quantityToAdd} satellites` : "Add satellite"}</button></div></div>
       <div className="io-master flex flex-wrap gap-2">
         <SatelliteMatrix rooms={rooms} selectedId={selected?.id} select={setSelectedId} busy={busy} command={command}/>
         {([['camera_on', 'Picture on', MonitorUp], ['microphone_off', 'Mute all', MicOff], ['original_sound_on', 'Original Sound on all', Mic]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
@@ -92,13 +96,14 @@ export default function ZoomBridgeConsole() {
           {([['start', 'Connect all', Play], ['stop', 'Disconnect all', Square], ['camera_off', 'Picture off', MonitorOff], ['microphone_on', 'Unmute all', Mic], ['original_sound_off', 'Original Sound off all', MicOff]] as const).map(([action, label, Icon]) => <button type="button" key={action} className={ioButton} disabled={busy || !rooms.length} onClick={() => { void command("all", action) }}><Icon size={16} />{label}</button>)}
         </div></details>
       </div>
+      {!remainingSlots ? <p className="col-span-full mt-3 text-xs text-white/60">All 50 satellite slots are in use, including unsaved profiles.</p> : null}
       <div className="io-fleet-grid mt-4">{rooms.map(room => <SatelliteCard compact selected={selected?.id === room.id} open={() => setSelectedId(room.id)} key={room.id} room={room} busy={busy} command={(id, action) => { void command(id, action) }} edit={edit} remove={r => { void mutate("DELETE", { id: r.id }) }} />)}</div>
     </section>
     {error ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-200">{error}</p> : null}
     {message ? <p role="status" className="text-sm text-blue-200">{message}</p> : null}
     <div className="io-selected-satellite">{selected ? <SatelliteDetail inline room={selected} busy={busy} close={() => setSelectedId(null)} command={(id, action) => { void command(id, action) }} edit={edit} remove={async room => { if (await mutate("DELETE", { id: room.id })) setSelectedId(null) }} /> : null}</div>
     {editing ? <SatelliteEditDialog key={editing.id} room={editing} busy={busy} errorMessage={error} close={() => setEditingId(null)} save={async draft => { const saved = await mutate("PUT", draft); if (saved) setMessage("Satellite saved."); return saved }} /> : null}
-    {!rooms.length && loaded && !drafts.length ? <p className="py-6 text-center text-white/45">Choose your satellite count above to create your first destinations.</p> : null}
+    {!rooms.length && loaded && !drafts.length ? <p className="py-6 text-center text-white/45">Click Add satellite to create your first destination. Use Quantity to add for several.</p> : null}
     {drafts.map(draft => <SatelliteEditor key={draft.key} draft={draft} running={rooms.find(r => r.id === draft.id)?.running ?? false} busy={busy} change={changed => setDrafts(d => d.map(x => x.key === changed.key ? changed : x))} save={() => { void save(draft) }} cancel={() => setDrafts(d => d.filter(x => x.key !== draft.key))} />)}
     </div></div>
     <p className="text-xs leading-5 text-white/35">New satellites start with picture and audio off. Saved controls are retained on reconnect. Destination host permissions apply. Submitted resolution describes the feed sent to Zoom; viewer quality may vary.</p>

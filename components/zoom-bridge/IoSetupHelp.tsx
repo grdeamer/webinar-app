@@ -11,7 +11,7 @@ const guides = {
  ["Check picture and sound", "source-health", "Wait for detected video and audio before connecting satellites. If nothing arrives, check capture, audio routing, the encoder destination, and that the encoder’s public IP is allowed by the receiver firewall. When finished, stop the encoder and click Stop receiving."],
  ],
  satellites: [
- ["Create destinations", "fleet", "Choose the total number of satellites and click Set up. Fill in and save each new profile. Existing profiles remain; Set up adds only missing profiles."],
+ ["Create destinations", "fleet", "Click Add satellite to add one new destination. To add several, choose Quantity to add first. Fill in and save each new profile. Existing satellites stay unchanged; unsaved profiles also count toward the 50-profile limit."],
  ["Edit a satellite", "satellite-edit", "Select a satellite, then click Edit satellite. Set its name, Zoom meeting ID, passcode, and Screen share or Camera output. A blank existing passcode keeps the saved one. Disconnect before changing meeting details or output mode; connected satellites can still be renamed."],
  ["Connect to Zoom", "satellite-detail", "Click Connect in the selected satellite’s Broadcast controls. The destination host must admit it and allow screen sharing when needed. If a failed satellite still offers Disconnect, disconnect it before trying Connect again."],
  ["Enable picture and audio", "satellite-detail", "Turn on Share or Camera and unmute the satellite microphone when ready. Picture and audio are separate controls. New satellites start with both off; reconnecting retains saved controls. Original Sound is optional and does not unmute audio. The relay is mono."],
