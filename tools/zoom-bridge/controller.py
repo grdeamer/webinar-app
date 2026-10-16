@@ -98,8 +98,10 @@ def main():
     settings = json.loads((ROOT/'controller.json').read_text())
     url = settings['url'].rstrip('/')+'/api/zoom-bridge/agent'
     if not (url.startswith('https://') or url.startswith('http://127.0.0.1:')): raise ValueError('HTTPS required')
-    # /dev/shm is RAM-backed on Linux. One latest frame; audio uses local sockets.
-    relay_root=Path(tempfile.mkdtemp(prefix='jupiter-io-',dir='/dev/shm'));relay_root.chmod(0o700)
+    # systemd owns this private /run tmpfs directory; login cleanup cannot remove it.
+    runtime=Path(os.environ.get("JUPITER_IO_RUNTIME_DIR", "/run/jupiter-io"))
+    ensure_relay_root(runtime)
+    relay_root=Path(tempfile.mkdtemp(prefix="jupiter-io-",dir=runtime));relay_root.chmod(0o700)
     preview=Preview(relay_root,settings);preview.start()
     capacity = 50
     srt_mode=settings.get('sourceType')=='srt'

@@ -29,3 +29,28 @@ class IngestTest(unittest.TestCase):
 
 
 if __name__ == '__main__': unittest.main()
+
+class StorageRecoveryTest(unittest.TestCase):
+    def test_missing_ram_directory_is_recreated_without_losing_decoder_thread(self):
+        import shutil
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / 'relay'
+            root.mkdir()
+            ingest = Ingest(root, {}, Path(parent))
+            pixels = bytes([80]) * ingest.frame_bytes
+            class VanishingDirectory(io.BytesIO):
+                def read(self, size=-1):
+                    if self.tell()==0 and root.exists(): shutil.rmtree(root)
+                    return super().read(size)
+            ingest.video(VanishingDirectory(pixels))
+            self.assertEqual(ingest.frames, 1)
+            self.assertEqual((root/'video.i420').stat().st_mode & 0o777, 0o600)
+            self.assertEqual(root.stat().st_mode & 0o777, 0o700)
+            self.assertFalse(list(root.glob('.frame-*')))
+
+    def test_symlink_buffer_directory_is_rejected(self):
+        with tempfile.TemporaryDirectory() as parent:
+            root = Path(parent) / 'relay'
+            root.symlink_to(parent)
+            ingest = Ingest(root, {}, Path(parent))
+            with self.assertRaises(RuntimeError): ingest.write_frame(bytes(ingest.frame_bytes))

@@ -7,6 +7,8 @@ Requires=jupiter-io-audio.service
 [Service]
 Type=simple
 User=ubuntu
+RuntimeDirectory=jupiter-io
+RuntimeDirectoryMode=0700
 WorkingDirectory=/home/ubuntu/jupiter-zoom
 Environment=XDG_RUNTIME_DIR=/run/jupiter-io-audio
 Environment=PULSE_SERVER=unix:/run/jupiter-io-audio/pulse/native

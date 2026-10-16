@@ -1,7 +1,7 @@
 """SRT -> ephemeral I420/PCM bus, with no recording files.
 FFmpeg decodes one MPEG-TS input to bounded raw pipes; the sender owns A/V timestamps.
 """
-import json, os, signal, socket, struct, subprocess, threading, time
+import json, os, signal, socket, stat, struct, subprocess, tempfile, threading, time
 from pathlib import Path
 HEADER = struct.Struct('=8IQ')
 def output_profile(settings):
@@ -28,18 +28,34 @@ class Ingest:
         self.width, self.height, self.fps = output_profile(settings)
         self.frame_bytes = self.width * self.height * 3 // 2
         self.stop = threading.Event(); self.video_time = self.audio_time = 0
-        self.frames = self.blocks = 0; self.proc = None
+        self.frames = self.blocks = 0; self.proc = None; self.error = ""
     def status(self):
         now=time.monotonic()
-        return {'status':'receiving' if now-self.video_time<2 else 'starting','kind':'srt','presenter':'HDMI program','inputResolutions':f'{self.width}x{self.height}' if self.frames else '', 'video':now-self.video_time<2,'audio':now-self.audio_time<2,'videoFrames':self.frames,'audioBlocks':self.blocks,'error':''}
+        return {'status':'receiving' if now-self.video_time<2 else 'starting','kind':'srt','presenter':'HDMI program','inputResolutions':f'{self.width}x{self.height}' if self.frames else '', 'video':now-self.video_time<2,'audio':now-self.audio_time<2,'videoFrames':self.frames,'audioBlocks':self.blocks,'error':self.error}
     def video(self, stream):
         while not self.stop.is_set():
             frame=exact(stream,self.frame_bytes)
             if frame is None: break
-            temp=self.root/'video.tmp'
-            with open(temp,'wb') as f: f.write(stamp(len(frame),self.width,self.height)+frame)
-            temp.chmod(0o600);temp.replace(self.root/'video.i420')
-            self.video_time=time.monotonic();self.frames+=1
+            self.write_frame(frame)
+            self.video_time=time.monotonic();self.frames+=1;self.error=""
+    def write_frame(self, frame):
+        for attempt in range(3):
+            temp=None
+            try:
+                if self.root.is_symlink(): raise RuntimeError("Relay directory must not be a symlink")
+                self.root.mkdir(mode=0o700,exist_ok=True)
+                info=self.root.lstat()
+                if not stat.S_ISDIR(info.st_mode) or info.st_uid!=os.getuid(): raise RuntimeError("Invalid relay directory ownership")
+                self.root.chmod(0o700)
+                fd,name=tempfile.mkstemp(prefix=".frame-",dir=self.root)
+                temp=Path(name)
+                with os.fdopen(fd,'wb') as output: output.write(stamp(len(frame),self.width,self.height)+frame)
+                temp.replace(self.root/'video.i420')
+                return
+            except FileNotFoundError:
+                if attempt==2: raise
+            finally:
+                if temp is not None: temp.unlink(missing_ok=True)
     def audio(self, stream):
         sock=socket.socket(socket.AF_UNIX,socket.SOCK_DGRAM);sock.setblocking(False)
         try:
@@ -70,7 +86,13 @@ class Ingest:
                 video_thread=threading.Thread(target=self.video,args=(self.proc.stdout,),daemon=True)
                 audio_thread=threading.Thread(target=self.audio,args=(audio,),daemon=True)
                 video_thread.start();audio_thread.start()
-                while self.proc.poll() is None and not self.stop.wait(.5):self.write_status()
+                while self.proc.poll() is None and not self.stop.wait(.5):
+                    if not video_thread.is_alive() or not audio_thread.is_alive():
+                        self.error="Program decoder interrupted; reconnecting encoder input."
+                        self.video_time=self.audio_time=0
+                        self.write_status()
+                        break
+                    self.write_status()
                 if self.proc.poll() is None:self.proc.terminate()
                 try:self.proc.wait(timeout=5)
                 except subprocess.TimeoutExpired:self.proc.kill();self.proc.wait()

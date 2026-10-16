@@ -11,7 +11,7 @@ try:
     fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
 except BlockingIOError:
     raise SystemExit(2)
-roots = sorted(Path('/dev/shm').glob('jupiter-io-*'), key=lambda p: p.stat().st_mtime, reverse=True)
+roots = sorted([*Path('/run/jupiter-io').glob('jupiter-io-*'), *Path('/dev/shm').glob('jupiter-io-*')], key=lambda p: p.stat().st_mtime, reverse=True)
 frame = None
 for root in roots:
     try:
