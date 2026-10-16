@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import "./jupiter-io.css"
 import { Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Plus } from "lucide-react"
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
+import { orderRooms } from "@/lib/zoom-bridge/room-order"
 import ZoomSourcePanel from "./ZoomSourcePanel"
 import SatelliteCard, { ioButton, ioField, reporting } from "./SatelliteCard"
 import SatelliteDetail from "./SatelliteDetail"
@@ -26,7 +27,7 @@ export default function ZoomBridgeConsole() {
     if (!response.ok || !response.headers.get("content-type")?.includes("application/json")) throw new Error("Unable to load satellites. Check your administrator session.")
     const data = await response.json()
     if (!signal.aborted) {
-      const nextRooms: ZoomRoom[] = data.rooms
+      const nextRooms: ZoomRoom[] = orderRooms(data.rooms as ZoomRoom[])
       setRooms(nextRooms)
       setSelectedId(current => nextRooms.some(room => room.id === current) ? current : nextRooms[0]?.id ?? null)
       setLoaded(true)
@@ -51,7 +52,7 @@ export default function ZoomBridgeConsole() {
       const response = await fetch("/api/admin/zoom-bridge", { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
       if (!response.headers.get("content-type")?.includes("application/json")) throw new Error("Your session expired. Sign in again.")
       const data = await response.json(); if (!response.ok) throw new Error(data.error || "Request failed")
-      setRooms(data.rooms); return true
+      setRooms(orderRooms(data.rooms as ZoomRoom[])); return true
     } catch (cause) { setError(cause instanceof Error ? cause.message : "Request failed"); return false }
     finally { setBusy(false) }
   }

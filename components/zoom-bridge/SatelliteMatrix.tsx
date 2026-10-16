@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react"
 import { Expand, Play, Square } from "lucide-react"
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog"
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
+import { orderRooms } from "@/lib/zoom-bridge/room-order"
 import SatelliteGlyph from "./SatelliteGlyph"
 import { ioButton, reporting } from "./SatelliteCard"
 type Point = { x:number; y:number }
@@ -32,7 +33,7 @@ export default function SatelliteMatrix({rooms,selectedId,select,busy,command}:{
   window.addEventListener("resize",fit)
   return ()=>{observer.disconnect();window.removeEventListener("resize",fit)}
  },[open,viewport])
- const ordered=[...rooms].sort((a,b)=>a.name.localeCompare(b.name)||a.id.localeCompare(b.id))
+ const ordered=orderRooms(rooms)
  const selected=ordered.filter(room=>chosen.includes(room.id))
  function point(event:React.PointerEvent):Point {
   const rect=canvas.current!.getBoundingClientRect()
