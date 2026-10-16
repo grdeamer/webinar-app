@@ -80,8 +80,9 @@ export default function ZoomBridgeConsole() {
       <div><h1 className="text-4xl font-semibold tracking-tight">Jupiter Io</h1><p className="mt-2 text-lg tracking-wide text-slate-300">Route your program feed to multiple Zoom rooms.</p></div>
       <div className="flex flex-wrap items-center gap-3"><IoGuideDialog /><div className="flex items-center gap-2 rounded-full border border-slate-500/30 bg-[#07111b]/80 px-4 py-2 text-sm"><span className={`h-2.5 w-2.5 rounded-full ${joined ? "bg-emerald-400" : "bg-slate-500"}`} />{joined} satellite{joined === 1 ? "" : "s"} connected</div></div>
     </header>
-    <IoSetupHelp />
-    <ZoomSourcePanel />
+    <div className="io-workspace-grid">
+    <div className="io-source-column"><IoSetupHelp /><ZoomSourcePanel /></div>
+    <div className="io-destination-column">
     <section data-io-tour="fleet" className="io-panel io-fleet p-5">
       <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Satellites</h2><p className="mt-1 text-xs text-white/45">Up to 50 satellite profiles</p></div><div className="flex items-end gap-3"><label className="text-xs text-white/65">Number of satellites<select value={count} onChange={e => setCount(Number(e.target.value))} className={`${ioField} w-28`}>{Array.from({ length: 50 }, (_, i) => <option key={i + 1} value={i + 1} className="bg-slate-950">{i + 1}</option>)}</select></label><button type="button" className={ioButton} disabled={busy || !loaded} onClick={addProfiles}><Plus size={16} />Set up</button></div></div>
       <div className="io-master flex flex-wrap gap-2">
@@ -95,10 +96,11 @@ export default function ZoomBridgeConsole() {
     </section>
     {error ? <p role="alert" className="rounded-xl border border-red-300/20 bg-red-300/10 p-4 text-sm text-red-200">{error}</p> : null}
     {message ? <p role="status" className="text-sm text-blue-200">{message}</p> : null}
-    {selected ? <SatelliteDetail inline key={selected.id} room={selected} busy={busy} close={() => setSelectedId(null)} command={(id, action) => { void command(id, action) }} edit={edit} remove={async room => { if (await mutate("DELETE", { id: room.id })) setSelectedId(null) }} /> : null}
+    <div className="io-selected-satellite">{selected ? <SatelliteDetail inline room={selected} busy={busy} close={() => setSelectedId(null)} command={(id, action) => { void command(id, action) }} edit={edit} remove={async room => { if (await mutate("DELETE", { id: room.id })) setSelectedId(null) }} /> : null}</div>
     {editing ? <SatelliteEditDialog key={editing.id} room={editing} busy={busy} errorMessage={error} close={() => setEditingId(null)} save={async draft => { const saved = await mutate("PUT", draft); if (saved) setMessage("Satellite saved."); return saved }} /> : null}
     {!rooms.length && loaded && !drafts.length ? <p className="py-6 text-center text-white/45">Choose your satellite count above to create your first destinations.</p> : null}
     {drafts.map(draft => <SatelliteEditor key={draft.key} draft={draft} running={rooms.find(r => r.id === draft.id)?.running ?? false} busy={busy} change={changed => setDrafts(d => d.map(x => x.key === changed.key ? changed : x))} save={() => { void save(draft) }} cancel={() => setDrafts(d => d.filter(x => x.key !== draft.key))} />)}
+    </div></div>
     <p className="text-xs leading-5 text-white/35">New satellites start with picture and audio off. Saved controls are retained on reconnect. Destination host permissions apply. Submitted resolution describes the feed sent to Zoom; viewer quality may vary.</p>
   </div>
 }

@@ -65,7 +65,7 @@ export default function AdminDocumentTitle({
     const isNestedEventWorkspace = /^\/admin\/events\/[^/]+/.test(pathname) && !pathname.startsWith("/admin/events/new")
     if (!eventBasePath && isNestedEventWorkspace) return
     const page = getAdminPageLabel(pathname, eventBasePath)
-    document.title = eventTitle?.trim()
+    document.title = pathname === "/admin/jupiter-io" ? "Jupiter Io" : eventTitle?.trim()
       ? `${page} · ${eventTitle.trim()} — Jupiter`
       : `${page} — Jupiter`
   }, [eventBasePath, eventTitle, pathname])
