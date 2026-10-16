@@ -41,12 +41,32 @@ bool sourceMode=false;std::string relayRoot;int audioFD=-1;std::string audioPath
 bool shareMode=false;
 bool originalSound=false;
 int64_t previewExpires=0;uint64_t previewTime=0;
+// Only a live monitor lease permits an outgoing-frame copy into private RAM.
+int monitorRate(){
+ if(sourceMode||relayRoot.empty())return 0;
+ const char* id=std::getenv("ZOOM_ROOM_ID");if(!id)return 0;
+ auto root=relayRoot+"/monitor-"+id;
+ std::ifstream lease(root+"/lease");int64_t until=0;int rate=0;lease>>until>>rate;
+ if(until<=std::time(nullptr)||until>std::time(nullptr)+121||(rate!=2&&rate!=10)){unlink((root+"/video.i420").c_str());return 0;}
+ return rate;
+}
 void previewFrame(const std::vector<char>& frame,int width,int height) {
- if(sourceMode||relayRoot.empty()||previewExpires<=std::time(nullptr)||relay::now()-previewTime<1000)return;
- const char* id=std::getenv("ZOOM_ROOM_ID");if(!id)return;
- auto root=relayRoot+"/preview-"+id;
+ int rate=monitorRate();if(!rate||relay::now()-previewTime<unsigned(1000/rate))return;
+ const char* id=std::getenv("ZOOM_ROOM_ID");auto root=relayRoot+"/monitor-"+id;
  relay::Header h;h.width=width;h.height=height;h.bytes=frame.size();h.time=relay::now();
  if(relay::writeVideo(root,h,frame.data(),frame.data()+width*height,frame.data()+width*height*5/4))previewTime=h.time;
+}
+void previewAudio(const relay::Header& input,const char* pixels){
+ if(monitorRate()!=10)return;
+ auto* pc=meeting?meeting->GetMeetingParticipantsController():nullptr;auto* me=pc?pc->GetMySelfUser():nullptr;if(!me||me->IsAudioMuted())return;
+ const char* id=std::getenv("ZOOM_ROOM_ID");std::string path=relayRoot+"/monitor-"+id+"/audio.sock";
+ int fd=socket(AF_UNIX,SOCK_DGRAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0);if(fd<0)return;
+ // Normalize accepted outgoing PCM to 32 kHz mono for the confidence monitor.
+ int sourceSamples=input.bytes/(2*input.channels),count=sourceSamples*32000/input.rate;
+ if(count<=0||count>3200){close(fd);return;}
+ std::vector<char> data(sizeof(relay::Header)+count*2);relay::Header h;h.rate=32000;h.channels=1;h.bytes=count*2;h.time=input.time;memcpy(data.data(),&h,sizeof(h));
+ for(int i=0;i<count;i++){int source=std::min(sourceSamples-1,i*int(input.rate)/32000),sample=0;for(unsigned c=0;c<input.channels;c++){int16_t v;memcpy(&v,pixels+2*(source*input.channels+c),2);sample+=v;}int16_t mono=sample/int(input.channels);memcpy(data.data()+sizeof(h)+i*2,&mono,2);}
+ sockaddr_un address{};address.sun_family=AF_UNIX;if(path.size()<sizeof(address.sun_path)){strcpy(address.sun_path,path.c_str());sendto(fd,data.data(),data.size(),MSG_DONTWAIT|MSG_NOSIGNAL,reinterpret_cast<sockaddr*>(&address),sizeof(address));}close(fd);
 }
 std::atomic<uint64_t> relayVideoTime{0},relayAudioTime{0};
 std::string workerStatus="starting", appliedRevision="", controlError="";bool mediaReady=false;
@@ -108,7 +128,7 @@ struct Tone: IZoomSDKVirtualAudioMicEvent {
    if(h.magic!=0x4a494f31||!relay::fresh(h)||h.bytes!=n-sizeof(h)||h.channels<1||h.channels>2||(h.rate!=8000&&h.rate!=16000&&h.rate!=32000&&h.rate!=44100&&h.rate!=48000)||h.bytes%(2*h.channels))continue;
    for(unsigned offset=0;offset<h.bytes;offset+=2){int16_t sample;memcpy(&sample,packet+sizeof(h)+offset,2);double amplitude=std::abs(double(sample))/32768.0;meterPeak=std::max(meterPeak,amplitude);meterSquares+=amplitude*amplitude;++meterSamples;}meterStamp=h.time;
    if(!active||!sender)continue;
-   auto e=sender->send(packet+sizeof(h),h.bytes,h.rate,h.channels==2?ZoomSDKAudioChannel_Stereo:ZoomSDKAudioChannel_Mono);if(e==SDKERR_SUCCESS)relayAudioTime=h.time;
+   auto e=sender->send(packet+sizeof(h),h.bytes,h.rate,h.channels==2?ZoomSDKAudioChannel_Stereo:ZoomSDKAudioChannel_Mono);if(e==SDKERR_SUCCESS){relayAudioTime=h.time;previewAudio(h,packet+sizeof(h));}
   }
  }
  void tick(){if(!active||!sender||!relayRoot.empty())return;int16_t b[640];for(auto& v:b){bool beep=(samples%64000)<8000;v=beep?static_cast<int16_t>(1000*std::sin(6.283185307179586*440*samples/32000.0)):0;++samples;}auto e=sender->send(reinterpret_cast<char*>(b),sizeof(b),32000,ZoomSDKAudioChannel_Mono);if(blocks++%500==0)std::cout<<"Audio blocks="<<blocks<<" send result="<<e<<std::endl;}

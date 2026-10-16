@@ -2,6 +2,7 @@
 import io, tempfile, shutil, threading, re
 from srt_ingest import Ingest
 from preview import Preview
+from multiview import cleanup_expired
 import base64, configparser, hashlib, hmac, json, os, signal, subprocess, time, urllib.request, uuid
 from pathlib import Path
 ROOT = Path.home() / 'jupiter-zoom'
@@ -113,6 +114,7 @@ def main():
     last_ok = time.monotonic();reports=[];source_status=None;source_item=None;source_failure=None
     try:
         while not stop_requested:
+            cleanup_expired(relay_root)
             try:
                 if recover_relay(relay_root): reports=[]
                 req = urllib.request.Request(url,data=json.dumps({'reports':reports,'sourceReport':source_status}).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+settings['token']})

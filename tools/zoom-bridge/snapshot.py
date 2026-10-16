@@ -6,6 +6,12 @@ from pathlib import Path
 import subprocess
 from preview import decode_frame
 
+if os.environ.get('SSH_ORIGINAL_COMMAND', '').startswith(('satellite-grid ', 'satellite-preview ')):
+    from multiview import command, run
+    ids, expanded = command(os.environ['SSH_ORIGINAL_COMMAND'])
+    run(ids, expanded)
+    raise SystemExit(0)
+
 if os.environ.get('SSH_ORIGINAL_COMMAND') == 'live-preview':
     from live_preview import run
     run()

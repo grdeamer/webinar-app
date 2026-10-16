@@ -2,7 +2,7 @@ import "server-only"
 import { Client } from "ssh2"
 
 /** A single bounded SSH stream; no media files, database writes or caching. */
-export function liveProgram(signal: AbortSignal): ReadableStream<Uint8Array> {
+export function liveProgram(signal: AbortSignal, command = "live-preview"): ReadableStream<Uint8Array> {
   let close = () => {}
   return new ReadableStream<Uint8Array>({
     start(controller) {
@@ -16,7 +16,7 @@ export function liveProgram(signal: AbortSignal): ReadableStream<Uint8Array> {
       close = finish
       const timer = setTimeout(finish, 120000)
       signal.addEventListener("abort", finish, { once: true })
-      client.on("ready", () => client.exec("live-preview", (error, stream) => {
+      client.on("ready", () => client.exec(command, (error, stream) => {
         if (error) return finish()
         stream.on("data", (chunk: Buffer) => {
           if (done) return
