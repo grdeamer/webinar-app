@@ -335,6 +335,15 @@ gboolean controls(gpointer) {
  }else if(!relayRoot.empty()){
   g_key_file_set_string(output,"worker","videoResolution",(std::to_string(shareMode?programShare.width:pattern.width)+"x"+std::to_string(shareMode?programShare.height:pattern.height)).c_str());
   g_key_file_set_string(output,"worker","publishMode",shareMode?"share":"camera");
+  if(shareMode){
+   MeetingASVStatisticInfo info;auto status=meeting->GetMeetingShareStatisticInfo(info);
+   g_key_file_set_integer(output,"worker","shareStatsResult",status);
+   g_key_file_set_integer(output,"worker","shareSendFps",info.sendFps);
+   g_key_file_set_integer(output,"worker","shareSendBandwidth",info.sendBandwidth);
+   g_key_file_set_string(output,"worker","shareSendResolution",(std::to_string(info.sendResolution&0xffff)+"x"+std::to_string((unsigned(info.sendResolution)>>16)&0xffff)).c_str());
+   g_key_file_set_uint64(output,"worker","shareAcceptedFrames",programShare.frames);
+   g_key_file_set_integer(output,"worker","shareFrameResult",programShare.lastResult);
+  }
   g_key_file_set_boolean(output,"worker","sourceVideo",relayVideoTime&&relay::now()-relayVideoTime<2000);
   g_key_file_set_boolean(output,"worker","sourceAudio",relayAudioTime&&relay::now()-relayAudioTime<2000);
  }
@@ -350,6 +359,9 @@ int main() {
  if(!t||!n||!p) {std::cerr<<"Missing runtime configuration"<<std::endl;return 1;}
  sourceMode=std::getenv("ZOOM_SOURCE_MODE")!=nullptr;relayRoot=std::getenv("ZOOM_RELAY_ROOT")?std::getenv("ZOOM_RELAY_ROOT"):"";
  shareMode=!sourceMode&&!relayRoot.empty()&&std::getenv("ZOOM_PUBLISH_MODE")&&std::string(std::getenv("ZOOM_PUBLISH_MODE"))=="share";
+ if(shareMode&&std::filesystem::exists("/run/jupiter-io-display/Xauthority")){
+  setenv("DISPLAY",":100",1);setenv("XAUTHORITY","/run/jupiter-io-display/Xauthority",1);setenv("QT_QPA_PLATFORM","xcb",1);
+ }
  if(sourceMode){if(relayRoot.empty())return 1;receiver.socketFD=socket(AF_UNIX,SOCK_DGRAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0);}
  else if(!relayRoot.empty()){audioPath=relayRoot+"/"+(std::getenv("ZOOM_ROOM_ID")?std::string(std::getenv("ZOOM_ROOM_ID")):"satellite")+".sock";audioFD=relay::audioSocket(audioPath);if(audioFD<0)return 1;}
  token=t;number=n;password=p;name=std::getenv("ZOOM_DISPLAY_NAME")?std::getenv("ZOOM_DISPLAY_NAME"):"Jupiter Feed 01";

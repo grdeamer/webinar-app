@@ -1,0 +1,21 @@
+[Unit]
+Description=Private virtual display for Jupiter screen-share encoding
+After=local-fs.target
+
+[Service]
+Type=simple
+User=ubuntu
+RuntimeDirectory=jupiter-io-display
+RuntimeDirectoryMode=0700
+UMask=0077
+ExecStartPre=/usr/bin/python3 /home/ubuntu/jupiter-zoom/display-auth.py
+ExecStart=/usr/bin/Xvfb :100 -screen 0 1920x1080x24 -nolisten tcp -auth /run/jupiter-io-display/Xauthority
+Restart=on-failure
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/run/jupiter-io-display /tmp
+LimitCORE=0
+
+[Install]
+WantedBy=multi-user.target

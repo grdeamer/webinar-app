@@ -18,7 +18,7 @@ Build:
 
 ```bash
 cd ~/jupiter-zoom
-g++ -std=c++17 worker.cpp -I sdk/h -L sdk -Wl,-rpath,/home/ubuntu/jupiter-zoom/sdk -lmeetingsdk $(pkg-config --cflags --libs glib-2.0 cairo) -o bridge-worker
+g++ -O2 -std=c++17 worker.cpp -I sdk/h -L sdk -Wl,-rpath,/home/ubuntu/jupiter-zoom/sdk -lmeetingsdk $(pkg-config --cflags --libs glib-2.0 cairo) -o bridge-worker
 ```
 
 Dependencies include build-essential, pkg-config, libglib2.0-dev, libcairo2-dev, PulseAudio, and the SDK's X11/XCB/OpenGL runtime libraries. Start PulseAudio under the same user as the controller.
@@ -111,3 +111,10 @@ Multiview monitors outgoing frames accepted by each satellite's SDK sender, not 
 Global-admin same-origin POST validates saved UUIDs and page bounds. The pinned restricted SSH command accepts only `satellite-grid <session-UUID> <up-to-nine-UUIDs>`, `satellite-preview <session-UUID> <one-UUID>`, or `satellite-stop <session-UUID>`. One multiview encoder at a time. A new session replaces the previous lease; explicit session-specific stop commands handle hosting proxies that retain a cancelled stream. A stale stop cannot cancel a newer session. Private `/run/jupiter-io/.../monitor-<UUID>` directories contain a bounded lease and the latest frame only while monitored. Media uses tmpfs, pipes and transient browser buffers, with no database/object-storage/persistent-disk media writes or recording APIs. Worker leases, server stream, and UI stop after at most 120 seconds; changing pages/expanding does not renew the UI session. Closing/hiding the tab stops transport. On disconnect/expiry, the monitor removes its RAM copies; the controller also reaps expired copies after abnormal exits. No satellite is connected or its publishing settings changed by monitoring.
 
 Run `video-profile-test.cpp` on Linux for crop/rotation/resolution regressions, Python `multiview_test.py` for distinct-tile, missing-frame, selection and expiry tests, and the browser flow for page navigation, expanding, audio, stopping and expiry. Only original source resolution is available if the encoder already padded the image. Actual receiving-Zoom playback needs a separately authorized return feed.
+
+
+## Linux screen-share display requirement
+
+External-share callbacks and successful `sendShareFrame` results alone do not prove network transmission. On this receiver, the offscreen Qt path could announce a share while transmitting zero frames. The authenticated virtual X11 display fixes that path: install Ubuntu `xvfb` and `xauth`, copy `display-auth.py`, install/enable `jupiter-io-display.service`, and retain the controller unit's Wants/After dependency. The sharing worker uses `DISPLAY=:100` and `QT_QPA_PLATFORM=xcb` only when its private `/run/jupiter-io-display/Xauthority` exists. Camera workers retain their current setup. The display has no TCP listener, uses a boot-scoped cookie in private RAM, and does not record media. Core dumps are disabled.
+
+Check `shareSendFps`, `shareSendBandwidth` and `shareSendResolution` in the worker status, in addition to `shareAcceptedFrames` and `shareFrameResult`. Zero transport values mean the outgoing share is not yet verified even if frame submission succeeds. Actual destination playback still requires a receiving-client check. Build optimized (`-O2`); identity aspect/resolution conversion must preserve the original pixels without unnecessary full-frame scaling.

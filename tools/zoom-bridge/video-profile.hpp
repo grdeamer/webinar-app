@@ -12,6 +12,8 @@ inline std::pair<int,int> dimensions(int sw,int sh,const std::string& quality,co
  return {w,h};
 }
 inline std::vector<char> render(const relay::Header& input,const std::vector<char>& pixels,int w,int h,const std::string& aspect){
+ bool sameAspect=aspect=="original"||(aspect=="16:9"&&input.width*9==input.height*16)||(aspect=="4:3"&&input.width*3==input.height*4);
+ if(!input.rotation&&input.width==unsigned(w)&&input.height==unsigned(h)&&sameAspect)return pixels;
  if(aspect=="original"){if(!input.rotation&&input.width==unsigned(w)&&input.height==unsigned(h))return pixels;return relay::fit(input,pixels,w,h); }
  int sw=(input.rotation==90||input.rotation==270)?input.height:input.width;
  int sh=(input.rotation==90||input.rotation==270)?input.width:input.height;

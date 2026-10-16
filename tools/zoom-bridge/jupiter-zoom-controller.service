@@ -1,7 +1,7 @@
 [Unit]
 Description=Jupiter Zoom Bridge controller
-After=network-online.target jupiter-io-audio.service
-Wants=network-online.target
+After=network-online.target jupiter-io-audio.service jupiter-io-display.service
+Wants=network-online.target jupiter-io-display.service
 Requires=jupiter-io-audio.service
 
 [Service]
@@ -17,6 +17,7 @@ Restart=on-failure
 RestartSec=5
 UMask=0077
 TimeoutStopSec=30
+LimitCORE=0
 
 [Install]
 WantedBy=multi-user.target
