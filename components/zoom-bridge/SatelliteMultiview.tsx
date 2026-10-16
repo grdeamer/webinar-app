@@ -29,8 +29,8 @@ function Monitor({ rooms }: { rooms: ZoomRoom[] }) {
   }, [running, session])
   return <>
     <div className="flex flex-wrap items-center gap-2">
-      {selected ? <button className={ioButton} onClick={() => { setExpanded(null); setAudio(false) }}><ArrowLeft size={16} />Back to grid</button> : <span className="mr-auto text-sm text-white/60">Grid · 2 fps · audio muted</span>}
-      {selected ? <><span className="mr-auto text-sm">{selected.name} · Outgoing feed · 10 fps</span><button className={ioButton} aria-pressed={audio} disabled={!running} onClick={() => setAudio(value => !value)}>{audio ? <VolumeX size={16} /> : <Volume2 size={16} />}{audio ? "Mute preview" : "Listen to preview"}</button></> : null}
+      {selected ? <button className={ioButton} onClick={() => { setExpanded(null); setAudio(false) }}><ArrowLeft size={16} />Back to grid</button> : <span className="mr-auto text-sm text-white/60">Grid · 640 × 360 per feed · 2 fps · audio muted</span>}
+      {selected ? <><span className="mr-auto text-sm">{selected.name} · Outgoing feed · 720p · 10 fps</span><button className={ioButton} aria-pressed={audio} disabled={!running} onClick={() => setAudio(value => !value)}>{audio ? <VolumeX size={16} /> : <Volume2 size={16} />}{audio ? "Mute preview" : "Listen to preview"}</button></> : null}
       <span role="status" className="text-xs tabular-nums text-white/60">{running ? `Expires in ${Math.floor(remaining / 60)}:${String(remaining % 60).padStart(2, "0")}` : "Preview stopped"}</span>
       <button className={ioButton} onClick={() => { setAudio(false); if (running) setRunning(false); else { setRemaining(120); setSession(value => value + 1); setRunning(true) } }}>{running ? <Square size={14} /> : <Play size={14} />}{running ? "Stop multiview" : "Start multiview"}</button>
     </div>

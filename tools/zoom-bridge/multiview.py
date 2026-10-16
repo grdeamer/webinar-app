@@ -13,6 +13,10 @@ import threading
 import time
 import uuid
 from live_preview import fresh_frame
+from monitor_scale import resize
+
+TILE_WIDTH, TILE_HEIGHT = 640, 360
+EXPANDED_WIDTH, EXPANDED_HEIGHT = 1280, 720
 
 UUID = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
@@ -23,34 +27,33 @@ def command(value):
     if len(set(ids)) != len(ids) or (match[1] == 'satellite-preview' and len(ids) != 1): raise ValueError('Invalid monitor selection')
     return ids, match[1] == 'satellite-preview', match[2]
 
-def tile(frame, width=256, height=144):
+def tile(frame, width=TILE_WIDTH, height=TILE_HEIGHT):
     out = bytearray(bytes([16])*(width*height)+bytes([128])*(width*height//2))
     if not frame: return out
     sw, sh, data = frame
     scale=min(width/sw,height/sh);rw=max(2,int(sw*scale)//2*2);rh=max(2,int(sh*scale)//2*2)
     x=(width-rw)//4*2;y=(height-rh)//4*2
+    data=resize(data,sw,sh,rw,rh)
     for p in range(3):
-        div=2 if p else 1;source=0 if p==0 else sw*sh if p==1 else sw*sh*5//4
+        div=2 if p else 1;source=0 if p==0 else rw*rh if p==1 else rw*rh*5//4
         dest=0 if p==0 else width*height if p==1 else width*height*5//4
-        xs=[int(i*(sw//div)/(rw//div)) for i in range(rw//div)]
         for row in range(rh//div):
-            start=source+int(row*(sh//div)/(rh//div))*(sw//div)
-            line=data[start:start+sw//div]
+            start=source+row*(rw//div)
             offset=dest+(y//div+row)*(width//div)+x//div
-            out[offset:offset+rw//div]=bytes(line[i] for i in xs)
+            out[offset:offset+rw//div]=data[start:start+rw//div]
     return out
 
 def compose(frames, columns):
-    rows=math.ceil(len(frames)/columns);w,h=columns*256,rows*144
+    rows=math.ceil(len(frames)/columns);w,h=columns*TILE_WIDTH,rows*TILE_HEIGHT
     out=bytearray(bytes([16])*(w*h)+bytes([128])*(w*h//2))
     for i,frame in enumerate(frames):
-        data=tile(frame);x=i%columns*256;y=i//columns*144
+        data=tile(frame);x=i%columns*TILE_WIDTH;y=i//columns*TILE_HEIGHT
         for p in range(3):
-            div=2 if p else 1;src=0 if p==0 else 256*144 if p==1 else 256*144*5//4
+            div=2 if p else 1;src=0 if p==0 else TILE_WIDTH*TILE_HEIGHT if p==1 else TILE_WIDTH*TILE_HEIGHT*5//4
             dst=0 if p==0 else w*h if p==1 else w*h*5//4
-            for row in range(144//div):
+            for row in range(TILE_HEIGHT//div):
                 offset=dst+(y//div+row)*(w//div)+x//div
-                out[offset:offset+256//div]=data[src+row*(256//div):src+(row+1)*(256//div)]
+                out[offset:offset+TILE_WIDTH//div]=data[src+row*(TILE_WIDTH//div):src+(row+1)*(TILE_WIDTH//div)]
     return out
 
 def set_session(session_id,base):
@@ -88,7 +91,7 @@ def run(ids, expanded, duration=120, base=Path('/run/jupiter-io'), session_id=No
         for sig in (signal.SIGTERM, signal.SIGHUP):
             previous[sig]=signal.getsignal(sig);signal.signal(sig,lambda *_:stop.set())
     deadline=time.monotonic()+duration;fps=10 if expanded else 2
-    columns=min(3,len(ids));width,height=(854,480) if expanded else (columns*256,math.ceil(len(ids)/columns)*144)
+    columns=min(3,len(ids));width,height=(EXPANDED_WIDTH,EXPANDED_HEIGHT) if expanded else (columns*TILE_WIDTH,math.ceil(len(ids)/columns)*TILE_HEIGHT)
     vr,vw=os.pipe();ar,aw=os.pipe()
     try:
         for rid in ids:
@@ -97,7 +100,7 @@ def run(ids, expanded, duration=120, base=Path('/run/jupiter-io'), session_id=No
             lease=directory/'lease';lease.write_text(f'{int(time.time()+duration)} {fps}');lease.chmod(0o600)
         if expanded:
             sock=socket.socket(socket.AF_UNIX,socket.SOCK_DGRAM);sock.bind(str(dirs[0]/'audio.sock'));sock.setblocking(False);(dirs[0]/'audio.sock').chmod(0o600)
-        args=['ffmpeg','-v','error','-nostdin','-threads','1','-probesize','32','-analyzeduration','0','-f','rawvideo','-pixel_format','yuv420p','-video_size',f'{width}x{height}','-framerate',str(fps),'-i',f'pipe:{vr}','-probesize','32','-analyzeduration','0','-f','s16le','-ar','32000','-ac','1','-i',f'pipe:{ar}','-c:v','libx264','-threads','1','-preset','ultrafast','-tune','zerolatency','-profile:v','baseline','-level:v','3.1','-b:v','650k' if expanded else '350k','-g',str(fps),'-c:a','aac','-b:a','64k','-ar','32000','-t',str(duration),'-movflags','frag_keyframe+empty_moov+default_base_moof','-f','mp4','pipe:1']
+        args=['ffmpeg','-v','error','-nostdin','-threads','1','-probesize','32','-analyzeduration','0','-f','rawvideo','-pixel_format','yuv420p','-video_size',f'{width}x{height}','-framerate',str(fps),'-i',f'pipe:{vr}','-probesize','32','-analyzeduration','0','-f','s16le','-ar','32000','-ac','1','-i',f'pipe:{ar}','-c:v','libx264','-threads','1','-preset','ultrafast','-tune','zerolatency','-profile:v','baseline','-level:v','4.0','-crf','20','-maxrate','4M','-bufsize','8M','-g',str(fps),'-c:a','aac','-b:a','64k','-ar','32000','-t',str(duration),'-movflags','frag_keyframe+empty_moov+default_base_moof','-f','mp4','pipe:1']
         proc=subprocess.Popen(args,pass_fds=(vr,ar),stderr=subprocess.DEVNULL)
         os.close(vr);os.close(ar)
         def video():

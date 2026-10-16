@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
-const MIME = 'video/mp4; codecs="avc1.42C01F, mp4a.40.2"'
+const MIME = 'video/mp4; codecs="avc1.42C028, mp4a.40.2"'
 /** Fetch -> bounded MediaSource buffers. Never uses recording or storage APIs. */
 export default function OutgoingStream({ ids, expanded, audio }: { ids: string[]; expanded: boolean; audio: boolean }) {
   const player = useRef<HTMLVideoElement>(null)
