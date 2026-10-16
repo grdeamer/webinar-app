@@ -29,6 +29,8 @@ Run `python3 controller.py` under the ubuntu user. For a production deployment i
 
 ## Operating behavior
 
+Install and enable `jupiter-io-worker-health.service` with `worker_health.py` beside the controller. This independent, unprivileged guard has no network access and does not join, leave, or restart satellites. Every two seconds it checks each worker's actual status-file heartbeat. After 15 seconds without a worker update, an active report becomes `failed` with a `Worker stalled` reason and picture/audio indicators cleared. The last real worker-write time is preserved; continued controller polling cannot turn an old joined report into a fresh connection. A recovered worker replaces the failure on its next heartbeat. The controller also checks heartbeat age directly as a second layer. Install/start the guard without restarting the controller or disrupting healthy satellites. Retry a stalled satellite explicitly with Disconnect, wait for stopped, then Connect.
+
 - New profiles default to disconnected, camera off, microphone muted.
 - Connect preserves the explicitly selected desired media settings.
 - Live meeting/passcode edits require stopping the worker first.

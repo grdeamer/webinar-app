@@ -1,7 +1,7 @@
 [Unit]
 Description=Jupiter Zoom Bridge controller
 After=network-online.target jupiter-io-audio.service jupiter-io-display.service
-Wants=network-online.target jupiter-io-display.service
+Wants=network-online.target jupiter-io-display.service jupiter-io-worker-health.service
 Requires=jupiter-io-audio.service
 
 [Service]

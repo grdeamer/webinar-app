@@ -3,6 +3,7 @@ import io, tempfile, shutil, threading, re
 from srt_ingest import Ingest
 from preview import Preview
 from multiview import cleanup_expired
+from worker_health import is_stalled, STALL_ERROR
 import base64, configparser, hashlib, hmac, json, os, signal, subprocess, time, urllib.request, uuid
 from pathlib import Path
 ROOT = Path.home() / 'jupiter-zoom'
@@ -65,8 +66,10 @@ def report(room_id, item):
     try:
         cfg.read(item['home']/'status.ini')
         status = cfg['worker']
+        if is_stalled(status.get('status','starting'), (item['home']/'status.ini').stat().st_mtime):
+            return {'id':room_id,'status':'failed','camera':False,'microphone':False,'sourceVideo':False,'sourceAudio':False,'error':STALL_ERROR}
         return {'id':room_id,'status':status.get('status','starting'),'camera':status.getboolean('camera',False),'microphone':status.getboolean('microphone',False),'name':status.get('name',''),'revision':status.get('revision',''),'error':status.get('error',''),'videoResolution':status.get('videoResolution',''),'sourceVideo':status.getboolean('sourceVideo',False),'sourceAudio':status.getboolean('sourceAudio',False),'publishMode':status.get('publishMode','camera'),'originalSound':status.getboolean('originalSound',False)}
-    except (KeyError, configparser.Error):
+    except (KeyError, configparser.Error, OSError):
         return {'id':room_id,'status':'starting','camera':False,'microphone':False}
 
 def source_report(item):
