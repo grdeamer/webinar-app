@@ -11,16 +11,17 @@ import struct
 import subprocess
 import threading
 import time
+import uuid
 from live_preview import fresh_frame
 
 UUID = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
 
 def command(value):
-    match = re.fullmatch(r'(satellite-grid|satellite-preview) ('+UUID+r'(?:,'+UUID+r'){0,8})', value)
+    match = re.fullmatch(r'(satellite-grid|satellite-preview) ('+UUID+r') ('+UUID+r'(?:,'+UUID+r'){0,8})', value)
     if not match: raise ValueError('Invalid monitor request')
-    ids = match[2].split(',')
+    ids = match[3].split(',')
     if len(set(ids)) != len(ids) or (match[1] == 'satellite-preview' and len(ids) != 1): raise ValueError('Invalid monitor selection')
-    return ids, match[1] == 'satellite-preview'
+    return ids, match[1] == 'satellite-preview', match[2]
 
 def tile(frame, width=256, height=144):
     out = bytearray(bytes([16])*(width*height)+bytes([128])*(width*height//2))
@@ -52,10 +53,28 @@ def compose(frames, columns):
                 out[offset:offset+256//div]=data[src+row*(256//div):src+(row+1)*(256//div)]
     return out
 
-def run(ids, expanded, duration=120, base=Path('/run/jupiter-io')):
+def set_session(session_id,base):
+    with open(base/'monitor-session.lock','w') as guard:
+        fcntl.flock(guard,fcntl.LOCK_EX)
+        temp=base/('session-'+session_id);temp.write_text(session_id);temp.chmod(0o600);temp.replace(base/'monitor-session')
+
+def stop_session(session_id, base=Path('/run/jupiter-io')):
+    if not re.fullmatch(UUID,session_id):raise ValueError('Invalid monitor session')
+    with open(base/'monitor-session.lock','w') as guard:
+        fcntl.flock(guard,fcntl.LOCK_EX)
+        session=base/'monitor-session'
+        try:
+            if session.read_text()==session_id:session.unlink(missing_ok=True)
+        except OSError:pass
+
+def run(ids, expanded, duration=120, base=Path('/run/jupiter-io'), session_id=None):
     if not 0 < duration <= 120 or not 1 <= len(ids) <= 9 or any(not re.fullmatch(UUID, rid) for rid in ids) or (expanded and len(ids)!=1): raise ValueError('Invalid monitor lease')
+    session_id=session_id or str(uuid.uuid4())
+    if not re.fullmatch(UUID,session_id):raise ValueError('Invalid monitor session')
+    session=base/'monitor-session'
+    set_session(session_id,base)
     lock=open(base/'multiview.lock','w')
-    until=time.monotonic()+2
+    until=time.monotonic()+4
     while True:
         try: fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB);break
         except BlockingIOError:
@@ -78,7 +97,7 @@ def run(ids, expanded, duration=120, base=Path('/run/jupiter-io')):
             lease=directory/'lease';lease.write_text(f'{int(time.time()+duration)} {fps}');lease.chmod(0o600)
         if expanded:
             sock=socket.socket(socket.AF_UNIX,socket.SOCK_DGRAM);sock.bind(str(dirs[0]/'audio.sock'));sock.setblocking(False);(dirs[0]/'audio.sock').chmod(0o600)
-        args=['ffmpeg','-v','error','-nostdin','-threads','1','-f','rawvideo','-pixel_format','yuv420p','-video_size',f'{width}x{height}','-framerate',str(fps),'-i',f'pipe:{vr}','-f','s16le','-ar','32000','-ac','1','-i',f'pipe:{ar}','-c:v','libx264','-threads','1','-preset','ultrafast','-tune','zerolatency','-profile:v','baseline','-level:v','3.1','-b:v','650k' if expanded else '350k','-g',str(fps),'-c:a','aac','-b:a','64k','-ar','32000','-t',str(duration),'-movflags','frag_keyframe+empty_moov+default_base_moof','-f','mp4','pipe:1']
+        args=['ffmpeg','-v','error','-nostdin','-threads','1','-probesize','32','-analyzeduration','0','-f','rawvideo','-pixel_format','yuv420p','-video_size',f'{width}x{height}','-framerate',str(fps),'-i',f'pipe:{vr}','-probesize','32','-analyzeduration','0','-f','s16le','-ar','32000','-ac','1','-i',f'pipe:{ar}','-c:v','libx264','-threads','1','-preset','ultrafast','-tune','zerolatency','-profile:v','baseline','-level:v','3.1','-b:v','650k' if expanded else '350k','-g',str(fps),'-c:a','aac','-b:a','64k','-ar','32000','-t',str(duration),'-movflags','frag_keyframe+empty_moov+default_base_moof','-f','mp4','pipe:1']
         proc=subprocess.Popen(args,pass_fds=(vr,ar),stderr=subprocess.DEVNULL)
         os.close(vr);os.close(ar)
         def video():
@@ -111,7 +130,10 @@ def run(ids, expanded, duration=120, base=Path('/run/jupiter-io')):
                         output.write(chunk+bytes(1280-len(chunk)));tick+=.02;stop.wait(max(0,tick-time.monotonic()))
             except OSError: pass
         threading.Thread(target=video,daemon=True).start();threading.Thread(target=audio,daemon=True).start()
-        while proc.poll() is None and not stop.wait(.1) and time.monotonic()<deadline:pass
+        while proc.poll() is None and not stop.wait(.1) and time.monotonic()<deadline:
+            try:
+                if session.read_text()!=session_id:break
+            except OSError:break
     finally:
         stop.set()
         if proc and proc.poll() is None:
@@ -121,6 +143,7 @@ def run(ids, expanded, duration=120, base=Path('/run/jupiter-io')):
         if sock:sock.close()
         for directory in dirs:shutil.rmtree(directory,ignore_errors=True)
         for sig,handler in previous.items():signal.signal(sig,handler)
+        stop_session(session_id,base)
 
 
 def cleanup_expired(root):

@@ -6,10 +6,15 @@ from pathlib import Path
 import subprocess
 from preview import decode_frame
 
+if os.environ.get('SSH_ORIGINAL_COMMAND', '').startswith('satellite-stop '):
+    from multiview import stop_session
+    stop_session(os.environ['SSH_ORIGINAL_COMMAND'].removeprefix('satellite-stop '))
+    raise SystemExit(0)
+
 if os.environ.get('SSH_ORIGINAL_COMMAND', '').startswith(('satellite-grid ', 'satellite-preview ')):
     from multiview import command, run
-    ids, expanded = command(os.environ['SSH_ORIGINAL_COMMAND'])
-    run(ids, expanded)
+    ids, expanded, session_id = command(os.environ['SSH_ORIGINAL_COMMAND'])
+    run(ids, expanded, session_id=session_id)
     raise SystemExit(0)
 
 if os.environ.get('SSH_ORIGINAL_COMMAND') == 'live-preview':
