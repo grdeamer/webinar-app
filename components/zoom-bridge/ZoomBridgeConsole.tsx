@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from "react"
 import "./jupiter-io.css"
 import { Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Plus } from "lucide-react"
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
+import { newSatelliteVideoSettings } from "@/lib/zoom-bridge/video-settings"
 import { newSatelliteNames } from "@/lib/zoom-bridge/new-satellites"
 import { orderRooms } from "@/lib/zoom-bridge/room-order"
 import ZoomSourcePanel from "./ZoomSourcePanel"
@@ -68,7 +69,7 @@ export default function ZoomBridgeConsole() {
   function addProfiles() {
     setDrafts(current => {
       const existing = [...rooms.map(room => room.name), ...current.filter(draft => !draft.id).map(draft => draft.name)]
-      return [...current, ...newSatelliteNames(existing, quantityToAdd).map(name => ({ key: crypto.randomUUID(), name, meetingId: "", passcode: "", publishMode: "share" as const }))]
+      return [...current, ...newSatelliteNames(existing, quantityToAdd).map(name => ({ key: crypto.randomUUID(), name, meetingId: "", passcode: "", publishMode: "share" as const, videoSettings: { ...newSatelliteVideoSettings } }))]
     })
   }
   async function command(id: string, action: ZoomAction) {
@@ -108,6 +109,6 @@ export default function ZoomBridgeConsole() {
     {!rooms.length && loaded && !drafts.length ? <p className="py-6 text-center text-white/45">Click Add satellite to create your first destination. Use Quantity to add for several.</p> : null}
     {drafts.map(draft => <SatelliteEditor key={draft.key} draft={draft} running={rooms.find(r => r.id === draft.id)?.running ?? false} busy={busy} change={changed => setDrafts(d => d.map(x => x.key === changed.key ? changed : x))} save={() => { void save(draft) }} cancel={() => setDrafts(d => d.filter(x => x.key !== draft.key))} />)}
     </div></div>
-    <p className="text-xs leading-5 text-white/35">New satellites start with picture and audio off. Saved controls are retained on reconnect. Destination host permissions apply. Submitted resolution describes the feed sent to Zoom; viewer quality may vary.</p>
+    <p className="text-xs leading-5 text-white/35">New satellites default to Screen share, Full HD (up to 1080p), and Widescreen (16:9), with picture and audio off. Saved controls are retained on reconnect. Destination host permissions apply. Submitted resolution describes the feed sent to Zoom; viewer quality may vary.</p>
   </div>
 }

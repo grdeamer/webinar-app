@@ -1,4 +1,4 @@
-import { defaultVideoSettings, parseVideoSettings } from "@/lib/zoom-bridge/video-settings"
+import { defaultVideoSettings, newSatelliteVideoSettings, parseVideoSettings } from "@/lib/zoom-bridge/video-settings"
 import { NextResponse } from "next/server"
 import { randomUUID } from "node:crypto"
 import { requireAdmin } from "@/lib/requireAdmin"
@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
     const meetingId = normalizeMeetingId(String(body.meetingId ?? ""))
     const source = await sourceRow()
     if (source?.source_kind === "zoom") assertSourceIsSeparate(source.meeting_id, [meetingId])
-    const videoSettings = parseVideoSettings(body.videoSettings ?? { quality: old?.video_quality ?? defaultVideoSettings.quality, aspect: old?.aspect_ratio ?? defaultVideoSettings.aspect })
+    const videoSettings = parseVideoSettings(body.videoSettings ?? (old ? { quality: old.video_quality ?? defaultVideoSettings.quality, aspect: old.aspect_ratio ?? defaultVideoSettings.aspect } : newSatelliteVideoSettings))
     if (old?.desired_running && (videoSettings.quality !== (old.video_quality ?? "auto") || videoSettings.aspect !== (old.aspect_ratio ?? "original"))) return error("Disconnect the satellite before changing video settings.")
     const publishMode = parsePublishMode(body.publishMode ?? old?.publish_mode ?? "share")
     if (old?.desired_running && publishMode !== old.publish_mode) return error("Disconnect the satellite before changing its output mode.")
