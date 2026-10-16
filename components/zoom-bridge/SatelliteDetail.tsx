@@ -20,6 +20,8 @@ export default function SatelliteDetail({ room, busy, close, command, edit, remo
           <details className="io-room-info"><summary className="cursor-pointer text-xs text-white/50">Meeting information</summary><dl className="grid grid-cols-2 gap-4 rounded-xl border border-white/10 p-4 text-xs">
             <div><dt className="text-white/40">Meeting passcode</dt><dd className="mt-1">{room.hasPasscode ? "Saved securely" : "Not configured"}</dd></div>
             <div><dt className="text-white/40">Last controller report</dt><dd className="mt-1">{room.lastSeen ? new Date(room.lastSeen).toLocaleTimeString() : "No report yet"}</dd></div>
+            <div><dt className="text-white/40">Video quality / aspect</dt><dd className="mt-1">{room.videoSettings?.quality ?? "auto"} · {room.videoSettings?.aspect ?? "original"}</dd></div>
+            <div><dt className="text-white/40">Submitted resolution</dt><dd className="mt-1">{room.observed.videoResolution || "Not sending"}</dd></div>
             <div><dt className="text-white/40">Requested picture</dt><dd className="mt-1">{room.camera ? "On" : "Off"}</dd></div>
             <div><dt className="text-white/40">Requested audio</dt><dd className="mt-1">{room.microphone ? "Unmuted" : "Muted"}</dd></div>
           </dl></details>

@@ -1,3 +1,4 @@
+#include "video-profile.hpp"
 #include <zoom_sdk.h>
 #include <auth_service_interface.h>
 #include <setting_service_interface.h>
@@ -50,11 +51,12 @@ void previewFrame(const std::vector<char>& frame,int width,int height) {
 std::atomic<uint64_t> relayVideoTime{0},relayAudioTime{0};
 std::string workerStatus="starting", appliedRevision="", controlError="";bool mediaReady=false;
 void fail(int code) { result=code?code:1; g_main_loop_quit(loop); }
+std::string videoQuality="auto",videoAspect="original";
 struct Pattern: IZoomSDKVideoSource {
  IZoomSDKVideoSender* sender=nullptr;bool active=false;int width=640,height=360;unsigned frames=0;
- void cap(VideoSourceCapability c){if(c.width&&c.height&&c.width<=1920&&c.height<=1080){width=c.width&~1u;height=c.height&~1u;std::cout<<"Negotiated satellite video="<<width<<"x"<<height<<std::endl;}}
+ void cap(VideoSourceCapability c){if(c.width&&c.height&&c.width<=1920&&c.height<=1080){auto size=video_profile::dimensions(c.width,c.height,videoQuality,"original");width=size.first;height=size.second;std::cout<<"Negotiated satellite video="<<width<<"x"<<height<<std::endl;}}
  void onInitialize(IZoomSDKVideoSender* p,IList<VideoSourceCapability>* caps,VideoSourceCapability& c) override {sender=p;
-  if(caps)for(int i=0;i<caps->GetCount();i++){auto candidate=caps->GetItem(i);if(candidate.width<=1280&&candidate.height<=720&&candidate.width*candidate.height>c.width*c.height)c=candidate;}cap(c);std::cout<<"Video initialized"<<std::endl;}
+  if(caps)for(int i=0;i<caps->GetCount();i++){auto candidate=caps->GetItem(i);if(candidate.width<=(videoQuality=="1080p"?1920:1280)&&candidate.height<=(videoQuality=="1080p"?1080:720)&&candidate.width*candidate.height>c.width*c.height)c=candidate;}cap(c);std::cout<<"Video initialized"<<std::endl;}
  void onPropertyChange(IList<VideoSourceCapability>*,VideoSourceCapability c) override {cap(c);}
  void onStartSend() override {active=true;std::cout<<"Video sender started"<<std::endl;}
  void onStopSend() override {active=false;}
@@ -63,7 +65,7 @@ struct Pattern: IZoomSDKVideoSource {
   if(!active||!sender)return;
   if(!relayRoot.empty()) {
    relay::Header h;std::vector<char> input;
-   if(relay::readVideo(relayRoot,h,input)){auto f=relay::fit(h,input,width,height);auto e=sender->sendVideoFrame(f.data(),width,height,f.size(),0);if(e==SDKERR_SUCCESS){relayVideoTime=h.time;previewFrame(f,width,height);}return;}
+   if(relay::readVideo(relayRoot,h,input)){auto f=video_profile::render(h,input,width,height,videoAspect);auto e=sender->sendVideoFrame(f.data(),width,height,f.size(),0);if(e==SDKERR_SUCCESS){relayVideoTime=h.time;previewFrame(f,width,height);}return;}
    // A disconnected/missing source never falls back to the countdown.
    std::vector<char> blank(width*height*3/2,char(128));std::fill(blank.begin(),blank.begin()+width*height,char(16));
    sender->sendVideoFrame(blank.data(),width,height,blank.size(),0);return;
@@ -199,7 +201,7 @@ struct ProgramShare: IZoomSDKShareSource {
   if(!sender)return;
   relay::Header h;std::vector<char> input;
   bool fresh=relay::readVideo(relayRoot,h,input);
-  if(fresh){width=h.width;height=h.height;}
+  if(fresh){int sw=(h.rotation==90||h.rotation==270)?h.height:h.width,sh=(h.rotation==90||h.rotation==270)?h.width:h.height;auto size=video_profile::dimensions(sw,sh,videoQuality,videoAspect);width=size.first;height=size.second;input=video_profile::render(h,input,width,height,videoAspect);}
   else {input.assign(width*height*3/2,char(128));std::fill(input.begin(),input.begin()+width*height,char(16));}
   lastResult=sender->sendShareFrame(input.data(),width,height,input.size(),FrameDataFormat_I420_LIMITED);
   if(lastResult==SDKERR_SUCCESS&&fresh){previewFrame(input,width,height);relayVideoTime=h.time;if(!frames++)std::cout<<"Program share frame accepted="<<width<<"x"<<height<<std::endl;}
@@ -321,6 +323,9 @@ gboolean controls(gpointer) {
 }
 gboolean stop(gpointer) {g_main_loop_quit(loop);return G_SOURCE_REMOVE;}
 int main() {
+ const char* quality=std::getenv("ZOOM_VIDEO_QUALITY");const char* aspect=std::getenv("ZOOM_VIDEO_ASPECT");
+ if(quality&&(std::string(quality)=="720p"||std::string(quality)=="1080p"))videoQuality=quality;
+ if(aspect&&(std::string(aspect)=="16:9"||std::string(aspect)=="4:3"))videoAspect=aspect;
  const char* t=std::getenv("ZOOM_SDK_JWT");const char* n=std::getenv("ZOOM_MEETING_ID");const char* p=std::getenv("ZOOM_MEETING_PASSCODE");
  if(!t||!n||!p) {std::cerr<<"Missing runtime configuration"<<std::endl;return 1;}
  sourceMode=std::getenv("ZOOM_SOURCE_MODE")!=nullptr;relayRoot=std::getenv("ZOOM_RELAY_ROOT")?std::getenv("ZOOM_RELAY_ROOT"):"";

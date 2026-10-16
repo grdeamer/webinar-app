@@ -1,7 +1,9 @@
+import type { VideoSettings } from "./video-settings"
 import type { SourceProfile } from "./source-profile"
 export type PublishMode = "camera" | "share"
 export type ZoomRoom = {
   id: string; name: string; meetingId: string; hasPasscode: boolean;
+  videoSettings?: VideoSettings;
   running: boolean; originalSound: boolean; camera: boolean; microphone: boolean; publishMode: PublishMode; revision: string;
   observed: { publishMode?: PublishMode; originalSound?: boolean; videoResolution?: string; sourceVideo?: boolean; sourceAudio?: boolean; status?: string; camera?: boolean; microphone?: boolean; name?: string; error?: string; revision?: string };
   lastSeen: string | null;

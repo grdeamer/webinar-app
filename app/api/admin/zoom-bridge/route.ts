@@ -1,3 +1,4 @@
+import { defaultVideoSettings, parseVideoSettings } from "@/lib/zoom-bridge/video-settings"
 import { NextResponse } from "next/server"
 import { randomUUID } from "node:crypto"
 import { requireAdmin } from "@/lib/requireAdmin"
@@ -15,6 +16,7 @@ export async function GET() {
   catch { return error("Unable to load Zoom Bridge profiles", 503) }
 }
 export async function PUT(request: Request) {
+  if (request.headers.get("origin") !== new URL(request.url).origin) return error("Same-origin request required", 403)
   if (!await authorized()) return error("Administrator access required", 403)
   try {
     const body = await request.json()
@@ -27,6 +29,8 @@ export async function PUT(request: Request) {
     const meetingId = normalizeMeetingId(String(body.meetingId ?? ""))
     const source = await sourceRow()
     if (source?.source_kind === "zoom") assertSourceIsSeparate(source.meeting_id, [meetingId])
+    const videoSettings = parseVideoSettings(body.videoSettings ?? { quality: old?.video_quality ?? defaultVideoSettings.quality, aspect: old?.aspect_ratio ?? defaultVideoSettings.aspect })
+    if (old?.desired_running && (videoSettings.quality !== (old.video_quality ?? "auto") || videoSettings.aspect !== (old.aspect_ratio ?? "original"))) return error("Disconnect the satellite before changing video settings.")
     const publishMode = parsePublishMode(body.publishMode ?? old?.publish_mode ?? "share")
     if (old?.desired_running && publishMode !== old.publish_mode) return error("Disconnect the satellite before changing its output mode.")
     if (old?.desired_running && old.meeting_id !== meetingId) return error("Stop the satellite before changing its meeting.")
@@ -34,7 +38,7 @@ export async function PUT(request: Request) {
     if (passcode.length > 64 || /[\r\n]/.test(passcode)) return error("Invalid meeting passcode.")
     if (old?.desired_running && passcode) return error("Stop the satellite before changing its passcode.")
     if (!old && !passcode) return error("A meeting passcode is required.")
-    const record = { id: old?.id ?? randomUUID(), worker_name: name, meeting_id: meetingId, publish_mode: publishMode, passcode_ciphertext: passcode ? seal(passcode) : old?.passcode_ciphertext, revision: randomUUID() }
+    const record = { video_quality: videoSettings.quality, aspect_ratio: videoSettings.aspect, id: old?.id ?? randomUUID(), worker_name: name, meeting_id: meetingId, publish_mode: publishMode, passcode_ciphertext: passcode ? seal(passcode) : old?.passcode_ciphertext, revision: randomUUID() }
     const { error: failure } = await supabaseAdmin.from(TABLE).upsert(record)
     if (failure) throw new Error("Profile could not be saved.")
     return NextResponse.json({ rooms: (await rows()).map(publicRoom) })

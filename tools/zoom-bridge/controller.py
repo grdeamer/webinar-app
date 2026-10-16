@@ -39,6 +39,10 @@ def launch(room, relay_root=None, source=False):
     env.update(HOME=str(home), XDG_CONFIG_HOME=str(home/'.config'), XDG_CACHE_HOME=str(home/'.cache'), ZOOM_SDK_JWT=body+'.'+signature, ZOOM_MEETING_ID=room['meetingId'], ZOOM_MEETING_PASSCODE=room['passcode'], ZOOM_DISPLAY_NAME=room['name'], LD_LIBRARY_PATH=str(ROOT/'sdk')+':'+str(ROOT/'sdk/qt_libs/Qt/lib'), QT_QPA_PLATFORM='offscreen', PULSE_SERVER=os.environ.get('PULSE_SERVER','unix:/run/user/'+str(os.getuid())+'/pulse/native'))
     if not source:
         env['ZOOM_PUBLISH_MODE']=room.get('publishMode','camera')
+        profile=room.get('videoSettings') or {}
+        quality,aspect=profile.get('quality','auto'),profile.get('aspect','original')
+        if quality not in ('auto','720p','1080p') or aspect not in ('original','16:9','4:3'):raise ValueError('Invalid satellite video profile')
+        env.update(ZOOM_VIDEO_QUALITY=quality,ZOOM_VIDEO_ASPECT=aspect)
     if relay_root:
         env.update(ZOOM_RELAY_ROOT=str(relay_root),ZOOM_ROOM_ID=room['id'])
     if source:
