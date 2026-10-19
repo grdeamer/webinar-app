@@ -12,4 +12,7 @@ int main(){
  relay::Header wide;wide.width=32;wide.height=18;wide.bytes=32*18*3/2;wide.time=relay::now();
  std::vector<char> widePixels(wide.bytes,char(50));assert(video_profile::render(wide,widePixels,32,18,"16:9")==widePixels);
  h.rotation=90;auto rotated=video_profile::render(h,source,4,4,"4:3");assert(rotated.size()==24);
+ auto* storage=widePixels.data();video_profile::renderInPlace(wide,widePixels,32,18,"16:9");
+ assert(widePixels.data()==storage);assert(widePixels==std::vector<char>(wide.bytes,char(50)));
+ auto transformed=source;video_profile::renderInPlace(h,transformed,4,4,"4:3");assert(transformed==rotated);
 }

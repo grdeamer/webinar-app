@@ -2,17 +2,17 @@
 
 Admin screen: `/admin/jupiter-io` (global administrators only).
 
-Satellite profiles support a display name, meeting ID, encrypted passcode, connection state, and independent camera/microphone desired states. The Lightsail controller polls the authenticated agent endpoint every two seconds and reports the SDK's actual media state. Renaming a connected profile calls Zoom's `ChangeUserName`; host restrictions are reported as numeric SDK errors.
+Satellite profiles support a display name, meeting ID, encrypted passcode, connection state, and independent camera/microphone desired states. The receiver controller polls the authenticated agent endpoint every two seconds and reports the SDK's actual media state. Renaming a connected profile calls Zoom's `ChangeUserName`; host restrictions are reported as numeric SDK errors.
 
 ## Application configuration
 
 - Run `supabase/zoom-bridge.sql` and `supabase/zoom-bridge-source.sql`. Access is restricted to the server's service role; no attendee policies are needed.
 - Set `ZOOM_BRIDGE_ENCRYPTION_KEY` to a stable base64-encoded 32-byte key. Losing or changing it makes saved passcodes unreadable.
-- Set `ZOOM_BRIDGE_AGENT_TOKEN` to a random secret shared only with the Lightsail controller. Do not prefix either variable with `NEXT_PUBLIC_`.
+- Set `ZOOM_BRIDGE_AGENT_TOKEN` to a random secret shared only with the receiver controller. Do not prefix either variable with `NEXT_PUBLIC_`.
 
 ## Worker host
 
-The tested SDK is Linux x86_64 7.1.5.4432 on Ubuntu 22.04. SDK files and Zoom credentials are not included in the repository. Install the SDK under `/home/ubuntu/jupiter-zoom/sdk` and ensure `libmeetingsdk.so.1` links to `libmeetingsdk.so`.
+The EC2 migration uses Linux x86_64 SDK 7.2.1.5860 on Ubuntu 22.04. SDK files and Zoom credentials are not included in the repository. Install the SDK under `/home/ubuntu/jupiter-zoom/sdk` and ensure `libmeetingsdk.so.1` links to `libmeetingsdk.so`.
 
 Build:
 
@@ -67,7 +67,7 @@ Resolution: receiver requests 720p per spotlighted camera and enables SDK HD bef
 
 Use OBS to send the ATEM/Magewell program as MPEG-TS over encrypted SRT. On the controller host, set `sourceType` to `srt` in `controller.json`; configure `srt-settings.json` with `port` (9000) and `passphraseFile` pointing to a private 10–64-character alphanumeric secret. Keep both files 0600. Permit inbound UDP 9000 only from the encoder's public IP when practical. OBS uses Custom service, the caller SRT URL, and a blank Stream Key.
 
-The source connect/disconnect control starts and stops this ingest in SRT mode. No source Zoom SDK participant is launched. FFmpeg decodes to 1280x720 I420 at 15 fps and 32 kHz mono PCM through pipes. Video resides only in the latest RAM-backed relay frame, and audio is distributed over Unix sockets. The receiver restarts its listener after disconnection. A/V sync, WAN reconnection, and end-to-end quality must be validated using a live destination meeting; the synthetic test only proves decoding and transport. This prototype is not a durable hosted service while the controller still depends on the local app/tunnel.
+The source connect/disconnect control starts and stops this ingest in SRT mode. No source Zoom SDK participant is launched. The legacy profile decodes to I420 at 15 fps and 32 kHz mono PCM through pipes; the EC2 profile explicitly selects paced 1080p30. Video resides only in the latest RAM-backed relay frame, and audio is distributed over Unix sockets. The receiver restarts its listener after disconnection. A/V sync, WAN reconnection, and end-to-end quality must be validated using a live destination meeting; the synthetic test only proves decoding and transport. This prototype is not a durable hosted service while the controller still depends on the local app/tunnel.
 
 The Jupiter Io control panel persists each satellite's `publish_mode` (`share` or `camera`). New profiles default to Screen share, Full HD (up to 1080p), and Widescreen (16:9), with picture and audio off; existing profiles keep their saved mode and video settings. This is the recommended program path for slides and graphics. Camera is an alternative for participant tiles, gallery view, pinning, and spotlighting, subject to Zoom HD negotiation. Disconnect before changing a mode. The controller passes `ZOOM_PUBLISH_MODE` to the worker and restarts a worker if its publisher changes. Picture controls start/stop the selected publisher; audio controls remain independent. The worker reports `publishMode`, `originalSound`, and submitted frame dimensions in `status.ini`. These dimensions do not prove destination playback resolution. The destination must allow sharing. Audio stays on the separate microphone path with `EnableMicOriginalInput(true)` after joining VoIP. The installed Linux SDK exposes original input, but gates separate high fidelity music/stereo settings to Windows. Audio remains 32 kHz mono in this prototype.
 
@@ -85,9 +85,9 @@ Install `preview.py` alongside `controller.py`, rebuild the worker, and restart 
 
 ## 1080p HDMI profile
 
-HDMI/SRT ingest defaults to a 1920×1080 output canvas at 15 fps. Optional `width`, `height`, and `fps` in private `srt-settings.json` can select 1280×720 at 15 fps as a rollback profile; other profiles are rejected. Custom screen share follows the incoming RAM frame dimensions and begins with a 1080p canvas. Camera capability negotiation and the legacy Zoom source compositor are unchanged.
+HDMI/SRT ingest defaults to a 1920×1080 output canvas at 15 fps. Private `srt-settings.json` accepts 720p or 1080p at 15 or 30 fps. The controller selects paced30fps only when the EC2 production profile or an authorized, expiring diagnostic explicitly enables it. Custom screen share follows the incoming RAM frame dimensions and begins with a 1080p canvas. Camera capability negotiation and the legacy Zoom source compositor are unchanged.
 
-Set the physical source/capture and OBS Base/Output Resolution to 1920×1080. Initial encoder target: H.264 6 Mbps, 30 fps, 2-second keyframe interval, AAC 160 Kbps/48 kHz. These are starting settings for validation, not a promise of destination quality. FFmpeg samples the stream to 15 fps. Reported decoded resolution is the relay canvas, not proof of native source detail; 720p input would be upscaled. Verify actual receiving Zoom statistics and visible text before claiming 1080p playback. Preserve the capacity of two satellites until a full-duration load test is complete. The optional 640-pixel confidence monitor is independent of send resolution.
+Set the physical source/capture and OBS Base/Output Resolution to 1920×1080. Initial encoder target: H.264 6 Mbps, 30 fps, 2-second keyframe interval, AAC 160 Kbps/48 kHz. These are starting settings for validation, not a promise of destination quality. The legacy receiver samples to15fps; the explicit EC2 profile targets30fps. Reported decoded resolution is the relay canvas, not proof of native source detail; 720p input would be upscaled. Verify actual receiving Zoom statistics and visible text before claiming 1080p playback. The EC2 ten-room capacity remains a target until a full-duration load test verifies all ten destinations. The optional 640-pixel confidence monitor is independent of send resolution.
 
 
 ## Click-only program snapshot (current)
@@ -148,3 +148,27 @@ The live image is built locally with `containers/Containerfile.live`. A rootless
 `containers/bootstrap.py` receives an allowlisted, size-bounded JSON configuration through stdin and replaces itself with the runtime entrypoint. SDK credentials are absent from Podman command arguments, image layers and saved container environment. They exist only in the authorized session's process memory/environment. Container stdout flows to the controller's bounded private attempt logs; Podman logging is disabled. The native SDK still has recording/debug logging and core dumps disabled. The controller explicitly stops/kills the container on test termination; process exit alone is not assumed to stop its children.
 
 Podman must use the ubuntu user runtime `/run/user/<uid>` and its existing user bus, independently of the controller's PulseAudio `XDG_RUNTIME_DIR`. Temporary tests keep an SSH diagnostic session open; persistent user lingering has **not** been enabled. Do not deploy unattended container operation until its boot/lifetime management is separately approved and validated. Run `container_worker_test.py` along with the bridge regression suite. Live validation must also check actual receiving-room picture, fresh heartbeats and increasing accepted-frame counters; library-loading preflight alone is insufficient.
+
+
+## EC2 On-Demand production migration
+
+The proposed production receiver is one c7i.8xlarge (32vCPU/64GiB), with ten isolated rootless satellite containers and one shared paced SRT decoder. Ten-room1080p30 performance is a capacity target requiring a live load test. Camera1080p near30fps has been measured for one satellite; screen-share delivery is negotiated independently. Saved source and satellite settings are retained.
+
+Set `JUPITER_CONTAINER_WORKERS=1`, `JUPITER_FRAME_RATE=30`, and `JUPITER_WORKER_CAPACITY=10` on the controller. The explicit diagnostic hold still blocks meeting joins until cutover is ready. Production containers use `localhost/jupiter-satellite:production-20261019`,5GiB memory limits, read-only SDK/binary mounts, private PID/network/display/audio namespaces, RAM-only HOME/cache and the private RAM relay bus. Credentials arrive only through stdin. The three-frame camera queue uses monotonic pacing and blanks stale input. Outgoing monitoring remains separately leased and expiring.
+
+The Broadcast server panel is global-admin only. Start accepts1/2/4/8hours, arms a one-time AWS Scheduler StopInstances target before calling StartInstances, and clears old source/satellite connection requests without changing saved media settings or credentials. A failed or timed-out start preserves the stop schedule. Stop confirms ending all feeds, clears connection requests, and stops the instance. A guest8-hour stop timer is a backup. `jupiter-io-idle-stop.service` stops unused capacity after15minutes without a fresh source or active satellite. SDK crashes/stalls retain metadata and require explicit reconnection.
+
+The initial cloud-init uses a stricter4-hour setup stop. Keep that limit and the cloud-side setup deadline during migration. After verification, install `ec2/jupiter-io-boot-stop.timer` as `/etc/systemd/system/jupiter-io-boot-stop.timer` and reload systemd for subsequent production boots. The boot-stop service installed by cloud-init powers off the EC2 instance; its EC2 shutdown behavior must be `stop`. Enable the controller, display/audio, worker-health and idle-stop services only on the replacement. Do not install these changes on the Lightsail fallback. Every cloud-side event deadline must remain armed independently of the guest timer.
+
+Production app configuration:
+- `JUPITER_IO_EC2_INSTANCE_ID`: exact production instance.
+- `JUPITER_IO_EC2_SECURITY_GROUP_ID`: only its encoder firewall group.
+- `JUPITER_IO_FIREWALL_ROLE_ARN`: production-project OIDC role for status, start/stop, encoder ingress and shutdown schedules. No long-lived AWS access key.
+- `JUPITER_IO_SCHEDULER_GROUP`, `JUPITER_IO_STOP_ROLE_ARN`: only this receiver's automatic stop target.
+- `JUPITER_IO_AWS_REGION=us-east-1`.
+- `JUPITER_IO_SRT_URL`: stable EC2 address and SRT caller parameters. The encrypted source key remains in the existing database and is inserted only when an administrator explicitly copies the connection.
+- `JUPITER_IO_SNAPSHOT_HOST` and `JUPITER_IO_SNAPSHOT_HOST_HASH`: new stable address and pinned host key. The existing forced-command preview key can be retained.
+
+Policies are under `docs/jupiter-io/ec2`. Before applying, verify the unique deployment tag and then tighten instance/security-group resources to their exact ARNs. EC2 Describe operations require region-wide read scope. The control role can add ingress on that group; application code restricts requests to UDP9000/publicIPv4/32 and preserves existing rules. The Scheduler role can only stop the exact receiver.
+
+EC2 charges compute while running, including rehearsals and idle running time. Stopping ends compute charges, but the retained30GB encrypted root disk and stable IPv4 continue billing (approximately$6.05/month combined at current rates). Video egress is additional. This production migration has a separately approved setup budget; the earlier$2 temporary-test cap is not reused. No AWS resource is created until access and setup costs are approved. Delete Lightsail only after configuration/log backups, a verified EC2 cutover, and the required action-time deletion confirmation.

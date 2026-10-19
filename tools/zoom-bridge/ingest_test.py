@@ -1,15 +1,35 @@
 import io
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 from srt_ingest import Ingest, HEADER, output_profile
 
 
 class IngestTest(unittest.TestCase):
+    def test_30fps_decoder_burst_is_published_at_frame_intervals(self):
+        # Three immediately available decoded frames must not overwrite the RAM
+        # bus back-to-back before a 30 fps sender can consume them.
+        with tempfile.TemporaryDirectory() as directory:
+            ingest = Ingest(directory, {'fps': 30}, directory)
+            clock = [100.0]
+            published = []
+            def wait(seconds):
+                clock[0] += seconds
+                return False
+            ingest.stop.wait = wait
+            ingest.write_frame = lambda frame: published.append(clock[0])
+            with patch('srt_ingest.time.monotonic', side_effect=lambda: clock[0]):
+                ingest.video(io.BytesIO(bytes(ingest.frame_bytes * 3)))
+            self.assertEqual(len(published), 3)
+            for before, after in zip(published, published[1:]):
+                self.assertAlmostEqual(after-before, 1/30)
+
     def test_only_supported_profiles(self):
         self.assertEqual(output_profile({}), (1920, 1080, 15))
         self.assertEqual(output_profile({'width': 1280, 'height': 720}), (1280, 720, 15))
-        for settings in ({'width': 1920, 'height': 720}, {'fps': 30}, {'width': 3840, 'height': 2160}):
+        self.assertEqual(output_profile({'fps': 30}), (1920, 1080, 30))
+        for settings in ({'width': 1920, 'height': 720}, {'fps': 60}, {'width': 3840, 'height': 2160}):
             with self.assertRaises(ValueError): output_profile(settings)
 
     def test_complete_1080_frame_and_partial_tail(self):

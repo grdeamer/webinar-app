@@ -28,18 +28,31 @@ def read_env(path):
     return dict(line.split('=', 1) for line in path.read_text().splitlines() if '=' in line)
 
 def worker_join_allowed(room_id=None):
-    """Fail closed on the diagnostic hold except a time-limited single-room test."""
+    """Fail closed on the diagnostic hold except a time-limited, explicit test allowlist."""
     if os.environ.get('JUPITER_WORKERS_HOLD') != '1':
         return True
     try:
         raw = os.environ.get('JUPITER_TEST_SATELLITES', os.environ.get('JUPITER_TEST_SATELLITE', ''))
         entries = raw.split(',')
-        if not 1 <= len(entries) <= 2:
+        if not 1 <= len(entries) <= 3:
             return False
         allowed = {str(uuid.UUID(value)) for value in entries}
         return room_id in allowed and time.time() < float(os.environ.get('JUPITER_TEST_EXPIRES', '0'))
     except (ValueError, TypeError):
         return False
+
+def test_frame_rate():
+    # EC2 production enables the paced profile explicitly; diagnostic exceptions expire.
+    if os.environ.get("JUPITER_CONTAINER_WORKERS") == "1" and os.environ.get("JUPITER_FRAME_RATE") == "30":
+        return 30
+    try:
+        active = (os.environ.get('JUPITER_WORKERS_HOLD') == '1'
+                  and os.environ.get('JUPITER_TEST_CONTAINER') == '1'
+                  and str(uuid.UUID(os.environ.get('JUPITER_TEST_RUN_ID', '')))
+                  and time.time() < float(os.environ.get('JUPITER_TEST_EXPIRES', '0')))
+        return 30 if active and os.environ.get('JUPITER_TEST_FPS') == '30' else 15
+    except (ValueError, TypeError):
+        return 15
 
 def launch(room, relay_root=None, source=False):
     if not worker_join_allowed(None if source else room.get("id")):
@@ -63,13 +76,13 @@ def launch(room, relay_root=None, source=False):
         profile=room.get('videoSettings') or {}
         quality,aspect=profile.get('quality','auto'),profile.get('aspect','original')
         if quality not in ('auto','720p','1080p') or aspect not in ('original','16:9','4:3'):raise ValueError('Invalid satellite video profile')
-        env.update(ZOOM_VIDEO_QUALITY=quality,ZOOM_VIDEO_ASPECT=aspect)
+        env.update(ZOOM_VIDEO_QUALITY=quality,ZOOM_VIDEO_ASPECT=aspect,ZOOM_TEST_FPS=str(test_frame_rate()))
     if relay_root:
         env.update(ZOOM_RELAY_ROOT=str(relay_root),ZOOM_ROOM_ID=room['id'])
     if source:
         env.update(ZOOM_SOURCE_MODE='1',ZOOM_REVISION=room['revision'])
     container = None
-    if not source and os.environ.get('JUPITER_TEST_CONTAINER') == '1':
+    if not source and (os.environ.get('JUPITER_CONTAINER_WORKERS') == '1' or os.environ.get('JUPITER_TEST_CONTAINER') == '1'):
         proc, container = launch_container(ROOT, home, room['id'], relay_root, env)
     else:
         proc = subprocess.Popen([str(ROOT/'bridge-worker')],cwd=home,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
@@ -136,7 +149,8 @@ def main():
     ensure_relay_root(runtime)
     relay_root=Path(tempfile.mkdtemp(prefix="jupiter-io-",dir=runtime));relay_root.chmod(0o700)
     preview=Preview(relay_root,settings);preview.start()
-    capacity = 50
+    capacity = int(os.environ.get("JUPITER_WORKER_CAPACITY", "50"))
+    if not 1 <= capacity <= 50: raise ValueError("Invalid satellite capacity")
     srt_mode=settings.get('sourceType')=='srt'
     ingest=None;ingest_thread=None;ingest_key_revision="legacy"
     last_ok = time.monotonic();reports=[];source_status=None;source_item=None;source_failure=None
@@ -165,7 +179,7 @@ def main():
                             ingest_settings=json.loads((ROOT/'srt-settings.json').read_text())
                             resolution=(source.get('profile') or {}).get('relayResolution','1080p')
                             if resolution not in ('720p','1080p'):raise ValueError('Invalid source relay resolution')
-                            ingest_settings.update(width=1920 if resolution=='1080p' else 1280,height=1080 if resolution=='1080p' else 720,fps=15)
+                            ingest_settings.update(width=1920 if resolution=='1080p' else 1280,height=1080 if resolution=='1080p' else 720,fps=test_frame_rate())
                             ingest=Ingest(relay_root,ingest_settings,ROOT/'srt')
                             ingest_thread=threading.Thread(target=ingest.run,daemon=True);ingest_thread.start()
                         source_status=ingest.status();source_status['revision']=source['revision']
@@ -215,12 +229,16 @@ def main():
                     failures.pop(rid,None)
                     if not item:
                         if len(children)>=capacity:
-                            reports.append({'id':rid,'status':'capacity','error':'Maximum of 50 satellites reached.'});continue
+                            reports.append({'id':rid,'status':'capacity','error':f'Maximum of {capacity} simultaneous satellites reached.'});continue
                         item=launch(room,relay_root if source else None);item['mode']=mode;item['publishMode']=room.get('publishMode','camera');children[rid]=item
                     cfg=configparser.ConfigParser(interpolation=None)
                     preview_expires=preview.request(room)
                     cfg['control']={'preview_expires':str(preview_expires),'original_sound':str(room.get('originalSound',True)).lower(),'name':room['name'],'camera':str(room['camera']).lower(),'microphone':str(room['microphone']).lower(),'revision':room['revision']}
-                    content=io.StringIO();cfg.write(content);atomic(item['home']/'control.ini',content.getvalue());reports.append(report(rid,item))
+                    content=io.StringIO();cfg.write(content);atomic(item['home']/'control.ini',content.getvalue())
+                    observed=report(rid,item);reports.append(observed)
+                    if observed.get('error') == STALL_ERROR:
+                        terminate(children.pop(rid))
+                        failures[rid]={'revision':room['revision'],'status':'failed','error':STALL_ERROR}
             except Exception as exc:
                 print('Controller exchange failed:',type(exc).__name__,flush=True)
                 if time.monotonic()-last_ok>60:
@@ -230,6 +248,7 @@ def main():
                     if ingest:
                         ingest.close();ingest_thread.join(timeout=8);ingest=None
                     clear_media(relay_root);source_status={'kind':'srt' if srt_mode else 'zoom','status':'failed','error':'Controller connection lost.'}
+            atomic(relay_root/'runtime-status.json', json.dumps({'updatedAt':time.time(),'sourceActive':bool(source_status and (source_status.get('video') or source_status.get('audio'))),'satellites':len(children)}))
             time.sleep(2)
     finally:
         preview.close()

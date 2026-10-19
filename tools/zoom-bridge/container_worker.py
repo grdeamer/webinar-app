@@ -5,32 +5,30 @@ import subprocess
 import uuid
 from pathlib import Path
 
-IMAGE = 'localhost/jupiter-satellite:live-test-20261019'
+IMAGE = 'localhost/jupiter-satellite:production-20261019'
 KEYS = {'ZOOM_SDK_JWT', 'ZOOM_MEETING_ID', 'ZOOM_MEETING_PASSCODE', 'ZOOM_DISPLAY_NAME',
-        'ZOOM_PUBLISH_MODE', 'ZOOM_VIDEO_QUALITY', 'ZOOM_VIDEO_ASPECT', 'ZOOM_ROOM_ID'}
+        'ZOOM_TEST_FPS', 'ZOOM_PUBLISH_MODE', 'ZOOM_VIDEO_QUALITY', 'ZOOM_VIDEO_ASPECT', 'ZOOM_ROOM_ID'}
 
 def launch_container(root, home, room_id, relay_root, env):
     if not relay_root:
         raise ValueError('Container test requires the existing program relay')
     rid = str(uuid.UUID(room_id))
-    name = 'jupiter-test-' + rid
-    private_home = root / 'container-homes' / rid
-    private_home.mkdir(mode=0o700, parents=True, exist_ok=True)
-    private_home.chmod(0o700)
+    name = 'jupiter-satellite-' + rid
     uid, gid = os.getuid(), os.getgid()
     args = ['podman', 'run', '--rm', '-i', '--name', name, '--pull=never',
             '--network=slirp4netns:allow_host_loopback=false', '--userns=keep-id', '--user', f'{uid}:{gid}',
             '--read-only', '--cap-drop=all', '--security-opt=no-new-privileges',
-            '--pids-limit=256', '--memory=768m', '--memory-swap=768m',
+            '--pids-limit=512', '--memory=5g', '--memory-swap=5g',
             '--log-driver=none', '--ulimit=core=0:0', '--workdir=/work',
             '--tmpfs', '/run:rw,nosuid,nodev,size=64m,mode=1777',
             '--tmpfs', '/tmp:rw,nosuid,nodev,size=256m,mode=1777',
             '--tmpfs', '/var/tmp:rw,nosuid,nodev,size=32m,mode=1777',
             '--tmpfs', '/var/.zoomsdk:rw,nosuid,nodev,size=32m,mode=1777',
             '--tmpfs', '/var/opt/zoomsdk:rw,nosuid,nodev,size=32m,mode=1777',
-            '--volume', f'{private_home}:/home/satellite:rw',
+            '--tmpfs', f'/home/satellite:rw,nosuid,nodev,size=128m,mode=0700,uid={uid},gid={gid}',
             '--volume', f'{home}:/work:rw', '--volume', f'{relay_root}:/relay:rw',
             '--volume', f'{root / "sdk"}:/opt/jupiter/sdk:ro',
+            '--volume', f'{root / "container-bootstrap.py"}:/opt/jupiter/bootstrap.py:ro',
             '--volume', f'{root / "bridge-worker"}:/opt/jupiter/bridge-worker:ro', IMAGE, '--live']
     payload = {key: env[key] for key in KEYS if key in env}
     payload['ZOOM_RELAY_ROOT'] = '/relay'

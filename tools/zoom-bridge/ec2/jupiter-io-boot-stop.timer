@@ -1,0 +1,10 @@
+[Unit]
+Description=Jupiter Io maximum broadcast running time
+
+[Timer]
+OnBootSec=8h
+AccuracySec=1s
+Unit=jupiter-io-boot-stop.service
+
+[Install]
+WantedBy=timers.target

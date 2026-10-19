@@ -30,4 +30,11 @@ inline std::vector<char> render(const relay::Header& input,const std::vector<cha
  relay::Header header;header.width=cw;header.height=ch;header.bytes=crop.size();header.time=input.time;
  return relay::fit(header,crop,w,h);
 }
+// The normal full-resolution path already owns an I420 frame. Keep that storage
+// instead of allocating and copying another 3 MB buffer on every send.
+inline void renderInPlace(const relay::Header& input,std::vector<char>& pixels,int w,int h,const std::string& aspect){
+ bool sameAspect=aspect=="original"||(aspect=="16:9"&&input.width*9==input.height*16)||(aspect=="4:3"&&input.width*3==input.height*4);
+ if(!input.rotation&&input.width==unsigned(w)&&input.height==unsigned(h)&&sameAspect)return;
+ pixels=render(input,pixels,w,h,aspect);
+}
 }

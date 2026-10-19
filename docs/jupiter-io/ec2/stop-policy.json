@@ -1,0 +1,16 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": "ec2:StopInstances",
+      "Resource": "arn:aws:ec2:us-east-1:327614158380:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/JupiterIoDeployment": "f1c3457a-ef03-4206-8895-53578ca939d4",
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    }
+  ]
+}

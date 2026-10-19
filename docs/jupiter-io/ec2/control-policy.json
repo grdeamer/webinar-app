@@ -1,0 +1,67 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ReadEc2StatusInVirginia",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances",
+        "ec2:DescribeSecurityGroups"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "StartStopOnlyIoNode",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StartInstances",
+        "ec2:StopInstances"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:327614158380:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/JupiterIoDeployment": "f1c3457a-ef03-4206-8895-53578ca939d4",
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "AddOnlyIoGroupIngress",
+      "Effect": "Allow",
+      "Action": "ec2:AuthorizeSecurityGroupIngress",
+      "Resource": "arn:aws:ec2:us-east-1:327614158380:security-group/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/JupiterIoDeployment": "f1c3457a-ef03-4206-8895-53578ca939d4",
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "ManageOnlyIoShutdownSchedule",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:CreateSchedule",
+        "scheduler:GetSchedule",
+        "scheduler:DeleteSchedule"
+      ],
+      "Resource": "arn:aws:scheduler:us-east-1:327614158380:schedule/jupiter-io-production/shutdown-*"
+    },
+    {
+      "Sid": "PassOnlyIoStopRoleToScheduler",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::327614158380:role/JupiterIoEc2Stop",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "scheduler.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

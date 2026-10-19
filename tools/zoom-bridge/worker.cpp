@@ -20,6 +20,7 @@
 #include <zoom_sdk_raw_data_def.h>
 #include "relay.hpp"
 #include <atomic>
+#include <deque>
 #include <mutex>
 #include <map>
 #include <memory>
@@ -40,6 +41,7 @@ std::string token, number, password, name;
 int result=0;
 bool sourceMode=false;std::string relayRoot;int audioFD=-1;std::string audioPath;
 bool shareMode=false;
+int videoFps=15;SDKError optimizeResult=SDKERR_UNINITIALIZE,optimizeDuringResult=SDKERR_UNINITIALIZE;bool optimizeDuringAttempted=false,optimizeSupported=false,shareLimitBefore=false;int shareLimitValue=0;SDKError shareLimitResult=SDKERR_UNINITIALIZE;
 bool originalSound=false;
 int64_t previewExpires=0;uint64_t previewTime=0;
 // Only a live monitor lease permits an outgoing-frame copy into private RAM.
@@ -74,19 +76,33 @@ std::string workerStatus="starting", appliedRevision="", controlError="";bool me
 void fail(int code) {worker_trace::event("worker.fail",code);result=code?code:1;g_main_loop_quit(loop);}
 std::string videoQuality="auto",videoAspect="original";
 struct Pattern: IZoomSDKVideoSource {
- IZoomSDKVideoSender* sender=nullptr;bool active=false;int width=640,height=360;unsigned frames=0;
- void cap(VideoSourceCapability c){if(c.width&&c.height&&c.width<=1920&&c.height<=1080){auto size=video_profile::dimensions(c.width,c.height,videoQuality,"original");width=size.first;height=size.second;std::cout<<"Negotiated satellite video="<<width<<"x"<<height<<std::endl;}}
- void onInitialize(IZoomSDKVideoSender* p,IList<VideoSourceCapability>* caps,VideoSourceCapability& c) override {sender=p;
-  if(caps)for(int i=0;i<caps->GetCount();i++){auto candidate=caps->GetItem(i);if(candidate.width<=(videoQuality=="1080p"?1920:1280)&&candidate.height<=(videoQuality=="1080p"?1080:720)&&candidate.width*candidate.height>c.width*c.height)c=candidate;}cap(c);std::cout<<"Video initialized"<<std::endl;}
+ IZoomSDKVideoSender* sender=nullptr;bool active=false;int width=640,height=360;unsigned frames=0;uint64_t acceptedFrames=0,uniqueFrames=0,lastStamp=0;unsigned negotiatedFps=0;std::string offeredCaps;std::deque<std::pair<relay::Header,std::vector<char>>> queue;uint64_t queuedStamp=0,queueDrops=0,queuedFrames=0;bool primed=false;std::chrono::steady_clock::time_point due;
+ void cap(VideoSourceCapability c){negotiatedFps=c.frame;if(c.width&&c.height&&c.width<=1920&&c.height<=1080){auto size=video_profile::dimensions(c.width,c.height,videoQuality,"original");width=size.first;height=size.second;std::cout<<"Negotiated satellite video="<<width<<"x"<<height<<std::endl;}}
+ void onInitialize(IZoomSDKVideoSender* p,IList<VideoSourceCapability>* caps,VideoSourceCapability& c) override {sender=p;if(caps)for(int i=0;i<caps->GetCount()&&i<32;i++){auto v=caps->GetItem(i);if(!offeredCaps.empty())offeredCaps+=",";offeredCaps+=std::to_string(v.width)+"x"+std::to_string(v.height)+"@"+std::to_string(v.frame);}
+  if(caps)for(int i=0;i<caps->GetCount();i++){auto candidate=caps->GetItem(i);if(candidate.width<=(videoQuality=="1080p"?1920:1280)&&candidate.height<=(videoQuality=="1080p"?1080:720)&&(candidate.width*candidate.height>c.width*c.height||(candidate.width*candidate.height==c.width*c.height&&candidate.frame>c.frame&&candidate.frame<=unsigned(videoFps))))c=candidate;}cap(c);std::cout<<"Video initialized"<<std::endl;}
  void onPropertyChange(IList<VideoSourceCapability>*,VideoSourceCapability c) override {cap(c);}
  void onStartSend() override {active=true;std::cout<<"Video sender started"<<std::endl;}
- void onStopSend() override {active=false;}
- void onUninitialized() override {active=false;sender=nullptr;}
+ void onStopSend() override {active=false;queue.clear();primed=false;}
+ void onUninitialized() override {active=false;sender=nullptr;queue.clear();primed=false;}
  void tick(){
   if(!active||!sender)return;
   if(!relayRoot.empty()) {
    relay::Header h;std::vector<char> input;
-   if(relay::readVideo(relayRoot,h,input)){auto f=video_profile::render(h,input,width,height,videoAspect);auto e=JIO_SDK_CALL("camera.send",sender->sendVideoFrame(f.data(),width,height,f.size(),0));if(e==SDKERR_SUCCESS){relayVideoTime=h.time;previewFrame(f,width,height);}return;}
+   bool fresh=false;
+   if(videoFps==30){
+    std::ifstream stream(relayRoot+"/video.i420",std::ios::binary);
+    bool current=bool(stream.read(reinterpret_cast<char*>(&h),sizeof(h)))&&relay::validVideo(h)&&relay::fresh(h);
+    if(!current){
+     queue.clear();primed=false;auto now=std::chrono::steady_clock::now();if(now<due)return;due=now+std::chrono::microseconds(33333);
+     std::vector<char> blank(width*height*3/2,char(128));std::fill(blank.begin(),blank.begin()+width*height,char(16));
+     JIO_SDK_CALL("camera.blank",sender->sendVideoFrame(blank.data(),width,height,blank.size(),0));return;
+    }
+    if(h.time!=queuedStamp){input.resize(h.bytes);if(stream.read(input.data(),h.bytes)){queuedStamp=h.time;++queuedFrames;queue.emplace_back(h,std::move(input));if(queue.size()>3){queue.pop_front();++queueDrops;}}}
+    auto now=std::chrono::steady_clock::now();if(!primed){if(queue.size()<2)return;primed=true;due=now;}
+    if(now<due||queue.empty())return;due+=std::chrono::microseconds(33333);if(due+std::chrono::milliseconds(33)<now)due=now+std::chrono::microseconds(33333);
+    h=queue.front().first;input=std::move(queue.front().second);queue.pop_front();fresh=true;
+   }else fresh=relay::readVideo(relayRoot,h,input);
+   if(fresh){video_profile::renderInPlace(h,input,width,height,videoAspect);auto& f=input;auto e=JIO_SDK_CALL("camera.send",sender->sendVideoFrame(f.data(),width,height,f.size(),0));if(e==SDKERR_SUCCESS){++acceptedFrames;if(h.time!=lastStamp){++uniqueFrames;lastStamp=h.time;}relayVideoTime=h.time;previewFrame(f,width,height);}return;}
    // A disconnected/missing source never falls back to the countdown.
    std::vector<char> blank(width*height*3/2,char(128));std::fill(blank.begin(),blank.begin()+width*height,char(16));
    JIO_SDK_CALL("camera.blank",sender->sendVideoFrame(blank.data(),width,height,blank.size(),0));return;
@@ -139,6 +155,7 @@ struct Receiver: IZoomSDKAudioRawDataDelegate {
  struct Tile: IZoomSDKRendererDelegate {
   Receiver* owner;unsigned id;IZoomSDKRenderer* renderer=nullptr;bool active=true;relay::Frame frame;
   Tile(Receiver* r,unsigned user):owner(r),id(user){}
+  void onShareCursorDataReceived(ZoomSDKShareCursorData) override {}
   void onRendererBeDestroyed() override {std::lock_guard<std::mutex> lock(owner->frameMutex);renderer=nullptr;frame={};}
   void onRawDataStatusChanged(RawDataStatus status) override {if(status==RawData_Off){std::lock_guard<std::mutex> lock(owner->frameMutex);frame={};}}
   void onRawDataFrameReceived(YUVRawDataI420* data) override {
@@ -215,27 +232,47 @@ struct Receiver: IZoomSDKAudioRawDataDelegate {
 gboolean receiverTick(gpointer){worker_trace::Scope operation("audio.tick");if(!sourceMode)tone.relayTick();return G_SOURCE_CONTINUE;}
 struct ProgramShare: IZoomSDKShareSource {
  IZoomSDKShareSender* sender=nullptr;
- int width=1920,height=1080;unsigned frames=0;SDKError lastResult=SDKERR_SUCCESS;
+ int width=1920,height=1080;unsigned frames=0;uint64_t uniqueFrames=0,lastUniqueStamp=0,readMicros=0,renderMicros=0,sendMicros=0,sendCalls=0;SDKError lastResult=SDKERR_SUCCESS;
  void onStartSend(IZoomSDKShareSender* p) override {sender=p;std::cout<<"Program share sender started"<<std::endl;}
  void onStopSend() override {sender=nullptr;}
  void tick(){
   if(!sender)return;
   relay::Header h;std::vector<char> input;
+  auto begin=std::chrono::steady_clock::now();
   bool fresh=relay::readVideo(relayRoot,h,input);
-  if(fresh){int sw=(h.rotation==90||h.rotation==270)?h.height:h.width,sh=(h.rotation==90||h.rotation==270)?h.width:h.height;auto size=video_profile::dimensions(sw,sh,videoQuality,videoAspect);width=size.first;height=size.second;input=video_profile::render(h,input,width,height,videoAspect);}
+  auto readEnd=std::chrono::steady_clock::now();
+  if(fresh){int sw=(h.rotation==90||h.rotation==270)?h.height:h.width,sh=(h.rotation==90||h.rotation==270)?h.width:h.height;auto size=video_profile::dimensions(sw,sh,videoQuality,videoAspect);width=size.first;height=size.second;video_profile::renderInPlace(h,input,width,height,videoAspect);}
   else {input.assign(width*height*3/2,char(128));std::fill(input.begin(),input.begin()+width*height,char(16));}
+  auto renderEnd=std::chrono::steady_clock::now();
   lastResult=JIO_SDK_CALL("share.send",sender->sendShareFrame(input.data(),width,height,input.size(),FrameDataFormat_I420_LIMITED));
-  if(lastResult==SDKERR_SUCCESS&&fresh){previewFrame(input,width,height);relayVideoTime=h.time;if(!frames++)std::cout<<"Program share frame accepted="<<width<<"x"<<height<<std::endl;}
+  auto sendEnd=std::chrono::steady_clock::now();
+  readMicros+=std::chrono::duration_cast<std::chrono::microseconds>(readEnd-begin).count();
+  renderMicros+=std::chrono::duration_cast<std::chrono::microseconds>(renderEnd-readEnd).count();
+  sendMicros+=std::chrono::duration_cast<std::chrono::microseconds>(sendEnd-renderEnd).count();++sendCalls;
+  if(lastResult==SDKERR_SUCCESS&&fresh){previewFrame(input,width,height);relayVideoTime=h.time;if(h.time!=lastUniqueStamp){++uniqueFrames;lastUniqueStamp=h.time;}if(!frames++)std::cout<<"Program share frame accepted="<<width<<"x"<<height<<std::endl;}
  }
 } programShare;
-gboolean videoTick(gpointer){worker_trace::Scope operation("video.tick");if(sourceMode&&mediaReady)receiver.compose();else if(shareMode)programShare.tick();else pattern.tick();return G_SOURCE_CONTINUE;}
+gboolean videoTick(gpointer){
+ if(videoFps==30&&(sourceMode||shareMode||relayRoot.empty())){
+  static auto due=std::chrono::steady_clock::now();auto now=std::chrono::steady_clock::now();
+  if(now<due)return G_SOURCE_CONTINUE;
+  due+=std::chrono::microseconds(33333);
+  if(due<now)due=now+std::chrono::microseconds(33333);
+ }
+ worker_trace::Scope operation("video.tick");if(sourceMode&&mediaReady)receiver.compose();else if(shareMode)programShare.tick();else pattern.tick();return G_SOURCE_CONTINUE;}
 gboolean audioTick(gpointer){tone.tick();return G_SOURCE_CONTINUE;}
 gboolean enableMedia(gpointer){
+ if(videoFps==30&&settings&&settings->GetShareSettings()){
+  auto* sharing=settings->GetShareSettings();shareLimitBefore=sharing->IsLimitFPSEnabledWhenShare();
+  shareLimitValue=int(sharing->GetLimitFPSValueWhenShare());
+  shareLimitResult=JIO_SDK_CALL("share.limit.disable",sharing->EnableLimitFPSWhenShare(false));
+ }
  if(settings&&settings->GetVideoSettings()){auto* video=settings->GetVideoSettings();auto e=video->EnableHDVideo(true);std::cout<<"In-meeting HD request="<<e<<" enabled="<<video->IsHDVideoEnabled()<<std::endl;}
 
  if(sourceMode){auto* a=meeting->GetMeetingAudioController();if(a)a->JoinVoip();mediaReady=true;return G_SOURCE_REMOVE;}
  auto* vh=GetRawdataVideoSourceHelper();auto* ah=GetAudioRawdataHelper();
- std::cout<<"Set video source="<<(vh?vh->setExternalVideoSource(&pattern,FrameDataFormat_I420_LIMITED):-1)<<std::endl;
+ if(!shareMode)std::cout<<"Set video source="<<(vh?vh->setExternalVideoSource(&pattern,FrameDataFormat_I420_LIMITED):-1)<<std::endl;
+ else std::cout<<"External camera source omitted for screen-share output"<<std::endl;
  std::cout<<"Set audio source="<<(ah?ah->setExternalAudioSource(&tone):-1)<<std::endl;
  auto* a=meeting->GetMeetingAudioController();
  if(a) std::cout<<"Join audio="<<a->JoinVoip()<<std::endl;
@@ -299,6 +336,8 @@ gboolean controls(gpointer) {
    SDKError ve=SDKERR_SUCCESS;
    if(shareMode) {
     auto* helper=GetRawdataShareSourceHelper();auto* sharing=meeting->GetMeetingShareController();
+    if(videoFps==30&&camera&&sharing&&!programShare.sender)
+     optimizeResult=JIO_SDK_CALL("share.optimize",sharing->EnableOptimizeForFullScreenVideoClip(false));
     ve=camera?(programShare.sender?SDKERR_SUCCESS:(helper?JIO_SDK_CALL("share.configure",helper->setExternalShareSource(&programShare)):SDKERR_UNINITIALIZE)):(programShare.sender?(sharing?JIO_SDK_CALL("share.stop",sharing->StopShare()):SDKERR_UNINITIALIZE):SDKERR_SUCCESS);
     std::cout<<"Program share command="<<ve<<std::endl;
    } else ve=vc?(camera?vc->UnmuteVideo():vc->MuteVideo()):SDKERR_UNINITIALIZE;
@@ -316,7 +355,20 @@ gboolean controls(gpointer) {
   g_free(revision);
  }
  g_key_file_free(file);
+ // External sharing may begin after the pre-share setting was applied. Verify the
+ // in-progress setting explicitly, once, rather than repeatedly changing it.
+ if(videoFps==30&&programShare.sender&&!optimizeDuringAttempted){
+  optimizeDuringAttempted=true;auto* sharing=meeting->GetMeetingShareController();
+  if(sharing){
+   optimizeSupported=sharing->IsSupportEnableOptimizeForFullScreenVideoClip();
+   optimizeDuringResult=JIO_SDK_CALL("share.optimize.active",sharing->EnableOptimizeForFullScreenVideoClipWhenSharing(false));
+   std::cout<<"Motion optimization while sharing supported="<<optimizeSupported<<" result="<<optimizeDuringResult<<std::endl;
+  }
+ }
  auto* output=g_key_file_new();g_key_file_set_string(output,"worker","status",workerStatus.c_str());
+ auto* participantList=pc?JIO_SDK_CALL("participants.count",pc->GetParticipantsList()):nullptr;
+ g_key_file_set_integer(output,"worker","participantCount",participantList?participantList->GetCount():0);
+ g_key_file_set_string(output,"worker","sdkVersion",GetSDKVersion());
  g_key_file_set_boolean(output,"worker","hdEnabled",settings&&settings->GetVideoSettings()&&settings->GetVideoSettings()->IsHDVideoEnabled());
  g_key_file_set_boolean(output,"worker","originalSound",originalSound);
  bool meterFresh=tone.meterStamp&&relay::now()-tone.meterStamp<1000;
@@ -340,14 +392,34 @@ gboolean controls(gpointer) {
   g_key_file_set_string(output,"worker","videoResolution",(std::to_string(shareMode?programShare.width:pattern.width)+"x"+std::to_string(shareMode?programShare.height:pattern.height)).c_str());
   g_key_file_set_string(output,"worker","publishMode",shareMode?"share":"camera");
   if(shareMode){
-   MeetingASVStatisticInfo info;auto status=JIO_SDK_CALL("share.statistics",meeting->GetMeetingShareStatisticInfo(info));
+   MeetingASVStatisticInfo info{};auto status=JIO_SDK_CALL("share.statistics",meeting->GetMeetingShareStatisticInfo(info));
    g_key_file_set_integer(output,"worker","shareStatsResult",status);
-   g_key_file_set_integer(output,"worker","shareSendFps",info.sendFps);
+   g_key_file_set_integer(output,"worker","shareSendFps",status==SDKERR_SUCCESS?info.sendFps:-1);
    g_key_file_set_integer(output,"worker","shareSendBandwidth",info.sendBandwidth);
+   g_key_file_set_integer(output,"worker","shareSendRTT",info.sendRTT);
+   g_key_file_set_integer(output,"worker","shareSendJitter",info.sendJitter);
+   g_key_file_set_double(output,"worker","shareSendLossAvg",info.sendPacketLossAvg);
+   g_key_file_set_double(output,"worker","shareSendLossMax",info.sendPacketLossMax);
+   g_key_file_set_boolean(output,"worker","shareLimitBefore",shareLimitBefore);
+   g_key_file_set_integer(output,"worker","shareLimitValue",shareLimitValue);
+   g_key_file_set_integer(output,"worker","shareLimitResult",shareLimitResult);
+   g_key_file_set_boolean(output,"worker","shareLimitActive",settings&&settings->GetShareSettings()&&settings->GetShareSettings()->IsLimitFPSEnabledWhenShare());
    g_key_file_set_string(output,"worker","shareSendResolution",(std::to_string(info.sendResolution&0xffff)+"x"+std::to_string((unsigned(info.sendResolution)>>16)&0xffff)).c_str());
    g_key_file_set_uint64(output,"worker","shareAcceptedFrames",programShare.frames);
+   g_key_file_set_uint64(output,"worker","shareUniqueSourceFrames",programShare.uniqueFrames);
+   g_key_file_set_integer(output,"worker","targetFps",videoFps);
+   g_key_file_set_integer(output,"worker","shareOptimizeResult",optimizeResult);
+   g_key_file_set_integer(output,"worker","shareOptimizeDuringResult",optimizeDuringResult);
+   g_key_file_set_boolean(output,"worker","shareOptimizeSupported",optimizeSupported);
+   g_key_file_set_uint64(output,"worker","shareReadMicros",programShare.readMicros);
+   g_key_file_set_uint64(output,"worker","shareRenderMicros",programShare.renderMicros);
+   g_key_file_set_uint64(output,"worker","shareSendMicros",programShare.sendMicros);
+   g_key_file_set_uint64(output,"worker","shareSendCalls",programShare.sendCalls);
+   auto* sharing=meeting->GetMeetingShareController();
+   g_key_file_set_boolean(output,"worker","shareOptimizeActive",sharing&&sharing->IsEnableOptimizeForFullScreenVideoClipOnWhenSharing());
    g_key_file_set_integer(output,"worker","shareFrameResult",programShare.lastResult);
   }
+  if(!shareMode){MeetingASVStatisticInfo vi{};auto vr=JIO_SDK_CALL("camera.statistics",meeting->GetMeetingVideoStatisticInfo(vi));g_key_file_set_integer(output,"worker","cameraStatsResult",vr);g_key_file_set_integer(output,"worker","cameraSendFps",vr==SDKERR_SUCCESS?vi.sendFps:-1);g_key_file_set_string(output,"worker","cameraSendResolution",(std::to_string(vi.sendResolution&0xffff)+"x"+std::to_string((unsigned(vi.sendResolution)>>16)&0xffff)).c_str());g_key_file_set_integer(output,"worker","cameraNegotiatedFps",pattern.negotiatedFps);g_key_file_set_string(output,"worker","cameraOfferedCapabilities",pattern.offeredCaps.c_str());g_key_file_set_uint64(output,"worker","cameraAcceptedFrames",pattern.acceptedFrames);g_key_file_set_uint64(output,"worker","cameraUniqueSourceFrames",pattern.uniqueFrames);g_key_file_set_uint64(output,"worker","cameraQueueDrops",pattern.queueDrops);g_key_file_set_integer(output,"worker","cameraQueueDepth",pattern.queue.size());g_key_file_set_uint64(output,"worker","cameraQueuedFrames",pattern.queuedFrames);}
   g_key_file_set_boolean(output,"worker","sourceVideo",relayVideoTime&&relay::now()-relayVideoTime<2000);
   g_key_file_set_boolean(output,"worker","sourceAudio",relayAudioTime&&relay::now()-relayAudioTime<2000);
  }
@@ -358,6 +430,7 @@ gboolean stop(gpointer reason) {worker_trace::event("stop.request",GPOINTER_TO_I
 int main(int argc,char** argv) {
  if(argc==2&&std::string(argv[1])=="--preflight"){std::cout<<"SDK library loaded: "<<GetSDKVersion()<<std::endl;return 0;}
  worker_trace::configure();
+ if(std::getenv("ZOOM_TEST_FPS")&&std::string(std::getenv("ZOOM_TEST_FPS"))=="30")videoFps=30;
  const char* quality=std::getenv("ZOOM_VIDEO_QUALITY");const char* aspect=std::getenv("ZOOM_VIDEO_ASPECT");
  if(quality&&(std::string(quality)=="720p"||std::string(quality)=="1080p"))videoQuality=quality;
  if(aspect&&(std::string(aspect)=="16:9"||std::string(aspect)=="4:3"))videoAspect=aspect;
@@ -375,11 +448,11 @@ int main(int argc,char** argv) {
  InitParam init{};init.strWebDomain="https://zoom.us";init.strSupportUrl="https://zoom.us";init.emLanguageID=LANGUAGE_English;init.enableLogByDefault=false;init.enableGenerateDump=false;
  auto e=JIO_SDK_CALL("sdk.initialize",InitSDK(init));std::cout<<"Initialize result="<<e<<std::endl;if(e) return 1;
  IAuthService* auth=nullptr;MeetingEvents me;AuthEvents ae;
- if(CreateMeetingService(&meeting)||CreateAuthService(&auth)||CreateSettingService(&settings)) return 1;
+ auto cm=CreateMeetingService(&meeting);std::cout<<"Create meeting result="<<cm<<std::endl;auto ca=CreateAuthService(&auth);std::cout<<"Create auth result="<<ca<<std::endl;auto cs=CreateSettingService(&settings);std::cout<<"Create settings result="<<cs<<std::endl;if(cm||ca||cs){CleanUPSDK();return 1;}
  meeting->SetEvent(&me);auth->SetEvent(&ae);AuthContext ctx;ctx.jwt_token=token.c_str();
  e=JIO_SDK_CALL("sdk.authenticate",auth->SDKAuth(ctx));if(e){std::cout<<"Authentication request error="<<e<<std::endl;return 1;}
  g_unix_signal_add(SIGTERM,stop,GINT_TO_POINTER(SIGTERM));g_unix_signal_add(SIGINT,stop,GINT_TO_POINTER(SIGINT));
- g_timeout_add(66,videoTick,nullptr);g_timeout_add(20,audioTick,nullptr);
+ g_timeout_add(videoFps==30?5:66,videoTick,nullptr);g_timeout_add(20,audioTick,nullptr);
  g_timeout_add(5,receiverTick,nullptr);
  g_timeout_add(500,controls,nullptr);
  g_timeout_add_seconds(14400,stop,nullptr);

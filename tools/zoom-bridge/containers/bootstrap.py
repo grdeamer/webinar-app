@@ -4,7 +4,7 @@ import os
 import sys
 
 KEYS = {'ZOOM_SDK_JWT', 'ZOOM_MEETING_ID', 'ZOOM_MEETING_PASSCODE', 'ZOOM_DISPLAY_NAME',
-        'ZOOM_PUBLISH_MODE', 'ZOOM_VIDEO_QUALITY', 'ZOOM_VIDEO_ASPECT', 'ZOOM_ROOM_ID', 'ZOOM_RELAY_ROOT'}
+        'ZOOM_TEST_FPS', 'ZOOM_PUBLISH_MODE', 'ZOOM_VIDEO_QUALITY', 'ZOOM_VIDEO_ASPECT', 'ZOOM_ROOM_ID', 'ZOOM_RELAY_ROOT'}
 
 def validate(data):
     if not isinstance(data, dict) or set(data) - KEYS:
@@ -13,6 +13,8 @@ def validate(data):
         raise ValueError('Invalid runtime value')
     if not all(data.get(key) for key in ('ZOOM_SDK_JWT', 'ZOOM_MEETING_ID', 'ZOOM_ROOM_ID')):
         raise ValueError('Missing runtime configuration')
+    if data.get('ZOOM_TEST_FPS', '15') not in ('15', '30'):
+        raise ValueError('Unsupported test frame rate')
     return data
 
 if __name__ == '__main__':

@@ -6,7 +6,7 @@ function connection() {
   const value = process.env.JUPITER_IO_SRT_URL
   if (!value) return null
   const url = new URL(value)
-  if (url.protocol !== "srt:" || !url.hostname || !url.port || url.searchParams.get("mode") !== "caller" || !url.searchParams.get("passphrase")) throw new Error("SRT connection is not configured.")
+  if (url.protocol !== "srt:" || !url.hostname || !url.port || url.searchParams.get("mode") !== "caller") throw new Error("SRT connection is not configured.")
   return url
 }
 export function ingestInfo(row?: SourceRow | null) {
@@ -17,5 +17,6 @@ export function privateIngestUrl(row?: SourceRow | null) {
   const url = connection()
   if (!url) throw new Error("The OBS connection has not been configured on this Jupiter server.")
   if (row?.ingest_passphrase_ciphertext) url.searchParams.set("passphrase", unseal(row.ingest_passphrase_ciphertext))
+  if (!url.searchParams.get("passphrase")) throw new Error("The encrypted OBS connection is not configured.")
   return url.toString()
 }
