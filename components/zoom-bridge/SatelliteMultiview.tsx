@@ -1,4 +1,5 @@
 "use client"
+import { workerStatusLabel } from "@/lib/zoom-bridge/worker-health"
 import { useEffect, useState } from "react"
 import { Grid2X2, ArrowLeft, Volume2, VolumeX, Square, Play } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
@@ -40,11 +41,11 @@ function Monitor({ rooms }: { rooms: ZoomRoom[] }) {
         const joined = reporting(room) && room.observed.status === "joined"
         return <button key={room.id} className="relative z-20 border border-white/15 text-left outline-offset-[-3px] transition hover:bg-white/5 focus-visible:outline-2 focus-visible:outline-blue-300" aria-label={`Expand outgoing feed for ${room.name}`} onClick={() => { setExpanded(room.id); setAudio(false) }}>
           <span className="absolute left-2 top-2 z-10 rounded bg-black/80 px-2 py-1 text-xs">{room.name} · Outgoing feed</span>
-          {!joined || !room.observed.camera ? <span className="absolute inset-0 grid place-content-center bg-black/85 text-sm text-white/50">{!joined ? room.observed.status || "Disconnected" : "Picture off"}</span> : null}
+          {!joined || !room.observed.camera ? <span className="absolute inset-0 grid place-content-center bg-black/85 text-sm text-white/50">{!joined ? workerStatusLabel(room.observed.status) : "Picture off"}</span> : null}
           <span className="absolute bottom-2 left-2 rounded bg-black/80 px-2 py-1 text-[11px] text-white/70">{joined ? "● Connected" : "○ Not connected"} · {room.observed.videoResolution || "No video"} · {room.observed.microphone ? "Audio on" : "Audio muted"}</span>
         </button>
       })}</div> : <div className="pointer-events-none absolute left-3 top-3 z-20 rounded bg-black/80 px-3 py-1 text-xs">Outgoing feed · {selected.observed.videoResolution || "No video"} · {selected.observed.microphone ? "Audio on" : "Audio muted"}</div>}
-      {selected && (!reporting(selected) || selected.observed.status !== "joined" || !selected.observed.camera) ? <div className="pointer-events-none absolute inset-0 z-30 grid place-content-center bg-black/80 text-sm text-white/50">{selected.observed.status !== "joined" ? selected.observed.status || "Disconnected" : "Picture off"}</div> : null}
+      {selected && (!reporting(selected) || selected.observed.status !== "joined" || !selected.observed.camera) ? <div className="pointer-events-none absolute inset-0 z-30 grid place-content-center bg-black/80 text-sm text-white/50">{selected.observed.status !== "joined" ? workerStatusLabel(selected.observed.status) : "Picture off"}</div> : null}
     </div>
     {!selected && pages > 1 ? <div className="flex items-center justify-center gap-3"><button className={ioButton} disabled={currentPage === 0} onClick={() => { setPage(Math.max(0, currentPage - 1)); setAudio(false) }}>Previous</button><span className="text-xs text-white/60">Page {currentPage + 1} of {pages} · 9 feeds per page</span><button className={ioButton} disabled={currentPage >= pages - 1} onClick={() => { setPage(currentPage + 1); setAudio(false) }}>Next</button></div> : null}
     <p className="text-xs leading-5 text-white/45">Outgoing feed shows frames accepted by each satellite’s Zoom sender, before destination playback. It is not a return feed from the receiving Zoom room. Only the visible page is monitored. Grid audio is off; expanded audio is local and follows the satellite’s outgoing mute state. Stops after two minutes, on close, or when leaving this tab. Temporary memory buffers only; no recording or persistent media storage. Monitoring does not connect satellites or change their picture/audio controls.</p>

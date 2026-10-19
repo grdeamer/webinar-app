@@ -4,6 +4,8 @@ from srt_ingest import Ingest
 from preview import Preview
 from multiview import cleanup_expired
 from worker_health import is_stalled, STALL_ERROR
+from worker_diagnostics import prepare_attempt, WorkerLog, finish_attempt
+from container_worker import launch_container, stop_container
 import base64, configparser, hashlib, hmac, json, os, signal, subprocess, time, urllib.request, uuid
 from pathlib import Path
 ROOT = Path.home() / 'jupiter-zoom'
@@ -25,7 +27,23 @@ def atomic(path, content):
 def read_env(path):
     return dict(line.split('=', 1) for line in path.read_text().splitlines() if '=' in line)
 
+def worker_join_allowed(room_id=None):
+    """Fail closed on the diagnostic hold except a time-limited single-room test."""
+    if os.environ.get('JUPITER_WORKERS_HOLD') != '1':
+        return True
+    try:
+        raw = os.environ.get('JUPITER_TEST_SATELLITES', os.environ.get('JUPITER_TEST_SATELLITE', ''))
+        entries = raw.split(',')
+        if not 1 <= len(entries) <= 2:
+            return False
+        allowed = {str(uuid.UUID(value)) for value in entries}
+        return room_id in allowed and time.time() < float(os.environ.get('JUPITER_TEST_EXPIRES', '0'))
+    except (ValueError, TypeError):
+        return False
+
 def launch(room, relay_root=None, source=False):
+    if not worker_join_allowed(None if source else room.get("id")):
+        raise RuntimeError("Meeting joins paused for diagnostics")
     if relay_root: ensure_relay_root(relay_root)
     creds = read_env(ROOT / '.env')
     def enc(value):
@@ -36,8 +54,9 @@ def launch(room, relay_root=None, source=False):
     home = ROOT / 'source' if source else ROOT / 'rooms' / str(uuid.UUID(room['id']))
     (home / '.config').mkdir(parents=True,exist_ok=True)
     atomic(home / '.config/zoomus.conf', '[General]\nsystem.audio.type=default\n')
-    (home / 'status.ini').unlink(missing_ok=True)
+    prepare_attempt(home)
     env = os.environ.copy()
+    env['JUPITER_WORKER_DIAGNOSTICS'] = '1'
     env.update(HOME=str(home), XDG_CONFIG_HOME=str(home/'.config'), XDG_CACHE_HOME=str(home/'.cache'), ZOOM_SDK_JWT=body+'.'+signature, ZOOM_MEETING_ID=room['meetingId'], ZOOM_MEETING_PASSCODE=room['passcode'], ZOOM_DISPLAY_NAME=room['name'], LD_LIBRARY_PATH=str(ROOT/'sdk')+':'+str(ROOT/'sdk/qt_libs/Qt/lib'), QT_QPA_PLATFORM='offscreen', PULSE_SERVER=os.environ.get('PULSE_SERVER','unix:/run/user/'+str(os.getuid())+'/pulse/native'))
     if not source:
         env['ZOOM_PUBLISH_MODE']=room.get('publishMode','camera')
@@ -49,17 +68,23 @@ def launch(room, relay_root=None, source=False):
         env.update(ZOOM_RELAY_ROOT=str(relay_root),ZOOM_ROOM_ID=room['id'])
     if source:
         env.update(ZOOM_SOURCE_MODE='1',ZOOM_REVISION=room['revision'])
-    log = open(home/'worker.log','w')
-    proc = subprocess.Popen([str(ROOT/'bridge-worker')],cwd=home,env=env,stdout=log,stderr=log,start_new_session=True)
-    log.close()
-    return {'proc':proc,'home':home,'revision':room['revision'],'name':room['name']}
+    container = None
+    if not source and os.environ.get('JUPITER_TEST_CONTAINER') == '1':
+        proc, container = launch_container(ROOT, home, room['id'], relay_root, env)
+    else:
+        proc = subprocess.Popen([str(ROOT/'bridge-worker')],cwd=home,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,start_new_session=True)
+    logger = WorkerLog(proc.stdout, home)
+    return {'proc':proc,'home':home,'logger':logger,'container':container,'revision':room['revision'],'name':room['name']}
 
 def terminate(item):
     proc = item['proc']
+    if item.get('container'):
+        stop_container(item['container'])
     if proc.poll() is None:
         proc.terminate()
         try: proc.wait(timeout=8)
         except subprocess.TimeoutExpired: proc.kill(); proc.wait(timeout=3)
+    finish_attempt(item)
 
 def report(room_id, item):
     cfg = configparser.ConfigParser(interpolation=None)
@@ -153,8 +178,11 @@ def main():
                 if source_item and (not source or not source['running'] or source_item['revision']!=source['revision']):
                     terminate(source_item);source_item=None;clear_media(relay_root)
                 if source_item and source_item['proc'].poll() is not None:
+                    finish_attempt(source_item)
                     source_failure=source_item['revision'];source_item=None;clear_media(relay_root)
-                if not srt_mode and source and source['running']:
+                if not srt_mode and source and source['running'] and not worker_join_allowed():
+                    source_status={'status':'paused','revision':source['revision'],'error':'Meeting joins paused for diagnostics.'}
+                elif not srt_mode and source and source['running']:
                     if source_failure==source['revision']:
                         source_status={'status':'failed','revision':source['revision'],'error':'Source exited. Disconnect and reconnect to retry.'}
                     else:
@@ -166,17 +194,20 @@ def main():
                 mode='relay' if source else 'countdown'
                 ids={r['id'] for r in rooms if r['running']}
                 for rid in list(children):
-                    if rid not in ids or children[rid].get('mode')!=mode or children[rid].get('publishMode')!=next((r.get('publishMode','camera') for r in rooms if r['id']==rid),'camera'):terminate(children.pop(rid))
+                    if not worker_join_allowed(rid) or rid not in ids or children[rid].get('mode')!=mode or children[rid].get('publishMode')!=next((r.get('publishMode','camera') for r in rooms if r['id']==rid),'camera'):terminate(children.pop(rid))
                 reports=[]
                 for room in rooms:
                     rid=str(uuid.UUID(room['id']))
                     if not room['running']:
                         failures.pop(rid,None);reports.append({'id':rid,'status':'stopped','camera':False,'microphone':False,'revision':room['revision'],'name':room['name']});continue
+                    if not worker_join_allowed(rid):
+                        reports.append({'id':rid,'status':'paused','camera':False,'microphone':False,'revision':room['revision'],'error':'Meeting joins paused for diagnostics.'});continue
                     if not srt_mode and source and room['meetingId']==source['meetingId']:
                         if rid in children:terminate(children.pop(rid))
                         reports.append({'id':rid,'status':'failed','error':'Source meeting cannot be a satellite destination.'});continue
                     item=children.get(rid)
                     if item and item['proc'].poll() is not None:
+                        finish_attempt(item)
                         children.pop(rid);failures[rid]={'revision':room['revision'],'status':'failed','error':f"Satellite exited (process code {item['proc'].returncode}). Disconnect and reconnect to retry."};item=None
                     failure=failures.get(rid)
                     if failure and failure['revision']==room['revision']:

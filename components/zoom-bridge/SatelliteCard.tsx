@@ -1,4 +1,5 @@
 "use client"
+import { workerStatusLabel } from "@/lib/zoom-bridge/worker-health"
 import { Camera, CameraOff, Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Pencil, AudioLines, ChevronRight } from "lucide-react"
 import SatelliteGlyph from "./SatelliteGlyph"
 import SatelliteDeleteButton from "./SatelliteDeleteButton"
@@ -12,7 +13,7 @@ export default function SatelliteCard({ room, busy, command, edit, remove, compa
 }) {
   const fresh = reporting(room)
   const joined = fresh && room.observed.status === "joined"
-  const state = fresh ? room.observed.status || "starting" : room.running ? "Controller offline" : "Disconnected"
+  const state = fresh ? workerStatusLabel(room.observed.status || "starting") : room.running ? "Controller offline" : "Disconnected"
   const outputOn = joined && room.observed.camera === true
   const audioOn = joined && room.observed.microphone === true
   const applied = fresh && room.observed.revision === room.revision
@@ -32,7 +33,7 @@ export default function SatelliteCard({ room, busy, command, edit, remove, compa
       <div className="min-w-0"><h2 className="break-words text-lg font-semibold">{room.name}</h2><p className="mt-1 font-mono text-xs text-white/45">Meeting {room.meetingId}</p></div>
       <span className={`shrink-0 rounded-full px-2 py-1 text-xs ${joined ? "bg-emerald-300/10 text-emerald-200" : "bg-white/5 text-white/55"}`}>{state}</span>
     </div>
-    <div className="mt-4 flex items-center gap-2 text-xs text-blue-200"><MonitorUp size={14} />{outputLabel(room.publishMode)}<span className="ml-auto text-white/40">{room.observed.status === "stalled" ? "Worker stalled" : pending ? "Applying controls…" : joined ? "Connected" : room.running ? "Connecting…" : "Ready to connect"}</span></div>
+    <div className="mt-4 flex items-center gap-2 text-xs text-blue-200"><MonitorUp size={14} />{outputLabel(room.publishMode)}<span className="ml-auto text-white/40">{room.observed.status === "paused" ? "Paused for testing" : room.observed.status === "stalled" ? "Worker stalled" : pending ? "Applying controls…" : joined ? "Connected" : room.running ? "Connecting…" : "Ready to connect"}</span></div>
     <div className="mt-4 flex flex-wrap gap-2">
       <button type="button" className={`${ioButton} ${outputOn ? "border-emerald-300/35 bg-emerald-300/10 text-emerald-200" : "text-white/55"}`} disabled={busy} aria-pressed={outputOn} aria-label={`${outputTarget ? "Stop" : "Start"} ${outputLabel(room.publishMode).toLowerCase()} for ${room.name}`} title={`${outputTarget ? "Stop" : "Start"} ${outputLabel(room.publishMode).toLowerCase()}`} onClick={() => command(room.id, outputTarget ? "camera_off" : "camera_on")}><OutputIcon size={19} />{sharing ? "Share" : "Camera"}{pending && room.camera !== room.observed.camera ? <span className="text-[10px]">Pending</span> : null}</button>
       <button type="button" className={`${ioButton} ${audioOn ? "border-emerald-300/35 bg-emerald-300/10 text-emerald-200" : "text-white/55"}`} disabled={busy} aria-pressed={audioOn} aria-label={`${audioTarget ? "Mute" : "Unmute"} ${room.name}`} title={audioTarget ? "Mute program audio" : "Unmute program audio"} onClick={() => command(room.id, audioTarget ? "microphone_off" : "microphone_on")}><AudioIcon size={19} />{pending && room.microphone !== room.observed.microphone ? <span className="text-[10px]">Pending</span> : null}</button>

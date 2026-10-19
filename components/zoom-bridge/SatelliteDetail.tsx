@@ -1,4 +1,5 @@
 "use client"
+import { workerStatusLabel } from "@/lib/zoom-bridge/worker-health"
 import { Pencil } from "lucide-react"
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog"
 import SatelliteCard, { ioButton, reporting } from "./SatelliteCard"
@@ -12,7 +13,7 @@ export default function SatelliteDetail({ room, busy, close, command, edit, remo
 }) {
   const content = <>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 pr-8"><div><p className="mb-2 text-[10px] uppercase tracking-[.22em] text-blue-200/60">Jupiter Io · Satellite control</p><h2 className="text-xl font-semibold">{room.name}<span className={`ml-3 text-sm font-normal ${reporting(room) && room.observed.status === "joined" ? "text-emerald-300" : room.observed.status === "stalled" || room.observed.status === "failed" ? "text-amber-200" : "text-white/50"}`}>{reporting(room) && room.observed.status === "joined" ? "● Live" : room.observed.status || "Disconnected"}</span></h2></div><button data-io-tour="satellite-edit" type="button" className={ioButton} disabled={busy} onClick={() => edit(room)}><Pencil size={16} />Edit satellite</button></div>
+      <div className="flex flex-wrap items-center justify-between gap-3 pr-8"><div><p className="mb-2 text-[10px] uppercase tracking-[.22em] text-blue-200/60">Jupiter Io · Satellite control</p><h2 className="text-xl font-semibold">{room.name}<span className={`ml-3 text-sm font-normal ${reporting(room) && room.observed.status === "joined" ? "text-emerald-300" : room.observed.status === "stalled" || room.observed.status === "failed" ? "text-amber-200" : "text-white/50"}`}>{reporting(room) && room.observed.status === "joined" ? "● Live" : workerStatusLabel(room.observed.status)}</span></h2></div><button data-io-tour="satellite-edit" type="button" className={ioButton} disabled={busy} onClick={() => edit(room)}><Pencil size={16} />Edit satellite</button></div>
       <div className="io-detail-grid grid items-start gap-5 lg:grid-cols-[1.4fr_1fr]">
         <SatellitePreview key={room.id} room={room} />
         <div className="space-y-4"><h3 className="text-sm font-semibold">Broadcast controls</h3><SatelliteCard room={room} busy={busy} command={command} edit={edit} remove={remove} />

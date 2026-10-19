@@ -1,0 +1,8 @@
+FROM localhost/jupiter-satellite:diagnostics-20261017
+USER root
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends python3 && rm -rf /var/lib/apt/lists/*
+COPY bootstrap.py /opt/jupiter/bootstrap.py
+RUN chmod 0444 /opt/jupiter/bootstrap.py
+USER 1000:1000
+ENTRYPOINT ["/usr/bin/python3", "/opt/jupiter/bootstrap.py"]
+CMD ["--preflight"]

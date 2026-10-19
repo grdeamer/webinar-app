@@ -1,4 +1,5 @@
 #include "video-profile.hpp"
+#include "operation-trace.hpp"
 #include <zoom_sdk.h>
 #include <auth_service_interface.h>
 #include <setting_service_interface.h>
@@ -58,7 +59,7 @@ void previewFrame(const std::vector<char>& frame,int width,int height) {
 }
 void previewAudio(const relay::Header& input,const char* pixels){
  if(monitorRate()!=10)return;
- auto* pc=meeting?meeting->GetMeetingParticipantsController():nullptr;auto* me=pc?pc->GetMySelfUser():nullptr;if(!me||me->IsAudioMuted())return;
+ auto* pc=meeting?JIO_SDK_CALL("participants.controller",meeting->GetMeetingParticipantsController()):nullptr;auto* me=pc?JIO_SDK_CALL("participants.self",pc->GetMySelfUser()):nullptr;if(!me||me->IsAudioMuted())return;
  const char* id=std::getenv("ZOOM_ROOM_ID");std::string path=relayRoot+"/monitor-"+id+"/audio.sock";
  int fd=socket(AF_UNIX,SOCK_DGRAM|SOCK_NONBLOCK|SOCK_CLOEXEC,0);if(fd<0)return;
  // Normalize accepted outgoing PCM to 32 kHz mono for the confidence monitor.
@@ -70,7 +71,7 @@ void previewAudio(const relay::Header& input,const char* pixels){
 }
 std::atomic<uint64_t> relayVideoTime{0},relayAudioTime{0};
 std::string workerStatus="starting", appliedRevision="", controlError="";bool mediaReady=false;
-void fail(int code) { result=code?code:1; g_main_loop_quit(loop); }
+void fail(int code) {worker_trace::event("worker.fail",code);result=code?code:1;g_main_loop_quit(loop);}
 std::string videoQuality="auto",videoAspect="original";
 struct Pattern: IZoomSDKVideoSource {
  IZoomSDKVideoSender* sender=nullptr;bool active=false;int width=640,height=360;unsigned frames=0;
@@ -85,10 +86,10 @@ struct Pattern: IZoomSDKVideoSource {
   if(!active||!sender)return;
   if(!relayRoot.empty()) {
    relay::Header h;std::vector<char> input;
-   if(relay::readVideo(relayRoot,h,input)){auto f=video_profile::render(h,input,width,height,videoAspect);auto e=sender->sendVideoFrame(f.data(),width,height,f.size(),0);if(e==SDKERR_SUCCESS){relayVideoTime=h.time;previewFrame(f,width,height);}return;}
+   if(relay::readVideo(relayRoot,h,input)){auto f=video_profile::render(h,input,width,height,videoAspect);auto e=JIO_SDK_CALL("camera.send",sender->sendVideoFrame(f.data(),width,height,f.size(),0));if(e==SDKERR_SUCCESS){relayVideoTime=h.time;previewFrame(f,width,height);}return;}
    // A disconnected/missing source never falls back to the countdown.
    std::vector<char> blank(width*height*3/2,char(128));std::fill(blank.begin(),blank.begin()+width*height,char(16));
-   sender->sendVideoFrame(blank.data(),width,height,blank.size(),0);return;
+   JIO_SDK_CALL("camera.blank",sender->sendVideoFrame(blank.data(),width,height,blank.size(),0));return;
   }
   std::vector<char> f(width*height*3/2);auto* b=reinterpret_cast<unsigned char*>(f.data());
   auto ms=std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::system_clock::now().time_since_epoch()).count();
@@ -112,7 +113,7 @@ struct Pattern: IZoomSDKVideoSource {
   for(int y=0;y<height;y++)for(int x=0;x<width;x++)b[y*width+x]=16+(pixels[y*stride+x*4]*219/255);
   std::fill(b+width*height,b+f.size(),128);
   cairo_destroy(cr);cairo_surface_destroy(surface);
-  auto e=sender->sendVideoFrame(f.data(),width,height,f.size(),0);
+  auto e=JIO_SDK_CALL("camera.send",sender->sendVideoFrame(f.data(),width,height,f.size(),0));
   if(frames++%150==0)std::cout<<"Video frames="<<frames<<" send result="<<e<<" size="<<width<<"x"<<height<<std::endl;
  }
 } pattern;
@@ -128,7 +129,7 @@ struct Tone: IZoomSDKVirtualAudioMicEvent {
    if(h.magic!=0x4a494f31||!relay::fresh(h)||h.bytes!=n-sizeof(h)||h.channels<1||h.channels>2||(h.rate!=8000&&h.rate!=16000&&h.rate!=32000&&h.rate!=44100&&h.rate!=48000)||h.bytes%(2*h.channels))continue;
    for(unsigned offset=0;offset<h.bytes;offset+=2){int16_t sample;memcpy(&sample,packet+sizeof(h)+offset,2);double amplitude=std::abs(double(sample))/32768.0;meterPeak=std::max(meterPeak,amplitude);meterSquares+=amplitude*amplitude;++meterSamples;}meterStamp=h.time;
    if(!active||!sender)continue;
-   auto e=sender->send(packet+sizeof(h),h.bytes,h.rate,h.channels==2?ZoomSDKAudioChannel_Stereo:ZoomSDKAudioChannel_Mono);if(e==SDKERR_SUCCESS){relayAudioTime=h.time;previewAudio(h,packet+sizeof(h));}
+   auto e=JIO_SDK_CALL("audio.send",sender->send(packet+sizeof(h),h.bytes,h.rate,h.channels==2?ZoomSDKAudioChannel_Stereo:ZoomSDKAudioChannel_Mono));if(e==SDKERR_SUCCESS){relayAudioTime=h.time;previewAudio(h,packet+sizeof(h));}
   }
  }
  void tick(){if(!active||!sender||!relayRoot.empty())return;int16_t b[640];for(auto& v:b){bool beep=(samples%64000)<8000;v=beep?static_cast<int16_t>(1000*std::sin(6.283185307179586*440*samples/32000.0)):0;++samples;}auto e=sender->send(reinterpret_cast<char*>(b),sizeof(b),32000,ZoomSDKAudioChannel_Mono);if(blocks++%500==0)std::cout<<"Audio blocks="<<blocks<<" send result="<<e<<std::endl;}
@@ -176,10 +177,10 @@ struct Receiver: IZoomSDKAudioRawDataDelegate {
  void onShareAudioRawDataReceived(AudioRawData*,uint32_t) override {}
  void onOneWayInterpreterAudioRawDataReceived(AudioRawData*,const zchar_t*) override {}
  void tick(){
-  auto* pc=meeting->GetMeetingParticipantsController();auto* me=pc?pc->GetMySelfUser():nullptr;
+  auto* pc=JIO_SDK_CALL("participants.controller",meeting->GetMeetingParticipantsController());auto* me=pc?JIO_SDK_CALL("participants.self",pc->GetMySelfUser()):nullptr;
   if(!me||workerStatus=="waiting"||workerStatus=="waiting for host"||workerStatus=="reconnecting")return;
   auto* ac=meeting->GetMeetingAudioController();auto* vc=meeting->GetMeetingVideoController();
-  if(ac&&!me->IsAudioMuted())ac->MuteAudio(me->GetUserID());if(vc&&me->IsVideoOn())vc->MuteVideo();
+  if(ac&&!me->IsAudioMuted())JIO_SDK_CALL("audio.mute",ac->MuteAudio(me->GetUserID()));if(vc&&me->IsVideoOn())vc->MuteVideo();
   auto* rc=meeting->GetMeetingRecordingController();auto* ah=GetAudioRawdataHelper();
   if(!rc||rc->CanStartRawRecording()!=SDKERR_SUCCESS){
    if(recording){clearTiles();if(ah&&audioSubscribed)ah->unSubscribe();audioSubscribed=false;if(rc)rc->StopRawRecording();recording=false;clearVideo();audioTime=0;}
@@ -211,7 +212,7 @@ struct Receiver: IZoomSDKAudioRawDataDelegate {
  void cleanup(){clearTiles();auto* ah=GetAudioRawdataHelper();if(ah&&audioSubscribed)ah->unSubscribe();auto* rc=meeting->GetMeetingRecordingController();if(rc&&recording)rc->StopRawRecording();if(socketFD>=0)close(socketFD);}
 
 } receiver;
-gboolean receiverTick(gpointer){if(!sourceMode)tone.relayTick();return G_SOURCE_CONTINUE;}
+gboolean receiverTick(gpointer){worker_trace::Scope operation("audio.tick");if(!sourceMode)tone.relayTick();return G_SOURCE_CONTINUE;}
 struct ProgramShare: IZoomSDKShareSource {
  IZoomSDKShareSender* sender=nullptr;
  int width=1920,height=1080;unsigned frames=0;SDKError lastResult=SDKERR_SUCCESS;
@@ -223,11 +224,11 @@ struct ProgramShare: IZoomSDKShareSource {
   bool fresh=relay::readVideo(relayRoot,h,input);
   if(fresh){int sw=(h.rotation==90||h.rotation==270)?h.height:h.width,sh=(h.rotation==90||h.rotation==270)?h.width:h.height;auto size=video_profile::dimensions(sw,sh,videoQuality,videoAspect);width=size.first;height=size.second;input=video_profile::render(h,input,width,height,videoAspect);}
   else {input.assign(width*height*3/2,char(128));std::fill(input.begin(),input.begin()+width*height,char(16));}
-  lastResult=sender->sendShareFrame(input.data(),width,height,input.size(),FrameDataFormat_I420_LIMITED);
+  lastResult=JIO_SDK_CALL("share.send",sender->sendShareFrame(input.data(),width,height,input.size(),FrameDataFormat_I420_LIMITED));
   if(lastResult==SDKERR_SUCCESS&&fresh){previewFrame(input,width,height);relayVideoTime=h.time;if(!frames++)std::cout<<"Program share frame accepted="<<width<<"x"<<height<<std::endl;}
  }
 } programShare;
-gboolean videoTick(gpointer){if(sourceMode&&mediaReady)receiver.compose();else if(shareMode)programShare.tick();else pattern.tick();return G_SOURCE_CONTINUE;}
+gboolean videoTick(gpointer){worker_trace::Scope operation("video.tick");if(sourceMode&&mediaReady)receiver.compose();else if(shareMode)programShare.tick();else pattern.tick();return G_SOURCE_CONTINUE;}
 gboolean audioTick(gpointer){tone.tick();return G_SOURCE_CONTINUE;}
 gboolean enableMedia(gpointer){
  if(settings&&settings->GetVideoSettings()){auto* video=settings->GetVideoSettings();auto e=video->EnableHDVideo(true);std::cout<<"In-meeting HD request="<<e<<" enabled="<<video->IsHDVideoEnabled()<<std::endl;}
@@ -248,6 +249,7 @@ gboolean enableMedia(gpointer){
 }
 struct MeetingEvents: IMeetingServiceEvent {
  void onMeetingStatusChanged(MeetingStatus s,int r) override {
+  worker_trace::event("meeting.status",s,r);
   std::cout<<"Meeting status="<<s<<" reason="<<r<<std::endl;
   if(s==MEETING_STATUS_INMEETING||s==MEETING_STATUS_JOIN_BREAKOUT_ROOM) {workerStatus="joined";std::cout<<"JOINED successfully"<<std::endl;g_timeout_add_seconds(2,enableMedia,nullptr);}
   if(s==MEETING_STATUS_WAITINGFORHOST) workerStatus="waiting for host";
@@ -262,10 +264,11 @@ struct MeetingEvents: IMeetingServiceEvent {
  void onAICompanionActiveChangeNotice(bool) override {}
  void onMeetingTopicChanged(const zchar_t*) override {}
  void onMeetingFullToWatchLiveStream(const zchar_t*) override {}
- void onUserNetworkStatusChanged(MeetingComponentType,ConnectionQuality,unsigned int,bool) override {}
+ void onUserNetworkStatusChanged(MeetingComponentType type,ConnectionQuality quality,unsigned int,bool uplink) override {worker_trace::event(uplink?"network.uplink":"network.downlink",type,quality);}
 };
 struct AuthEvents: IAuthServiceEvent {
  void onAuthenticationReturn(AuthResult r) override {
+  worker_trace::event("authentication",r);
   std::cout<<"Authentication result="<<r<<std::endl;
   if(r!=AUTHRET_SUCCESS) {fail(r);return;}
   if(settings&&settings->GetVideoSettings()){auto* video=settings->GetVideoSettings();auto he=video->EnableHDVideo(true);video->EnableAlwaysUseOriginalSizeVideo(true);std::cout<<"HD video requested result="<<he<<" enabled="<<video->IsHDVideoEnabled()<<std::endl;}
@@ -273,17 +276,18 @@ struct AuthEvents: IAuthServiceEvent {
   auto& j=p.param.withoutloginuserJoin;
   j.meetingNumber=std::stoull(number); j.userName=name.c_str();j.psw=password.c_str();
   j.isVideoOff=true;j.isAudioOff=true;
-  auto e=meeting->Join(p);std::cout<<"Join request result="<<e<<std::endl;
+  auto e=JIO_SDK_CALL("meeting.join",meeting->Join(p));std::cout<<"Join request result="<<e<<std::endl;
   if(e!=SDKERR_SUCCESS) fail(e);
  }
  void onLoginReturnWithReason(LOGINSTATUS,IAccountInfo*,LoginFailReason) override {}
  void onLogout() override {}
- void onZoomIdentityExpired() override {fail(1);}
- void onZoomAuthIdentityExpired() override {fail(1);}
+ void onZoomIdentityExpired() override {worker_trace::event("identity.expired");fail(1);}
+ void onZoomAuthIdentityExpired() override {worker_trace::event("sdk.identity.expired");fail(1);}
 };
 gboolean controls(gpointer) {
+ worker_trace::Scope operation("controls.tick");
  if(sourceMode&&mediaReady)receiver.tick();
- auto* pc=meeting->GetMeetingParticipantsController();auto* me=pc?pc->GetMySelfUser():nullptr;
+ auto* pc=JIO_SDK_CALL("participants.controller",meeting->GetMeetingParticipantsController());auto* me=pc?JIO_SDK_CALL("participants.self",pc->GetMySelfUser()):nullptr;
  auto* file=g_key_file_new();
  if(!sourceMode&&mediaReady&&me&&g_key_file_load_from_file(file,"control.ini",G_KEY_FILE_NONE,nullptr)) {
   previewExpires=g_key_file_get_int64(file,"control","preview_expires",nullptr);
@@ -295,13 +299,13 @@ gboolean controls(gpointer) {
    SDKError ve=SDKERR_SUCCESS;
    if(shareMode) {
     auto* helper=GetRawdataShareSourceHelper();auto* sharing=meeting->GetMeetingShareController();
-    ve=camera?(programShare.sender?SDKERR_SUCCESS:(helper?helper->setExternalShareSource(&programShare):SDKERR_UNINITIALIZE)):(programShare.sender?(sharing?sharing->StopShare():SDKERR_UNINITIALIZE):SDKERR_SUCCESS);
+    ve=camera?(programShare.sender?SDKERR_SUCCESS:(helper?JIO_SDK_CALL("share.configure",helper->setExternalShareSource(&programShare)):SDKERR_UNINITIALIZE)):(programShare.sender?(sharing?JIO_SDK_CALL("share.stop",sharing->StopShare()):SDKERR_UNINITIALIZE):SDKERR_SUCCESS);
     std::cout<<"Program share command="<<ve<<std::endl;
    } else ve=vc?(camera?vc->UnmuteVideo():vc->MuteVideo()):SDKERR_UNINITIALIZE;
-   auto ae=ac?(mic?ac->UnMuteAudio(me->GetUserID()):ac->MuteAudio(me->GetUserID())):SDKERR_UNINITIALIZE;
+   auto ae=ac?(mic?JIO_SDK_CALL("audio.unmute",ac->UnMuteAudio(me->GetUserID())):JIO_SDK_CALL("audio.mute",ac->MuteAudio(me->GetUserID()))):SDKERR_UNINITIALIZE;
    bool requestedOriginal=g_key_file_has_key(file,"control","original_sound",nullptr)?g_key_file_get_boolean(file,"control","original_sound",nullptr):true;
    auto* audioSettings=settings?settings->GetAudioSettings():nullptr;
-   auto oe=audioSettings?audioSettings->EnableMicOriginalInput(requestedOriginal):SDKERR_UNINITIALIZE;
+   auto oe=audioSettings?JIO_SDK_CALL("audio.original",audioSettings->EnableMicOriginalInput(requestedOriginal)):SDKERR_UNINITIALIZE;
    if(oe==SDKERR_SUCCESS)originalSound=requestedOriginal;
    std::cout<<"Original sound command="<<requestedOriginal<<" result="<<oe<<std::endl;
    auto ne=newName&&name!=newName?pc->ChangeUserName(me->GetUserID(),newName,false):SDKERR_SUCCESS;
@@ -336,7 +340,7 @@ gboolean controls(gpointer) {
   g_key_file_set_string(output,"worker","videoResolution",(std::to_string(shareMode?programShare.width:pattern.width)+"x"+std::to_string(shareMode?programShare.height:pattern.height)).c_str());
   g_key_file_set_string(output,"worker","publishMode",shareMode?"share":"camera");
   if(shareMode){
-   MeetingASVStatisticInfo info;auto status=meeting->GetMeetingShareStatisticInfo(info);
+   MeetingASVStatisticInfo info;auto status=JIO_SDK_CALL("share.statistics",meeting->GetMeetingShareStatisticInfo(info));
    g_key_file_set_integer(output,"worker","shareStatsResult",status);
    g_key_file_set_integer(output,"worker","shareSendFps",info.sendFps);
    g_key_file_set_integer(output,"worker","shareSendBandwidth",info.sendBandwidth);
@@ -350,8 +354,10 @@ gboolean controls(gpointer) {
  gsize length=0;gchar* data=g_key_file_to_data(output,&length,nullptr);g_file_set_contents("status.ini",data,length,nullptr);g_free(data);g_key_file_free(output);
  return G_SOURCE_CONTINUE;
 }
-gboolean stop(gpointer) {g_main_loop_quit(loop);return G_SOURCE_REMOVE;}
-int main() {
+gboolean stop(gpointer reason) {worker_trace::event("stop.request",GPOINTER_TO_INT(reason));g_main_loop_quit(loop);return G_SOURCE_REMOVE;}
+int main(int argc,char** argv) {
+ if(argc==2&&std::string(argv[1])=="--preflight"){std::cout<<"SDK library loaded: "<<GetSDKVersion()<<std::endl;return 0;}
+ worker_trace::configure();
  const char* quality=std::getenv("ZOOM_VIDEO_QUALITY");const char* aspect=std::getenv("ZOOM_VIDEO_ASPECT");
  if(quality&&(std::string(quality)=="720p"||std::string(quality)=="1080p"))videoQuality=quality;
  if(aspect&&(std::string(aspect)=="16:9"||std::string(aspect)=="4:3"))videoAspect=aspect;
@@ -367,17 +373,17 @@ int main() {
  token=t;number=n;password=p;name=std::getenv("ZOOM_DISPLAY_NAME")?std::getenv("ZOOM_DISPLAY_NAME"):"Jupiter Feed 01";
  loop=g_main_loop_new(nullptr,FALSE);
  InitParam init{};init.strWebDomain="https://zoom.us";init.strSupportUrl="https://zoom.us";init.emLanguageID=LANGUAGE_English;init.enableLogByDefault=false;init.enableGenerateDump=false;
- auto e=InitSDK(init);std::cout<<"Initialize result="<<e<<std::endl;if(e) return 1;
+ auto e=JIO_SDK_CALL("sdk.initialize",InitSDK(init));std::cout<<"Initialize result="<<e<<std::endl;if(e) return 1;
  IAuthService* auth=nullptr;MeetingEvents me;AuthEvents ae;
  if(CreateMeetingService(&meeting)||CreateAuthService(&auth)||CreateSettingService(&settings)) return 1;
  meeting->SetEvent(&me);auth->SetEvent(&ae);AuthContext ctx;ctx.jwt_token=token.c_str();
- e=auth->SDKAuth(ctx);if(e){std::cout<<"Authentication request error="<<e<<std::endl;return 1;}
- g_unix_signal_add(SIGTERM,stop,nullptr);g_unix_signal_add(SIGINT,stop,nullptr);
+ e=JIO_SDK_CALL("sdk.authenticate",auth->SDKAuth(ctx));if(e){std::cout<<"Authentication request error="<<e<<std::endl;return 1;}
+ g_unix_signal_add(SIGTERM,stop,GINT_TO_POINTER(SIGTERM));g_unix_signal_add(SIGINT,stop,GINT_TO_POINTER(SIGINT));
  g_timeout_add(66,videoTick,nullptr);g_timeout_add(20,audioTick,nullptr);
  g_timeout_add(5,receiverTick,nullptr);
  g_timeout_add(500,controls,nullptr);
  g_timeout_add_seconds(14400,stop,nullptr);
  g_main_loop_run(loop);
  if(sourceMode)receiver.cleanup();if(audioFD>=0){close(audioFD);unlink(audioPath.c_str());}
- meeting->Leave(LEAVE_MEETING);DestroyMeetingService(meeting);DestroyAuthService(auth);if(settings)DestroySettingService(settings);CleanUPSDK();g_main_loop_unref(loop);return result;
+ JIO_SDK_CALL("meeting.leave",meeting->Leave(LEAVE_MEETING));JIO_SDK_CALL("meeting.destroy",DestroyMeetingService(meeting));JIO_SDK_CALL("auth.destroy",DestroyAuthService(auth));if(settings)JIO_SDK_CALL("settings.destroy",DestroySettingService(settings));JIO_SDK_CALL("sdk.cleanup",CleanUPSDK());g_main_loop_unref(loop);return result;
 }
