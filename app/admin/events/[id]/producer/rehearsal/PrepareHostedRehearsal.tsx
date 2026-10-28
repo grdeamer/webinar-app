@@ -6,7 +6,7 @@ export default function PrepareHostedRehearsal({ root }: { root: string }) {
     setBusy(true); setMessage('Preparing the temporary worker. This can take a few minutes…')
     try {
       const response = await fetch(`${root}/prepare`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}', signal: AbortSignal.timeout(290_000) })
-      if (!response.ok) throw new Error('Preparation was not confirmed. Do not retry automatically; check the trial status.')
+      if (!response.ok) { const result = await response.json(); throw new Error(result.error || 'Preparation was not confirmed. Check the trial status before retrying.') }
       setMessage('Worker prepared. Open the rehearsal once the engine is ready. The cloud worker expires within 30 minutes of creation.')
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Preparation failed') }
     // Keep disabled after the attempt: trial preparation is single-use, never an automatic retry.

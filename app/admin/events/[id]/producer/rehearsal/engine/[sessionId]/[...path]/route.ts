@@ -19,6 +19,7 @@ async function handle(request: Request, context: Context) {
   try {
     if (operation === '/prepare' && request.method === 'POST') {
       if (!access.isGlobalAdmin) return Response.json({ error: 'Only the global administrator can prepare this paid single-use trial' }, { status: 403 })
+      console.info('hosted-rehearsal-preflight', { nowMs: Date.now(), allowedUntilMs: Number(process.env.PRODUCER_ENGINE_TRIAL_ALLOWED_UNTIL_MS), transportConfigured: Boolean(process.env.LIVEKIT_URL?.startsWith('wss:')), apiKeyConfigured: Boolean(process.env.LIVEKIT_API_KEY), apiSecretConfigured: Boolean(process.env.LIVEKIT_API_SECRET), signingKeyConfigured: (process.env.PRODUCER_ENGINE_SECRET?.length ?? 0) >= 32 })
       return Response.json(await prepareHostedRehearsal({ eventId: access.eventId, sessionId, actorId: access.user.id }))
     }
     if (request.method === 'GET' && !operation.startsWith('/api/')) {
@@ -30,7 +31,12 @@ async function handle(request: Request, context: Context) {
     const body = request.method === 'POST' ? await request.text() : ''
     if (Buffer.byteLength(body) > 80_000) return Response.json({ error: 'Request too large' }, { status: 413 })
     return await callHostedEngine({ scope: { eventId: access.eventId, sessionId, actorId: access.user.id }, path: operation, method: request.method as 'GET' | 'POST', body, ...(request.headers.has('x-input-capability') ? { inputCapability: request.headers.get('x-input-capability')! } : {}) })
-  } catch { return Response.json({ error: 'Hosted rehearsal unavailable. No automatic restart was attempted.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } }) }
+  } catch (error) {
+    const value = error as { name?: string; status?: number; statusCode?: number; code?: string; message?: string }
+    console.error('hosted-rehearsal-failure', { operation, name: value?.name?.slice(0, 80), status: value?.status ?? value?.statusCode, code: /^[A-Za-z0-9_-]{1,80}$/.test(value?.code || '') ? value.code : undefined })
+    const known = ['Hosted trial authorization expired', 'Hosted media configuration incomplete', 'This single-use trial was already prepared. No repeated paid run was started.', 'Hosted preparation failed; the trial worker was stopped']
+    return Response.json({ error: known.includes(value?.message || '') ? value.message : 'Hosted rehearsal unavailable. No automatic restart was attempted.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
+  }
 }
 export const GET = handle
 export const POST = handle
