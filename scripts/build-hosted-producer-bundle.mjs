@@ -11,6 +11,6 @@ function include(directory) {
   }
 }
 include('lib/production'); include('tools/production-local')
-for (const path of ['lib/live/producerControl.ts', 'scripts/production-producer-hosted.ts', 'lib/production/hosted/protocol.ts']) files.push({ path, content: readFileSync(resolve(root, path)).toString('base64') })
+for (const path of ['lib/live/producerControl.ts', 'scripts/production-producer-hosted.ts', 'lib/production/hosted/protocol.ts', 'lib/production/hosted/transportPolicy.ts']) files.push({ path, content: readFileSync(resolve(root, path)).toString('base64') })
 writeFileSync(resolve(root, 'tools/production-local/release/hosted-worker-files.json'), JSON.stringify(files))
 console.log(`Prepared ${files.length} explicit hosted worker source files; no environment, local state or media files.`)

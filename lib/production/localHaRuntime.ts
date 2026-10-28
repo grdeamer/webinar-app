@@ -1,3 +1,4 @@
+import { mediaHostAllowed } from './hosted/transportPolicy.ts'
 import { haRuntimeBudget } from './haSoakPlan.ts'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, mkdtempSync, openSync, closeSync, writeFileSync, rmSync, readFileSync, appendFileSync, statSync } from 'node:fs'
@@ -140,7 +141,7 @@ export class LocalHaRuntime {
     if (!this.running || Date.now() >= this.expiresAtMs) { await server.close(); throw new Error('HA run ended during worker launch') }
     this.workers.set(role, server)
     const browser = await chromium.connect(server.wsEndpoint(), { timeout: 10_000 }), context = await browser.newContext({ serviceWorkers: 'block' })
-    await context.route('**/*', route => ['127.0.0.1', ...(this.transport ? [new URL(this.transport.url).hostname] : [])].includes(new URL(route.request().url()).hostname) ? route.continue() : route.abort())
+    await context.route('**/*', route => mediaHostAllowed(new URL(route.request().url()).hostname, this.transport?.url) ? route.continue() : route.abort())
     browser.on('disconnected', () => {
       if (this.running && this.workers.get(role) === server && (role === 'primary' || role === 'standby')) {
         this.authority.unavailable(role, 'Candidate process/transport disconnected')
