@@ -27,7 +27,8 @@
     "check:secrets": "node scripts/check-secrets.mjs",
     "production:ha:load": "node --experimental-strip-types scripts/load-production-ha-local.ts",
     "production:producer:local": "node --experimental-strip-types scripts/production-producer-local.ts",
-    "production:producer:verify": "node --experimental-strip-types scripts/verify-production-producer-local.ts"
+    "production:producer:verify": "node --experimental-strip-types scripts/verify-production-producer-local.ts",
+    "prebuild": "node scripts/build-hosted-producer-bundle.mjs"
   },
   "dependencies": {
     "@aws-sdk/client-ec2": "3.1152.0",
