@@ -19,7 +19,7 @@ export async function prepareHostedRehearsal(scope: EngineScope) {
   if (!Number.isSafeInteger(allowedUntil) || Date.now() >= allowedUntil || allowedUntil > Date.now() + 24 * 60 * 60_000) throw new Error('Hosted trial authorization expired')
   if (!process.env.LIVEKIT_URL?.startsWith('wss:') || !process.env.LIVEKIT_API_KEY || !process.env.LIVEKIT_API_SECRET || (process.env.PRODUCER_ENGINE_SECRET?.length ?? 0) < 32) throw new Error('Hosted media configuration incomplete')
   console.info('hosted-rehearsal-stage', { stage: 'sandbox-list' })
-  const existing = await Sandbox.list({ namePrefix: name })
+  const existing = await Sandbox.list({ namePrefix: name, sortBy: 'name' })
   if (existing.sandboxes.some(x => x.name === name)) throw new Error('This single-use trial was already prepared. No repeated paid run was started.')
   console.info('hosted-rehearsal-stage', { stage: 'sandbox-create' })
   const worker = await Sandbox.create({ name, persistent: false, region: 'iad1', resources: { vcpus: 8 }, ports: [8080], timeout: 30 * 60_000, tags: { purpose: 'producer-rehearsal', event: scope.eventId, session: scope.sessionId }, env: { LIVEKIT_URL: process.env.LIVEKIT_URL, LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY, LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET, PRODUCER_ENGINE_SECRET: process.env.PRODUCER_ENGINE_SECRET } })
