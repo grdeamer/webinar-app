@@ -19,14 +19,14 @@ export async function jsonFetch(path, body, cap = capability) {
 export async function connect(role, onTrack) {
   const config = await jsonFetch('/api/media/token', { role })
   const room = new LK.Room({ adaptiveStream: false, dynacast: false, disconnectOnPageLeave: true,
-    rtcConfig: { iceServers: [], iceTransportPolicy: 'all' } })
+    ...(!config.url.startsWith('wss:') ? { rtcConfig: { iceServers: [], iceTransportPolicy: 'all' } } : {}) })
   if (onTrack) room.on(LK.RoomEvent.TrackSubscribed, (track, publication, participant) => {
     if (window.localHaVideo && track.kind === LK.Track.Kind.Video) publication.setVideoQuality(LK.VideoQuality.HIGH)
     onTrack(track, publication, participant)
   })
   room.on(LK.RoomEvent.Disconnected, () => { health.error = 'Local LiveKit connection lost' })
   room.on(LK.RoomEvent.Reconnected, () => { if (health.error === 'Local LiveKit connection lost') health.error = null })
-  await room.connect(config.url, config.token, { autoSubscribe: true, rtcConfig: { iceServers: [] } })
+  await room.connect(config.url, config.token, { autoSubscribe: true, ...(!config.url.startsWith('wss:') ? { rtcConfig: { iceServers: [] } } : {}) })
   return { room, config }
 }
 

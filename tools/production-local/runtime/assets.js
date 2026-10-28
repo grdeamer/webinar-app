@@ -32,7 +32,7 @@ export class LocalAssets {
     }
     if (!ASSET_IDS.includes(id)) throw new Error(`Unregistered local asset: ${String(id).slice(0, 60)}`)
     if (layer.kind === 'image' && id === 'brand-mark') {
-      const image = new Image(); image.src = '/runtime/assets/brand.svg'; await image.decode(); return image
+      const image = new Image(); image.src = new URL('./assets/brand.svg', import.meta.url).href; await image.decode(); return image
     }
     if (layer.kind === 'pdf' && id === 'sample-deck') {
       return this.pdf('/runtime/assets/deck.pdf', layer.props.page ?? 1)

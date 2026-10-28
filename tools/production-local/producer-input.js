@@ -1,4 +1,4 @@
-import { senderCounters, scheduleFrames } from '/runtime/common.js'
+import { senderCounters, scheduleFrames } from './runtime/common.js'
 const LK = window.LivekitClient
 export class ProducerInput {
   constructor(role, api, changed) { this.role = role; this.api = api; this.changed = changed; this.room = null; this.stream = null; this.claim = null; this.stopping = false; this.fileVideo = null; this.pending = false; this.sequence = 0 }
@@ -47,7 +47,7 @@ export class ProducerInput {
       if (!videoTrack) throw new Error('No video track was selected')
       this.claim = await this.api('/api/producer/input', { action: 'claim', role: this.role, kind })
       if (sequence !== this.sequence) throw new Error('Capture was cancelled')
-      this.room = new LK.Room({ adaptiveStream: false, dynacast: false, rtcConfig: { iceServers: [] } })
+      this.room = new LK.Room({ adaptiveStream: false, dynacast: false, ...(document.documentElement.dataset.apiRoot ? {} : { rtcConfig: { iceServers: [] } }) })
       this.changed('Connecting capture to the private input room…')
       await this.room.connect(this.claim.url, this.claim.token, { autoSubscribe: false })
       const video = await this.room.localParticipant.publishTrack(videoTrack, { source: LK.Track.Source.Camera, name: `${kind}-input`, simulcast: false, videoCodec: 'h264', degradationPreference: 'maintain-resolution', videoEncoding: { maxBitrate: 6_000_000, maxFramerate: 30 } })

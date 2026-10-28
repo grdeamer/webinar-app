@@ -1,6 +1,8 @@
 import { ProducerInput } from './producer-input.js'
-import { LocalAssets } from '/runtime/assets.js'
-import { drawComposition } from '/runtime/scene-renderer.js'
+import { LocalAssets } from './runtime/assets.js'
+import { drawComposition } from './runtime/scene-renderer.js'
+const hostedRoot = document.documentElement.dataset.apiRoot || ''
+const endpoint = path => hostedRoot + path
 const LK = window.LivekitClient, el = id => document.getElementById(id)
 const consoleId = sessionStorage.getItem('jupiter-local-producer') || crypto.randomUUID(); sessionStorage.setItem('jupiter-local-producer', consoleId)
 let snapshot = null, busy = false, refreshing = false, shuttingDown = false, failures = 0, priorAudio = null, priorPreview = null, preparedRevision = -1, viewerRooms = []
@@ -8,13 +10,13 @@ const captures = new Map(), inputs = new Map(), assets = new LocalAssets(), prev
 el('program').srcObject = programStream
 function message(text, error = false) { el('message').textContent = text; el('message').className = error ? 'error' : '' }
 async function api(path, body, capability) {
-  const response = await fetch(path, { method: 'POST', signal: AbortSignal.timeout(8000), headers: { 'Content-Type': 'application/json', 'X-Jupiter-Local': 'producer-rehearsal', ...(capability ? { 'X-Input-Capability': capability } : {}) }, body: JSON.stringify({ runId: snapshot?.runtime.runId, ...body }) })
+  const response = await fetch(endpoint(path), { method: 'POST', signal: AbortSignal.timeout(8000), headers: { 'Content-Type': 'application/json', 'X-Jupiter-Local': 'producer-rehearsal', ...(capability ? { 'X-Input-Capability': capability } : {}) }, body: JSON.stringify({ runId: snapshot?.runtime.runId, ...body }) })
   const data = await response.json(); if (!response.ok) throw new Error(data.error || 'Local request failed'); return data
 }
 async function refresh() {
   if (refreshing) return; refreshing = true
   try {
-    const r = await fetch('/api/producer/status', { cache: 'no-store', signal: AbortSignal.timeout(4000) }); if (!r.ok) throw new Error('Local rehearsal is unavailable')
+    const r = await fetch(endpoint('/api/producer/status'), { cache: 'no-store', signal: AbortSignal.timeout(4000) }); if (!r.ok) throw new Error('Local rehearsal is unavailable')
     const next = await r.json(); if (snapshot && next.runtime.runId !== snapshot.runtime.runId) { await shutdown(); throw new Error('This rehearsal ended; reload to join the new run') }
     snapshot = next; failures = 0
     if (!snapshot.runtime.running || Date.now() >= snapshot.runtime.expiresAtMs) await shutdown()
@@ -95,7 +97,7 @@ for (const name of ['a', 'b']) {
 }
 async function connectMonitors() {
   for (const kind of ['input', 'program']) {
-    const config = await api('/api/producer/viewer', { room: kind }), room = new LK.Room({ adaptiveStream: false, dynacast: false, rtcConfig: { iceServers: [] } }); viewerRooms.push(room)
+    const config = await api('/api/producer/viewer', { room: kind }), room = new LK.Room({ adaptiveStream: false, dynacast: false, ...(hostedRoot ? {} : { rtcConfig: { iceServers: [] } }) }); viewerRooms.push(room)
     room.on(LK.RoomEvent.TrackSubscribed, (track, publication, participant) => {
       if (kind === 'program') { if (!/^program-engine-\d+$/.test(participant.identity)) return; for (const old of programStream.getTracks()) if (old.kind === track.mediaStreamTrack.kind) programStream.removeTrack(old); programStream.addTrack(track.mediaStreamTrack); void el('program').play().catch(() => {}) }
       else {
@@ -109,8 +111,8 @@ async function connectMonitors() {
 }
 el('listen').onchange = () => { el('program').muted = !el('listen').checked; void el('program').play().catch(error => message(error.message, true)) }
 async function shutdown() { if (shuttingDown) return; shuttingDown = true; await Promise.allSettled([...captures.values()].map(c => c.stop())); await Promise.allSettled(viewerRooms.map(r => r.disconnect())); viewerRooms = []; el('program').muted = true; el('listen').checked = false }
-el('stop-all').onclick = async () => { try { await shutdown(); const r = snapshot.runtime; const response = await fetch('/api/ha/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jupiter-Local': 'phase7' }, body: JSON.stringify({ action: 'stop', runId: r.runId, expectedGeneration: r.generation }) }); if (!response.ok) throw new Error('Engine Stop was not acknowledged'); await refresh(); message('Rehearsal and captures stopped. No recording was created.') } catch (error) { message(error.message, true) } }
-for (const button of document.querySelectorAll('[data-fault]')) button.onclick = async () => { try { const r = snapshot.runtime, response = await fetch('/api/ha/action', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jupiter-Local': 'phase7' }, body: JSON.stringify({ action: button.dataset.fault, runId: r.runId, expectedGeneration: r.generation }) }); const x = await response.json(); if (!response.ok) throw new Error(x.error); message('Local recovery action acknowledged. Check independent received Program.'); await refresh() } catch (error) { message(error.message, true) } }
+el('stop-all').onclick = async () => { try { await shutdown(); const r = snapshot.runtime; const response = await fetch(endpoint('/api/ha/action'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jupiter-Local': 'phase7' }, body: JSON.stringify({ action: 'stop', runId: r.runId, expectedGeneration: r.generation }) }); if (!response.ok) throw new Error('Engine Stop was not acknowledged'); await refresh(); message('Rehearsal and captures stopped. No recording was created.') } catch (error) { message(error.message, true) } }
+for (const button of document.querySelectorAll('[data-fault]')) button.onclick = async () => { try { const r = snapshot.runtime, response = await fetch(endpoint('/api/ha/action'), { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Jupiter-Local': 'phase7' }, body: JSON.stringify({ action: button.dataset.fault, runId: r.runId, expectedGeneration: r.generation }) }); const x = await response.json(); if (!response.ok) throw new Error(x.error); message('Local recovery action acknowledged. Check independent received Program.'); await refresh() } catch (error) { message(error.message, true) } }
 window.addEventListener('pagehide', () => { for (const c of captures.values()) { c.stream?.getTracks().forEach(t => t.stop()); void c.stop() }; void shutdown() }, { once: true })
 await refresh()
 if (snapshot?.runtime.running) await connectMonitors().catch(error => message(error.message, true))
@@ -122,3 +124,8 @@ setInterval(() => {
   const warnings = drawComposition(previewContext, bus, snapshot.state, inputs, assets)
   el('preview-status').textContent = `Preview r${snapshot.state.revision} · ${warnings.join('; ') || 'composition ready'} · not transmitted to Program until TAKE`
 }, 1000 / 30)
+
+if (hostedRoot) {
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT)
+  while (walker.nextNode()) walker.currentNode.textContent = walker.currentNode.textContent.replace(/local Program/g, 'rehearsal Program').replace(/Local engine/g, 'Hosted engine').replace(/Local live/g, 'Rehearsal live').replace(/local recovery/g, 'recovery').replace(/saved locally/g, 'saved for this rehearsal')
+}
