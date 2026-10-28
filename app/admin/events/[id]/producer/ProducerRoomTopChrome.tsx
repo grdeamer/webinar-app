@@ -149,6 +149,9 @@ function TopChromeTransmissionShell({
               </div>
 
               <div className="grid gap-1.5">
+                <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}/producer/rehearsal`)} className={`${TOP_CHROME_HUB_LINK_CLASS} text-left`}>
+                  Hosted producer rehearsal
+                </button>
                 <button type="button" onClick={() => navigateFromProducer(`/admin/events/${eventId}`)} className={`${TOP_CHROME_PRIMARY_HUB_LINK_CLASS} text-left`}>
                   Event Dashboard
                 </button>
