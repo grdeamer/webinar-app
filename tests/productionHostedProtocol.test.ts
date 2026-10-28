@@ -20,3 +20,16 @@ test('worker endpoint must be a configured HTTPS origin without credentials, pat
   assert.equal(engineEndpoint('https://worker.example').href, 'https://worker.example/control')
   for (const raw of ['http://worker.example', 'https://user:pass@worker.example', 'https://worker.example/other', 'https://worker.example/?key=a']) assert.throws(() => engineEndpoint(raw))
 })
+
+
+test('media transport allows documented project regions and rejects lookalike domains', async () => {
+  const { mediaHostAllowed, mediaConnectSources } = await import('../lib/production/hosted/transportPolicy.ts')
+  const url = 'wss://example.livekit.cloud'
+  assert.equal(mediaHostAllowed('example.oashburn1a.production.livekit.cloud', url), true)
+  assert.equal(mediaHostAllowed('example.livekit.cloud.attacker.test', url), false)
+  assert.equal(mediaHostAllowed('other.livekit.cloud', url), false)
+  assert.equal(mediaHostAllowed('external.test'), false)
+  assert.equal(mediaHostAllowed('127.0.0.1'), true)
+  assert.match(mediaConnectSources(url), /wss:\/\/\*\.livekit\.cloud/)
+  assert.throws(() => mediaConnectSources('ws://unsecured.example'))
+})
