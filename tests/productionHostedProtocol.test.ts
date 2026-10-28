@@ -33,3 +33,19 @@ test('media transport allows documented project regions and rejects lookalike do
   assert.match(mediaConnectSources(url), /wss:\/\/\*\.livekit\.cloud/)
   assert.throws(() => mediaConnectSources('ws://unsecured.example'))
 })
+
+
+test('hosted runtime reports its actual fixed deadline and rejects extensions beyond thirty minutes', async t => {
+  const { LocalHaRuntime } = await import('../lib/production/localHaRuntime.ts')
+  const { mkdtempSync, rmSync } = await import('node:fs')
+  const { tmpdir } = await import('node:os')
+  const { join } = await import('node:path')
+  const dir = mkdtempSync(join(tmpdir(), 'hosted-deadline-'))
+  t.after(() => rmSync(dir, { recursive: true, force: true }))
+  const deadline = Date.now() + 60_000
+  const runtime = new LocalHaRuntime(dir, { rehearsal: true, rehearsalDeadlineAtMs: deadline })
+  assert.equal(runtime.status().expiresAtMs, deadline)
+  runtime.store.close()
+  assert.throws(() => new LocalHaRuntime(dir, { rehearsal: true, rehearsalDeadlineAtMs: Date.now() + 31 * 60_000 }), /deadline/)
+  assert.throws(() => new LocalHaRuntime(dir, { rehearsalDeadlineAtMs: deadline }), /deadline/)
+})

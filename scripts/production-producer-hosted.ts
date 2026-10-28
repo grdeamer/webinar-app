@@ -13,10 +13,10 @@ if (secret.length < 32 || !/^[a-zA-Z0-9_-]{1,128}$/.test(eventId) || !/^[a-zA-Z0
 const deadline = Number(process.env.PRODUCER_ENGINE_DEADLINE_MS)
 if (!Number.isSafeInteger(deadline) || deadline <= Date.now() || deadline > Date.now() + 30 * 60_000) throw new Error('Non-extendable hosted deadline within thirty minutes required')
 const directory = mkdtempSync(join(tmpdir(), 'jupiter-hosted-rehearsal-'))
-const runtime = new LocalHaRuntime(directory, { rehearsal: true, bundledBrowser: true, transport: { url: process.env.LIVEKIT_URL || '', apiKey: process.env.LIVEKIT_API_KEY || '', apiSecret: process.env.LIVEKIT_API_SECRET || '' } })
+const runtime = new LocalHaRuntime(directory, { rehearsal: true, rehearsalDeadlineAtMs: deadline, bundledBrowser: true, transport: { url: process.env.LIVEKIT_URL || '', apiKey: process.env.LIVEKIT_API_KEY || '', apiSecret: process.env.LIVEKIT_API_SECRET || '' } })
 const producer = new LocalProducerRehearsal(runtime), verifier = new EngineVerifier()
 let ready = false, closing = false
-const local = createServer(async (req, res) => { try { if (!await producer.handle(req, res)) await runtime.handle(req, res) } catch { res.writeHead(500); res.end() } })
+const local = createServer(async (req, res) => { try { if (!await producer.handle(req, res)) await runtime.handle(req, res) } catch { if (!res.headersSent) res.writeHead(500); if (!res.writableEnded) res.end() } })
 const external = createServer(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store')
   if (req.url !== '/control' || req.method !== 'POST') { res.writeHead(404); res.end(); return }

@@ -29,12 +29,14 @@ export async function prepareHostedRehearsal(scope: EngineScope) {
     if (preflight.exitCode !== 0) throw new Error('Hosted worker requires Node 24 or later')
     const bundle = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/production-local/release/hosted-worker-files.json'), 'utf8')) as { path: string; content: string }[]
     const files = bundle.map(x => ({ path: x.path, content: Buffer.from(x.content, 'base64') }))
-    files.push({ path: 'package.json', content: Buffer.from(JSON.stringify({ private: true, type: 'module', dependencies: { 'livekit-server-sdk': '2.15.0', 'playwright-core': '1.62.1' } })) })
+    files.push({ path: 'package.json', content: Buffer.from(JSON.stringify({ private: true, type: 'module', dependencies: { 'livekit-server-sdk': '2.15.0', 'livekit-client': '2.17.3', 'playwright-core': '1.62.1' } })) })
     console.info('hosted-rehearsal-stage', { stage: 'worker-files' })
     await worker.writeFiles(files)
     const install = await worker.runCommand({ cmd: 'bash', args: ['-lc', 'npm install --ignore-scripts --no-audit --no-fund && npx playwright-core install --with-deps chromium'], cwd: worker.cwd, timeoutMs: 180_000 })
     if (install.exitCode !== 0) throw new Error('Hosted browser installation failed')
     await worker.runCommand({ cmd: 'node', args: ['--experimental-strip-types', 'scripts/production-producer-hosted.ts'], cwd: worker.cwd, detached: true, timeoutMs: 25 * 60_000, env: { PRODUCER_ENGINE_EVENT_ID: scope.eventId, PRODUCER_ENGINE_SESSION_ID: scope.sessionId, PRODUCER_ENGINE_DEADLINE_MS: String(Date.now() + 20 * 60_000) } })
+    const readiness = await worker.runCommand({ cmd: 'node', args: ['-e', "(async()=>{const end=Date.now()+45000;while(Date.now()<end){try{const r=await fetch('http://127.0.0.1:4311/api/ha/status',{signal:AbortSignal.timeout(2000)});const s=await r.json();if(s.running&&s.workers.length===6&&s.observer?.width===1920&&s.observer?.frames>30)process.exit(0)}catch{}await new Promise(r=>setTimeout(r,500))}process.exit(14)})()"], cwd: worker.cwd, timeoutMs: 50_000 })
+    if (readiness.exitCode !== 0) throw new Error('Hosted engine did not become ready')
     return { prepared: true, expiresWithinMinutes: 30, recordingEnabled: false, reservedBudgetUsd: 8 }
   } catch {
     await worker.stop(); throw new Error('Hosted preparation failed; the trial worker was stopped')

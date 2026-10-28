@@ -74,11 +74,12 @@ export class LocalHaRuntime {
   private readonly bundledBrowser: boolean
   private readonly apiKey: string = 'jupiter-local-ha'
   private readonly apiSecret = randomBytes(32).toString('hex')
-  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean } = {}) {
+  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; rehearsalDeadlineAtMs?: number; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean } = {}) {
     if (options.transport && (!options.rehearsal || !/^wss:\/\//.test(options.transport.url) || !options.transport.apiKey || options.transport.apiSecret.length < 32)) throw new Error('Hosted rehearsal requires secure SFU credentials')
     this.transport = options.transport; this.bundledBrowser = options.bundledBrowser === true
     if (this.transport) { this.apiKey = this.transport.apiKey; this.apiSecret = this.transport.apiSecret }
     this.rehearsal = options.rehearsal === true
+    if (options.rehearsalDeadlineAtMs !== undefined && (!this.rehearsal || !Number.isSafeInteger(options.rehearsalDeadlineAtMs) || options.rehearsalDeadlineAtMs <= Date.now() || options.rehearsalDeadlineAtMs > Date.now() + 30 * 60_000)) throw new Error('Rehearsal deadline must be within thirty minutes')
     if (this.rehearsal && (options.soak || (options.receivers ?? 1) !== 1)) throw new Error('Rehearsal cannot run automated soak/load mode')
     this.receiverCount = options.receivers ?? 1
     if (![1, 3, 5, 10].includes(this.receiverCount)) throw new Error('Supported local receiver counts: 1, 3, 5, 10')
@@ -87,7 +88,7 @@ export class LocalHaRuntime {
     this.activeRoles = [...roles, ...Array.from({ length: this.receiverCount - 1 }, (_, i) => `ha-load-${i + 2}` as HaWorker)]
     const budget = haRuntimeBudget(options.soak === true, options.controlKey)
     this.managedSoak = options.soak === true; this.soakControlKey = options.controlKey ?? null
-    this.expiresAtMs = Date.now() + (this.rehearsal ? 30 * 60_000 : budget.durationMs); this.primaryRestartLimit = budget.primaryRestarts
+    this.expiresAtMs = options.rehearsalDeadlineAtMs ?? Date.now() + (this.rehearsal ? 30 * 60_000 : budget.durationMs); this.primaryRestartLimit = budget.primaryRestarts
     this.directory = directory; mkdirSync(directory, { recursive: true, mode: 0o700 })
     this.store = new LocalSqliteProductionStore(join(directory, 'control.sqlite')); seedLocalProduction(this.store, this.rehearsal ? 'slate' : 'hold-last')
     this.session = new LocalMediaSession(this.store, 600_000)
@@ -296,7 +297,7 @@ export class LocalHaRuntime {
         else if (this.activeRoles.some(role => url.pathname === `/runtime/${role}`)) { file = join(root, 'runtime/ha-runtime.html'); contentType = 'text/html' }
         else if (['common.js', 'ha-boot.js', 'ha-gateway.js', 'ha-observer.js', 'ha-fence.js', 'frame-writer.js', 'ha-provenance.js', 'marker.js', 'source.js', 'compositor.js', 'assets.js', 'scene-renderer.js', 'layout.js'].some(name => url.pathname === `/runtime/${name}`)) file = join(root, 'runtime', url.pathname.split('/').at(-1)!)
         else if (url.pathname === '/runtime/assets/brand.svg') { file = join(root, 'runtime/assets/brand.svg'); contentType = 'image/svg+xml' }
-        if (file) { response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(readFileSync(file)); return }
+        if (file) { const contents = readFileSync(file); response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(contents); return }
       }
       send(404, { error: 'Unknown local HA route' })
     } catch (error) { send(400, { error: error instanceof Error ? error.message : 'Local HA request failed' }) }
