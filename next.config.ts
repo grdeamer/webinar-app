@@ -2,8 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["ssh2"],
+  outputFileTracingExcludes: {
+    "/*": ["./.env*", "./.git/**", "./.local/**", "./.next/lock", "./desktop/**", "./artifacts/**"],
+  },
   outputFileTracingIncludes: {
-    "/admin/events/*/producer/rehearsal/engine/*/**": ["./tools/production-local/**", "./lib/production/**", "./lib/live/producerControl.ts", "./scripts/production-producer-hosted.ts", "./node_modules/livekit-client/dist/livekit-client.umd.js"],
+    "/admin/events/*/producer/rehearsal/engine/*/**": ["./tools/production-local/**", "./node_modules/livekit-client/dist/livekit-client.umd.js"],
   },
   images: {
     remotePatterns: [

@@ -1,7 +1,7 @@
 import 'server-only'
 import { Sandbox } from '@vercel/sandbox'
-import { readFileSync, readdirSync } from 'node:fs'
-import { resolve, relative } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { resolve } from 'node:path'
 import type { EngineScope } from './protocol.ts'
 /** One manually prepared worker for this explicitly approved trial. No retries/resume. */
 export function trialName() {
@@ -23,16 +23,8 @@ export async function prepareHostedRehearsal(scope: EngineScope) {
   const worker = await Sandbox.create({ name, persistent: false, region: 'iad1', resources: { vcpus: 8 }, ports: [8080], timeout: 30 * 60_000, tags: { purpose: 'producer-rehearsal', event: scope.eventId, session: scope.sessionId }, env: { LIVEKIT_URL: process.env.LIVEKIT_URL, LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY, LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET, PRODUCER_ENGINE_SECRET: process.env.PRODUCER_ENGINE_SECRET } })
   try {
     if (worker.timeout !== 30 * 60_000 || worker.persistent) throw new Error('Cloud expiry/no-snapshot safeguard not verified')
-    const root = process.cwd(), files: { path: string; content: Buffer }[] = []
-    function include(directory: string) {
-      for (const entry of readdirSync(resolve(root, directory), { withFileTypes: true })) {
-        const path = `${directory}/${entry.name}`
-        if (entry.isDirectory()) include(path)
-        else if (entry.isFile() && /\.(ts|js|html|css|svg)$/.test(entry.name)) files.push({ path, content: readFileSync(resolve(root, path)) })
-      }
-    }
-    include('lib/production'); include('tools/production-local')
-    for (const path of ['lib/live/producerControl.ts', 'scripts/production-producer-hosted.ts']) files.push({ path: relative(root, resolve(root, path)), content: readFileSync(resolve(root, path)) })
+    const bundle = JSON.parse(readFileSync(resolve(process.cwd(), 'tools/production-local/release/hosted-worker-files.json'), 'utf8')) as { path: string; content: string }[]
+    const files = bundle.map(x => ({ path: x.path, content: Buffer.from(x.content, 'base64') }))
     files.push({ path: 'package.json', content: Buffer.from(JSON.stringify({ private: true, type: 'module', dependencies: { 'livekit-server-sdk': '2.15.0', 'playwright-core': '1.62.1' } })) })
     await worker.writeFiles(files)
     const install = await worker.runCommand({ cmd: 'bash', args: ['-lc', 'npm install --ignore-scripts --no-audit --no-fund && npx playwright-core install --with-deps chromium'], cwd: '/vercel/sandbox', timeoutMs: 180_000 })

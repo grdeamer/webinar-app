@@ -58,3 +58,5 @@ env.development*
 
 # Local registration input files stay outside versioned application releases.
 /*.csv
+
+/tools/production-local/release/hosted-worker-files.json

@@ -12,5 +12,6 @@ export async function callHostedEngine(request: EngineRequest) {
   if (!response.headers.get('content-type')?.startsWith('application/json')) throw new Error('Invalid engine response')
   const result = await response.text()
   if (Buffer.byteLength(result) > 1_000_000) throw new Error('Engine response too large')
+  if (response.ok && request.path === '/api/ha/action' && JSON.parse(request.body).action === 'stop' && !process.env.PRODUCER_ENGINE_URL) await (await runningTrial()).stop()
   return new Response(result, { status: response.status, headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' } })
 }

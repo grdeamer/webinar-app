@@ -35,7 +35,7 @@ const external = createServer(async (req, res) => {
 })
 external.requestTimeout = 10_000; external.headersTimeout = 10_000
 async function stop() {
-  if (closing) return; closing = true; ready = false
+  if (closing) return; closing = true; ready = false; clearTimeout(timer)
   try { await producer.stop() } finally {
     external.closeAllConnections(); external.close(); local.closeAllConnections(); local.close(); runtime.store.close(); rmSync(directory, { recursive: true, force: true }); process.exitCode = runtime.failure ? 1 : 0
   }
