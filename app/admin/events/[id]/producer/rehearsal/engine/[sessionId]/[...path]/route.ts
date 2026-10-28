@@ -32,8 +32,9 @@ async function handle(request: Request, context: Context) {
     if (Buffer.byteLength(body) > 80_000) return Response.json({ error: 'Request too large' }, { status: 413 })
     return await callHostedEngine({ scope: { eventId: access.eventId, sessionId, actorId: access.user.id }, path: operation, method: request.method as 'GET' | 'POST', body, ...(request.headers.has('x-input-capability') ? { inputCapability: request.headers.get('x-input-capability')! } : {}) })
   } catch (error) {
-    const value = error as { name?: string; status?: number; statusCode?: number; code?: string; message?: string }
-    console.error('hosted-rehearsal-failure', { operation, name: value?.name?.slice(0, 80), status: value?.status ?? value?.statusCode, code: /^[A-Za-z0-9_-]{1,80}$/.test(value?.code || '') ? value.code : undefined })
+    const value = error as { name?: string; status?: number; statusCode?: number; code?: string; message?: string; response?: { status?: number }; json?: { error?: { code?: string } } }
+    const summary = (value?.message || '').split('\n')[0].replace(/https?:\/\/\S+|[A-Za-z0-9_=-]{24,}/g, '[redacted]').slice(0, 180)
+    console.error('hosted-rehearsal-failure', { operation, name: value?.name?.slice(0, 80), summary, status: value?.response?.status ?? value?.status ?? value?.statusCode, code: /^[A-Za-z0-9_-]{1,80}$/.test(value?.code || '') ? value.code : undefined })
     const known = ['Hosted trial authorization expired', 'Hosted media configuration incomplete', 'This single-use trial was already prepared. No repeated paid run was started.', 'Hosted preparation failed; the trial worker was stopped']
     return Response.json({ error: known.includes(value?.message || '') ? value.message : 'Hosted rehearsal unavailable. No automatic restart was attempted.' }, { status: 502, headers: { 'Cache-Control': 'no-store' } })
   }
