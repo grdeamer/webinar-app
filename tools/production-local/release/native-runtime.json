@@ -1,0 +1,15 @@
+{
+  "platform": "darwin",
+  "architecture": "arm64",
+  "node": "24.19.0",
+  "chrome": "155.0.8059.85",
+  "chromeLauncherSha256": "6e156f2271cef44afce9db36a5b920e94518857b94a4160f082696f8c3bd1c9d",
+  "livekit": "livekit-server version 1.13.9",
+  "livekitSha256": "14cb7f2a34c0fc3503b7c4a14dba87259eb6405029929991e453cc1e3a1506a7",
+  "packages": {
+    "playwright-core": "1.62.1",
+    "livekit-client": "2.17.3",
+    "livekit-server-sdk": "2.15.0",
+    "pdfjs-dist": "6.4.299"
+  }
+}

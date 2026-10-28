@@ -1,0 +1,13 @@
+**
+!package.json
+!package-lock.json
+!lib/
+!lib/production/
+!lib/production/**
+!lib/live/
+!lib/live/producerControl.ts
+!tools/
+!tools/production-local/
+!tools/production-local/**
+!scripts/
+!scripts/production-media-local.ts

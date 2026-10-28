@@ -1,0 +1,8 @@
+[hidden]{display:none!important}#media-panel{border:1px solid #32616c;background:#0b1c2b;border-radius:10px;padding:22px;margin:24px 0}#viewer-frame{border:1px solid #294350;width:100%;height:clamp(440px,70vw,790px);border-radius:6px;background:#07111d}#media-panel .buttons{flex-wrap:wrap}#media-metrics{font-size:13px}#record-download{color:#83e1dc}.runtime-page{margin:0;padding:12px}.runtime-page main{padding:0;margin:0;max-width:none}.runtime-page video,.runtime-page canvas{width:100%;height:auto;max-height:74vh;object-fit:contain;background:#030b14}.runtime-page .buttons{display:flex;flex-wrap:wrap;margin:10px 0}.runtime-page #runtime-status{font-size:13px;color:#a9c7d6;line-height:1.6}
+.parity-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+.parity-grid section { min-width: 0; overflow: auto; }
+.parity-grid canvas { width: 100%; max-width: 640px; height: auto; }
+.reference-viewport { width: 100%; max-width: 640px; aspect-ratio: 16 / 9; overflow: hidden; background: #07111d; }
+#dom-scene { position: relative; width: 640px; height: 360px; font-family: sans-serif; transform-origin: top left; }
+.reference-fallback { position: absolute; inset: 0; padding: 12px; color: #e0bc85; background: #152b3d; font-size: 14px; }
+#audience-video { display: block; width: 100%; max-height: 70vh; background: #000; aspect-ratio: 16 / 9; }
