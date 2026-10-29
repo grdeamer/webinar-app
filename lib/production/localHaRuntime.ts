@@ -1,4 +1,5 @@
 import { mediaHostAllowed } from './hosted/transportPolicy.ts'
+import { freshMediaToken } from './freshMediaToken.ts'
 import { haRuntimeBudget } from './haSoakPlan.ts'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { mkdirSync, mkdtempSync, openSync, closeSync, writeFileSync, rmSync, readFileSync, appendFileSync, statSync } from 'node:fs'
@@ -179,7 +180,7 @@ export class LocalHaRuntime {
   async token(worker: HaWorker, role: string) {
     const x = haGrant(worker, role, this.rooms, this.gatewayEpoch)
     const token = new AccessToken(this.apiKey, this.apiSecret, { identity: x.identity, ttl: Math.max(1, Math.min(120, Math.floor((this.expiresAtMs - Date.now()) / 1000))) }); token.addGrant(x.grant)
-    return { token: await token.toJwt(), url: this.transport?.url ?? 'ws://127.0.0.1:7980', identity: x.identity, runId: this.runId, sourceId: worker === 'source-a' ? 'camera-a' : worker === 'source-b' ? 'camera-b' : null }
+    return { token: freshMediaToken(await token.toJwt(), this.apiSecret), url: this.transport?.url ?? 'ws://127.0.0.1:7980', identity: x.identity, runId: this.runId, sourceId: worker === 'source-a' ? 'camera-a' : worker === 'source-b' ? 'camera-b' : null }
   }
   status() {
     return { runId: this.runId, hostPid: process.pid, managedSoak: this.managedSoak, managedLoad: this.managedLoad, rehearsal: this.rehearsal, receiverCount: this.receiverCount, receivers: this.receiverReports, operatorStopRequested: this.operatorStopRequested, sfuPid: this.sfu?.pid ?? null, sfuRunning: Boolean(this.sfu && this.sfu.exitCode === null && this.sfu.signalCode === null), running: this.running, expiresAtMs: this.expiresAtMs, failure: this.failure, selected: this.authority.selected, generation: this.authority.generation, authorityAvailable: this.authority.available, partition: this.partition,
