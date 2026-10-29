@@ -275,7 +275,7 @@ export class LocalHaRuntime {
           if (worker === this.partition) { send(503, { error: 'Injected candidate report partition' }); return }
           const report = parseMediaReport(x)
           this.authority.observe(worker, report, this.store.read(LOCAL_SCOPE).revision)
-          this.candidateMedia[worker] = { width: report.width, height: report.height, rendered: report.framesRendered, frames: report.framesSent, inputFrames: report.inputFrames, sourceWarnings: report.sourceWarnings, encoding: x.encoding, atMs: Date.now() }
+          this.candidateMedia[worker] = { width: report.width, height: report.height, rendered: report.framesRendered, frames: report.framesSent, capture: x.capture, inputFrames: report.inputFrames, sourceWarnings: report.sourceWarnings, encoding: x.encoding, atMs: Date.now() }
         } else throw new Error('Candidate/source report capability required')
         send(200, { recording: null, stopRecording: true, paused: false, fault: worker === 'primary' && this.frozenPrimary }); return
       }
