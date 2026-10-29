@@ -107,7 +107,12 @@ export async function runCompositor() {
         drawBus(transition.from, 1, fromSurface.getContext('2d')); drawBus(snapshot.program, 1, toSurface.getContext('2d'))
         ctx.drawImage(fromSurface, pictureX, 0, pictureWidth, pictureHeight); ctx.globalAlpha = progress; ctx.drawImage(toSurface, pictureX, 0, pictureWidth, pictureHeight); ctx.globalAlpha = 1
       }
-      else { drawBus(snapshot.program, 1, toSurface.getContext('2d')); ctx.drawImage(toSurface, pictureX, 0, pictureWidth, pictureHeight) }
+      else {
+        // Preserve the picture rectangle without an extra full-frame copy.
+        // Offscreen surfaces remain necessary only during an active crossfade.
+        ctx.save(); ctx.translate(pictureX, 0); ctx.scale(pictureWidth / 1280, pictureHeight / 720)
+        drawBus(snapshot.program, 1, ctx); ctx.restore()
+      }
     }
     ctx.fillStyle = '#06111d'; ctx.fillRect(0, 720 - MARKER_SIZE, 1280, MARKER_SIZE)
     drawMarker(ctx, health.appliedRevision, health.framesRendered, 720 - MARKER_SIZE)
@@ -117,7 +122,7 @@ export async function runCompositor() {
   const { room: outputRoom } = await connect('renderer-output')
   const capture = surface.captureStream(window.localHaVideo ? 0 : 30).getVideoTracks()[0]
   if (window.localHaVideo) manualTrack = capture
-  const video = await outputRoom.localParticipant.publishTrack(capture, { name: 'program-video', source: LK.Track.Source.Camera, simulcast: false, degradationPreference: 'maintain-resolution', videoCodec: profile.codec, videoEncoding: { maxBitrate: profile.maxBitrate, maxFramerate: profile.fps } })
+  const video = await outputRoom.localParticipant.publishTrack(capture, { name: 'program-video', source: LK.Track.Source.Camera, simulcast: false, degradationPreference: 'maintain-resolution', videoCodec: profile.codec, videoEncoding: { maxBitrate: profile.maxBitrate, maxFramerate: window.localHaVideo ? profile.fps * 2 : profile.fps } })
   const audioPub = await outputRoom.localParticipant.publishTrack(mixed.stream.getAudioTracks()[0], { name: 'program-audio', source: LK.Track.Source.Microphone, dtx: false, red: false })
   health.width = 1280; health.height = 720
   const stopReports = reportEverySecond('renderer', async () => {
