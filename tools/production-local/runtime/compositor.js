@@ -2,6 +2,7 @@ import { LK, canvas, connect, health, jsonFetch, scheduleFrames, senderCounters,
 import { drawMarker, MARKER_SIZE } from './marker.js'
 import { LocalAssets } from './assets.js'
 import { drawComposition } from './scene-renderer.js'
+import { BoundedFrameWriter } from './frame-writer.js'
 
 export async function runCompositor() {
   const profile = window.localHaVideo || { width: 1280, height: 720, codec: 'vp8', fps: 30, maxBitrate: 3_000_000 }
@@ -93,7 +94,12 @@ export async function runCompositor() {
       input.gain.gain.setTargetAtTime(audible ? 10 ** (channel.gainDb / 20) : 0, audio.currentTime, 0.02)
     }
   }
-  let manualTrack = null
+  let frameWriter = null, capture = null, captureReader = null, probeTrack = null, captured = 0, outputTimestamp = 0, outputError = null, stopped = false
+  function snapshotFrame() {
+    if (!frameWriter || stopped || outputError) return
+    outputTimestamp = Math.max(outputTimestamp + 1, Math.round(performance.now() * 1000))
+    frameWriter.enqueue(new VideoFrame(surface, { timestamp: outputTimestamp }), health.appliedRevision)
+  }
   const stopFrames = scheduleFrames(() => {
     if (window.localMediaFault) return
     health.framesRendered++; applyAudio()
@@ -117,11 +123,22 @@ export async function runCompositor() {
     ctx.fillStyle = '#06111d'; ctx.fillRect(0, 720 - MARKER_SIZE, 1280, MARKER_SIZE)
     drawMarker(ctx, health.appliedRevision, health.framesRendered, 720 - MARKER_SIZE)
     if (['primary', 'standby'].includes(window.localHaCandidate)) drawMarker(ctx, window.localHaCandidate === 'primary' ? 1 : 2, health.framesRendered, 720 - MARKER_SIZE * 2)
-    manualTrack?.requestFrame()
+    snapshotFrame()
   })
   const { room: outputRoom } = await connect('renderer-output')
-  const capture = surface.captureStream(window.localHaVideo ? 0 : 30).getVideoTracks()[0]
-  if (window.localHaVideo) manualTrack = capture
+  if (window.localHaVideo) {
+    if (!window.MediaStreamTrackGenerator || !window.MediaStreamTrackProcessor || !window.VideoFrame) throw new Error('Explicit compositor frame output is required')
+    capture = new window.MediaStreamTrackGenerator({ kind: 'video' })
+    frameWriter = new BoundedFrameWriter(capture.writable.getWriter(), revision => !stopped && !window.localMediaFault && revision === health.appliedRevision, error => { outputError = error.message; health.error = outputError; stopFrames(); capture.stop() })
+    probeTrack = capture.clone(); captureReader = new window.MediaStreamTrackProcessor({ track: probeTrack }).readable.getReader()
+    void (async () => { try { while (!stopped) { const item = await captureReader.read(); if (item.done) break; captured++; item.value.close() } } catch { /* Cancelled during cleanup. */ } })()
+    snapshotFrame()
+    const firstFrameDeadline = performance.now() + 500
+    while (!frameWriter.counters().written && !outputError && performance.now() < firstFrameDeadline) await new Promise(resolve => setTimeout(resolve, 5))
+    if (!frameWriter.counters().written || outputError) throw new Error(outputError || 'Compositor initial frame was not written')
+  } else {
+    capture = surface.captureStream(30).getVideoTracks()[0]
+  }
   const video = await outputRoom.localParticipant.publishTrack(capture, { name: 'program-video', source: LK.Track.Source.Camera, simulcast: false, degradationPreference: 'maintain-resolution', videoCodec: profile.codec, videoEncoding: { maxBitrate: profile.maxBitrate, maxFramerate: window.localHaVideo ? profile.fps * 2 : profile.fps } })
   const audioPub = await outputRoom.localParticipant.publishTrack(mixed.stream.getAudioTracks()[0], { name: 'program-audio', source: LK.Track.Source.Microphone, dtx: false, red: false })
   health.width = 1280; health.height = 720
@@ -138,10 +155,11 @@ export async function runCompositor() {
     }
     const stats = await senderCounters(video.track, audioPub.track); health.framesSent = stats.frames; health.audioPackets = stats.packets
     if (window.localHaVideo) health.encoding = stats
+    if (window.localHaVideo) health.capture = { transport: 'video-frame-generator', rendered: health.framesRendered, captured, error: outputError, ...frameWriter.counters() }
     health.width = stats.width; health.height = stats.height
     health.inputFrames = Object.fromEntries([...inputs].map(([identity, input]) => [identity, input.decoded]))
     health.assetPositions = Object.fromEntries((snapshot?.program.composition.layers || []).filter(layer => layer.kind === 'video').map(layer => [layer.id, Math.round((assets.get(layer)?.currentTime || 0) * 1000)]))
   }, window.localHaVideo ? 200 : 1000)
   status('Persistent local compositor publishing one Program video and mixed audio')
-  window.stopLocalEngine = async () => { clearInterval(poll); stopReports(); stopFrames(); await inputRoom.disconnect(); await outputRoom.disconnect(); await audio.close(); assets.dispose() }
+  window.stopLocalEngine = async () => { stopped = true; clearInterval(poll); stopReports(); stopFrames(); frameWriter?.stop(); capture?.stop(); probeTrack?.stop(); await captureReader?.cancel().catch(() => {}); await inputRoom.disconnect(); await outputRoom.disconnect(); await audio.close(); assets.dispose() }
 }
