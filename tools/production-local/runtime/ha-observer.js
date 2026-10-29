@@ -1,6 +1,6 @@
 import { classifySourceColor } from './ha-provenance.js'
 import { LK, connect, jsonFetch, status } from './common.js'
-import { MARKER_SIZE, MARKER_WIDTH, readMarkerPixels } from './marker.js'
+import { MARKER_SIZE, MARKER_WIDTH, readMarkerPixels, FrameMarkerReader } from './marker.js'
 
 export async function runHaObserver() {
   if (!window.MediaStreamTrackProcessor) throw new Error('The local receiver requires decoded-frame processing support')
@@ -12,6 +12,7 @@ export async function runHaObserver() {
     return surface.getContext('2d', { willReadFrequently: true })
   }
   const decodedContext = probe(), presentedContext = probe()
+  let nativeMarkers = new FrameMarkerReader(decodedContext)
   const pixel = document.createElement('canvas'); pixel.width = 1; pixel.height = 1
   const pixelContext = pixel.getContext('2d', { willReadFrequently: true })
   function markers(ctx, image, width, height) {
@@ -40,6 +41,7 @@ export async function runHaObserver() {
       report.videoTrackSid = publication.trackSid; remoteVideo = track
       reader?.cancel().catch(() => {})
       const current = new window.MediaStreamTrackProcessor({ track: track.mediaStreamTrack }).readable.getReader(); reader = current
+      const frameMarkers = new FrameMarkerReader(decodedContext); nativeMarkers = frameMarkers
       void (async () => {
         try {
           while (!stopped && reader === current) {
@@ -47,7 +49,9 @@ export async function runHaObserver() {
             const frame = item.value
             try {
               if (reader !== current || stopped) break
-              const m = markers(decodedContext, frame, frame.displayWidth, frame.displayHeight)
+              const authority = await frameMarkers.read(frame, 0), program = await frameMarkers.read(frame, 1), provenance = await frameMarkers.read(frame, 2)
+              if (reader !== current || stopped) break
+              const m = { authority, program, candidate: authority?.frame === 1 ? 'primary' : authority?.frame === 2 ? 'standby' : null, contentCandidate: provenance?.revision === 1 ? 'primary' : provenance?.revision === 2 ? 'standby' : null }
               report.frames++
               if (m.candidate && m.contentCandidate !== m.candidate) report.selectionMismatches++
               const nextKey = m.candidate && m.program ? `${m.authority.revision}:${m.program.revision}:${m.program.frame}` : null
@@ -97,7 +101,7 @@ export async function runHaObserver() {
       if (report.audioRms > .0005) { if (report.lastSelection && report.lastSelection.firstAudibleAtMs === null) report.lastSelection.firstAudibleAtMs = Date.now(); if (report.lastAudibleAtMs) report.maxAudioGapMs = Math.max(report.maxAudioGapMs, Date.now() - report.lastAudibleAtMs); report.lastAudibleAtMs = Date.now() }
       const stats = await remoteVideo?.getRTCStatsReport()
       stats?.forEach(s => { if (s.type === 'inbound-rtp' && s.kind === 'video') report.rtc = { framesDecoded: s.framesDecoded, framesDropped: s.framesDropped, bytesReceived: s.bytesReceived, packetsLost: s.packetsLost, jitter: s.jitter, framesPerSecond: s.framesPerSecond, freezeCount: s.freezeCount, totalDecodeTime: s.totalDecodeTime, codec: stats.get(s.codecId)?.mimeType ?? null } })
-      await jsonFetch('/api/ha/report', report)
+      await jsonFetch('/api/ha/report', { ...report, nativeMarkerReads: nativeMarkers.nativeReads, canvasMarkerReads: nativeMarkers.canvasReads })
     } catch { /* Metadata only; no media files or recordings. */ }
     finally { pending = false }
   }, 100)

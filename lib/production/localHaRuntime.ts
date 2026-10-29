@@ -265,7 +265,7 @@ export class LocalHaRuntime {
         if (worker === this.partition) { send(503, { error: 'Injected candidate control partition' }); return }
         send(200, { state: this.store.read(LOCAL_SCOPE), sourceReports: this.session.sources }); return
       }
-      if (url.pathname === '/api/media/encoding' && request.method === 'GET') { send(200, { profile: 'ha-fullhd', encoding: { maxBitrate: 6_000_000, maxFramerate: 30, scaleResolutionDownBy: 1 } }); return }
+      if (url.pathname === '/api/media/encoding' && request.method === 'GET') { send(200, { profile: 'ha-fullhd', encoding: { maxBitrate: 6_000_000, maxFramerate: 60, scaleResolutionDownBy: 1 } }); return }
       if (url.pathname === '/api/media/token' && request.method === 'POST') { if (!worker) throw new Error('Current worker capability required'); const x = await readBody(); send(200, await this.token(worker, x.role)); return }
       if (url.pathname === '/api/media/report' && request.method === 'POST') {
         if (!worker) throw new Error('Current worker capability required')
@@ -275,7 +275,7 @@ export class LocalHaRuntime {
           if (worker === this.partition) { send(503, { error: 'Injected candidate report partition' }); return }
           const report = parseMediaReport(x)
           this.authority.observe(worker, report, this.store.read(LOCAL_SCOPE).revision)
-          this.candidateMedia[worker] = { width: report.width, height: report.height, frames: report.framesSent, inputFrames: report.inputFrames, sourceWarnings: report.sourceWarnings, encoding: x.encoding, atMs: Date.now() }
+          this.candidateMedia[worker] = { width: report.width, height: report.height, rendered: report.framesRendered, frames: report.framesSent, inputFrames: report.inputFrames, sourceWarnings: report.sourceWarnings, encoding: x.encoding, atMs: Date.now() }
         } else throw new Error('Candidate/source report capability required')
         send(200, { recording: null, stopRecording: true, paused: false, fault: worker === 'primary' && this.frozenPrimary }); return
       }
