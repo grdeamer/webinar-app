@@ -65,3 +65,27 @@ Final explicit-frame retest results:
 All three windows meet the 29.5–30.5 fps check, with unchanged Program video/audio track IDs, stable authority within each window, zero reported packet loss and zero selection/provenance mismatches. The post-recovery window sampled source freshness 40 times with no stale samples or fallback warnings. The writer backlog stayed at at most one frame and no writer error occurred. Planned stall/crash picture gaps were 431 ms and 22 ms; both primaries were restored. Birth-scoped process metadata verified that the crashed primary left no surviving child processes.
 
 This is a successful **short hosted file retest**, not an hour soak, ten-receiver qualification, physical-device check, file-audio check or whole-host HA claim. The MP4 is silent. Earlier below-target windows are preserved separately and are not relabelled passed. All 314 regression tests, type checking and scoped lint passed. Both investigation workers were independently verified stopped after the app Stop action, and their preparation window was closed. No program recording, persistent media storage, snapshots, subscription changes or production promotion occurred. Metadata and conservative cost estimates remain under the ignored `.local/production` directory; the $10 cumulative cap is unchanged and billing estimates are not a final invoice.
+
+### Authorized hosted hour (October 29)
+
+The separately configured `jupiter-producer-trial-hour-*` profile permits one
+70-minute cloud lifetime, with at most 66 minutes of media lifetime. Ordinary
+trials retain their 30-minute cloud limit. There is no extension or automatic
+retry. The current cumulative authorization is $12, including previous tests.
+A conservative 7.4 GB guest network guard counts both directions, reserving
+$0.27/GB across Sandbox and relay, plus maximum CPU/memory and build/connection
+allowances. Reaching the guard fails the run; it does not shorten a passing hour.
+
+The hour starts only after a fresh browser file lease, live Program using Input A,
+and both compositors have stayed ready for fifteen seconds. An independent
+receiver measures 30-second steady windows at 1920×1080 and 29.5–30.5 distinct,
+decoded and presented FPS. Planned primary stalls occur at minutes 10/40 and
+process crashes at 25/55; each must preserve Program publications, recover with
+a picture gap below one second, and restore a warm primary. Fault intervals are
+excluded from steady measurements and reported separately. Completion requires
+an actual monotonic hour, four restored faults, at least 110 passing windows,
+and 3,500 qualified steady seconds. The silent baseline cannot qualify file
+audio. Only counters and resource metadata are retained; no media recording,
+snapshot or persistent media storage is enabled. Runtime workers and owned
+LiveKit rooms stop in `finally`; a follow-up stops the ephemeral VM after
+retrieving the terminal metadata. Cloud expiry remains independently enforced.

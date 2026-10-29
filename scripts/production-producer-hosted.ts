@@ -1,4 +1,6 @@
 /** Dedicated Linux worker entrypoint. Never import this file into a Vercel Function. */
+import { randomBytes } from 'node:crypto'
+import { runHostedSoak } from '../lib/production/hostedSoak.ts'
 import { createServer } from 'node:http'
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -10,10 +12,11 @@ process.umask(0o077)
 const secret = process.env.PRODUCER_ENGINE_SECRET || ''
 const eventId = process.env.PRODUCER_ENGINE_EVENT_ID || '', sessionId = process.env.PRODUCER_ENGINE_SESSION_ID || ''
 if (secret.length < 32 || !/^[a-zA-Z0-9_-]{1,128}$/.test(eventId) || !/^[a-zA-Z0-9_-]{1,128}$/.test(sessionId)) throw new Error('Explicit hosted rehearsal scope and signing secret required')
+const hourSoak = process.env.PRODUCER_ENGINE_HOUR_SOAK === '1'
 const deadline = Number(process.env.PRODUCER_ENGINE_DEADLINE_MS)
-if (!Number.isSafeInteger(deadline) || deadline <= Date.now() || deadline > Date.now() + 30 * 60_000) throw new Error('Non-extendable hosted deadline within thirty minutes required')
+if (!Number.isSafeInteger(deadline) || deadline <= Date.now() || deadline > Date.now() + (hourSoak ? 70 : 30) * 60_000) throw new Error('Non-extendable hosted deadline within thirty minutes required')
 const directory = mkdtempSync(join(tmpdir(), 'jupiter-hosted-rehearsal-'))
-const runtime = new LocalHaRuntime(directory, { rehearsal: true, rehearsalDeadlineAtMs: deadline, bundledBrowser: true, transport: { url: process.env.LIVEKIT_URL || '', apiKey: process.env.LIVEKIT_API_KEY || '', apiSecret: process.env.LIVEKIT_API_SECRET || '' } })
+const runtime = new LocalHaRuntime(directory, { rehearsal: true, hostedHourSoak: hourSoak, ...(hourSoak ? { controlKey: randomBytes(32).toString('hex') } : {}), rehearsalDeadlineAtMs: deadline, bundledBrowser: true, transport: { url: process.env.LIVEKIT_URL || '', apiKey: process.env.LIVEKIT_API_KEY || '', apiSecret: process.env.LIVEKIT_API_SECRET || '' } })
 const producer = new LocalProducerRehearsal(runtime), verifier = new EngineVerifier()
 let ready = false, closing = false
 const local = createServer(async (req, res) => { try { if (!await producer.handle(req, res)) await runtime.handle(req, res) } catch { if (!res.headersSent) res.writeHead(500); if (!res.writableEnded) res.end() } })
@@ -37,12 +40,12 @@ external.requestTimeout = 10_000; external.headersTimeout = 10_000
 async function stop() {
   if (closing) return; closing = true; ready = false; clearTimeout(timer)
   try { await producer.stop() } finally {
-    external.closeAllConnections(); external.close(); local.closeAllConnections(); local.close(); runtime.store.close(); rmSync(directory, { recursive: true, force: true }); process.exitCode = runtime.failure ? 1 : 0
+    external.closeAllConnections(); external.close(); local.closeAllConnections(); local.close(); if (!hourSoak) runtime.store.close(); rmSync(directory, { recursive: true, force: true }); process.exitCode = runtime.failure ? 1 : 0
   }
 }
 const timer = setTimeout(() => void stop(), deadline - Date.now())
 local.listen(4311, '127.0.0.1', async () => {
-  try { await runtime.start(); ready = true; external.listen(8080, '0.0.0.0'); console.log(JSON.stringify({ event: 'hosted-rehearsal-ready', runId: runtime.runId, deadline, recording: false })) }
+  try { await runtime.start(); ready = true; external.listen(8080, '0.0.0.0'); if (hourSoak) void runHostedSoak(runtime, deadline, () => producer.stop()).finally(async () => { await stop(); runtime.store.close() }); console.log(JSON.stringify({ event: 'hosted-rehearsal-ready', runId: runtime.runId, deadline, recording: false })) }
   catch { console.error('Hosted engine startup failed'); void stop() }
 })
 process.once('SIGTERM', () => { clearTimeout(timer); void stop() }); process.once('SIGINT', () => { clearTimeout(timer); void stop() })
