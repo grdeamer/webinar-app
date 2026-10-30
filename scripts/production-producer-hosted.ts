@@ -1,8 +1,9 @@
 /** Dedicated Linux worker entrypoint. Never import this file into a Vercel Function. */
+import { sessionBudgetEnabled, sessionTrafficExceeded } from '../lib/production/sessionBudget.ts'
 import { randomBytes } from 'node:crypto'
 import { runHostedSoak } from '../lib/production/hostedSoak.ts'
 import { createServer } from 'node:http'
-import { mkdtempSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync, readFileSync, readdirSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { LocalHaRuntime } from '../lib/production/localHaRuntime.ts'
@@ -19,6 +20,16 @@ const directory = mkdtempSync(join(tmpdir(), 'jupiter-hosted-rehearsal-'))
 const runtime = new LocalHaRuntime(directory, { rehearsal: true, hostedHourSoak: hourSoak, ...(hourSoak ? { controlKey: randomBytes(32).toString('hex') } : {}), rehearsalDeadlineAtMs: deadline, bundledBrowser: true, transport: { url: process.env.LIVEKIT_URL || '', apiKey: process.env.LIVEKIT_API_KEY || '', apiSecret: process.env.LIVEKIT_API_SECRET || '' } })
 const producer = new LocalProducerRehearsal(runtime), verifier = new EngineVerifier()
 let ready = false, closing = false
+const budgeted = sessionBudgetEnabled(process.env.PRODUCER_ENGINE_SESSION_CAP_USD, hourSoak)
+function networkBytes() {
+  return readdirSync('/sys/class/net').filter(x => x !== 'lo').reduce((n, i) => n + ['rx_bytes', 'tx_bytes'].reduce((sum, k) => sum + Number(readFileSync(`/sys/class/net/${i}/statistics/${k}`, 'utf8')), 0), 0)
+}
+const networkStart = budgeted ? Number(readFileSync('/vercel/session-network-start.json', 'utf8')) : 0
+if (budgeted && (hourSoak || !Number.isSafeInteger(networkStart) || networkStart < 0)) throw new Error('Invalid session budget profile')
+const budgetTimer = budgeted ? setInterval(() => {
+  try { if (sessionTrafficExceeded(networkBytes(), networkStart)) { console.info('Session traffic allowance reached; stopping media'); void stop() } }
+  catch { void stop() }
+}, 1000) : undefined
 const local = createServer(async (req, res) => { try { if (!await producer.handle(req, res)) await runtime.handle(req, res) } catch { if (!res.headersSent) res.writeHead(500); if (!res.writableEnded) res.end() } })
 const external = createServer(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store')
@@ -38,7 +49,7 @@ const external = createServer(async (req, res) => {
 })
 external.requestTimeout = 10_000; external.headersTimeout = 10_000
 async function stop() {
-  if (closing) return; closing = true; ready = false; clearTimeout(timer)
+  if (closing) return; closing = true; ready = false; clearTimeout(timer); clearInterval(budgetTimer)
   try { await producer.stop() } finally {
     external.closeAllConnections(); external.close(); local.closeAllConnections(); local.close(); if (!hourSoak) runtime.store.close(); rmSync(directory, { recursive: true, force: true }); process.exitCode = runtime.failure ? 1 : 0
   }

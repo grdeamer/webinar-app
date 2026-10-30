@@ -170,3 +170,25 @@ which would total $13.56314. Pending billing was not reduced to make a run fit.
 All eight prior test Sandboxes were verified stopped. These are estimates,
 not a final invoice. The native fix remains local until a hosted run fits the
 remaining budget or a different cap is explicitly approved.
+
+
+### Production release and individually authorized sessions
+
+The production release is based on the previously live 04e25c8 plus only the
+producer pipeline commits. EC2 migration changes are excluded. Hosted Full HD30
+remains locally qualified; the new native file publisher has not passed a
+hosted hour. Rehearsal output remains isolated from attendees and Zoom rooms.
+
+The user separately authorized new sessions up to $5 each. A production
+single-use name selects the normal 30-minute cloud / 20-minute media profile,
+never the hour soak. A guest traffic guard stops media at 4 GB, counting both
+directions from before dependency installation; invalid counters fail closed.
+The independent cloud timeout remains even if guest cleanup fails. At the
+currently used conservative rates, full allocated compute/memory is $0.6816,
+transfer allowance $1.08, connections allowance $0.18, and build/functions
+allowance $1.25, totaling $3.1916 before the remaining safety margin to $5.
+These are operational allowances, not a provider-level invoice guarantee.
+No worker starts from deployment, page load, or a recurring job. A global
+administrator must explicitly prepare the configured single-use session;
+another session requires a new server-side authorization/name. Existing
+subscriptions, unrelated app traffic, and AWS resources are separate costs.
