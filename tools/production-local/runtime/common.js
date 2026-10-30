@@ -1,3 +1,4 @@
+import { nextFrameDeadline } from './frame-clock.js'
 export const LK = window.LivekitClient
 export const capability = location.hash.slice(1)
 export const health = { appliedRevision: 0, framesRendered: 0, framesSent: 0, audioPackets: 0, decodedFrames: 0, decodedRevision: null, markerFrame: null, width: 0, height: 0, error: null, audioRms: 0, contentSource: null, inputFrames: {}, transitionFrames: 0, generation: 0, firstDecodedAtMs: 0, lastDecodedAtMs: 0 }
@@ -36,12 +37,18 @@ export function canvas(width, height) {
   return element
 }
 
-export function scheduleFrames(draw, fps = 30) {
-  let stopped = false; let deadline = performance.now()
+export function scheduleFrames(draw, fps = 30, diagnostics = null) {
+  let stopped = false; let deadline = performance.now(); let previous = deadline; let previousFps = null
   function tick() {
     if (stopped) return
-    draw(performance.now()); deadline += 1000 / fps
-    if (deadline < performance.now() - 1000 / fps) deadline = performance.now() + 1000 / fps
+    const target = typeof fps === 'function' ? fps() : fps
+    if (target !== previousFps) { deadline = performance.now(); previousFps = target }
+    const began = performance.now()
+    if (diagnostics) { diagnostics.targetFps = target; diagnostics.ticks++; diagnostics.maxLatenessMs = Math.max(diagnostics.maxLatenessMs, began - deadline); diagnostics.maxLoopGapMs = Math.max(diagnostics.maxLoopGapMs, began - previous) }
+    previous = began; draw(began)
+    const ended = performance.now()
+    if (diagnostics) { diagnostics.drawTotalMs += ended - began; diagnostics.drawMaxMs = Math.max(diagnostics.drawMaxMs, ended - began); if (deadline + 2000 / target < ended) diagnostics.reanchors++ }
+    deadline = nextFrameDeadline(deadline, ended, target)
     setTimeout(tick, Math.max(0, deadline - performance.now()))
   }
   tick()

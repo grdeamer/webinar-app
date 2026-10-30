@@ -2,6 +2,7 @@ import { LK, canvas, connect, health, jsonFetch, scheduleFrames, senderCounters,
 import { drawMarker, MARKER_SIZE } from './marker.js'
 import { LocalAssets } from './assets.js'
 import { drawComposition } from './scene-renderer.js'
+import { GainTargets } from './gain-target.js'
 import { BoundedFrameWriter } from './frame-writer.js'
 
 export async function runCompositor() {
@@ -14,8 +15,9 @@ export async function runCompositor() {
   const master = audio.createGain(); const limiter = audio.createDynamicsCompressor(); const mixed = audio.createMediaStreamDestination()
   limiter.threshold.value = -3; limiter.knee.value = 0; limiter.ratio.value = 20
   master.connect(limiter).connect(mixed)
+  const gainTargets = new GainTargets()
   const assets = new LocalAssets()
-  const inputs = new Map(); let snapshot = null; let fetching = false
+  const inputs = new Map(); let snapshot = null; let fetching = false; let renderFps = profile.fps
 
   function inputFor(identity) {
     if (!inputs.has(identity)) inputs.set(identity, { video: null, lastFrameAt: 0, decoded: 0, audioNode: null, gain: null })
@@ -57,7 +59,8 @@ export async function runCompositor() {
     if (fetching) return
     fetching = true
     try {
-      const { state, sourceReports } = await jsonFetch('/api/state')
+      const { state, sourceReports, renderFps: requestedFps } = await jsonFetch('/api/state')
+      if (window.localHaVideo && [15, 30].includes(requestedFps)) renderFps = requestedFps
       for (const [id, report] of Object.entries(sourceReports || {})) {
         const input = inputs.get(state.bindings[id]?.participantIdentity)
         if (input) input.sourceProgressAtMs = report.progressedAtMs
@@ -85,13 +88,13 @@ export async function runCompositor() {
   function applyAudio() {
     const mix = snapshot?.program.audio
     const live = snapshot?.desiredLifecycle === 'live'
-    master.gain.setTargetAtTime(live && mix && !mix.muted ? 10 ** (mix.masterGainDb / 20) : 0, audio.currentTime, 0.02)
+    gainTargets.set(master.gain, live && mix && !mix.muted ? 10 ** (mix.masterGainDb / 20) : 0, audio.currentTime)
     const solo = mix?.channels.some(channel => channel.solo)
     for (const [identity, input] of inputs) {
       if (!input.gain) continue
       const channel = mix?.channels.find(item => snapshot.bindings[item.sourceId]?.participantIdentity === identity)
       const audible = channel && !channel.muted && (!solo || channel.solo) && input.lastFrameAt > 0 && performance.now() - input.lastFrameAt < 2500 && input.sourceProgressAtMs > 0 && Date.now() - input.sourceProgressAtMs < 2500
-      input.gain.gain.setTargetAtTime(audible ? 10 ** (channel.gainDb / 20) : 0, audio.currentTime, 0.02)
+      gainTargets.set(input.gain.gain, audible ? 10 ** (channel.gainDb / 20) : 0, audio.currentTime)
     }
   }
   let frameWriter = null, capture = null, captureReader = null, probeTrack = null, captured = 0, outputTimestamp = 0, outputError = null, stopped = false
@@ -100,6 +103,7 @@ export async function runCompositor() {
     outputTimestamp = Math.max(outputTimestamp + 1, Math.round(performance.now() * 1000))
     frameWriter.enqueue(new VideoFrame(surface, { timestamp: outputTimestamp }), health.appliedRevision)
   }
+  const clock = { ticks: 0, drawTotalMs: 0, drawMaxMs: 0, maxLatenessMs: 0, maxLoopGapMs: 0, reanchors: 0 }
   const stopFrames = scheduleFrames(() => {
     if (window.localMediaFault) return
     health.framesRendered++; applyAudio()
@@ -124,7 +128,7 @@ export async function runCompositor() {
     drawMarker(ctx, health.appliedRevision, health.framesRendered, 720 - MARKER_SIZE)
     if (['primary', 'standby'].includes(window.localHaCandidate)) drawMarker(ctx, window.localHaCandidate === 'primary' ? 1 : 2, health.framesRendered, 720 - MARKER_SIZE * 2)
     snapshotFrame()
-  })
+  }, () => renderFps, clock)
   const { room: outputRoom } = await connect('renderer-output')
   if (window.localHaVideo) {
     if (!window.MediaStreamTrackGenerator || !window.MediaStreamTrackProcessor || !window.VideoFrame) throw new Error('Explicit compositor frame output is required')
@@ -155,7 +159,7 @@ export async function runCompositor() {
     }
     const stats = await senderCounters(video.track, audioPub.track); health.framesSent = stats.frames; health.audioPackets = stats.packets
     if (window.localHaVideo) health.encoding = stats
-    if (window.localHaVideo) health.capture = { transport: 'video-frame-generator', rendered: health.framesRendered, captured, error: outputError, ...frameWriter.counters() }
+    if (window.localHaVideo) health.capture = { transport: 'video-frame-generator', rendered: health.framesRendered, captured, clock, error: outputError, ...frameWriter.counters() }
     health.width = stats.width; health.height = stats.height
     health.inputFrames = Object.fromEntries([...inputs].map(([identity, input]) => [identity, input.decoded]))
     health.assetPositions = Object.fromEntries((snapshot?.program.composition.layers || []).filter(layer => layer.kind === 'video').map(layer => [layer.id, Math.round((assets.get(layer)?.currentTime || 0) * 1000)]))
