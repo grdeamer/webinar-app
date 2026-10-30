@@ -145,7 +145,7 @@ export class LocalMediaRoutes {
           file = new URL("../../node_modules/livekit-client/dist/livekit-client.umd.js", import.meta.url); type = "text/javascript"
         } else {
           const name = url.pathname === '/audience' ? 'audience.html' : url.pathname === '/audience-probe' ? 'audience-probe.html' : url.pathname === "/parity" ? "parity.html" : url.pathname === "/viewer" || /^\/runtime\/(source-a|source-b|renderer|observer)$/.test(url.pathname) ? "runtime.html" : url.pathname.slice("/runtime/".length)
-          const allowed = ["audience.html", "audience.js", "audience-probe.html", "audience-probe.js", "program-player.js", "runtime.html", "parity.html", "parity.js", "layout.js", "assets.js", "scene-renderer.js", "boot.js", "common.js", "marker.js", "source.js", "compositor.js", "observer.js", "viewer.js", "recording.js"]
+          const allowed = ["audience.html", "audience.js", "audience-probe.html", "audience-probe.js", "program-player.js", "runtime.html", "parity.html", "parity.js", "layout.js", "assets.js", "scene-renderer.js", "boot.js", "common.js", "frame-clock.js", "gain-target.js", "frame-writer.js", "marker.js", "source.js", "compositor.js", "observer.js", "viewer.js", "recording.js"]
           if (!allowed.includes(name)) throw new Error("Unknown local media asset")
           file = new URL(`../../tools/production-local/runtime/${name}`, import.meta.url); type = name.endsWith("html") ? "text/html" : "text/javascript"
         }

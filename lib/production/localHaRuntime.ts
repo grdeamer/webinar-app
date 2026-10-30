@@ -1,3 +1,4 @@
+import { candidateRenderFps } from './compositorCadence.ts'
 import { mediaHostAllowed } from './hosted/transportPolicy.ts'
 import { freshMediaToken } from './freshMediaToken.ts'
 import { haRuntimeBudget } from './haSoakPlan.ts'
@@ -71,12 +72,14 @@ export class LocalHaRuntime {
   private gatewayRestarts = 0
   private primaryRestarts = 0
   private candidatePartitionCount = 0
+  private readonly adaptiveStandby: boolean
   private readonly transport?: { url: string; apiKey: string; apiSecret: string }
   private readonly bundledBrowser: boolean
   private readonly apiKey: string = 'jupiter-local-ha'
   private readonly apiSecret = randomBytes(32).toString('hex')
-  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; rehearsalDeadlineAtMs?: number; hostedHourSoak?: boolean; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean } = {}) {
+  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; rehearsalDeadlineAtMs?: number; hostedHourSoak?: boolean; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean; adaptiveStandby?: boolean } = {}) {
     if (options.transport && (!options.rehearsal || !/^wss:\/\//.test(options.transport.url) || !options.transport.apiKey || options.transport.apiSecret.length < 32)) throw new Error('Hosted rehearsal requires secure SFU credentials')
+    this.adaptiveStandby = Boolean(options.transport) || options.adaptiveStandby === true
     this.transport = options.transport; this.bundledBrowser = options.bundledBrowser === true
     if (this.transport) { this.apiKey = this.transport.apiKey; this.apiSecret = this.transport.apiSecret }
     this.rehearsal = options.rehearsal === true
@@ -265,7 +268,7 @@ export class LocalHaRuntime {
       if (url.pathname === '/api/state' && request.method === 'GET') {
         if (worker !== 'primary' && worker !== 'standby') throw new Error('Candidate capability required')
         if (worker === this.partition) { send(503, { error: 'Injected candidate control partition' }); return }
-        send(200, { state: this.store.read(LOCAL_SCOPE), sourceReports: this.session.sources }); return
+        send(200, { state: this.store.read(LOCAL_SCOPE), sourceReports: this.session.sources, renderFps: candidateRenderFps(this.adaptiveStandby, this.authority.selected, worker) }); return
       }
       if (url.pathname === '/api/media/encoding' && request.method === 'GET') { send(200, { profile: 'ha-fullhd', encoding: { maxBitrate: 6_000_000, maxFramerate: 60, scaleResolutionDownBy: 1 } }); return }
       if (url.pathname === '/api/media/token' && request.method === 'POST') { if (!worker) throw new Error('Current worker capability required'); const x = await readBody(); send(200, await this.token(worker, x.role)); return }
@@ -298,7 +301,7 @@ export class LocalHaRuntime {
         else if (url.pathname === '/style.css') { file = join(root, 'style.css'); contentType = 'text/css' }
         else if (url.pathname === '/vendor/livekit-client.js') file = resolve(root, '../../node_modules/livekit-client/dist/livekit-client.umd.js')
         else if (this.activeRoles.some(role => url.pathname === `/runtime/${role}`)) { file = join(root, 'runtime/ha-runtime.html'); contentType = 'text/html' }
-        else if (['common.js', 'ha-boot.js', 'ha-gateway.js', 'ha-observer.js', 'ha-fence.js', 'frame-writer.js', 'ha-provenance.js', 'marker.js', 'source.js', 'compositor.js', 'assets.js', 'scene-renderer.js', 'layout.js'].some(name => url.pathname === `/runtime/${name}`)) file = join(root, 'runtime', url.pathname.split('/').at(-1)!)
+        else if (['common.js', 'frame-clock.js', 'gain-target.js', 'ha-boot.js', 'ha-gateway.js', 'ha-observer.js', 'ha-fence.js', 'frame-writer.js', 'ha-provenance.js', 'marker.js', 'source.js', 'compositor.js', 'assets.js', 'scene-renderer.js', 'layout.js'].some(name => url.pathname === `/runtime/${name}`)) file = join(root, 'runtime', url.pathname.split('/').at(-1)!)
         else if (url.pathname === '/runtime/assets/brand.svg') { file = join(root, 'runtime/assets/brand.svg'); contentType = 'image/svg+xml' }
         if (file) { const contents = readFileSync(file); response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(contents); return }
       }

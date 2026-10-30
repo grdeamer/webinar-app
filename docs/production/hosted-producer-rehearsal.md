@@ -89,3 +89,44 @@ audio. Only counters and resource metadata are retained; no media recording,
 snapshot or persistent media storage is enabled. Runtime workers and owned
 LiveKit rooms stop in `finally`; a follow-up stops the ephemeral VM after
 retrieving the terminal metadata. Cloud expiry remains independently enforced.
+
+### October 30 compositor retry
+
+The October 29 hour remains **failed** after 120.563 seconds, with only 90.407
+qualified seconds and no scheduled faults reached. Its last 30.209-second
+window received 26.2505 fps while the file source encoded 29.9650 fps. Both
+compositors' render/write rates fell before their encoders; the gateway followed
+the available frames. No packet loss, decoder drops or memory pressure was
+observed. Elevated host load supports investigating compute contention but does
+not prove a specific hardware limit.
+
+The frame clock no longer adds an extra frame of idle time when a delayed draw
+has already missed a deadline. Repeated identical Web Audio gain targets are
+cached rather than appending automation events on every video frame. Hosted
+inactive candidates now render/encode at 15 fps; the authority-selected candidate
+always targets 30 fps. Cadence follows authority polling even without a show
+revision change. Startup, local default operation, output fencing, full HD,
+readiness thresholds and Program's qualification floor remain unchanged. This
+is warm-standby encoding, not two simultaneous full-rate outputs. Added clock
+telemetry separates draw work, timer lateness, writing and encoding. A local
+clipping optimization showed no material improvement and was discarded.
+
+A local synthetic-input rehearsal passed Program at 29.9985 fps, a 475 ms stall
+picture gap, a 73 ms crash picture gap, and post-failover 29.9985/30.0498 fps at
+1920×1080. Owned local workers and SFU were verified stopped. These short local
+checks do not qualify a hosted hour or a real file.
+
+The retry additionally requires source encoded FPS within 29.5–30.5 in every
+assessed steady window. Terminal evidence is exported as hashed, small metadata
+chunks containing all measured windows, periodic stage counters and detailed
+final-window counters; media and private capability fields are excluded. This
+permits evidence retrieval before automatic cloud expiry.
+
+Billing posted through October 30 07:00 UTC allows replacing earlier reserves:
+$5.77832 in team-wide billed usage (excluding existing subscriptions) plus a
+$1.29512 upper allocation for all prior test relay traffic/connections. This
+conservatively counts unrelated team usage too. One new 70-minute compute
+allocation ($1.5904), **6 GB** bidirectional network guard ($1.62), build/functions
+allowance ($1.25), and connection allowance ($0.42) reserve approximately
+**$11.95384 cumulative** under the user's $12 cap. Credits and final invoices
+remain provisional; no automatic paid repeat or deadline extension is allowed.
