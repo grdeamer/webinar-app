@@ -7,12 +7,18 @@ test('only explicit single-use hour trial names select the longer bounded profil
   for (const name of ['jupiter-producer-trial-20261029-fps2', 'jupiter-producer-trial-hour-', 'hour', 'jupiter-producer-trial-hour-abcdefgh/other']) assert.equal(hostedTrialLimits(name).cloudMs, 1800000)
 })
 test('hour readiness requires a fresh full-HD file lease; demos and stale inputs cannot start the clock', () => {
-  const now = 10000, status = { sourceMedia: { 'source-a': { atMs: 9900, encoding: { width: 1920, height: 1080 } } } }
+  const now = 10000, status = { sourceMedia: { 'source-a': { atMs: 9900, encoding: { width: 1920, height: 1080, captureMode: 'native-media-element', filePaused: false, nativeCaptureError: null as string | null } } } }
   const input = { kind: 'file', leaseExpiresAtMs: 12000 }
   assert.equal(hostedSourceReady(input, status, now), true)
   assert.equal(hostedSourceReady({ ...input, kind: 'demo' }, status, now), false)
   assert.equal(hostedSourceReady({ ...input, leaseExpiresAtMs: now }, status, now), false)
   assert.equal(hostedSourceReady(input, status, 13000), false)
+  status.sourceMedia['source-a'].encoding.filePaused = true
+  assert.equal(hostedSourceReady(input, status, now), false)
+  status.sourceMedia['source-a'].encoding.filePaused = false
+  status.sourceMedia['source-a'].encoding.captureMode = 'canvas'
+  assert.equal(hostedSourceReady(input, status, now), false)
+  status.sourceMedia['source-a'].encoding.captureMode = 'native-media-element'
   status.sourceMedia['source-a'].encoding.width = 1280
   assert.equal(hostedSourceReady(input, status, now), false)
 })

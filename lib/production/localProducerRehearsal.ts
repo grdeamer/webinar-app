@@ -49,7 +49,7 @@ export class LocalProducerRehearsal {
   async stop() { clearInterval(this.timer); this.leases.clear(); await this.runtime.stop() }
   async handle(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
     const url = new URL(request.url || '/', 'http://127.0.0.1:4311'), path = url.pathname
-    const staticFiles: Record<string, [string, string]> = { '/': ['producer.html', 'text/html'], '/producer': ['producer.html', 'text/html'], '/producer-room.js': ['producer-room.js', 'text/javascript'], '/producer-input.js': ['producer-input.js', 'text/javascript'], '/producer.css': ['producer.css', 'text/css'] }
+    const staticFiles: Record<string, [string, string]> = { '/': ['producer.html', 'text/html'], '/producer': ['producer.html', 'text/html'], '/producer-room.js': ['producer-room.js', 'text/javascript'], '/producer-input.js': ['producer-input.js', 'text/javascript'], '/file-capture.js': ['file-capture.js', 'text/javascript'], '/producer.css': ['producer.css', 'text/css'] }
     if (!Object.hasOwn(staticFiles, path) && !path.startsWith('/api/producer/')) return false
     const send = (status: number, value: unknown) => { response.writeHead(status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }); response.end(JSON.stringify(value)) }
     try {
@@ -96,6 +96,12 @@ export class LocalProducerRehearsal {
           if (this.leases.get(role) !== lease || Date.now() >= lease.expiresAtMs) throw new Error('Input lease expired during publication validation')
           this.runtime.session.sourceReady(role, { frames: x.frames, videoTrackSid: x.videoTrackSid })
           const encoding = x.encoding && typeof x.encoding === 'object' ? Object.fromEntries(['width', 'height', 'frames', 'framesEncoded', 'bytes', 'qualityLimitationReason', 'codec'].map(k => [k, x.encoding[k]])) : {}
+          if (['native-media-element', 'device'].includes(x.encoding?.captureMode)) encoding.captureMode = x.encoding.captureMode
+          if (['visible', 'hidden'].includes(x.encoding?.publisherVisibility)) encoding.publisherVisibility = x.encoding.publisherVisibility
+          if (Number.isSafeInteger(x.encoding?.fileTimeMs) && x.encoding.fileTimeMs >= 0) encoding.fileTimeMs = x.encoding.fileTimeMs
+          if (typeof x.encoding?.filePaused === 'boolean') encoding.filePaused = x.encoding.filePaused
+          if (Number.isSafeInteger(x.encoding?.nativeFramesCaptured) && x.encoding.nativeFramesCaptured >= 0) encoding.nativeFramesCaptured = x.encoding.nativeFramesCaptured
+          if (x.encoding?.nativeCaptureError === null) encoding.nativeCaptureError = null
           this.runtime.sourceMedia[role] = { encoding, atMs: Date.now() }; lease.expiresAtMs = Math.min(this.runtime.expiresAtMs, Date.now() + 10_000)
           send(200, { ok: true, expiresAtMs: this.runtime.expiresAtMs, leaseExpiresAtMs: lease.expiresAtMs }); return true
         }

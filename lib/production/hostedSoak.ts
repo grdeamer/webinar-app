@@ -18,15 +18,15 @@ function networkBytes() {
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms))
 export function hostedSourceReady(value: { kind: string; leaseExpiresAtMs: number | null } | undefined, s: Pick<Status, 'sourceMedia'>, now = Date.now()) {
   const source = s.sourceMedia['source-a']
-  return value?.kind === 'file' && (value.leaseExpiresAtMs ?? 0) > now && source?.encoding.width === 1920 && source.encoding.height === 1080 && now - source.atMs < 2500
+  return value?.kind === 'file' && (value.leaseExpiresAtMs ?? 0) > now && source?.encoding.captureMode === 'native-media-element' && source.encoding.filePaused === false && source.encoding.nativeCaptureError === null && source.encoding.width === 1920 && source.encoding.height === 1080 && now - source.atMs < 2500
 }
 /** Metadata-only, single-run hour owner. The independent cloud timeout is never extended. */
 export async function runHostedSoak(runtime: LocalHaRuntime, deadline: number, stop: () => Promise<void>, directory = '/vercel/hosted-soak') {
   mkdirSync(directory, { recursive: true, mode: 0o700 })
   const path = join(directory, 'result.json'), samples = join(directory, 'samples.ndjson')
-  const result = { runId: runtime.runId, outcome: 'waiting-for-file', deadline, observationStartedAtMs: null as number | null, elapsedObservationMs: 0, qualifiedSteadyMs: 0, recordingEnabled: false, silentFile: true, lastMeasuredWindow: null as (ReturnType<typeof qualityWindow> & { sourceEncodedFps: number }) | null, windows: [] as ReturnType<typeof qualityWindow>[], fragments: [] as ReturnType<typeof qualityWindow>[], events: [] as Event[], error: null as string | null, cleanup: null as { workersStopped: boolean; roomsDeleted: boolean } | null, endedAtMs: null as number | null }
+  const result = { runId: runtime.runId, outcome: 'waiting-for-file', deadline, observationStartedAtMs: null as number | null, elapsedObservationMs: 0, qualifiedSteadyMs: 0, recordingEnabled: false, silentFile: true, lastMeasuredWindow: null as (ReturnType<typeof qualityWindow> & { sourceEncodedFps: number; sourceCapturedFps: number }) | null, windows: [] as ReturnType<typeof qualityWindow>[], fragments: [] as ReturnType<typeof qualityWindow>[], events: [] as Event[], error: null as string | null, cleanup: null as { workersStopped: boolean; roomsDeleted: boolean } | null, endedAtMs: null as number | null }
   const save = () => writeFileSync(path, JSON.stringify(result), { mode: 0o600 })
-  let points: (QualityPoint & { sourceAtMs: number; sourceEncoded: number })[] = [], startMono = 0, videoSid = '', audioSid = '', revision = -1, generation = 0
+  let points: (QualityPoint & { sourceAtMs: number; sourceEncoded: number; sourceCaptured: number })[] = [], startMono = 0, videoSid = '', audioSid = '', revision = -1, generation = 0
   const observer = (s: Status) => s.observer as Observer
   const bound = () => { assert.ok(networkBytes() < HOSTED_HOUR_NETWORK_LIMIT_BYTES, 'Conservative cumulative $12 traffic budget guard reached'); assert.ok(Date.now() < deadline - 5000, 'Non-extendable hosted deadline reached'); assert.ok(runtime.running, 'Hosted runtime stopped'); assert.ok(!runtime.failure, runtime.failure || 'Runtime failure'); assert.equal(runtime.operatorStopRequested, false, 'Operator stopped the soak') }
   const action = (action: string) => { bound(); return runtime.action({ action, runId: runtime.runId, expectedGeneration: runtime.status().generation }) }
@@ -63,8 +63,9 @@ export async function runHostedSoak(runtime: LocalHaRuntime, deadline: number, s
   function measure(fragment: boolean) {
     if (points.length > 1 && points.at(-1)!.atMs - points[0].atMs >= (fragment ? 10_000 : 30_000)) {
       const first = points[0], last = points.at(-1)!
-      const metrics = { ...qualityWindow(points), sourceEncodedFps: (last.sourceEncoded - first.sourceEncoded) * 1000 / (last.sourceAtMs - first.sourceAtMs) }
+      const metrics = { ...qualityWindow(points), sourceEncodedFps: (last.sourceEncoded - first.sourceEncoded) * 1000 / (last.sourceAtMs - first.sourceAtMs), sourceCapturedFps: (last.sourceCaptured - first.sourceCaptured) * 1000 / (last.sourceAtMs - first.sourceAtMs) }
       result.lastMeasuredWindow = metrics
+      assert.ok(Number.isFinite(metrics.sourceCapturedFps) && metrics.sourceCapturedFps >= 29.5 && metrics.sourceCapturedFps <= 30.5, 'Native file capture FPS outside 29.5–30.5')
       assert.ok(Number.isFinite(metrics.sourceEncodedFps) && metrics.sourceEncodedFps >= 29.5 && metrics.sourceEncodedFps <= 30.5, 'Source encoded FPS outside 29.5–30.5')
       if (fragment) { assert.ok(metrics.fullHdThroughout && [metrics.distinctFps, metrics.decodedFps, metrics.presentedFps].every(n => n >= 29.5 && n <= 30.5), 'Steady fragment FPS outside 29.5–30.5'); result.fragments.push(metrics) }
       else { assessSoakWindow(metrics); result.windows.push(metrics) }
@@ -108,7 +109,7 @@ export async function runHostedSoak(runtime: LocalHaRuntime, deadline: number, s
       const r = validate(s, true)
       appendFileSync(samples, JSON.stringify({ atMs: Date.now(), elapsedMs: elapsed, status: s, resource: { networkBytes: networkBytes(), availableBytes: freemem(), load: loadavg(), owner: process.resourceUsage() } }) + '\n', { mode: 0o600 })
       if (r.atMs > previousAt) {
-        points.push({ atMs: r.atMs, frames: r.validFrames, decoded: r.rtc.framesDecoded, presented: r.presentedFrames, width: r.width, height: r.height, videoTrackSid: r.videoTrackSid, generation: r.generation, sourceAtMs: s.sourceMedia['source-a'].atMs, sourceEncoded: Number(s.sourceMedia['source-a'].encoding.framesEncoded) }); previousAt = r.atMs
+        points.push({ atMs: r.atMs, frames: r.validFrames, decoded: r.rtc.framesDecoded, presented: r.presentedFrames, width: r.width, height: r.height, videoTrackSid: r.videoTrackSid, generation: r.generation, sourceAtMs: s.sourceMedia['source-a'].atMs, sourceEncoded: Number(s.sourceMedia['source-a'].encoding.framesEncoded), sourceCaptured: Number(s.sourceMedia['source-a'].encoding.nativeFramesCaptured) }); previousAt = r.atMs
         if (points.length > 1 && r.atMs - points[0].atMs >= 30_000) measure(false)
       }
       result.elapsedObservationMs = elapsed; save(); await delay(1000)

@@ -130,3 +130,43 @@ allocation ($1.5904), **6 GB** bidirectional network guard ($1.62), build/functi
 allowance ($1.25), and connection allowance ($0.42) reserve approximately
 **$11.95384 cumulative** under the user's $12 cap. Credits and final invoices
 remain provisional; no automatic paid repeat or deadline extension is allowed.
+
+
+### Browser file publisher fix (October 30, local qualification only)
+
+The last hosted retry failed after 241.571 seconds, with 211.504 qualified
+steady seconds and seven passing windows. The compositor, gateway and receiver
+remained around 30 fps at 1080p, while browser source encoding fell to 5.256 fps
+over the final window (about 1 fps at the tail). No planned fault was reached.
+That run remains failed; its workers, rooms and Sandbox were stopped.
+
+The file publisher painted a canvas from page timers. A controlled local
+comparison clamped those timers to at least 1,000 ms: the old path delivered
+1.033 fps, while native video-element capture delivered 29.999 captured,
+29.965 encoded and 29.932 decoded fps at 1920×1080 over 30 seconds. This
+reproduces the timer sensitivity, not the historical tab visibility, which was
+not recorded. Browser background timer alignment is a plausible trigger.
+
+File playback now publishes native captured tracks without a timer-driven
+canvas or timer fallback. Unsupported browsers fail closed. A cloned native
+track is consumed for metadata counters only; every VideoFrame is closed
+immediately and the clone/reader stop with the input. Paused playback is
+excluded from capture counters and soak readiness because Chrome can continue
+emitting repeated frames while paused. Capture timestamps do not prove
+pixel-distinct frames. Pause/resume and looping were checked locally; the
+baseline file is silent, so audio remains unqualified. Optional audio uses
+the native audio track; no recorder or media storage is introduced.
+
+The hour gate now additionally requires native capture FPS of 29.5–30.5,
+active file playback, and valid native telemetry. Safe counter metadata includes
+capture mode, visibility, playback position and pause state. Existing output
+FPS, resolution, fault, publication and cleanup requirements remain unchanged.
+
+No new hosted hour or deployment was started. The retained cumulative estimate
+is $8.68274 including prior pending allowances, leaving $3.31726 of $12.
+Another guarded hour reserves $4.8804 (70-minute compute/memory $1.5904,
+6 GB conservative transfer $1.62, connections $0.42, build/functions $1.25),
+which would total $13.56314. Pending billing was not reduced to make a run fit.
+All eight prior test Sandboxes were verified stopped. These are estimates,
+not a final invoice. The native fix remains local until a hosted run fits the
+remaining budget or a different cap is explicitly approved.

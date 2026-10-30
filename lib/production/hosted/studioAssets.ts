@@ -3,7 +3,7 @@ import { mediaConnectSources } from './transportPolicy.ts'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 const files: Record<string, [string, string]> = {
-  '/studio': ['producer.html', 'text/html'], '/producer-room.js': ['producer-room.js', 'text/javascript'], '/producer-input.js': ['producer-input.js', 'text/javascript'], '/producer.css': ['producer.css', 'text/css'], '/style.css': ['style.css', 'text/css'],
+  '/studio': ['producer.html', 'text/html'], '/producer-room.js': ['producer-room.js', 'text/javascript'], '/producer-input.js': ['producer-input.js', 'text/javascript'], '/file-capture.js': ['file-capture.js', 'text/javascript'], '/producer.css': ['producer.css', 'text/css'], '/style.css': ['style.css', 'text/css'],
   ...Object.fromEntries(['common.js', 'frame-clock.js', 'assets.js', 'scene-renderer.js', 'layout.js', 'marker.js'].map(name => [`/runtime/${name}`, [`runtime/${name}`, 'text/javascript'] as [string, string]])), '/runtime/assets/brand.svg': ['runtime/assets/brand.svg', 'image/svg+xml'],
 }
 export function readStudioAsset(path: string, root: string) {

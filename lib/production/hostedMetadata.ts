@@ -5,7 +5,7 @@ import { gzipSync } from 'node:zlib'
 /** Compact counter-only evidence can be retrieved before the independent cloud expiry. */
 export function exportHostedReview(directory: string, result: unknown) {
   const paths = [
-    'sourceMedia.source-a.encoding.framesEncoded', 'sourceMedia.source-a.atMs',
+    'sourceMedia.source-a.encoding.framesEncoded', 'sourceMedia.source-a.atMs', 'sourceMedia.source-a.encoding.captureMode', 'sourceMedia.source-a.encoding.publisherVisibility', 'sourceMedia.source-a.encoding.fileTimeMs', 'sourceMedia.source-a.encoding.filePaused', 'sourceMedia.source-a.encoding.nativeFramesCaptured', 'sourceMedia.source-a.encoding.nativeCaptureError',
     ...['primary', 'standby'].flatMap(role => ['rendered', 'frames', 'atMs', 'capture.written', 'encoding.framesEncoded', 'capture.clock.targetFps', 'capture.clock.drawTotalMs', 'capture.clock.drawMaxMs', 'capture.clock.maxLatenessMs', 'capture.clock.reanchors'].map(key => `candidateMedia.${role}.${key}`)),
     'gateway.capturedFrames', 'gateway.outputFrames', 'gateway.sent.framesEncoded', 'gateway.atMs', 'gateway.diagnostics.renderTotalMs', 'gateway.diagnostics.renderCount',
     'observer.validFrames', 'observer.rtc.framesDecoded', 'observer.presentedFrames', 'observer.rtc.framesDropped', 'observer.rtc.packetsLost', 'observer.generation', 'observer.revision', 'observer.selectionMismatches', 'observer.width', 'observer.height', 'observer.atMs',
