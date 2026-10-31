@@ -1,5 +1,6 @@
 import { producerBackend } from '@/lib/production/hosted/ec2Worker'
 import Ec2ProducerControls from './Ec2ProducerControls'
+import Ec2SetupDownload from './Ec2SetupDownload'
 import Link from 'next/link'
 import { hostedTrialLimits } from '@/lib/production/hosted/trialLimits'
 import PrepareHostedRehearsal from './PrepareHostedRehearsal'
@@ -22,6 +23,7 @@ export default async function HostedProducerRehearsal(props: { params: Promise<{
     <p>Preview, TAKE, audio and scene controls use the qualified compositor and fenced Program gateway. This is one producer room, with primary and standby compositors.</p>
     <p>Sessions expire within {limits.cloudMs / 60_000} minutes. Media is not recorded or persistently stored. Files stay in your browser and are transmitted as live inputs. Capture starts only when you choose a camera, microphone or screen.</p>
     <p>This rehearsal does not publish to attendees or join Zoom rooms. Real Internet delivery and physical device compatibility still need verification.</p>
+    {access.isGlobalAdmin && session && process.env.PRODUCER_ENGINE_EC2_BOOTSTRAP_PUBLIC_KEY && Number(process.env.PRODUCER_ENGINE_EC2_BOOTSTRAP_ALLOWED_UNTIL_MS) > 0 ? <Ec2SetupDownload root={`/admin/events/${id}/producer/rehearsal/engine/${session.id}`} /> : null}
     {ec2 && configured && session && access.isGlobalAdmin ? <Ec2ProducerControls root={`/admin/events/${id}/producer/rehearsal/engine/${session.id}`} /> : null}
     {!ec2 && !trialClosed && configured && session && access.isGlobalAdmin && process.env.PRODUCER_ENGINE_TRIAL_NAME ? <PrepareHostedRehearsal minutes={limits.cloudMs / 60_000} cap={process.env.PRODUCER_ENGINE_SESSION_CAP_USD === '5' ? 5 : limits.hour ? 12 : 10} perSession={process.env.PRODUCER_ENGINE_SESSION_CAP_USD === '5'} root={`/admin/events/${id}/producer/rehearsal/engine/${session.id}`} /> : null}
     {trialClosed ? <p role="status">This temporary trial is closed. No media worker starts from this page. A new rehearsal must be explicitly prepared before testing live inputs.</p> : configured && session && allowed ? <Link className="inline-block rounded bg-blue-600 px-5 py-3 text-white" href={`/admin/events/${id}/producer/rehearsal/engine/${session.id}/studio`}>Open prepared rehearsal</Link> : <p role="status">{!allowed ? 'An event administrator or producer role is required.' : !session ? 'Create an event session first.' : 'The temporary media worker has not been configured. No compute is started by opening this page.'}</p>}

@@ -1,0 +1,52 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "RegionalStatus",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:DescribeInstances"
+      ],
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "aws:RequestedRegion": "us-east-1"
+        }
+      }
+    },
+    {
+      "Sid": "DedicatedProducerStartStop",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:StartInstances",
+        "ec2:StopInstances"
+      ],
+      "Resource": "arn:aws:ec2:us-east-1:327614158380:instance/*",
+      "Condition": {
+        "StringEquals": {
+          "ec2:ResourceTag/JupiterProducerDeployment": "1a2ad9d6-28a2-4448-b5d9-a619caaf3baa"
+        }
+      }
+    },
+    {
+      "Sid": "ProducerShutdownOnly",
+      "Effect": "Allow",
+      "Action": [
+        "scheduler:CreateSchedule",
+        "scheduler:GetSchedule"
+      ],
+      "Resource": "arn:aws:scheduler:us-east-1:327614158380:schedule/jupiter-producer/producer-stop-i-*"
+    },
+    {
+      "Sid": "OnlyStopRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": "arn:aws:iam::327614158380:role/JupiterProducerEc2Stop",
+      "Condition": {
+        "StringEquals": {
+          "iam:PassedToService": "scheduler.amazonaws.com"
+        }
+      }
+    }
+  ]
+}

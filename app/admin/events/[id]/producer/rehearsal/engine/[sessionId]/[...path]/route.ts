@@ -1,4 +1,5 @@
 import { producerBackend, ec2ProducerStatus, prepareEc2Producer, stopEc2Producer, validateEc2Scope } from '@/lib/production/hosted/ec2Worker'
+import { sealEc2Configuration } from '@/lib/production/ec2SealedConfig'
 import { NextResponse } from 'next/server'
 import { requireEventOperatorAccess } from '@/lib/eventTeamAccess'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -19,6 +20,12 @@ async function handle(request: Request, context: Context) {
   if (request.method === 'POST' && (request.headers.get('origin') !== new URL(request.url).origin || !request.headers.get('content-type')?.startsWith('application/json'))) return Response.json({ error: 'Same-origin JSON required' }, { status: 403 })
   try {
     const scope = { eventId: access.eventId, sessionId, actorId: access.user.id }
+    if (operation === '/seal-ec2-configuration' && request.method === 'POST') {
+      if (!access.isGlobalAdmin) return Response.json({ error: 'Global administrator required' }, { status: 403 })
+      validateEc2Scope(scope)
+      const sealed = sealEc2Configuration(process.env.PRODUCER_ENGINE_EC2_BOOTSTRAP_PUBLIC_KEY || '', { LIVEKIT_URL: process.env.LIVEKIT_URL || '', LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || '', LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || '', PRODUCER_ENGINE_SECRET: process.env.PRODUCER_ENGINE_SECRET || '' }, Number(process.env.PRODUCER_ENGINE_EC2_BOOTSTRAP_ALLOWED_UNTIL_MS))
+      return new Response(JSON.stringify(sealed), { headers: { 'Content-Type': 'application/octet-stream', 'Content-Disposition': 'attachment; filename=producer-ec2-config.sealed.json', 'Cache-Control': 'no-store' } })
+    }
     if (producerBackend() === 'ec2') {
       validateEc2Scope(scope)
       if (operation === '/infrastructure' && request.method === 'GET') return Response.json(await ec2ProducerStatus())

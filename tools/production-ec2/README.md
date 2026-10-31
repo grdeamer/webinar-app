@@ -14,7 +14,7 @@ No paid resources, DNS changes or IAM grants are created by this directory.
 Install an official checksum-verified Node 24 runtime, the reviewed source
 bundle and pinned dependencies/browser while setup shutdown is armed. Create
 `jupiter-producer` unprivileged system user. Install `start-engine.sh` under
-`/opt/jupiter-producer/`. Install credentials with mode 0600 over pinned SSH;
+`/opt/jupiter-producer/`. Install credentials with mode 0600 using the sealed configuration download over pinned SSH;
 never user-data, logs, shell history or command arguments. The service env file
 must be root-owned and readable only by systemd. Environment requires
 LIVEKIT_URL / LIVEKIT_API_KEY / LIVEKIT_API_SECRET / PRODUCER_ENGINE_SECRET and
@@ -67,3 +67,13 @@ loads, exact scope rejection, generated moving 1080p30 and original browser
 file capture, optional audio separately, failover, then stop and verify zero
 worker processes and stopped EC2. Do not claim the native publisher passed a
 hosted hour; that remains unqualified. No Zoom/attendee rooms are joined.
+
+
+Configuration transfer uses a temporary global-admin-only app operation. A pinned
+RSA3072 public key belongs only to this new EC2 node; its private key never leaves
+the node. The Vercel server encrypts the four existing media/signing values using
+AES256-GCM and wraps the session key with RSA-OAEP-SHA256. The browser downloads
+only ciphertext, uploaded to the pinned host and opened there as root. The
+private bootstrap key is removed on success. Bootstrap authorization expires
+within 30 minutes and is disabled at cutover. Plaintext credentials are never
+returned to the browser, assistant output, CloudShell or user-data.

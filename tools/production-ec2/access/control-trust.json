@@ -1,0 +1,18 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::327614158380:oidc-provider/oidc.vercel.com/gary-deamers-projects"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "oidc.vercel.com/gary-deamers-projects:aud": "https://vercel.com/gary-deamers-projects",
+          "oidc.vercel.com/gary-deamers-projects:sub": "owner:gary-deamers-projects:project:webinar-app-lerb:environment:production"
+        }
+      }
+    }
+  ]
+}
