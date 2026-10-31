@@ -1,3 +1,4 @@
+import { producerBackend, ec2ProducerStatus, prepareEc2Producer, stopEc2Producer, validateEc2Scope } from '@/lib/production/hosted/ec2Worker'
 import { NextResponse } from 'next/server'
 import { requireEventOperatorAccess } from '@/lib/eventTeamAccess'
 import { supabaseAdmin } from '@/lib/supabase/admin'
@@ -17,8 +18,15 @@ async function handle(request: Request, context: Context) {
   const operation = '/' + path.join('/')
   if (request.method === 'POST' && (request.headers.get('origin') !== new URL(request.url).origin || !request.headers.get('content-type')?.startsWith('application/json'))) return Response.json({ error: 'Same-origin JSON required' }, { status: 403 })
   try {
+    const scope = { eventId: access.eventId, sessionId, actorId: access.user.id }
+    if (producerBackend() === 'ec2') {
+      validateEc2Scope(scope)
+      if (operation === '/infrastructure' && request.method === 'GET') return Response.json(await ec2ProducerStatus())
+      if (operation === '/stop-infrastructure' && request.method === 'POST') return Response.json(await stopEc2Producer(scope))
+    }
     if (operation === '/prepare' && request.method === 'POST') {
       if (!access.isGlobalAdmin) return Response.json({ error: 'Only the global administrator can prepare this paid single-use trial' }, { status: 403 })
+      if (producerBackend() === 'ec2') return Response.json(await prepareEc2Producer(scope))
       console.info('hosted-rehearsal-preflight', { nowMs: Date.now(), allowedUntilMs: Number(process.env.PRODUCER_ENGINE_TRIAL_ALLOWED_UNTIL_MS), transportConfigured: Boolean(process.env.LIVEKIT_URL?.startsWith('wss:')), apiKeyConfigured: Boolean(process.env.LIVEKIT_API_KEY), apiSecretConfigured: Boolean(process.env.LIVEKIT_API_SECRET), signingKeyConfigured: (process.env.PRODUCER_ENGINE_SECRET?.length ?? 0) >= 32 })
       return Response.json(await prepareHostedRehearsal({ eventId: access.eventId, sessionId, actorId: access.user.id }))
     }

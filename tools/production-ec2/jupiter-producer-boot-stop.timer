@@ -1,0 +1,8 @@
+[Unit]
+Description=Guest fallback for the independent AWS producer shutdown
+[Timer]
+OnBootSec=30min
+AccuracySec=1s
+Unit=jupiter-producer-boot-stop.service
+[Install]
+WantedBy=timers.target

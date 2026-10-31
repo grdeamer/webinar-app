@@ -1,0 +1,14 @@
+# Substitute only the approved hostname before installation.
+producer-engine.jupiter.events {
+  request_body {
+    max_size 100KB
+  }
+  @control path /control
+  handle @control {
+    reverse_proxy 127.0.0.1:8080
+  }
+  handle {
+    respond 404
+  }
+  # No access log: control bodies/capabilities are never recorded.
+}

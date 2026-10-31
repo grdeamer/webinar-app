@@ -1,0 +1,5 @@
+[Unit]
+Description=Stop dedicated producer EC2 after the per-boot safety bound
+[Service]
+Type=oneshot
+ExecStart=/sbin/shutdown -h now

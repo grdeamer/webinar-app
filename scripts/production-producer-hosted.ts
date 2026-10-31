@@ -24,7 +24,7 @@ const budgeted = sessionBudgetEnabled(process.env.PRODUCER_ENGINE_SESSION_CAP_US
 function networkBytes() {
   return readdirSync('/sys/class/net').filter(x => x !== 'lo').reduce((n, i) => n + ['rx_bytes', 'tx_bytes'].reduce((sum, k) => sum + Number(readFileSync(`/sys/class/net/${i}/statistics/${k}`, 'utf8')), 0), 0)
 }
-const networkStart = budgeted ? Number(readFileSync('/vercel/session-network-start.json', 'utf8')) : 0
+const networkStart = budgeted ? Number(readFileSync(process.env.PRODUCER_ENGINE_NETWORK_START_FILE || '/vercel/session-network-start.json', 'utf8')) : 0
 if (budgeted && (hourSoak || !Number.isSafeInteger(networkStart) || networkStart < 0)) throw new Error('Invalid session budget profile')
 const budgetTimer = budgeted ? setInterval(() => {
   try { if (sessionTrafficExceeded(networkBytes(), networkStart)) { console.info('Session traffic allowance reached; stopping media'); void stop() } }
