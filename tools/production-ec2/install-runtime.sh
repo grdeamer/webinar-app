@@ -25,6 +25,11 @@ cd /opt/jupiter-producer
 npm ci --ignore-scripts --no-audit --no-fund
 PLAYWRIGHT_BROWSERS_PATH=/opt/jupiter-producer/browsers npx playwright-core install --with-deps chromium
 chmod -R a+rX /opt/jupiter-producer
+# Ubuntu 24.04 restricts unprivileged user namespaces. Authorize only the
+# pinned, root-owned browser binary; retain the global restriction and Chromium
+# sandbox. The operator explicitly approved this host-specific exception.
+install -m 0644 tools/production-ec2/jupiter-producer-chromium.apparmor /etc/apparmor.d/jupiter-producer-chromium
+apparmor_parser -r /etc/apparmor.d/jupiter-producer-chromium
 install -m 0755 tools/production-ec2/start-engine.sh /opt/jupiter-producer/start-engine.sh
 install -m 0644 tools/production-ec2/jupiter-producer.service /etc/systemd/system/
 install -m 0644 tools/production-ec2/jupiter-producer-boot-stop.service /etc/systemd/system/
