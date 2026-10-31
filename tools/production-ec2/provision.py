@@ -4,6 +4,7 @@ One idempotently tagged instance. Never reads credentials or starts a second nod
 """
 import argparse
 import json
+import time
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 import boto3
@@ -58,6 +59,8 @@ def main():
     ec2.import_key_pair(KeyName=key_name, PublicKeyMaterial=(root / 'operator.pub').read_bytes(), TagSpecifications=[{'ResourceType': 'key-pair', 'Tags': tags}])
     user_data = (root / 'cloud-init.sh').read_text()
     assert 'PRIVATE KEY' not in user_data and 'LIVEKIT_API_SECRET' not in user_data
+    # Give newly created IAM trust time to propagate before paid launch.
+    time.sleep(15)
     instance_id = None
     try:
         result = ec2.run_instances(ImageId=AMI, InstanceType='c7i.2xlarge', MinCount=1, MaxCount=1, ClientToken=TAG, KeyName=key_name, NetworkInterfaces=[{'DeviceIndex': 0, 'SubnetId': subnet['SubnetId'], 'Groups': [sg], 'AssociatePublicIpAddress': True}], BlockDeviceMappings=[{'DeviceName': '/dev/sda1', 'Ebs': {'VolumeSize': 30, 'VolumeType': 'gp3', 'Encrypted': True, 'DeleteOnTermination': True}}], MetadataOptions={'HttpTokens': 'required', 'HttpEndpoint': 'enabled', 'HttpPutResponseHopLimit': 1}, InstanceInitiatedShutdownBehavior='stop', UserData=user_data, TagSpecifications=[{'ResourceType': kind, 'Tags': tags} for kind in ['instance', 'volume']])
@@ -86,7 +89,11 @@ def main():
         # Discover exact tag if RunInstances succeeded but its response was lost.
         ids = [instance_id] if instance_id else [i['InstanceId'] for r in ec2.describe_instances(Filters=[{'Name': 'tag:JupiterProducerDeployment', 'Values': [TAG]}])['Reservations'] for i in r['Instances'] if i['State']['Name'] in ['pending', 'running']]
         if ids:
-            ec2.stop_instances(InstanceIds=ids)
+            for iid in ids:
+                current = ec2.describe_instances(InstanceIds=[iid])['Reservations'][0]['Instances'][0]['State']['Name']
+                if current == 'pending':
+                    ec2.get_waiter('instance_running').wait(InstanceIds=[iid], WaiterConfig={'Delay': 5, 'MaxAttempts': 24})
+                ec2.stop_instances(InstanceIds=[iid])
         raise
 
 
