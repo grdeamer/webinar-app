@@ -59,8 +59,10 @@ export async function ownerCostReport() {
         const result = await new EC2Client(await awsOptions()).send(new DescribeInstancesCommand({ InstanceIds: [id] }))
         const instance = result.Reservations?.flatMap(r => r.Instances ?? [])[0]
         const state = instance?.State?.Name || 'unknown'
-        return { state, hourlyUsd: 0.357, currentRunComputeUsd: currentComputeEstimate(state, instance?.LaunchTime, now.getTime()), checkedAt: now.toISOString() }
-      } catch { return { state: 'unavailable', hourlyUsd: 0.357, currentRunComputeUsd: null, checkedAt: now.toISOString() } }
+        const deletedAt = instance?.Tags?.find(tag => tag.Key === 'JupiterIoLightsailDeletedAt')?.Value
+        const lightsailDeletedAt = deletedAt && Number.isFinite(Date.parse(deletedAt)) ? deletedAt : null
+        return { state, hourlyUsd: 0.357, currentRunComputeUsd: currentComputeEstimate(state, instance?.LaunchTime, now.getTime()), checkedAt: now.toISOString(), lightsailDeletedAt }
+      } catch { return { state: 'unavailable', hourlyUsd: 0.357, currentRunComputeUsd: null, checkedAt: now.toISOString(), lightsailDeletedAt: null } }
     })(),
   ])
   return {
@@ -71,7 +73,7 @@ export async function ownerCostReport() {
       { service: 'Supabase', monthlyUsd: 45.85, kind: 'Provider projection', asOf: '2026-10-31', note: 'Oct 6–Nov 6 billing cycle projection, including projects/branching. Not a fixed monthly fee.' },
       { service: 'Resend', monthlyUsd: 0, kind: 'Verified Free plan', asOf: '2026-10-31', note: 'Paid overages disabled at last verification.' },
       { service: 'LiveKit Cloud', monthlyUsd: 0, kind: 'Verified Build plan', asOf: '2026-11-01', note: 'Producer relay is self-hosted; former Jupiter Cloud key revoked.' },
-      { service: 'Io Lightsail receiver', monthlyUsd: process.env.JUPITER_IO_LIGHTSAIL_DELETED === 'true' ? 0 : 12, kind: 'Migration status', asOf: '2026-11-01', note: process.env.JUPITER_IO_LIGHTSAIL_DELETED === 'true' ? 'Deletion verified. Previously accrued charges may post later.' : 'Retained until migration and permanent deletion are verified. Stopping alone does not remove its storage charges.' },
+      { service: 'Io Lightsail receiver', monthlyUsd: infrastructure.lightsailDeletedAt ? 0 : 12, kind: 'Migration status', asOf: infrastructure.lightsailDeletedAt?.slice(0, 10) || '2026-11-01', note: infrastructure.lightsailDeletedAt ? 'Deletion verified and recorded on the EC2 receiver. Previously accrued charges may post later.' : infrastructure.state === 'unavailable' ? 'Deletion status unavailable; last known $12 rate retained conservatively.' : 'Retained until migration and permanent deletion are verified. Stopping alone does not remove its storage charges.' },
     ],
     exclusions: 'Domain renewal, Zoom/other subscriptions and unconnected provider overages are not included. AWS billing covers the entire AWS account and may include other workloads. Do not add current-run compute to AWS month-to-date: they overlap.',
     billingRefresh: 'At most one paid AWS billing request per UTC day, on owner visit; about $0.01/request, up to $0.31/month. Refreshing this panel does not force another billing request. AWS posting can lag 24–48 hours or longer.',
