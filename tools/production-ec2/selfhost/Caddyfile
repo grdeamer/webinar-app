@@ -1,0 +1,43 @@
+{
+  https_port 8443
+  auto_https disable_redirects
+  servers {
+    protocols h1 h2
+  }
+}
+http://producer-engine.jupiter.events, http://producer-rtc.jupiter.events, http://producer-turn.jupiter.events {
+  redir https://{host}{uri} 308
+}
+producer-engine.jupiter.events {
+  tls {
+    issuer acme {
+      disable_tlsalpn_challenge
+    }
+  }
+  request_body {
+    max_size 100KB
+  }
+  @control path /control
+  handle @control {
+    reverse_proxy 127.0.0.1:8080
+  }
+  handle {
+    respond 404
+  }
+}
+producer-rtc.jupiter.events {
+  tls {
+    issuer acme {
+      disable_tlsalpn_challenge
+    }
+  }
+  reverse_proxy 127.0.0.1:7880
+}
+producer-turn.jupiter.events {
+  tls {
+    issuer acme {
+      disable_tlsalpn_challenge
+    }
+  }
+  respond 404
+}

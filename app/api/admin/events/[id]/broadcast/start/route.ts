@@ -1,3 +1,4 @@
+import { liveEgressDisabled } from "@/lib/live/deploymentPolicy"
 import { NextResponse } from "next/server"
 import { getAppUrl } from "@/lib/email/resend"
 import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
@@ -23,6 +24,8 @@ export async function POST(request: Request, context: Params): Promise<Response>
   const { id } = await context.params
   const access = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
   if (access instanceof Response) return access
+
+  if (liveEgressDisabled()) return NextResponse.json({ ok: false, error: "RTMP export is not installed on the self-hosted relay. No Cloud fallback was started." }, { status: 503 })
 
   const body = await request.json().catch((): null => null) as Record<string, unknown> | null
   const destinationIds = normalizeDestinationIds(body?.destinationIds)

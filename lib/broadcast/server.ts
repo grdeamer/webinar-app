@@ -1,4 +1,5 @@
 import "server-only"
+import { assertLiveRecordingAllowed, assertLiveEgressAllowed, liveRecordingDisabled } from "@/lib/live/deploymentPolicy"
 
 import { createHash } from "node:crypto"
 import {
@@ -25,6 +26,7 @@ export function requiredBroadcastEnv(name: string, fallbackName?: string): strin
 }
 
 export function createBroadcastEgressClient(): EgressClient {
+  assertLiveEgressAllowed()
   return new EgressClient(
     requiredBroadcastEnv("LIVEKIT_URL", "NEXT_PUBLIC_LIVEKIT_URL"),
     requiredBroadcastEnv("LIVEKIT_API_KEY"),
@@ -41,6 +43,7 @@ export function isLiveKitBroadcastConfigured(): boolean {
 }
 
 export function isBroadcastRecordingConfigured(): boolean {
+  if (liveRecordingDisabled()) return false
   return Boolean(
     process.env.LIVEKIT_EGRESS_S3_BUCKET &&
     process.env.LIVEKIT_EGRESS_S3_REGION &&
@@ -50,6 +53,7 @@ export function isBroadcastRecordingConfigured(): boolean {
 }
 
 export function createBroadcastFileOutput(): EncodedFileOutput {
+  assertLiveRecordingAllowed()
   if (!isBroadcastRecordingConfigured()) {
     throw new Error("Jupiter Cloud recording storage is not configured for this broadcast.")
   }

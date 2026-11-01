@@ -18,7 +18,7 @@ const deadline = Number(process.env.PRODUCER_ENGINE_DEADLINE_MS)
 if (!Number.isSafeInteger(deadline) || deadline <= Date.now() || deadline > Date.now() + (hourSoak ? 70 : 30) * 60_000) throw new Error('Non-extendable hosted deadline within thirty minutes required')
 const directory = mkdtempSync(join(tmpdir(), 'jupiter-hosted-rehearsal-'))
 const runtime = new LocalHaRuntime(directory, { rehearsal: true, hostedHourSoak: hourSoak, ...(hourSoak ? { controlKey: randomBytes(32).toString('hex') } : {}), rehearsalDeadlineAtMs: deadline, bundledBrowser: true, transport: { url: process.env.LIVEKIT_URL || '', apiKey: process.env.LIVEKIT_API_KEY || '', apiSecret: process.env.LIVEKIT_API_SECRET || '' } })
-const producer = new LocalProducerRehearsal(runtime), verifier = new EngineVerifier()
+const producer = new LocalProducerRehearsal(runtime, { mediaUrl: process.env.LIVEKIT_URL }), verifier = new EngineVerifier()
 let ready = false, closing = false
 const budgeted = sessionBudgetEnabled(process.env.PRODUCER_ENGINE_SESSION_CAP_USD, hourSoak)
 function networkBytes() {

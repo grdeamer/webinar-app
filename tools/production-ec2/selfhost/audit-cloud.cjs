@@ -1,0 +1,4 @@
+const fs=require('node:fs');const {createRequire}=require('node:module');const requireApp=createRequire('/opt/jupiter-producer/package.json');const {RoomServiceClient,EgressClient}=requireApp('livekit-server-sdk');
+const env=Object.fromEntries(fs.readFileSync('/etc/jupiter-producer/engine.env','utf8').trim().split('\n').map(line=>{const i=line.indexOf('=');return [line.slice(0,i),JSON.parse(line.slice(i+1))]}));
+if(!new URL(env.LIVEKIT_URL).hostname.endsWith('.livekit.cloud'))throw new Error('Expected pre-cutover Cloud configuration');
+(async()=>{const rooms=await new RoomServiceClient(env.LIVEKIT_URL,env.LIVEKIT_API_KEY,env.LIVEKIT_API_SECRET).listRooms();const exports=await new EgressClient(env.LIVEKIT_URL,env.LIVEKIT_API_KEY,env.LIVEKIT_API_SECRET).listEgress({active:true});console.log(JSON.stringify({rooms:rooms.length,activeExports:exports.length}));})().catch(()=>{console.error('Cloud inventory could not be verified');process.exitCode=1});

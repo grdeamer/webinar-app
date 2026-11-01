@@ -122,9 +122,9 @@ export async function getPlatformCloudSnapshot() {
       ? { id: "storage", name: "Asset Cloud", layer: "Supabase Storage", state: stateForLatency(storage.latencyMs), latencyMs: storage.latencyMs, detail: `${storage.value.data?.length ?? 0} storage namespaces connected` }
       : { id: "storage", name: "Asset Cloud", layer: "Supabase Storage", state: "unavailable", latencyMs: storage.latencyMs, detail: storage.error },
     liveKit && liveKit.ok
-      ? { id: "media", name: "Media Cloud", layer: "LiveKit", state: stateForLatency(liveKit.latencyMs), latencyMs: liveKit.latencyMs, detail: `${liveKit.value.length} live media rooms visible` }
+      ? { id: "media", name: "Media Cloud", layer: process.env.LIVEKIT_DEPLOYMENT === "self-hosted" ? "Self-hosted LiveKit / EC2" : "LiveKit", state: stateForLatency(liveKit.latencyMs), latencyMs: liveKit.latencyMs, detail: `${liveKit.value.length} live media rooms visible` }
       : liveKit
-        ? { id: "media", name: "Media Cloud", layer: "LiveKit", state: "unavailable", latencyMs: liveKit.latencyMs, detail: liveKit.error }
+        ? { id: "media", name: "Media Cloud", layer: process.env.LIVEKIT_DEPLOYMENT === "self-hosted" ? "Self-hosted LiveKit / EC2" : "LiveKit", state: "unavailable", latencyMs: liveKit.latencyMs, detail: liveKit.error }
         : configuredService("media", "Media Cloud", "LiveKit", false, "Browser media configured"),
     configuredService("email", "Communications", "Resend", Boolean(process.env.RESEND_API_KEY), "Transactional delivery configured"),
     configuredService("delivery", "Delivery Cloud", "Vercel", Boolean(process.env.VERCEL || process.env.VERCEL_ENV), "Production runtime active"),

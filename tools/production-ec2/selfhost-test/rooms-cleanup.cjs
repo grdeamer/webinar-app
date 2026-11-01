@@ -1,0 +1,11 @@
+const fs = require('node:fs');
+const { createRequire } = require('node:module');
+const { RoomServiceClient } = createRequire('/opt/jupiter-producer/package.json')('livekit-server-sdk');
+const root = '/run/jupiter-selfhost-test/';
+const id = fs.readFileSync(root + 'runtime-id','utf8').trim();
+if (!/^[a-f0-9-]{36}$/.test(id)) throw new Error('Invalid exact runtime');
+const env = Object.fromEntries(fs.readFileSync(root+'engine.env','utf8').trim().split('\n').map(x=>{const i=x.indexOf('=');return [x.slice(0,i),JSON.parse(x.slice(i+1))]}));
+if (env.LIVEKIT_URL !== 'wss://producer-rtc-test.jupiter.events') throw new Error('Wrong relay');
+const api = new RoomServiceClient(env.LIVEKIT_URL.replace('wss:','https:'),env.LIVEKIT_API_KEY,env.LIVEKIT_API_SECRET);
+const names = ['ha-input-','ha-candidates-','ha-program-'].map(x=>x+id);
+(async()=>{for (const room of await api.listRooms(names)) await api.deleteRoom(room.name);if((await api.listRooms(names)).length)throw new Error('Owned rooms remain');console.log('Owned test rooms deleted and verified');})().catch(()=>{console.error('Owned room cleanup failed');process.exitCode=1;});

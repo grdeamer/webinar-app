@@ -7,6 +7,7 @@ import { LOCAL_SCOPE } from './localWorkbench.ts'
 import { commitProductionCommand } from './commandService.ts'
 import { ProductionError, type ProductionCommand } from './contracts.ts'
 import { identifier } from './validation.ts'
+import { mediaConnectSources } from './hosted/transportPolicy.ts'
 
 type SourceRole = 'source-a' | 'source-b'
 type Lease = { capability: string; kind: 'camera' | 'screen' | 'file'; expiresAtMs: number; sid: string | null }
@@ -22,9 +23,11 @@ export class LocalProducerRehearsal {
   readonly runtime: LocalHaRuntime
   private leases = new Map<SourceRole, Lease>()
   private sourceBusy = new Set<SourceRole>()
+  private readonly mediaSources: string
   private timer: ReturnType<typeof setInterval>
-  constructor(runtime: LocalHaRuntime) {
+  constructor(runtime: LocalHaRuntime, options: { mediaUrl?: string } = {}) {
     if (!runtime.rehearsal) throw new Error('Explicit rehearsal runtime required')
+    this.mediaSources = options.mediaUrl ? mediaConnectSources(options.mediaUrl) : 'ws://127.0.0.1:7980'
     this.runtime = runtime
     this.timer = setInterval(() => {
       for (const [role, lease] of this.leases) if (Date.now() >= lease.expiresAtMs && !this.sourceBusy.has(role)) void this.release(role).catch(() => {})
@@ -56,7 +59,7 @@ export class LocalProducerRehearsal {
       if (request.socket.localAddress !== '127.0.0.1' || request.headers.host !== '127.0.0.1:4311' || request.headers['sec-fetch-site'] === 'cross-site' || (request.headers.origin && request.headers.origin !== 'http://127.0.0.1:4311')) throw new Error('Same-origin loopback required')
       if (request.method === 'GET' && Object.hasOwn(staticFiles, path)) {
         const [file, mime] = staticFiles[path]
-        response.writeHead(200, { 'Content-Type': `${mime}; charset=utf-8`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': "default-src 'self'; script-src 'self'; connect-src 'self' ws://127.0.0.1:7980; media-src 'self' blob:; img-src 'self' blob:; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'", 'Permissions-Policy': 'camera=(self), microphone=(self), display-capture=(self)' }); response.end(readFileSync(resolve(import.meta.dirname, '../../tools/production-local', file))); return true
+        response.writeHead(200, { 'Content-Type': `${mime}; charset=utf-8`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': `default-src 'self'; script-src 'self'; connect-src 'self' ${this.mediaSources}; media-src 'self' blob:; img-src 'self' blob:; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`, 'Permissions-Policy': 'camera=(self), microphone=(self), display-capture=(self)' }); response.end(readFileSync(resolve(import.meta.dirname, '../../tools/production-local', file))); return true
       }
       if (request.method === 'GET' && path === '/api/producer/status') {
         send(200, { runtime: this.runtime.status(), state: this.runtime.store.read(LOCAL_SCOPE), sourceReports: this.runtime.session.sources, sources: Object.fromEntries((['source-a', 'source-b'] as const).map(role => [role, { kind: this.leases.get(role)?.kind || (this.runtime.sourceMedia[role] ? 'demo' : 'disconnected'), leaseExpiresAtMs: this.leases.get(role)?.expiresAtMs ?? null }])), recordingEnabled: false, externalServices: false }); return true

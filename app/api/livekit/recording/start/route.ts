@@ -1,3 +1,4 @@
+import { liveRecordingDisabled } from "@/lib/live/deploymentPolicy"
 import { NextResponse } from "next/server"
 import {
   EgressClient,
@@ -71,6 +72,8 @@ export async function POST(request: Request): Promise<NextResponse> {
 
     const access = await requireEventOperatorAccess(eventId)
     if (access instanceof Response) return access as NextResponse
+
+    if (liveRecordingDisabled()) return NextResponse.json({ ok: false, error: "Recording is disabled for this media deployment." }, { status: 403 })
 
     const room = await ensureEventLiveRoom({ eventId: access.eventId })
     const roomName = room.room_name
