@@ -1,9 +1,6 @@
 import { NextResponse } from 'next/server'
-import { randomUUID } from 'node:crypto'
 import { requireAdmin } from '@/lib/requireAdmin'
-import { supabaseAdmin } from '@/lib/supabase/admin'
 import { ec2ProducerStatus, prepareSharedEc2, stopSharedEc2 } from '@/lib/production/hosted/ec2Worker'
-import { SOURCE_TABLE } from '@/lib/zoom-bridge/source'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 const headers = { 'Cache-Control': 'private, no-store' }
@@ -19,12 +16,7 @@ export async function POST(request: Request) {
   try {
     const { action } = await request.json()
     if (action === 'start') {
-      const result = await prepareSharedEc2(async () => {
-        // A fresh boot never joins a previously requested meeting automatically.
-        const rooms = await supabaseAdmin.from('zoom_bridge_rooms').update({ desired_running: false, preview_until: null, revision: randomUUID() }).neq('id', '00000000-0000-0000-0000-000000000000')
-        const source = await supabaseAdmin.from(SOURCE_TABLE).update({ desired_running: false, revision: randomUUID() }).eq('id', 'program')
-        if (rooms.error || source.error) throw new Error('Could not clear saved connection requests')
-      })
+      const result = await prepareSharedEc2()
       return NextResponse.json(result, { headers })
     }
     if (action === 'stop') return NextResponse.json(await stopSharedEc2(), { headers })

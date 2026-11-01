@@ -5,6 +5,16 @@ import { fromWebToken } from '@aws-sdk/credential-providers'
 import { getVercelOidcToken } from '@vercel/oidc'
 import { startProducerEc2, stopProducerEc2, type ProducerEc2Port } from '../ec2Lifecycle.ts'
 import type { EngineScope } from './protocol.ts'
+import { randomUUID } from 'node:crypto'
+import { supabaseAdmin } from '@/lib/supabase/admin'
+async function clearIoConnectionRequests() {
+  if (process.env.JUPITER_IO_EC2_SHARED !== 'true') return
+  const [rooms, source] = await Promise.all([
+    supabaseAdmin.from('zoom_bridge_rooms').update({ desired_running: false, preview_until: null, revision: randomUUID() }).neq('id', '00000000-0000-0000-0000-000000000000'),
+    supabaseAdmin.from('zoom_bridge_source').update({ desired_running: false, revision: randomUUID() }).eq('id', 'program'),
+  ])
+  if (rooms.error || source.error) throw new Error('Could not clear saved Io connection requests')
+}
 export function producerBackend() {
   const backend = process.env.PRODUCER_ENGINE_BACKEND || 'sandbox'
   if (!['ec2', 'sandbox'].includes(backend)) throw new Error('Unknown producer backend')
@@ -38,10 +48,9 @@ async function port(): Promise<ProducerEc2Port> {
 }
 export async function ec2ProducerStatus() { const p = await port(); return { state: await p.state(), stopAtMs: await p.stopAt(), recordingEnabled: false, backend: 'ec2' } }
 /** Io shares this host and the same non-renewable 30-minute shutdown lease. */
-export async function prepareSharedEc2(prepare: () => Promise<void>) {
-  const p = await port()
-  return startProducerEc2({ ...p, async start() { await prepare(); await p.start() } })
+export async function prepareSharedEc2() {
+  return startProducerEc2(await port(), Date.now(), clearIoConnectionRequests)
 }
 export async function stopSharedEc2() { return stopProducerEc2(await port()) }
-export async function prepareEc2Producer(scope: EngineScope) { validateEc2Scope(scope); return startProducerEc2(await port()) }
+export async function prepareEc2Producer(scope: EngineScope) { validateEc2Scope(scope); return startProducerEc2(await port(), Date.now(), clearIoConnectionRequests) }
 export async function stopEc2Producer(scope: EngineScope) { validateEc2Scope(scope); return stopProducerEc2(await port()) }

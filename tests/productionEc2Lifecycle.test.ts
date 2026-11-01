@@ -35,3 +35,17 @@ test('an unreadable shutdown for an active instance stops it instead of renewing
   const f = fixture('running'); f.port.stopAt = async () => { throw Error('scheduler unavailable') }
   await assert.rejects(startProducerEc2(f.port, 100000)); assert.ok(f.calls.includes('stop')); assert.ok(!f.calls.includes('start'))
 })
+
+test('fresh connection preparation runs after shutdown verification and before paid start', async () => {
+  const f = fixture()
+  await startProducerEc2(f.port, 100000, async () => { f.calls.push('clear-connections') })
+  assert.deepEqual(f.calls, ['state', 'verify', 'arm', 'verify', 'clear-connections', 'start'])
+  const denied = fixture()
+  await assert.rejects(startProducerEc2(denied.port, 100000, async () => { throw Error('database unavailable') }))
+  assert.ok(!denied.calls.includes('start'))
+  for (const state of ['pending', 'running']) {
+    const active = fixture(state); active.deadline(200000)
+    await startProducerEc2(active.port, 100000, async () => { throw Error('must not reset active connections') })
+    assert.ok(!active.calls.includes('start'))
+  }
+})

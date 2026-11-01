@@ -10,7 +10,7 @@ export type ProducerEc2Port = {
 function validDeadline(deadline: number | null, now: number) {
   return deadline !== null && Number.isSafeInteger(deadline) && deadline > now + 60_000 && deadline <= now + PRODUCER_EC2_SESSION_MS
 }
-export async function startProducerEc2(port: ProducerEc2Port, now = Date.now()) {
+export async function startProducerEc2(port: ProducerEc2Port, now = Date.now(), prepare?: () => Promise<void>) {
   const state = await port.state()
   if (!['stopped', 'pending', 'running'].includes(state)) throw new Error('Wait for the producer engine to finish stopping')
   let stopAtMs: number | null
@@ -26,7 +26,7 @@ export async function startProducerEc2(port: ProducerEc2Port, now = Date.now()) 
     throw new Error('A valid automatic EC2 shutdown could not be verified; no new start allowed')
   }
   if (state === 'stopped') {
-    try { await port.start() }
+    try { if (prepare) await prepare(); await port.start() }
     catch { await port.stop(); throw new Error('EC2 start was not confirmed; stop requested and shutdown preserved') }
   }
   return { state: state === 'stopped' ? 'pending' : state, stopAtMs, recordingEnabled: false }
