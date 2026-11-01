@@ -31,6 +31,7 @@
     "prebuild": "node scripts/build-hosted-producer-bundle.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-cost-explorer": "3.1161.0",
     "@aws-sdk/client-ec2": "3.1152.0",
     "@aws-sdk/client-lightsail": "3.1152.0",
     "@aws-sdk/client-scheduler": "3.1152.0",

@@ -37,5 +37,11 @@ async function port(): Promise<ProducerEc2Port> {
   }
 }
 export async function ec2ProducerStatus() { const p = await port(); return { state: await p.state(), stopAtMs: await p.stopAt(), recordingEnabled: false, backend: 'ec2' } }
+/** Io shares this host and the same non-renewable 30-minute shutdown lease. */
+export async function prepareSharedEc2(prepare: () => Promise<void>) {
+  const p = await port()
+  return startProducerEc2({ ...p, async start() { await prepare(); await p.start() } })
+}
+export async function stopSharedEc2() { return stopProducerEc2(await port()) }
 export async function prepareEc2Producer(scope: EngineScope) { validateEc2Scope(scope); return startProducerEc2(await port()) }
 export async function stopEc2Producer(scope: EngineScope) { validateEc2Scope(scope); return stopProducerEc2(await port()) }

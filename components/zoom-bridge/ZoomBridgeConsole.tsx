@@ -15,6 +15,7 @@ import SatelliteMultiview from "./SatelliteMultiview"
 import IoGuideDialog from "./IoGuideDialog"
 import IoSetupHelp from "./IoSetupHelp"
 import SatelliteEditDialog from "./SatelliteEditDialog"
+import IoRuntimePanel from "./IoRuntimePanel"
 export default function ZoomBridgeConsole() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [editingId, setEditingId] = useState<string | null>(null)
@@ -86,6 +87,7 @@ export default function ZoomBridgeConsole() {
       <div><h1 className="text-4xl font-semibold tracking-tight">Jupiter Io</h1><p className="mt-2 text-lg tracking-wide text-slate-300">Route your program feed to multiple Zoom rooms.</p></div>
       <div className="flex flex-wrap items-center gap-3"><IoGuideDialog /><div className="flex items-center gap-2 rounded-full border border-slate-500/30 bg-[#07111b]/80 px-4 py-2 text-sm"><span className={`h-2.5 w-2.5 rounded-full ${joined ? "bg-emerald-400" : "bg-slate-500"}`} />{joined} satellite{joined === 1 ? "" : "s"} connected</div></div>
     </header>
+    <IoRuntimePanel />
     <div className="io-workspace-grid">
     <div className="io-source-column"><IoSetupHelp /><ZoomSourcePanel /></div>
     <div className="io-destination-column">

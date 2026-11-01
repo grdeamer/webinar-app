@@ -7,8 +7,8 @@ HEADER = struct.Struct('=8IQ')
 def output_profile(settings):
     width, height = int(settings.get('width', 1920)), int(settings.get('height', 1080))
     fps = int(settings.get('fps', 15))
-    if (width, height) not in ((1280, 720), (1920, 1080)) or fps != 15:
-        raise ValueError('Supported relay profiles: 720p or 1080p at 15 fps')
+    if (width, height) not in ((1280, 720), (1920, 1080)) or fps not in (15, 30):
+        raise ValueError('Supported relay profiles: 720p or 1080p at 15 or 30 fps')
     return width, height, fps
 
 def stamp(size, width=0, height=0, rate=0, channels=0):
@@ -33,9 +33,18 @@ class Ingest:
         now=time.monotonic()
         return {'status':'receiving' if now-self.video_time<2 else 'starting','kind':'srt','presenter':'HDMI program','inputResolutions':f'{self.width}x{self.height}' if self.frames else '', 'video':now-self.video_time<2,'audio':now-self.audio_time<2,'videoFrames':self.frames,'audioBlocks':self.blocks,'error':self.error}
     def video(self, stream):
+        due = None
         while not self.stop.is_set():
             frame=exact(stream,self.frame_bytes)
             if frame is None: break
+            # Decoded pipe reads may arrive in bursts even with continuous PTS.
+            # Pace the opt-in 30 fps profile before replacing the latest frame;
+            # otherwise consumers can miss intermediate frames in that burst.
+            if self.fps == 30:
+                now = time.monotonic()
+                if due is None or due < now - .1: due = now
+                if self.stop.wait(max(0, due-now)): break
+                due += 1 / self.fps
             self.write_frame(frame)
             self.video_time=time.monotonic();self.frames+=1;self.error=""
     def write_frame(self, frame):

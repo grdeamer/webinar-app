@@ -8,6 +8,8 @@ import { requireAdmin } from "@/lib/requireAdmin"
 import { featuresForEventRole, type EventTeamRole } from "@/lib/eventPermissions"
 import MissionControlTour from "@/components/admin/MissionControlTour"
 import TimeOfDayGreeting from "@/components/admin/TimeOfDayGreeting"
+import OwnerCostsPanel from "@/components/admin/OwnerCostsPanel"
+import { canViewCosts } from "@/lib/costs/policy"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -117,6 +119,8 @@ export default async function AdminDashboardPage() {
           {isGlobalAdmin ? <Link href="/admin/events/new" className="inline-flex h-11 items-center justify-center gap-2 rounded-xl border border-indigo-300/35 bg-gradient-to-r from-blue-600 to-violet-600 px-5 text-sm font-semibold shadow-[0_12px_34px_rgba(82,83,255,.2)] hover:brightness-110"><Plus size={17} />Create event</Link> : null}
         </div>
       </header>
+
+      {canViewCosts(user, profile.role) ? <OwnerCostsPanel /> : null}
 
       <section data-dashboard-tour="live" className="dashboard-command-panel relative overflow-hidden rounded-[28px] border border-blue-300/15 bg-[radial-gradient(circle_at_82%_18%,rgba(83,82,255,.16),transparent_34%),linear-gradient(135deg,rgba(10,18,39,.98),rgba(5,10,25,.96))] shadow-[0_30px_90px_rgba(0,0,0,.28)]">
         <div className="absolute inset-y-0 right-0 hidden w-[38%] bg-[linear-gradient(135deg,transparent,rgba(95,70,255,.06))] xl:block" />

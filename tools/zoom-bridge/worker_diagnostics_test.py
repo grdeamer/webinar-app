@@ -10,6 +10,13 @@ import controller
 from worker_diagnostics import ATTEMPTS, prepare_attempt, WorkerLog, finish_attempt
 
 class DiagnosticsTest(unittest.TestCase):
+    def test_production_paced_profile_requires_explicit_container_setting(self):
+        with patch.dict(os.environ, {'JUPITER_CONTAINER_WORKERS':'1','JUPITER_FRAME_RATE':'30'}, clear=True):
+            self.assertEqual(controller.test_frame_rate(), 30)
+            with patch.dict(os.environ, {'JUPITER_CONTAINER_WORKERS':'0'}):
+                self.assertEqual(controller.test_frame_rate(), 15)
+        with patch.dict(os.environ, {'JUPITER_CONTAINER_WORKERS':'1','JUPITER_FRAME_RATE':'60'}, clear=True):
+            self.assertEqual(controller.test_frame_rate(), 15)
     def test_reconnect_preserves_status_operation_and_logs(self):
         with tempfile.TemporaryDirectory() as directory:
             home = Path(directory)
@@ -50,6 +57,21 @@ class DiagnosticsTest(unittest.TestCase):
             self.assertFalse(controller.worker_join_allowed())
         with patch.dict(os.environ, {'JUPITER_WORKERS_HOLD': '1', 'JUPITER_TEST_SATELLITES': one+',invalid', 'JUPITER_TEST_EXPIRES': '200'}):
             self.assertFalse(controller.worker_join_allowed(one))
+
+    def test_three_room_allowlist_and_expiring_fps_profile(self):
+        ids = ['c6b26152-235d-4a33-af1f-55d1e3146201', 'c6b26152-235d-4a33-af1f-55d1e3146202', '367a8dc0-5027-4d8d-b16a-1f74d21cbeec']
+        env = {'JUPITER_WORKERS_HOLD':'1', 'JUPITER_TEST_SATELLITES':','.join(ids), 'JUPITER_TEST_EXPIRES':'200', 'JUPITER_TEST_CONTAINER':'1', 'JUPITER_TEST_FPS':'30', 'JUPITER_TEST_RUN_ID':'1950a70a-a594-4c5c-9cde-0fab0918a062'}
+        with patch.dict(os.environ, env), patch('controller.time.time', return_value=100):
+            self.assertTrue(all(controller.worker_join_allowed(rid) for rid in ids))
+            self.assertFalse(controller.worker_join_allowed())
+            self.assertEqual(controller.test_frame_rate(), 30)
+            with patch.dict(os.environ, {'JUPITER_TEST_CONTAINER':'0'}):
+                self.assertEqual(controller.test_frame_rate(), 15)
+            with patch.dict(os.environ, {'JUPITER_TEST_SATELLITES':','.join(ids + [ids[0]])}):
+                self.assertFalse(controller.worker_join_allowed(ids[0]))
+        with patch.dict(os.environ, env), patch('controller.time.time', return_value=201):
+            self.assertEqual(controller.test_frame_rate(), 15)
+            self.assertFalse(controller.worker_join_allowed(ids[0]))
 
     def test_history_is_bounded(self):
         with tempfile.TemporaryDirectory() as directory:
