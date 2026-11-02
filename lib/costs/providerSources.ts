@@ -3,13 +3,13 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { FocusAccumulator, supabaseConfigurationEstimate, type AddonSelection, type CostEstimate, type SupabaseProjectPrice } from './estimates'
 
 class CostSourceFailure extends Error {
-  constructor(readonly code: string) { super(code) }
+  constructor(readonly code: string, readonly diagnostic: unknown = null) { super(code) }
 }
 
 type Snapshot = { payload: CostEstimate | null; fetched_at: string | null; attempt_day: string; last_error: string | null }
 export type ProviderSource = { id: 'vercel' | 'supabase'; connected: boolean; estimate: CostEstimate | null; fetchedAt: string | null; stale: boolean; error: string | null }
-async function limitedJson(response: Response, stage: string) {
-  if (!response.ok) throw new CostSourceFailure(`${stage}_http_${response.status}`)
+async function limitedJson(response: Response, stage: string, allowError = false) {
+  if (!response.ok && !allowError) throw new CostSourceFailure(`${stage}_http_${response.status}`)
   const reader = response.body?.getReader()
   if (!reader) throw new Error('Missing response')
   const chunks: Uint8Array[] = []; let size = 0
@@ -26,7 +26,15 @@ async function vercelEstimate(now: Date): Promise<CostEstimate> {
   url.searchParams.set('from', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString())
   url.searchParams.set('to', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString())
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(45_000) })
-  if (!response.ok) throw new CostSourceFailure(`vercel_http_${response.status}`)
+  if (!response.ok) {
+    let diagnostic: unknown = null
+    try {
+      const body = await limitedJson(response, 'vercel', true)
+      const clean = (value: unknown) => typeof value === 'string' ? value.replaceAll(token, '[redacted]').replace(/Bearer\s+\S+/gi, '[redacted]').replace(/[A-Za-z0-9_-]{32,}/g, '[redacted]').slice(0, 400) : null
+      diagnostic = { code: clean(body.error?.code), message: clean(body.error?.message) }
+    } catch { /* Never retain an unfiltered provider response. */ }
+    throw new CostSourceFailure(`vercel_http_${response.status}`, diagnostic)
+  }
   if (!response.body) throw new CostSourceFailure('vercel_empty_response')
   const totals = new FocusAccumulator(), decoder = new TextDecoder(), reader = response.body.getReader()
   let bytes = 0, pending = ''
@@ -98,7 +106,9 @@ async function supabaseEstimate(now: Date): Promise<CostEstimate> {
     const estimate = supabaseConfigurationEstimate(plan, prices, now)
     if (!org.plan) estimate.limitations.push(`Organization base plan was verified in the billing dashboard on ${verifiedAt}; the public API did not expose it. Reverify after changing the subscription. This fallback expires after 93 days.`)
     return estimate
-  } catch { throw new CostSourceFailure('supabase_price_configuration_unsupported') }
+  } catch (failure) {
+    throw new CostSourceFailure('supabase_price_configuration_unsupported', { plan, reason: failure instanceof Error ? failure.message : 'Unknown calculator validation', projects: prices.map(project => ({ active: project.active, addons: project.addons.map(addon => ({ type: addon.type, price: addon.variant.price })) })) })
+  }
 }
 async function cachedSource(id: 'vercel' | 'supabase', now: Date): Promise<ProviderSource> {
   const connected = id === 'vercel' ? Boolean(process.env.COSTS_VERCEL_BILLING_TOKEN && process.env.COSTS_VERCEL_TEAM_ID) : Boolean(process.env.COSTS_SUPABASE_READ_TOKEN && process.env.COSTS_SUPABASE_ORG_SLUG)
@@ -112,13 +122,13 @@ async function cachedSource(id: 'vercel' | 'supabase', now: Date): Promise<Provi
       try {
         const payload = await (id === 'vercel' ? vercelEstimate(now) : supabaseEstimate(now))
         const fetchedAt = now.toISOString()
-        const saved = await supabaseAdmin.from('owner_provider_cost_cache').update({ payload, fetched_at: fetchedAt, last_error: null }).eq('id', id)
+        const saved = await supabaseAdmin.from('owner_provider_cost_cache').update({ payload, fetched_at: fetchedAt, last_error: null, last_diagnostic: null }).eq('id', id)
         if (saved.error) throw new Error('Cache write failed')
         row = { payload, fetched_at: fetchedAt, attempt_day: day, last_error: null }
       } catch (failure) {
         const code = failure instanceof CostSourceFailure ? failure.code : 'provider_response_or_transport_unavailable'
         const message = `Automatic refresh unavailable (${code}). Last successful estimate retained. Check the read-only connection; next scheduled attempt is tomorrow UTC.`
-        await supabaseAdmin.from('owner_provider_cost_cache').update({ last_error: message }).eq('id', id)
+        await supabaseAdmin.from('owner_provider_cost_cache').update({ last_error: message, last_diagnostic: failure instanceof CostSourceFailure ? failure.diagnostic : null }).eq('id', id)
         row = { ...row, last_error: message }
       }
     }
