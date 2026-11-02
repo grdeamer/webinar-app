@@ -18,7 +18,10 @@ test('Supabase deduplicates branches and applies one compute credit per organiza
   assert.equal(estimate.monthlyUsd, 25 + 2 * 720 * 0.02 - 10)
   assert.equal(estimate.reportedUsd, null)
   assert.throws(() => supabaseConfigurationEstimate('enterprise', [], now))
-  assert.throws(() => supabaseConfigurationEstimate('pro', [{ ...project, addons: [] }], now))
+  const partial = supabaseConfigurationEstimate('pro', [{ ...project, addons: [] }, { ...project, ref: 'two' }], now)
+  assert.equal(partial.unpricedItems, 1)
+  assert.match(partial.limitations[0], /excluded.*not assumed to be zero/)
+  assert.equal(combinedMonthlyEstimate([{ ...partial, stale: false }], []).complete, false)
 })
 test('unknown subscriptions make total partial; annual costs are prorated', () => {
   const result = combinedMonthlyEstimate([{ monthlyUsd: 30, stale: false }], [

@@ -1,4 +1,5 @@
 export type CostEstimate = {
+  unpricedItems?: number
   monthlyUsd: number
   reportedUsd: number | null
   periodStart: string | null
@@ -58,11 +59,13 @@ export function supabaseConfigurationEstimate(plan: string | undefined, projects
   let compute = 0
   const seen = new Set<string>()
   const variable = new Set<string>()
+  const unpriced: string[] = []
   for (const project of projects) {
     if (seen.has(project.ref)) continue
     seen.add(project.ref)
     const selectedCompute = project.addons.filter(addon => addon.type === 'compute_instance')
-    if (plan === 'pro' && project.active && selectedCompute.length !== 1) throw new Error('Active compute price is unavailable')
+    if (selectedCompute.length > 1) throw new Error('Ambiguous compute price')
+    if (plan === 'pro' && project.active && selectedCompute.length === 0) unpriced.push(`Compute price unavailable for active project or branch: ${project.name}. Its cost is excluded from this known subtotal, not assumed to be zero.`)
     for (const addon of project.addons) {
       const { price } = addon.variant
       const amount = finiteMoney(price.amount)
@@ -79,15 +82,15 @@ export function supabaseConfigurationEstimate(plan: string | undefined, projects
     }
   }
   if (plan === 'pro') details.push({ name: 'Included organization compute credit (applied once)', usd: -Math.min(10, compute) })
-  return { monthlyUsd: details.reduce((sum, row) => sum + row.usd, 0), reportedUsd: null, periodStart: null, periodEnd: null,
+  return { monthlyUsd: details.reduce((sum, row) => sum + row.usd, 0), unpricedItems: unpriced.length, reportedUsd: null, periodStart: null, periodEnd: null,
     basis: 'Current plan and selected add-ons at continuous current operation for this calendar month; hourly prices use the actual number of hours in the month.',
     scope: 'Configured Supabase organization, including discovered active branches', details,
-    limitations: ['Configuration estimate, not the current Supabase invoice. Past changes, deleted branches and already-accrued charges are not reconstructed.', 'Metered overages above included allowances are not exposed by this public API and are not included.', ...[...variable].map(name => `Usage-based add-on not priced: ${name}`)] }
+    limitations: [...unpriced, 'Configuration estimate, not the current Supabase invoice. Past changes, deleted branches and already-accrued charges are not reconstructed.', 'Metered overages above included allowances are not exposed by this public API and are not included.', ...[...variable].map(name => `Usage-based add-on not priced: ${name}`)] }
 }
 
 export type AdditionalCost = { id: string; label: string; amount_usd: number | null; interval: 'monthly' | 'annual'; not_used: boolean; confirmed_at: string | null }
-export function combinedMonthlyEstimate(sources: { monthlyUsd: number | null; stale: boolean }[], extras: AdditionalCost[]) {
-  const unknown = sources.filter(source => source.monthlyUsd === null).length + extras.filter(row => !row.not_used && row.amount_usd === null).length
+export function combinedMonthlyEstimate(sources: { monthlyUsd: number | null; stale: boolean; unpricedItems?: number }[], extras: AdditionalCost[]) {
+  const unknown = sources.filter(source => source.monthlyUsd === null).length + sources.reduce((sum, source) => sum + (source.unpricedItems ?? 0), 0) + extras.filter(row => !row.not_used && row.amount_usd === null).length
   const sourcesTotal = sources.reduce((sum, source) => sum + (source.monthlyUsd ?? 0), 0)
   const extraTotal = extras.reduce((sum, row) => sum + (row.not_used || row.amount_usd === null ? 0 : row.amount_usd / (row.interval === 'annual' ? 12 : 1)), 0)
   return { monthlyUsd: sourcesTotal + extraTotal, unknown, staleSources: sources.filter(source => source.stale).length, complete: unknown === 0 }

@@ -76,7 +76,7 @@ export async function ownerCostReport() {
   const awsStale = Boolean(billing.error) || !billing.fetchedAt || now.getTime() - Date.parse(billing.fetchedAt) > 36 * 3_600_000
   const monthly = combinedMonthlyEstimate([
     { monthlyUsd: awsMonthly, stale: awsStale },
-    ...providers.map(provider => ({ monthlyUsd: provider.estimate?.monthlyUsd ?? null, stale: provider.stale })),
+    ...providers.map(provider => ({ monthlyUsd: provider.estimate?.monthlyUsd ?? null, stale: provider.stale, unpricedItems: provider.estimate?.unpricedItems })),
   ], [])
   return {
     monthly: { ...monthly, complete: false, unknown: monthly.unknown + 1, note: 'Known service subtotal. Resend and LiveKit Cloud were last verified at $0; domain renewal, Zoom, GitHub, Jotform and other unconfirmed subscriptions or metered overages remain excluded.' },
