@@ -1,6 +1,7 @@
 import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { FocusAccumulator, supabaseConfigurationEstimate, type AddonSelection, type CostEstimate, type SupabaseProjectPrice } from './estimates'
+import { billingTokenInput } from './tokenInput'
 
 class CostSourceFailure extends Error {
   constructor(readonly code: string, readonly diagnostic: unknown = null) { super(code) }
@@ -19,19 +20,21 @@ async function limitedJson(response: Response, stage: string, allowError = false
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 async function vercelEstimate(now: Date): Promise<CostEstimate> {
-  const token = process.env.COSTS_VERCEL_BILLING_TOKEN?.trim(), team = process.env.COSTS_VERCEL_TEAM_ID
+  const { value: token, diagnostic: inputDiagnostic } = billingTokenInput(process.env.COSTS_VERCEL_BILLING_TOKEN)
+  const team = process.env.COSTS_VERCEL_TEAM_ID
   if (!token || !team || !/^team_[a-zA-Z0-9]+$/.test(team)) throw new Error('Billing connection missing')
+  if (inputDiagnostic.placeholder || inputDiagnostic.integrationClientId) throw new CostSourceFailure('vercel_wrong_credential_value', { input: inputDiagnostic })
   const url = new URL('https://api.vercel.com/v1/billing/charges')
   url.searchParams.set('teamId', team)
   url.searchParams.set('from', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString())
   url.searchParams.set('to', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString())
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(45_000) })
   if (!response.ok) {
-    let diagnostic: unknown = null
+    let diagnostic: unknown = { input: inputDiagnostic }
     try {
       const body = await limitedJson(response, 'vercel', true)
       const clean = (value: unknown) => typeof value === 'string' ? value.replaceAll(token, '[redacted]').replace(/Bearer\s+\S+/gi, '[redacted]').replace(/[A-Za-z0-9_-]{32,}/g, '[redacted]').slice(0, 400) : null
-      diagnostic = { code: clean(body.error?.code), message: clean(body.error?.message) }
+      diagnostic = { code: clean(body.error?.code), message: clean(body.error?.message), input: inputDiagnostic }
     } catch { /* Never retain an unfiltered provider response. */ }
     throw new CostSourceFailure(`vercel_http_${response.status}`, diagnostic)
   }
