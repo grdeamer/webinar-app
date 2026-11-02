@@ -50,7 +50,7 @@ export default function OwnerCostsPanel() {
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2">{report.providers.map(provider => <article key={provider.id} className="rounded-xl border border-white/10 p-4">
         <h3 className="font-medium">{provider.id === 'vercel' ? 'Vercel' : 'Supabase'} · {provider.id === 'supabase' ? 'configuration estimate' : 'billing spend-rate estimate'}</h3>
-        <div className="mt-2 text-2xl">{provider.estimate ? dollars.format(provider.estimate.monthlyUsd) : 'Not connected'}<span className="text-xs text-white/50">{provider.estimate ? ' /month' : ''}</span></div>
+        <div className="mt-2 text-2xl">{provider.estimate ? dollars.format(provider.estimate.monthlyUsd) : provider.connected ? 'Estimate unavailable' : 'Not connected'}<span className="text-xs text-white/50">{provider.estimate ? ' /month' : ''}</span></div>
         <p className="mt-2 text-xs text-white/50">Updated {timestamp(provider.fetchedAt)}{provider.stale ? ' · stale / incomplete' : ''}</p>
         {provider.error ? <p className="mt-2 text-xs text-amber-200">{provider.error}</p> : null}
         {provider.estimate ? <details className="mt-3 text-xs text-white/60"><summary className="cursor-pointer">Calculation and coverage</summary>

@@ -2,10 +2,14 @@ import 'server-only'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { FocusAccumulator, supabaseConfigurationEstimate, type AddonSelection, type CostEstimate, type SupabaseProjectPrice } from './estimates'
 
+class CostSourceFailure extends Error {
+  constructor(readonly code: string) { super(code) }
+}
+
 type Snapshot = { payload: CostEstimate | null; fetched_at: string | null; attempt_day: string; last_error: string | null }
 export type ProviderSource = { id: 'vercel' | 'supabase'; connected: boolean; estimate: CostEstimate | null; fetchedAt: string | null; stale: boolean; error: string | null }
-async function limitedJson(response: Response) {
-  if (!response.ok) throw new Error('Provider request unavailable')
+async function limitedJson(response: Response, stage: string) {
+  if (!response.ok) throw new CostSourceFailure(`${stage}_http_${response.status}`)
   const reader = response.body?.getReader()
   if (!reader) throw new Error('Missing response')
   const chunks: Uint8Array[] = []; let size = 0
@@ -15,14 +19,15 @@ async function limitedJson(response: Response) {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
 async function vercelEstimate(now: Date): Promise<CostEstimate> {
-  const token = process.env.COSTS_VERCEL_BILLING_TOKEN, team = process.env.COSTS_VERCEL_TEAM_ID
+  const token = process.env.COSTS_VERCEL_BILLING_TOKEN?.trim(), team = process.env.COSTS_VERCEL_TEAM_ID
   if (!token || !team || !/^team_[a-zA-Z0-9]+$/.test(team)) throw new Error('Billing connection missing')
   const url = new URL('https://api.vercel.com/v1/billing/charges')
   url.searchParams.set('teamId', team)
   url.searchParams.set('from', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString())
   url.searchParams.set('to', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1)).toISOString())
   const response = await fetch(url, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(45_000) })
-  if (!response.ok || !response.body) throw new Error('Billing feed unavailable')
+  if (!response.ok) throw new CostSourceFailure(`vercel_http_${response.status}`)
+  if (!response.body) throw new CostSourceFailure('vercel_empty_response')
   const totals = new FocusAccumulator(), decoder = new TextDecoder(), reader = response.body.getReader()
   let bytes = 0, pending = ''
   try {
@@ -41,17 +46,18 @@ async function vercelEstimate(now: Date): Promise<CostEstimate> {
 }
 function isRef(ref: unknown): ref is string { return typeof ref === 'string' && /^[a-z]{20}$/.test(ref) }
 async function supabaseEstimate(now: Date): Promise<CostEstimate> {
-  const token = process.env.COSTS_SUPABASE_READ_TOKEN, slug = process.env.COSTS_SUPABASE_ORG_SLUG
+  const token = process.env.COSTS_SUPABASE_READ_TOKEN?.trim(), slug = process.env.COSTS_SUPABASE_ORG_SLUG
   if (!token || !slug || !/^[\w-]{1,100}$/.test(slug)) throw new Error('Organization connection missing')
   let calls = 0
   const budget = AbortSignal.timeout(85_000)
   async function get(path: string) {
     if (++calls > 40) throw new Error('Organization inventory limit')
-    return limitedJson(await fetch(`https://api.supabase.com/v1/${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', redirect: 'error', signal: AbortSignal.any([budget, AbortSignal.timeout(15_000)]) }))
+    const stage = path.endsWith('/billing/addons') ? 'supabase_addons' : path.endsWith('/branches') ? 'supabase_branches' : path.endsWith('/projects') ? 'supabase_inventory' : path.startsWith('organizations/') ? 'supabase_organization' : 'supabase_project'
+    return limitedJson(await fetch(`https://api.supabase.com/v1/${path}`, { headers: { Authorization: `Bearer ${token}` }, cache: 'no-store', redirect: 'error', signal: AbortSignal.any([budget, AbortSignal.timeout(15_000)]) }), stage)
   }
   const org = await get(`organizations/${encodeURIComponent(slug)}`)
   const inventory = await get(`organizations/${encodeURIComponent(slug)}/projects`)
-  if (!org?.id || !Array.isArray(inventory.projects) || inventory.pagination?.count !== inventory.projects.length) throw new Error('Incomplete organization inventory')
+  if (!org?.id || !Array.isArray(inventory.projects) || inventory.pagination?.count !== inventory.projects.length) throw new CostSourceFailure('supabase_inventory_incomplete')
   const owned = inventory.projects as { ref: string; name: string; status: string; is_branch: boolean }[]
   if (!owned.length) throw new Error('No projects in organization scope')
   const projects = new Map<string, { name: string; status?: string }>()
@@ -83,7 +89,8 @@ async function supabaseEstimate(now: Date): Promise<CostEstimate> {
     })
     prices.push({ ref, name: project.name, active, addons })
   }
-  return supabaseConfigurationEstimate(org.plan, prices, now)
+  if (!org.plan) throw new CostSourceFailure('supabase_plan_not_exposed')
+  try { return supabaseConfigurationEstimate(org.plan, prices, now) } catch { throw new CostSourceFailure('supabase_price_configuration_unsupported') }
 }
 async function cachedSource(id: 'vercel' | 'supabase', now: Date): Promise<ProviderSource> {
   const connected = id === 'vercel' ? Boolean(process.env.COSTS_VERCEL_BILLING_TOKEN && process.env.COSTS_VERCEL_TEAM_ID) : Boolean(process.env.COSTS_SUPABASE_READ_TOKEN && process.env.COSTS_SUPABASE_ORG_SLUG)
@@ -100,8 +107,9 @@ async function cachedSource(id: 'vercel' | 'supabase', now: Date): Promise<Provi
         const saved = await supabaseAdmin.from('owner_provider_cost_cache').update({ payload, fetched_at: fetchedAt, last_error: null }).eq('id', id)
         if (saved.error) throw new Error('Cache write failed')
         row = { payload, fetched_at: fetchedAt, attempt_day: day, last_error: null }
-      } catch {
-        const message = 'Automatic refresh unavailable. Last successful estimate retained; check the read-only connection. Next scheduled attempt is tomorrow UTC.'
+      } catch (failure) {
+        const code = failure instanceof CostSourceFailure ? failure.code : 'provider_response_or_transport_unavailable'
+        const message = `Automatic refresh unavailable (${code}). Last successful estimate retained. Check the read-only connection; next scheduled attempt is tomorrow UTC.`
         await supabaseAdmin.from('owner_provider_cost_cache').update({ last_error: message }).eq('id', id)
         row = { ...row, last_error: message }
       }
