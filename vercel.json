@@ -4,5 +4,11 @@
     "deploymentEnabled": {
       "codex/producer-self-hosted-livekit": false
     }
-  }
+  },
+  "crons": [
+    {
+      "path": "/api/internal/costs/refresh",
+      "schedule": "15 13 * * *"
+    }
+  ]
 }

@@ -1,0 +1,10 @@
+import type { Metadata } from 'next'
+export const metadata: Metadata = { title: 'Jupiter private billing reader', robots: { index: false, follow: false } }
+export default function BillingReaderDocumentation() {
+  return <main className="mx-auto max-w-2xl space-y-8 px-6 py-16 text-sm leading-7">
+    <h1 className="text-3xl font-semibold">Jupiter private billing reader</h1>
+    <section><h2 className="text-xl font-medium">Purpose and permissions</h2><p>This internal connection supplies daily cost estimates to Jupiter’s private owner dashboard. Vercel access is limited to reading billing charges and the integration’s own installation metadata. It cannot deploy, change projects, read environment variables, or modify billing. Supabase uses a separate read-only metadata connection to estimate the current plan, compute and add-ons.</p></section>
+    <section id="privacy"><h2 className="text-xl font-medium">Data handling</h2><p>Billing amounts, service breakdowns and current configuration estimates are cached server-side. Dashboard access requires the confirmed Jupiter owner account and an active administrator role. Credentials remain in server-only configuration. This connection does not read event media or enable recording. Financial data is not made available to attendees or other administrator accounts.</p><p>Provider billing can be delayed. Supabase configuration prices omit unmeasured usage and are not an invoice. Unknown expenses remain identified as excluded.</p></section>
+    <section id="terms"><h2 className="text-xl font-medium">Existing account terms</h2><p>This is a private internal reporting tool, not a separately sold service or subscription. It does not change existing Jupiter or provider agreements, pricing, payment obligations or account permissions. Your providers’ invoices remain authoritative. Disconnecting its read-only credential stops future automatic refreshes; previously cached estimates may remain available with their last-update date.</p></section>
+  </main>
+}

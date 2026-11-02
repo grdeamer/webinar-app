@@ -36,11 +36,30 @@ export default function OwnerCostsPanel() {
     </header>
     <div aria-live="polite">{error ? <p role="alert" className="mt-4 text-sm text-amber-200">{error}</p> : null}</div>
     {report ? <>
+      <div className="mt-5 rounded-xl border border-blue-300/20 bg-blue-400/[.05] p-4">
+        <div className="text-xs text-white/60">Estimated monthly known subtotal · partial coverage</div>
+        <div className="mt-2 text-3xl font-semibold">{dollars.format(report.monthly.monthlyUsd)}<span className="text-sm font-normal text-white/50">/month</span></div>
+        <p className="mt-2 text-xs text-white/55">{report.monthly.note}</p>
+        <p className="mt-2 text-xs text-white/50">AWS portion: {report.awsMonthly === null ? 'unavailable' : dollars.format(report.awsMonthly)} monthly run-rate projection from posted account charges, with a $6.05 known standby floor. Future event hours and transfer can increase it. Standby is counted once.</p>
+        <p className="mt-2 text-xs text-amber-200">{report.monthly.unknown} missing provider or subscription groups. {report.monthly.staleSources} stale provider estimates. Unknown charges are excluded, never treated as zero.</p>
+      </div>
       <div className="mt-5 grid gap-4 md:grid-cols-3">
         <div className="rounded-xl border border-white/10 bg-white/[.025] p-4"><div className="text-xs text-white/50">AWS account · month to date</div><div className="mt-2 text-3xl font-semibold">{bill ? dollars.format(bill.totalUsd) : 'Unavailable'}</div><div className="mt-2 text-xs text-white/50">{bill ? `${bill.periodStart} through ${bill.periodEnd} (end exclusive) · ${bill.complete ? 'all returned services' : 'partial result'}` : 'Awaiting a successful provider refresh'}</div><div className="mt-2 text-xs text-white/50">Updated {timestamp(report.billing.fetchedAt)}</div></div>
         <div className="rounded-xl border border-white/10 bg-white/[.025] p-4"><div className="text-xs text-white/50">EC2 compute right now</div><div className="mt-2 text-3xl font-semibold">{report.infrastructure.state === 'stopped' ? '$0/hour' : report.infrastructure.state === 'running' ? '$0.357/hour' : 'Check status'}</div><div className="mt-2 text-sm text-white/60">Server {report.infrastructure.state}</div><div className="mt-2 text-xs text-white/50">{report.infrastructure.currentRunComputeUsd !== null ? `${dollars.format(report.infrastructure.currentRunComputeUsd)} estimated compute since this boot; transfer extra.` : 'Disk and stable IP remain billable while stopped.'}</div></div>
         <div className="rounded-xl border border-white/10 bg-white/[.025] p-4"><div className="text-xs text-white/50">EC2 standby estimate</div><div className="mt-2 text-3xl font-semibold">$6.05<span className="text-sm font-normal text-white/50">/month</span></div><div className="mt-2 text-xs text-white/50">Retained disk and IPv4 only. This is a rate estimate, not an additional charge to add to AWS month-to-date.</div></div>
       </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2">{report.providers.map(provider => <article key={provider.id} className="rounded-xl border border-white/10 p-4">
+        <h3 className="font-medium">{provider.id === 'vercel' ? 'Vercel' : 'Supabase'} · {provider.id === 'supabase' ? 'configuration estimate' : 'billing spend-rate estimate'}</h3>
+        <div className="mt-2 text-2xl">{provider.estimate ? dollars.format(provider.estimate.monthlyUsd) : 'Not connected'}<span className="text-xs text-white/50">{provider.estimate ? ' /month' : ''}</span></div>
+        <p className="mt-2 text-xs text-white/50">Updated {timestamp(provider.fetchedAt)}{provider.stale ? ' · stale / incomplete' : ''}</p>
+        {provider.error ? <p className="mt-2 text-xs text-amber-200">{provider.error}</p> : null}
+        {provider.estimate ? <details className="mt-3 text-xs text-white/60"><summary className="cursor-pointer">Calculation and coverage</summary>
+          <p className="mt-2">{provider.estimate.basis}</p><p className="mt-2">{provider.estimate.scope}</p>
+          {provider.estimate.reportedUsd !== null ? <p className="mt-2">Reported {dollars.format(provider.estimate.reportedUsd)} · {timestamp(provider.estimate.periodStart)} to {timestamp(provider.estimate.periodEnd)}</p> : null}
+          <ul className="mt-2 space-y-1">{provider.estimate.details.map(row => <li key={row.name}>{row.name}: {dollars.format(row.usd)}</li>)}</ul>
+          {provider.estimate.limitations.map(note => <p className="mt-2" key={note}>{note}</p>)}
+        </details> : null}
+      </article>)}</div>
       {report.billing.error ? <p className="mt-3 text-sm text-amber-200">{report.billing.error}</p> : null}
       <details className="mt-5 border-t border-white/10 pt-4"><summary className="cursor-pointer text-sm font-medium">Service estimates and billing freshness</summary>
         <div className="mt-3 overflow-x-auto"><table className="w-full text-left text-sm"><thead><tr className="border-b border-white/10 text-white/50"><th className="py-2 pr-4">Service</th><th className="pr-4">Monthly amount</th><th>Basis / last verified</th></tr></thead><tbody>{report.recurring.map(row => <tr key={row.service} className="border-b border-white/[.06]"><td className="py-3 pr-4 align-top">{row.service}</td><td className="pr-4 align-top whitespace-nowrap">{dollars.format(row.monthlyUsd)}</td><td className="py-3"><div>{row.kind} · {row.asOf}</div><div className="mt-1 text-xs text-white/45">{row.note}</div></td></tr>)}</tbody></table></div>

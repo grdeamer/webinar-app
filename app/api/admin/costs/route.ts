@@ -5,6 +5,7 @@ import { canViewCosts } from '@/lib/costs/policy'
 import { ownerCostReport } from '@/lib/costs/report'
 
 export const runtime = 'nodejs'
+export const maxDuration = 120
 export const dynamic = 'force-dynamic'
 export async function GET() {
   const client = await createClient()

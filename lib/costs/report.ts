@@ -5,6 +5,8 @@ import { fromWebToken } from '@aws-sdk/credential-providers'
 import { getVercelOidcToken } from '@vercel/oidc'
 import { supabaseAdmin } from '@/lib/supabase/admin'
 import { billingPeriod, currentComputeEstimate } from './policy'
+import { providerSources } from './providerSources'
+import { combinedMonthlyEstimate, monthHours } from './estimates'
 
 type AwsBill = { periodStart: string; periodEnd: string; estimated: boolean; complete: boolean; totalUsd: number; services: { name: string; usd: number }[] }
 type CacheRow = { payload: AwsBill | null; fetched_at: string | null; attempt_day: string; last_error: string | null }
@@ -50,7 +52,7 @@ async function awsBilling(now: Date) {
 }
 export async function ownerCostReport() {
   const now = new Date()
-  const [billing, infrastructure] = await Promise.all([
+  const [billing, infrastructure, providers] = await Promise.all([
     awsBilling(now),
     (async () => {
       try {
@@ -64,18 +66,29 @@ export async function ownerCostReport() {
         return { state, hourlyUsd: 0.357, currentRunComputeUsd: currentComputeEstimate(state, instance?.LaunchTime, now.getTime()), checkedAt: now.toISOString(), lightsailDeletedAt }
       } catch { return { state: 'unavailable', hourlyUsd: 0.357, currentRunComputeUsd: null, checkedAt: now.toISOString(), lightsailDeletedAt: null } }
     })(),
+    providerSources(now),
   ])
+  // Account billing and infrastructure rates overlap; include AWS once, with a
+  // conservative known standby floor. This is a planning run rate, not an invoice.
+  const elapsedDays = Math.max(1, now.getUTCDate() - 1)
+  const currentMonth = now.toISOString().slice(0, 7)
+  const awsMonthly = billing.payload?.complete && billing.payload.periodStart.startsWith(currentMonth) ? Math.max(6.05, billing.payload.totalUsd / elapsedDays * monthHours(now) / 24) : null
+  const awsStale = Boolean(billing.error) || !billing.fetchedAt || now.getTime() - Date.parse(billing.fetchedAt) > 36 * 3_600_000
+  const monthly = combinedMonthlyEstimate([
+    { monthlyUsd: awsMonthly, stale: awsStale },
+    ...providers.map(provider => ({ monthlyUsd: provider.estimate?.monthlyUsd ?? null, stale: provider.stale })),
+  ], [])
   return {
+    monthly: { ...monthly, complete: false, unknown: monthly.unknown + 1, note: 'Known service subtotal. Resend and LiveKit Cloud were last verified at $0; domain renewal, Zoom, GitHub, Jotform and other unconfirmed subscriptions or metered overages remain excluded.' },
+    awsMonthly, providers,
     checkedAt: now.toISOString(), billing, infrastructure,
     recurring: [
       { service: 'EC2 retained disk + IPv4', monthlyUsd: 6.05, kind: 'Estimate', asOf: '2026-11-01', note: '30 GB gp3 and one stable IPv4; charged while stopped. Compute and transfer extra.' },
-      { service: 'Vercel website', monthlyUsd: 20, kind: 'Base estimate', asOf: '2026-10-31', note: 'One-seat Pro base. Builds, functions and other usage extra; no live billing API connected.' },
-      { service: 'Supabase', monthlyUsd: 45.85, kind: 'Provider projection', asOf: '2026-10-31', note: 'Oct 6–Nov 6 billing cycle projection, including projects/branching. Not a fixed monthly fee.' },
       { service: 'Resend', monthlyUsd: 0, kind: 'Verified Free plan', asOf: '2026-10-31', note: 'Paid overages disabled at last verification.' },
       { service: 'LiveKit Cloud', monthlyUsd: 0, kind: 'Verified Build plan', asOf: '2026-11-01', note: 'Producer relay is self-hosted; former Jupiter Cloud key revoked.' },
       { service: 'Io Lightsail receiver', monthlyUsd: infrastructure.lightsailDeletedAt ? 0 : 12, kind: 'Migration status', asOf: infrastructure.lightsailDeletedAt?.slice(0, 10) || '2026-11-01', note: infrastructure.lightsailDeletedAt ? 'Deletion verified and recorded on the EC2 receiver. Previously accrued charges may post later.' : infrastructure.state === 'unavailable' ? 'Deletion status unavailable; last known $12 rate retained conservatively.' : 'Retained until migration and permanent deletion are verified. Stopping alone does not remove its storage charges.' },
     ],
     exclusions: 'Domain renewal, Zoom/other subscriptions and unconnected provider overages are not included. AWS billing covers the entire AWS account and may include other workloads. Do not add current-run compute to AWS month-to-date: they overlap.',
-    billingRefresh: 'At most one paid AWS billing request per UTC day, on owner visit; about $0.01/request, up to $0.31/month. Refreshing this panel does not force another billing request. AWS posting can lag 24–48 hours or longer.',
+    billingRefresh: 'At most one paid AWS billing request per UTC day, through the daily schedule or first owner visit; about $0.01/request, up to $0.31/month. Refreshing this panel does not force another billing request. AWS posting can lag 24–48 hours or longer.',
   }
 }
