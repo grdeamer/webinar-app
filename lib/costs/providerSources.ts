@@ -89,8 +89,16 @@ async function supabaseEstimate(now: Date): Promise<CostEstimate> {
     })
     prices.push({ ref, name: project.name, active, addons })
   }
-  if (!org.plan) throw new CostSourceFailure('supabase_plan_not_exposed')
-  try { return supabaseConfigurationEstimate(org.plan, prices, now) } catch { throw new CostSourceFailure('supabase_price_configuration_unsupported') }
+  const verifiedPlan = process.env.COSTS_SUPABASE_VERIFIED_PLAN
+  const verifiedAt = process.env.COSTS_SUPABASE_PLAN_VERIFIED_AT
+  const fallbackValid = ['free', 'pro'].includes(verifiedPlan || '') && verifiedAt && Number.isFinite(Date.parse(verifiedAt)) && now.getTime() - Date.parse(verifiedAt) <= 93 * 86_400_000
+  const plan = org.plan || (fallbackValid ? verifiedPlan : undefined)
+  if (!plan) throw new CostSourceFailure('supabase_plan_not_exposed')
+  try {
+    const estimate = supabaseConfigurationEstimate(plan, prices, now)
+    if (!org.plan) estimate.limitations.push(`Organization base plan was verified in the billing dashboard on ${verifiedAt}; the public API did not expose it. Reverify after changing the subscription. This fallback expires after 93 days.`)
+    return estimate
+  } catch { throw new CostSourceFailure('supabase_price_configuration_unsupported') }
 }
 async function cachedSource(id: 'vercel' | 'supabase', now: Date): Promise<ProviderSource> {
   const connected = id === 'vercel' ? Boolean(process.env.COSTS_VERCEL_BILLING_TOKEN && process.env.COSTS_VERCEL_TEAM_ID) : Boolean(process.env.COSTS_SUPABASE_READ_TOKEN && process.env.COSTS_SUPABASE_ORG_SLUG)
