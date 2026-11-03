@@ -1,3 +1,4 @@
+import {configuredProducerSession} from '@/lib/production/hosted/studioConfig'
 import { producerBackend } from '@/lib/production/hosted/ec2Worker'
 import Ec2ProducerControls from './Ec2ProducerControls'
 import Ec2SetupDownload from './Ec2SetupDownload'
@@ -11,7 +12,10 @@ export const dynamic = 'force-dynamic'
 export default async function HostedProducerRehearsal(props: { params: Promise<{ id: string }> }) {
   const { id } = await props.params
   const access = await requireEventPageFeature(id, 'producer_room')
-  const { data: session } = await supabaseAdmin.from('event_sessions').select('id,title').eq('event_id', access.eventId).order('is_general_session', { ascending: false }).order('sort_order', { ascending: true, nullsFirst: false }).limit(1).maybeSingle()
+  const assigned=configuredProducerSession(access.eventId)
+  let query=supabaseAdmin.from('event_sessions').select('id,title').eq('event_id',access.eventId)
+  if(assigned)query=query.eq('id',assigned)
+  const {data:session}=await query.order('is_general_session',{ascending:false}).order('sort_order',{ascending:true,nullsFirst:false}).limit(1).maybeSingle()
   const allowed = access.isGlobalAdmin || ['producer', 'event_admin'].includes(access.role)
   const configured = hostedEngineConfigured()
   const limits = hostedTrialLimits(process.env.PRODUCER_ENGINE_TRIAL_NAME || '')

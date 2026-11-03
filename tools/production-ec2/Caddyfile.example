@@ -1,10 +1,13 @@
 # Substitute only the approved hostname before installation.
 producer-engine.jupiter.events {
-  request_body {
-    max_size 100KB
+  @presentation path /presentation
+  handle @presentation {
+    request_body { max_size 52428800 }
+    reverse_proxy 127.0.0.1:8080
   }
   @control path /control
   handle @control {
+    request_body { max_size 100KB }
     reverse_proxy 127.0.0.1:8080
   }
   handle {

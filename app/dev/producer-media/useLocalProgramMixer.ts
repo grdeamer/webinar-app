@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { AudioMix } from '@/lib/production/contracts'
 import type { ProgramMixerController, ProgramMixerSnapshot } from '@/lib/producer/programAudioMix'
-export default function useLocalProgramMixer(): ProgramMixerController {
+export default function useLocalProgramMixer(enabled=true): ProgramMixerController {
   const [snapshot, setSnapshot] = useState<ProgramMixerSnapshot | null>(null), [busy,setBusy] = useState(false), [error,setError] = useState<string | null>(null)
   const current = useRef(snapshot), inFlight = useRef(false)
   const refresh = useCallback(async (signal?: AbortSignal) => {
@@ -11,12 +11,13 @@ export default function useLocalProgramMixer(): ProgramMixerController {
     current.current = value; setSnapshot(value)
   }, [])
   useEffect(() => {
+    if(!enabled)return
     const controller = new AbortController()
     let pending = false
     const poll = async () => { if (pending || inFlight.current) return; pending = true; try { await refresh(controller.signal) } catch { if (!controller.signal.aborted) { current.current = null; setSnapshot(null) } } finally { pending = false } }
     void poll(); const timer = setInterval(() => void poll(),1000)
     return () => { controller.abort(); clearInterval(timer) }
-  }, [refresh])
+  }, [refresh,enabled])
   async function change(action: 'mix' | 'prepare', mix?: AudioMix, expected?: {runId:string; revision:number}): Promise<boolean> {
     if (inFlight.current || !current.current?.running) return false
     const before = current.current

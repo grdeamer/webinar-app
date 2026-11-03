@@ -1,3 +1,4 @@
+import {presentationMetadata} from '@/lib/producer/presentationMetadata'
 import { validateProducerMedia } from "@/lib/producer/mediaAssets"
 import { NextResponse } from "next/server"
 
@@ -64,7 +65,10 @@ export async function POST(
   if (!path.startsWith(`event-live/${id}/`)) {
     return NextResponse.json({ error: "Invalid asset path" }, { status: 400 })
   }
+  let deck:ReturnType<typeof presentationMetadata>
   try {
+    deck=presentationMetadata(body?.deck)
+    if(deck&&assetType!=="pdf")throw Error("Slide metadata requires a PDF")
     if (validateProducerMedia(mimeType, byteSize) !== assetType) throw new Error("Asset type does not match its media format")
   } catch (error) {
     return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid asset type" }, { status: 400 })
@@ -91,7 +95,7 @@ export async function POST(
       label,
       storage_path: path,
       public_url: publicData.publicUrl,
-      metadata: { holding: body?.holding === true },
+      metadata: { holding: body?.holding === true, ...(deck?{deck}:{}) },
       mime_type: mimeType,
       byte_size: byteSize,
       created_by: auth.user.id,

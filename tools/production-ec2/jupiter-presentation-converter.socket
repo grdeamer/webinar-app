@@ -1,0 +1,11 @@
+[Unit]
+Description=Jupiter private PowerPoint conversion socket
+[Socket]
+ListenStream=/run/jupiter-presentations/converter.sock
+SocketUser=jupiter-producer
+SocketGroup=jupiter-producer
+SocketMode=0600
+DirectoryMode=0700
+RemoveOnStop=true
+[Install]
+WantedBy=sockets.target

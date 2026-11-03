@@ -25,6 +25,6 @@ LimitCORE=0
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
-ReadWritePaths=/run/jupiter-producer
+ReadWritePaths=/run/jupiter-producer /run/jupiter-presentations
 [Install]
 WantedBy=multi-user.target

@@ -1,3 +1,4 @@
+import {presentationMetadata} from '@/lib/producer/presentationMetadata'
 import { importLocalPresentation, type PresentationDeckMetadata } from "@/lib/producer/presentationImport"
 import { LOCAL_PRESENTATION_ACCEPT, presentationExtension, clampPresentationSlide } from "@/lib/producer/presentationFiles"
 import type { ProgramMixerController } from "@/lib/producer/programAudioMix"
@@ -166,6 +167,7 @@ function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, ind
 }
 export default function BottomAssetDock({
   programAudioEngine,
+  presentationEngineRoot,
   localMediaOnly = false,
   workspaceMode,
   standardToolsOpen,
@@ -194,6 +196,7 @@ export default function BottomAssetDock({
   onTakeProgram,
   onRecordingHealthChange,
 }: {
+  presentationEngineRoot?: string
   programAudioEngine?: ProgramMixerController
   localMediaOnly?: boolean
   workspaceMode: ProducerWorkspaceMode
@@ -229,7 +232,7 @@ export default function BottomAssetDock({
   const { confirm: confirmNotice } = useJupiterNotice()
   const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
   const [productionDrawerTab, setProductionDrawerTab] = useState<ProductionDrawerTab | null>(null)
-  const [expandedMediaOpen, setExpandedMediaOpen] = useState(localMediaOnly)
+  const [expandedMediaOpen, setExpandedMediaOpen] = useState(localMediaOnly || Boolean(presentationEngineRoot))
   const mediaImportInputRef = useRef<HTMLInputElement | null>(null)
   const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
   const [mediaImportBusy, setMediaImportBusy] = useState(false)
@@ -461,6 +464,7 @@ function handleSelectMediaAssetForPreview(label: string, slide?: number): void {
 }
 async function persistMedia(file: File, label: string, holding: boolean, deck?: PresentationDeckMetadata): Promise<{ id: string; url: string; path: string }> {
   const assetType = validateProducerMedia(file.type, file.size)
+  if(deck)presentationMetadata(deck)
   await checkProducerMediaFile(file)
   if (localMediaOnly) {
     const asset = await saveLocalMedia(file, label, holding, deck), url = URL.createObjectURL(asset.file)
@@ -477,7 +481,7 @@ async function persistMedia(file: File, label: string, holding: boolean, deck?: 
   if (error) throw new Error(error.message)
   const response = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
     method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ path: prepared.path, label, mimeType: file.type, byteSize: file.size, assetType, holding }),
+    body: JSON.stringify({ path: prepared.path, label, mimeType: file.type, byteSize: file.size, assetType, holding, deck }),
   })
   const committed = await response.json()
   if (!response.ok) throw new Error(committed.error || "Could not save source")
@@ -647,9 +651,9 @@ async function importMediaFiles(files: File[]): Promise<void> {
       const label = uniqueProducerAssetLabel(file.name.replace(/\.[^/.]+$/, ""), labels)
       let mediaFile = file, deck: PresentationDeckMetadata | undefined
       if (presentationExtension(file.name)) {
-        if (!localMediaOnly) throw new Error("PowerPoint conversion is local-only for now")
+        if (!localMediaOnly && !presentationEngineRoot) throw new Error("Open the connected producer studio to convert PowerPoint")
         setMediaImportError(null)
-        const converted = await importLocalPresentation(file); mediaFile = converted.file; deck = converted.deck
+        const converted = await importLocalPresentation(file,presentationEngineRoot); mediaFile = converted.file; deck = converted.deck
       }
       const persisted = await persistMedia(mediaFile, label, importAsHolding, deck)
       const asset = { ...createImportedMediaAsset(mediaFile, index, persisted), label, holding: importAsHolding, deck, imageUrl: deck?.thumbnails[0] ?? createImportedMediaAsset(mediaFile, index, persisted).imageUrl }
@@ -1273,7 +1277,7 @@ const previewMediaAsset =
         ref={mediaImportInputRef}
         type="file"
         multiple
-        accept={localMediaOnly ? `${PRODUCER_MEDIA_ACCEPT},${LOCAL_PRESENTATION_ACCEPT}` : PRODUCER_MEDIA_ACCEPT}
+        accept={(localMediaOnly || presentationEngineRoot) ? `${PRODUCER_MEDIA_ACCEPT},${LOCAL_PRESENTATION_ACCEPT}` : PRODUCER_MEDIA_ACCEPT}
         className="hidden"
         onChange={handleImportMediaFiles}
       />

@@ -1,3 +1,5 @@
+import Studio from "@/app/dev/producer-media/MediaLibraryLocalTest"
+import {hostedStudioConfig,configuredProducerSession} from "@/lib/production/hosted/studioConfig"
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomClient"
@@ -17,7 +19,7 @@ export default async function AdminProducerRoomPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
-  await requireEventPageFeature(id, "producer_room")
+  const access=await requireEventPageFeature(id, "producer_room")
 
   let eventId = id
   let eventTitle = "Event"
@@ -46,11 +48,13 @@ export default async function AdminProducerRoomPage(props: {
     eventAccent = event.accent_color || eventAccent
   }
 
-  const { data: session, error: sessionError } = await supabaseAdmin
+  const configuredSession=configuredProducerSession(eventId)
+  let query = supabaseAdmin
     .from("event_sessions")
     .select("id, title, delivery_mode, live_room_name, is_general_session, session_kind, sort_order")
     .eq("event_id", eventId)
-    .or("is_general_session.eq.true,session_kind.eq.general")
+  query=configuredSession?query.eq("id",configuredSession):query.or("is_general_session.eq.true,session_kind.eq.general")
+  const {data:session,error:sessionError}=await query
     .order("is_general_session", { ascending: false })
     .order("sort_order", { ascending: true, nullsFirst: false })
     .limit(1)
@@ -62,6 +66,8 @@ export default async function AdminProducerRoomPage(props: {
     return <ProducerRoomSetup eventId={eventId} />
   }
 
+  const hosted=hostedStudioConfig(eventId,session.id,eventTitle,access.user.id,access.isGlobalAdmin)
+  if(hosted)return <Studio hosted={hosted}/>
   return (
     <ProducerRoomClient
       eventId={eventId}

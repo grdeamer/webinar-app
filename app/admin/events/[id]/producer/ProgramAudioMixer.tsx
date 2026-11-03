@@ -15,7 +15,7 @@ export default function ProgramAudioMixer({ engine }: { engine: ProgramMixerCont
   function gain(sourceId: string | null, value: number) { if (draft && snapshot) setEditing({runId:snapshot.runId,revision:snapshot.revision,mix:editProgramAudioMix(draft,sourceId,'gainDb',value)}) }
   return <section aria-label="Program audio engine mixer" className="rounded border border-violet-300/30 bg-slate-950 p-4 text-white">
     <h2 className="text-lg font-semibold">Program audio engine mixer</h2>
-    <p role="status" className="my-2 text-sm">{!connected ? 'Local engine stopped. Start npm run production:producer:local to connect.' : `${snapshot!.live ? 'Live Program' : 'Off air'} · committed r${snapshot!.revision} · ${observed ? 'independent receiver confirmed' : 'waiting for fresh receiver confirmation'}`}</p>
+    <p role="status" className="my-2 text-sm">{!connected ? (engine.stoppedMessage ?? 'Local engine stopped. Start npm run production:producer:local to connect.') : `${snapshot!.live ? 'Live Program' : 'Off air'} · committed r${snapshot!.revision} · ${observed ? 'independent receiver confirmed' : 'waiting for fresh receiver confirmation'}`}</p>
     {connected && snapshot?.receiver ? <p className="text-sm">Outgoing receive: {snapshot.receiver.width}×{snapshot.receiver.height} · {snapshot.receiver.fps ?? '—'} fps · {snapshot.receiver.audioRms > 0 ? (20*Math.log10(snapshot.receiver.audioRms)).toFixed(1)+' dBFS' : 'silence'} · dominant {Math.round(snapshot.receiver.dominantHz)} Hz</p> : null}
     {error ? <p role="alert" className="text-amber-200">{error}</p> : null}
     <fieldset disabled={!connected || busy} className="mt-3 flex flex-wrap gap-3 disabled:opacity-50">
@@ -25,7 +25,7 @@ export default function ProgramAudioMixer({ engine }: { engine: ProgramMixerCont
         <div className="mt-2 flex gap-2"><button className="rounded border px-3 py-1" type="button" aria-label={`Mute ${channel.label}`} aria-pressed={channel.muted} onClick={()=>void apply(editProgramAudioMix(draft,channel.sourceId,'muted',!channel.muted))}>Mute</button>{channel.sourceId ? <button className="rounded border px-3 py-1" type="button" aria-label={`Solo ${channel.label}`} aria-pressed={channel.solo} onClick={()=>void apply(editProgramAudioMix(draft,channel.sourceId,'solo',!channel.solo))}>Solo</button> : null}</div>
       </div>) : null}
       <button className="rounded border px-3 py-2" type="button" disabled={!draft || !dirty} onClick={()=>{if(draft)void apply(draft)}}>Apply Program gains</button>
-      <button className="rounded border px-3 py-2" type="button" onClick={()=>void engine.prepare()}>Prepare generated A/B Program test</button>
+      {engine.allowPrepare !== false ? <button className="rounded border px-3 py-2" type="button" onClick={()=>void engine.prepare()}>Prepare generated A/B Program test</button> : null}
     </fieldset>
     <p className="mt-2 text-xs text-white/65">Changes affect encoded Program, not local listening volume. Pending fader edits apply with “Apply Program gains”. Recording remains off.</p>
   </section>

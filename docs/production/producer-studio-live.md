@@ -1,0 +1,13 @@
+# Producer studio on EC2
+
+The dark studio at the event producer-room URL uses the configured EC2 event/session pair. The rehearsal link selects that same assigned session rather than whichever session currently sorts first. Other event sessions cannot control this engine.
+
+Opening the page does not start compute or capture devices. The global administrator's Start control first verifies the independent AWS shutdown schedule. Normal sessions retain the existing $5 envelope and 30-minute cloud stop; the media worker has its shorter guest deadline. Stop playback withdraws Program live state and releases browser input/viewer connections. Stop producer engine requests EC2 shutdown.
+
+The media library persists converted PDF slides, thumbnails, graphics, audio and video as event assets. Preview publishes a private input. TAKE commits the input to Program. The independent outgoing video element subscribes only to the Program identity. Mixer changes target the Program audio bus with an exact run and expected revision; monitor mute does not change outgoing audio. The current library integration supports one full-frame source at a time. Native file capture requires current Chromium.
+
+PPT/PPTX conversion is static: no animations or embedded audio/video. An authenticated event producer requests a one-use conversion ticket through the existing signed control endpoint. The browser sends up to 50 MB directly to the configured EC2 HTTPS endpoint, avoiding Vercel's function-body limit. Tickets expire after 90 seconds, are bound to the current runtime and exact production origin, and are consumed once. No worker is started by a ticket request.
+
+The root-owned Unix-socket broker accepts only a bounded conversion request from the producer UID. It creates an isolated job in /run tmpfs and invokes LibreOffice under a separate unprivileged identity and network namespace. Macro security is highest, private server configuration is inaccessible, memory/CPU/file/time limits apply, and job data is removed on success or failure. The producer service retains NoNewPrivileges. No sudo permission is granted to the producer. No program recording or egress worker is installed.
+
+Install `tools/production-ec2/install-presentation-converter.sh` only during an approved bounded maintenance window. Preserve the existing runtime/config backup; install the updated source bundle and service read/write path, validate Caddy before reload, then validate video, PPT and PPTX conversion, Preview/Next/Previous/TAKE and Program audio. Verify EC2 stopped afterward. Do not call the interrupted local hour passed.

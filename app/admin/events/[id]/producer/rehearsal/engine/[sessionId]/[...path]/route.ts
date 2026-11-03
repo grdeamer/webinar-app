@@ -20,6 +20,14 @@ async function handle(request: Request, context: Context) {
   if (request.method === 'POST' && (request.headers.get('origin') !== new URL(request.url).origin || !request.headers.get('content-type')?.startsWith('application/json'))) return Response.json({ error: 'Same-origin JSON required' }, { status: 403 })
   try {
     const scope = { eventId: access.eventId, sessionId, actorId: access.user.id }
+    if(operation==='/presentation-ticket'&&request.method==='POST'){
+      const text=await request.text();if(Buffer.byteLength(text)>16000)return Response.json({error:"Request too large"},{status:413})
+      const input=JSON.parse(text)
+      const response=await callHostedEngine({scope,path:'/api/producer/presentation-ticket',method:'POST',body:JSON.stringify({runId:input.runId,name:input.name,bytes:input.bytes,origin:new URL(request.url).origin})})
+      if(!response.ok)return response
+      const grant=await response.json(),url=new URL('/presentation',process.env.PRODUCER_ENGINE_URL)
+      return Response.json({...grant,url:url.href},{headers:{'Cache-Control':'no-store'}})
+    }
     if (operation === '/seal-ec2-configuration' && request.method === 'POST') {
       if (!access.isGlobalAdmin) return Response.json({ error: 'Global administrator required' }, { status: 403 })
       validateEc2Scope(scope)
@@ -47,6 +55,7 @@ async function handle(request: Request, context: Context) {
     if (Buffer.byteLength(body) > 80_000) return Response.json({ error: 'Request too large' }, { status: 413 })
     return await callHostedEngine({ scope: { eventId: access.eventId, sessionId, actorId: access.user.id }, path: operation, method: request.method as 'GET' | 'POST', body, ...(request.headers.has('x-input-capability') ? { inputCapability: request.headers.get('x-input-capability')! } : {}) })
   } catch (error) {
+    if(producerBackend()==='ec2'&&operation==='/api/producer/status'){try{const infrastructure=await ec2ProducerStatus();if(infrastructure.state!=='running')return Response.json({error:`Producer engine is ${infrastructure.state}. Use Start producer engine, wait for startup, then connect.`,state:infrastructure.state},{status:503,headers:{'Cache-Control':'no-store'}})}catch{/* Preserve a safe generic error when AWS status is unavailable. */}}
     const value = error as { name?: string; status?: number; statusCode?: number; code?: string; message?: string; response?: { status?: number }; json?: { error?: { code?: string } } }
     const summary = (value?.message || '').split('\n')[0].replace(/https?:\/\/\S+|[A-Za-z0-9_=-]{24,}/g, '[redacted]').slice(0, 180)
     console.error('hosted-rehearsal-failure', { operation, name: value?.name?.slice(0, 80), summary, status: value?.response?.status ?? value?.status ?? value?.statusCode, code: /^[A-Za-z0-9_-]{1,80}$/.test(value?.code || '') ? value.code : undefined })
