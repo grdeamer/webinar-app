@@ -3,7 +3,7 @@ Description=Jupiter bounded PowerPoint conversion broker
 [Service]
 ExecStart=/usr/bin/python3 /usr/local/lib/jupiter-presentation-converter.py
 RuntimeDirectory=jupiter-converter
-RuntimeDirectoryMode=0700
+RuntimeDirectoryMode=0711
 LimitCORE=0
 MemoryMax=256M
 TasksMax=16

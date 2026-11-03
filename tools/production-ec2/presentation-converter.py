@@ -9,6 +9,7 @@ server = socket.socket(fileno=3)
 while True:
     connection, _ = server.accept()
     job = None
+    stream = None
     try:
         connection.settimeout(30)
         stream = connection.makefile('rb')
@@ -42,4 +43,5 @@ while True:
             try: subprocess.run(['systemctl', 'stop', 'jupiter-ppt-'+job.name], timeout=5, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
             except Exception: pass
             shutil.rmtree(job, ignore_errors=True)
+        if stream: stream.close()
         connection.close()
