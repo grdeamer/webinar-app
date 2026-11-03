@@ -1,3 +1,5 @@
+import ProgramAudioMixer from "./ProgramAudioMixer"
+import type { ProgramMixerController } from "@/lib/producer/programAudioMix"
 import Image from "next/image"
 import { CircleDot, Volume2, X } from "lucide-react"
 import type { JSX } from "react"
@@ -28,8 +30,10 @@ function formatDuration(seconds: number): string {
 }
 
 export default function ProductionControlsDrawer({
+  audioEngine,
   activeTab,
   onClose,
+  audioConnected = false,
   audioChannels,
   onToggleMute,
   onToggleSolo,
@@ -41,8 +45,10 @@ export default function ProductionControlsDrawer({
   onStartRecording,
   onStopRecording,
 }: {
+  audioEngine?: ProgramMixerController
   activeTab: ProductionDrawerTab
   onClose: () => void
+  audioConnected?: boolean
   audioChannels: ProductionAudioChannel[]
   onToggleMute: (channel: string) => void
   onToggleSolo: (channel: string) => void
@@ -79,17 +85,18 @@ export default function ProductionControlsDrawer({
       </header>
 
       <div className="min-h-0 flex-1 overflow-y-auto p-5">
-        {activeTab === "audio" ? (
+        {activeTab === "audio" && audioEngine ? <ProgramAudioMixer engine={audioEngine} /> : activeTab === "audio" ? (
           <div className="grid grid-cols-7 gap-3">
+            {!audioConnected ? <p role="status" className="col-span-7 rounded border border-amber-300/30 p-3 text-sm text-amber-100">This mixer is not connected to the Program audio engine. Its controls are disabled; they do not mute or mix outgoing audio.</p> : null}
             {audioChannels.slice(0,6).map((channel,index) => {
-              const level = Math.max(8, Math.min(100, channel.muted ? 4 : channel.level))
+              const level = audioConnected ? Math.max(0, Math.min(100, channel.muted ? 0 : channel.level)) : 0
               return <section key={channel.id} className={`rounded-[12px] border p-4 ${index===0?"border-red-400/65 bg-red-400/[0.035]":index===2?"border-blue-400/65 bg-blue-400/[0.035]":"border-white/10 bg-white/[0.025]"}`}>
                 <div className={`text-center text-[14px] font-medium ${index===0?"text-red-300":index===2?"text-blue-300":"text-white/88"}`}>{channel.label}</div>
-                <div className="mt-4 grid h-36 grid-cols-[30px_1fr] items-end gap-4"><div className="flex h-full items-end rounded bg-black/30 p-1"><div className="w-full bg-[repeating-linear-gradient(to_top,#5be17f_0_5px,transparent_5px_8px)]" style={{height:`${level}%`}}/></div><input aria-label={`${channel.label} level`} type="range" min="0" max="100" defaultValue={Math.max(10,100-level)} className="h-32 w-5 appearance-none bg-transparent [writing-mode:vertical-lr]" /></div>
-                <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" onClick={() => onToggleMute(channel.id)} className={`rounded-lg border py-2 text-[11px] ${channel.muted?"border-red-300/35 bg-red-300/10 text-red-200":"border-white/10 text-white/70"}`}>Mute</button><button type="button" onClick={() => onToggleSolo(channel.id)} className={`rounded-lg border py-2 text-[11px] ${channel.solo?"border-amber-300/35 bg-amber-300/10 text-amber-200":"border-white/10 text-white/70"}`}>Solo</button></div>
+                <div className="mt-4 grid h-36 grid-cols-[30px_1fr] items-end gap-4"><div className="flex h-full items-end rounded bg-black/30 p-1"><div className="w-full bg-[repeating-linear-gradient(to_top,#5be17f_0_5px,transparent_5px_8px)]" style={{height:`${level}%`}}/></div><input aria-label={`${channel.label} level`} disabled={!audioConnected} type="range" min="0" max="100" defaultValue={Math.max(10,100-level)} className="h-32 w-5 appearance-none bg-transparent [writing-mode:vertical-lr]" /></div>
+                <div className="mt-3 grid grid-cols-2 gap-2"><button type="button" disabled={!audioConnected} onClick={() => onToggleMute(channel.id)} className={`rounded-lg border py-2 text-[11px] ${channel.muted?"border-red-300/35 bg-red-300/10 text-red-200":"border-white/10 text-white/70"}`}>Mute</button><button type="button" disabled={!audioConnected} onClick={() => onToggleSolo(channel.id)} className={`rounded-lg border py-2 text-[11px] ${channel.solo?"border-amber-300/35 bg-amber-300/10 text-amber-200":"border-white/10 text-white/70"}`}>Solo</button></div>
               </section>
             })}
-            <aside className="rounded-[12px] border border-violet-400/30 bg-violet-400/[0.035] p-4"><div className="text-center text-[14px] font-medium text-violet-300">Master</div><div className="mt-4 flex h-36 justify-center gap-3"><div className="w-6 rounded bg-[repeating-linear-gradient(to_top,#5be17f_0_5px,transparent_5px_8px)]"/><div className="w-6 rounded bg-[repeating-linear-gradient(to_top,#5be17f_0_5px,transparent_5px_8px)]"/></div><div className="mt-4 flex items-center justify-center gap-2 text-[11px] text-emerald-300"><span className="h-2 w-2 rounded-full bg-emerald-300"/>Limiter</div></aside>
+            <aside className="rounded-[12px] border border-violet-400/30 p-4"><div className="text-center text-sm text-violet-300">Master</div><p className="mt-4 text-xs text-white/50">{audioConnected ? "Use the connected engine for master metering and limiting." : "No Program metering or limiter confirmation available."}</p></aside>
           </div>
         ) : (
           <div className="grid grid-cols-[310px_minmax(360px,1fr)_180px_320px] gap-5">

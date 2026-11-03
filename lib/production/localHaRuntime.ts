@@ -1,4 +1,5 @@
 import { candidateRenderFps } from './compositorCadence.ts'
+import { BLOCKED_LOCAL_MEDIA_REQUEST } from './localRequestPolicy.ts'
 import { mediaHostAllowed } from './hosted/transportPolicy.ts'
 import { freshMediaToken } from './freshMediaToken.ts'
 import { haRuntimeBudget } from './haSoakPlan.ts'
@@ -77,14 +78,15 @@ export class LocalHaRuntime {
   private readonly bundledBrowser: boolean
   private readonly apiKey: string = 'jupiter-local-ha'
   private readonly apiSecret = randomBytes(32).toString('hex')
-  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; rehearsalDeadlineAtMs?: number; hostedHourSoak?: boolean; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean; adaptiveStandby?: boolean } = {}) {
+  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; rehearsalDeadlineAtMs?: number; hostedHourSoak?: boolean; localLibrarySoak?: boolean; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean; adaptiveStandby?: boolean } = {}) {
     if (options.transport && (!options.rehearsal || !/^wss:\/\//.test(options.transport.url) || !options.transport.apiKey || options.transport.apiSecret.length < 32)) throw new Error('Hosted rehearsal requires secure SFU credentials')
     this.adaptiveStandby = Boolean(options.transport) || options.adaptiveStandby === true
     this.transport = options.transport; this.bundledBrowser = options.bundledBrowser === true
     if (this.transport) { this.apiKey = this.transport.apiKey; this.apiSecret = this.transport.apiSecret }
     this.rehearsal = options.rehearsal === true
     if (options.hostedHourSoak && (!this.rehearsal || !this.transport || !/^[a-f0-9]{64}$/.test(options.controlKey ?? ''))) throw new Error('Hosted hour requires explicit transport, rehearsal and private control')
-    const rehearsalLimitMs = (options.hostedHourSoak ? 70 : 30) * 60_000
+    if (options.localLibrarySoak && (!this.rehearsal || this.transport || !/^[a-f0-9]{64}$/.test(options.controlKey ?? ''))) throw new Error('Local library hour requires rehearsal, loopback transport and private control')
+    const rehearsalLimitMs = (options.hostedHourSoak ? 70 : options.localLibrarySoak ? 65 : 30) * 60_000
     if (options.rehearsalDeadlineAtMs !== undefined && (!this.rehearsal || !Number.isSafeInteger(options.rehearsalDeadlineAtMs) || options.rehearsalDeadlineAtMs <= Date.now() || options.rehearsalDeadlineAtMs > Date.now() + rehearsalLimitMs)) throw new Error('Rehearsal deadline exceeds the explicit profile limit')
     if (this.rehearsal && (options.soak || (options.receivers ?? 1) !== 1)) throw new Error('Rehearsal cannot run automated soak/load mode')
     this.receiverCount = options.receivers ?? 1
@@ -92,8 +94,8 @@ export class LocalHaRuntime {
     this.managedLoad = this.receiverCount > 1
     if (this.managedLoad && (options.soak || !/^[a-f0-9]{64}$/.test(options.controlKey ?? ''))) throw new Error('Receiver load requires a private control capability and ten-minute mode')
     this.activeRoles = [...roles, ...Array.from({ length: this.receiverCount - 1 }, (_, i) => `ha-load-${i + 2}` as HaWorker)]
-    const budget = haRuntimeBudget(options.soak === true || options.hostedHourSoak === true, options.controlKey)
-    this.managedSoak = options.soak === true || options.hostedHourSoak === true; this.soakControlKey = options.controlKey ?? null
+    const budget = haRuntimeBudget(options.soak === true || options.hostedHourSoak === true || options.localLibrarySoak === true, options.controlKey)
+    this.managedSoak = options.soak === true || options.hostedHourSoak === true || options.localLibrarySoak === true; this.soakControlKey = options.controlKey ?? null
     this.expiresAtMs = options.rehearsalDeadlineAtMs ?? Date.now() + (this.rehearsal ? 30 * 60_000 : budget.durationMs); this.primaryRestartLimit = budget.primaryRestarts
     this.directory = directory; mkdirSync(directory, { recursive: true, mode: 0o700 })
     this.store = new LocalSqliteProductionStore(join(directory, 'control.sqlite')); seedLocalProduction(this.store, this.rehearsal ? 'slate' : 'hold-last')
@@ -148,7 +150,8 @@ export class LocalHaRuntime {
     if (!this.running || Date.now() >= this.expiresAtMs) { await server.close(); throw new Error('HA run ended during worker launch') }
     this.workers.set(role, server)
     const browser = await chromium.connect(server.wsEndpoint(), { timeout: 10_000 }), context = await browser.newContext({ serviceWorkers: 'block' })
-    await context.route('**/*', route => mediaHostAllowed(new URL(route.request().url()).hostname, this.transport?.url) ? route.continue() : route.abort())
+    if (this.transport) await context.route('**/*', route => mediaHostAllowed(new URL(route.request().url()).hostname, this.transport?.url) ? route.continue() : route.abort())
+    else await context.route(BLOCKED_LOCAL_MEDIA_REQUEST, route => route.abort())
     browser.on('disconnected', () => {
       if (this.running && this.workers.get(role) === server && (role === 'primary' || role === 'standby')) {
         this.authority.unavailable(role, 'Candidate process/transport disconnected')

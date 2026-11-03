@@ -74,3 +74,13 @@ test('load receivers have unique subscribe-only Program grants and cannot obtain
   assert.throws(() => new LocalHaRuntime('/tmp/should-not-create-ha-load', { receivers: 11, controlKey: 'a'.repeat(64) }), /receiver counts/)
   assert.throws(() => new LocalHaRuntime('/tmp/should-not-create-ha-load', { receivers: 3, soak: true, controlKey: 'a'.repeat(64) }), /ten-minute mode/)
 })
+
+test('local mixed-media hour requires explicit private control and keeps the ordinary rehearsal bound', async t => {
+ const { LocalHaRuntime } = await import('../lib/production/localHaRuntime.ts')
+ const { mkdtempSync,rmSync }=await import('node:fs'),{tmpdir}=await import('node:os'),{join}=await import('node:path')
+ const dir=mkdtempSync(join(tmpdir(),'library-hour-budget-'));t.after(()=>rmSync(dir,{recursive:true,force:true}))
+ assert.throws(()=>new LocalHaRuntime(dir,{rehearsal:true,localLibrarySoak:true}),/private control/)
+ assert.throws(()=>new LocalHaRuntime(dir,{rehearsal:true,rehearsalDeadlineAtMs:Date.now()+60*60000}),/profile limit/)
+ const runtime=new LocalHaRuntime(dir,{rehearsal:true,localLibrarySoak:true,controlKey:'b'.repeat(64),rehearsalDeadlineAtMs:Date.now()+65*60000})
+ assert.equal(runtime.managedSoak,true);assert.equal(runtime.status().rehearsal,true);runtime.store.close()
+})

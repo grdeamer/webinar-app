@@ -1,3 +1,4 @@
+import { assetReferencePages } from "@/lib/page-editor/pageSafety"
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
@@ -142,7 +143,6 @@ export async function DELETE(req: Request) {
     const body = await req.json()
     const eventId = String(body?.event_id ?? "")
     const path = String(body?.path ?? "")
-    const url = String(body?.url ?? "")
     const permanent = body?.permanent === true
     const requiredPrefix = `page-editor/${eventId}/`
     if (!isEventId(eventId) || !path.startsWith(requiredPrefix) || path.includes("..")) {
@@ -151,13 +151,14 @@ export async function DELETE(req: Request) {
     const access = await requireEventOperatorAccess(eventId)
     if (access instanceof NextResponse) return access
     const supabase = supabaseAdmin
+    const { data: publicData } = supabase.storage.from("page-editor").getPublicUrl(path)
+    const { data: pageRows, error: referenceError } = await supabase.from("event_page_sections").select("page_key,sections,elements,page_theme,published_document").eq("event_id", eventId)
+    if (referenceError) return NextResponse.json({ error: referenceError.message }, { status: 500 })
+    const referencedBy = assetReferencePages(pageRows ?? [], publicData.publicUrl)
+    if (referencedBy.length) {
+      return NextResponse.json({ error: "This asset is used by a draft or published page. Remove it from drafts and publish those changes before deleting it.", code: "asset_in_use", referencedBy }, { status: 409 })
+    }
     if (!path.includes("/_trash/")) {
-      const { data: pageRows, error: referenceError } = await supabase.from("event_page_sections").select("page_key,elements,page_theme").eq("event_id", eventId)
-      if (referenceError) return NextResponse.json({ error: referenceError.message }, { status: 500 })
-      const referencedBy = (pageRows ?? []).filter((row) => JSON.stringify({ elements: row.elements ?? [], eventTheme: row.page_theme ?? {} }).includes(url)).map((row) => row.page_key)
-      if (url && referencedBy.length) {
-        return NextResponse.json({ error: "Remove this asset from every page and wait for Saved before moving it to Trash.", code: "asset_in_use", referencedBy }, { status: 409 })
-      }
       const relative = path.slice(requiredPrefix.length)
       const slash = relative.indexOf("/")
       if (slash < 1) return NextResponse.json({ error: "Invalid asset path" }, { status: 400 })

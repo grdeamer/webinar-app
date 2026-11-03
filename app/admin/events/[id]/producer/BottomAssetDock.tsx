@@ -1,3 +1,9 @@
+import { importLocalPresentation, type PresentationDeckMetadata } from "@/lib/producer/presentationImport"
+import { LOCAL_PRESENTATION_ACCEPT, presentationExtension, clampPresentationSlide } from "@/lib/producer/presentationFiles"
+import type { ProgramMixerController } from "@/lib/producer/programAudioMix"
+import { checkProducerMediaFile } from "@/lib/producer/mediaFileProbe"
+import { PRODUCER_MEDIA_ACCEPT, validateProducerMedia, uniqueProducerAssetLabel, isHoldingAsset } from "@/lib/producer/mediaAssets"
+import { listLocalMedia, saveLocalMedia, deleteLocalMedia, updateLocalMedia } from "@/lib/producer/localMediaLibrary"
 import {
   MediaOverviewWorkspace,
   MediaAssetsWorkspace,
@@ -92,9 +98,34 @@ function normalizeColorHex(value: string): string {
   const normalized = value.trim().toUpperCase()
   return /^#[0-9A-F]{6}$/.test(normalized) ? normalized : "#000000"
 }
-function buildColorSourceSvg(colorHex: string): string {
-  const safeColor = normalizeColorHex(colorHex)
-  return `<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080"><rect width="1920" height="1080" fill="${safeColor}"/></svg>`
+function colorSourceName(hex: string): string {
+  const palette: [string, string][] = [
+    ["Black", "000000"], ["White", "FFFFFF"], ["Gray", "808080"],
+    ["Red", "FF0000"], ["Orange", "FF8000"], ["Yellow", "FFFF00"],
+    ["Lime", "80FF00"], ["Green", "008000"], ["Mint", "00FF80"],
+    ["Cyan", "00FFFF"], ["Teal", "008080"], ["Blue", "0000FF"],
+    ["Navy", "000080"], ["Purple", "800080"], ["Violet", "8000FF"],
+    ["Magenta", "FF00FF"], ["Pink", "FF80C0"], ["Brown", "804020"],
+  ]
+  const rgb = (value: string): number[] => [0, 2, 4].map((offset) => parseInt(value.slice(offset, offset + 2), 16))
+  const selected = rgb(normalizeColorHex(hex).slice(1))
+  return palette.reduce((best, entry) => {
+    const distance = (value: string): number => rgb(value).reduce((sum, channel, index) => sum + (channel - selected[index]) ** 2, 0)
+    return distance(entry[1]) < distance(best[1]) ? entry : best
+  })[0]
+}
+async function buildColorSourcePng(colorHex: string): Promise<Blob> {
+  const canvas = document.createElement("canvas")
+  canvas.width = 1920
+  canvas.height = 1080
+  const context = canvas.getContext("2d")
+  if (!context) throw new Error("Could not create the color source image")
+  context.fillStyle = normalizeColorHex(colorHex)
+  context.fillRect(0, 0, canvas.width, canvas.height)
+  return new Promise((resolve, reject) => canvas.toBlob((blob) => {
+    if (blob) resolve(blob)
+    else reject(new Error("Could not create the color source image"))
+  }, "image/png"))
 }
 function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, index: number): BroadcastAssetTelemetry {
   const sourceType = "type" in item && typeof item.type === "string" ? item.type : "video"
@@ -108,6 +139,7 @@ function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, ind
   return {
     label: item.label || fallbackLabel,
     type,
+    assetKind: sourceType === "pdf" ? "pdf" : sourceType === "audio" ? "audio" : sourceType === "image" ? "image" : "video",
     state,
     duration: type === "graphic" ? "16:9" : index === 0 ? "00:45" : index === 1 ? "01:12" : "—",
     meta: type === "graphic" ? "Graphic · 1920×1080" : type === "audio" ? "Audio · Stereo" : "Video · 1080p",
@@ -133,6 +165,8 @@ function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, ind
   }
 }
 export default function BottomAssetDock({
+  programAudioEngine,
+  localMediaOnly = false,
   workspaceMode,
   standardToolsOpen,
   onToggleStandardTools,
@@ -160,6 +194,8 @@ export default function BottomAssetDock({
   onTakeProgram,
   onRecordingHealthChange,
 }: {
+  programAudioEngine?: ProgramMixerController
+  localMediaOnly?: boolean
   workspaceMode: ProducerWorkspaceMode
   standardToolsOpen: boolean
   onToggleStandardTools: () => void
@@ -193,14 +229,22 @@ export default function BottomAssetDock({
   const { confirm: confirmNotice } = useJupiterNotice()
   const [activeUtilityPanel, setActiveUtilityPanel] = useState<UtilityPanel | null>(null)
   const [productionDrawerTab, setProductionDrawerTab] = useState<ProductionDrawerTab | null>(null)
-  const [expandedMediaOpen, setExpandedMediaOpen] = useState(false)
+  const [expandedMediaOpen, setExpandedMediaOpen] = useState(localMediaOnly)
   const mediaImportInputRef = useRef<HTMLInputElement | null>(null)
   const [importedMediaAssets, setImportedMediaAssets] = useState<BroadcastAssetTelemetry[]>([])
   const [mediaImportBusy, setMediaImportBusy] = useState(false)
   const [mediaImportError, setMediaImportError] = useState<string | null>(null)
+  const [deckPages, setDeckPages] = useState<Record<string, number>>({})
+  const [importAsHolding, setImportAsHolding] = useState(false)
+  const localObjectUrls = useRef<string[]>([])
   const [colorSourceOpen, setColorSourceOpen] = useState(false)
   const [colorSourceHex, setColorSourceHex] = useState("#000000")
   const [colorSourceLabel, setColorSourceLabel] = useState("Black")
+  const [colorSourceNameEdited, setColorSourceNameEdited] = useState(false)
+  function updateColorSource(value: string): void {
+    setColorSourceHex(value)
+    if (!colorSourceNameEdited && /^#[0-9A-F]{6}$/i.test(value)) setColorSourceLabel(colorSourceName(value))
+  }
   const [mediaSearchQuery, setMediaSearchQuery] = useState("")
   const [mediaTypeFilter, setMediaTypeFilter] = useState<"all" | "graphic" | "video" | "audio" | "holding">("all")
   const [deletingMediaAssetId, setDeletingMediaAssetId] = useState<string | null>(null)
@@ -240,15 +284,20 @@ export default function BottomAssetDock({
   useEffect(() => {
     let cancelled = false
     async function loadSavedAssets(): Promise<void> {
-      const response = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
-        cache: "no-store",
-      })
-      const payload = await response.json().catch((): null => null)
-      if (!response.ok || cancelled) return
+      const localAssets = localMediaOnly ? await listLocalMedia() : null
+      if (cancelled) return
+      const response = localAssets ? null : await fetch(`/api/admin/events/${eventId}/live/assets/commit`, { cache: "no-store" })
+      const payload = localAssets ? { assets: localAssets.map(asset => {
+        const url = URL.createObjectURL(asset.file); localObjectUrls.current.push(url)
+        return { ...asset, local_url: url }
+      }) } : await response!.json().catch((): null => null)
+      if ((response && !response.ok) || cancelled) return
       const savedAssets: BroadcastAssetTelemetry[] = (payload?.assets ?? []).map(
         (asset: {
           id: string
-          asset_type: "image" | "video" | "pdf"
+          asset_type: "image" | "video" | "pdf" | "audio"
+          metadata?: { holding?: boolean; deck?: PresentationDeckMetadata }
+          local_url?: string
           label: string
           storage_path: string
           signed_url?: string | null
@@ -258,16 +307,18 @@ export default function BottomAssetDock({
         }, index: number) => ({
           id: String(asset.id),
           label: asset.label || `Saved source ${index + 1}`,
-          type: asset.asset_type === "video" ? "video" : "graphic",
+          type: asset.asset_type === "audio" ? "audio" : asset.asset_type === "video" ? "video" : "graphic",
+          assetKind: asset.asset_type,
+          holding: asset.metadata?.holding,
+          deck: asset.metadata?.deck,
           state: "PRELOADED",
           duration: asset.asset_type === "pdf" ? "PDF" : asset.asset_type === "image" ? "16:9" : "—",
           meta: formatFileSize(Number(asset.byte_size || 0)),
           route: "Saved",
           lastPlayed: "Not Played",
           linkedScene: "Unassigned",
-          imageUrl: asset.mime_type?.startsWith("image/")
-            ? buildProducerAssetUrl(eventId, asset.storage_path)
-            : null,
+          mediaUrl: asset.local_url ?? buildProducerAssetUrl(eventId, asset.storage_path),
+          imageUrl: asset.metadata?.deck?.thumbnails[0] ?? (asset.asset_type === "image" ? asset.local_url ?? buildProducerAssetUrl(eventId, asset.storage_path) : null),
           storagePath: asset.storage_path,
           audioEmbedded: asset.asset_type === "video",
           destination: "STANDBY",
@@ -290,11 +341,10 @@ export default function BottomAssetDock({
         return [...current, ...savedAssets.filter((asset) => !currentIds.has(asset.id))]
       })
     }
-    void loadSavedAssets()
-    return () => {
-      cancelled = true
-    }
-  }, [eventId])
+    void loadSavedAssets().catch(error => { if (!cancelled) setMediaImportError(error instanceof Error ? error.message : "Could not load media library") })
+    return () => { cancelled = true }
+  }, [eventId, localMediaOnly])
+  useEffect(() => () => { localObjectUrls.current.forEach(url => URL.revokeObjectURL(url)) }, [])
 useEffect(() => {
   if (!programMediaAssetLabel) return
   const interval = window.setInterval(() => {
@@ -311,6 +361,9 @@ const [mediaAssetEditDraft, setMediaAssetEditDraft] = useState<MediaAssetEditDra
 })
   const [takeFlashActive, setTakeFlashActive] = useState(false)
   const [dockTakeBusy, setDockTakeBusy] = useState(false)
+useEffect(() => {
+  if (previewMediaAssetLabel && !previewBlocks.some(block => block.label === previewMediaAssetLabel)) setPreviewMediaAssetLabel(null)
+}, [previewBlocks, previewMediaAssetLabel])
 function handleSendSelectedMediaAssetToPreview(): void {
   const targetLabel =
     selectedMediaAsset?.label ??
@@ -327,7 +380,10 @@ async function handleTakeAsset(): Promise<void> {
   const nextProgramLabel = previewMediaAssetLabel
   setDockTakeBusy(true)
   try {
-    await onTakeProgram?.("auto")
+    if (!onTakeProgram || !await onTakeProgram("auto")) {
+      setMediaImportError("Program TAKE was not confirmed; the source remains in Preview.")
+      return
+    }
     if (!nextProgramLabel) return
 setTakeFlashAssetLabel(nextProgramLabel)
 setTakeFlashProgramLabel(nextProgramLabel)
@@ -365,31 +421,29 @@ function handleResetProgramRuntime(): void {
     },
   }))
 }
-function handleSelectMediaAssetForPreview(label: string): void {
+function handleSelectMediaAssetForPreview(label: string, slide?: number): void {
   const targetAsset =
     orchestratedMediaRows.find((asset) => asset.label === label) ??
     mediaRows.find((asset) => asset.label === label) ??
     null
   setPreviewMediaAssetLabel(label)
-  if (programMediaAssetLabel === label) {
-    setProgramMediaAssetLabel(null)
-  }
   if (targetAsset && onAddMediaAssetToPreview) {
     const nextZIndex =
       previewBlocks.reduce((highest, block) => Math.max(highest, block.zIndex ?? 0), 0) + 1
     const blockType: PreviewBlock["type"] =
-      targetAsset.type === "video" ? "video" : "image"
+      targetAsset.assetKind ?? (targetAsset.type === "audio" ? "audio" : targetAsset.type === "video" ? "video" : "image")
     onAddMediaAssetToPreview({
       id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
       type: blockType,
       label: targetAsset.label,
-      src: targetAsset.imageUrl ?? "",
+      src: (targetAsset.mediaUrl ?? targetAsset.imageUrl ?? "") + (targetAsset.deck ? `#page=${clampPresentationSlide(slide ?? deckPages[targetAsset.id ?? label] ?? 1, targetAsset.deck.pageCount)}` : ""),
+      pdfPage: targetAsset.deck ? clampPresentationSlide(slide ?? deckPages[targetAsset.id ?? label] ?? 1, targetAsset.deck.pageCount) : undefined,
       assetId: targetAsset.id ?? null,
       storagePath: targetAsset.storagePath ?? null,
       x: 0,
-      y: 0,
+      y: targetAsset.type === "audio" ? 306 : 0,
       width: 640,
-      height: 360,
+      height: targetAsset.type === "audio" ? 54 : 360,
       opacity: 1,
       scale: 1,
       rotation: 0,
@@ -399,14 +453,39 @@ function handleSelectMediaAssetForPreview(label: string): void {
       shadowIntensity: 0,
       blendMode: "normal",
       zIndex: nextZIndex,
-      groupId: "source-route",
+      groupId: targetAsset.type === "audio" ? "audio-route" : "source-route",
+      loop: isHoldingAsset(targetAsset),
     })
   }
   setRuntimePaused(false)
 }
+async function persistMedia(file: File, label: string, holding: boolean, deck?: PresentationDeckMetadata): Promise<{ id: string; url: string; path: string }> {
+  const assetType = validateProducerMedia(file.type, file.size)
+  await checkProducerMediaFile(file)
+  if (localMediaOnly) {
+    const asset = await saveLocalMedia(file, label, holding, deck), url = URL.createObjectURL(asset.file)
+    localObjectUrls.current.push(url)
+    return { id: asset.id, url, path: "" }
+  }
+  const prepareRes = await fetch(`/api/admin/events/${eventId}/live/assets/prepare`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ fileName: file.name, mimeType: file.type, byteSize: file.size }),
+  })
+  const prepared = await prepareRes.json()
+  if (!prepareRes.ok) throw new Error(prepared.error || "Could not prepare source")
+  const { error } = await createClient().storage.from(prepared.bucket).uploadToSignedUrl(prepared.path, prepared.token, file, { contentType: file.type })
+  if (error) throw new Error(error.message)
+  const response = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ path: prepared.path, label, mimeType: file.type, byteSize: file.size, assetType, holding }),
+  })
+  const committed = await response.json()
+  if (!response.ok) throw new Error(committed.error || "Could not save source")
+  return { id: String(committed.asset.id), url: buildProducerAssetUrl(eventId, committed.asset.storage_path), path: committed.asset.storage_path }
+}
 async function handleCreateColorSource(): Promise<void> {
   const colorHex = normalizeColorHex(colorSourceHex)
-  const baseLabel = colorSourceLabel.trim() || `Color ${colorHex}`
+  const baseLabel = colorSourceLabel.trim() || colorSourceName(colorHex)
   const existingLabels = new Set(importedMediaAssets.map((asset) => asset.label))
   let label = baseLabel
   let suffix = 2
@@ -414,51 +493,15 @@ async function handleCreateColorSource(): Promise<void> {
     label = `${baseLabel} ${suffix}`
     suffix += 1
   }
-  const fileName = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "color-source"}.svg`
-  const sourceFile = new File([buildColorSourceSvg(colorHex)], fileName, {
-    type: "image/svg+xml",
-  })
-
+  const fileName = `${label.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "color-source"}.png`
   setMediaImportBusy(true)
   setMediaImportError(null)
 
   try {
-    const prepareRes = await fetch(`/api/admin/events/${eventId}/live/assets/prepare`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        fileName: sourceFile.name,
-        mimeType: sourceFile.type,
-        byteSize: sourceFile.size,
-      }),
-    })
-    const prepared = await prepareRes.json().catch((): null => null)
-    if (!prepareRes.ok) throw new Error(prepared?.error || "Could not prepare the color source")
-
-    const supabase = createClient()
-    const { error: uploadError } = await supabase.storage
-      .from(prepared.bucket)
-      .uploadToSignedUrl(prepared.path, prepared.token, sourceFile, {
-        contentType: sourceFile.type,
-      })
-    if (uploadError) throw uploadError
-
-    const commitRes = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        path: prepared.path,
-        label,
-        mimeType: sourceFile.type,
-        byteSize: sourceFile.size,
-        assetType: "image",
-      }),
-    })
-    const committed = await commitRes.json().catch((): null => null)
-    if (!commitRes.ok) throw new Error(committed?.error || "Could not save the color source")
-
+    const sourceFile = new File([await buildColorSourcePng(colorHex)], fileName, { type: "image/png" })
+    const persisted = await persistMedia(sourceFile, label, importAsHolding)
     const colorAsset: BroadcastAssetTelemetry = {
-      id: String(committed.asset.id),
+      id: persisted.id,
       label,
       type: "graphic",
       state: "READY",
@@ -467,8 +510,11 @@ async function handleCreateColorSource(): Promise<void> {
       route: "Standby",
       lastPlayed: "Not played",
       linkedScene: "Unassigned",
-      imageUrl: buildProducerAssetUrl(eventId, String(committed.asset.storage_path)),
-      storagePath: String(committed.asset.storage_path),
+      mediaUrl: persisted.url,
+      imageUrl: persisted.url,
+      assetKind: "image",
+      holding: importAsHolding,
+      storagePath: persisted.path,
       audioEmbedded: false,
       programSafe: true,
       destination: "STANDBY",
@@ -562,7 +608,9 @@ function createImportedMediaAsset(
     route: "Imported",
     lastPlayed: "Not Played",
     linkedScene: "Unassigned",
-    imageUrl: isImage ? persisted?.url ?? URL.createObjectURL(file) : null,
+    mediaUrl: persisted?.url ?? null,
+    imageUrl: isImage ? persisted?.url ?? null : null,
+    assetKind: validateProducerMedia(file.type, file.size),
     storagePath: persisted?.path ?? null,
     audioEmbedded: type === "video",
     destination: "STANDBY",
@@ -584,58 +632,60 @@ async function handleImportMediaFiles(
   event: ChangeEvent<HTMLInputElement>,
 ): Promise<void> {
   const files = Array.from(event.target.files ?? [])
-  if (!files.length) return
   event.target.value = ""
+  await importMediaFiles(files)
+}
+async function importMediaFiles(files: File[]): Promise<void> {
+  if (!files.length) return
   setMediaImportBusy(true)
   setMediaImportError(null)
   setActiveMediaOrchestratorTab("assets")
   setExpandedMediaOpen(true)
   try {
-    const supabase = createClient()
-    const persistedAssets: BroadcastAssetTelemetry[] = []
+    const labels = importedMediaAssets.map(asset => asset.label)
     for (const [index, file] of files.entries()) {
-      const assetType = file.type.startsWith("video/")
-        ? "video"
-        : file.type === "application/pdf" || file.name.toLowerCase().endsWith(".pdf")
-          ? "pdf"
-          : "image"
-      const prepareRes = await fetch(`/api/admin/events/${eventId}/live/assets/prepare`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fileName: file.name, mimeType: file.type, byteSize: file.size }),
-      })
-      const prepared = await prepareRes.json().catch((): null => null)
-      if (!prepareRes.ok) throw new Error(prepared?.error || `Could not prepare ${file.name}`)
-      const { error: uploadError } = await supabase.storage
-        .from(prepared.bucket)
-        .uploadToSignedUrl(prepared.path, prepared.token, file, { contentType: file.type })
-      if (uploadError) throw uploadError
-      const label = file.name.replace(/\.[^/.]+$/, "") || `Imported Asset ${index + 1}`
-      const commitRes = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          path: prepared.path,
-          label,
-          mimeType: file.type,
-          byteSize: file.size,
-          assetType,
-        }),
-      })
-      const committed = await commitRes.json().catch((): null => null)
-      if (!commitRes.ok) throw new Error(committed?.error || `Could not save ${file.name}`)
-      persistedAssets.push(createImportedMediaAsset(file, index, {
-        id: String(committed.asset.id),
-        url: buildProducerAssetUrl(eventId, String(committed.asset.storage_path)),
-        path: String(committed.asset.storage_path),
-      }))
+      const label = uniqueProducerAssetLabel(file.name.replace(/\.[^/.]+$/, ""), labels)
+      let mediaFile = file, deck: PresentationDeckMetadata | undefined
+      if (presentationExtension(file.name)) {
+        if (!localMediaOnly) throw new Error("PowerPoint conversion is local-only for now")
+        setMediaImportError(null)
+        const converted = await importLocalPresentation(file); mediaFile = converted.file; deck = converted.deck
+      }
+      const persisted = await persistMedia(mediaFile, label, importAsHolding, deck)
+      const asset = { ...createImportedMediaAsset(mediaFile, index, persisted), label, holding: importAsHolding, deck, imageUrl: deck?.thumbnails[0] ?? createImportedMediaAsset(mediaFile, index, persisted).imageUrl }
+      labels.push(label)
+      // Keep successful files visible even if a subsequent import fails.
+      setImportedMediaAssets(current => [asset, ...current])
     }
-    setImportedMediaAssets((current) => [...persistedAssets, ...current])
   } catch (error) {
     setMediaImportError(error instanceof Error ? error.message : "The source could not be imported")
   } finally {
     setMediaImportBusy(false)
   }
+}
+function selectDeckSlide(asset: BroadcastAssetTelemetry, page: number): void {
+  if (!asset.deck) return
+  const selected = clampPresentationSlide(page, asset.deck.pageCount)
+  setDeckPages(current => ({ ...current, [asset.id ?? asset.label]: selected }))
+  handleSelectMediaAssetForPreview(asset.label, selected)
+}
+async function loadPresentationFixture(format: "pptx" | "ppt"): Promise<void> {
+  if (!localMediaOnly || mediaImportBusy) return
+  const response = await fetch(`/dev/producer-media/presentation-fixture?format=${format}`)
+  if (!response.ok) { setMediaImportError("Generated test presentation is unavailable"); return }
+  await importMediaFiles([new File([await response.blob()], `Local slide test.${format}`, {type:format === "pptx" ? "application/vnd.openxmlformats-officedocument.presentationml.presentation" : "application/vnd.ms-powerpoint"})])
+}
+async function toggleHolding(asset: BroadcastAssetTelemetry): Promise<void> {
+  if (!asset.id) return
+  const holding = !isHoldingAsset(asset)
+  try {
+    if (localMediaOnly) await updateLocalMedia(asset.id, { holding })
+    else {
+      const response = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ assetId: asset.id, holding }) })
+      if (!response.ok) throw new Error("Could not update Holding classification")
+    }
+    setImportedMediaAssets(current => current.map(item => item.id === asset.id ? { ...item, holding } : item))
+  } catch (error) { setMediaImportError(error instanceof Error ? error.message : "Could not update source") }
 }
 async function handleDeleteImportedAsset(label: string): Promise<void> {
   const removedAsset = importedMediaAssets.find((asset) => asset.label === label)
@@ -651,7 +701,8 @@ async function handleDeleteImportedAsset(label: string): Promise<void> {
   setMediaImportError(null)
   setDeletingMediaAssetId(removedAsset.id ?? label)
   try {
-    if (removedAsset.id) {
+    if (removedAsset.id && localMediaOnly) await deleteLocalMedia(removedAsset.id)
+    else if (removedAsset.id) {
       const response = await fetch(`/api/admin/events/${eventId}/live/assets/commit`, {
         method: "DELETE",
         headers: { "content-type": "application/json" },
@@ -663,8 +714,8 @@ async function handleDeleteImportedAsset(label: string): Promise<void> {
       }
     }
   setImportedMediaAssets((current) => {
-    if (removedAsset?.imageUrl?.startsWith("blob:")) {
-      URL.revokeObjectURL(removedAsset.imageUrl)
+    if (removedAsset?.mediaUrl?.startsWith("blob:")) {
+      URL.revokeObjectURL(removedAsset.mediaUrl)
     }
     return current.filter((asset) => asset.label !== label)
   })
@@ -754,6 +805,7 @@ function handleClearImportedAssets(): void {
     onRecordingHealthChange?.(recordingStatus, recordingError)
   }, [onRecordingHealthChange, recordingError, recordingStatus])
   useEffect(() => {
+    if (localMediaOnly) return
     let cancelled = false
     async function restoreRecordingState(): Promise<void> {
       try {
@@ -817,7 +869,7 @@ function handleClearImportedAssets(): void {
     return () => {
       cancelled = true
     }
-  }, [eventId])
+  }, [eventId, localMediaOnly])
   function isImportedMediaAsset(label: string): boolean {
   return importedMediaAssets.some((asset) => asset.label === label)
 }
@@ -1067,7 +1119,7 @@ function handleDeleteMediaAssetFromEdit(): void {
   const sfxLevel = Math.max(2, Math.min(72, Math.round(micLevelPercent * 0.34)))
   const audienceLevel = Math.max(2, Math.min(62, Math.round(micLevelPercent * 0.24)))
   const media = previewBlocks.filter(
-    (block) => block.type === "video" || block.type === "image" || block.type === "pdf"
+    (block) => block.type === "video" || block.type === "image" || block.type === "pdf" || block.type === "audio"
   )
 const mediaItems: DockAssetRecord[] = media.map((block) => ({ ...block, category: "media" }))
   const activeSceneIds = new Set([selectedSceneId, programSceneId, hotkeySceneId].filter(Boolean))
@@ -1154,13 +1206,13 @@ const previewMediaAsset =
     ["graphic", "Graphics", mediaRows.filter((asset) => asset.type === "graphic").length],
     ["video", "Videos", mediaRows.filter((asset) => asset.type === "video").length],
     ["audio", "Audio", mediaRows.filter((asset) => asset.type === "audio").length],
-    ["holding", "Holding", mediaRows.filter((asset) => /holding/i.test(`${asset.label} ${asset.segment ?? ""}`)).length],
+    ["holding", "Holding", mediaRows.filter((asset) => isHoldingAsset(asset)).length],
   ] as const
   const filteredMediaRows = orchestratedMediaRows.filter((asset) => {
     const matchesType =
       mediaTypeFilter === "all" ||
       (mediaTypeFilter === "holding"
-        ? /holding/i.test(`${asset.label} ${asset.segment ?? ""}`)
+        ? isHoldingAsset(asset)
         : asset.type === mediaTypeFilter)
     const query = mediaSearchQuery.trim().toLowerCase()
     const matchesSearch = !query || `${asset.label} ${asset.meta} ${asset.type}`.toLowerCase().includes(query)
@@ -1169,7 +1221,7 @@ const previewMediaAsset =
   return (
     <div className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(7,12,22,0.96),rgba(3,6,12,1))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.020)_0px,rgba(255,255,255,0.020)_1px,transparent_1px,transparent_28px)]" />
-      {activeUtilityPanel === "stream" ? (
+      {!localMediaOnly && activeUtilityPanel === "stream" ? (
         <BroadcastDestinationsPanel
           eventId={eventId}
           outputProfileId={outputProfileId}
@@ -1189,6 +1241,7 @@ const previewMediaAsset =
       ) : null}
       {productionDrawerTab ? (
         <ProductionControlsDrawer
+          audioEngine={programAudioEngine}
           activeTab={productionDrawerTab}
           onClose={() => setProductionDrawerTab(null)}
           audioChannels={[
@@ -1220,7 +1273,7 @@ const previewMediaAsset =
         ref={mediaImportInputRef}
         type="file"
         multiple
-        accept="video/*,image/*,audio/*,application/pdf"
+        accept={localMediaOnly ? `${PRODUCER_MEDIA_ACCEPT},${LOCAL_PRESENTATION_ACCEPT}` : PRODUCER_MEDIA_ACCEPT}
         className="hidden"
         onChange={handleImportMediaFiles}
       />
@@ -1269,6 +1322,9 @@ const previewMediaAsset =
               </button>
             </div>
           </header>
+          <label className="flex items-center gap-2 px-5 py-2 text-xs text-white/70"><input type="checkbox" checked={importAsHolding} onChange={event => setImportAsHolding(event.target.checked)} /> Add new sources to Holding (loop video/audio on playback)</label>
+          {localMediaOnly ? <div className="flex gap-2 px-5 py-2 text-xs text-white/70"><button type="button" disabled={mediaImportBusy} onClick={() => void loadPresentationFixture("pptx")} className="rounded border p-2">Load generated PPTX test deck</button><button type="button" disabled={mediaImportBusy} onClick={() => void loadPresentationFixture("ppt")} className="rounded border p-2">Load generated PPT test deck</button><span>PowerPoint is converted locally to static slides. No animations or embedded audio/video.</span></div> : null}
+          {programAudioEngine ? <button type="button" className="m-2 rounded border px-3 py-2 text-sm" onClick={() => setProductionDrawerTab("audio")}>Open connected Program mixer</button> : null}
           {colorSourceOpen ? (
             <div className="flex shrink-0 flex-wrap items-end gap-3 border-b border-white/[0.09] bg-black/24 px-5 py-3">
               <label className="grid gap-1.5 text-[9px] font-semibold uppercase tracking-[0.10em] text-white/42">
@@ -1276,15 +1332,15 @@ const previewMediaAsset =
                 <span className="flex h-9 items-center gap-2 rounded-[9px] border border-white/[0.10] bg-[#05080f] px-2">
                   <input
                     type="color"
-                    value={colorSourceHex}
-                    onChange={(event) => setColorSourceHex(event.target.value.toUpperCase())}
+                    value={normalizeColorHex(colorSourceHex)}
+                    onChange={(event) => updateColorSource(event.target.value.toUpperCase())}
                     className="h-6 w-8 cursor-pointer border-0 bg-transparent p-0"
                     aria-label="Color source color"
                   />
                   <input
                     value={colorSourceHex}
-                    onChange={(event) => setColorSourceHex(event.target.value)}
-                    onBlur={() => setColorSourceHex(normalizeColorHex(colorSourceHex))}
+                    onChange={(event) => updateColorSource(event.target.value)}
+                    onBlur={() => updateColorSource(normalizeColorHex(colorSourceHex))}
                     className="w-20 bg-transparent text-[11px] font-semibold uppercase text-white/78 outline-none"
                     aria-label="Color source hex value"
                   />
@@ -1294,7 +1350,7 @@ const previewMediaAsset =
                 Source name
                 <input
                   value={colorSourceLabel}
-                  onChange={(event) => setColorSourceLabel(event.target.value)}
+                  onChange={(event) => { setColorSourceLabel(event.target.value); setColorSourceNameEdited(Boolean(event.target.value.trim())) }}
                   placeholder="Black"
                   className="h-9 rounded-[9px] border border-white/[0.10] bg-[#05080f] px-3 text-[11px] normal-case tracking-normal text-white/78 outline-none focus:border-violet-300/35"
                 />
@@ -1310,7 +1366,7 @@ const previewMediaAsset =
             </div>
           ) : null}
           {mediaImportError ? (
-            <div className="border-b border-red-300/10 bg-red-400/[0.08] px-5 py-2 text-[10px] font-medium text-red-100/80">
+            <div role="alert" className="border-b border-red-300/10 bg-red-400/[0.08] px-5 py-2 text-[10px] font-medium text-red-100/80">
               {mediaImportError}
             </div>
           ) : null}
@@ -1381,6 +1437,12 @@ const previewMediaAsset =
                       <Image size={28} aria-hidden="true" />
                     )}
                   </div>
+                  {selectedMediaAsset.deck ? <section aria-label="Presentation slides" className="my-2">
+                    <p className="text-xs text-white/80">{selectedMediaAsset.deck.originalName} · Slide {deckPages[selectedMediaAsset.id ?? selectedMediaAsset.label] ?? 1} of {selectedMediaAsset.deck.pageCount}</p>
+                    <p className="text-xs text-white/50">Static slides. Changes go to Preview only; press TAKE to update Program.</p>
+                    <div className="my-2 flex gap-2"><button type="button" disabled={(deckPages[selectedMediaAsset.id ?? selectedMediaAsset.label] ?? 1) <= 1} onClick={() => selectDeckSlide(selectedMediaAsset, (deckPages[selectedMediaAsset.id ?? selectedMediaAsset.label] ?? 1)-1)} className="rounded border px-2 py-1 text-xs disabled:opacity-30">Previous slide</button><button type="button" disabled={(deckPages[selectedMediaAsset.id ?? selectedMediaAsset.label] ?? 1) >= selectedMediaAsset.deck.pageCount} onClick={() => selectDeckSlide(selectedMediaAsset, (deckPages[selectedMediaAsset.id ?? selectedMediaAsset.label] ?? 1)+1)} className="rounded border px-2 py-1 text-xs disabled:opacity-30">Next slide</button></div>
+                    <div className="grid max-h-56 grid-cols-3 gap-2 overflow-auto">{selectedMediaAsset.deck.thumbnails.map((thumbnail,index) => <button type="button" key={index} aria-label={`Preview slide ${index+1}`} aria-pressed={(deckPages[selectedMediaAsset.id ?? selectedMediaAsset.label] ?? 1)===index+1} onClick={() => selectDeckSlide(selectedMediaAsset,index+1)} className="rounded border border-white/20 p-1"><img src={thumbnail} alt={`Slide ${index+1} thumbnail`} /><span className="text-xs">{index+1}</span></button>)}</div>
+                  </section> : null}
                   <h3 className="mt-2 truncate text-[15px] font-semibold tracking-[-0.025em] text-white/90">
                     {selectedMediaAsset.label}
                   </h3>
@@ -1401,6 +1463,7 @@ const previewMediaAsset =
                         ? "Refresh in Preview"
                         : "Send to Preview"}
                     </button>
+                    {isImportedMediaAsset(selectedMediaAsset.label) ? <button type="button" className="rounded border p-2 text-xs" onClick={() => void toggleHolding(selectedMediaAsset)}>{isHoldingAsset(selectedMediaAsset) ? "Remove from Holding" : "Mark as Holding"}</button> : null}
                     {isImportedMediaAsset(selectedMediaAsset.label) ? (
                       <div className="flex items-center gap-2 border-t border-white/[0.07] pt-2">
                         <button
@@ -1445,7 +1508,7 @@ const previewMediaAsset =
         </div>
       ) : null}
       
-      {standardToolsOpen && !expandedMediaOpen ? <div className="relative z-10 grid min-h-0 flex-1 gap-4 overflow-hidden pb-4 xl:grid-cols-[0.9fr_3.1fr]">
+      {!localMediaOnly && standardToolsOpen && !expandedMediaOpen ? <div className="relative z-10 grid min-h-0 flex-1 gap-4 overflow-hidden pb-4 xl:grid-cols-[0.9fr_3.1fr]">
 <ConsolePanel
   title="Scene presets"
   action={
@@ -1677,7 +1740,7 @@ const previewMediaAsset =
           </div>
         </ConsolePanel>
       </div> : null}
-      {workspaceMode === "show" || workspaceMode === "advanced" ? (
+      {!localMediaOnly && (workspaceMode === "show" || workspaceMode === "advanced") ? (
       <div className="producer-bottom-dock__toolbar relative z-20 mt-auto grid h-[76px] shrink-0 grid-cols-[280px_minmax(0,1fr)] items-center gap-5 border-t border-white/[0.08] px-5">
         <button type="button" onClick={onToggleStandardTools} aria-expanded={standardToolsOpen} className="flex h-12 items-center justify-between border-r border-white/14 pr-8 text-left text-[17px] font-semibold text-white/90">
           <span>Production Tools</span><span className={`text-white/70 transition-transform ${standardToolsOpen ? "rotate-180" : ""}`}>⌃</span>

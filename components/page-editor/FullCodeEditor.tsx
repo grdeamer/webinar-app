@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import CustomCodePage from "@/components/page-renderer/CustomCodePage"
 import ImportedSiteVisualEditor from "@/components/page-editor/ImportedSiteVisualEditor"
 
@@ -46,6 +46,7 @@ export default function FullCodeEditor({
   initialCss,
   enabled,
   saveStatus,
+  onDraftChange,
   onApply,
   onUseVisualDesign,
 }: {
@@ -53,6 +54,7 @@ export default function FullCodeEditor({
   initialCss: string
   enabled: boolean
   saveStatus: string
+  onDraftChange?: (dirty: boolean) => void
   onApply: (html: string, css: string) => void
   onUseVisualDesign: () => void
 }) {
@@ -62,6 +64,11 @@ export default function FullCodeEditor({
   const [appliedCss, setAppliedCss] = useState(initialCss || STARTER_CSS)
   const [view, setView] = useState<"visual" | "code">(initialHtml ? "visual" : "code")
   const hasDraftChanges = html !== appliedHtml || css !== appliedCss
+
+  useEffect(() => {
+    onDraftChange?.(hasDraftChanges)
+    return () => onDraftChange?.(false)
+  }, [hasDraftChanges, onDraftChange])
 
   function applyCode() {
     setAppliedHtml(html)

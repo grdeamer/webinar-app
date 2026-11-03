@@ -1,3 +1,4 @@
+import { validateProducerMedia } from "@/lib/producer/mediaAssets"
 import { NextResponse } from "next/server"
 
 import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
@@ -63,8 +64,10 @@ export async function POST(
   if (!path.startsWith(`event-live/${id}/`)) {
     return NextResponse.json({ error: "Invalid asset path" }, { status: 400 })
   }
-  if (!["pdf", "image", "video"].includes(assetType)) {
-    return NextResponse.json({ error: "Invalid asset type" }, { status: 400 })
+  try {
+    if (validateProducerMedia(mimeType, byteSize) !== assetType) throw new Error("Asset type does not match its media format")
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid asset type" }, { status: 400 })
   }
 
   const folder = path.split("/").slice(0, -1).join("/")
@@ -88,6 +91,7 @@ export async function POST(
       label,
       storage_path: path,
       public_url: publicData.publicUrl,
+      metadata: { holding: body?.holding === true },
       mime_type: mimeType,
       byte_size: byteSize,
       created_by: auth.user.id,
@@ -149,4 +153,17 @@ export async function DELETE(
   }
 
   return NextResponse.json({ deleted: true })
+}
+
+export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }> }): Promise<Response> {
+  const { id } = await ctx.params
+  const auth = await requireEventOperatorAccess(id, ["event_admin", "producer"], "producer_room")
+  if (auth instanceof Response) return auth
+  const body = await req.json().catch((): null => null)
+  if (typeof body?.assetId !== "string" || typeof body?.holding !== "boolean") return NextResponse.json({ error: "Asset and Holding classification required" }, { status: 400 })
+  const { data: existing, error: readError } = await supabaseAdmin.from("event_live_assets").select("metadata").eq("id", body.assetId).eq("event_id", id).maybeSingle()
+  if (readError) return NextResponse.json({ error: readError.message }, { status: 500 })
+  if (!existing) return NextResponse.json({ error: "Source not found" }, { status: 404 })
+  const { error } = await supabaseAdmin.from("event_live_assets").update({ metadata: { ...existing.metadata, holding: body.holding } }).eq("id", body.assetId).eq("event_id", id)
+  return error ? NextResponse.json({ error: error.message }, { status: 500 }) : NextResponse.json({ updated: true })
 }

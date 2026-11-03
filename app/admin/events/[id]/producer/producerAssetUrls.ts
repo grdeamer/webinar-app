@@ -41,7 +41,7 @@ export function normalizeProducerBlocks(
   blocks: PreviewBlock[],
 ): PreviewBlock[] {
   return blocks.map((block) => {
-    if (!block.src || !["image", "video", "pdf"].includes(block.type)) return block
+    if (!block.src || !["image", "video", "pdf", "audio"].includes(block.type)) return block
 
     const src = normalizeProducerAssetUrl(eventId, block.src, block.storagePath)
     return src === block.src ? block : { ...block, src }

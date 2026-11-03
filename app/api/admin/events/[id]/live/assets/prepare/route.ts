@@ -1,3 +1,4 @@
+import { validateProducerMedia } from "@/lib/producer/mediaAssets"
 import { randomUUID } from "node:crypto"
 import { NextResponse } from "next/server"
 
@@ -8,18 +9,6 @@ export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 
 const bucket = "upload"
-const maxFileSize = 50 * 1024 * 1024
-const allowedTypes = new Set([
-  "application/pdf",
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "image/gif",
-  "video/mp4",
-  "video/webm",
-  "video/quicktime",
-])
-
 function extensionOf(name: string): string {
   return name.toLowerCase().match(/\.([a-z0-9]+)$/)?.[1] || "bin"
 }
@@ -37,17 +26,11 @@ export async function POST(
   const mimeType = String(body?.mimeType || "application/octet-stream")
   const byteSize = Number(body?.byteSize || 0)
 
-  if (!fileName || !allowedTypes.has(mimeType)) {
-    return NextResponse.json(
-      { error: "Choose a PDF, image, MP4, WebM, or QuickTime file" },
-      { status: 400 }
-    )
-  }
-  if (!Number.isFinite(byteSize) || byteSize < 1 || byteSize > maxFileSize) {
-    return NextResponse.json(
-      { error: "Live assets must be between 1 byte and 50 MB" },
-      { status: 400 }
-    )
+  try {
+    if (!fileName) throw new Error("Choose a media file")
+    validateProducerMedia(mimeType, byteSize)
+  } catch (error) {
+    return NextResponse.json({ error: error instanceof Error ? error.message : "Invalid file" }, { status: 400 })
   }
 
   const extension = extensionOf(fileName)

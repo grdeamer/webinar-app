@@ -1,3 +1,4 @@
+import type { PresentationDeckMetadata } from "@/lib/producer/presentationImport"
 import { useState, type JSX } from "react"
 import { Image, Video, FileImage, Waves, Radio } from "lucide-react"
 
@@ -5,6 +6,9 @@ export type BroadcastAssetType = "video" | "graphic" | "audio" | "live"
 export type BroadcastAssetState = "READY" | "LIVE" | "LOOPING" | "STANDBY" | "CUED" | "SAFE" | "PRELOADED" | "FAILED"
 
 export type BroadcastAssetTelemetry = {
+  deck?: PresentationDeckMetadata
+  assetKind?: "image" | "pdf" | "video" | "audio"
+  holding?: boolean
   id?: string
   label: string
   type: BroadcastAssetType
@@ -14,6 +18,7 @@ export type BroadcastAssetTelemetry = {
   route: string
   lastPlayed: string
   linkedScene: string
+  mediaUrl?: string | null
   imageUrl?: string | null
   storagePath?: string | null
   audioEmbedded?: boolean

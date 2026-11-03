@@ -428,6 +428,8 @@ const isEmbedded =
   const [isEditing, setIsEditing] = useState(
     isEmbedded || requestedMode !== "preview",
   )
+  const codeDraftDirty = useRef(false)
+  const onCodeDraftChange = useCallback((dirty: boolean) => { codeDraftDirty.current = dirty }, [])
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -2892,6 +2894,10 @@ const selectedExperienceNode = experienceNodes.find(
           onChangePreviewDevice={setPreviewDevice}
           onToggleEditing={toggleEditing}
           onToggleCodeEditor={() => {
+            if (isCodeEditorOpen && codeDraftDirty.current) {
+              setSaveMessage("Apply your HTML/CSS changes before closing the code editor.")
+              return
+            }
             setIsCodeEditorOpen((value) => !value)
             setIsEditing(isCodeEditorOpen)
             clearSelection()
@@ -2902,6 +2908,10 @@ const selectedExperienceNode = experienceNodes.find(
           onPreview={toggleEditing}
           onShare={() => setCollaborationOpen(true)}
           onPublish={() => {
+            if (codeDraftDirty.current) {
+              setSaveMessage("Apply your HTML/CSS changes before publishing.")
+              return
+            }
             void (async () => {
               if (!await flushCurrentPage()) return
               setSaveMessage("Publishing…")
@@ -3022,6 +3032,7 @@ const selectedExperienceNode = experienceNodes.find(
               {isCodeEditorOpen && documentReady ? (
                 <FullCodeEditor
                   key={selectedPageKey}
+                  onDraftChange={onCodeDraftChange}
                   initialHtml={customCodeDocument.html}
                   initialCss={customCodeDocument.css}
                   enabled={customCodeDocument.enabled}

@@ -1082,8 +1082,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
       const nextBlockId = `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       setPreviewBlocks((current) => {
-        const baseBlocks = block.groupId === "source-route"
-          ? current.filter((currentBlock) => currentBlock.groupId !== "source-route")
+        const baseBlocks = ["source-route", "audio-route"].includes(block.groupId ?? "")
+          ? current.filter((currentBlock) => currentBlock.groupId !== block.groupId)
           : current;
         const nextZIndex = baseBlocks.reduce(
           (highest, currentBlock) => Math.max(highest, currentBlock.zIndex ?? 0),

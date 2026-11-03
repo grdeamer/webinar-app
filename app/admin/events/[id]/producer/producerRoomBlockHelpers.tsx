@@ -1,3 +1,5 @@
+import ProducerPdfPage from "./ProducerPdfPage"
+import ProducerMediaElement from "./ProducerMediaElement"
 import type { CSSProperties, JSX } from "react"
 import {
   PRODUCER_BLOCK_CANVAS_HEIGHT,
@@ -238,6 +240,7 @@ export function getSharedBlockStyle({
 function renderBlockContent(
   block: PreviewBlock,
   renderCameraSlotContent?: (block: PreviewBlock) => JSX.Element | null,
+  program = false,
 ): JSX.Element | null {
   if (block.type === "text") {
     return <div className="p-2 text-sm">{block.content}</div>
@@ -341,8 +344,8 @@ function renderBlockContent(
     )
   }
 
-  if (block.type === "video" && block.src) {
-    return <video src={block.src} controls className="h-full w-full bg-black object-contain opacity-100" />
+  if ((block.type === "video" || block.type === "audio") && block.src) {
+    return <ProducerMediaElement block={block} program={program} />
   }
 
   if (block.type === "image" && block.src) {
@@ -356,13 +359,7 @@ function renderBlockContent(
   }
 
   if (block.type === "pdf" && block.src) {
-    return (
-      <iframe
-        src={block.src}
-        className="h-full w-full bg-white"
-        title={block.label || "PDF"}
-      />
-    )
+    return <ProducerPdfPage src={block.src} label={`${block.label || "PDF"}${block.pdfPage ? ` · Slide ${block.pdfPage}` : ""}`} />
   }
 
   return null
@@ -561,7 +558,7 @@ export function renderPlacedBlocks({
                 : undefined,
           }}
         >
-          {renderBlockContent(block, opts?.renderCameraSlotContent)}
+          {renderBlockContent(block, opts?.renderCameraSlotContent, opts?.liveRemove === true)}
         </div>
 
         {opts?.selectable && opts?.showChrome && !block.locked ? (

@@ -15,12 +15,16 @@ const SNAP_THRESHOLD = 10
 
 export type PreviewBlock = {
   id: string
-  type: "pdf" | "video" | "image" | "text" | "camera-slot"
+  type: "pdf" | "video" | "audio" | "image" | "text" | "camera-slot"
   x: number
   y: number
   width: number
   height: number
   zIndex: number
+  pdfPage?: number
+  mediaMuted?: boolean
+  mediaGain?: number
+  loop?: boolean
   opacity?: number
   scale?: number
   rotation?: number
