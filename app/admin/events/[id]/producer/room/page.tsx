@@ -1,4 +1,3 @@
-import {configuredProducerSession} from "@/lib/production/hosted/studioConfig"
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomClient"
@@ -47,13 +46,11 @@ export default async function AdminProducerRoomPage(props: {
     eventAccent = event.accent_color || eventAccent
   }
 
-  const configuredSession=configuredProducerSession(eventId)
-  let query = supabaseAdmin
+  const { data: session, error: sessionError } = await supabaseAdmin
     .from("event_sessions")
     .select("id, title, delivery_mode, live_room_name, is_general_session, session_kind, sort_order")
     .eq("event_id", eventId)
-  query=configuredSession?query.eq("id",configuredSession):query.or("is_general_session.eq.true,session_kind.eq.general")
-  const {data:session,error:sessionError}=await query
+    .or("is_general_session.eq.true,session_kind.eq.general")
     .order("is_general_session", { ascending: false })
     .order("sort_order", { ascending: true, nullsFirst: false })
     .limit(1)
