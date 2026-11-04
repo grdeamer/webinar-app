@@ -5,6 +5,7 @@ import {PRODUCER_EC2_SESSION_MS} from '../lib/production/ec2Lifecycle.ts'
 test('mixed hour requires an exact approved scope, fixed spending/traffic bounds and two independent deadlines',()=>{
  const now=1000000000000,scope={eventId:'event',sessionId:'session'},value={kind:'original-room-mixed-hour',approvalId:'d86db408-4bb5-44b5-aeca-507a656d00bf',...scope,cloudStopAtMs:now+70*60000,mediaStopAtMs:now+68*60000,approvedBudgetUsd:2,networkLimitBytes:4000000000,recording:false}
  assert.equal(mixedHourApproval(value,scope,now).recording,false)
+ assert.equal(mixedHourApproval({...value,networkLimitBytes:2000000000},scope,now).networkLimitBytes,2000000000)
  for(const patch of [{recording:true},{approvedBudgetUsd:3},{networkLimitBytes:5000000000},{eventId:'other'},{mediaStopAtMs:now+71*60000},{cloudStopAtMs:now+71*60000},{mediaStopAtMs:now+60*60000}])assert.throws(()=>mixedHourApproval({...value,...patch},scope,now),/approval/)
  assert.equal(PRODUCER_EC2_SESSION_MS,30*60000)
 })

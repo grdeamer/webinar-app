@@ -9,7 +9,7 @@ assert plan['cloudStopVerified'] is True and plan['cloudStopAtMs']-time.time()*1
 approval=plan['approval'];uid=approval['approvalId'];assert re.fullmatch('[a-f0-9-]{36}',uid)
 assert approval['kind']=='original-room-mixed-hour' and approval['cloudStopAtMs']==plan['cloudStopAtMs']
 assert approval['mediaStopAtMs']<=approval['cloudStopAtMs']-60000 and approval['mediaStopAtMs']>time.time()*1000+61*60000
-assert approval['approvedBudgetUsd']==2 and approval['networkLimitBytes']==4000000000 and approval['recording'] is False
+assert approval['approvedBudgetUsd']==2 and 1000000000<=approval['networkLimitBytes']<=4000000000 and approval['recording'] is False
 root=pathlib.Path('/var/lib/jupiter-producer/soak-results')
 root.mkdir(parents=True,exist_ok=True,mode=0o700)
 # This marker survives a reconnect/reboot; the same approval can never start a second run.

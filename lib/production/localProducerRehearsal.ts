@@ -112,7 +112,7 @@ export class LocalProducerRehearsal {
           if (this.leases.get(role) !== lease || Date.now() >= lease.expiresAtMs) throw new Error('Input lease expired during publication validation')
           this.runtime.session.sourceReady(role, { frames: x.frames, videoTrackSid: x.videoTrackSid })
           const encoding = x.encoding && typeof x.encoding === 'object' ? Object.fromEntries(['width', 'height', 'frames', 'framesEncoded', 'bytes', 'qualityLimitationReason', 'codec'].map(k => [k, x.encoding[k]])) : {}
-          if (['native-media-element', 'device'].includes(x.encoding?.captureMode)) encoding.captureMode = x.encoding.captureMode
+          if (['native-media-element', 'explicit-static-frames', 'device'].includes(x.encoding?.captureMode)) encoding.captureMode = x.encoding.captureMode
           if (['visible', 'hidden'].includes(x.encoding?.publisherVisibility)) encoding.publisherVisibility = x.encoding.publisherVisibility
           if (Number.isSafeInteger(x.encoding?.fileTimeMs) && x.encoding.fileTimeMs >= 0) encoding.fileTimeMs = x.encoding.fileTimeMs
           if (typeof x.encoding?.filePaused === 'boolean') encoding.filePaused = x.encoding.filePaused

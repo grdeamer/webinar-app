@@ -5,7 +5,7 @@ export function sessionBudgetEnabled(value: string | undefined, hour: boolean) {
   if (value !== '5' || hour) throw new Error('Session budget requires the bounded thirty-minute profile')
   return true
 }
-export function sessionTrafficExceeded(current: number, initial: number) {
+export function sessionTrafficExceeded(current: number, initial: number,limit=SESSION_NETWORK_LIMIT_BYTES) {
   // Missing, reset or invalid accounting fails closed.
-  return !Number.isSafeInteger(current) || !Number.isSafeInteger(initial) || initial < 0 || current < initial || current - initial >= SESSION_NETWORK_LIMIT_BYTES
+  return !Number.isSafeInteger(limit)||limit<1||limit>SESSION_NETWORK_LIMIT_BYTES||!Number.isSafeInteger(current) || !Number.isSafeInteger(initial) || initial < 0 || current < initial || current - initial >= limit
 }

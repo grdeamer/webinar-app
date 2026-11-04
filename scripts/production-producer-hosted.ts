@@ -38,7 +38,7 @@ function networkBytes() {
 const networkStart = budgeted ? Number(readFileSync(process.env.PRODUCER_ENGINE_NETWORK_START_FILE || '/vercel/session-network-start.json', 'utf8')) : 0
 if (budgeted && (hourSoak || !Number.isSafeInteger(networkStart) || networkStart < 0)) throw new Error('Invalid session budget profile')
 const budgetTimer = budgeted ? setInterval(() => {
-  try { if (sessionTrafficExceeded(networkBytes(), networkStart)) { console.info('Session traffic allowance reached; stopping media'); void stop('network-limit') } }
+  try { if (sessionTrafficExceeded(networkBytes(), networkStart,mixedApproval?.networkLimitBytes)) { console.info('Session traffic allowance reached; stopping media'); void stop('network-limit') } }
   catch { void stop('network-accounting-unavailable') }
 }, 1000) : undefined
 const local = createServer(async (req, res) => { try { if (!await producer.handle(req, res)) await runtime.handle(req, res) } catch { if (!res.headersSent) res.writeHead(500); if (!res.writableEnded) res.end() } })
