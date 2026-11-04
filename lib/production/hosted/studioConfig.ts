@@ -1,5 +1,6 @@
 import 'server-only'
 import {producerBackend,validateEc2Scope} from './ec2Worker'
+export type HostedStudioConfig = {eventId:string;title:string;root:string;relayUrl:string;canStart:boolean}
 export function hostedStudioConfig(eventId:string,sessionId:string,title:string,actorId:string,canStart:boolean){
  if(producerBackend()!=='ec2')return null
  try{validateEc2Scope({eventId,sessionId,actorId})}catch{return null}

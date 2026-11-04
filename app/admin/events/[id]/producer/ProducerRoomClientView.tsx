@@ -33,6 +33,7 @@ import {
 } from "./producerHealthUtils";
 
 export type ProducerRoomClientViewProps = {
+  engineControls?: React.ReactNode;
   token: string | null;
   serverUrl: string | null;
   liveKitRoomKey: number;
@@ -155,6 +156,7 @@ export default function ProducerRoomClientView(
             </div>
           ) : null}
 
+          {props.engineControls}
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <button
               type="button"
@@ -251,6 +253,7 @@ export default function ProducerRoomClientView(
 
           <div className="flex min-h-0 flex-1 overflow-hidden">
             <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+              {props.engineControls}
               <ProducerV1Header
                 eventId={props.eventId}
                 eventTitle={eventTitle}

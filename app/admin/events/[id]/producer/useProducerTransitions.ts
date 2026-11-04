@@ -39,6 +39,7 @@ function completeBlocksForTakeAnimation(blocks: PreviewBlock[]): PreviewBlock[] 
 
 export default function useProducerTransitions({
   api,
+  engineTake,
   programState,
   previewState,
   programBlocks,
@@ -47,6 +48,7 @@ export default function useProducerTransitions({
   setProgramBlocks,
   setError,
 }: {
+  engineTake?: (mode: TakeMode, transitionType?: CinematicTransitionType, durationMs?: number) => Promise<boolean>
   api: ProducerTransitionApi
   programState: StageState | null
   previewState: StageState | null
@@ -130,6 +132,13 @@ export default function useProducerTransitions({
         setLastTakeMode(mode)
         setError(null)
 
+        if (engineTake) {
+          const committed = await engineTake(mode, transitionType, resolvedDurationMs)
+          if (!committed) return false
+          setProgramBlocks(structuredClone(previewBlocks))
+          return true
+        }
+
         // A hard cut must commit Program directly. Coupling CUT to the
         // audience-transition overlay made the switch dependent on a second
         // request that is only needed for animated AUTO transitions.
@@ -159,7 +168,7 @@ export default function useProducerTransitions({
         setTakeBusy(false)
       }
     },
-    [api, takeBusy, setError, takeProgram]
+    [api, engineTake, previewBlocks, takeBusy, setError, setProgramBlocks, takeProgram]
   )
 
   return {

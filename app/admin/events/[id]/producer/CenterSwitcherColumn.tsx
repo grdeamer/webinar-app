@@ -495,6 +495,7 @@ function PreviewSnapGuides({
 }
 
 export default function CenterSwitcherColumn({
+  engineProgramMonitor,
   workspaceMode,
   triggerAudienceCue,
   onHideAudienceCue,
@@ -553,6 +554,7 @@ export default function CenterSwitcherColumn({
   transportHealth,
   outputProfile,
 }: {
+  engineProgramMonitor?: React.ReactNode;
   workspaceMode: ProducerWorkspaceMode;
   triggerAudienceCue: (options?: {
     region?: string;
@@ -1001,9 +1003,9 @@ export default function CenterSwitcherColumn({
                 <span>Preview</span>
                 <span
                   className="whitespace-nowrap rounded-full border border-sky-300/14 bg-black/24 px-2 py-1 text-[8px] font-bold normal-case tracking-[0.04em] text-sky-100/52"
-                  title={`Actual output: ${broadcastOutputProfileLabel(outputProfile)}`}
+                  title={`${engineProgramMonitor ? "Engine target" : "Output profile"}: ${broadcastOutputProfileLabel(outputProfile)}`}
                 >
-                  {outputProfile.resolutionTier} · {outputProfile.frameRate} fps · {outputProfile.aspectRatio}
+                  {engineProgramMonitor ? "Target · " : ""}{outputProfile.resolutionTier} · {outputProfile.frameRate} fps · {outputProfile.aspectRatio}
                 </span>
               </div>
               <div className="flex items-center gap-2">
@@ -1297,9 +1299,9 @@ export default function CenterSwitcherColumn({
                 <span>Program</span>
                 <span
                   className="whitespace-nowrap rounded-full border border-red-300/14 bg-black/24 px-2 py-1 text-[8px] font-bold normal-case tracking-[0.04em] text-red-100/50"
-                  title={`Actual output: ${broadcastOutputProfileLabel(outputProfile)}`}
+                  title={`${engineProgramMonitor ? "Engine target" : "Output profile"}: ${broadcastOutputProfileLabel(outputProfile)}`}
                 >
-                  {outputProfile.resolutionTier} · {outputProfile.frameRate} fps · {outputProfile.aspectRatio}
+                  {engineProgramMonitor ? "Target · " : ""}{outputProfile.resolutionTier} · {outputProfile.frameRate} fps · {outputProfile.aspectRatio}
                 </span>
               </div>
               <span className="inline-flex items-center rounded-[8px] border border-red-400/25 bg-red-500/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-red-300">
@@ -1342,6 +1344,7 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/22 to-transparent" />
 
               <div className="relative z-10 h-full">
+                {engineProgramMonitor ? <div className="absolute inset-0 z-50 bg-black">{engineProgramMonitor}</div> : null}
                 {!programState?.stage_participant_ids?.length &&
                 !programBlocks.some((block) => !block.hidden) ? (
                   <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">

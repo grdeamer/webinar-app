@@ -7,6 +7,7 @@ import type { PreviewBlock } from "./useProducerBlocks"
 import { normalizeProducerBlocks } from "./producerAssetUrls"
 
 type Params = {
+  engineBacked?: boolean
   api: ProducerRoomApi
   eventId: string
   sessionId: string
@@ -26,6 +27,7 @@ type Params = {
 
 export default function useProducerRoomLifecycle({
   api,
+  engineBacked = false,
   eventId,
   sessionId,
   loadMediaDevices,
@@ -55,13 +57,14 @@ export default function useProducerRoomLifecycle({
   }, [api, setParticipants, setParticipantsLoaded])
 
   const loadProgramState = useCallback(async () => {
+    if (engineBacked) return
     const data = await api.loadProgramState()
     const state = data?.state ?? null
     setProgramState(state)
     if (Array.isArray(state?.program_blocks)) {
       setProgramBlocks(normalizeProducerBlocks(eventId, state.program_blocks))
     }
-  }, [api, eventId, setProgramBlocks, setProgramState])
+  }, [api, engineBacked, eventId, setProgramBlocks, setProgramState])
 
   const loadStageState = useCallback(async () => {
     const data = await api.loadStageState()

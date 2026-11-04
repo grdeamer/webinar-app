@@ -1,5 +1,6 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {libraryEngineComposition} from '@/lib/producer/libraryEngineComposition'
 import type { PreviewBlock } from '@/app/admin/events/[id]/producer/useProducerBlocks'
 import { LibraryPublisher, connectProgram, engineCommand, engineStatus, LOCAL_STUDIO_TRANSPORT, type StudioTransport } from './localProgramTransport'
 export default function useLibraryProgram(preview:PreviewBlock[],transport:StudioTransport=LOCAL_STUDIO_TRANSPORT) {
@@ -27,14 +28,15 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
    const publisher=new LibraryPublisher(role,transport);publishers.current.set(role,publisher)
    try {await publisher.start(preview[0]);if(generation!==epoch.current){await publisher.stop();return}
     const sourceId=role==='source-a'?'camera-a':'camera-b'
-    await engineCommand(run.current,{type:'SET_PREVIEW',composition:{sceneId:null,layers:[{id:'library-input',kind:'camera',sourceId,props:{x:0,y:0,width:640,height:360,fit:'contain',borderRadius:0,shadowIntensity:0}}]}},transport)
+    await engineCommand(run.current,{type:'SET_PREVIEW',composition:libraryEngineComposition(preview[0],sourceId)},transport)
     await engineCommand(run.current,{type:'SET_AUDIO',bus:'preview',audio:{masterGainDb:0,muted:false,channels:[{sourceId,gainDb:0,muted:false,solo:false}]}},transport)
     cued.current={role,key};setMessage('Source published to the private input. Preview ready; TAKE to update outgoing Program.')
    }catch(e){await publisher.stop();throw e}
   }).catch(e=>{if(generation===epoch.current)setMessage(e instanceof Error?e.message:'Cue failed')}).finally(()=>{if(generation===epoch.current)setBusy(false)})
  },[preview,connected,transport])
- async function take(){if(taking.current||busy||!connected||!cued.current||cued.current.key!==JSON.stringify(preview))return false;taking.current=true;setBusy(true)
-  try {if(publishers.current.get(cued.current.role)?.failure)throw Error('Input lease is unhealthy; cue the source again');const role=cued.current.role;await publishers.current.get(role)?.take();await engineCommand(run.current,{type:'TAKE',transition:{type:'cut',durationMs:0}},transport);active.current=role;await engineCommand(run.current,{type:'SET_LIVE',live:true},transport);setMessage('TAKE committed to the actual Program engine. Verify the outgoing picture and audio.');return true}catch(e){setMessage(e instanceof Error?e.message:'TAKE failed');return false}finally{taking.current=false;setBusy(false)}}
+ async function setLive(live:boolean){if(!connected)throw Error('Connect the Program engine first');await engineCommand(run.current,{type:'SET_LIVE',live},transport)}
+ async function take(transition:{type:'cut'|'fade'|'warp'|'curtain';durationMs:number}={type:'cut',durationMs:0}){if(taking.current||busy||!connected||!cued.current||cued.current.key!==JSON.stringify(preview))return false;taking.current=true;setBusy(true)
+  try {if(publishers.current.get(cued.current.role)?.failure)throw Error('Input lease is unhealthy; cue the source again');const role=cued.current.role;await publishers.current.get(role)?.take();await engineCommand(run.current,{type:'TAKE',transition},transport);active.current=role;try{await engineCommand(run.current,{type:'SET_LIVE',live:true},transport);setMessage('TAKE committed to the actual Program engine. Verify the outgoing picture and audio.')}catch{setMessage('TAKE committed, but output activation was not confirmed. Check engine status and use Go Live; do not repeat the TAKE.')}return true}catch(e){setMessage(e instanceof Error?e.message:'TAKE failed');return false}finally{taking.current=false;setBusy(false)}}
  function setMonitorVolume(value:number){if(video.current)video.current.volume=Math.max(0,Math.min(1,value))}
- return {connected,busy,message,video,connect,stop,take,setMonitorVolume}
+ return {connected,busy,message,video,connect,stop,take,setLive,setMonitorVolume}
 }

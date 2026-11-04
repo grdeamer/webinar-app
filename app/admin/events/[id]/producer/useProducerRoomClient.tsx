@@ -2,6 +2,11 @@
 
 import { createElement, useEffect, useMemo, useRef, useState, useCallback } from "react";
 
+import type { HostedStudioConfig } from "@/lib/production/hosted/studioConfig";
+import { LOCAL_STUDIO_TRANSPORT } from "@/app/dev/producer-media/localProgramTransport";
+import useLibraryProgram from "@/app/dev/producer-media/useLibraryProgram";
+import useHostedProgramMixer from "@/lib/producer/useHostedProgramMixer";
+import ProducerEngineConnection from "./ProducerEngineConnection";
 import useProducerRoomApi from "./useProducerRoomApi";
 import { CameraSlotLiveContent } from "./ProducerRoomClientChrome";
 import useProducerBlocks, { type PreviewBlock } from "./useProducerBlocks";
@@ -69,12 +74,14 @@ export function useProducerRoomClient({
   sessionTitle,
   eventTitle,
   eventAccent,
+  engine,
 }: {
   eventId: string;
   sessionId: string;
   sessionTitle?: string;
   eventTitle?: string;
   eventAccent?: string;
+  engine?: HostedStudioConfig;
 }): ProducerRoomClientViewProps {
   const { confirm: confirmNotice } = useJupiterNotice();
   const [token, setToken] = useState<string | null>(null);
@@ -104,7 +111,7 @@ export function useProducerRoomClient({
       window.localStorage.getItem(BROADCAST_OUTPUT_PROFILE_STORAGE_KEY),
     );
   });
-  const outputProfile = getBroadcastOutputProfile(outputProfileId);
+  const outputProfile = getBroadcastOutputProfile(engine ? "high-1080p30" : outputProfileId);
   const [selectedTransitionDurationMs] = useState(600);
   const [programSceneId, setProgramSceneId] = useState<string | null>(null);
   const [programSlideLabel, setProgramSlideLabel] = useState<string | null>(
@@ -416,6 +423,15 @@ updateShadowColor: updateSelectedBlockShadowColor,
       setPreviewBlocks,
     });
 
+  const engineTransport = useMemo(() => engine ? {root: engine.root, relayUrl: engine.relayUrl} : LOCAL_STUDIO_TRANSPORT, [engine]);
+  const engineProgram = useLibraryProgram(previewBlocks, engineTransport);
+  const programMixer = useHostedProgramMixer(engineTransport, Boolean(engine && engineProgram.connected));
+  const engineTake = useCallback(async (mode: "cut" | "auto", transitionType?: CinematicTransitionType, durationMs = 600): Promise<boolean> => {
+    const type = mode === "cut" ? "cut" : transitionType ?? "fade";
+    if (!["cut", "fade", "warp", "curtain"].includes(type)) { setError("This transition is not supported by the Program engine."); return false; }
+    return engineProgram.take({type: type, durationMs: mode === "cut" ? 0 : durationMs});
+  }, [engineProgram]);
+
   const {
     takeBusy,
     lastTakeMode,
@@ -426,6 +442,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     runTake,
   } = useProducerTransitions({
     api,
+    engineTake: engine ? engineTake : undefined,
     programState,
     previewState: stageState,
     programBlocks,
@@ -450,6 +467,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const { refreshAll } = useProducerRoomLifecycle({
     api,
+    engineBacked: Boolean(engine),
     eventId,
     sessionId,
     loadMediaDevices,
@@ -647,8 +665,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
   );
 
   const validateTake = useCallback(
-    (): string | null => healthSnapshot.takeBlockReason,
-    [healthSnapshot.takeBlockReason],
+    (): string | null => engine ? (!engineProgram.connected ? "Connect the Program engine first." : engineProgram.busy ? "Wait for the source to finish cueing." : null) : healthSnapshot.takeBlockReason,
+    [engine, engineProgram.connected, engineProgram.busy, healthSnapshot.takeBlockReason],
   );
 
   const handleTakeBlocked = useCallback((reason: string): void => {
@@ -658,6 +676,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const { takeProgram, transportState } = useProducerTransport({
     runTake,
+    engineBacked: Boolean(engine),
     sessionId,
     stageState,
     previewBlocks,
@@ -1082,6 +1101,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       const nextBlockId = `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       setPreviewBlocks((current) => {
+        if (engine) return [{...block, id: nextBlockId, x: 0, y: 0, width: 640, height: 360}];
         const baseBlocks = ["source-route", "audio-route"].includes(block.groupId ?? "")
           ? current.filter((currentBlock) => currentBlock.groupId !== block.groupId)
           : current;
@@ -1103,7 +1123,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
         setSelectedBlockId(nextBlockId);
       });
     },
-    [setPreviewBlocks, setSelectedBlockId],
+    [engine, setPreviewBlocks, setSelectedBlockId],
   );
 
   const handleAssignParticipantToCameraSlot = useCallback(
@@ -1308,13 +1328,13 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const previewProgramDifferent = useMemo(
     () =>
-      previewProgramStatesDifferent({
+      engine ? JSON.stringify(previewBlocks) !== JSON.stringify(programBlocks) : previewProgramStatesDifferent({
         stageState,
         programState,
         previewBlocks,
         programBlocks,
       }),
-    [stageState, programState, previewBlocks, programBlocks],
+    [engine, stageState, programState, previewBlocks, programBlocks],
   );
 
   const hasProgramSource = useMemo(
@@ -1343,22 +1363,22 @@ updateShadowColor: updateSelectedBlockShadowColor,
   );
 
 
-  const isProgramLive = Boolean(programState?.is_live);
+  const isProgramLive = engine ? Boolean(programMixer.snapshot?.live) : Boolean(programState?.is_live);
 
   const liveSafetyChecks = useMemo(() => {
     if (pendingSafetyAction === "go_off_air") {
       return [
         {
-          label: "Audience is currently live",
+          label: engine ? "Program engine output is live" : "Audience is currently live",
           detail: isProgramLive
-            ? "Program is visible to attendees."
+            ? engine ? "The encoded Program output is active." : "Program is visible to attendees."
             : "The event is already in holding.",
           ready: isProgramLive,
           required: true,
         },
         {
           label: "Producer Room remains connected",
-          detail: "Off Air changes the attendee destination; it does not close this console.",
+          detail: engine ? "Off Air stops the engine output. Audience destination is unchanged." : "Off Air changes the attendee destination; it does not close this console.",
           ready: true,
         },
       ];
@@ -1388,7 +1408,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
         ready: onStageParticipants.length > 0,
       },
     ];
-  }, [hasProgramSource, isProgramLive, onStageParticipants.length, pendingSafetyAction, previewProgramDifferent]);
+  }, [engine, hasProgramSource, isProgramLive, onStageParticipants.length, pendingSafetyAction, previewProgramDifferent]);
 
   const handleCancelSafetyAction = useCallback((): void => {
     if (liveActionBusy) return;
@@ -1401,6 +1421,12 @@ updateShadowColor: updateSelectedBlockShadowColor,
     try {
       setLiveActionBusy(true);
       setError(null);
+      if (engine) {
+        await engineProgram.setLive(pendingSafetyAction === "go_live");
+        setOperatorNotice(pendingSafetyAction === "go_live" ? "Program engine output is live. Audience routing is unchanged." : "Program engine output is in standby.");
+        setPendingSafetyAction(null);
+        return;
+      }
       const expectedVersion = stageState?.scene_version ?? null;
       const data = pendingSafetyAction === "go_live"
         ? await api.goLive(expectedVersion)
@@ -1419,7 +1445,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     } finally {
       setLiveActionBusy(false);
     }
-  }, [api, handleAsyncError, liveActionBusy, pendingSafetyAction, stageState?.scene_version, updateProgramState, updateStageState]);
+  }, [api, engine, engineProgram, handleAsyncError, liveActionBusy, pendingSafetyAction, stageState?.scene_version, updateProgramState, updateStageState]);
 
   useEffect(() => {
     if (!operatorNotice) return;
@@ -1677,7 +1703,15 @@ updateShadowColor: updateSelectedBlockShadowColor,
   const centerColumn = createElement(
     ProducerRoomCenterColumn,
     null,
-    createElement(CenterSwitcherColumn, centerSwitcherProps),
+    createElement(CenterSwitcherColumn, {
+      ...centerSwitcherProps,
+      ...(engine ? {
+        takeBusy: takeBusy || engineProgram.busy,
+        programState: (programState || stageState) ? {...(programState || stageState)!, is_live: isProgramLive} : null,
+        transportHealth: engineProgram.connected ? "connected" : "degraded",
+        engineProgramMonitor: createElement("video", {ref: engineProgram.video, autoPlay: true, muted: true, playsInline: true, controls: true, "aria-label": "Actual outgoing Program", className: "h-full w-full object-contain"}),
+      } : {}),
+    }),
   );
 
   // Rail props
@@ -1870,6 +1904,9 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const bottomAssetDockProps = useMemo(
     () => ({
+      recordingDisabled: Boolean(engine),
+      presentationEngineRoot: engine?.root,
+      programAudioEngine: engine ? programMixer : undefined,
       workspaceMode,
       standardToolsOpen,
       onToggleStandardTools: () => setStandardToolsOpen((current) => !current),
@@ -1896,11 +1933,14 @@ onSaveScene: saveScene,
       onDoubleClickScene: handleDockApplySceneAndTake,
       onDeleteScene: handleDockDeleteScene,
       previewProgramDifferent,
-      takeBusy,
+      takeBusy: takeBusy || Boolean(engine && engineProgram.busy),
       onTakeProgram: (mode: "cut" | "auto") => takeProgram(mode),
       onRecordingHealthChange: handleRecordingHealthChange,
     }),
     [
+      engine,
+      programMixer,
+      engineProgram.busy,
       workspaceMode,
       standardToolsOpen,
       scenes,
@@ -1933,6 +1973,7 @@ onSaveScene: saveScene,
   const bottomDock = createElement(BottomAssetDock, bottomAssetDockProps);
 
   const viewProps: ProducerRoomClientViewProps = {
+    engineControls: engine ? createElement(ProducerEngineConnection, {config: engine, engine: engineProgram, receiver: programMixer.snapshot?.receiver ?? undefined}) : undefined,
     token,
     serverUrl,
     liveKitRoomKey,
@@ -1960,7 +2001,7 @@ onSaveScene: saveScene,
     recoveryBusy,
     handleRecoverControlPlane,
     healthSnapshot,
-    transportHealth,
+    transportHealth: engine ? (engineProgram.connected ? "connected" : "degraded") : transportHealth,
     recordingHealth,
     workspaceMode,
     setWorkspaceMode,

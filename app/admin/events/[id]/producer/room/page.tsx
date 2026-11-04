@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomClient"
+import { configuredProducerSession, hostedStudioConfig } from "@/lib/production/hosted/studioConfig"
 import ProducerRoomSetup from "./ProducerRoomSetup"
 import { requireEventPageFeature } from "@/lib/eventTeamAccess"
 
@@ -17,7 +18,7 @@ export default async function AdminProducerRoomPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
-  await requireEventPageFeature(id, "producer_room")
+  const access = await requireEventPageFeature(id, "producer_room")
 
   let eventId = id
   let eventTitle = "Event"
@@ -62,8 +63,12 @@ export default async function AdminProducerRoomPage(props: {
     return <ProducerRoomSetup eventId={eventId} />
   }
 
+  const engineSession = configuredProducerSession(eventId)
+  const engine = engineSession ? hostedStudioConfig(eventId, engineSession, session.title || "Producer room", access.user.id, access.isGlobalAdmin) : null
+
   return (
     <ProducerRoomClient
+      engine={engine ?? undefined}
       eventId={eventId}
       sessionId={session.id}
       sessionTitle={session.title}

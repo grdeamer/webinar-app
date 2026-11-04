@@ -6,6 +6,7 @@ import type { CinematicTransitionType } from "./commandDeckTypes"
 import { broadcastPresenterProgramSource } from "./programTransportUtils"
 
 type Params = {
+  engineBacked?: boolean
   sessionId: string
   selectedTransitionDurationMs: number
   selectedSceneId: string | null
@@ -25,6 +26,7 @@ type Params = {
 
 export default function useProducerTransport({
   sessionId,
+  engineBacked = false,
   selectedTransitionDurationMs,
   selectedSceneId,
   previewBlocks,
@@ -60,7 +62,7 @@ export default function useProducerTransport({
 
     if (!committed) return false
 
-    broadcastPresenterProgramSource({
+    if (!engineBacked) broadcastPresenterProgramSource({
       mode,
       transitionType,
       transitionDurationMs: durationMs,

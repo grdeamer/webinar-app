@@ -166,6 +166,7 @@ function blockToBroadcastAsset(item: DockAssetRecord, fallbackLabel: string, ind
   }
 }
 export default function BottomAssetDock({
+  recordingDisabled = false,
   programAudioEngine,
   presentationEngineRoot,
   localMediaOnly = false,
@@ -196,6 +197,7 @@ export default function BottomAssetDock({
   onTakeProgram,
   onRecordingHealthChange,
 }: {
+  recordingDisabled?: boolean
   presentationEngineRoot?: string
   programAudioEngine?: ProgramMixerController
   localMediaOnly?: boolean
@@ -269,7 +271,7 @@ export default function BottomAssetDock({
       if (requestedPanel === "stream") {
         setProductionDrawerTab(null)
         setActiveUtilityPanel("stream")
-      } else if (requestedPanel === "recording") {
+      } else if (requestedPanel === "recording" && !recordingDisabled) {
         setActiveUtilityPanel(null)
         setProductionDrawerTab("recording")
       }
@@ -277,7 +279,7 @@ export default function BottomAssetDock({
 
     window.addEventListener("jupiter:producer-open-panel", openRequestedPanel)
     return () => window.removeEventListener("jupiter:producer-open-panel", openRequestedPanel)
-  }, [])
+  }, [recordingDisabled])
   function openMediaLibrary(): void {
     setActiveUtilityPanel(null)
     setProductionDrawerTab(null)
@@ -809,7 +811,7 @@ function handleClearImportedAssets(): void {
     onRecordingHealthChange?.(recordingStatus, recordingError)
   }, [onRecordingHealthChange, recordingError, recordingStatus])
   useEffect(() => {
-    if (localMediaOnly) return
+    if (localMediaOnly || recordingDisabled) return
     let cancelled = false
     async function restoreRecordingState(): Promise<void> {
       try {
@@ -873,7 +875,7 @@ function handleClearImportedAssets(): void {
     return () => {
       cancelled = true
     }
-  }, [eventId, localMediaOnly])
+  }, [eventId, localMediaOnly, recordingDisabled])
   function isImportedMediaAsset(label: string): boolean {
   return importedMediaAssets.some((asset) => asset.label === label)
 }
@@ -959,11 +961,13 @@ function handleDeleteMediaAssetFromEdit(): void {
     ? Math.floor((recordingNow - recordingStartedAt) / 1000)
     : 0
   function armRecording(): void {
+    if (recordingDisabled) return
     if (recordingStatus === "recording" || recordingStatus === "starting") return
     setRecordingStatus("armed")
     setRecordingStartedAt(null)
   }
   async function startRecording(): Promise<void> {
+    if (recordingDisabled) return
     if (recordingStatus !== "armed") return
     setRecordingError(null)
     setRecordingStatus("starting")
@@ -1231,7 +1235,7 @@ const previewMediaAsset =
           outputProfileId={outputProfileId}
           onClose={() => setActiveUtilityPanel(null)}
         />
-      ) : activeUtilityPanel ? (
+      ) : activeUtilityPanel && !recordingDisabled ? (
         <UtilityOverlay
           activePanel={activeUtilityPanel}
           recordingStatus={recordingStatus}
@@ -1243,7 +1247,7 @@ const previewMediaAsset =
           onClose={() => setActiveUtilityPanel(null)}
         />
       ) : null}
-      {productionDrawerTab ? (
+      {productionDrawerTab && (!recordingDisabled || productionDrawerTab === "audio") ? (
         <ProductionControlsDrawer
           audioEngine={programAudioEngine}
           activeTab={productionDrawerTab}
@@ -1751,12 +1755,13 @@ const previewMediaAsset =
         </button>
         <div className="grid max-w-[980px] grid-cols-4 gap-4">
           <UtilityButton
+            disabled={recordingDisabled}
             icon={<CircleDot size={15} />}
             label={recordingStatus === "recording" ? "Recording" : "Record"}
             meta={recordingStatus === "recording" ? formatRecordingDuration(recordingElapsedSeconds) : recordingStatus === "armed" ? "Armed" : "Off"}
             danger={recordingStatus === "recording" || recordingStatus === "starting"}
             active={productionDrawerTab === "recording"}
-            onClick={() => setProductionDrawerTab("recording")}
+            onClick={() => { if (!recordingDisabled) setProductionDrawerTab("recording") }}
           />
           <UtilityButton icon={<Radio size={16} />} label="Stream" meta="Setup" active={activeUtilityPanel === "stream"} onClick={() => setActiveUtilityPanel("stream")} />
           <UtilityButton icon={<Layers3 size={16} />} label="Media" meta="Manage" active={expandedMediaOpen} onClick={openMediaLibrary} />
