@@ -1,12 +1,15 @@
 'use client'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import {bindProgramMonitor,clearProgramMonitor,type ProgramMonitorBinding} from '@/lib/producer/programMonitor'
 import {libraryEngineComposition} from '@/lib/producer/libraryEngineComposition'
 import type { PreviewBlock } from '@/app/admin/events/[id]/producer/useProducerBlocks'
 import { LibraryPublisher, connectProgram, engineCommand, engineStatus, LOCAL_STUDIO_TRANSPORT, type StudioTransport } from './localProgramTransport'
 export default function useLibraryProgram(preview:PreviewBlock[],transport:StudioTransport=LOCAL_STUDIO_TRANSPORT) {
  const [connected,setConnected]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('Connect the Program engine to begin.')
  const video=useRef<HTMLVideoElement>(null),run=useRef(''),active=useRef<string|null>(null),cued=useRef<{role:'source-a'|'source-b';key:string}|null>(null),publishers=useRef(new Map<string,LibraryPublisher>()),viewer=useRef<null|(()=>Promise<void>)>(null),epoch=useRef(0),queue=useRef(Promise.resolve()),taking=useRef(false)
- const stop=useCallback(async()=>{epoch.current++;setConnected(false);cued.current=null;if(active.current)await engineCommand(run.current,{type:"SET_LIVE",live:false},transport).catch(():void=>{});active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;setMessage('Studio inputs and outgoing monitor disconnected.')},[transport])
+ const monitor=useRef<ProgramMonitorBinding>({element:null,stream:null})
+ const attachVideo=useCallback((element:HTMLVideoElement|null)=>{bindProgramMonitor(monitor.current,element);video.current=element},[])
+ const stop=useCallback(async()=>{epoch.current++;setConnected(false);cued.current=null;if(active.current)await engineCommand(run.current,{type:"SET_LIVE",live:false},transport).catch(():void=>{});active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setMessage('Studio inputs and outgoing monitor disconnected.')},[transport])
  useEffect(()=>()=>{void stop()},[stop])
  async function connect(){setBusy(true);try{const s=await engineStatus(transport);if(!s.runtime.running||Date.now()>=s.runtime.expiresAtMs)throw Error('Start the producer engine, then wait for it to become ready.');run.current=s.runtime.runId;if(!video.current)throw Error('Program monitor unavailable');viewer.current=await connectProgram(video.current,run.current,transport);setConnected(true);setMessage('Connected to the Program engine. Cue a source.')}catch(e){setMessage(e instanceof Error?e.message:'Connection failed')}finally{setBusy(false)}}
  useEffect(()=>{
@@ -38,5 +41,5 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
  async function take(transition:{type:'cut'|'fade'|'warp'|'curtain';durationMs:number}={type:'cut',durationMs:0}){if(taking.current||busy||!connected||!cued.current||cued.current.key!==JSON.stringify(preview))return false;taking.current=true;setBusy(true)
   try {if(publishers.current.get(cued.current.role)?.failure)throw Error('Input lease is unhealthy; cue the source again');const role=cued.current.role;await publishers.current.get(role)?.take();await engineCommand(run.current,{type:'TAKE',transition},transport);active.current=role;try{await engineCommand(run.current,{type:'SET_LIVE',live:true},transport);setMessage('TAKE committed to the actual Program engine. Verify the outgoing picture and audio.')}catch{setMessage('TAKE committed, but output activation was not confirmed. Check engine status and use Go Live; do not repeat the TAKE.')}return true}catch(e){setMessage(e instanceof Error?e.message:'TAKE failed');return false}finally{taking.current=false;setBusy(false)}}
  function setMonitorVolume(value:number){if(video.current)video.current.volume=Math.max(0,Math.min(1,value))}
- return {connected,busy,message,video,connect,stop,take,setLive,setMonitorVolume}
+ return {connected,busy,message,video:attachVideo,connect,stop,take,setLive,setMonitorVolume}
 }
