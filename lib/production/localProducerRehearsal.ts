@@ -1,3 +1,4 @@
+import {InputReceiveProgress} from './inputReceiveProgress.ts'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -22,6 +23,7 @@ export function rehearsalCommandAllowed(command: ProductionCommand) {
 export class LocalProducerRehearsal {
   readonly runtime: LocalHaRuntime
   private leases = new Map<SourceRole, Lease>()
+  private receivers=new Map<SourceRole,InputReceiveProgress>()
   private sourceBusy = new Set<SourceRole>()
   private readonly soakStatus?:()=>unknown
   private readonly mediaSources: string
@@ -32,13 +34,21 @@ export class LocalProducerRehearsal {
     this.mediaSources = options.mediaUrl ? mediaConnectSources(options.mediaUrl) : 'ws://127.0.0.1:7980'
     this.runtime = runtime
     this.timer = setInterval(() => {
-      for (const [role, lease] of this.leases) if (Date.now() >= lease.expiresAtMs && !this.sourceBusy.has(role)) void this.release(role).catch(() => {})
+      for (const [role, lease] of this.leases) {
+        const now=Date.now(),sourceId=this.sourceId(role)
+        if(now<lease.expiresAtMs&&this.runtime.running){
+          let receiver=this.receivers.get(role);if(!receiver){receiver=new InputReceiveProgress();this.receivers.set(role,receiver)}
+          const received=receiver.observe(this.runtime.store.read(LOCAL_SCOPE).bindings[sourceId],sourceId,lease.sid,this.runtime.candidateMedia,this.runtime.authority.selected,now)
+          if(received){this.runtime.sourceReceiveMedia[role]=received;lease.expiresAtMs=Math.min(this.runtime.expiresAtMs,now+10000)}
+        }
+        if(now>=lease.expiresAtMs&&!this.sourceBusy.has(role))void this.release(role).catch(()=>{})
+      }
     }, 1000)
   }
   private sourceId(role: SourceRole) { return role === 'source-a' ? 'camera-a' : 'camera-b' }
   private unbind(role: SourceRole) {
     const state = this.runtime.store.read(LOCAL_SCOPE), sourceId = this.sourceId(role), binding = state.bindings[sourceId]
-    delete this.runtime.session.sources[sourceId]; delete this.runtime.sourceMedia[role]
+    delete this.runtime.session.sources[sourceId]; delete this.runtime.sourceMedia[role];delete this.runtime.sourceReceiveMedia[role];this.receivers.delete(role)
     if (binding) commitProductionCommand(this.runtime.store, { schemaVersion: 1, scope: LOCAL_SCOPE, commandId: randomUUID(), expectedRevision: state.revision, command: { type: 'UNBIND_SOURCE', sourceId, expectedGeneration: binding.generation } }, { actorId: 'local-rehearsal-input', scope: LOCAL_SCOPE })
   }
   private authorized(role: SourceRole, capability: unknown) {

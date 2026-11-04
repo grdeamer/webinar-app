@@ -27,7 +27,7 @@ export async function runCompositor() {
     const input = inputFor(participant.identity)
     if (track.kind === LK.Track.Kind.Video) {
       const video = document.createElement('video'); video.muted = true; video.autoplay = true; video.playsInline = true
-      video.srcObject = new MediaStream([track.mediaStreamTrack]); input.video = video
+      video.srcObject = new MediaStream([track.mediaStreamTrack]); input.video = video; input.videoTrackSid = publication.trackSid
       video.play().catch(() => {})
       function decoded() {
         input.lastFrameAt = performance.now(); input.decoded++
@@ -48,7 +48,7 @@ export async function runCompositor() {
   inputRoom.on(LK.RoomEvent.TrackUnsubscribed, (track, publication, participant) => {
     const input = inputs.get(participant.identity)
     if (input && track.kind === LK.Track.Kind.Audio) { input.audioNode?.disconnect(); input.gain?.disconnect(); input.gain = null }
-    if (input && track.kind === LK.Track.Kind.Video) input.lastFrameAt = 0
+    if (input && track.kind === LK.Track.Kind.Video && input.videoTrackSid === publication.trackSid) { input.lastFrameAt = 0; input.videoTrackSid = null }
   })
 
   function supported(state) {
@@ -161,7 +161,7 @@ export async function runCompositor() {
     if (window.localHaVideo) health.encoding = stats
     if (window.localHaVideo) health.capture = { transport: 'video-frame-generator', rendered: health.framesRendered, captured, clock, error: outputError, ...frameWriter.counters() }
     health.width = stats.width; health.height = stats.height
-    health.inputFrames = Object.fromEntries([...inputs].map(([identity, input]) => [identity, input.decoded]))
+    health.inputFrames = Object.fromEntries([...inputs].map(([identity, input]) => [identity, input.decoded])); health.inputTrackSids = Object.fromEntries([...inputs].filter(([, input]) => input.videoTrackSid).map(([identity, input]) => [identity, input.videoTrackSid]))
     health.assetPositions = Object.fromEntries((snapshot?.program.composition.layers || []).filter(layer => layer.kind === 'video').map(layer => [layer.id, Math.round((assets.get(layer)?.currentTime || 0) * 1000)]))
   }, window.localHaVideo ? 200 : 1000)
   status('Persistent local compositor publishing one Program video and mixed audio')

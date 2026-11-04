@@ -1,3 +1,4 @@
+import type {InputReceiveEvidence} from './inputReceiveProgress.ts'
 import { candidateRenderFps } from './compositorCadence.ts'
 import { BLOCKED_LOCAL_MEDIA_REQUEST } from './localRequestPolicy.ts'
 import { mediaHostAllowed } from './hosted/transportPolicy.ts'
@@ -53,6 +54,7 @@ export class LocalHaRuntime {
   readonly rooms: { input: string; candidates: string; program: string }
   authority: LocalHaAuthority
   sourceMedia: Record<string, { encoding: Record<string, unknown>; atMs: number }> = {}
+  sourceReceiveMedia: Record<string,InputReceiveEvidence> = {}
   candidateMedia: Partial<Record<HaCandidate, Record<string, unknown>>> = {}
   gatewayEpoch = 1
   private frozenPrimary = false
@@ -192,7 +194,7 @@ export class LocalHaRuntime {
   }
   status() {
     return { runId: this.runId, hostPid: process.pid, managedSoak: this.managedSoak, managedLoad: this.managedLoad, rehearsal: this.rehearsal, receiverCount: this.receiverCount, receivers: this.receiverReports, operatorStopRequested: this.operatorStopRequested, sfuPid: this.sfu?.pid ?? null, sfuRunning: Boolean(this.sfu && this.sfu.exitCode === null && this.sfu.signalCode === null), running: this.running, expiresAtMs: this.expiresAtMs, failure: this.failure, selected: this.authority.selected, generation: this.authority.generation, authorityAvailable: this.authority.available, partition: this.partition,
-      sourceMedia: this.sourceMedia, candidateMedia: this.candidateMedia, revision: this.store.read(LOCAL_SCOPE).revision, candidates: this.authority.candidates, gateway: this.gatewayReport, observer: this.observerReport, boundaries: this.authority.boundaries,
+      sourceMedia: this.sourceMedia, sourceReceiveMedia:this.sourceReceiveMedia, candidateMedia: this.candidateMedia, revision: this.store.read(LOCAL_SCOPE).revision, candidates: this.authority.candidates, gateway: this.gatewayReport, observer: this.observerReport, boundaries: this.authority.boundaries,
       gatewayEpoch: this.gatewayEpoch, workers: [...this.workers].map(([role, server]) => ({ role, pid: server.process().pid, exited: server.process().exitCode !== null || server.process().signalCode !== null })),
       videoProfile: { width: 1920, height: 1080, fps: 30, codec: 'h264', maxBitrate: 6_000_000 }, cloudDeployed: Boolean(this.transport), separateHosts: false, recordingEnabled: false }
   }
@@ -283,7 +285,7 @@ export class LocalHaRuntime {
           if (worker === this.partition) { send(503, { error: 'Injected candidate report partition' }); return }
           const report = parseMediaReport(x)
           this.authority.observe(worker, report, this.store.read(LOCAL_SCOPE).revision)
-          this.candidateMedia[worker] = { width: report.width, height: report.height, rendered: report.framesRendered, frames: report.framesSent, capture: x.capture, inputFrames: report.inputFrames, sourceWarnings: report.sourceWarnings, encoding: x.encoding, atMs: Date.now() }
+          this.candidateMedia[worker] = { width: report.width, height: report.height, rendered: report.framesRendered, frames: report.framesSent, capture: x.capture, inputFrames: report.inputFrames, inputTrackSids:Object.fromEntries(Object.entries(x.inputTrackSids??{}).filter(([identity,sid])=>['source-camera-a','source-camera-b'].includes(identity)&&typeof sid==='string'&&/^TR_[\w-]{1,128}$/.test(sid))), sourceWarnings: report.sourceWarnings, encoding: x.encoding, atMs: Date.now() }
         } else throw new Error('Candidate/source report capability required')
         send(200, { recording: null, stopRecording: true, paused: false, fault: worker === 'primary' && this.frozenPrimary }); return
       }
