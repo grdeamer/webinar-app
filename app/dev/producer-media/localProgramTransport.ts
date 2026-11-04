@@ -1,3 +1,4 @@
+import {renderProgramSlide} from '@/lib/producer/programSlideRender'
 import { Room, RoomEvent, Track, type LocalTrackPublication } from 'livekit-client'
 import type { PreviewBlock } from '@/app/admin/events/[id]/producer/useProducerBlocks'
 export type StudioTransport = { root: string; relayUrl: string }
@@ -16,7 +17,7 @@ export class LibraryPublisher {
   this.loop=Boolean(block.loop)
   const initial=await engineStatus(this.transport);this.runId=initial.runtime.runId
   const canvas=document.createElement('canvas');canvas.width=1920;canvas.height=1080;const ctx=canvas.getContext('2d')!;ctx.fillStyle='#000';ctx.fillRect(0,0,1920,1080)
-  if(block.type==='pdf') {const pdf=await import('pdfjs-dist');pdf.GlobalWorkerOptions.workerSrc=new URL('pdfjs-dist/build/pdf.worker.min.mjs',import.meta.url).toString();const task=pdf.getDocument({url:source.split('#')[0]});try {const doc=await task.promise;const page=await doc.getPage(block.pdfPage??1);const viewport=page.getViewport({scale:1});const v=page.getViewport({scale:Math.min(1920/viewport.width,1080/viewport.height)});const pageCanvas=document.createElement('canvas');pageCanvas.width=v.width;pageCanvas.height=v.height;await page.render({canvas:pageCanvas,canvasContext:pageCanvas.getContext('2d')!,viewport:v}).promise;ctx.drawImage(pageCanvas,(1920-v.width)/2,(1080-v.height)/2)}finally{await task.destroy()}}
+  if(block.type==='pdf') {const pdf=await import('pdfjs-dist');pdf.GlobalWorkerOptions.workerSrc=new URL('pdfjs-dist/build/pdf.worker.min.mjs',import.meta.url).toString();const task=pdf.getDocument({url:source.split('#')[0]});try {const doc=await task.promise;const page=await doc.getPage(block.pdfPage??1);const viewport=page.getViewport({scale:1});const v=page.getViewport({scale:Math.min(1920/viewport.width,1080/viewport.height)});const pageCanvas=document.createElement('canvas');pageCanvas.width=v.width;pageCanvas.height=v.height;await renderProgramSlide(page,{canvas:pageCanvas,canvasContext:pageCanvas.getContext('2d')!,viewport:v});ctx.drawImage(pageCanvas,(1920-v.width)/2,(1080-v.height)/2)}finally{await task.destroy()}}
   else if(block.type==='image'){const img=new Image();img.src=source;await img.decode();const scale=Math.min(1920/img.width,1080/img.height);ctx.drawImage(img,(1920-img.width*scale)/2,(1080-img.height*scale)/2,img.width*scale,img.height*scale)}
   if(block.type==='video'||block.type==='audio') {
    const media=document.createElement('video') as HTMLVideoElement & {captureStream:()=>MediaStream};this.media=media;media.src=source;media.muted=true;media.loop=true;media.playsInline=true
