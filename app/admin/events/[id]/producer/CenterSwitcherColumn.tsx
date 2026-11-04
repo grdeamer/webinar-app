@@ -1357,7 +1357,7 @@ export default function CenterSwitcherColumn({
                   </div>
                 ) : null}
 
-                {!programHasCameraLayer && programState?.stage_participant_ids?.length ? (
+                {!engineProgramMonitor && !programHasCameraLayer && programState?.stage_participant_ids?.length ? (
                   <StageVideoPreview
                     stageState={programState}
                     participantIds={programState?.stage_participant_ids ?? []}
@@ -1365,7 +1365,7 @@ export default function CenterSwitcherColumn({
                   />
                 ) : null}
 
-                {renderPlacedBlocks({
+                {!engineProgramMonitor && renderPlacedBlocks({
                   blocks: programBlocks,
                   opts: {
                     selectable: false,
@@ -1393,7 +1393,7 @@ export default function CenterSwitcherColumn({
                 </div>
               </div>
 
-              {isTransitioning && transitionFromState ? (
+              {!engineProgramMonitor && isTransitioning && transitionFromState ? (
                 <div
                   className={`pointer-events-none absolute inset-0 z-20 transition-opacity duration-500 ${
                     transitionFadingOut ? "opacity-0" : "opacity-100"
@@ -1425,7 +1425,7 @@ export default function CenterSwitcherColumn({
                   Program Output
                 </div>
                 <div className="ml-3 text-[11px] font-medium text-white/38">
-                  {programState?.is_live ? "Live to audience" : "Program standby"}
+                  {programState?.is_live ? engineProgramMonitor ? "Engine output live" : "Live to audience" : "Program standby"}
                 </div>
               </div>
 
