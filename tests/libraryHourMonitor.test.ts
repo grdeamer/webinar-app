@@ -9,7 +9,7 @@ import type {LocalHaRuntime} from '../lib/production/localHaRuntime.ts'
 test('hour monitor rejects wrong runtime and non-video startup, then preserves interruption as failure',()=>{
  const directory=mkdtempSync(join(tmpdir(),'jupiter-monitor-test-'))
  try{
-  const runtime={runId:'d86db408-4bb5-44b5-aeca-507a656d00bf'} as LocalHaRuntime
+  const runtime={runId:'d86db408-4bb5-44b5-aeca-507a656d00bf'} as unknown as LocalHaRuntime
   const monitor=new LibraryHourMonitor(runtime,directory,async()=>{})
   assert.throws(()=>monitor.report({runId:'other',phase:'video'}),/Run changed/)
   assert.throws(()=>monitor.report({runId:runtime.runId,phase:'audio'}),/begin with video/)
