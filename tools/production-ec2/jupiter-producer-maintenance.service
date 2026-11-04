@@ -1,0 +1,10 @@
+[Unit]
+Description=Complete normal Ubuntu maintenance before the Jupiter media session
+Wants=network-online.target apt-daily.service apt-daily-upgrade.service
+After=network-online.target apt-daily.service apt-daily-upgrade.service
+Before=jupiter-livekit.service jupiter-producer.service
+[Service]
+Type=oneshot
+ExecStart=/opt/jupiter-producer/check-maintenance-ready.sh
+RemainAfterExit=yes
+TimeoutStartSec=5min

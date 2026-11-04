@@ -1,7 +1,7 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
 type Infrastructure = { state: string; stopAtMs: number | null }
-export default function Ec2ProducerControls({ root }: { root: string }) {
+export default function Ec2ProducerControls({ root, hourTest=false }: { root: string; hourTest?:boolean }) {
   const [status, setStatus] = useState<Infrastructure | null>(null), [busy, setBusy] = useState(false), [message, setMessage] = useState('')
   const refresh = useCallback(async () => {
     const response = await fetch(`${root}/infrastructure`, { cache: 'no-store', signal: AbortSignal.timeout(15_000) })
@@ -24,6 +24,6 @@ export default function Ec2ProducerControls({ root }: { root: string }) {
     <p>State: {status?.state || 'Checking…'}{status?.stopAtMs ? ` · automatic stop ${new Date(status.stopAtMs).toLocaleString()}` : ''}</p>
     <div className="flex gap-3"><button type="button" disabled={busy || status?.state !== 'stopped'} onClick={() => void action('prepare')} className="rounded border px-4 py-2 disabled:opacity-50">Start producer engine</button><button type="button" disabled={busy || !status || !['running', 'pending'].includes(status.state)} onClick={() => void action('stop-infrastructure')} className="rounded border px-4 py-2 disabled:opacity-50">Stop producer engine</button></div>
     <p role="status" aria-live="polite">{message}</p>
-    <p className="text-sm">Starting incurs AWS usage. The approved session envelope is $5; automatic shutdown is armed before starting, within 30 minutes. Restarting retains the existing deadline. No recording. Storage and reserved IP costs continue while stopped.</p>
+    {hourTest?<p className="text-sm">This separately approved hour has a $2 cap and the exact automatic stop shown above. Normal Start remains limited to 30 minutes. Recording is off.</p>:<p className="text-sm">Starting incurs AWS usage. The approved session envelope is $5; automatic shutdown is armed before starting, within 30 minutes. Restarting retains the existing deadline. No recording. Storage and reserved IP costs continue while stopped.</p>}
   </section>
 }

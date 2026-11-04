@@ -49,6 +49,7 @@ async function handle(request: Request, context: Context) {
       const root = `/admin/events/${encodeURIComponent(id)}/producer/rehearsal/engine/${encodeURIComponent(sessionId)}`
       return readStudioAsset(operation, root)
     }
+    if(operation==='/api/producer/soak'&&!access.isGlobalAdmin)return Response.json({error:'Only the global administrator can control the approved soak'},{status:403})
     const length = Number(request.headers.get('content-length') || 0)
     if (length > 80_000) return Response.json({ error: 'Request too large' }, { status: 413 })
     const body = request.method === 'POST' ? await request.text() : ''

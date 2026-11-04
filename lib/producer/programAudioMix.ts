@@ -1,6 +1,7 @@
 import type { AudioMix } from '../production/contracts'
 export type ProgramMixerSnapshot = {
   runId: string; revision: number; running: boolean; live: boolean; expiresAtMs: number; recordingEnabled: false
+  soak?:{mode:'original-room-mixed-hour';runId:string;outcome:string;startedAtMs:number|null;elapsedMs:number;phase:string;faultActive:boolean;cloudStopAtMs:number;budgetUsd:2}
   mix: AudioMix
   channels: { sourceId: string; label: string }[]
   receiver: { revision: number | null; atMs: number; audioRms: number; dominantHz: number; width: number; height: number; fps: number | null } | null

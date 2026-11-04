@@ -2,7 +2,7 @@ import { createHash, createHmac, randomUUID, timingSafeEqual } from 'node:crypto
 
 export type EngineScope = { eventId: string; sessionId: string; actorId: string }
 export type EngineRequest = { scope: EngineScope; path: string; method: 'GET' | 'POST'; body: string; inputCapability?: string }
-const paths = new Set(['/api/producer/status', '/api/producer/viewer', '/api/producer/input', '/api/producer/command', '/api/producer/presentation-ticket', '/api/ha/action'])
+const paths = new Set(['/api/producer/soak', '/api/producer/status', '/api/producer/viewer', '/api/producer/input', '/api/producer/command', '/api/producer/presentation-ticket', '/api/ha/action'])
 export function validateEngineRequest(value: EngineRequest) {
   const id = /^[a-zA-Z0-9_-]{1,128}$/
   if (!value || !value.scope || Object.values(value.scope).length !== 3 || !['eventId', 'sessionId', 'actorId'].every(k => id.test(value.scope[k as keyof EngineScope]))) throw new Error('Invalid engine scope')

@@ -23,10 +23,12 @@ export class LocalProducerRehearsal {
   readonly runtime: LocalHaRuntime
   private leases = new Map<SourceRole, Lease>()
   private sourceBusy = new Set<SourceRole>()
+  private readonly soakStatus?:()=>unknown
   private readonly mediaSources: string
   private timer: ReturnType<typeof setInterval>
-  constructor(runtime: LocalHaRuntime, options: { mediaUrl?: string } = {}) {
+  constructor(runtime: LocalHaRuntime, options: { mediaUrl?: string; soakStatus?:()=>unknown } = {}) {
     if (!runtime.rehearsal) throw new Error('Explicit rehearsal runtime required')
+    this.soakStatus=options.soakStatus
     this.mediaSources = options.mediaUrl ? mediaConnectSources(options.mediaUrl) : 'ws://127.0.0.1:7980'
     this.runtime = runtime
     this.timer = setInterval(() => {
@@ -49,6 +51,7 @@ export class LocalProducerRehearsal {
     try { this.leases.delete(role); if (this.runtime.running) await this.runtime.replaceDemoSource(role); this.unbind(role) }
     finally { this.sourceBusy.delete(role) }
   }
+  ownsFileInput(sourceId:string){const role=sourceId==='camera-a'?'source-a':sourceId==='camera-b'?'source-b':null;const lease=role?this.leases.get(role):null;return Boolean(lease&&lease.kind==='file'&&lease.expiresAtMs>Date.now())}
   async stop() { clearInterval(this.timer); this.leases.clear(); await this.runtime.stop() }
   async handle(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
     const url = new URL(request.url || '/', 'http://127.0.0.1:4311'), path = url.pathname
@@ -62,7 +65,7 @@ export class LocalProducerRehearsal {
         response.writeHead(200, { 'Content-Type': `${mime}; charset=utf-8`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': `default-src 'self'; script-src 'self'; connect-src 'self' ${this.mediaSources}; media-src 'self' blob:; img-src 'self' blob:; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`, 'Permissions-Policy': 'camera=(self), microphone=(self), display-capture=(self)' }); response.end(readFileSync(resolve(import.meta.dirname, '../../tools/production-local', file))); return true
       }
       if (request.method === 'GET' && path === '/api/producer/status') {
-        send(200, { runtime: this.runtime.status(), state: this.runtime.store.read(LOCAL_SCOPE), sourceReports: this.runtime.session.sources, sources: Object.fromEntries((['source-a', 'source-b'] as const).map(role => [role, { kind: this.leases.get(role)?.kind || (this.runtime.sourceMedia[role] ? 'demo' : 'disconnected'), leaseExpiresAtMs: this.leases.get(role)?.expiresAtMs ?? null }])), recordingEnabled: false, externalServices: false }); return true
+        send(200, { soak:this.soakStatus?.()??null, runtime: this.runtime.status(), state: this.runtime.store.read(LOCAL_SCOPE), sourceReports: this.runtime.session.sources, sources: Object.fromEntries((['source-a', 'source-b'] as const).map(role => [role, { kind: this.leases.get(role)?.kind || (this.runtime.sourceMedia[role] ? 'demo' : 'disconnected'), leaseExpiresAtMs: this.leases.get(role)?.expiresAtMs ?? null }])), recordingEnabled: false, externalServices: false }); return true
       }
       if (request.method !== 'POST' || request.headers['x-jupiter-local'] !== 'producer-rehearsal' || !request.headers['content-type']?.startsWith('application/json')) throw new Error('Local producer JSON header required')
       let body = ''; for await (const chunk of request) { body += String(chunk); if (body.length > 80_000) throw new Error('Request too large') }; const x = JSON.parse(body)

@@ -1973,7 +1973,7 @@ onSaveScene: saveScene,
   const bottomDock = createElement(BottomAssetDock, bottomAssetDockProps);
 
   const viewProps: ProducerRoomClientViewProps = {
-    engineControls: engine ? createElement(ProducerEngineConnection, {config: engine, engine: engineProgram, receiver: programMixer.snapshot?.receiver ?? undefined}) : undefined,
+    engineControls: engine ? createElement(ProducerEngineConnection, {config: engine, engine: engineProgram, receiver: programMixer.snapshot?.receiver ?? undefined, soak: programMixer.snapshot?.soak, transport: engineTransport, onCue: setPreviewBlocks, onTake:()=>takeProgram("cut")}) : undefined,
     token,
     serverUrl,
     liveKitRoomKey,
