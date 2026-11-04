@@ -1,5 +1,4 @@
-import Studio from "@/app/dev/producer-media/MediaLibraryLocalTest"
-import {hostedStudioConfig,configuredProducerSession} from "@/lib/production/hosted/studioConfig"
+import {configuredProducerSession} from "@/lib/production/hosted/studioConfig"
 import { notFound } from "next/navigation"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomClient"
@@ -19,7 +18,7 @@ export default async function AdminProducerRoomPage(props: {
   params: Promise<{ id: string }>
 }) {
   const { id } = await props.params
-  const access=await requireEventPageFeature(id, "producer_room")
+  await requireEventPageFeature(id, "producer_room")
 
   let eventId = id
   let eventTitle = "Event"
@@ -66,8 +65,6 @@ export default async function AdminProducerRoomPage(props: {
     return <ProducerRoomSetup eventId={eventId} />
   }
 
-  const hosted=hostedStudioConfig(eventId,session.id,eventTitle,access.user.id,access.isGlobalAdmin)
-  if(hosted)return <Studio hosted={hosted}/>
   return (
     <ProducerRoomClient
       eventId={eventId}
