@@ -1686,13 +1686,14 @@ updateShadowColor: updateSelectedBlockShadowColor,
     ],
   );
 
+  const engineTakeBlocked = Boolean(engine && !engineProgram.ready);
   const centerColumn = createElement(
     ProducerRoomCenterColumn,
     null,
     createElement(CenterSwitcherColumn, {
       ...centerSwitcherProps,
       ...(engine ? {
-        takeBusy: takeBusy || engineProgram.busy,
+        takeBusy: takeBusy || engineTakeBlocked,
         healthSnapshot: {...healthSnapshot, canTake: engineProgram.ready, previewReady: engineProgram.ready, takeBlockReason: engineProgram.ready ? null : engineProgram.message},
         programState: (programState || stageState) ? {...(programState || stageState)!, is_live: isProgramLive} : null,
         transportHealth: engineProgram.connected ? "connected" : "degraded",
@@ -1704,7 +1705,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
   // Rail props
   const leftRailProps = useMemo(
     () => ({
-      takeBusy,
+      takeBusy: takeBusy || engineTakeBlocked,
       previewProgramDifferent,
       isProgramLive,
       liveActionBusy,
@@ -1730,6 +1731,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     }),
     [
       takeBusy,
+      engineTakeBlocked,
       previewProgramDifferent,
       isProgramLive,
       liveActionBusy,
