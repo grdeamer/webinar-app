@@ -112,7 +112,10 @@ export class LocalProducerRehearsal {
           if (this.leases.get(role) !== lease || Date.now() >= lease.expiresAtMs) throw new Error('Input lease expired during publication validation')
           this.runtime.session.sourceReady(role, { frames: x.frames, videoTrackSid: x.videoTrackSid })
           const encoding = x.encoding && typeof x.encoding === 'object' ? Object.fromEntries(['width', 'height', 'frames', 'framesEncoded', 'bytes', 'qualityLimitationReason', 'codec'].map(k => [k, x.encoding[k]])) : {}
-          if (['native-media-element', 'explicit-static-frames', 'device'].includes(x.encoding?.captureMode)) encoding.captureMode = x.encoding.captureMode
+          if (['native-media-element', 'explicit-static-frames', 'explicit-canvas-frames', 'device'].includes(x.encoding?.captureMode)) encoding.captureMode = x.encoding.captureMode
+          for(const key of ['canvasLayerCount','canvasVideoLayerCount','canvasAudioLayerCount'])if(Number.isSafeInteger(x.encoding?.[key])&&x.encoding[key]>=0&&x.encoding[key]<=16)encoding[key]=x.encoding[key]
+          if(Number.isSafeInteger(x.encoding?.canvasFramesWritten)&&x.encoding.canvasFramesWritten>=0)encoding.canvasFramesWritten=x.encoding.canvasFramesWritten
+          if(x.encoding?.canvasSourceFrames&&typeof x.encoding.canvasSourceFrames==='object'&&!Array.isArray(x.encoding.canvasSourceFrames)){const entries=Object.entries(x.encoding.canvasSourceFrames);if(entries.length<=16&&entries.every(([id,count])=>id.length<=100&&Number.isSafeInteger(count)&&Number(count)>=0))encoding.canvasSourceFrames=Object.fromEntries(entries)}
           if (['visible', 'hidden'].includes(x.encoding?.publisherVisibility)) encoding.publisherVisibility = x.encoding.publisherVisibility
           if (Number.isSafeInteger(x.encoding?.fileTimeMs) && x.encoding.fileTimeMs >= 0) encoding.fileTimeMs = x.encoding.fileTimeMs
           if (typeof x.encoding?.filePaused === 'boolean') encoding.filePaused = x.encoding.filePaused

@@ -1,3 +1,4 @@
+import { PREVIEW_ASSET_DRAG_TYPE, previewBlockFromLibraryAsset } from "@/lib/producer/previewLibraryAsset"
 import { type JSX } from "react"
 
 import {
@@ -163,6 +164,7 @@ export function SourceLibraryCard({
   onDelete,
   deleting = false,
   viewMode = "blocks",
+  previewSlide = 1,
 }: {
   asset: BroadcastAssetTelemetry
   selected: boolean
@@ -171,6 +173,7 @@ export function SourceLibraryCard({
   onSendToPreview?: () => void
   onDelete?: () => void
   deleting?: boolean
+  previewSlide?: number
   viewMode?: SourceLibraryView
 }): JSX.Element {
   const listView = viewMode === "list"
@@ -192,13 +195,20 @@ export function SourceLibraryCard({
       tabIndex={0}
       onClick={onSelect}
       onDoubleClick={onSendToPreview}
+      draggable={asset.type !== "live" && !deleting}
+      onDragStart={(event) => {
+        if (asset.type === "live" || deleting) { event.preventDefault(); return }
+        event.dataTransfer.effectAllowed = "copy"
+        event.dataTransfer.setData(PREVIEW_ASSET_DRAG_TYPE, JSON.stringify(previewBlockFromLibraryAsset(asset, crypto.randomUUID(), { slide: previewSlide })))
+        event.dataTransfer.setData("text/plain", asset.label)
+      }}
       onKeyDown={(event) => {
         if (event.key === "Enter" || event.key === " ") {
           event.preventDefault()
           onSelect()
         }
       }}
-      title="Select source. Double-click to send directly to Preview."
+      title="Select source. Double-click to add to Preview, or drag onto the Preview canvas."
       className={`group relative flex min-w-0 cursor-pointer overflow-hidden rounded-[10px] border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 ${
         listView
           ? "min-h-[68px] flex-row"
@@ -222,6 +232,7 @@ export function SourceLibraryCard({
           <img
             src={asset.imageUrl}
             alt={`${asset.label} source preview`}
+            draggable={false}
             className="h-full w-full object-contain opacity-90 transition duration-300 group-hover:scale-[1.015] group-hover:opacity-100"
           />
         ) : (

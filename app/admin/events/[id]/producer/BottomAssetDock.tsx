@@ -1,3 +1,4 @@
+import { previewBlockFromLibraryAsset } from "@/lib/producer/previewLibraryAsset"
 import {presentationMetadata} from '@/lib/producer/presentationMetadata'
 import { importLocalPresentation, type PresentationDeckMetadata } from "@/lib/producer/presentationImport"
 import { LOCAL_PRESENTATION_ACCEPT, presentationExtension, clampPresentationSlide } from "@/lib/producer/presentationFiles"
@@ -433,34 +434,11 @@ function handleSelectMediaAssetForPreview(label: string, slide?: number): void {
     null
   setPreviewMediaAssetLabel(label)
   if (targetAsset && onAddMediaAssetToPreview) {
-    const nextZIndex =
-      previewBlocks.reduce((highest, block) => Math.max(highest, block.zIndex ?? 0), 0) + 1
-    const blockType: PreviewBlock["type"] =
-      targetAsset.assetKind ?? (targetAsset.type === "audio" ? "audio" : targetAsset.type === "video" ? "video" : "image")
-    onAddMediaAssetToPreview({
-      id: `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-      type: blockType,
-      label: targetAsset.label,
-      src: (targetAsset.mediaUrl ?? targetAsset.imageUrl ?? "") + (targetAsset.deck ? `#page=${clampPresentationSlide(slide ?? deckPages[targetAsset.id ?? label] ?? 1, targetAsset.deck.pageCount)}` : ""),
-      pdfPage: targetAsset.deck ? clampPresentationSlide(slide ?? deckPages[targetAsset.id ?? label] ?? 1, targetAsset.deck.pageCount) : undefined,
-      assetId: targetAsset.id ?? null,
-      storagePath: targetAsset.storagePath ?? null,
-      x: 0,
-      y: targetAsset.type === "audio" ? 306 : 0,
-      width: 640,
-      height: targetAsset.type === "audio" ? 54 : 360,
-      opacity: 1,
-      scale: 1,
-      rotation: 0,
-      blur: 0,
-      glow: 0,
-      borderRadius: 0,
-      shadowIntensity: 0,
-      blendMode: "normal",
-      zIndex: nextZIndex,
-      groupId: targetAsset.type === "audio" ? "audio-route" : "source-route",
-      loop: isHoldingAsset(targetAsset),
-    })
+    onAddMediaAssetToPreview(previewBlockFromLibraryAsset(
+      targetAsset,
+      crypto.randomUUID(),
+      { slide: slide ?? deckPages[targetAsset.id ?? label] ?? 1, fullFrame: previewBlocks.length === 0 },
+    ))
   }
   setRuntimePaused(false)
 }
@@ -1404,8 +1382,9 @@ const previewMediaAsset =
                     <SourceLibraryCard
                       key={`${asset.label}-${asset.type}`}
                       asset={asset}
+                      previewSlide={deckPages[asset.id ?? asset.label] ?? 1}
                       selected={selectedMediaAsset?.label === asset.label}
-                      inPreview={previewMediaAssetLabel === asset.label}
+                      inPreview={previewBlocks.some((block) => asset.id ? block.assetId === asset.id : block.label === asset.label)}
                       onSelect={() => setSelectedMediaAssetLabel(asset.label)}
                       onSendToPreview={() => handleSelectMediaAssetForPreview(asset.label)}
                       deleting={deletingMediaAssetId === (asset.id ?? asset.label)}
@@ -1682,8 +1661,9 @@ const previewMediaAsset =
                   <SourceLibraryCard
                     key={`${asset.label}-${asset.type}`}
                     asset={asset}
+                    previewSlide={deckPages[asset.id ?? asset.label] ?? 1}
                     selected={selectedMediaAsset?.label === asset.label}
-                    inPreview={previewMediaAssetLabel === asset.label}
+                    inPreview={previewBlocks.some((block) => asset.id ? block.assetId === asset.id : block.label === asset.label)}
                     onSelect={() => setSelectedMediaAssetLabel(asset.label)}
                     onSendToPreview={() => handleSelectMediaAssetForPreview(asset.label)}
                     onDelete={

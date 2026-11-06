@@ -1,3 +1,4 @@
+import { positionPreviewAsset } from "@/lib/producer/previewLibraryAsset";
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { ScanLine } from "lucide-react";
@@ -872,8 +873,8 @@ export default function CenterSwitcherColumn({
       }
     }
 
-    const nextX = Math.max(0, logicalPointerX - ghostWidth / 2);
-    const nextY = Math.max(0, logicalPointerY - ghostHeight / 2);
+    const nextX = Math.max(0, Math.min(PRODUCER_BLOCK_CANVAS_WIDTH - ghostWidth, logicalPointerX - ghostWidth / 2));
+    const nextY = Math.max(0, Math.min(PRODUCER_BLOCK_CANVAS_HEIGHT - ghostHeight, logicalPointerY - ghostHeight / 2));
 
     setPreviewDropActive(true);
     setPreviewDropGhost({
@@ -904,19 +905,11 @@ export default function CenterSwitcherColumn({
       const rect = event.currentTarget.getBoundingClientRect();
       const logicalPointerX = (event.clientX - rect.left) * (PRODUCER_BLOCK_CANVAS_WIDTH / rect.width);
       const logicalPointerY = (event.clientY - rect.top) * (PRODUCER_BLOCK_CANVAS_HEIGHT / rect.height);
-      const blockWidth = block.width ?? 320;
-      const blockHeight = block.height ?? 180;
-      const nextX = Math.max(0, logicalPointerX - blockWidth / 2);
-      const nextY = Math.max(0, logicalPointerY - blockHeight / 2);
-
-      onAddMediaAssetToPreview({
-        ...block,
-        id: crypto.randomUUID(),
-        x: Math.round(nextX),
-        y: Math.round(nextY),
-        width: blockWidth,
-        height: blockHeight,
-      });
+      if (!["image", "video", "pdf", "audio"].includes(block.type) || !block.src ||
+          !Number.isFinite(block.width) || !Number.isFinite(block.height)) return;
+      onAddMediaAssetToPreview(positionPreviewAsset(
+        { ...block, id: crypto.randomUUID() }, logicalPointerX, logicalPointerY,
+      ));
     } catch {
     }
   }
@@ -1033,7 +1026,7 @@ export default function CenterSwitcherColumn({
                       : "border-sky-300/12 bg-sky-400/[0.04] text-sky-100/46"
                   }`}
                 >
-                  {previewProgramDifferent ? "Ready to take" : "Matched"}
+                  {previewProgramDifferent ? healthSnapshot.previewReady ? "Ready to take" : "Not ready" : "Matched"}
                 </span>
               </div>
             </div>
@@ -1149,7 +1142,7 @@ export default function CenterSwitcherColumn({
                   {selectedSceneLabel ? selectedSceneLabel : "Preview Source"}
                 </div>
                 <div className="ml-3 text-[11px] font-medium text-white/38">
-                  {previewProgramDifferent ? "Ready for transition" : "Mirrors program"}
+                  {previewProgramDifferent ? healthSnapshot.previewReady ? "Ready for transition" : "Preview is not ready" : "Mirrors program"}
                 </div>
               </div>
 

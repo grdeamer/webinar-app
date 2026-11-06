@@ -27,6 +27,6 @@ export default function ProducerEngineConnection({ config, engine, receiver, soa
     <p className="mt-1 text-white/55">{receiver && now - receiver.atMs < 5000 ? `Received Program: ${receiver.width} × ${receiver.height} · ${receiver.fps ?? "unavailable"} fps` : "No fresh outgoing measurements yet."} Disconnecting inputs does not stop EC2; use Stop producer engine to end compute charges.</p>
     {config.canStart&&soak?<OriginalRoomSoakControls eventId={config.eventId} transport={transport} engine={engine} soak={soak} onCue={onCue} onTake={onTake}/>:null}
     {config.canStart ? <details className="mt-1"><summary className="cursor-pointer text-white/55">EC2 start / stop and usage costs</summary><Ec2ProducerControls root={config.root} hourTest={Boolean(soak)}/></details> : null}
-    <p className="mt-1 text-[10px] text-white/45">One library source at a time. PowerPoint slides are static; slide changes stay in Preview until TAKE. Program listening is muted locally; use the video’s volume control to listen. Preview is always muted.</p>
+    <p className="mt-1 text-[10px] text-white/45">TAKE sends the complete library canvas. PowerPoint slides are static; slide changes stay in Preview until TAKE. Program listening is muted locally; use the video’s volume control to listen. Preview is always muted.</p>
   </section>
 }

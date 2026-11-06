@@ -39,7 +39,7 @@ def remember(rows):
     while changed:
         changed = False
         for pid, (parent, birth) in rows.items():
-            if parent in roots and pid not in roots:
+            if pid != os.getpid() and parent in roots and pid not in roots:
                 roots.add(pid)
                 changed = True
     for pid in roots:
@@ -70,8 +70,10 @@ while True:
         write_result({'soakId': soak_id, 'outcome': 'refused_foreign_plan'})
         sys.exit(1)
     if plan and plan.get('outcome') in ['completed', 'failed', 'cancelled'] and (plan.get('cleanup') or {}).get('workersStopped'):
-        write_result({'soakId': soak_id, 'outcome': 'normal_cleanup_verified', 'atMs': int(time.time() * 1000)})
-        sys.exit(0)
+        remaining = [pid for pid, birth in tracked.items() if pid != host_pid and matches(rows, pid, birth)]
+        if not remaining:
+            write_result({'soakId': soak_id, 'outcome': 'normal_cleanup_verified', 'remainingOwnedPids': [], 'atMs': int(time.time() * 1000)})
+            sys.exit(0)
     reason = None
     if time.time() >= wall_deadline or time.monotonic() - started >= maximum_duration:
         reason = 'hard_deadline'

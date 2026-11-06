@@ -1,4 +1,5 @@
 "use client";
+import { appendPreviewAsset } from "@/lib/producer/previewLibraryAsset";
 
 import { createElement, useEffect, useMemo, useRef, useState, useCallback } from "react";
 
@@ -665,8 +666,8 @@ updateShadowColor: updateSelectedBlockShadowColor,
   );
 
   const validateTake = useCallback(
-    (): string | null => engine ? (!engineProgram.connected ? "Connect the Program engine first." : engineProgram.busy ? "Wait for the source to finish cueing." : null) : healthSnapshot.takeBlockReason,
-    [engine, engineProgram.connected, engineProgram.busy, healthSnapshot.takeBlockReason],
+    (): string | null => engine ? (!engineProgram.connected ? "Connect the Program engine first." : engineProgram.busy ? "Wait for the source to finish cueing." : !engineProgram.ready ? engineProgram.message : null) : healthSnapshot.takeBlockReason,
+    [engine, engineProgram.connected, engineProgram.busy, engineProgram.ready, engineProgram.message, healthSnapshot.takeBlockReason],
   );
 
   const handleTakeBlocked = useCallback((reason: string): void => {
@@ -1101,29 +1102,14 @@ updateShadowColor: updateSelectedBlockShadowColor,
       const nextBlockId = `media-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
       setPreviewBlocks((current) => {
-        if (engine) return [{...block, id: nextBlockId, x: 0, y: 0, width: 640, height: 360}];
-        const baseBlocks = ["source-route", "audio-route"].includes(block.groupId ?? "")
-          ? current.filter((currentBlock) => currentBlock.groupId !== block.groupId)
-          : current;
-        const nextZIndex = baseBlocks.reduce(
-          (highest, currentBlock) => Math.max(highest, currentBlock.zIndex ?? 0),
-          block.zIndex ?? 0,
-        ) + 1;
-
-        const nextBlock: PreviewBlock = {
-          ...block,
-          id: nextBlockId,
-          zIndex: nextZIndex,
-        };
-
-        return [...baseBlocks, nextBlock];
+        return appendPreviewAsset(current, block, nextBlockId);
       });
 
       window.requestAnimationFrame(() => {
         setSelectedBlockId(nextBlockId);
       });
     },
-    [engine, setPreviewBlocks, setSelectedBlockId],
+    [setPreviewBlocks, setSelectedBlockId],
   );
 
   const handleAssignParticipantToCameraSlot = useCallback(
@@ -1707,6 +1693,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       ...centerSwitcherProps,
       ...(engine ? {
         takeBusy: takeBusy || engineProgram.busy,
+        healthSnapshot: {...healthSnapshot, canTake: engineProgram.ready, previewReady: engineProgram.ready, takeBlockReason: engineProgram.ready ? null : engineProgram.message},
         programState: (programState || stageState) ? {...(programState || stageState)!, is_live: isProgramLive} : null,
         transportHealth: engineProgram.connected ? "connected" : "degraded",
         engineProgramMonitor: createElement("video", {ref: engineProgram.video, autoPlay: true, muted: true, playsInline: true, controls: true, "aria-label": "Actual outgoing Program", className: "h-full w-full object-contain"}),

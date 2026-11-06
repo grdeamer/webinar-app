@@ -1,10 +1,10 @@
+import { previewBlockFromLibraryAsset } from "@/lib/producer/previewLibraryAsset"
 import { useState, type JSX } from "react"
 import {
   type BroadcastAssetTelemetry,
   AssetStatePill,
   AssetTypeGlyph,
 } from "./BottomAssetDockAssetRenderers"
-import type { PreviewBlock } from "./useProducerBlocks"
 
 export default function MediaAssetsWorkspace({
   mediaRows,
@@ -41,36 +41,6 @@ const [renameDraft, setRenameDraft] = useState("")
 const [hoverPreviewAssetLabel, setHoverPreviewAssetLabel] = useState<string | null>(null)
 const [transitioningAssetLabel, setTransitioningAssetLabel] = useState<string | null>(null)
 const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
-
-  function buildPreviewBlockFromAsset(
-    asset: BroadcastAssetTelemetry,
-    blockId: string,
-  ): PreviewBlock {
-    const blockType: PreviewBlock["type"] =
-      asset.type === "graphic" ? "image" : asset.type === "video" ? "video" : "text"
-
-    return {
-      id: blockId,
-      type: blockType,
-      x: 24,
-      y: 24,
-      width: blockType === "text" ? 320 : 420,
-      height: blockType === "text" ? 120 : 236,
-      zIndex: 1,
-      opacity: 1,
-      scale: 1,
-      rotation: 0,
-      label: asset.label,
-      src: asset.imageUrl ?? null,
-      content: blockType === "text" ? asset.label : null,
-      hidden: false,
-      locked: false,
-      groupId: null,
-      blendMode: "normal",
-      timelineStartMs: 0,
-      timelineDurationMs: 4000,
-    }
-  }
 
   function beginRenameAsset(asset: BroadcastAssetTelemetry): void {
     if (!isImportedAsset(asset.label)) return
@@ -136,7 +106,7 @@ const [programPulseLabel, setProgramPulseLabel] = useState<string | null>(null)
   onDragStart={(event) => {
     if (asset.type === "audio" || asset.type === "live") return
 
-    const block = buildPreviewBlockFromAsset(
+    const block = previewBlockFromLibraryAsset(
       asset,
       `drag-asset-${crypto.randomUUID()}`,
     )

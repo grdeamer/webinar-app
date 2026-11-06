@@ -23,3 +23,17 @@ test('hour monitor rejects wrong runtime and non-video startup, then preserves i
   assert.equal(monitor.summary().outcome,'failed')
  }finally{rmSync(directory,{recursive:true,force:true})}
 })
+
+
+test('multi-canvas phases require decoded slide, graphic and audio evidence',()=>{
+ const directory=mkdtempSync(join(tmpdir(),'jupiter-canvas-monitor-'))
+ try{
+  const report={canvasRgb:[13,41,56,22,114,74],audioRms:.04,revision:5,lastSelection:{videoGapMs:90}}
+  const runtime={runId:'2d554c68-2d47-4648-a552-f8d5d3a5d765',status:()=>({observer:report})} as unknown as LocalHaRuntime
+  const monitor=new LibraryHourMonitor(runtime,directory,async()=>{},undefined,true)
+  monitor.report({runId:runtime.runId,phase:'video',transition:'cut'})
+  assert.equal(monitor.result.profile,'multi-canvas-hour');assert.equal(monitor.result.events[0].pictureGapMs,90)
+  assert.throws(()=>monitor.report({runId:runtime.runId,phase:'slide2'}),/not confirmed/)
+  report.audioRms=0;assert.throws(()=>monitor.report({runId:runtime.runId,phase:'video'}),/not confirmed/)
+ }finally{rmSync(directory,{recursive:true,force:true})}
+})
