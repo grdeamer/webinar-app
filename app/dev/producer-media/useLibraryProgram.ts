@@ -13,7 +13,22 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
  const attachVideo=useCallback((element:HTMLVideoElement|null)=>{bindProgramMonitor(monitor.current,element);video.current=element},[])
  const stop=useCallback(async()=>{epoch.current++;setConnected(false);cued.current=null;setCueKey(null);if(active.current)await engineCommand(run.current,{type:"SET_LIVE",live:false},transport).catch(():void=>{});active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[transport])
  useEffect(()=>()=>{void stop()},[stop])
- async function connect(){setBusy(true);try{const s=await engineStatus(transport);if(!s.runtime.running||Date.now()>=s.runtime.expiresAtMs)throw Error('Start the producer engine, then wait for it to become ready.');run.current=s.runtime.runId;if(!video.current)throw Error('Program monitor unavailable');viewer.current=await connectProgram(video.current,run.current,transport);setConnected(true);setMessage('Connected to the Program engine. Cue a source.')}catch(e){setMessage(e instanceof Error?e.message:'Connection failed')}finally{setBusy(false)}}
+ async function connect(signal?:AbortSignal){
+  const generation=++epoch.current
+  setBusy(true)
+  try{
+   signal?.throwIfAborted()
+   const s=await engineStatus(transport)
+   if(signal?.aborted||generation!==epoch.current)return
+   if(!s.runtime.running||Date.now()>=s.runtime.expiresAtMs)throw Error('Start the producer engine, then wait for it to become ready.')
+   run.current=s.runtime.runId
+   if(!video.current)throw Error('Program monitor unavailable')
+   const disconnect=await connectProgram(video.current,run.current,transport)
+   if(signal?.aborted||generation!==epoch.current){await disconnect();return}
+   viewer.current=disconnect;setConnected(true);setMessage('Connected to the Program engine. Cue a source.')
+  }catch(e){if(!signal?.aborted&&generation===epoch.current)setMessage(e instanceof Error?e.message:'Connection failed')}
+  finally{if(generation===epoch.current)setBusy(false)}
+ }
  useEffect(()=>{
   if(!connected)return
   const timer=setInterval(()=>{void engineStatus(transport).then((s):void=>{if(!s.runtime.running||s.runtime.runId!==run.current||Date.now()>=s.runtime.expiresAtMs)void stop()}).catch(():void=>{void stop()})},1500)
