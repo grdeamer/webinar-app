@@ -4,6 +4,7 @@ import ProducerRoomClient from "@/app/admin/events/[id]/producer/ProducerRoomCli
 import { configuredProducerSession, hostedStudioConfig } from "@/lib/production/hosted/studioConfig"
 import ProducerRoomSetup from "./ProducerRoomSetup"
 import { requireEventPageFeature } from "@/lib/eventTeamAccess"
+import { canStartProducerEngine } from '@/lib/producer/engineOwner'
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -64,7 +65,7 @@ export default async function AdminProducerRoomPage(props: {
   }
 
   const engineSession = configuredProducerSession(eventId)
-  const engine = engineSession ? hostedStudioConfig(eventId, engineSession, session.title || "Producer room", access.user.id, access.isGlobalAdmin) : null
+  const engine = engineSession ? hostedStudioConfig(eventId, engineSession, session.title || "Producer room", access.user.id, canStartProducerEngine(access.user, access.isGlobalAdmin)) : null
 
   return (
     <ProducerRoomClient

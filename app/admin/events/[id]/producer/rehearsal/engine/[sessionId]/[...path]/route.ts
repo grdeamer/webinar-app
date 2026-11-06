@@ -6,6 +6,7 @@ import { supabaseAdmin } from '@/lib/supabase/admin'
 import { callHostedEngine } from '@/lib/production/hosted/client'
 import { prepareHostedRehearsal } from '@/lib/production/hosted/sandboxWorker'
 import { readStudioAsset } from '@/lib/production/hosted/studioAssets'
+import { canStartProducerEngine } from '@/lib/producer/engineOwner'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 export const maxDuration = 300
@@ -14,6 +15,9 @@ async function handle(request: Request, context: Context) {
   const { id, sessionId, path } = await context.params
   const access = await requireEventOperatorAccess(id, ['event_admin', 'producer'], 'producer_room')
   if (access instanceof NextResponse) return access
+  if (request.method === 'POST' && path.join('/') === 'prepare' && !canStartProducerEngine(access.user, access.isGlobalAdmin)) {
+    return Response.json({ error: 'Only the engine owner can start paid compute' }, { status: 403 })
+  }
   const { data, error } = await supabaseAdmin.from('event_sessions').select('id').eq('id', sessionId).eq('event_id', access.eventId).maybeSingle()
   if (error || !data) return Response.json({ error: 'Session access denied' }, { status: 403 })
   const operation = '/' + path.join('/')
