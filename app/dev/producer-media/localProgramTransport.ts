@@ -8,7 +8,14 @@ export type StudioTransport = { root: string; relayUrl: string }
 export const LOCAL_STUDIO_TRANSPORT: StudioTransport = {root:'/dev/producer-media/transport',relayUrl:'ws://127.0.0.1:7980'}
 export async function engineStatus(transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(transport===LOCAL_STUDIO_TRANSPORT ? transport.root : transport.root+'/api/producer/status',{cache:'no-store'});const s=await r.json();if(!r.ok)throw Error(s.error);return s}
 export async function engineRequest(endpoint:string,body:Record<string,unknown>,capability?:string,transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(transport===LOCAL_STUDIO_TRANSPORT ? transport.root : transport.root+'/api/producer/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(capability?{'X-Input-Capability':capability}:{})},body:JSON.stringify(transport===LOCAL_STUDIO_TRANSPORT ? {endpoint,...body} : body)});const value=await r.json();if(!r.ok)throw Error(value.error);return value}
-export async function engineCommand(runId:string,command:unknown,transport=LOCAL_STUDIO_TRANSPORT,expectedRevision?:number) {const s=await engineStatus(transport);if(expectedRevision!==undefined&&s.state.revision!==expectedRevision)throw Error('Program changed. Review the current mix before applying.');if(s.runtime.runId!==runId)throw Error('Engine changed');return engineRequest('command',{runId,consoleId:'local-library-studio',commandId:crypto.randomUUID(),expectedRevision:s.state.revision,command},undefined,transport)}
+export async function engineCommand(runId:string,command:unknown,transport=LOCAL_STUDIO_TRANSPORT,expectedRevision?:number) {
+ // A supplied revision has already been inspected by the caller. The server's
+ // atomic compare-and-swap remains authoritative; a second GET cannot prevent
+ // races and only adds another network round trip to a prepared TAKE.
+ let revision=expectedRevision
+ if(revision===undefined){const status=await engineStatus(transport);if(status.runtime.runId!==runId)throw Error('Engine changed');revision=status.state.revision}
+ return engineRequest('command',{runId,consoleId:'local-library-studio',commandId:crypto.randomUUID(),expectedRevision:revision,command},undefined,transport)
+}
 const wait=(ms:number)=>new Promise(resolve=>setTimeout(resolve,ms))
 export class LibraryPublisher {
  canvasSource:Awaited<ReturnType<typeof canvasProgramSource>>|null=null

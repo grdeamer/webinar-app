@@ -643,7 +643,7 @@ export default function CenterSwitcherColumn({
     const parsedValue = storedValue ? Number(storedValue) : NaN;
     return Number.isFinite(parsedValue) ? Math.max(32, Math.min(68, parsedValue)) : 50;
   });
-  const [isAutoRunning, setIsAutoRunning] = useState(false);
+  const isAutoRunning = takeBusy;
   const [takeFlashVisible, setTakeFlashVisible] = useState(false);
   const [confidenceMonitorMode, setConfidenceMonitorMode] =
     useState<ConfidenceMonitorMode>(() => {
@@ -836,15 +836,7 @@ export default function CenterSwitcherColumn({
   function runAutoTransition() {
     if (takeBusy || isAutoRunning || !previewProgramDifferent) return;
 
-    setIsAutoRunning(true);
-
-    window.setTimeout(() => {
-      onTake("auto", selectedTransitionType, transitionDuration * 1000);
-    }, 260);
-
-    window.setTimeout(() => {
-      setIsAutoRunning(false);
-    }, 760);
+    onTake("auto", selectedTransitionType, transitionDuration * 1000);
   }
 
   function handlePreviewCanvasDragOver(event: React.DragEvent<HTMLDivElement>) {
@@ -1194,7 +1186,7 @@ export default function CenterSwitcherColumn({
                     onMouseDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
-                      runAutoTransition();
+                      onTake("cut", undefined, 0);
                     }}
                     disabled={takeBusy || isAutoRunning || !previewProgramDifferent}
                     className={`relative flex h-[92px] w-[78px] flex-col items-center justify-center rounded-[13px] border text-center transition-all duration-150 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 ${
@@ -1205,7 +1197,7 @@ export default function CenterSwitcherColumn({
                   >
                     <span aria-hidden="true" className="producer-take-arrow mb-1 text-[24px] font-light leading-none text-sky-100/90">→</span>
                     <span className="block text-[15px] font-semibold tracking-[0.06em]">
-                      {isAutoRunning ? "RUN" : "TAKE"}
+                      {takeBusy ? "TAKING" : "TAKE"}
                     </span>
                   </button>
 
@@ -1279,12 +1271,12 @@ export default function CenterSwitcherColumn({
                     onMouseDown={(event) => event.stopPropagation()}
                     onClick={(event) => {
                       event.stopPropagation();
-                      onTake("cut", undefined, 0);
+                      runAutoTransition();
                     }}
                     disabled={takeBusy || !previewProgramDifferent}
                     className="mt-auto min-h-9 px-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-white/34 transition hover:text-white/66 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-30"
                   >
-                    CUT
+                    AUTO
                   </button>
                 </div>
               </div>

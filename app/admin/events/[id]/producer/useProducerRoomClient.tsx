@@ -1698,7 +1698,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
         healthSnapshot: {...healthSnapshot, canTake: engineProgram.ready, previewReady: engineProgram.ready, takeBlockReason: engineProgram.ready ? null : engineProgram.message},
         programState: (programState || stageState) ? {...(programState || stageState)!, is_live: isProgramLive} : null,
         transportHealth: engineProgram.connected ? "connected" : "degraded",
-        engineProgramMonitor: createElement("video", {ref: engineProgram.video, autoPlay: true, muted: true, playsInline: true, controls: true, "aria-label": "Actual outgoing Program", className: "h-full w-full object-contain"}),
+        engineProgramMonitor: createElement("video", {ref: engineProgram.video, autoPlay: true, muted: true, playsInline: true, controls: true, "aria-label": "Actual outgoing Program", "data-take-timing": engineProgram.takeTiming ? JSON.stringify(engineProgram.takeTiming) : undefined, className: "h-full w-full object-contain"}),
       } : {}),
     }),
   );

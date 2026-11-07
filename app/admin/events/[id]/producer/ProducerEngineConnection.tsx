@@ -79,6 +79,7 @@ export default function ProducerEngineConnection({ config, engine, receiver, soa
     <details className="group mt-2 pl-5">
       <summary className="flex w-fit cursor-pointer list-none items-center gap-1 text-[10px] text-white/35 transition hover:text-white/65">Engine details<ChevronDown size={12} className="transition group-open:rotate-180" aria-hidden="true" /></summary>
       <div className="mt-2 space-y-2 border-l border-white/10 pl-3 text-[11px] leading-relaxed text-white/45">
+        {engine.takeTiming ? <p aria-label="Last TAKE timing" className="font-mono tabular-nums">Last TAKE: accepted {engine.takeTiming.acceptedMs===undefined?'pending':`${Math.round(engine.takeTiming.acceptedMs)} ms`} · picture {engine.takeTiming.presentedMs===undefined?(engine.takeTiming.pictureError??'pending'):`${Math.round(engine.takeTiming.presentedMs)} ms`}</p> : null}
         <p>TAKE sends the complete canvas when Preview is ready. PowerPoint changes stay in Preview until TAKE. Program listening is muted locally.</p>
         <p>Disconnecting inputs does not stop EC2. {config.canStart ? 'Use Stop producer engine below to end compute charges.' : 'The engine owner controls EC2 start and stop.'} Automatic shutdown remains armed.</p>
         {config.canStart ? <Ec2ProducerControls root={config.root} hourTest={Boolean(soak)} startAndConnect={start} starting={starting} onStop={cancelStartup}/> : null}
