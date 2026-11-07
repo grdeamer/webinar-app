@@ -9,11 +9,11 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import * as icons from 'lucide-react'
 import { canStartProducerEngine } from '../lib/producer/engineOwner.ts'
 
-function load(path:string, dependencies:Record<string,unknown>) {
+function load(path:string, dependencies:Record<string,unknown>, env:Record<string,string>={}) {
   const source=readFileSync(new URL('../'+path,import.meta.url),'utf8')
   const compiled=ts.transpileModule(source,{fileName:path,compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022,jsx:ts.JsxEmit.ReactJSX}}).outputText
   const exports:Record<string,unknown>={}
-  runInNewContext(compiled,{exports,module:{exports},Response,Buffer,URL,process:{env:{}},require(name:string){assert.ok(Object.hasOwn(dependencies,name),'Unexpected dependency '+name);return dependencies[name]}})
+  runInNewContext(compiled,{exports,module:{exports},Response,Buffer,URL,process:{env},require(name:string){assert.ok(Object.hasOwn(dependencies,name),'Unexpected dependency '+name);return dependencies[name]}})
   return exports
 }
 
@@ -57,5 +57,22 @@ test('start power button renders only with the server-authorized owner flag',()=
     assert.equal(html.includes('Start engine'),canStart)
     assert.equal(html.includes('lucide-power'),canStart)
     assert.equal(html.includes('Recording off'),true)
+  }
+})
+
+test('the shared Io start path enforces the same owner restriction and reports it to the UI',async()=>{
+  for(const email of ['other@gmail.com','grdeamer@gmail.com']){
+    let starts=0
+    const route=load('app/api/admin/zoom-bridge/runtime/route.ts',{
+      'next/server':{NextResponse:Response},
+      '@/lib/requireAdmin':{requireAdmin:async()=>({user:{email,email_confirmed_at:'confirmed'},profile:{role:'admin'}})},
+      '@/lib/production/hosted/ec2Worker':{ec2ProducerStatus:async()=>({state:'stopped'}),prepareSharedEc2:async()=>{starts++;return {state:'pending'}}},
+      '@/lib/producer/engineOwner':{canStartProducerEngine},
+    },{JUPITER_IO_EC2_SHARED:'true'})
+    const get=route.GET as ()=>Promise<Response>,post=route.POST as (r:Request)=>Promise<Response>
+    assert.equal((await (await get()).json()).canStart,email==='grdeamer@gmail.com')
+    const response=await post(new Request('https://app.jupiter.events/api/admin/zoom-bridge/runtime',{method:'POST',headers:{origin:'https://app.jupiter.events','content-type':'application/json'},body:JSON.stringify({action:'start'})}))
+    assert.equal(response.status,email==='grdeamer@gmail.com'?200:403)
+    assert.equal(starts,email==='grdeamer@gmail.com'?1:0)
   }
 })

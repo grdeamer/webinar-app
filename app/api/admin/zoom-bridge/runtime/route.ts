@@ -1,21 +1,25 @@
 import { NextResponse } from 'next/server'
 import { requireAdmin } from '@/lib/requireAdmin'
 import { ec2ProducerStatus, prepareSharedEc2, stopSharedEc2 } from '@/lib/production/hosted/ec2Worker'
+import { canStartProducerEngine } from '@/lib/producer/engineOwner'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 const headers = { 'Cache-Control': 'private, no-store' }
 export async function GET() {
-  if ((await requireAdmin()).profile.role !== 'admin') return NextResponse.json({ error: 'Administrator required' }, { status: 403, headers })
+  const access = await requireAdmin()
+  if (access.profile.role !== 'admin') return NextResponse.json({ error: 'Administrator required' }, { status: 403, headers })
   if (process.env.JUPITER_IO_EC2_SHARED !== 'true') return NextResponse.json({ configured: false }, { headers })
-  try { return NextResponse.json({ configured: true, ...await ec2ProducerStatus() }, { headers }) }
+  try { return NextResponse.json({ configured: true, ...await ec2ProducerStatus(), canStart: canStartProducerEngine(access.user, true) }, { headers }) }
   catch { return NextResponse.json({ error: 'Unable to verify shared server status' }, { status: 503, headers }) }
 }
 export async function POST(request: Request) {
-  if ((await requireAdmin()).profile.role !== 'admin') return NextResponse.json({ error: 'Administrator required' }, { status: 403, headers })
+  const access = await requireAdmin()
+  if (access.profile.role !== 'admin') return NextResponse.json({ error: 'Administrator required' }, { status: 403, headers })
   if (request.headers.get('origin') !== new URL(request.url).origin || process.env.JUPITER_IO_EC2_SHARED !== 'true') return NextResponse.json({ error: 'Invalid request' }, { status: 403, headers })
   try {
     const { action } = await request.json()
     if (action === 'start') {
+      if (!canStartProducerEngine(access.user, true)) return NextResponse.json({ error: 'Only the engine owner can start paid compute' }, { status: 403, headers })
       const result = await prepareSharedEc2()
       return NextResponse.json(result, { headers })
     }
