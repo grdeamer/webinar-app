@@ -92,9 +92,9 @@ export default function ProducerRoomWorkspace({
   }, [])
 
   const resolvedBottomDockHeight = bottomDockExpanded ? bottomDockHeight : 92
-  const gridTemplateRows = layout === "launchpad" ? "minmax(0,1fr)" : bottomDock
-    ? `minmax(0,1fr) 8px ${resolvedBottomDockHeight}px`
-    : "minmax(0,1fr)"
+  const gridTemplateRows = layout === "launchpad" ? "minmax(230px,1fr)" : bottomDock
+    ? `minmax(230px,1fr) 8px ${resolvedBottomDockHeight}px`
+    : "minmax(230px,1fr)"
 
   const railChromeClassName =
     "min-h-0 overflow-hidden border-white/[0.06] bg-[linear-gradient(180deg,rgba(17,23,44,0.96),rgba(8,11,25,0.99))]"

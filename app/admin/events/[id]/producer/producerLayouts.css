@@ -43,7 +43,7 @@
 [data-producer-layout] .producer-bottom-dock__toolbar{height:54px;grid-template-columns:160px minmax(0,1fr);gap:14px;padding-inline:14px}
 [data-producer-layout] .producer-bottom-dock__toolbar>button{font-size:13px;height:40px;padding-right:12px}
 [data-producer-layout] .producer-bottom-dock__toolbar>div{gap:10px}
-[data-producer-layout=launchpad] .producer-show-grid{grid-template-columns:64px clamp(260px,25vw,340px) minmax(0,1fr);grid-template-rows:minmax(0,1fr)!important}
+[data-producer-layout=launchpad] .producer-show-grid{grid-template-columns:64px clamp(260px,25vw,340px) minmax(0,1fr);grid-template-rows:minmax(230px,1fr)!important}
 [data-producer-layout=launchpad] .producer-center-surface{grid-column:3;grid-row:1}
 [data-producer-layout=launchpad] .producer-bottom-dock{grid-column:2;grid-row:1;height:auto!important}
 [data-producer-layout=launchpad] .producer-dock-resizer{display:none}

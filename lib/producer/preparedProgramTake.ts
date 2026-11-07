@@ -1,3 +1,4 @@
+import {libraryInputReady} from './libraryInputReady.ts'
 import type {Composition} from '../production/contracts'
 function canonical(value:unknown):string {
  if(Array.isArray(value))return '['+value.map(canonical).join(',')+']'
@@ -12,4 +13,11 @@ export function preparedProgramConfirmed(status:{runtime:{runId:string;running:b
 }
 export function assertPreparedPreview(status:{runtime:{runId:string};state:{preview:{composition:Composition}}},runId:string,composition:Composition){
  if(status.runtime.runId!==runId||!samePreparedComposition(status.state.preview.composition,composition))throw Error('Engine Preview changed after this canvas was prepared. Cue it again before TAKE; Program was not changed.')
+}
+
+export type PreparedTakeStatus=Parameters<typeof libraryInputReady>[0]&Parameters<typeof assertPreparedPreview>[0]&{runtime:{running:boolean;expiresAtMs:number};state:{revision:number}}
+/** Reuse only a recent independently decoded status. The server still performs
+ * atomic revision comparison; a conflict must never be retried automatically. */
+export function freshPreparedTakeStatus(status:PreparedTakeStatus|null,readAtMs:number,runId:string,composition:Composition,role:'source-a'|'source-b',sid:string,now=Date.now()){
+ return Boolean(status&&now-readAtMs>=0&&now-readAtMs<1000&&status.runtime.running&&status.runtime.expiresAtMs>now&&status.runtime.runId===runId&&Number.isSafeInteger(status.state.revision)&&status.state.revision>=0&&samePreparedComposition(status.state.preview.composition,composition)&&libraryInputReady(status,role,sid,now))
 }

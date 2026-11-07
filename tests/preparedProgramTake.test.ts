@@ -19,3 +19,18 @@ test('accepted TAKE and saved room blocks alone cannot label Program matched',()
  assert.equal(preparedProgramConfirmed({...status,runtime:{...status.runtime,runId:'other'}},receipt,now),false)
  assert.equal(preparedProgramConfirmed({...status,state:{...status.state,desiredLifecycle:'idle'}},receipt,now),false)
 })
+
+test('fast TAKE uses only a recent status with current runtime, exact cue and fresh dual decoder evidence',async()=>{
+ const {freshPreparedTakeStatus}=await import('../lib/producer/preparedProgramTake.ts')
+ const now=100000,sid='TR-current'
+ const status={runtime:{runId:'current',running:true,expiresAtMs:now+10000,sourceReceiveMedia:{'source-a':{trackSid:sid,generation:2,atMs:now-100}},candidateMedia:Object.fromEntries(['primary','standby'].map(id=>[id,{atMs:now-100,inputTrackSids:{'source-camera-a':sid},inputFrames:{'source-camera-a':10}}]))},state:{revision:12,preview:{composition:blue},bindings:{'camera-a':{trackSid:sid,generation:2}}}}
+ assert.equal(freshPreparedTakeStatus(status,now-500,'current',blue,'source-a',sid,now),true)
+ for(const at of [now-1000,now+1])assert.equal(freshPreparedTakeStatus(status,at,'current',blue,'source-a',sid,now),false)
+ assert.equal(freshPreparedTakeStatus(status,now,'replacement',blue,'source-a',sid,now),false)
+ assert.equal(freshPreparedTakeStatus(status,now,'current',old,'source-a',sid,now),false)
+ assert.equal(freshPreparedTakeStatus(status,now,'current',blue,'source-a','TR-replacement',now),false)
+ const stale=structuredClone(status);stale.runtime.candidateMedia.standby.atMs=now-2600
+ assert.equal(freshPreparedTakeStatus(stale,now,'current',blue,'source-a',sid,now),false)
+ const expired=structuredClone(status);expired.runtime.expiresAtMs=now
+ assert.equal(freshPreparedTakeStatus(expired,now,'current',blue,'source-a',sid,now),false)
+})

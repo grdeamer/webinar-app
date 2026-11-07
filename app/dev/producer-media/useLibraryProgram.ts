@@ -1,6 +1,6 @@
 'use client'
 import {watchPresentedProgramRevision,type ProgramTakeTiming} from '@/lib/producer/programTakeTiming'
-import {assertPreparedPreview,preparedProgramConfirmed,type ProgramTakeReceipt} from '@/lib/producer/preparedProgramTake'
+import {assertPreparedPreview,preparedProgramConfirmed,freshPreparedTakeStatus,type ProgramTakeReceipt} from '@/lib/producer/preparedProgramTake'
 import {libraryInputReady} from '@/lib/producer/libraryInputReady'
 import type {Composition} from '@/lib/production/contracts'
 import {libraryCanvasPlan,libraryCanvasInputBlock} from '@/lib/producer/libraryCanvasPlan'
@@ -13,13 +13,14 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
  const [confirmedKey,setConfirmedKey]=useState<string|null>(null),[awaitingPicture,setAwaitingPicture]=useState(false)
  const [takeTiming,setTakeTiming]=useState<ProgramTakeTiming|null>(null)
  const timing=useRef<{start:number;startedAtMs:number;cancel?:()=>void}|null>(null)
+ const latestStatus=useRef<{value:Awaited<ReturnType<typeof engineStatus>>;readAtMs:number}|null>(null)
  const receipt=useRef<ProgramTakeReceipt|null>(null),connectionEpoch=useRef(0)
  const [cueKey,setCueKey]=useState<string|null>(null)
  const [connected,setConnected]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('Connect the Program engine to begin.')
  const video=useRef<HTMLVideoElement>(null),run=useRef(''),active=useRef<string|null>(null),cued=useRef<{role:'source-a'|'source-b';key:string;composition:Composition;sid:string}|null>(null),publishers=useRef(new Map<string,LibraryPublisher>()),viewer=useRef<null|(()=>Promise<void>)>(null),epoch=useRef(0),queue=useRef(Promise.resolve()),taking=useRef(false)
  const monitor=useRef<ProgramMonitorBinding>({element:null,stream:null})
  const attachVideo=useCallback((element:HTMLVideoElement|null)=>{bindProgramMonitor(monitor.current,element);video.current=element},[])
- const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);if(active.current)await engineCommand(run.current,{type:"SET_LIVE",live:false},transport).catch(():void=>{});active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[transport])
+ const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);latestStatus.current=null;timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);if(active.current)await engineCommand(run.current,{type:"SET_LIVE",live:false},transport).catch(():void=>{});active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[transport])
  useEffect(()=>()=>{void stop()},[stop])
  async function connect(signal?:AbortSignal){
   const generation=++connectionEpoch.current
@@ -44,16 +45,17 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
    try{
     const s=await engineStatus(transport)
     if(cancelled)return
+    latestStatus.current={value:s,readAtMs:Date.now()}
     if(!s.runtime.running||s.runtime.runId!==run.current||Date.now()>=s.runtime.expiresAtMs){void stop();return}
     if(receipt.current){const confirmed=preparedProgramConfirmed(s,receipt.current);setConfirmedKey(confirmed?receipt.current.key:null);if(confirmed){if(timing.current){const ms=performance.now()-timing.current.start;setTakeTiming(previous=>previous&&previous.observerConfirmedMs===undefined?{...previous,observerConfirmedMs:ms}:previous)}setAwaitingPicture(false);if(cued.current?.key===receipt.current.key)setMessage('Program receiver confirmed the committed canvas. Verify the outgoing picture and audio.')}}
    }catch{if(!cancelled)void stop();return}
-   if(!cancelled)timer=setTimeout(()=>void poll(),awaitingPicture?250:1500)
+   if(!cancelled)timer=setTimeout(()=>void poll(),awaitingPicture||cueKey?250:1500)
   }
   // Confirm immediately after acceptance, without waiting for the idle poll.
   // Self-scheduling prevents overlapping status requests on slower connections.
-  timer=setTimeout(()=>void poll(),awaitingPicture?0:1500)
+  timer=setTimeout(()=>void poll(),awaitingPicture||cueKey?0:1500)
   return ()=>{cancelled=true;clearTimeout(timer)}
- },[connected,stop,transport,awaitingPicture])
+ },[connected,stop,transport,awaitingPicture,cueKey])
  useEffect(()=>{
   if(!connected)return
   const generation=++epoch.current,key=JSON.stringify(preview);cued.current=null;setCueKey(null);setConfirmedKey(null)
@@ -75,6 +77,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
     await engineCommand(run.current,{type:'SET_AUDIO',bus:'preview',audio:{masterGainDb:0,muted:false,channels:[{sourceId,gainDb:0,muted:false,solo:false}]}},transport)
     const owned=await engineStatus(transport),sid=owned.state.bindings[sourceId]?.trackSid
     if(!sid||!libraryInputReady(owned,role,sid))throw Error('Prepared input is no longer decoded by both candidates')
+    latestStatus.current={value:owned,readAtMs:Date.now()}
     cued.current={role,key,composition,sid};setCueKey(key);setMessage(`${plan.length} canvas layer${plan.length===1?'':'s'} decoded by both candidates. Preview ready; TAKE to update the whole Program.`)
    }catch(e){await publisher.stop();throw e}
   }).catch(e=>{if(generation===epoch.current)setMessage(e instanceof Error?e.message:'Cue failed')}).finally(()=>{if(generation===epoch.current)setBusy(false)})
@@ -90,7 +93,8 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
    if(publishers.current.get(cued.current.role)?.failure)throw Error('Input lease is unhealthy; cue the source again')
    const cue=cued.current,role=cue.role
    await publishers.current.get(role)?.take()
-   const before=await engineStatus(transport)
+   const cached=latestStatus.current
+   const before=cached&&freshPreparedTakeStatus(cached.value,cached.readAtMs,run.current,cue.composition,role,cue.sid)?cached.value:await engineStatus(transport)
    assertPreparedPreview(before,run.current,cue.composition)
    if(!libraryInputReady(before,role,cue.sid))throw Error('Prepared input changed or went stale; TAKE was blocked.')
    setTakeTiming(previous=>previous?{...previous,preflightMs:performance.now()-measured.start}:previous)
