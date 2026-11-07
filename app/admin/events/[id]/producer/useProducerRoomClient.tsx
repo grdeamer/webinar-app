@@ -104,7 +104,7 @@ export function useProducerRoomClient({
   const staleRouteCleanupBusyRef = useRef(false);
 
   const [autoDirectorEnabled, setAutoDirectorEnabled] = useState(true);
-  const [standardToolsOpen, setStandardToolsOpen] = useState(false);
+  const [standardToolsOpen, setStandardToolsOpen] = useState(true);
   const [screenLayoutPreset, setScreenLayoutPreset] =
     useState<ScreenLayoutPreset>("classic");
   const [outputProfileId, setOutputProfileId] = useState<BroadcastOutputProfileId>(() => {
@@ -1315,13 +1315,13 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const previewProgramDifferent = useMemo(
     () =>
-      engine ? enginePreviewNeedsTake(previewBlocks, programBlocks, Boolean(programMixer.snapshot?.live)) : previewProgramStatesDifferent({
+      engine ? enginePreviewNeedsTake(previewBlocks, programBlocks, engineProgram.programMatched) : previewProgramStatesDifferent({
         stageState,
         programState,
         previewBlocks,
         programBlocks,
       }),
-    [engine, programMixer.snapshot?.live, stageState, programState, previewBlocks, programBlocks],
+    [engine, engineProgram.programMatched, stageState, programState, previewBlocks, programBlocks],
   );
 
   const hasProgramSource = useMemo(

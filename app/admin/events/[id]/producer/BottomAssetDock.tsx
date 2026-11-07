@@ -1,3 +1,4 @@
+import {useProducerLayout} from "./ProducerLayoutContext"
 import { previewBlockFromLibraryAsset } from "@/lib/producer/previewLibraryAsset"
 import {presentationMetadata} from '@/lib/producer/presentationMetadata'
 import { importLocalPresentation, type PresentationDeckMetadata } from "@/lib/producer/presentationImport"
@@ -243,6 +244,7 @@ export default function BottomAssetDock({
   const [deckPages, setDeckPages] = useState<Record<string, number>>({})
   const [importAsHolding, setImportAsHolding] = useState(false)
   const localObjectUrls = useRef<string[]>([])
+  const {dockTab,setDockTab}=useProducerLayout()
   const [colorSourceOpen, setColorSourceOpen] = useState(false)
   const [colorSourceHex, setColorSourceHex] = useState("#000000")
   const [colorSourceLabel, setColorSourceLabel] = useState("Black")
@@ -1205,7 +1207,7 @@ const previewMediaAsset =
     return matchesType && matchesSearch
   })
   return (
-    <div className="relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(7,12,22,0.96),rgba(3,6,12,1))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
+    <div data-dock-tab={dockTab} className="producer-dock-content relative flex h-full w-full flex-col overflow-hidden bg-[linear-gradient(180deg,rgba(7,12,22,0.96),rgba(3,6,12,1))] p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.026)]">
       <div className="pointer-events-none absolute inset-0 opacity-[0.010] bg-[repeating-linear-gradient(to_right,rgba(255,255,255,0.020)_0px,rgba(255,255,255,0.020)_1px,transparent_1px,transparent_28px)]" />
       {!localMediaOnly && activeUtilityPanel === "stream" ? (
         <BroadcastDestinationsPanel
@@ -1495,8 +1497,9 @@ const previewMediaAsset =
         </div>
       ) : null}
       
-      {!localMediaOnly && standardToolsOpen && !expandedMediaOpen ? <div className="relative z-10 grid min-h-0 flex-1 gap-4 overflow-hidden pb-4 xl:grid-cols-[0.9fr_3.1fr]">
-<ConsolePanel
+      {!localMediaOnly && standardToolsOpen && !expandedMediaOpen ? <div className="producer-source-tabs" role="tablist" aria-label="Source dock"><button type="button" role="tab" aria-selected={dockTab==='sources'} aria-controls="producer-sources-pane" id="producer-sources-tab" onClick={()=>setDockTab('sources')}>Sources</button><button type="button" role="tab" aria-selected={dockTab==='scenes'} aria-controls="producer-scenes-pane" id="producer-scenes-tab" onClick={()=>setDockTab('scenes')}>Scenes</button><button type="button" onClick={()=>setProductionDrawerTab('audio')}>Mixer</button></div> : null}
+      {!localMediaOnly && standardToolsOpen && !expandedMediaOpen ? <div className="producer-library-panels relative z-10 grid min-h-0 flex-1 gap-4 overflow-hidden pb-4 xl:grid-cols-[0.9fr_3.1fr]">
+<div className="producer-dock-scenes" id="producer-scenes-pane" role="tabpanel" aria-labelledby="producer-scenes-tab"><ConsolePanel
   title="Scene presets"
   action={
     <button
@@ -1626,8 +1629,8 @@ const previewMediaAsset =
       </button>
     </div>
   </div>
-</ConsolePanel>
-<ConsolePanel
+</ConsolePanel></div>
+<div className="producer-dock-sources" id="producer-sources-pane" role="tabpanel" aria-labelledby="producer-sources-tab"><ConsolePanel
   title="Sources"
   action={
     <div className="flex items-center gap-1">
@@ -1656,8 +1659,8 @@ const previewMediaAsset =
               </span>
             </div>
             {mediaRows.length ? (
-              <div className="grid min-h-[148px] grid-flow-col auto-cols-[220px] content-start justify-start gap-2 overflow-x-auto pb-1 pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(125,211,252,0.22)_transparent] 2xl:auto-cols-[240px]">
-                {mediaRows.slice(0, 6).map((asset) => (
+              <div className="producer-library-grid grid min-h-[148px] grid-flow-col auto-cols-[220px] content-start justify-start gap-2 overflow-x-auto pb-1 pr-1 [scrollbar-width:thin] [scrollbar-color:rgba(125,211,252,0.22)_transparent] 2xl:auto-cols-[240px]">
+                {mediaRows.map((asset) => (
                   <SourceLibraryCard
                     key={`${asset.label}-${asset.type}`}
                     asset={asset}
@@ -1726,7 +1729,7 @@ const previewMediaAsset =
               </button>
             </div>
           </div>
-        </ConsolePanel>
+        </ConsolePanel></div>
       </div> : null}
       {!localMediaOnly && (workspaceMode === "show" || workspaceMode === "advanced") ? (
       <div className="producer-bottom-dock__toolbar relative z-20 mt-auto grid h-[76px] shrink-0 grid-cols-[280px_minmax(0,1fr)] items-center gap-5 border-t border-white/[0.08] px-5">

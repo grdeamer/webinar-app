@@ -1,3 +1,4 @@
+import {useProducerLayout} from "./ProducerLayoutContext"
 import { useCallback, useEffect, useRef, useState, type JSX, type ReactNode } from "react"
 
 const PRODUCER_BOTTOM_DOCK_STORAGE_KEY = "producer-bottom-dock-height-v3"
@@ -29,10 +30,12 @@ export default function ProducerRoomWorkspace({
   bottomDock,
   bottomDockExpanded = true,
 }: ProducerRoomWorkspaceProps): JSX.Element {
+  const {layout}=useProducerLayout()
   const [bottomDockHeight, setBottomDockHeight] = useState(() => {
     if (typeof window === "undefined") return DEFAULT_BOTTOM_DOCK_HEIGHT
 
-    const saved = window.localStorage.getItem(PRODUCER_BOTTOM_DOCK_STORAGE_KEY)
+    let saved:string|null=null
+    try{saved=window.localStorage.getItem(PRODUCER_BOTTOM_DOCK_STORAGE_KEY)}catch{/* storage is optional */}
     const responsiveDefault = Math.min(DEFAULT_BOTTOM_DOCK_HEIGHT, window.innerHeight * 0.46)
     const parsed = saved ? Number(saved) : responsiveDefault
 
@@ -45,10 +48,7 @@ export default function ProducerRoomWorkspace({
   const dockResizeStartHeightRef = useRef(bottomDockHeight)
 
   useEffect(() => {
-    window.localStorage.setItem(
-      PRODUCER_BOTTOM_DOCK_STORAGE_KEY,
-      String(bottomDockHeight),
-    )
+    try{window.localStorage.setItem(PRODUCER_BOTTOM_DOCK_STORAGE_KEY,String(bottomDockHeight))}catch{/* resizing still works for this visit */}
   }, [bottomDockHeight])
 
   const beginBottomDockResize = useCallback(
@@ -92,7 +92,7 @@ export default function ProducerRoomWorkspace({
   }, [])
 
   const resolvedBottomDockHeight = bottomDockExpanded ? bottomDockHeight : 92
-  const gridTemplateRows = bottomDock
+  const gridTemplateRows = layout === "launchpad" ? "minmax(0,1fr)" : bottomDock
     ? `minmax(0,1fr) 8px ${resolvedBottomDockHeight}px`
     : "minmax(0,1fr)"
 
@@ -126,7 +126,7 @@ export default function ProducerRoomWorkspace({
             title="Resize lower dock"
             onMouseDown={beginBottomDockResize}
             onDoubleClick={resetBottomDockHeight}
-            className="group relative z-20 col-start-2 min-h-0 cursor-row-resize border-y border-white/[0.035] bg-black/20 transition hover:border-sky-300/18 hover:bg-sky-400/[0.035]"
+            className="producer-dock-resizer group relative z-20 col-start-2 min-h-0 cursor-row-resize border-y border-white/[0.035] bg-black/20 transition hover:border-sky-300/18 hover:bg-sky-400/[0.035]"
           >
             <div className="absolute left-1/2 top-1/2 h-px w-28 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/10 transition group-hover:bg-sky-200/35" />
             <div className="absolute left-1/2 top-1/2 h-[3px] w-10 -translate-x-1/2 -translate-y-1/2 rounded-full bg-white/[0.045] transition group-hover:bg-sky-200/20" />

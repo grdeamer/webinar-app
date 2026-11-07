@@ -63,4 +63,19 @@ export class LibraryPublisher {
  async stop(){if(this.stopped)return;this.stopped=true;if(this.timer)clearInterval(this.timer);if(this.expiry)clearTimeout(this.expiry);if(this.paint)clearInterval(this.paint);this.staticSource?.stop();this.canvasSource?.stop();this.stream?.getTracks().forEach(t=>t.stop());this.media?.pause();if(this.media){this.media.removeAttribute('src');this.media.load()}await this.room?.disconnect();if(this.capability)await engineRequest('input',{runId:this.runId,action:'stop',role:this.role},this.capability,this.transport).catch(()=>{});this.objectUrls.forEach(url=>URL.revokeObjectURL(url));this.objectUrls=[]}
 }
 async function senderStats(video:LocalTrackPublication){const report=await video.track?.getRTCStatsReport();let frames=0,width=0,height=0;report?.forEach(s=>{if(s.type==='outbound-rtp'&&(s.kind==='video'||s.mediaType==='video')){frames=s.framesEncoded??0;width=s.frameWidth??0;height=s.frameHeight??0}});return {frames,framesEncoded:frames,width,height,captureMode:'native-media-element',publisherVisibility:document.visibilityState}}
-export async function connectProgram(video:HTMLVideoElement,runId:string,transport=LOCAL_STUDIO_TRANSPORT){const config=await engineRequest('viewer',{runId,room:'program'},undefined,transport);if(config.url!==transport.relayUrl)throw Error('Unexpected media relay');const room=new Room({adaptiveStream:false,dynacast:false});const stream=new MediaStream();video.srcObject=stream;room.on(RoomEvent.TrackSubscribed,(track,_p,participant)=>{if(!/^program-engine-\d+$/.test(participant.identity))return;for(const old of stream.getTracks())if(old.kind===track.mediaStreamTrack.kind)stream.removeTrack(old);stream.addTrack(track.mediaStreamTrack);void video.play().catch(()=>{})});await room.connect(config.url,config.token,transport===LOCAL_STUDIO_TRANSPORT?{rtcConfig:{iceServers:[]}}:{});return async()=>{await room.disconnect();video.srcObject=null}}
+export async function connectProgram(video:HTMLVideoElement,runId:string,transport=LOCAL_STUDIO_TRANSPORT,onStream?:(stream:MediaStream|null,owned:MediaStream)=>void){
+ const config=await engineRequest('viewer',{runId,room:'program'},undefined,transport)
+ if(config.url!==transport.relayUrl)throw Error('Unexpected media relay')
+ const room=new Room({adaptiveStream:false,dynacast:false}),stream=new MediaStream()
+ const attach=()=>{if(onStream)onStream(stream,stream);else{video.srcObject=stream;void video.play().catch(()=>{})}}
+ attach()
+ room.on(RoomEvent.TrackSubscribed,(track,_p,participant)=>{
+  if(!/^program-engine-\d+$/.test(participant.identity))return
+  for(const old of stream.getTracks())if(old.kind===track.mediaStreamTrack.kind)stream.removeTrack(old)
+  stream.addTrack(track.mediaStreamTrack);attach()
+ })
+ const disconnect=async()=>{await room.disconnect();if(onStream)onStream(null,stream);else if(video.srcObject===stream)video.srcObject=null}
+ try{await room.connect(config.url,config.token,transport===LOCAL_STUDIO_TRANSPORT?{rtcConfig:{iceServers:[]}}:{})}
+ catch(error){await disconnect();throw error}
+ return disconnect
+}

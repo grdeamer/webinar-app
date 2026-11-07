@@ -209,7 +209,7 @@ export function SourceLibraryCard({
         }
       }}
       title="Select source. Double-click to add to Preview, or drag onto the Preview canvas."
-      className={`group relative flex min-w-0 cursor-pointer overflow-hidden rounded-[10px] border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 ${
+      className={`producer-source-card group relative flex min-w-0 cursor-pointer overflow-hidden rounded-[10px] border text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-300/45 ${
         listView
           ? "min-h-[68px] flex-row"
           : iconView
@@ -221,7 +221,7 @@ export function SourceLibraryCard({
           : "border-white/[0.09] bg-[#0a101b] hover:border-white/[0.18] hover:bg-[#0d1523]"
       }`}
     >
-      <div className={`relative flex shrink-0 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(80,116,176,0.12),transparent_62%),#050a12] p-2 text-white/34 ${
+      <div className={`producer-source-thumbnail relative flex shrink-0 items-center justify-center overflow-hidden bg-[radial-gradient(circle_at_50%_42%,rgba(80,116,176,0.12),transparent_62%),#050a12] p-2 text-white/34 ${
         listView
           ? "h-[68px] w-[92px] border-r border-white/[0.07]"
           : iconView
@@ -232,6 +232,7 @@ export function SourceLibraryCard({
           <img
             src={asset.imageUrl}
             alt={`${asset.label} source preview`}
+            loading="lazy"
             draggable={false}
             className="h-full w-full object-contain opacity-90 transition duration-300 group-hover:scale-[1.015] group-hover:opacity-100"
           />
@@ -249,7 +250,7 @@ export function SourceLibraryCard({
         ) : null}
       </div>
 
-      <div className={`flex min-w-0 flex-1 flex-col justify-center px-2.5 ${listView ? "py-1.5" : "py-2"}`}>
+      <div className={`producer-source-caption flex min-w-0 flex-1 flex-col justify-center px-2.5 ${listView ? "py-1.5" : "py-2"}`}>
         <div className="flex items-center justify-between gap-2">
           <span className="truncate text-[10px] font-semibold tracking-[-0.01em] text-white/88">
             {asset.label}

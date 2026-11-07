@@ -11,3 +11,9 @@ export function clearProgramMonitor(binding:ProgramMonitorBinding):void {
   binding.stream=null
   if(binding.element)binding.element.srcObject=null
 }
+
+/** A subscription may finish after React has replaced its original video element. */
+export function setProgramMonitorStream(binding:ProgramMonitorBinding,stream:MediaProvider|null):void {
+ binding.stream=stream
+ if(binding.element){binding.element.srcObject=stream;if(stream)void binding.element.play().catch(()=>{})}
+}

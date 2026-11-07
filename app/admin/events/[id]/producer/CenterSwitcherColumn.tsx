@@ -1,3 +1,5 @@
+import {useProducerLayout} from "./ProducerLayoutContext"
+import {producerMonitorColumns} from "@/lib/producer/roomLayouts"
 import { positionPreviewAsset } from "@/lib/producer/previewLibraryAsset";
 import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
@@ -632,6 +634,7 @@ export default function CenterSwitcherColumn({
   transportHealth: ProducerTransportHealth;
   outputProfile: BroadcastOutputProfile;
 }): JSX.Element {
+  const {layout:workspaceLayout}=useProducerLayout();
   const switcherGridRef = useRef<HTMLDivElement | null>(null);
   const transitionPopoverRef = useRef<HTMLDivElement | null>(null);
   const isDraggingSplitRef = useRef(false);
@@ -760,7 +763,8 @@ export default function CenterSwitcherColumn({
       const rect = switcherGridRef.current?.getBoundingClientRect();
       if (!rect) return;
 
-      const nextPercent = ((event.clientX - rect.left) / rect.width) * 100;
+      const position = ((event.clientX - rect.left) / rect.width) * 100;
+      const nextPercent = workspaceLayout === "spotlight" ? (100-position)/.7 : position;
       const clampedPercent = Math.max(32, Math.min(68, nextPercent));
 
       setPreviewPanePercent(clampedPercent);
@@ -783,7 +787,7 @@ export default function CenterSwitcherColumn({
       window.removeEventListener("mousemove", onMouseMove);
       window.removeEventListener("mouseup", onMouseUp);
     };
-  }, []);
+  }, [workspaceLayout]);
 
   function startSplitDrag(event?: React.MouseEvent<HTMLDivElement>) {
     if (event?.button !== undefined && event.button !== 0) return;
@@ -985,9 +989,9 @@ export default function CenterSwitcherColumn({
 
 <div
   ref={switcherGridRef}
-  className="relative grid min-h-[430px] flex-1 items-stretch gap-3 p-0"
+  className="producer-monitor-grid relative grid min-h-[430px] flex-1 items-stretch gap-3 p-0"
   style={{
-    gridTemplateColumns: `minmax(0, ${previewPanePercent}fr) clamp(88px,5.8vw,96px) minmax(0, ${100 - previewPanePercent}fr)`,
+    gridTemplateColumns: producerMonitorColumns(workspaceLayout,previewPanePercent),
   }}
 >
           <div className="producer-monitor producer-monitor--preview relative flex h-full min-w-0 flex-col overflow-hidden rounded-[12px] border border-blue-500 bg-[#06101c] p-0 shadow-[0_0_22px_rgba(37,99,235,0.18)]">
@@ -1169,7 +1173,7 @@ export default function CenterSwitcherColumn({
             </div>
           </div>
           <div
-            className="group relative z-[999] flex h-full min-h-full cursor-col-resize items-stretch justify-center self-stretch select-none overflow-visible"
+            className="producer-take-rail group relative z-[999] flex h-full min-h-full cursor-col-resize items-stretch justify-center self-stretch select-none overflow-visible"
             onMouseDown={startSplitDrag}
             onDoubleClick={resetSplit}
             role="separator"
@@ -1199,7 +1203,7 @@ export default function CenterSwitcherColumn({
                         : "border-white/10 bg-white/[0.035] text-white/42 shadow-[inset_0_1px_0_rgba(255,255,255,0.03)]"
                     }`}
                   >
-                    <span aria-hidden="true" className="mb-1 text-[24px] font-light leading-none text-sky-100/90">→</span>
+                    <span aria-hidden="true" className="producer-take-arrow mb-1 text-[24px] font-light leading-none text-sky-100/90">→</span>
                     <span className="block text-[15px] font-semibold tracking-[0.06em]">
                       {isAutoRunning ? "RUN" : "TAKE"}
                     </span>

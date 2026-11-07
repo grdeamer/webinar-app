@@ -3,7 +3,8 @@
   "git": {
     "deploymentEnabled": {
       "codex/producer-self-hosted-livekit": false,
-      "codex/producer-original-engine-20261104": false
+      "codex/producer-original-engine-20261104": false,
+      "codex/producer-layout-release-20261107": false
     }
   },
   "crons": [

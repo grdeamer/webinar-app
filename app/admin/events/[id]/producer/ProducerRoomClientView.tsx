@@ -1,5 +1,7 @@
 "use client";
 
+import {useProducerLayout} from "./ProducerLayoutContext";
+import "./producerLayouts.css";
 import ProtectedLiveKitRoom from "@/components/live/ProtectedLiveKitRoom"
 
 import React from "react";
@@ -87,6 +89,7 @@ export type ProducerRoomClientViewProps = {
 export default function ProducerRoomClientView(
   props: ProducerRoomClientViewProps,
 ): JSX.Element {
+  const {layout,rightRailOpen}=useProducerLayout();
   const {
     token,
     serverUrl,
@@ -225,6 +228,8 @@ export default function ProducerRoomClientView(
         className="fixed inset-0 z-[300] flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[radial-gradient(circle_at_18%_-8%,rgba(var(--producer-brand-primary),0.13),transparent_34%),radial-gradient(circle_at_82%_2%,rgba(var(--producer-brand-secondary),0.08),transparent_31%),linear-gradient(180deg,#080d19_0%,#050914_48%,#03060d_100%)] text-white"
         style={getProducerThemeStyle(eventAccent)}
         data-event-title={eventTitle}
+        data-producer-layout={layout}
+        data-stage-drawer={rightRailOpen ? "open" : "closed"}
       >
         <ProducerRoomBackground />
         <ProducerRoomAtmosphere isLive={isProgramLive} />

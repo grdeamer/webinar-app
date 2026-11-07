@@ -1,5 +1,6 @@
 "use client"
 
+import ProducerLayoutChooser from "./ProducerLayoutChooser"
 import Link from "next/link"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import {
@@ -256,6 +257,7 @@ export default function ProducerV1Header({
           {mode === "advanced" ? <><span className="h-7 w-px bg-white/14" /><span className="flex items-center gap-2 text-[14px] text-white/72"><Activity size={16} />Control plane healthy</span><span className="h-2.5 w-2.5 rounded-full bg-emerald-300" /><span className="text-[14px] text-white/78">42 ms</span></> : null}
         </div>
 
+        <ProducerLayoutChooser/>
         <div className="flex items-center gap-4">
           <div ref={audienceRef} className="relative hidden xl:block">
             <button

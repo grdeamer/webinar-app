@@ -69,6 +69,7 @@ export default async function AdminProducerRoomPage(props: {
 
   return (
     <ProducerRoomClient
+      preferenceOwnerId={access.user.id}
       engine={engine ?? undefined}
       eventId={eventId}
       sessionId={session.id}

@@ -22,3 +22,16 @@ test('switching workspace tabs keeps the same Program stream; disconnect clears 
  bindProgramMonitor(binding,fresh)
  assert.equal(fresh.srcObject,null)
 })
+
+test('subscription finishing after a workspace remount binds to the current monitor, not the detached element',async()=>{
+ const {setProgramMonitorStream}=await import('../lib/producer/programMonitor.ts')
+ const first={srcObject:null,play:async()=>{}} as HTMLVideoElement
+ const second={srcObject:null,play:async()=>{}} as HTMLVideoElement
+ const binding:ProgramMonitorBinding={element:first,stream:null}
+ bindProgramMonitor(binding,null);bindProgramMonitor(binding,second)
+ const actual={} as MediaStream
+ setProgramMonitorStream(binding,actual)
+ assert.equal(first.srcObject,null)
+ assert.equal(second.srcObject,actual)
+ assert.equal(binding.stream,actual)
+})
