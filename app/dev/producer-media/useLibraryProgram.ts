@@ -88,7 +88,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
   taking.current=true;setBusy(true)
   timing.current?.cancel?.()
   const measured={start:performance.now(),startedAtMs:Date.now(),cancel:undefined as undefined|(()=>void)}
-  timing.current=measured;setTakeTiming({startedAtMs:measured.startedAtMs})
+  timing.current=measured;receipt.current=null;setTakeTiming({startedAtMs:measured.startedAtMs})
   try {
    if(publishers.current.get(cued.current.role)?.failure)throw Error('Input lease is unhealthy; cue the source again')
    const cue=cued.current,role=cue.role
@@ -110,7 +110,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
     setMessage('TAKE accepted. Waiting for the outgoing receiver to confirm this canvas; do not repeat TAKE.')
    }catch{setMessage('TAKE committed, but output activation was not confirmed. Check engine status and use Go Live; do not repeat the TAKE.')}
    return true
-  }catch(e){measured.cancel?.();setMessage(e instanceof Error?e.message:'TAKE failed');return false}
+  }catch(e){measured.cancel?.();if(timing.current===measured)timing.current=null;setMessage(e instanceof Error?e.message:'TAKE failed');return false}
   finally{taking.current=false;setBusy(false)}
  }
 
