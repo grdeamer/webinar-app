@@ -1197,7 +1197,7 @@ export default function CenterSwitcherColumn({
                   >
                     <span aria-hidden="true" className="producer-take-arrow mb-1 text-[24px] font-light leading-none text-sky-100/90">→</span>
                     <span className="block text-[15px] font-semibold tracking-[0.06em]">
-                      {takeBusy ? "TAKING" : "TAKE"}
+                      TAKE
                     </span>
                   </button>
 
