@@ -1,0 +1,10 @@
+[Unit]
+Description=Start Jupiter after boot without blocking cloud-init or Ubuntu maintenance
+
+[Timer]
+OnBootSec=5s
+Unit=jupiter-producer.service
+RemainAfterElapse=yes
+
+[Install]
+WantedBy=timers.target

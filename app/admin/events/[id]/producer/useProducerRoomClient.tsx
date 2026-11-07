@@ -47,6 +47,7 @@ import {
 
 import {
   getHasProgramSource,
+  enginePreviewNeedsTake,
   previewProgramStatesDifferent,
 } from "./producerRoomStatusUtils";
 import {
@@ -1314,13 +1315,13 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const previewProgramDifferent = useMemo(
     () =>
-      engine ? JSON.stringify(previewBlocks) !== JSON.stringify(programBlocks) : previewProgramStatesDifferent({
+      engine ? enginePreviewNeedsTake(previewBlocks, programBlocks, Boolean(programMixer.snapshot?.live)) : previewProgramStatesDifferent({
         stageState,
         programState,
         previewBlocks,
         programBlocks,
       }),
-    [engine, stageState, programState, previewBlocks, programBlocks],
+    [engine, programMixer.snapshot?.live, stageState, programState, previewBlocks, programBlocks],
   );
 
   const hasProgramSource = useMemo(

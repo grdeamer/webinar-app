@@ -3,6 +3,7 @@ import test from 'node:test'
 import {createElement} from 'react'
 import {renderToString} from 'react-dom/server'
 import useProducerTransitions from '../app/admin/events/[id]/producer/useProducerTransitions.ts'
+import {enginePreviewNeedsTake} from '../app/admin/events/[id]/producer/producerRoomStatusUtils.ts'
 import type {PreviewBlock} from '../app/admin/events/[id]/producer/useProducerBlocks.ts'
 
 // Exercise the real hooks' async command boundary without media workers or a browser.
@@ -46,3 +47,14 @@ test('rejected or failed engine TAKE cannot update the room Program or fall back
   }
 })
 
+
+test('a cold engine can TAKE the same saved canvas again after the previous successful TAKE',async()=>{
+  const probe=transitions(async()=>true)
+  assert.equal(await probe.take(),true)
+  const {preview,program}=probe.state()
+  assert.equal(enginePreviewNeedsTake(preview,program,true),false)
+  // Engine stop/restart changes its live state, while the saved room canvas is identical.
+  assert.equal(enginePreviewNeedsTake(preview,program,false),true)
+  assert.equal(enginePreviewNeedsTake(preview,program,true),false)
+  assert.equal(enginePreviewNeedsTake([...preview,{id:'second',type:'image',src:'blob:second'}] as PreviewBlock[],program,true),true)
+})

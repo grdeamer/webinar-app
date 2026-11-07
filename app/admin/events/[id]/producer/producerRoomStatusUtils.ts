@@ -3,6 +3,11 @@
 import type { PreviewBlock } from "./useProducerBlocks"
 import type { StageState } from "./producerRoomTypes"
 
+/** A stopped/new engine cannot inherit the room's last successful TAKE. */
+export function enginePreviewNeedsTake(previewBlocks: PreviewBlock[], programBlocks: PreviewBlock[], engineLive: boolean) {
+  return !engineLive || JSON.stringify(previewBlocks) !== JSON.stringify(programBlocks)
+}
+
 export function previewProgramStatesDifferent({
   stageState,
   programState,
