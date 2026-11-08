@@ -1,4 +1,4 @@
-import {handleDirectTake} from '../lib/production/directTakeHttp.ts'
+import {handleDirectTake,respondDirectTakeGrant} from '../lib/production/directTakeHttp.ts'
 import {engineStopEvent,type EngineStopReason} from '../lib/production/engineStopReason.ts'
 import {LibraryHourMonitor} from '../lib/production/libraryHourMonitor.ts'
 import {mixedHourApproval} from '../lib/production/mixedHourProfile.ts'
@@ -57,14 +57,14 @@ const external = createServer(async (req, res) => {
     const x = validateEngineRequest(JSON.parse(body) as EngineRequest)
     if (x.scope.eventId !== eventId || x.scope.sessionId !== sessionId) throw new Error('Rehearsal scope mismatch')
     if (!ready || closing || Date.now() >= deadline) { res.writeHead(503, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Rehearsal is not running' })); return }
-    if(x.path==='/api/producer/control-ticket'){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(producer.issueDirectTake(x.scope.actorId,JSON.parse(x.body))));return}
+    if(x.path==='/api/producer/control-ticket'){respondDirectTakeGrant(res,()=>producer.issueDirectTake(x.scope.actorId,JSON.parse(x.body)));return}
     if(x.path==='/api/producer/soak'){if(!mixedMonitor)throw Error('No mixed hour approved');mixedMonitor.report(JSON.parse(x.body));res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(mixedMonitor.summary()));return}
     if(x.path==='/api/producer/presentation-ticket'){const input=JSON.parse(x.body);if(input.runId!==runtime.runId)throw Error('Current run required');res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify(presentations.tickets.issue({name:input.name,bytes:input.bytes,origin:input.origin,runId:runtime.runId})));return}
     const upstream = await fetch(`http://127.0.0.1:4311${x.path}`, { method: x.method, redirect: 'error', signal: AbortSignal.timeout(8000), headers: { 'Content-Type': 'application/json', 'X-Jupiter-Local': x.path === '/api/ha/action' ? 'phase7' : 'producer-rehearsal', ...(x.inputCapability ? { 'X-Input-Capability': x.inputCapability } : {}) }, ...(x.method === 'POST' ? { body: x.body } : {}) })
     const result = await upstream.text()
     res.writeHead(upstream.status, { 'Content-Type': 'application/json' }); res.end(result)
     if (x.path === '/api/ha/action' && JSON.parse(x.body).action === 'stop') void stop('operator-stop')
-  } catch { res.writeHead(403, { 'Content-Type': 'application/json' }); res.end(JSON.stringify({ error: 'Hosted control request denied' })) }
+  } catch { if(!res.headersSent)res.writeHead(403, { 'Content-Type': 'application/json' }); if(!res.writableEnded)res.end(JSON.stringify({ error: 'Hosted control request denied' })) }
 })
 external.requestTimeout = 95_000; external.headersTimeout = 10_000
 async function stop(reason:EngineStopReason) {

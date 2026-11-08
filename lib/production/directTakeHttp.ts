@@ -17,3 +17,10 @@ export async function handleDirectTake(request:IncomingMessage,response:ServerRe
  }catch(error){response.writeHead(error instanceof DirectTakeDenied?409:403);response.end(JSON.stringify({error:error instanceof DirectTakeDenied?error.code:'TAKE_DENIED'}))}
  return true
 }
+
+/** Build the grant before sending headers: normal readiness rejection must not
+ * turn into a second response write or terminate the engine process. */
+export function respondDirectTakeGrant(response:ServerResponse,issue:()=>unknown){
+ try{const grant=issue();response.writeHead(200,{'Content-Type':'application/json'});response.end(JSON.stringify(grant))}
+ catch{if(!response.headersSent)response.writeHead(409,{'Content-Type':'application/json'});if(!response.writableEnded)response.end(JSON.stringify({error:'PREPARED_TAKE_NOT_READY'}))}
+}
