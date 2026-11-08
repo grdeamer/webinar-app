@@ -30,7 +30,7 @@ try {
  }
  const cases=[['anon','',''],['authenticated',uid1,'one@example.test'],['authenticated',uid2,'two@example.test'],['authenticated',uid1,'nobody@example.test']]
  const before=[];for(const c of cases)before.push(await rows(...c))
- const sql=readFileSync(resolve(root,'supabase/migrations/20261108172028_optimize_profile_and_webinar_rls_initplans.sql'),'utf8')
+ const sql=readFileSync(resolve(root,'supabase/migrations/20261108175623_optimize_profile_and_webinar_rls_initplans.sql'),'utf8')
  await db.exec(sql)
  for(let i=0;i<cases.length;i++){assert.deepEqual(await rows(...cases[i]),before[i]);report.policyChecks.push({role:cases[i][0],uid:cases[i][1],equivalent:true})}
  assert.equal(before[0].profiles.length,0);assert.equal(before[0].webinars.length,0);assert.deepEqual(before[1].profiles,[{id:uid1}]);assert.deepEqual(before[2].profiles,[{id:uid2}]);assert.equal(before[3].webinars.length,0)
@@ -44,7 +44,7 @@ try {
  assert.equal((await db.query("select qual from pg_policies where tablename='profiles'")).rows[0].qual,'false')
  report.policyChecks.push({driftAborted:true})
  await db.exec('create table general_session_presence(room_key text,last_seen_at timestamptz); create index general_session_presence_room_last_seen_idx on general_session_presence(room_key,last_seen_at desc); create index idx_gsp_room_last_seen on general_session_presence(room_key,last_seen_at desc);')
- const duplicateSql=readFileSync(resolve(root,'supabase/migrations/20261108174007_remove_duplicate_general_session_presence_index.sql'),'utf8')
+ const duplicateSql=readFileSync(resolve(root,'supabase/migrations/20261108175643_remove_duplicate_general_session_presence_index.sql'),'utf8')
  await db.exec(duplicateSql)
  assert.equal((await db.query("select count(*)::int as n from pg_indexes where tablename='general_session_presence'")).rows[0].n,1)
  await db.exec('create index idx_gsp_room_last_seen on general_session_presence(room_key)')

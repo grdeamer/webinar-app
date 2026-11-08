@@ -5,7 +5,8 @@
       "codex/producer-self-hosted-livekit": false,
       "codex/producer-original-engine-20261104": false,
       "codex/producer-layout-release-20261107": false,
-      "codex/producer-low-latency-20261108": false
+      "codex/producer-low-latency-20261108": false,
+      "codex/database-io-audit-20261108": false
     }
   },
   "crons": [
