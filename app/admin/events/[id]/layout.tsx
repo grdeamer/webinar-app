@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
 import { useParams, usePathname } from "next/navigation"
 import { CSSProperties, ReactNode, useCallback, useEffect, useState } from "react"
 import { Activity, CalendarDate, Home03, Signal02, Tool02, Users01 } from "@untitledui/icons"
@@ -60,21 +61,18 @@ export default function EventLayout({ children }: { children: ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   const loadContext = useCallback(async (signal?: AbortSignal) => {
-    try {
-      const response = await fetch(`/api/admin/events/${id}/workspace-context`, { cache: "no-store", signal })
-      if (response.ok && response.headers.get("content-type")?.includes("application/json")) setEventContext((await response.json()) as EventWorkspaceContext)
-    } catch (error) {
-      if (!(error instanceof DOMException && error.name === "AbortError")) console.error("Event workspace context failed", error)
+    const response = await fetch(`/api/admin/events/${id}/workspace-context`, { cache: "no-store", signal })
+    if (!response.ok) throw new Error("Event workspace context unavailable")
+    if (response.headers.get("content-type")?.includes("application/json")) {
+      const value = await response.json() as EventWorkspaceContext
+      if (!signal?.aborted) setEventContext(value)
     }
   }, [id])
 
   useEffect(() => {
-    const controller = new AbortController()
-    const initialLoad = window.setTimeout(() => { void loadContext(controller.signal) }, 0)
-    const interval = window.setInterval((): void => { void loadContext(controller.signal) }, 30_000)
-    const refreshContext = () => { void loadContext(controller.signal) }
-    window.addEventListener("jupiter:event-context-updated", refreshContext)
-    return () => { controller.abort(); window.clearTimeout(initialLoad); window.clearInterval(interval); window.removeEventListener("jupiter:event-context-updated", refreshContext) }
+    const poll = startVisibilityPoll({ run: loadContext, intervalMs: 30_000, onError: error => console.error("Event workspace context failed", error) })
+    window.addEventListener("jupiter:event-context-updated", poll.wake)
+    return () => { poll.stop(); window.removeEventListener("jupiter:event-context-updated", poll.wake) }
   }, [loadContext])
 
   const documentTitle = <AdminDocumentTitle eventTitle={eventContext?.title} eventBasePath={base} />

@@ -9,7 +9,7 @@ type AdminProfile = {
   is_active: boolean | null
 }
 
-type RequireAdminResult = {
+export type RequireAdminResult = {
   user: User
   profile: AdminProfile
 }

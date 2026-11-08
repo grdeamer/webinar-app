@@ -1,3 +1,4 @@
+import {takePreparedMedia} from '@/lib/producer/takePreparedMedia'
 import {singleFlightRead} from '@/lib/producer/singleFlightRead'
 import {canvasProgramSource} from '@/lib/producer/canvasProgramSource'
 import {renderProgramSlide} from '@/lib/producer/programSlideRender'
@@ -71,10 +72,11 @@ export class LibraryPublisher {
   let pending=false
   const report=async()=>{if(pending||this.stopped)return;pending=true;try{if(this.staticSource?.failure||this.canvasSource?.failure)throw Error(this.staticSource?.failure||this.canvasSource?.failure);const counters=await senderStats(video);await engineRequest('input',{runId:this.runId,action:'report',role:this.role,frames:counters.frames,videoTrackSid:video.trackSid,encoding:{...counters,captureMode:this.canvasSource?'explicit-canvas-frames':this.staticSource?'explicit-static-frames':counters.captureMode,...(this.canvasSource?{canvasLayerCount:this.canvasSource.layerCount,canvasVideoLayerCount:this.canvasSource.videoLayerCount,canvasAudioLayerCount:this.canvasSource.audioLayerCount,canvasFramesWritten:this.canvasSource.progress.framesWritten,canvasSourceFrames:this.canvasSource.progress.sourceFrames}:{})}},this.capability,this.transport)}catch(e){this.failure=e instanceof Error?e.message:'Input lost'}finally{pending=false}}
   this.expiry=setTimeout(()=>void this.stop(),Math.max(0,claim.expiresAtMs-Date.now()))
-  this.timer=setInterval(()=>void report(),700)
+  // Decoder progress independently maintains the input lease. HTTP reports are telemetry.
+  this.timer=setInterval(()=>void report(),2000)
   const until=Date.now()+12000;while(Date.now()<until){await report();if(this.failure)throw Error(this.failure);const s=await engineStatus(this.transport);if(libraryInputReady(s,this.role,video.trackSid))return;await wait(250)}throw Error('Input did not reach both Program decoders; existing Program was preserved')
  }
- async take(){await this.canvasSource?.take();if(this.media){this.media.loop=this.loop;this.media.currentTime=0;await this.media.play()}}
+ async take(){await this.canvasSource?.take();if(this.media)await takePreparedMedia([{element:this.media,loop:this.loop}])}
  async stop(){if(this.stopped)return;this.stopped=true;if(this.timer)clearInterval(this.timer);if(this.expiry)clearTimeout(this.expiry);if(this.paint)clearInterval(this.paint);this.staticSource?.stop();this.canvasSource?.stop();this.stream?.getTracks().forEach(t=>t.stop());this.media?.pause();if(this.media){this.media.removeAttribute('src');this.media.load()}await this.room?.disconnect();if(this.capability)await engineRequest('input',{runId:this.runId,action:'stop',role:this.role},this.capability,this.transport).catch(()=>{});this.objectUrls.forEach(url=>URL.revokeObjectURL(url));this.objectUrls=[]}
 }
 async function senderStats(video:LocalTrackPublication){const report=await video.track?.getRTCStatsReport();let frames=0,width=0,height=0;report?.forEach(s=>{if(s.type==='outbound-rtp'&&(s.kind==='video'||s.mediaType==='video')){frames=s.framesEncoded??0;width=s.frameWidth??0;height=s.frameHeight??0}});return {frames,framesEncoded:frames,width,height,captureMode:'native-media-element',publisherVisibility:document.visibilityState}}

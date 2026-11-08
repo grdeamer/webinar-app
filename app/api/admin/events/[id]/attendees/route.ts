@@ -57,7 +57,7 @@ export async function GET(
     if (auth instanceof Response) return auth
 
     const { id: eventId } = await context.params
-    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people")
+    const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "people", auth)
     if (eventAccess instanceof Response) return eventAccess
 
     const { data: sessions, error: sessionsError } = await supabaseAdmin

@@ -1,3 +1,4 @@
+import type { RequireAdminResult } from "@/lib/requireAdmin"
 import type { User } from "@supabase/supabase-js"
 import { NextResponse } from "next/server"
 import { notFound } from "next/navigation"
@@ -25,17 +26,25 @@ function isUuid(value: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
 
-export async function getEventTeamAccess(eventRef: string): Promise<EventTeamAccess | null> {
-  const supabase = await createClient()
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
-  if (userError || !user) return null
-
-  const [{ data: profile }, eventResult] = await Promise.all([
-    supabaseAdmin.from("profiles").select("role,team_role,is_active").eq("id", user.id).maybeSingle(),
+/** An actor may only be supplied from requireAdmin() in this same server request.
+ * No browser header, token payload or cross-request cache is trusted here. */
+export async function getEventTeamAccess(eventRef: string, actor?: RequireAdminResult): Promise<EventTeamAccess | null> {
+  let user = actor?.user
+  if (!actor) {
+    const supabase = await createClient()
+    const result = await supabase.auth.getUser()
+    if (result.error || !result.data.user) return null
+    user = result.data.user
+  }
+  if (!user) return null
+  const [profileResult, eventResult] = await Promise.all([
+    actor ? Promise.resolve({ data: actor.profile, error: null })
+      : supabaseAdmin.from("profiles").select("role,team_role,is_active").eq("id", user.id).maybeSingle(),
     isUuid(eventRef)
       ? supabaseAdmin.from("events").select("id,slug").eq("id", eventRef).maybeSingle()
       : supabaseAdmin.from("events").select("id,slug").eq("slug", eventRef).maybeSingle(),
   ])
+  const profile = profileResult.error ? null : profileResult.data
 
   if (!profile || profile.is_active === false || !eventResult.data) return null
   const event = eventResult.data
@@ -91,9 +100,10 @@ export type EventOperatorRole = "event_admin" | "producer"
 export async function requireEventOperatorAccess(
   eventRef: string,
   allowedRoles: readonly EventOperatorRole[] = ["event_admin", "producer"],
-  requiredFeature?: EventFeature
+  requiredFeature?: EventFeature,
+  actor?: RequireAdminResult
 ): Promise<EventTeamAccess | NextResponse> {
-  const access = await getEventTeamAccess(eventRef)
+  const access = await getEventTeamAccess(eventRef, actor)
 
   if (!access) {
     return NextResponse.json({ error: "Event access denied" }, { status: 403 })

@@ -1,5 +1,6 @@
 "use client"
 
+import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
 import ProducerLayoutChooser from "./ProducerLayoutChooser"
 import Link from "next/link"
 import JupiterLogo from "@/components/brand/JupiterLogo"
@@ -105,15 +106,27 @@ export default function ProducerV1Header({
   const audienceRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    const controller = new AbortController()
-    const loadDestination = async (): Promise<void> => {
+    // Registration metadata changes much less often than live routing/presence.
+    // Local to this mounted event; never shared across users or retained after unmount.
+    let registrations: { attendees?: Array<{ session_ids?: string[] }>; districts?: Array<{ id?: string }> } | null = null
+    let registrationsAt = 0
+    const loadRegistrations = async (signal: AbortSignal) => {
+      if (registrations && Date.now() - registrationsAt < 60_000) return registrations
+      const response = await fetch(`/api/admin/events/${eventId}/attendees`, { cache: "no-store", signal })
+      if (response.status === 403) { registrations = {}; registrationsAt = Date.now(); return registrations }
+      if (!response.ok) throw new Error("Registration snapshot unavailable")
+      const value = await response.json() as NonNullable<typeof registrations>
+      if (!signal.aborted) { registrations = value; registrationsAt = Date.now() }
+      return value
+    }
+    const loadDestination = async (signal: AbortSignal): Promise<void> => {
       try {
-        const [routingResponse, contextResponse, attendeesResponse] = await Promise.all([
-          fetch(`/api/admin/events/${eventId}/live-state`, { cache: "no-store", signal: controller.signal }),
-          fetch(`/api/admin/events/${eventId}/workspace-context`, { cache: "no-store", signal: controller.signal }),
-          fetch(`/api/admin/events/${eventId}/attendees`, { cache: "no-store", signal: controller.signal }),
+        const [routingResponse, contextResponse, attendeesPayload] = await Promise.all([
+          fetch(`/api/admin/events/${eventId}/live-state`, { cache: "no-store", signal }),
+          fetch(`/api/admin/events/${eventId}/workspace-context`, { cache: "no-store", signal }),
+          loadRegistrations(signal),
         ])
-        if (!routingResponse.ok) return
+        if (!routingResponse.ok || !contextResponse.ok) throw new Error("Audience snapshot unavailable")
 
         const routingPayload = await routingResponse.json() as {
           liveState?: {
@@ -128,12 +141,7 @@ export default function ProducerV1Header({
         const contextPayload = contextResponse.ok
           ? await contextResponse.json() as { liveAttendeeCount?: number }
           : {}
-        const attendeesPayload = attendeesResponse.ok
-          ? await attendeesResponse.json() as {
-              attendees?: Array<{ session_ids?: string[] }>
-              districts?: Array<{ id?: string }>
-            }
-          : {}
+
 
         const attendees = attendeesPayload.attendees ?? []
         const districtIds = new Set(
@@ -146,6 +154,7 @@ export default function ProducerV1Header({
           : 0
         const state = routingPayload.liveState
 
+        if (signal.aborted) return
         setAudienceSnapshot({
           destination: state?.headline?.trim() || titleCase(state?.destination_type || state?.mode),
           connected: typeof contextPayload.liveAttendeeCount === "number" ? contextPayload.liveAttendeeCount : 0,
@@ -159,12 +168,12 @@ export default function ProducerV1Header({
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
           setAudienceSnapshot((current) => ({ ...current, destination: "Check Audience Flow" }))
+          throw error
         }
       }
     }
-    void loadDestination()
-    const interval = window.setInterval((): void => { void loadDestination() }, 15_000)
-    return () => { controller.abort(); window.clearInterval(interval) }
+    const poll = startVisibilityPoll({ run: loadDestination, intervalMs: 15_000 })
+    return () => poll.stop()
   }, [eventId])
 
   useEffect(() => {

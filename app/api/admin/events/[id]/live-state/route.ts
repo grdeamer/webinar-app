@@ -22,7 +22,7 @@ export async function GET(_req: Request, ctx: Params): Promise<Response> {
   if (authResult instanceof Response) return authResult
 
   const { id: eventId } = await ctx.params
-  const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "run_of_show")
+  const eventAccess = await requireEventOperatorAccess(eventId, ["event_admin", "producer"], "run_of_show", authResult)
   if (eventAccess instanceof Response) return eventAccess
 
   const [liveStateResult, runOfShowResult] = await Promise.all([

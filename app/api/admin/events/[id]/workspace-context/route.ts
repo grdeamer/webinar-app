@@ -14,9 +14,10 @@ export async function GET(_request: Request, context: Params): Promise<Response>
   if (authResult instanceof Response) return authResult
 
   const { id } = await context.params
-  const teamAccess = await getEventTeamAccess(id)
+  const teamAccess = await getEventTeamAccess(id, authResult)
   if (!teamAccess) return NextResponse.json({ error: "Event access denied" }, { status: 403 })
 
+  const activeCutoff = Date.now() - 30_000
   const [eventResult, liveStateResult, liveSessionResult, presenceResult] = await Promise.all([
     supabaseAdmin
       .from("events")
@@ -37,7 +38,8 @@ export async function GET(_request: Request, context: Params): Promise<Response>
     supabaseAdmin
       .from("event_presence")
       .select("user_id,last_seen")
-      .eq("event_id", id),
+      .eq("event_id", id)
+      .gte("last_seen", new Date(activeCutoff).toISOString()),
   ])
 
   if (eventResult.error) {
@@ -60,7 +62,6 @@ export async function GET(_request: Request, context: Params): Promise<Response>
     return NextResponse.json({ error: presenceResult.error.message }, { status: 400 })
   }
 
-  const activeCutoff = Date.now() - 30_000
   const liveAttendeeCount = new Set(
     (presenceResult.data ?? [])
       .filter((row) => {

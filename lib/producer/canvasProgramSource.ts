@@ -1,4 +1,5 @@
 import type { PreviewBlock } from '../../app/admin/events/[id]/producer/useProducerBlocks'
+import { takePreparedMedia } from './takePreparedMedia'
 import { libraryCanvasPlan } from './libraryCanvasPlan'
 import { renderProgramSlide } from './programSlideRender'
 type GeneratedTrack = MediaStreamTrack & { writable: WritableStream<VideoFrame> }
@@ -81,7 +82,7 @@ export async function canvasProgramSource(blocks: PreviewBlock[], options: Sourc
     if (audioBus) { stream.addTrack(audioBus.stream.getAudioTracks()[0]); captured.push(audioBus.stream) }
     worker.postMessage({ layers, writable: track.writable }, transfers)
     return { stream, layerCount:plan.length, videoLayerCount:plan.filter(block=>block.type==='video').length, audioLayerCount:plan.filter(block=>block.type==='audio'||block.type==='video').length, get progress() { return progress }, get failure() { return error },
-      async take() { if(media.some(item=>item.element.ended))throw Error('A file has finished. Cue the canvas again before replaying.'); for (const item of media) { item.element.loop = item.loop; item.element.currentTime = 0; await item.element.play() } },
+      async take() { await takePreparedMedia(media) },
       stop: cleanup,
     }
   } catch (failure) { cleanup(); throw failure }

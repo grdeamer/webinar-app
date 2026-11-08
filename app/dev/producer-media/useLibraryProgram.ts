@@ -25,8 +25,9 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
  const video=useRef<HTMLVideoElement>(null),run=useRef(''),active=useRef<string|null>(null),cued=useRef<{role:'source-a'|'source-b';key:string;composition:Composition;sid:string}|null>(null),publishers=useRef(new Map<string,LibraryPublisher>()),viewer=useRef<null|(()=>Promise<void>)>(null),epoch=useRef(0),queue=useRef(Promise.resolve()),taking=useRef(false)
  const monitor=useRef<ProgramMonitorBinding>({element:null,stream:null})
  const attachVideo=useCallback((element:HTMLVideoElement|null)=>{bindProgramMonitor(monitor.current,element);video.current=element},[])
- const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);directTake.current=null;latestStatus.current=null;timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);if(active.current)await engineCommand(run.current,{type:"SET_LIVE",live:false},transport).catch(():void=>{});active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[transport])
- useEffect(()=>()=>{void stop()},[stop])
+ // Disconnect owns browser inputs/monitor only. Off-air is an explicit operator command.
+ const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);directTake.current=null;latestStatus.current=null;timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[])
+ useEffect(()=>()=>{void stop()},[stop,transport])
  async function connect(signal?:AbortSignal){
   const generation=++connectionEpoch.current
   setBusy(true)
@@ -123,7 +124,6 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
   try {
    if(publishers.current.get(cued.current.role)?.failure)throw Error('Input lease is unhealthy; cue the source again')
    const cue=cued.current,role=cue.role
-   await publishers.current.get(role)?.take()
    const cached=latestStatus.current
    const before=cached&&freshPreparedTakeStatus(cached.value,cached.readAtMs,run.current,cue.composition,role,cue.sid)?cached.value:await engineStatus(transport)
    assertPreparedPreview(before,run.current,cue.composition)
@@ -133,6 +133,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
    measured.cancel=picture.cancel
    const prepared=transition.type==='cut'&&directTakeIsCurrent(preparedAtClick,run.current,before.state.revision,cue.key,role,cue.sid)?preparedAtClick:null
    if(transition.type==='cut'&&directEnabled&&transport.directTakeUrl&&!prepared){setDirectArmedKey(null);setDirectEpoch(value=>value+1);throw Error('Direct TAKE authorization expired or changed. Preview is rearming; Program was not changed.')}
+   await publishers.current.get(role)?.take()
    directTake.current=null
    setTakeTiming(previous=>previous?{...previous,controlRoute:prepared?'direct':'proxy'}:previous)
    const committed=prepared?await commitDirectTake(prepared):await engineCommand(run.current,{type:'TAKE',transition},transport,before.state.revision)

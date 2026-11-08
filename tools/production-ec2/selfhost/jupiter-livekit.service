@@ -1,6 +1,8 @@
 [Unit]
 Description=Jupiter self-hosted media relay (no recorder or Egress)
 After=network-online.target caddy.service
+# Stop ordering is reversed: publishers must exit before relay participant drain.
+Before=jupiter-producer.service jupiter-zoom-controller.service jupiter-io-worker-health.service
 Wants=network-online.target
 [Service]
 User=jupiter-producer

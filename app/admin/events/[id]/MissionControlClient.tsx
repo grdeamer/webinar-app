@@ -1,5 +1,7 @@
 "use client"
 
+import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
+
 import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
@@ -318,43 +320,19 @@ export default function MissionControlClient({
     : defaultBreakoutId
 
   useEffect(() => {
-    const controller = new AbortController()
-
-    async function refreshEventSnapshot() {
-      try {
-        const response = await fetch(`/api/admin/events/${eventId}/workspace-context`, {
-          cache: "no-store",
-          signal: controller.signal,
-        })
-
-        if (!response.ok) return
-
-        const snapshot = (await response.json()) as {
-          access?: "open" | "closed"
-          hasLiveSession?: boolean
-          liveAttendeeCount?: number
-        }
-
+    const poll = startVisibilityPoll({
+      intervalMs: 10_000,
+      async run(signal) {
+        const response = await fetch(`/api/admin/events/${eventId}/workspace-context`, { cache: "no-store", signal })
+        if (!response.ok) throw new Error("Event snapshot unavailable")
+        const snapshot = (await response.json()) as { access?: "open" | "closed"; hasLiveSession?: boolean; liveAttendeeCount?: number }
+        if (signal.aborted) return
         setEventStatus(snapshot.hasLiveSession ? "live" : snapshot.access === "open" ? "open" : "closed")
-        setLiveAttendeeCount(
-          typeof snapshot.liveAttendeeCount === "number" ? snapshot.liveAttendeeCount : 0
-        )
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          console.error("Failed to refresh event snapshot", error)
-        }
-      }
-    }
-
-    void refreshEventSnapshot()
-    const interval = window.setInterval((): void => {
-      void refreshEventSnapshot()
-    }, 10_000)
-
-    return () => {
-      controller.abort()
-      window.clearInterval(interval)
-    }
+        setLiveAttendeeCount(typeof snapshot.liveAttendeeCount === "number" ? snapshot.liveAttendeeCount : 0)
+      },
+      onError: error => console.error("Failed to refresh event snapshot", error),
+    })
+    return () => poll.stop()
   }, [eventId])
 
   useEffect(() => {
