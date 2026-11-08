@@ -74,6 +74,8 @@ export async function getEventLiveStageState(
 }
 
 export async function ensureEventLiveStageState(eventId: string) {
+  const existing = await getEventLiveStageState(eventId)
+  if (existing) return existing
   const room = await ensureEventLiveRoom({ eventId })
 
   const row: EventLiveStateRecord = {
@@ -96,10 +98,14 @@ export async function ensureEventLiveStageState(eventId: string) {
 
   const { data, error } = await supabaseAdmin
     .from("event_live_stage_state")
-    .upsert(row, { onConflict: "event_id" })
+    .insert(row)
     .select("*")
     .single()
 
+  if (error?.code === "23505") {
+    const concurrent = await getEventLiveStageState(eventId)
+    if (concurrent) return concurrent
+  }
   if (error) throw new Error(error.message)
 
   return {
@@ -135,6 +141,8 @@ export async function getEventLiveProgramState(
 }
 
 export async function ensureEventLiveProgramState(eventId: string) {
+  const existing = await getEventLiveProgramState(eventId)
+  if (existing) return existing
   const room = await ensureEventLiveRoom({ eventId })
 
   const row: EventLiveStateRecord = {
@@ -157,10 +165,14 @@ export async function ensureEventLiveProgramState(eventId: string) {
 
   const { data, error } = await supabaseAdmin
     .from("event_live_program_state")
-    .upsert(row, { onConflict: "event_id" })
+    .insert(row)
     .select("*")
     .single()
 
+  if (error?.code === "23505") {
+    const concurrent = await getEventLiveProgramState(eventId)
+    if (concurrent) return concurrent
+  }
   if (error) throw new Error(error.message)
 
   return {

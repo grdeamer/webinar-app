@@ -1,15 +1,16 @@
 'use client'
 import { useCallback, useEffect, useState } from 'react'
+import { startVisibilityPoll } from '@/lib/browser/visibilityPoll'
 type Status = { configured?: boolean; state?: string; stopAtMs?: number | null; canStart?: boolean; error?: string }
 export default function IoRuntimePanel() {
   const [status, setStatus] = useState<Status>({})
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const refresh = useCallback(async () => {
-    try { const response = await fetch('/api/admin/zoom-bridge/runtime', { cache: 'no-store' }); const value = await response.json(); if (!response.ok) throw Error('Server status unavailable'); setStatus(value); setError('') }
-    catch { setError('Unable to verify shared EC2 status.') }
+  const refresh = useCallback(async (signal?:AbortSignal) => {
+    try { const response = await fetch('/api/admin/zoom-bridge/runtime', { cache: 'no-store', signal }); const value = await response.json(); if (!response.ok) throw Error('Server status unavailable'); if(signal?.aborted)return; setStatus(value); setError('') }
+    catch (failure) { if(!signal?.aborted)setError('Unable to verify shared EC2 status.'); throw failure }
   }, [])
-  useEffect(() => { void refresh(); const timer = setInterval(() => void refresh(), 15000); return () => clearInterval(timer) }, [refresh])
+  useEffect(() => { const poll=startVisibilityPoll({run:refresh,intervalMs:15000}); return ()=>poll.stop() }, [refresh])
   async function command(action: 'start' | 'stop') {
     if (action === 'stop' && !window.confirm('Stop the shared server? This disconnects Io satellites and the producer engine.')) return
     setBusy(true); setError('')

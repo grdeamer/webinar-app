@@ -1,3 +1,4 @@
+import { saveRunOfShowIfChanged } from '@/lib/runOfShow/save'
 import { revalidatePath } from "next/cache"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { getEventRoutingState, upsertEventRoutingState } from "@/lib/app/liveState"
@@ -376,20 +377,8 @@ export default async function AdminEventDetailPage({
   async function saveRunOfShow(cues: unknown[]) {
     "use server"
 
-    const { error } = await supabaseAdmin
-      .from("event_run_of_show")
-      .upsert(
-        {
-          event_id: eventId,
-          cues,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "event_id" }
-      )
-
-    if (error) {
-      throw new Error(error.message)
-    }
+    const changed = await saveRunOfShowIfChanged(eventId, cues)
+    if (!changed) return
 
     revalidatePath(`/admin/events/${eventSlug}`)
     revalidatePath(`/admin/events/${eventSlug}/routing`)

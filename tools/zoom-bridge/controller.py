@@ -4,6 +4,7 @@ from srt_ingest import Ingest
 from preview import Preview
 from multiview import cleanup_expired
 from worker_health import is_stalled, STALL_ERROR
+from controller_lifecycle import acquire_controller_lock, exchange_delay
 from worker_diagnostics import prepare_attempt, WorkerLog, finish_attempt
 from container_worker import launch_container, stop_container
 import base64, configparser, hashlib, hmac, json, os, signal, subprocess, time, urllib.request, uuid
@@ -147,13 +148,14 @@ def main():
     # systemd owns this private /run tmpfs directory; login cleanup cannot remove it.
     runtime=Path(os.environ.get("JUPITER_IO_RUNTIME_DIR", "/run/jupiter-io"))
     ensure_relay_root(runtime)
+    controller_lock=acquire_controller_lock(runtime)
     relay_root=Path(tempfile.mkdtemp(prefix="jupiter-io-",dir=runtime));relay_root.chmod(0o700)
     preview=Preview(relay_root,settings);preview.start()
     capacity = int(os.environ.get("JUPITER_WORKER_CAPACITY", "50"))
     if not 1 <= capacity <= 50: raise ValueError("Invalid satellite capacity")
     srt_mode=settings.get('sourceType')=='srt'
     ingest=None;ingest_thread=None;ingest_key_revision="legacy"
-    last_ok = time.monotonic();reports=[];source_status=None;source_item=None;source_failure=None
+    last_ok = time.monotonic();exchange_failures=0;reports=[];source_status=None;source_item=None;source_failure=None
     try:
         while not stop_requested:
             cleanup_expired(relay_root)
@@ -161,7 +163,7 @@ def main():
                 if recover_relay(relay_root): reports=[]
                 req = urllib.request.Request(url,data=json.dumps({'reports':reports,'sourceReport':source_status}).encode(),headers={'Content-Type':'application/json','Authorization':'Bearer '+settings['token']})
                 with urllib.request.urlopen(req,timeout=12) as response: config=json.load(response)
-                rooms=config['rooms'];source=config.get('source');last_ok=time.monotonic()
+                rooms=config['rooms'];source=config.get('source');last_ok=time.monotonic();exchange_failures=0
                 srt_mode=bool(source and source.get('kind',settings.get('sourceType','zoom'))=='srt')
                 if srt_mode:
                     key=source.get('ingestKey')
@@ -240,6 +242,7 @@ def main():
                         terminate(children.pop(rid))
                         failures[rid]={'revision':room['revision'],'status':'failed','error':STALL_ERROR}
             except Exception as exc:
+                exchange_failures+=1
                 print('Controller exchange failed:',type(exc).__name__,flush=True)
                 if time.monotonic()-last_ok>60:
                     for item in children.values():terminate(item)
@@ -249,7 +252,7 @@ def main():
                         ingest.close();ingest_thread.join(timeout=8);ingest=None
                     clear_media(relay_root);source_status={'kind':'srt' if srt_mode else 'zoom','status':'failed','error':'Controller connection lost.'}
             atomic(relay_root/'runtime-status.json', json.dumps({'updatedAt':time.time(),'sourceActive':bool(source_status and (source_status.get('video') or source_status.get('audio'))),'satellites':len(children)}))
-            time.sleep(2)
+            time.sleep(exchange_delay(exchange_failures, bool(children or source_item or ingest)))
     finally:
         preview.close()
         for item in children.values():terminate(item)
@@ -257,6 +260,7 @@ def main():
         if ingest:
             ingest.close();ingest_thread.join(timeout=8)
         shutil.rmtree(relay_root,ignore_errors=True)
+        controller_lock.close()
 
 def stop(signum,frame):
     global stop_requested

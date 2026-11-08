@@ -28,6 +28,8 @@ export async function POST(
       (await getEventLiveStageState(id)) ||
       (await ensureEventLiveStageState(id))
 
+    if (current.auto_director_enabled === body.enabled) return json({ state: current })
+
     const patch = {
       event_id: id,
       room_id: current.room_id,

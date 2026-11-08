@@ -1,5 +1,6 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
+import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
 import { Radio, Play, Square, Save, Camera, Mic, Cable, Eye, EyeOff, Pencil } from "lucide-react"
 import SourceProfileEditor from "./SourceProfileEditor"
 import LiveProgramPreview from "./LiveProgramPreview"
@@ -29,17 +30,9 @@ export default function ZoomSourcePanel() {
     if (!signal.aborted) { setSource(data.source); setIngest(data.ingest); setLoaded(true) }
   }, [])
   useEffect(() => {
-    const controller = new AbortController()
-    let polling = false
-    async function tick() {
-      if (polling) return
-      polling = true
-      try { await refresh(controller.signal) }
-      catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Source unavailable") }
-      finally { polling = false }
-    }
-    void tick(); const timer = setInterval(() => { void tick() }, 3000)
-    return () => { controller.abort(); clearInterval(timer) }
+    const poll = startVisibilityPoll({run: refresh, intervalMs: 3000,
+      onError: cause => setError(cause instanceof Error ? cause.message : "Source unavailable")})
+    return () => poll.stop()
   }, [refresh])
   async function request(method: string, body: object) {
     const response = await fetch("/api/admin/zoom-bridge/source", { method, cache: "no-store", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })

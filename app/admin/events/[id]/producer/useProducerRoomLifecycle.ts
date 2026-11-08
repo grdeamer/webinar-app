@@ -1,6 +1,7 @@
 "use client"
 
-import { useCallback, useEffect } from "react"
+import { useCallback, useEffect, useRef } from "react"
+import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
 import type { ProducerRoomApi } from "@/lib/producer/producerRoomApi"
 import type { ProducerParticipant, StageState } from "./producerRoomTypes"
 import type { PreviewBlock } from "./useProducerBlocks"
@@ -71,7 +72,10 @@ export default function useProducerRoomLifecycle({
     setStageState(data?.state ?? null)
   }, [api, setStageState])
 
-  const refreshAll = useCallback(async () => {
+  const pendingRefresh = useRef<{api: ProducerRoomApi; request: Promise<void>} | null>(null)
+  const refreshAll = useCallback((): Promise<void> => {
+    if (pendingRefresh.current?.api === api) return pendingRefresh.current.request
+    const request = (async () => {
     try {
       await Promise.all([
         loadParticipants(),
@@ -85,7 +89,11 @@ export default function useProducerRoomLifecycle({
       setSyncWarningText(`Live state is not synchronized: ${message}`)
       throw error
     }
-  }, [loadParticipants, loadStageState, loadProgramState, setSyncWarningText])
+    })()
+    pendingRefresh.current = { api, request }
+    void request.finally(() => { if (pendingRefresh.current?.request === request) pendingRefresh.current = null }).catch(() => {})
+    return request
+  }, [api, loadParticipants, loadStageState, loadProgramState, setSyncWarningText])
 
   useEffect(() => {
     let mounted = true
@@ -130,28 +138,8 @@ export default function useProducerRoomLifecycle({
   ])
 
   useEffect(() => {
-    let cancelled = false
-    let timeoutId: number | null = null
-
-    async function poll(): Promise<void> {
-      if (cancelled) return
-      if (document.visibilityState === "visible") {
-        await refreshAll().catch(() => {
-          // refreshAll exposes a persistent warning until a later sync succeeds.
-        })
-      }
-      if (!cancelled) timeoutId = window.setTimeout((): void => {
-        void poll()
-      }, 3000)
-    }
-
-    timeoutId = window.setTimeout((): void => {
-      void poll()
-    }, 3000)
-    return () => {
-      cancelled = true
-      if (timeoutId !== null) window.clearTimeout(timeoutId)
-    }
+    const poll = startVisibilityPoll({run: refreshAll, intervalMs: 3000, initialDelayMs: 3000})
+    return () => poll.stop()
   }, [refreshAll])
 
   return {

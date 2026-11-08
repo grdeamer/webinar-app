@@ -69,7 +69,8 @@ export async function updateEventLiveRoom(args: {
   audienceMode: LiveAudienceMode
   enabled: boolean
 }) {
-  await ensureEventLiveRoom({ eventId: args.eventId })
+  const current = await ensureEventLiveRoom({ eventId: args.eventId })
+  if (current.audience_mode === args.audienceMode && current.enabled === args.enabled) return current
 
   const { data, error } = await supabaseAdmin
     .from("event_live_rooms")
@@ -178,6 +179,8 @@ export async function setEventLiveLayout(args: {
   const current =
     (await getEventLiveStageState(args.eventId)) ||
     (await ensureEventLiveStageState(args.eventId))
+
+  if (current.layout === args.layout) return current
 
   const patch = {
     event_id: args.eventId,

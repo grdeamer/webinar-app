@@ -1,4 +1,5 @@
 'use client'
+import {programStatusPollMs} from '@/lib/producer/statusPollCadence'
 import {prepareDirectTake,commitDirectTake,directTakeIsCurrent,directTakeInput,type PreparedDirectTake} from '@/lib/producer/preparedDirectTake'
 import {watchPresentedProgramRevision,type ProgramTakeTiming} from '@/lib/producer/programTakeTiming'
 import {assertPreparedPreview,preparedProgramConfirmed,freshPreparedTakeStatus,type ProgramTakeReceipt} from '@/lib/producer/preparedProgramTake'
@@ -53,13 +54,13 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
     if(!latestStatus.current||s.state.revision>=latestStatus.current.value.state.revision){latestStatus.current={value:s,readAtMs:Date.now()};setControlRevision(s.state.revision);setDirectEnabled(s.runtime.directTakeEnabled===true)}
     if(receipt.current){const confirmed=preparedProgramConfirmed(s,receipt.current);setConfirmedKey(confirmed?receipt.current.key:null);if(confirmed){if(timing.current){const ms=performance.now()-timing.current.start;setTakeTiming(previous=>previous&&previous.observerConfirmedMs===undefined?{...previous,observerConfirmedMs:ms}:previous)}setAwaitingPicture(false);if(cued.current?.key===receipt.current.key)setMessage('Program receiver confirmed the committed canvas. Verify the outgoing picture and audio.')}}
    }catch{if(!cancelled)void stop();return}
-   if(!cancelled)timer=setTimeout(()=>void poll(),awaitingPicture||cueKey?250:1500)
+   if(!cancelled)timer=setTimeout(()=>void poll(),programStatusPollMs(awaitingPicture,cueKey,confirmedKey))
   }
   // Confirm immediately after acceptance, without waiting for the idle poll.
   // Self-scheduling prevents overlapping status requests on slower connections.
-  timer=setTimeout(()=>void poll(),awaitingPicture||cueKey?0:1500)
+  timer=setTimeout(()=>void poll(),awaitingPicture||(cueKey&&confirmedKey!==cueKey)?0:1500)
   return ()=>{cancelled=true;clearTimeout(timer)}
- },[connected,stop,transport,awaitingPicture,cueKey])
+ },[connected,stop,transport,awaitingPicture,cueKey,confirmedKey])
  useEffect(()=>{
   if(!connected||!directEnabled||!transport.directTakeUrl)return
   const rearm=()=>{if(document.visibilityState==='visible'){directTake.current=null;setDirectArmedKey(null);setDirectEpoch(value=>value+1)}}

@@ -1,3 +1,4 @@
+import {singleFlightRead} from '@/lib/producer/singleFlightRead'
 import {canvasProgramSource} from '@/lib/producer/canvasProgramSource'
 import {renderProgramSlide} from '@/lib/producer/programSlideRender'
 import {staticProgramSource} from '@/lib/producer/staticProgramSource'
@@ -7,7 +8,13 @@ import type { PreviewBlock } from '@/app/admin/events/[id]/producer/useProducerB
 export type StudioTransport = { root: string; relayUrl: string;directTakeUrl?:string }
 export const LOCAL_STUDIO_TRANSPORT: StudioTransport = {root:'/dev/producer-media/transport',relayUrl:'ws://127.0.0.1:7980'}
 export function isLocalStudioTransport(transport:StudioTransport){return transport.root===LOCAL_STUDIO_TRANSPORT.root&&transport.relayUrl===LOCAL_STUDIO_TRANSPORT.relayUrl}
-export async function engineStatus(transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(isLocalStudioTransport(transport) ? transport.root : transport.root+'/api/producer/status',{cache:'no-store'});const s=await r.json();if(!r.ok)throw Error(s.error);return s}
+const statusRead=singleFlightRead<Awaited<ReturnType<typeof fetchStatus>>>()
+async function fetchStatus(url:string){const r=await fetch(url,{cache:'no-store'});const s=await r.json();if(!r.ok)throw Error(s.error);return s}
+export function engineStatus(transport=LOCAL_STUDIO_TRANSPORT) {
+ const url=isLocalStudioTransport(transport)?transport.root:transport.root+'/api/producer/status'
+ // Never share authenticated requests between server-side callers/users.
+ return typeof window==='undefined'?fetchStatus(url):statusRead(url,()=>fetchStatus(url))
+}
 export async function engineRequest(endpoint:string,body:Record<string,unknown>,capability?:string,transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(isLocalStudioTransport(transport) ? transport.root : transport.root+'/api/producer/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(capability?{'X-Input-Capability':capability}:{})},body:JSON.stringify(isLocalStudioTransport(transport) ? {endpoint,...body} : body)});const value=await r.json();if(!r.ok)throw Error(value.error);return value}
 export async function engineCommand(runId:string,command:unknown,transport=LOCAL_STUDIO_TRANSPORT,expectedRevision?:number) {
  // A supplied revision has already been inspected by the caller. The server's

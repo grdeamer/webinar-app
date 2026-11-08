@@ -1,5 +1,6 @@
 "use client"
 import { useCallback, useEffect, useState } from "react"
+import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
 import "./jupiter-io.css"
 import { Mic, MicOff, Play, Square, MonitorUp, MonitorOff, Plus } from "lucide-react"
 import type { ZoomRoom, ZoomAction } from "@/lib/zoom-bridge/types"
@@ -38,17 +39,9 @@ export default function ZoomBridgeConsole() {
     }
   }, [])
   useEffect(() => {
-    const controller = new AbortController()
-    let polling = false
-    async function tick() {
-      if (polling) return
-      polling = true
-      try { await refresh(controller.signal) }
-      catch (cause) { if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Connection unavailable") }
-      finally { polling = false }
-    }
-    void tick(); const timer = setInterval(() => { void tick() }, 3000)
-    return () => { controller.abort(); clearInterval(timer) }
+    const poll = startVisibilityPoll({run: refresh, intervalMs: 3000,
+      onError: cause => setError(cause instanceof Error ? cause.message : "Connection unavailable")})
+    return () => poll.stop()
   }, [refresh])
   async function mutate(method: string, body: object) {
     setBusy(true); setError(""); setMessage("")

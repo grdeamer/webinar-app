@@ -3,6 +3,7 @@ import {readFileSync} from 'node:fs'
 import {runInNewContext} from 'node:vm'
 import test from 'node:test'
 import ts from 'typescript'
+import {singleFlightRead} from '../lib/producer/singleFlightRead.ts'
 
 type CommandTransport={engineCommand:(run:string,command:unknown,transport:{root:string;relayUrl:string},revision?:number)=>Promise<unknown>}
 function transport(reject=false){
@@ -11,7 +12,7 @@ function transport(reject=false){
  // Only the command boundary is exercised; the PDF worker URL is not loaded.
  const compiled=ts.transpileModule(source.replaceAll('import.meta.url',JSON.stringify(import.meta.url)),{compilerOptions:{module:ts.ModuleKind.CommonJS,target:ts.ScriptTarget.ES2022}}).outputText
  const exports={}
- runInNewContext(compiled,{exports,module:{exports},URL,console,Date,crypto:{randomUUID:()=> 'take-command'},require:()=>({}),
+ runInNewContext(compiled,{exports,module:{exports},URL,console,Date,crypto:{randomUUID:()=> 'take-command'},require:(name:string)=>name==='@/lib/producer/singleFlightRead'?{singleFlightRead}:({}),
   fetch:async(url:string,options:{method?:string;body?:string})=>{
    const request={method:options.method??'GET',url,body:options.body?JSON.parse(options.body):undefined};requests.push(request)
    return {ok:!reject,json:async()=>reject?{error:'REVISION_CONFLICT'}:request.method==='GET'?{runtime:{runId:'current'},state:{revision:17}}:{receipt:{revision:18}}}
