@@ -425,7 +425,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
       setPreviewBlocks,
     });
 
-  const engineTransport = useMemo(() => engine ? {root: engine.root, relayUrl: engine.relayUrl} : LOCAL_STUDIO_TRANSPORT, [engine]);
+  const engineTransport = useMemo(() => engine ? {root: engine.root, relayUrl: engine.relayUrl,directTakeUrl:engine.directTakeUrl} : LOCAL_STUDIO_TRANSPORT, [engine]);
   const engineProgram = useLibraryProgram(previewBlocks, engineTransport);
   const programMixer = useHostedProgramMixer(engineTransport, Boolean(engine && engineProgram.connected));
   const engineTake = useCallback(async (mode: "cut" | "auto", transitionType?: CinematicTransitionType, durationMs = 600): Promise<boolean> => {

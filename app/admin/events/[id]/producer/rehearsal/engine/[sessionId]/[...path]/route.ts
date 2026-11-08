@@ -1,4 +1,5 @@
 import { producerBackend, ec2ProducerStatus, prepareEc2Producer, stopEc2Producer, validateEc2Scope } from '@/lib/production/hosted/ec2Worker'
+import {engineEndpoint} from '@/lib/production/hosted/protocol'
 import { sealEc2Configuration } from '@/lib/production/ec2SealedConfig'
 import { NextResponse } from 'next/server'
 import { requireEventOperatorAccess } from '@/lib/eventTeamAccess'
@@ -24,6 +25,13 @@ async function handle(request: Request, context: Context) {
   if (request.method === 'POST' && (request.headers.get('origin') !== new URL(request.url).origin || !request.headers.get('content-type')?.startsWith('application/json'))) return Response.json({ error: 'Same-origin JSON required' }, { status: 403 })
   try {
     const scope = { eventId: access.eventId, sessionId, actorId: access.user.id }
+    if(operation==='/api/producer/control-ticket'&&request.method==='POST'){
+      const text=await request.text();if(Buffer.byteLength(text)>80000)return Response.json({error:'Request too large'},{status:413})
+      const input=JSON.parse(text)
+      const result=await callHostedEngine({scope,path:operation,method:'POST',body:JSON.stringify({runId:input.runId,expectedRevision:input.expectedRevision,role:input.role,trackSid:input.trackSid,composition:input.composition,origin:new URL(request.url).origin})})
+      if(!result.ok)return result
+      const grant=await result.json();return Response.json({...grant,url:engineEndpoint(process.env.PRODUCER_ENGINE_URL||'').href},{headers:{'Cache-Control':'no-store'}})
+    }
     if(operation==='/presentation-ticket'&&request.method==='POST'){
       const text=await request.text();if(Buffer.byteLength(text)>16000)return Response.json({error:"Request too large"},{status:413})
       const input=JSON.parse(text)

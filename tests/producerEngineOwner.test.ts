@@ -34,7 +34,7 @@ test('direct start requests from another admin are rejected before database or A
       '@/lib/eventTeamAccess':{requireEventOperatorAccess:async()=>({eventId:'event',user:{id:'user',email,email_confirmed_at:'confirmed'},isGlobalAdmin:true})},
       '@/lib/supabase/admin':{supabaseAdmin:{from:()=>query}},
       '@/lib/production/hosted/ec2Worker':{producerBackend:()=> 'ec2',validateEc2Scope:()=>{},prepareEc2Producer:async()=>{starts++;return {state:'pending',recordingEnabled:false}}},
-      '@/lib/production/ec2SealedConfig':{},'@/lib/production/hosted/client':{},'@/lib/production/hosted/sandboxWorker':{},'@/lib/production/hosted/studioAssets':{},
+      '@/lib/production/hosted/protocol':{},'@/lib/production/ec2SealedConfig':{},'@/lib/production/hosted/client':{},'@/lib/production/hosted/sandboxWorker':{},'@/lib/production/hosted/studioAssets':{},
       '@/lib/producer/engineOwner':{canStartProducerEngine},
     })
     const post=route.POST as (r:Request,c:unknown)=>Promise<Response>

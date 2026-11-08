@@ -1,5 +1,6 @@
 'use client'
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect,useMemo } from 'react'
+import {LOCAL_STUDIO_TRANSPORT} from '../producer-media/localProgramTransport'
 import useLibraryProgram from '../producer-media/useLibraryProgram'
 import CanvasProgramCheck from './CanvasProgramCheck'
 import CanvasClockCheck from './CanvasClockCheck'
@@ -16,10 +17,11 @@ const assets: BroadcastAssetTelemetry[] = ['Blue','Orange','Green'].map((label,i
  id:label,label,type:'graphic',assetKind:'image',state:'READY',duration:'',meta:'Local test graphic',route:'',lastPlayed:'',linkedScene:'',
  imageUrl:`data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="640" height="360"><rect width="640" height="360" fill="${['#124e78','#c56a19','#16724a'][index]}"/><text x="40" y="200" fill="white" font-size="64">${label}</text></svg>`)}`,
 }))
-export default function ProducerCanvasCheck() {
+export default function ProducerCanvasCheck({lowLatency=false}:{lowLatency?:boolean}) {
+ const transport=useMemo(()=>lowLatency?{...LOCAL_STUDIO_TRANSPORT,directTakeUrl:'http://127.0.0.1:4312/control'}:LOCAL_STUDIO_TRANSPORT,[lowLatency])
  const [blocks,setBlocks]=useState<PreviewBlock[]>([]),[selected,setSelected]=useState<string|null>(null)
  const [program,setProgram]=useState<PreviewBlock[]>([]),[notice,setNotice]=useState(''),[hourRunning,setHourRunning]=useState(false)
- const urls=useRef<string[]>([]),engine=useLibraryProgram(blocks)
+ const urls=useRef<string[]>([]),engine=useLibraryProgram(blocks,transport)
  useEffect(()=>()=>{urls.current.forEach(url=>URL.revokeObjectURL(url))},[])
  async function localBlock(block:PreviewBlock){
   if(block.src?.startsWith('data:image/svg+xml,')){const blob=await (await fetch(block.src)).blob();const src=URL.createObjectURL(blob);urls.current.push(src);return {...block,src}}
@@ -45,7 +47,7 @@ export default function ProducerCanvasCheck() {
    <button onClick={()=>void loadGraphics()}>Load three graphics</button>
    <button onClick={()=>void loadMixed().catch(error=>setNotice(error.message))}>Load video + PowerPoint + audio</button>
    <button onClick={()=>setBlocks(current=>current.map(block=>block.type==='audio'?{...block,mediaMuted:!block.mediaMuted}:block))}>Toggle source audio mute</button>
-   <button onClick={()=>setBlocks(current=>current.map((block,index)=>index===1?{...block,opacity:.5,x:160}:block))}>Change top layer position and opacity</button>
+   <button onClick={()=>setBlocks(current=>current.map((block,index)=>index===1?{...block,opacity:block.opacity===.5?1:.5,x:block.x===160?320:160}:block))}>Change top layer position and opacity</button>
    <button onClick={()=>setBlocks(current=>[...current,{...current[0],id:crypto.randomUUID(),src:'blob:invalid',zIndex:10}])}>Cue unavailable source</button>
    <button disabled={!engine.ready} onClick={()=>void take()}>TAKE whole canvas</button>
    <button onClick={()=>void engine.stop()}>Stop local inputs</button>
@@ -55,7 +57,7 @@ export default function ProducerCanvasCheck() {
   <CanvasHourControls engine={engine} onCue={setBlocks} onTaken={setProgram} onRunning={setHourRunning}/>
   <fieldset disabled={hourRunning} className={hourRunning?"pointer-events-none":""}><CenterSwitcherColumn workspaceMode="prepare" triggerAudienceCue={noop} onHideAudienceCue={noop}
    engineProgramMonitor={<CanvasProgramCheck engine={engine}/>}
-   previewProgramDifferent={JSON.stringify(blocks)!==JSON.stringify(program)} takeBusy={engine.busy} lastTakeMode="cut" onTake={()=>void take()}
+   previewProgramDifferent={JSON.stringify(blocks)!==JSON.stringify(program)} takeBusy={engine.busy||!engine.ready} lastTakeMode="cut" onTake={()=>void take()}
    onPreviewCanvasMouseMove={noop} stopDraggingBlock={noop} onClearSelectedBlock={()=>setSelected(null)}
    stageState={null} onStageParticipants={[]} participantAppearanceOverrides={{}} previewBlocks={blocks}
    selectedBlockId={selected} snapGuideX={null} snapGuideY={null} setSelectedBlockId={setSelected}

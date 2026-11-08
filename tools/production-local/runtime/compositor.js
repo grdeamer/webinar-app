@@ -17,7 +17,7 @@ export async function runCompositor() {
   master.connect(limiter).connect(mixed)
   const gainTargets = new GainTargets()
   const assets = new LocalAssets()
-  const inputs = new Map(); let snapshot = null; let fetching = false; let renderFps = profile.fps
+  const inputs = new Map(); let snapshot = null; let fetching = false; let renderFps = profile.fps; let refreshQueued=false; let flushCandidateReport=()=>{}
 
   function inputFor(identity) {
     if (!inputs.has(identity)) inputs.set(identity, { video: null, lastFrameAt: 0, decoded: 0, audioNode: null, gain: null })
@@ -55,8 +55,8 @@ export async function runCompositor() {
     if (!state.program.composition.layers.every(layer => ['camera', 'screen', 'text', 'image', 'pdf', 'video'].includes(layer.kind))) return false
     return !state.transition || ['cut', 'fade'].includes(state.transition.type) || Date.now() >= state.transition.startedAtMs + state.transition.durationMs
   }
-  async function readState() {
-    if (fetching) return
+  async function readState(force=false) {
+    if (fetching) {if(force)refreshQueued=true;return}
     fetching = true
     try {
       const { state, sourceReports, renderFps: requestedFps } = await jsonFetch('/api/state')
@@ -73,9 +73,11 @@ export async function runCompositor() {
         if (state.transition?.type === 'fade' && Date.now() < state.transition.startedAtMs + state.transition.durationMs) await assets.prepare(state.transition.from.composition)
       }
       snapshot = state; health.appliedRevision = state.revision; health.error = null
+      if(window.localHaLowLatency)flushCandidateReport()
     } catch (error) { health.error = String(error.message || 'Control connection unavailable').slice(0, 160) + '; retaining last valid Program' }
-    finally { fetching = false }
+    finally { fetching = false;if(refreshQueued){refreshQueued=false;queueMicrotask(()=>void readState(true))} }
   }
+  window.refreshLocalEngine=()=>{if(window.localHaLowLatency)void readState(true)}
   await readState(); const poll = setInterval(() => void readState(), 100)
 
   function slate(message) {
@@ -164,6 +166,7 @@ export async function runCompositor() {
     health.inputFrames = Object.fromEntries([...inputs].map(([identity, input]) => [identity, input.decoded])); health.inputTrackSids = Object.fromEntries([...inputs].filter(([, input]) => input.videoTrackSid).map(([identity, input]) => [identity, input.videoTrackSid]))
     health.assetPositions = Object.fromEntries((snapshot?.program.composition.layers || []).filter(layer => layer.kind === 'video').map(layer => [layer.id, Math.round((assets.get(layer)?.currentTime || 0) * 1000)]))
   }, window.localHaVideo ? 200 : 1000)
+  flushCandidateReport=()=>stopReports.flush()
   status('Persistent local compositor publishing one Program video and mixed audio')
   window.stopLocalEngine = async () => { stopped = true; clearInterval(poll); stopReports(); stopFrames(); frameWriter?.stop(); capture?.stop(); probeTrack?.stop(); await captureReader?.cancel().catch(() => {}); await inputRoom.disconnect(); await outputRoom.disconnect(); await audio.close(); assets.dispose() }
 }

@@ -208,3 +208,17 @@ test("async gateway scopes reads and replay without inventing renderer acknowled
   await assert.rejects(() => gateway.read(scope, foreign), code("SCOPE_MISMATCH"))
   await assert.rejects(() => gateway.commands(scope, foreign), code("SCOPE_MISMATCH"))
 })
+
+
+test("explicit prepared CUT enables existing private output atomically, while plain TAKE still never goes live", t => {
+  const f=fixture(t);f.source()
+  f.commit({type:"SET_PREVIEW",composition:{sceneId:null,layers:[{id:"ready",kind:"camera",sourceId:"camera-a",props:{}}]}})
+  const before=f.store.read(scope).revision,result=f.commit({type:"TAKE_AND_ENABLE_OUTPUT"},4000)
+  assert.equal(result.receipt.revision,before+1)
+  assert.equal(result.currentState.program.composition.layers[0].id,"ready")
+  assert.equal(result.currentState.desiredLifecycle,"live")
+  assert.equal(result.currentState.transition?.type,"cut")
+  assert.equal(result.currentState.transition?.durationMs,0)
+  assert.equal(result.engine,null)
+  assert.throws(()=>f.commit({type:"TAKE_AND_ENABLE_OUTPUT",record:true} as never))
+})

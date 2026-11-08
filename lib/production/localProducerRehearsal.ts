@@ -1,3 +1,5 @@
+import {DirectTakeTickets,type DirectTakeInput} from './directTakeTickets.ts'
+import {libraryInputReady} from '../producer/libraryInputReady.ts'
 import {InputReceiveProgress} from './inputReceiveProgress.ts'
 import { randomBytes, randomUUID, timingSafeEqual } from 'node:crypto'
 import { readFileSync } from 'node:fs'
@@ -22,17 +24,28 @@ export function rehearsalCommandAllowed(command: ProductionCommand) {
 /** Same-origin loopback operator adapter. Capture credentials never enter durable show state. */
 export class LocalProducerRehearsal {
   readonly runtime: LocalHaRuntime
+  readonly directTake:DirectTakeTickets|null
+  private readonly directTakeUrl:string|null
   private leases = new Map<SourceRole, Lease>()
   private receivers=new Map<SourceRole,InputReceiveProgress>()
   private sourceBusy = new Set<SourceRole>()
   private readonly soakStatus?:()=>unknown
   private readonly mediaSources: string
   private timer: ReturnType<typeof setInterval>
-  constructor(runtime: LocalHaRuntime, options: { mediaUrl?: string; soakStatus?:()=>unknown } = {}) {
+  constructor(runtime: LocalHaRuntime, options: { mediaUrl?: string; soakStatus?:()=>unknown;directTakeOrigins?:string[];directTakeUrl?:string } = {}) {
     if (!runtime.rehearsal) throw new Error('Explicit rehearsal runtime required')
     this.soakStatus=options.soakStatus
     this.mediaSources = options.mediaUrl ? mediaConnectSources(options.mediaUrl) : 'ws://127.0.0.1:7980'
     this.runtime = runtime
+    this.directTakeUrl=options.directTakeUrl??null
+    this.directTake=runtime.lowLatency&&options.directTakeOrigins?.length&&this.directTakeUrl?new DirectTakeTickets({
+      snapshot:()=>({runId:runtime.runId,running:runtime.running,expiresAtMs:runtime.expiresAtMs,state:runtime.store.read(LOCAL_SCOPE)}),
+      ready:(role,sid,now)=>this.preparedInputReady(role,sid,now),
+      commit:(actorId,commandId,expectedRevision,now)=>{
+        const result=commitProductionCommand(runtime.store,{schemaVersion:1,scope:LOCAL_SCOPE,commandId,expectedRevision,command:{type:'TAKE_AND_ENABLE_OUTPUT'}},{actorId,scope:LOCAL_SCOPE},now)
+        runtime.notifyCommittedState();return result
+      },
+    },options.directTakeOrigins):null
     this.timer = setInterval(() => {
       for (const [role, lease] of this.leases) {
         const now=Date.now(),sourceId=this.sourceId(role)
@@ -62,7 +75,15 @@ export class LocalProducerRehearsal {
     finally { this.sourceBusy.delete(role) }
   }
   ownsFileInput(sourceId:string){const role=sourceId==='camera-a'?'source-a':sourceId==='camera-b'?'source-b':null;const lease=role?this.leases.get(role):null;return Boolean(lease&&lease.kind==='file'&&lease.expiresAtMs>Date.now())}
-  async stop() { clearInterval(this.timer); this.leases.clear(); await this.runtime.stop() }
+  private preparedInputReady(role:SourceRole,sid:string,now:number){
+    const lease=this.leases.get(role)
+    return Boolean(lease&&lease.kind==='file'&&lease.expiresAtMs>now&&lease.sid===sid&&libraryInputReady({state:runtimeState(this.runtime),runtime:{sourceReceiveMedia:this.runtime.sourceReceiveMedia,candidateMedia:this.runtime.candidateMedia as Parameters<typeof libraryInputReady>[0]['runtime']['candidateMedia']}},role,sid,now))
+  }
+  issueDirectTake(actorId:string,input:DirectTakeInput&{origin:string}){
+    if(!this.directTake||!this.directTakeUrl)throw new Error('Direct TAKE is not enabled')
+    return {...this.directTake.issue(input.origin,actorId,input),url:this.directTakeUrl}
+  }
+  async stop() { this.directTake?.stop();clearInterval(this.timer); this.leases.clear(); await this.runtime.stop() }
   async handle(request: IncomingMessage, response: ServerResponse): Promise<boolean> {
     const url = new URL(request.url || '/', 'http://127.0.0.1:4311'), path = url.pathname
     const staticFiles: Record<string, [string, string]> = { '/': ['producer.html', 'text/html'], '/producer': ['producer.html', 'text/html'], '/producer-room.js': ['producer-room.js', 'text/javascript'], '/producer-input.js': ['producer-input.js', 'text/javascript'], '/file-capture.js': ['file-capture.js', 'text/javascript'], '/producer.css': ['producer.css', 'text/css'] }
@@ -75,14 +96,15 @@ export class LocalProducerRehearsal {
         response.writeHead(200, { 'Content-Type': `${mime}; charset=utf-8`, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Content-Security-Policy': `default-src 'self'; script-src 'self'; connect-src 'self' ${this.mediaSources}; media-src 'self' blob:; img-src 'self' blob:; style-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'`, 'Permissions-Policy': 'camera=(self), microphone=(self), display-capture=(self)' }); response.end(readFileSync(resolve(import.meta.dirname, '../../tools/production-local', file))); return true
       }
       if (request.method === 'GET' && path === '/api/producer/status') {
-        send(200, { soak:this.soakStatus?.()??null, runtime: this.runtime.status(), state: this.runtime.store.read(LOCAL_SCOPE), sourceReports: this.runtime.session.sources, sources: Object.fromEntries((['source-a', 'source-b'] as const).map(role => [role, { kind: this.leases.get(role)?.kind || (this.runtime.sourceMedia[role] ? 'demo' : 'disconnected'), leaseExpiresAtMs: this.leases.get(role)?.expiresAtMs ?? null }])), recordingEnabled: false, externalServices: false }); return true
+        send(200, { soak:this.soakStatus?.()??null, runtime: {...this.runtime.status(),directTakeEnabled:Boolean(this.directTake)}, state: this.runtime.store.read(LOCAL_SCOPE), sourceReports: this.runtime.session.sources, sources: Object.fromEntries((['source-a', 'source-b'] as const).map(role => [role, { kind: this.leases.get(role)?.kind || (this.runtime.sourceMedia[role] ? 'demo' : 'disconnected'), leaseExpiresAtMs: this.leases.get(role)?.expiresAtMs ?? null }])), recordingEnabled: false, externalServices: false }); return true
       }
       if (request.method !== 'POST' || request.headers['x-jupiter-local'] !== 'producer-rehearsal' || !request.headers['content-type']?.startsWith('application/json')) throw new Error('Local producer JSON header required')
       let body = ''; for await (const chunk of request) { body += String(chunk); if (body.length > 80_000) throw new Error('Request too large') }; const x = JSON.parse(body)
       if (x.runId !== this.runtime.runId || !this.runtime.running || Date.now() >= this.runtime.expiresAtMs) throw new Error('Current running rehearsal required')
+      if(path==='/api/producer/control-ticket'){send(200,this.issueDirectTake('local-library-studio',x));return true}
       if (path === '/api/producer/command') {
         rehearsalCommandAllowed(x.command)
-        const result = commitProductionCommand(this.runtime.store, { schemaVersion: 1, scope: LOCAL_SCOPE, commandId: x.commandId, expectedRevision: x.expectedRevision, command: x.command }, { actorId: identifier(x.consoleId), scope: LOCAL_SCOPE }); send(200, result); return true
+        const result = commitProductionCommand(this.runtime.store, { schemaVersion: 1, scope: LOCAL_SCOPE, commandId: x.commandId, expectedRevision: x.expectedRevision, command: x.command }, { actorId: identifier(x.consoleId), scope: LOCAL_SCOPE }); this.runtime.notifyCommittedState();send(200, result); return true
       }
       if (path === '/api/producer/viewer') { if (!['input', 'program'].includes(x.room)) throw new Error('Unknown preview room'); send(200, await this.runtime.rehearsalViewerToken(x.room)); return true }
       if (path === '/api/producer/input') {
@@ -129,3 +151,5 @@ export class LocalProducerRehearsal {
     } catch (error) { const status = error instanceof ProductionError && ['REVISION_CONFLICT', 'COMMAND_ID_REUSED', 'SCENE_CONFLICT'].includes(error.code) ? 409 : 400; send(status, { error: error instanceof Error ? error.message : 'Local producer request failed' }); return true }
   }
 }
+
+function runtimeState(runtime:LocalHaRuntime){return runtime.store.read(LOCAL_SCOPE)}

@@ -4,10 +4,11 @@ import {staticProgramSource} from '@/lib/producer/staticProgramSource'
 import {libraryInputReady} from '@/lib/producer/libraryInputReady'
 import { Room, RoomEvent, Track, type LocalTrackPublication } from 'livekit-client'
 import type { PreviewBlock } from '@/app/admin/events/[id]/producer/useProducerBlocks'
-export type StudioTransport = { root: string; relayUrl: string }
+export type StudioTransport = { root: string; relayUrl: string;directTakeUrl?:string }
 export const LOCAL_STUDIO_TRANSPORT: StudioTransport = {root:'/dev/producer-media/transport',relayUrl:'ws://127.0.0.1:7980'}
-export async function engineStatus(transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(transport===LOCAL_STUDIO_TRANSPORT ? transport.root : transport.root+'/api/producer/status',{cache:'no-store'});const s=await r.json();if(!r.ok)throw Error(s.error);return s}
-export async function engineRequest(endpoint:string,body:Record<string,unknown>,capability?:string,transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(transport===LOCAL_STUDIO_TRANSPORT ? transport.root : transport.root+'/api/producer/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(capability?{'X-Input-Capability':capability}:{})},body:JSON.stringify(transport===LOCAL_STUDIO_TRANSPORT ? {endpoint,...body} : body)});const value=await r.json();if(!r.ok)throw Error(value.error);return value}
+export function isLocalStudioTransport(transport:StudioTransport){return transport.root===LOCAL_STUDIO_TRANSPORT.root&&transport.relayUrl===LOCAL_STUDIO_TRANSPORT.relayUrl}
+export async function engineStatus(transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(isLocalStudioTransport(transport) ? transport.root : transport.root+'/api/producer/status',{cache:'no-store'});const s=await r.json();if(!r.ok)throw Error(s.error);return s}
+export async function engineRequest(endpoint:string,body:Record<string,unknown>,capability?:string,transport=LOCAL_STUDIO_TRANSPORT) {const r=await fetch(isLocalStudioTransport(transport) ? transport.root : transport.root+'/api/producer/'+endpoint,{method:'POST',headers:{'Content-Type':'application/json',...(capability?{'X-Input-Capability':capability}:{})},body:JSON.stringify(isLocalStudioTransport(transport) ? {endpoint,...body} : body)});const value=await r.json();if(!r.ok)throw Error(value.error);return value}
 export async function engineCommand(runId:string,command:unknown,transport=LOCAL_STUDIO_TRANSPORT,expectedRevision?:number) {
  // A supplied revision has already been inspected by the caller. The server's
  // atomic compare-and-swap remains authoritative; a second GET cannot prevent
@@ -41,7 +42,7 @@ export class LibraryPublisher {
   const source=block.src
   if(!source)throw Error('Source unavailable')
   if(source.startsWith(`blob:${location.origin}/`))return source
-  if(this.transport===LOCAL_STUDIO_TRANSPORT||!source.startsWith('/api/admin/events/'))throw Error('Only this event’s library files are allowed')
+  if(isLocalStudioTransport(this.transport)||!source.startsWith('/api/admin/events/'))throw Error('Only this event’s library files are allowed')
   const response=await fetch(source.split('#')[0],{signal:AbortSignal.timeout(30000)})
   if(!response.ok)throw Error('Source unavailable')
   const blob=await response.blob();if(blob.size>50*1024*1024)throw Error('Source exceeds 50 MB')
@@ -57,7 +58,7 @@ export class LibraryPublisher {
   if(this.stopped)throw Error('Input preparation cancelled')
   const claim=await engineRequest('input',{runId:this.runId,action:'claim',role:this.role,kind:'file'},undefined,this.transport);this.capability=claim.capability
   if(claim.url!==this.transport.relayUrl)throw Error('Unexpected media relay')
-  this.room=new Room({adaptiveStream:false,dynacast:false});await this.room.connect(claim.url,claim.token,{autoSubscribe:false,...(this.transport===LOCAL_STUDIO_TRANSPORT?{rtcConfig:{iceServers:[]}}:{})})
+  this.room=new Room({adaptiveStream:false,dynacast:false});await this.room.connect(claim.url,claim.token,{autoSubscribe:false,...(isLocalStudioTransport(this.transport)?{rtcConfig:{iceServers:[]}}:{})})
   const video=await this.room.localParticipant.publishTrack(this.stream.getVideoTracks()[0],{source:Track.Source.Camera,simulcast:false,videoCodec:'h264',degradationPreference:'maintain-resolution',videoEncoding:{maxBitrate:6000000,maxFramerate:30}})
   for(const track of this.stream.getAudioTracks())await this.room.localParticipant.publishTrack(track,{source:Track.Source.Microphone,dtx:false,red:false})
   let pending=false
@@ -78,11 +79,12 @@ export async function connectProgram(video:HTMLVideoElement,runId:string,transpo
  attach()
  room.on(RoomEvent.TrackSubscribed,(track,_p,participant)=>{
   if(!/^program-engine-\d+$/.test(participant.identity))return
+  if(config.lowLatency&&typeof track.setPlayoutDelay==='function'){try{track.setPlayoutDelay(0)}catch{/* Native buffering remains the fallback. */}}
   for(const old of stream.getTracks())if(old.kind===track.mediaStreamTrack.kind)stream.removeTrack(old)
   stream.addTrack(track.mediaStreamTrack);attach()
  })
  const disconnect=async()=>{await room.disconnect();if(onStream)onStream(null,stream);else if(video.srcObject===stream)video.srcObject=null}
- try{await room.connect(config.url,config.token,transport===LOCAL_STUDIO_TRANSPORT?{rtcConfig:{iceServers:[]}}:{})}
+ try{await room.connect(config.url,config.token,isLocalStudioTransport(transport)?{rtcConfig:{iceServers:[]}}:{})}
  catch(error){await disconnect();throw error}
  return disconnect
 }

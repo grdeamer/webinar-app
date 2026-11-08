@@ -28,5 +28,5 @@ export default function CanvasProgramCheck({ engine }: { engine: ReturnType<type
     },1000)
     return()=>{clearInterval(timer);if(audio)void audio.close()}
   },[engine.connected])
-  return <div><video ref={attach} muted autoPlay playsInline aria-label="Decoded Program output" className="h-full w-full object-contain"/><output aria-label="Outgoing canvas metrics">{metrics}</output></div>
+  return <div><video ref={attach} muted autoPlay playsInline aria-label="Decoded Program output" data-take-timing={engine.takeTiming?JSON.stringify(engine.takeTiming):undefined} className="h-full w-full object-contain"/><output aria-label="Outgoing canvas metrics">{metrics}</output></div>
 }

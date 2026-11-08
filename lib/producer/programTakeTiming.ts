@@ -10,7 +10,7 @@ export function programMarkerRevision(pixels:Uint8ClampedArray):number|null {
  if(bytes[0]!==0x4a||bytes.reduce((sum,value)=>sum^value,0)!==0)return null
  return bytes[1]*65536+bytes[2]*256+bytes[3]
 }
-export type ProgramTakeTiming={startedAtMs:number;preflightMs?:number;acceptedMs?:number;presentedMs?:number;pictureError?:string;observerConfirmedMs?:number}
+export type ProgramTakeTiming={startedAtMs:number;controlRoute?:'direct'|'proxy';preflightMs?:number;acceptedMs?:number;presentedMs?:number;pictureError?:string;observerConfirmedMs?:number}
 export type PresentedProgramPicture={atMs:number|null;error?:string}
 /** Observe the actual monitor's presented frames, not a status poll or a UI copy. */
 export function watchPresentedProgramRevision(video:HTMLVideoElement|null,revision:number,timeoutMs=5000){

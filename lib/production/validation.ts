@@ -118,6 +118,9 @@ function parseCommand(value: unknown): ProductionCommand {
     case "SET_PREVIEW":
       keys(x, ["type", "composition"])
       return { type: x.type, composition: parseComposition(x.composition) }
+    case "TAKE_AND_ENABLE_OUTPUT":
+      keys(x,["type"])
+      return {type:x.type}
     case "TAKE": {
       keys(x, ["type", "transition"])
       const transition = object(x.transition); keys(transition, ["type", "durationMs"])

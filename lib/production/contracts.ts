@@ -100,6 +100,8 @@ export type ProductionCommand =
   | { type: "UNBIND_SOURCE"; sourceId: string; expectedGeneration: number }
   | { type: "SET_PREVIEW"; composition: Composition }
   | { type: "TAKE"; transition: { type: "cut" | "fade" | "warp" | "curtain"; durationMs: number } }
+  // Explicit prepared CUT + private output enable; never provisions compute.
+  | { type: "TAKE_AND_ENABLE_OUTPUT" }
   | { type: "SET_AUDIO"; bus: "preview" | "program"; audio: AudioMix }
   | { type: "SET_PLAYBACK"; bus: "preview" | "program"; layerId: string; positionMs: number; paused: boolean; loop: boolean }
   | { type: "SAVE_SCENE"; sceneId: string; name: string; expectedSceneVersion: number | null }

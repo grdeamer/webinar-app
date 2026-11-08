@@ -10,7 +10,7 @@ import { join, resolve } from 'node:path'
 import { tmpdir } from 'node:os'
 import { spawn, type ChildProcess } from 'node:child_process'
 import { AccessToken, RoomServiceClient, TrackSource } from 'livekit-server-sdk'
-import { chromium, type BrowserServer } from 'playwright-core'
+import { chromium, type BrowserServer,type Page } from 'playwright-core'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { LocalSqliteProductionStore } from './localSqliteStore.ts'
 import { seedLocalProduction, LOCAL_SCOPE } from './localWorkbench.ts'
@@ -48,6 +48,8 @@ export class LocalHaRuntime {
   private readonly soakControlKey: string | null
   private readonly primaryRestartLimit: number
   operatorStopRequested = false
+  readonly lowLatency:boolean
+  readonly fileInputsOnly:boolean
   readonly directory: string
   readonly store: LocalSqliteProductionStore
   readonly session: LocalMediaSession
@@ -66,6 +68,8 @@ export class LocalHaRuntime {
   readonly samples: { atMs: number; role: string; report: Record<string, unknown> }[] = []
   private caps = new Map<HaWorker, string>()
   private workers = new Map<HaWorker, BrowserServer>()
+  private readonly workerPages=new Map<HaWorker,Page>()
+  private controlNotificationPending=false
   private sfu: ChildProcess | null = null
   private secretDirectory: string | null = null
   private timer: ReturnType<typeof setInterval> | null = null
@@ -80,12 +84,14 @@ export class LocalHaRuntime {
   private readonly bundledBrowser: boolean
   private readonly apiKey: string = 'jupiter-local-ha'
   private readonly apiSecret = randomBytes(32).toString('hex')
-  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; rehearsalDeadlineAtMs?: number; hostedHourSoak?: boolean; localLibrarySoak?: boolean; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean; adaptiveStandby?: boolean } = {}) {
+  constructor(directory: string, options: { soak?: boolean; controlKey?: string; receivers?: number; rehearsal?: boolean; rehearsalDeadlineAtMs?: number; hostedHourSoak?: boolean; localLibrarySoak?: boolean; transport?: { url: string; apiKey: string; apiSecret: string }; bundledBrowser?: boolean; adaptiveStandby?: boolean;lowLatency?:boolean } = {}) {
     if (options.transport && (!options.rehearsal || !/^wss:\/\//.test(options.transport.url) || !options.transport.apiKey || options.transport.apiSecret.length < 32)) throw new Error('Hosted rehearsal requires secure SFU credentials')
+    this.lowLatency=options.lowLatency===true
     this.adaptiveStandby = Boolean(options.transport) || options.adaptiveStandby === true
     this.transport = options.transport; this.bundledBrowser = options.bundledBrowser === true
     if (this.transport) { this.apiKey = this.transport.apiKey; this.apiSecret = this.transport.apiSecret }
     this.rehearsal = options.rehearsal === true
+    this.fileInputsOnly=this.lowLatency&&this.rehearsal
     if (options.hostedHourSoak && (!this.rehearsal || !this.transport || !/^[a-f0-9]{64}$/.test(options.controlKey ?? ''))) throw new Error('Hosted hour requires explicit transport, rehearsal and private control')
     if (options.localLibrarySoak && (!this.rehearsal || this.transport || !/^[a-f0-9]{64}$/.test(options.controlKey ?? ''))) throw new Error('Local library hour requires rehearsal, loopback transport and private control')
     const rehearsalLimitMs = (options.hostedHourSoak ? 70 : options.localLibrarySoak ? 65 : 30) * 60_000
@@ -108,7 +114,8 @@ export class LocalHaRuntime {
   private api() { return new RoomServiceClient(this.transport ? this.transport.url.replace(/^wss:/, 'https:') : 'http://127.0.0.1:7980', this.apiKey, this.apiSecret, { requestTimeout: 3 }) }
   private command(command: ProductionCommand) {
     const state = this.store.read(LOCAL_SCOPE)
-    return commitProductionCommand(this.store, { schemaVersion: 1, scope: LOCAL_SCOPE, commandId: randomUUID(), expectedRevision: state.revision, command }, { actorId: 'local-ha-drill', scope: LOCAL_SCOPE })
+    const result=commitProductionCommand(this.store, { schemaVersion: 1, scope: LOCAL_SCOPE, commandId: randomUUID(), expectedRevision: state.revision, command }, { actorId: 'local-ha-drill', scope: LOCAL_SCOPE })
+    this.notifyCommittedState();return result
   }
   scene(source: 'a' | 'b' | 'clip') {
     const sourceId = source === 'b' ? 'camera-b' : 'camera-a'
@@ -137,7 +144,7 @@ export class LocalHaRuntime {
     let ready = false
     for (let n = 0; n < 80; n++) { try { await this.api().listRooms(); ready = true; break } catch { await new Promise(resolve => setTimeout(resolve, 100)) } }
     if (!ready) throw new Error('Local HA SFU did not become ready')
-    for (const role of this.activeRoles) await this.launch(role)
+    for (const role of this.activeRoles)if(!this.fileInputsOnly||!['source-a','source-b'].includes(role))await this.launch(role)
     this.timer = setInterval(() => {
       if (Date.now() >= this.expiresAtMs) { void this.stop(); return }
       try { this.authority.reconcile(this.store.read(LOCAL_SCOPE).revision); this.persist() } catch { this.failure = 'Authority persistence failed; output permission withdrawn'; this.authority.available = false; void this.stop() }
@@ -152,6 +159,7 @@ export class LocalHaRuntime {
     if (!this.running || Date.now() >= this.expiresAtMs) { await server.close(); throw new Error('HA run ended during worker launch') }
     this.workers.set(role, server)
     const browser = await chromium.connect(server.wsEndpoint(), { timeout: 10_000 }), context = await browser.newContext({ serviceWorkers: 'block' })
+    await context.addInitScript({content:`window.localHaLowLatency=${JSON.stringify(this.lowLatency)}`})
     if (this.transport) await context.route('**/*', route => mediaHostAllowed(new URL(route.request().url()).hostname, this.transport?.url) ? route.continue() : route.abort())
     else await context.route(BLOCKED_LOCAL_MEDIA_REQUEST, route => route.abort())
     browser.on('disconnected', () => {
@@ -160,7 +168,7 @@ export class LocalHaRuntime {
         this.authority.reconcile(this.store.read(LOCAL_SCOPE).revision)
       }
     })
-    const page = await context.newPage(); await page.goto(`http://127.0.0.1:4311/runtime/${role}#${this.caps.get(role)}`, { timeout: 15_000 })
+    const page = await context.newPage(); this.workerPages.set(role,page); await page.goto(`http://127.0.0.1:4311/runtime/${role}#${this.caps.get(role)}`, { timeout: 15_000 })
   }
   async replaceDemoSource(role: 'source-a' | 'source-b') {
     if (!this.rehearsal || !this.running) throw new Error('Active local rehearsal required')
@@ -170,12 +178,21 @@ export class LocalHaRuntime {
     if ((await api.listParticipants(this.rooms.input)).some(p => p.identity === identity)) await api.removeParticipant(this.rooms.input, identity)
     if ((await api.listParticipants(this.rooms.input)).some(p => p.identity === identity)) throw new Error('Previous source has not left the private input room')
   }
-  async restoreDemoSource(role: 'source-a' | 'source-b') { await this.replaceDemoSource(role); await this.launch(role) }
+  notifyCommittedState(){
+    if(!this.lowLatency||!this.running||this.controlNotificationPending)return
+    this.controlNotificationPending=true
+    queueMicrotask(()=>{
+      this.controlNotificationPending=false
+      if(!this.running)return
+      for(const role of ['primary','standby'] as const){const page=this.workerPages.get(role);if(page&&!page.isClosed())void page.evaluate(()=>{const signal=(window as unknown as {refreshLocalEngine?:()=>void}).refreshLocalEngine;signal?.()}).catch(()=>{})}
+    })
+  }
+  async restoreDemoSource(role: 'source-a' | 'source-b') { await this.replaceDemoSource(role); if(!this.fileInputsOnly)await this.launch(role) }
   async rehearsalViewerToken(room: 'input' | 'program') {
     if (!this.rehearsal || !this.running || Date.now() >= this.expiresAtMs) throw new Error('Active local rehearsal required')
     const token = new AccessToken(this.apiKey, this.apiSecret, { identity: `producer-${room}-${randomUUID()}`, ttl: Math.max(1, Math.min(120, Math.floor((this.expiresAtMs - Date.now()) / 1000))) })
     token.addGrant({ roomJoin: true, room: this.rooms[room], canPublish: false, canSubscribe: true, canPublishData: false, canUpdateOwnMetadata: false })
-    return { token: await token.toJwt(), url: this.transport?.url ?? 'ws://127.0.0.1:7980', runId: this.runId, expiresAtMs: this.expiresAtMs }
+    return { lowLatency:this.lowLatency,token: await token.toJwt(), url: this.transport?.url ?? 'ws://127.0.0.1:7980', runId: this.runId, expiresAtMs: this.expiresAtMs }
   }
   async sourcePublication(role: 'source-a' | 'source-b', sid: string) {
     const identity = role === 'source-a' ? 'source-camera-a' : 'source-camera-b'
@@ -193,7 +210,7 @@ export class LocalHaRuntime {
     return { token: freshMediaToken(await token.toJwt(), this.apiSecret), url: this.transport?.url ?? 'ws://127.0.0.1:7980', identity: x.identity, runId: this.runId, sourceId: worker === 'source-a' ? 'camera-a' : worker === 'source-b' ? 'camera-b' : null }
   }
   status() {
-    return { runId: this.runId, hostPid: process.pid, managedSoak: this.managedSoak, managedLoad: this.managedLoad, rehearsal: this.rehearsal, receiverCount: this.receiverCount, receivers: this.receiverReports, operatorStopRequested: this.operatorStopRequested, sfuPid: this.sfu?.pid ?? null, sfuRunning: Boolean(this.sfu && this.sfu.exitCode === null && this.sfu.signalCode === null), running: this.running, expiresAtMs: this.expiresAtMs, failure: this.failure, selected: this.authority.selected, generation: this.authority.generation, authorityAvailable: this.authority.available, partition: this.partition,
+    return { runId: this.runId, lowLatency:this.lowLatency,fileInputsOnly:this.fileInputsOnly,hostPid: process.pid, managedSoak: this.managedSoak, managedLoad: this.managedLoad, rehearsal: this.rehearsal, receiverCount: this.receiverCount, receivers: this.receiverReports, operatorStopRequested: this.operatorStopRequested, sfuPid: this.sfu?.pid ?? null, sfuRunning: Boolean(this.sfu && this.sfu.exitCode === null && this.sfu.signalCode === null), running: this.running, expiresAtMs: this.expiresAtMs, failure: this.failure, selected: this.authority.selected, generation: this.authority.generation, authorityAvailable: this.authority.available, partition: this.partition,
       sourceMedia: this.sourceMedia, sourceReceiveMedia:this.sourceReceiveMedia, candidateMedia: this.candidateMedia, revision: this.store.read(LOCAL_SCOPE).revision, candidates: this.authority.candidates, gateway: this.gatewayReport, observer: this.observerReport, boundaries: this.authority.boundaries,
       gatewayEpoch: this.gatewayEpoch, workers: [...this.workers].map(([role, server]) => ({ role, pid: server.process().pid, exited: server.process().exitCode !== null || server.process().signalCode !== null })),
       videoProfile: { width: 1920, height: 1080, fps: 30, codec: 'h264', maxBitrate: 6_000_000 }, cloudDeployed: Boolean(this.transport), separateHosts: false, recordingEnabled: false }
@@ -320,7 +337,7 @@ export class LocalHaRuntime {
     const child = worker.process(); if (child.exitCode === null && child.signalCode === null) child.kill('SIGKILL')
     for (let n = 0; n < 30 && child.exitCode === null && child.signalCode === null; n++) await new Promise(resolve => setTimeout(resolve, 100))
     if (child.exitCode === null && child.signalCode === null) throw new Error('Owned HA worker did not stop')
-    this.workers.delete(role)
+    this.workerPages.delete(role);this.workers.delete(role)
   }
   stop(): Promise<void> {
     if (this.stopping) return this.stopping

@@ -59,12 +59,15 @@ export function applyProductionCommand(current: ProductionState, command: Produc
       state.preview.composition = structuredClone(command.composition)
       state.preview.playback = {}
       break
+    case "TAKE_AND_ENABLE_OUTPUT":
     case "TAKE":
       validateCompositionSources(state, state.preview.composition)
       validateAudioSources(state, state.preview.audio)
-      // Same Preview -> Program commit semantics as producer_take; never auto-go-live.
-      state.transition = { ...command.transition, startedAtMs: nowMs, from: structuredClone(state.program), toRevision: state.revision + 1 }
+      // Plain TAKE retains producer_take semantics. The explicit direct CUT
+      // enables only the already-running private Program output in this commit.
+      state.transition = { ...(command.type==="TAKE"?command.transition:{type:"cut" as const,durationMs:0}), startedAtMs: nowMs, from: structuredClone(state.program), toRevision: state.revision + 1 }
       state.program = structuredClone(state.preview)
+      if(command.type==="TAKE_AND_ENABLE_OUTPUT")state.desiredLifecycle="live"
       break
     case "SET_AUDIO":
       validateAudioSources(state, command.audio)

@@ -17,6 +17,7 @@ export async function runGateway() {
   let manualTrack = null, fence = null, polling = false, reporting = false, outputFrames = 0, selected = null, sent = null, stopped = false, renderKey = null
   const diagnostics = { renderCount: 0, renderTotalMs: 0, renderMaxMs: 0, markerCount: 0, markerTotalMs: 0, markerMaxMs: 0, loopMaxGapMs: 0 }
   let lastTick = performance.now(), lastInputStats = 0
+  let requestFastReport=()=>{}, reportQueued=false
   function render(force = false) {
     if (!fence || stopped) return
     const lease = fence.selected(performance.now()), slot = lease && slots.get(lease.identity)
@@ -60,7 +61,9 @@ export async function runGateway() {
             if (!decoded) slot.markerInvalid++
             if (decoded && slot.markerFrame !== null) { const delta = (decoded.frame - slot.markerFrame + 65536) % 65536; if (delta > 1 && delta < 32768) slot.markerSkipped += delta - 1 }
             slot.frame?.close(); slot.frame = frame
+            const revisionChanged=decoded&&decoded.revision!==slot.revision
             if (decoded && decoded.frame !== slot.markerFrame) { slot.frames++; slot.lastFrame = performance.now(); slot.revision = decoded.revision; slot.markerFrame = decoded.frame }
+            if(window.localHaLowLatency&&revisionChanged)requestFastReport()
             if (fence?.selected(performance.now())?.identity === participant.identity) render()
           }
         } catch { slot.lastFrame = 0; render() }
@@ -110,8 +113,9 @@ export async function runGateway() {
   const video = await output.localParticipant.publishTrack(manualTrack, { name: 'program-video', source: LK.Track.Source.Camera, simulcast: false, degradationPreference: 'maintain-resolution', videoCodec: profile.codec, videoEncoding: { maxBitrate: profile.maxBitrate, maxFramerate: encoderCeilingFps } })
   const sound = await output.localParticipant.publishTrack(mixed.stream.getAudioTracks()[0], { name: 'program-audio', source: LK.Track.Source.Microphone, dtx: false, red: false })
   render(true)
-  const timer = setInterval(async () => {
-    if (reporting) return; reporting = true
+  const report = async (critical=false) => {
+    if(stopped)return
+    if (reporting) {if(critical)reportQueued=true;return} reporting = true
     try {
       sent = await senderCounters(video.track, sound.track)
       if (performance.now() - lastInputStats > 1000) {
@@ -124,8 +128,10 @@ export async function runGateway() {
       await jsonFetch('/api/ha/report', { role: 'gateway', outputTransport: 'video-frame-generator', outputError, diagnostics, writer: frameWriter.counters(), outputFrames, capturedFrames, captureMaxGapMs, encoderCeilingFps, targetFps: profile.fps, selected: selected?.candidate || null, generation: fence.generation, rejectedGrants: fence.rejected, sent,
         inputs: Object.fromEntries([...slots].map(([id, slot]) => [id, { frames: slot.frames, decodedFrames: slot.decodedFrames, markerSkipped: slot.markerSkipped, markerInvalid: slot.markerInvalid, nativeMarkerReads: slot.markerReader.nativeReads, canvasMarkerReads: slot.markerReader.canvasReads, rtc: slot.rtc, revision: slot.revision, ageMs: Math.round(performance.now() - slot.lastFrame) }])) })
     } catch { /* Metadata only; expiry still runs when the control connection is unavailable. */ }
-    finally { reporting = false }
-  }, 200)
+    finally { reporting = false;if(window.localHaLowLatency)void poll();if(reportQueued&&!stopped){reportQueued=false;queueMicrotask(()=>void report())} }
+  }
+  requestFastReport=()=>void report(true)
+  const timer=setInterval(()=>void report(),200)
   status('Frame-driven 1080p gateway: selected decoded frames, expiring authority and silent audio routing')
   window.stopHaGateway = async () => { stopped = true; clearInterval(controlTimer); clearInterval(expiryTimer); clearInterval(timer); frameWriter?.stop(); manualTrack?.stop(); captureTrack?.stop(); await captureReader?.cancel().catch(() => {}); for (const slot of slots.values()) { await slot.reader?.cancel().catch(() => {}); slot.frame?.close() }; await input.disconnect(); await output.disconnect(); await audio.close() }
 }

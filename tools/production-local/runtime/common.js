@@ -22,6 +22,7 @@ export async function connect(role, onTrack) {
   const room = new LK.Room({ adaptiveStream: false, dynacast: false, disconnectOnPageLeave: true,
     ...(!config.url.startsWith('wss:') ? { rtcConfig: { iceServers: [], iceTransportPolicy: 'all' } } : {}) })
   if (onTrack) room.on(LK.RoomEvent.TrackSubscribed, (track, publication, participant) => {
+    if(window.localHaLowLatency&&typeof track.setPlayoutDelay==='function'){try{track.setPlayoutDelay(0)}catch{/* Retain native buffering when the hint is unsupported. */}}
     if (window.localHaVideo && track.kind === LK.Track.Kind.Video) publication.setVideoQuality(LK.VideoQuality.HIGH)
     onTrack(track, publication, participant)
   })
@@ -69,13 +70,17 @@ export async function senderCounters(videoTrack, audioTrack) {
 }
 
 export function reportEverySecond(role, callback, intervalMs = 1000) {
-  let pending = false; let transportError = null
-  const timer = setInterval(async () => {
-    if (pending) return
-    pending = true
-    try { if (health.error === transportError) health.error = null; await callback(); const control = await jsonFetch(`/api/media/report?role=${role}`, health); window.localMediaFault = control.fault === true; transportError = null }
+  let pending = false, queued = false, stopped = false, transportError = null
+  const report = async (critical=false) => {
+    if(stopped)return
+    if(pending){if(critical)queued=true;return}
+    pending=true
+    try { if (health.error === transportError) health.error = null; await callback();if(stopped)return; const control = await jsonFetch(`/api/media/report?role=${role}`, health); window.localMediaFault = control.fault === true; transportError = null }
     catch (error) { transportError = error.message; health.error = transportError }
-    finally { pending = false }
-  }, intervalMs)
-  return () => clearInterval(timer)
+    finally { pending=false; if(queued&&!stopped){queued=false;queueMicrotask(()=>void report())} }
+  }
+  const timer=setInterval(()=>void report(),intervalMs)
+  const stop=()=>{stopped=true;clearInterval(timer)}
+  stop.flush=()=>void report(true)
+  return stop
 }
