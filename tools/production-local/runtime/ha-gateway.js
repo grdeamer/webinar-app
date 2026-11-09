@@ -2,6 +2,7 @@ import { LK, canvas, connect, jsonFetch, senderCounters, status } from './common
 import { MARKER_SIZE, MARKER_WIDTH, drawMarker, FrameMarkerReader } from './marker.js'
 import { OutputFence } from './ha-fence.js'
 import { BoundedFrameWriter } from './frame-writer.js'
+import { createRefreshPoll } from './refresh-poll.js'
 
 export async function runGateway() {
   if (!window.MediaStreamTrackProcessor) throw new Error('The local gateway requires decoded-frame processing support')
@@ -14,7 +15,7 @@ export async function runGateway() {
   const mixed = audio.createMediaStreamDestination()
   let frameWriter = null, outputError = null, outputTimestamp = 0, captureTrack = null
   let captureReader = null, capturedFrames = 0, captureLastAtMs = 0, captureMaxGapMs = 0
-  let manualTrack = null, fence = null, polling = false, reporting = false, outputFrames = 0, selected = null, sent = null, stopped = false, renderKey = null
+  let manualTrack = null, fence = null, reporting = false, outputFrames = 0, selected = null, sent = null, stopped = false, renderKey = null
   const diagnostics = { renderCount: 0, renderTotalMs: 0, renderMaxMs: 0, markerCount: 0, markerTotalMs: 0, markerMaxMs: 0, loopMaxGapMs: 0 }
   let lastTick = performance.now(), lastInputStats = 0
   let requestFastReport=()=>{}, reportQueued=false
@@ -80,12 +81,11 @@ export async function runGateway() {
     if (track.kind === LK.Track.Kind.Video) { slot.reader?.cancel().catch(() => {}); slot.reader = null; slot.frame?.close(); slot.frame = null; slot.lastFrame = 0; render() }
     else { slot.node?.disconnect(); slot.gain?.disconnect(); slot.gain = null; render() }
   })
-  const poll = async () => {
-    if (polling) return; polling = true
+  const authorityReads = createRefreshPoll(async () => {
     const began = performance.now()
     try { const grant = await jsonFetch('/api/ha/authority'); if (grant) fence.accept(grant, began, performance.now()); render() } catch { /* Monotonic lease expiry remains independently enforced. */ }
-    finally { polling = false }
-  }
+  })
+  const poll = authorityReads.poll
   await poll(); const controlTimer = setInterval(poll, 50)
   // This timer enforces expiry/slate/audio; it never resamples an active candidate onto another 30 fps clock.
   const expiryTimer = setInterval(() => { const now = performance.now(); diagnostics.loopMaxGapMs = Math.max(diagnostics.loopMaxGapMs, now - lastTick); lastTick = now; render() }, 20)
@@ -128,10 +128,10 @@ export async function runGateway() {
       await jsonFetch('/api/ha/report', { role: 'gateway', outputTransport: 'video-frame-generator', outputError, diagnostics, writer: frameWriter.counters(), outputFrames, capturedFrames, captureMaxGapMs, encoderCeilingFps, targetFps: profile.fps, selected: selected?.candidate || null, generation: fence.generation, rejectedGrants: fence.rejected, sent,
         inputs: Object.fromEntries([...slots].map(([id, slot]) => [id, { frames: slot.frames, decodedFrames: slot.decodedFrames, markerSkipped: slot.markerSkipped, markerInvalid: slot.markerInvalid, nativeMarkerReads: slot.markerReader.nativeReads, canvasMarkerReads: slot.markerReader.canvasReads, rtc: slot.rtc, revision: slot.revision, ageMs: Math.round(performance.now() - slot.lastFrame) }])) })
     } catch { /* Metadata only; expiry still runs when the control connection is unavailable. */ }
-    finally { reporting = false;if(window.localHaLowLatency)void poll();if(reportQueued&&!stopped){reportQueued=false;queueMicrotask(()=>void report())} }
+    finally { reporting = false;if(window.localHaLowLatency)void poll(critical);if(reportQueued&&!stopped){reportQueued=false;queueMicrotask(()=>void report(true))} }
   }
   requestFastReport=()=>void report(true)
   const timer=setInterval(()=>void report(),200)
   status('Frame-driven 1080p gateway: selected decoded frames, expiring authority and silent audio routing')
-  window.stopHaGateway = async () => { stopped = true; clearInterval(controlTimer); clearInterval(expiryTimer); clearInterval(timer); frameWriter?.stop(); manualTrack?.stop(); captureTrack?.stop(); await captureReader?.cancel().catch(() => {}); for (const slot of slots.values()) { await slot.reader?.cancel().catch(() => {}); slot.frame?.close() }; await input.disconnect(); await output.disconnect(); await audio.close() }
+  window.stopHaGateway = async () => { stopped = true; authorityReads.stop(); clearInterval(controlTimer); clearInterval(expiryTimer); clearInterval(timer); frameWriter?.stop(); manualTrack?.stop(); captureTrack?.stop(); await captureReader?.cancel().catch(() => {}); for (const slot of slots.values()) { await slot.reader?.cancel().catch(() => {}); slot.frame?.close() }; await input.disconnect(); await output.disconnect(); await audio.close() }
 }

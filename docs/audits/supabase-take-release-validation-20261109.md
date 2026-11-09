@@ -61,3 +61,11 @@ AWS independently confirmed `stopped`, so no EC2 test workers are running. The e
 Conservative incremental cost estimate with compute, traffic, release/functions and contingency reserves: **up to about$0.35**, within the approved$0.75 envelope, not a final invoice. Compute basis remains last verified$0.357/hour. Final traffic accounting is unavailable. No further paid run is authorized automatically.
 
 Local ignored evidence: `.local/db-io-audit/priority-validation/` contains the exact plan, phase samples, database comparison, TAKE timings and review summary. Prior failed or limited runs remain unchanged.
+
+## Next latency iteration prepared locally (not yet released)
+
+The gateway already requests authority immediately after a critical decoded-revision report. Inspection found two ways that request loses its priority: an authority read already in flight simply discards another poll, and a critical report queued behind another report is replayed without its critical flag. Either can leave the new revision waiting for the existing 50ms fallback poll. This is a confirmed control-flow issue, not a measured attribution of the entire145–208ms result.
+
+The local follow-up retains one immediate trailing authenticated read for a critical wake during an in-flight read, keeps queued reports critical, and cancels trailing work on stop. Normal polls cannot overlap or create a queued storm. The 50ms fallback, 20ms expiry/audio checks, authority endpoint, frame provenance, revision/generation validation, output fence and worker lease durations remain unchanged. No new control endpoint or browser-dependent authority was added.
+
+All455 local application tests, typecheck and production build passed; new regression coverage verifies that critical wakes are not dropped, many wakes coalesce into one read without overlap, and shutdown cancels queued work. These are scheduling regressions, not an end-to-end latency qualification. A fresh cost-approved hosted run is needed before claiming improvement.
