@@ -323,7 +323,7 @@ export class LocalHaRuntime {
         else if (url.pathname === '/style.css') { file = join(root, 'style.css'); contentType = 'text/css' }
         else if (url.pathname === '/vendor/livekit-client.js') file = resolve(root, '../../node_modules/livekit-client/dist/livekit-client.umd.js')
         else if (this.activeRoles.some(role => url.pathname === `/runtime/${role}`)) { file = join(root, 'runtime/ha-runtime.html'); contentType = 'text/html' }
-        else if (['common.js', 'frame-clock.js', 'gain-target.js', 'ha-boot.js', 'ha-gateway.js', 'ha-observer.js', 'observer-frame-worker.js', 'observer-frame-stats.js', 'ha-fence.js', 'frame-writer.js', 'ha-provenance.js', 'marker.js', 'source.js', 'compositor.js', 'assets.js', 'scene-renderer.js', 'layout.js'].some(name => url.pathname === `/runtime/${name}`)) file = join(root, 'runtime', url.pathname.split('/').at(-1)!)
+        else if (['common.js', 'refresh-poll.js', 'frame-clock.js', 'gain-target.js', 'ha-boot.js', 'ha-gateway.js', 'ha-observer.js', 'observer-frame-worker.js', 'observer-frame-stats.js', 'ha-fence.js', 'frame-writer.js', 'ha-provenance.js', 'marker.js', 'source.js', 'compositor.js', 'assets.js', 'scene-renderer.js', 'layout.js'].some(name => url.pathname === `/runtime/${name}`)) file = join(root, 'runtime', url.pathname.split('/').at(-1)!)
         else if (url.pathname === '/runtime/assets/brand.svg') { file = join(root, 'runtime/assets/brand.svg'); contentType = 'image/svg+xml' }
         if (file) { const contents = readFileSync(file); response.writeHead(200, { 'Content-Type': contentType, 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff' }); response.end(contents); return }
       }
