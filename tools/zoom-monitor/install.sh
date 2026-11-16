@@ -63,5 +63,9 @@ install -o root -g root -m 0644 "$source_dir/jupiter-zoom-monitor.service" /etc/
 systemctl daemon-reload
 systemctl enable --now jupiter-zoom-monitor.service
 systemctl is-active --quiet jupiter-zoom-monitor.service
+for attempt in $(seq 1 50); do
+  if test -S /run/jupiter-zoom-monitor/control.sock; then break; fi
+  sleep 0.1
+done
 test -S /run/jupiter-zoom-monitor/control.sock
 printf 'Idle monitoring service installed. No meeting joined.\n'

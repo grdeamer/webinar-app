@@ -26,7 +26,6 @@ def join_target(value):
     passcode = parse_qs(url.query).get('pwd', [''])[0]
     # Use Zoom's own web client; no SDK raw recording permission is requested.
     query = {'pwd': passcode} if passcode else {}
-    query['un'] = 'Jupiter Monitor'
     return urlunsplit(('https', host, '/wc/join/' + meeting, urlencode(query), ''))
 
 

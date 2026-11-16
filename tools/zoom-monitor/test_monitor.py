@@ -16,7 +16,7 @@ LINK = 'https://example.zoom.us/j/12345678901?pwd=fixture&zak=discarded'
 
 class ProtocolTest(unittest.TestCase):
     def test_only_zoom_join_urls_and_passcode_are_forwarded(self):
-        self.assertEqual(join_target(LINK), 'https://example.zoom.us/wc/join/12345678901?pwd=fixture&un=Jupiter+Monitor')
+        self.assertEqual(join_target(LINK), 'https://example.zoom.us/wc/join/12345678901?pwd=fixture')
         for value in ['http://zoom.us/j/12345678901', 'https://zoom.us.evil.test/j/12345678901',
                       'https://user:pass@zoom.us/j/12345678901', 'https://zoom.us:443/j/12345678901',
                       'https://zoom.us/start/12345678901', 'https://127.0.0.1/j/12345678901']:
