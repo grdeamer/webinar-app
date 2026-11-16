@@ -49,6 +49,8 @@ def parse_request(value):
 def classify(text, has_leave):
     """A screenshot alone is never evidence that a meeting was joined."""
     value = text.lower()
+    if 'automated bots' in value and ('not allowed' in value or "aren't allowed" in value):
+        return 'blocked_by_zoom'
     if any(term in value for term in ('complete the captcha', 'human verification required', 'verify you are human', 'i am human', 'i’m not a robot', "i'm not a robot")):
         return 'needs_attention'
     if 'by clicking' in value and 'you agree' in value:

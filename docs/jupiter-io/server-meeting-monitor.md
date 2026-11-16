@@ -82,3 +82,32 @@ If installation cannot fit, stop rather than extending the cloud deadline.
 
 Eight local protocol/lifecycle tests pass. The real server browser, Zoom
 admission, visible returned meeting and installed sandbox are not yet qualified.
+
+
+## Actual qualification outcome, 16 November 2026
+
+* First approved EC2 session: installation and a sandboxed browser rendering
+  preflight completed. Instance identity/type verified as i-00c2cf0d3c3a48b63 /
+  c7i.2xlarge. The independent 08:30 Eastern shutdown stopped it before any join.
+* An additional session under the same $1 allowance was explicitly authorized.
+  After initially unconfirmed starts, the server ran with a non-renewable
+  09:05:44 Eastern shutdown deadline.
+* The deployed Io page displayed actual server-rendered Zoom web-client frames.
+  The normal reCAPTCHA footer was initially over-classified as a challenge;
+  this was corrected. The user explicitly authorized Zoom terms acceptance,
+  and per-meeting consent was added to the UI/API/private protocol.
+* One actual Join click was made as Jupiter Monitor. Zoom rejected it with
+  “Automated bots aren't allowed to join this meeting.” No meeting admission,
+  participant video or shared-screen return was obtained. The transport test
+  passed; automated meeting monitoring did not qualify.
+* No stealth settings, CAPTCHA solver, human impersonation or retry to evade
+  this rejection was used. Browser-worker count was verified zero after stopping
+  the monitor, its Unix socket was removed, and EC2 was verified stopped. The
+  independently armed cloud deadline remained in place. Recording stayed off.
+* The experimental web-join path is paused pending approved Zoom integration.
+  Zoom's Meeting SDK documentation distinguishes internal-account access from
+  externally authorized bots (OBF), users (ZAK), and RTMS. The blocked anonymous
+  web-client approach is not a substitute for those integrations.
+
+Sources: https://developers.zoom.us/docs/meeting-sdk/auth/ and
+https://developers.zoom.us/changelog/meeting-sdk/requiring-authorization-for-meetings-joined-outside-of-an-apps-account/

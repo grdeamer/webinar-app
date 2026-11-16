@@ -6,6 +6,7 @@ import { ioButton, ioField } from "./SatelliteCard"
 
 const endpoint = "/api/admin/zoom-bridge/meeting-return"
 const labels: Record<string, string> = {
+  blocked_by_zoom: "Zoom rejected automated access. An approved Zoom app authorization is required.",
   starting: "Starting server receiver…", joining: "Joining Zoom…", connected: "Connected · live Zoom return",
   waiting_room: "Waiting for the host to admit Jupiter Monitor", waiting_for_host: "Waiting for the host to start the meeting",
   needs_consent: "Zoom requires your authorization to accept its terms before joining.",
@@ -102,9 +103,9 @@ export default function ServerMeetingMonitor({ configured }: { configured: boole
 
   return <section className="space-y-4">
     <p className="text-sm text-white/70">Jupiter Monitor joins on the server. No local Zoom window is needed. First test: one meeting, visual return only.</p>
-    {!configured ? <p role="status" className="rounded-xl border border-amber-300/30 p-4 text-sm text-amber-200">Server receiver installation is pending. Joining is unavailable until setup is verified.</p> : null}
+    {!configured ? <p role="status" className="rounded-xl border border-amber-300/30 p-4 text-sm text-amber-200">Server monitoring is paused. Receiver setup and Zoom-authorized access must be verified before joining.</p> : null}
     <form className="flex flex-wrap items-end gap-3" onSubmit={e => { e.preventDefault(); void start() }}>
-      <label className="min-w-0 flex-1 text-sm text-white/70">Zoom meeting link<input className={ioField} value={input} disabled={busy || Boolean(session)} autoComplete="off" maxLength={2048} onChange={e => setInput(e.target.value)} /></label>
+      <label className="min-w-0 flex-1 text-sm text-white/70">Zoom meeting link<input className={ioField} value={input} disabled={busy || Boolean(session)} autoComplete="off" maxLength={2048} onChange={e => { setInput(e.target.value); setTermsAccepted(false) }} /></label>
       <button className={ioButton} disabled={!configured || busy || Boolean(session) || !termsAccepted} type="submit">Join & monitor</button>
       {session ? <button className={ioButton} type="button" disabled={busy} onClick={() => void stop()}>Stop monitor</button> : null}
     </form>

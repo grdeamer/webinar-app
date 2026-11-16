@@ -35,6 +35,7 @@ class ProtocolTest(unittest.TestCase):
         self.assertEqual(classify('Sign in to join', True), 'needs_attention')
         self.assertEqual(classify('Waiting for the host', False), 'waiting_for_host')
         self.assertEqual(classify('Meeting has ended', True), 'ended')
+        self.assertEqual(classify("Automated bots aren't allowed to join this meeting. By clicking Join, you agree", True), 'blocked_by_zoom')
         self.assertEqual(classify('participant view', True), 'connected')
         self.assertEqual(classify('participant view', False), 'joining')
         self.assertEqual(classify('Zoom is protected by reCAPTCHA and its privacy policy', False), 'joining')
