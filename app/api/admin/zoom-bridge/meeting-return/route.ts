@@ -25,8 +25,9 @@ export async function POST(request: Request) {
     if (raw.length > 4096) return new Response(null, { status: 413, headers })
     const body = JSON.parse(raw)
     if (!["start", "stop"].includes(body.action) || !RETURN_SESSION.test(body.sessionId)) return new Response(null, { status: 400, headers })
+    if (body.action === "start" && body.termsAccepted !== true) return Response.json({ error: "Authorize Zoom terms for this meeting before joining." }, { status: 403, headers })
     const joinUrl = body.action === "start" ? meetingJoinLink(body.joinUrl) : undefined
-    const result = await serverReturn(body.action, body.sessionId, request.signal, joinUrl)
+    const result = await serverReturn(body.action, body.sessionId, request.signal, joinUrl, body.termsAccepted === true)
     return Response.json(result.status, { status: result.status.error ? 409 : 200, headers })
   } catch { return Response.json({ error: "Monitor request failed. Verify the meeting link and receiver connection." }, { status: 400, headers }) }
 }

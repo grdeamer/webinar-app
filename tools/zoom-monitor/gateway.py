@@ -29,9 +29,10 @@ def run(command):
         if len(body) > 4096 or not body.endswith(b'\n'):
             raise ValueError('Invalid start request')
         value = json.loads(body)
-        if not isinstance(value, dict) or set(value) != {'joinUrl'}:
+        if not isinstance(value, dict) or set(value) != {'joinUrl', 'termsAccepted'}:
             raise ValueError('Invalid start fields')
         data['joinUrl'] = value['joinUrl']
+        data['termsAccepted'] = value['termsAccepted']
     parse_request(data)
     with socket.socket(socket.AF_UNIX) as connection:
         connection.settimeout(8)

@@ -30,7 +30,7 @@ def join_target(value):
 
 
 def parse_request(value):
-    if not isinstance(value, dict) or set(value) - {'action', 'sessionId', 'joinUrl'}:
+    if not isinstance(value, dict) or set(value) - {'action', 'sessionId', 'joinUrl', 'termsAccepted'}:
         raise ValueError('Invalid monitor request')
     action = value.get('action')
     if action not in ('start', 'status', 'frame', 'stop'):
@@ -38,6 +38,9 @@ def parse_request(value):
     result = {'action': action, 'sessionId': session_id(value.get('sessionId'))}
     if action == 'start':
         result['target'] = join_target(value.get('joinUrl'))
+        if type(value.get('termsAccepted', False)) is not bool:
+            raise ValueError('Invalid consent')
+        result['termsAccepted'] = value.get('termsAccepted', False)
     elif 'joinUrl' in value:
         raise ValueError('Unexpected join link')
     return result
@@ -46,8 +49,10 @@ def parse_request(value):
 def classify(text, has_leave):
     """A screenshot alone is never evidence that a meeting was joined."""
     value = text.lower()
-    if any(term in value for term in ('captcha', 'verify you are human', 'i am human', 'i’m not a robot', "i'm not a robot")):
+    if any(term in value for term in ('complete the captcha', 'human verification required', 'verify you are human', 'i am human', 'i’m not a robot', "i'm not a robot")):
         return 'needs_attention'
+    if 'by clicking' in value and 'you agree' in value:
+        return 'needs_consent'
     if any(term in value for term in ('sign in to join', 'only authenticated', 'agree and continue', 'i agree', 'accept terms')):
         return 'needs_attention'
     if any(term in value for term in ('meeting has ended', 'meeting was ended', 'removed by the host', 'meeting id is not valid', 'invalid meeting id')):

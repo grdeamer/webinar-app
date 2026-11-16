@@ -65,7 +65,7 @@ class Monitor:
                 self.deadline = time.monotonic() + MAX_SECONDS
                 self.viewer_deadline = time.monotonic() + 30
                 self.state = 'starting'
-                self.task = asyncio.create_task(self.run(data['target']))
+                self.task = asyncio.create_task(self.run(data['target'], data.get('termsAccepted', False)))
                 return self.status()
             if self.id != data['sessionId']:
                 return {'error': 'Monitor session is unavailable'}
@@ -78,7 +78,7 @@ class Monitor:
                 return self.frame
             return self.status()
 
-    async def run(self, target):
+    async def run(self, target, terms_accepted=False):
         browser = None
         try:
             from playwright.async_api import async_playwright
@@ -110,6 +110,12 @@ class Monitor:
                     text = (await page.locator('body').inner_text(timeout=3000))[:30000]
                     leave = await page.get_by_role('button', name=re.compile(r'^Leave(?: Meeting)?$', re.I)).count() > 0
                     self.state = classify(text, leave)
+                    if self.state == 'needs_consent' and terms_accepted:
+                        self.state = 'joining'
+                    challenges = page.locator('iframe[title*="challenge" i]')
+                    for challenge in await challenges.all():
+                        if await challenge.is_visible():
+                            self.state = 'needs_attention'
                     # Do not accept terms, solve verification, sign in, or retry rejected joins.
                     if self.state == 'joining' and not attempted_join:
                         name = page.get_by_role('textbox', name=re.compile(r'(your name|display name|name)', re.I))

@@ -8,11 +8,13 @@ const endpoint = "/api/admin/zoom-bridge/meeting-return"
 const labels: Record<string, string> = {
   starting: "Starting server receiver…", joining: "Joining Zoom…", connected: "Connected · live Zoom return",
   waiting_room: "Waiting for the host to admit Jupiter Monitor", waiting_for_host: "Waiting for the host to start the meeting",
+  needs_consent: "Zoom requires your authorization to accept its terms before joining.",
   needs_attention: "Zoom requires sign-in, verification or acceptance. The monitor has paused joining.",
   expired: "Monitor expired", ended: "Meeting ended", failed: "Receiver failed", stopped: "Monitor stopped",
 }
 export default function ServerMeetingMonitor({ configured }: { configured: boolean }) {
   const [input, setInput] = useState("")
+  const [termsAccepted, setTermsAccepted] = useState(false)
   const [joinLink, setJoinLink] = useState("")
   const [session, setSession] = useState<string | null>(null)
   const [state, setState] = useState("stopped")
@@ -76,7 +78,7 @@ export default function ServerMeetingMonitor({ configured }: { configured: boole
     sessionRef.current = identity
     setBusy(true)
     try {
-      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start", sessionId: identity, joinUrl: link }) })
+      const response = await fetch(endpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "start", sessionId: identity, joinUrl: link, termsAccepted }) })
       const result = await response.json()
       if (!response.ok || result.error) throw new Error(result.error ?? "Receiver could not start")
       if (mounted.current) { setJoinLink(link); setState(result.state); setSession(identity) }
@@ -103,9 +105,10 @@ export default function ServerMeetingMonitor({ configured }: { configured: boole
     {!configured ? <p role="status" className="rounded-xl border border-amber-300/30 p-4 text-sm text-amber-200">Server receiver installation is pending. Joining is unavailable until setup is verified.</p> : null}
     <form className="flex flex-wrap items-end gap-3" onSubmit={e => { e.preventDefault(); void start() }}>
       <label className="min-w-0 flex-1 text-sm text-white/70">Zoom meeting link<input className={ioField} value={input} disabled={busy || Boolean(session)} autoComplete="off" maxLength={2048} onChange={e => setInput(e.target.value)} /></label>
-      <button className={ioButton} disabled={!configured || busy || Boolean(session)} type="submit">Join & monitor</button>
+      <button className={ioButton} disabled={!configured || busy || Boolean(session) || !termsAccepted} type="submit">Join & monitor</button>
       {session ? <button className={ioButton} type="button" disabled={busy} onClick={() => void stop()}>Stop monitor</button> : null}
     </form>
+    <label className="flex items-start gap-2 text-sm text-white/70"><input type="checkbox" checked={termsAccepted} disabled={busy || Boolean(session)} onChange={e => setTermsAccepted(e.target.checked)} className="mt-1" />I authorize Jupiter Monitor to accept Zoom’s Terms of Service and Privacy Statement and join this meeting.</label>
     <div className="relative aspect-video overflow-hidden rounded-xl border border-white/15 bg-black">
       {/* eslint-disable-next-line @next/next/no-img-element -- transient in-memory JPEG return, never an optimized/persisted asset */}
       {picture ? <img src={picture} alt="Received Zoom meeting view from the server" className="h-full w-full object-contain" /> : <div className="absolute inset-0 grid place-content-center px-6 text-center text-sm text-white/50">{session ? labels[state] ?? "Waiting for server return" : "Join a meeting to see its server return"}</div>}

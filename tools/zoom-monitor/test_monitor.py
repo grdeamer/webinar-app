@@ -31,12 +31,14 @@ class ProtocolTest(unittest.TestCase):
     def test_waiting_verification_and_terms_precede_connected(self):
         self.assertEqual(classify('Waiting room', True), 'waiting_room')
         self.assertEqual(classify('I agree', True), 'needs_attention')
-        self.assertEqual(classify('CAPTCHA', False), 'needs_attention')
+        self.assertEqual(classify('Complete the CAPTCHA', False), 'needs_attention')
         self.assertEqual(classify('Sign in to join', True), 'needs_attention')
         self.assertEqual(classify('Waiting for the host', False), 'waiting_for_host')
         self.assertEqual(classify('Meeting has ended', True), 'ended')
         self.assertEqual(classify('participant view', True), 'connected')
         self.assertEqual(classify('participant view', False), 'joining')
+        self.assertEqual(classify('Zoom is protected by reCAPTCHA and its privacy policy', False), 'joining')
+        self.assertEqual(classify('By clicking Join, you agree to our terms', False), 'needs_consent')
 
     def test_truncated_frames_are_rejected(self):
         self.assertEqual(read_exact(io.BytesIO(b'123'), 3), b'123')
@@ -48,7 +50,7 @@ class LifecycleTest(unittest.IsolatedAsyncioTestCase):
         self.monitor = Monitor()
         self.joins = 0
         self.cleanups = 0
-        async def fake_run(target):
+        async def fake_run(target, terms_accepted=False):
             self.joins += 1
             try: await asyncio.Event().wait()
             finally: self.cleanups += 1

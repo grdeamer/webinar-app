@@ -8,7 +8,7 @@ export function serverReturnConfigured() {
   return process.env.JUPITER_IO_SERVER_MONITOR_ENABLED === "true"
 }
 /** Exact allowlisted commands over the existing pinned, forced-command SSH key. */
-export async function serverReturn(action: ReturnAction, sessionId: string, signal: AbortSignal, joinUrl?: string): Promise<{ status: ReturnStatus; jpeg?: Buffer }> {
+export async function serverReturn(action: ReturnAction, sessionId: string, signal: AbortSignal, joinUrl?: string, termsAccepted = false): Promise<{ status: ReturnStatus; jpeg?: Buffer }> {
   if (!RETURN_SESSION.test(sessionId) || !["start", "status", "frame", "stop"].includes(action)) throw new Error("Invalid monitor request")
   const host = process.env.JUPITER_IO_SNAPSHOT_HOST, privateKey = process.env.JUPITER_IO_SNAPSHOT_KEY
   const fingerprint = process.env.JUPITER_IO_SNAPSHOT_HOST_HASH
@@ -46,7 +46,7 @@ export async function serverReturn(action: ReturnAction, sessionId: string, sign
       if (error) return finish(true)
       stream.on("data", (chunk: Buffer) => { size += chunk.length; if (size > 505000) finish(true); else chunks.push(chunk) })
       stream.on("close", (code: number) => finish(code !== 0)).on("error", abort)
-      if (action === "start") stream.end(JSON.stringify({ joinUrl }) + "\n")
+      if (action === "start") stream.end(JSON.stringify({ joinUrl, termsAccepted }) + "\n")
       else stream.end()
     })).on("error", abort)
     client.connect({ host, username: "ubuntu", privateKey, hostHash: "sha256", hostVerifier: (value: string) => value === fingerprint, readyTimeout: 6000 })
