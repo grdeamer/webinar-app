@@ -2,6 +2,7 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": {
+      "codex/io-server-monitor-20261116": false,
       "codex/io-meeting-returns-live-20261116": false,
       "codex/producer-self-hosted-livekit": false,
       "codex/producer-original-engine-20261104": false,

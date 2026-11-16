@@ -6,6 +6,17 @@ from pathlib import Path
 import subprocess
 from preview import decode_frame
 
+if os.environ.get('SSH_ORIGINAL_COMMAND', '').startswith('meeting-return '):
+    import sys
+    sys.path.insert(0, '/home/ubuntu/jupiter-zoom-monitor')
+    from gateway import run
+    try:
+        run(os.environ['SSH_ORIGINAL_COMMAND'])
+    except Exception:
+        os.write(1, b'{"error":"Server monitor unavailable"}\n')
+        raise SystemExit(1)
+    raise SystemExit(0)
+
 if os.environ.get('SSH_ORIGINAL_COMMAND', '').startswith('satellite-stop '):
     from multiview import stop_session
     stop_session(os.environ['SSH_ORIGINAL_COMMAND'].removeprefix('satellite-stop '))

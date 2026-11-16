@@ -1,0 +1,30 @@
+[Unit]
+Description=Jupiter receive-only Zoom return monitor
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/jupiter-zoom-monitor
+RuntimeDirectory=jupiter-zoom-monitor
+RuntimeDirectoryMode=0700
+Environment=TMPDIR=/run/jupiter-zoom-monitor
+ExecStart=/home/ubuntu/jupiter-zoom-monitor/venv/bin/python service.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+LimitCORE=0
+MemoryMax=2G
+TasksMax=256
+TimeoutStopSec=15
+KillMode=control-group
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/run/jupiter-zoom-monitor
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target
