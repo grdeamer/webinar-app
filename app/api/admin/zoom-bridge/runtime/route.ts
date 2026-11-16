@@ -25,5 +25,16 @@ export async function POST(request: Request) {
     }
     if (action === 'stop') return NextResponse.json(await stopSharedEc2(), { headers })
     return NextResponse.json({ error: 'Unknown action' }, { status: 400, headers })
-  } catch { return NextResponse.json({ error: 'Server request was not confirmed. Refresh status; automatic shutdown remains in place.' }, { status: 503, headers }) }
+  } catch (cause) {
+    const codes: string[] = []
+    let current: unknown = cause
+    for (let depth = 0; depth < 4 && current instanceof Error; depth += 1) {
+      const name = /^[A-Za-z0-9_]{1,80}$/.test(current.name) ? current.name : 'Error'
+      codes.push(name)
+      if (['Could not clear saved Io connection requests', 'A valid automatic EC2 shutdown could not be verified; no new start allowed', 'Unverified EC2 shutdown schedule', 'Explicit five-dollar session authorization required'].includes(current.message)) codes.push(current.message)
+      current = current.cause
+    }
+    console.error('Io runtime request failed', { codes })
+    return NextResponse.json({ error: `Server request was not confirmed (${codes.join(' / ')}). Automatic shutdown remains in place.` }, { status: 503, headers })
+  }
 }

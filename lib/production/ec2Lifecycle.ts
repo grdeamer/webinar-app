@@ -27,7 +27,7 @@ export async function startProducerEc2(port: ProducerEc2Port, now = Date.now(), 
   }
   if (state === 'stopped') {
     try { if (prepare) await prepare(); await port.start() }
-    catch { await port.stop(); throw new Error('EC2 start was not confirmed; stop requested and shutdown preserved') }
+    catch (cause) { await port.stop(); throw new Error('EC2 start was not confirmed; stop requested and shutdown preserved', { cause }) }
   }
   return { state: state === 'stopped' ? 'pending' : state, stopAtMs, recordingEnabled: false }
 }
