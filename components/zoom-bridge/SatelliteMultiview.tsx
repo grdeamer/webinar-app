@@ -8,6 +8,7 @@ import { monitorPage } from "@/lib/zoom-bridge/multiview"
 import { orderRooms } from "@/lib/zoom-bridge/room-order"
 import { ioButton, reporting } from "./SatelliteCard"
 import OutgoingStream from "./OutgoingStream"
+import MeetingReturnMonitor from "./MeetingReturnMonitor"
 function Monitor({ rooms }: { rooms: ZoomRoom[] }) {
   const [expanded, setExpanded] = useState<string | null>(null)
   const [audio, setAudio] = useState(false)
@@ -53,5 +54,6 @@ function Monitor({ rooms }: { rooms: ZoomRoom[] }) {
 }
 export default function SatelliteMultiview({ rooms }: { rooms: ZoomRoom[] }) {
   const [open, setOpen] = useState(false)
-  return <><button className={ioButton} onClick={() => setOpen(true)}><Grid2X2 size={16} />Multiview</button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[95dvh] overflow-y-auto border-slate-600 bg-[#07111b] text-white sm:max-w-[min(1400px,96vw)]"><DialogTitle>Satellite multiview</DialogTitle><DialogDescription className="text-slate-300">Outgoing feeds at low frame rate. Click a tile for smoother video and optional local audio.</DialogDescription>{open ? <Monitor rooms={rooms} /> : null}</DialogContent></Dialog></>
+  const [mode, setMode] = useState<"return" | "outgoing">("return")
+  return <><button className={ioButton} onClick={() => setOpen(true)}><Grid2X2 size={16} />Multiview</button><Dialog open={open} onOpenChange={setOpen}><DialogContent className="max-h-[95dvh] overflow-y-auto border-slate-600 bg-[#07111b] text-white sm:max-w-[min(1400px,96vw)]"><DialogTitle>Jupiter Io multiview</DialogTitle><DialogDescription className="text-slate-300">Monitor actual local Zoom windows or inspect satellite outgoing feeds.</DialogDescription><div className="flex flex-wrap gap-2" role="group" aria-label="Multiview source"><button className={ioButton} aria-pressed={mode === "return"} onClick={() => setMode("return")}>Meeting returns · prototype</button><button className={ioButton} aria-pressed={mode === "outgoing"} onClick={() => setMode("outgoing")}>Outgoing feeds</button></div>{open ? mode === "return" ? <MeetingReturnMonitor rooms={rooms} /> : <Monitor rooms={rooms} /> : null}</DialogContent></Dialog></>
 }
