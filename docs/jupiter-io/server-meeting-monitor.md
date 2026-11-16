@@ -52,7 +52,8 @@ the existing Ubuntu EC2 host, after a separately bounded paid start is approved.
 1. Confirm the exact instance and type before startup. Start through the existing
    authenticated Io runtime control, which verifies its non-renewable cloud stop.
 2. Transfer this directory and run `sudo bash install.sh --install` there.
-   The installer uses PyPI Playwright 1.65.2 and its matching Chromium, adds the
+   The installer uses PyPI Playwright 1.62.0 and the existing root-owned Chromium with its
+   already installed sandbox profile, adds the
    private service and patches only the existing forced-command dispatch.
 3. Confirm service active, socket mode 0600, unprivileged sandbox launch, original
    snapshot/multiview commands intact, and no meeting/browser active yet.

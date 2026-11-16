@@ -84,7 +84,8 @@ class Monitor:
             from playwright.async_api import async_playwright
             async with async_playwright() as driver:
                 # Run as an unprivileged account with Chromium's sandbox enabled.
-                browser = await driver.chromium.launch(headless=True, chromium_sandbox=True)
+                browser = await driver.chromium.launch(headless=True, chromium_sandbox=True,
+                    executable_path='/opt/jupiter-producer/browsers/chromium_headless_shell-1234/chrome-headless-shell-linux64/chrome-headless-shell')
                 context = await browser.new_context(viewport={'width': 1280, 'height': 720},
                                                     permissions=[], accept_downloads=False)
                 # Deny camera/microphone acquisition, including later permission prompts.
