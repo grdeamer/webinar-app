@@ -35,6 +35,8 @@ bounds, not a guarantee of a Zoom invoice or a production throughput claim.
 - User-managed General App: Jupiter IO Monitor, development only.
 - Only meeting:read:meeting_video, meeting:read:meeting_screenshare,
   rtms:read:rtms_started, rtms:read:rtms_stopped, rtms:read:rtms_interrupted.
+  Zoom also automatically adds zoomapp:inmeeting for the Meetings surface.
+  This enables the app in the meeting client; no additional media scopes were selected.
 - Product: Meetings. No SDK, recording, audio, transcript, chat, or REST-control scope.
 - Redirect and strict allowlist:
   https://app.jupiter.events/api/admin/zoom-bridge/rtms-connect/callback
