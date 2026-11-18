@@ -14,7 +14,8 @@ private Unix socket -> RTMS signaling + video/share sockets. Admin-only frame
 requests return the latest JPEGs to the first meeting tile. Zoom tokens and
 client secrets never reach the browser. The OAuth callback completes app
 installation without retaining user access/refresh tokens; qualification uses
-host-approved start/auto-start, not the RTMS REST start API.
+a manual host-approved Start sharing control in the Zoom app, not broad
+auto-start defaults or the RTMS REST start API.
 
 Only a meeting number explicitly armed by an IO admin is accepted. A different
 session cannot replace an active receiver. Repeat events and repeat arm requests
@@ -37,7 +38,9 @@ bounds, not a guarantee of a Zoom invoice or a production throughput claim.
   rtms:read:rtms_started, rtms:read:rtms_stopped, rtms:read:rtms_interrupted.
   Zoom also automatically adds zoomapp:inmeeting for the Meetings surface.
   This enables the app in the meeting client; no additional media scopes were selected.
-- Product: Meetings. No SDK, recording, audio, transcript, chat, or REST-control scope.
+- Product: Meetings. Home URL: https://app.jupiter.events/zoom/rtms.
+  Zoom Apps SDK allows only startRTMS and stopRTMS for a manual host-approved
+  qualification. No Meeting SDK, recording, audio, transcript, chat, or REST-control scope.
 - Redirect and strict allowlist:
   https://app.jupiter.events/api/admin/zoom-bridge/rtms-connect/callback
 - Lifecycle subscription endpoint: https://app.jupiter.events/api/zoom/rtms
