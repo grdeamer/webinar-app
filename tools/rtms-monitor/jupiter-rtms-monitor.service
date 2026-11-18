@@ -1,0 +1,30 @@
+[Unit]
+Description=Jupiter one-meeting RTMS qualification receiver
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/jupiter-rtms-monitor
+EnvironmentFile=/home/ubuntu/jupiter-rtms-monitor/.env
+RuntimeDirectory=jupiter-rtms-monitor
+RuntimeDirectoryMode=0700
+ExecStart=/home/ubuntu/jupiter-rtms-monitor/venv/bin/python service.py
+Restart=on-failure
+RestartSec=5
+UMask=0077
+LimitCORE=0
+MemoryMax=256M
+TasksMax=32
+TimeoutStopSec=10
+KillMode=control-group
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/run/jupiter-rtms-monitor
+StandardOutput=null
+StandardError=null
+
+[Install]
+WantedBy=multi-user.target

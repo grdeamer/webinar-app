@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react"
 import { ExternalLink, Maximize2, Monitor, Users, X } from "lucide-react"
 import { meetingJoinLink } from "@/lib/zoom-bridge/meeting-link"
 import { ioButton, ioField } from "./SatelliteCard"
+import RtmsMeetingReturn from "./RtmsMeetingReturn"
 
 interface Meeting { id: string; name: string; joinUrl: string }
 type Layout = 4 | 9 | 16
@@ -19,9 +20,9 @@ function MeetingTile({ meeting, slot, expanded, onExpand, onRemove }: {
   return <article className="min-w-0 overflow-hidden rounded-xl border border-white/15 bg-[#0d1c2a]" aria-label={meeting?.name ?? `Empty meeting slot ${slot}`}>
     <header className="flex min-h-12 flex-wrap items-center justify-between gap-2 px-3 py-2">
       <h2 className="min-w-0 break-words text-sm font-medium">{meeting?.name ?? `Meeting ${slot}`}</h2>
-      <span className="text-xs text-slate-400">{meeting ? "○ Not connected" : "Empty slot"}</span>
+      <span className="text-xs text-slate-400">{meeting ? slot === 1 ? "Test receiver" : "○ Not connected" : "Empty slot"}</span>
     </header>
-    <div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
+    {meeting && slot === 1 ? <RtmsMeetingReturn joinUrl={meeting.joinUrl} /> : <><div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
       <Monitor size={24} aria-hidden="true" />
       <span className="text-sm">{meeting ? "Waiting for shared presentation" : "Shared presentation"}</span>
       <span className="text-xs">{meeting ? "Zoom media connection required" : "Add a meeting to this multiview"}</span>
@@ -31,6 +32,7 @@ function MeetingTile({ meeting, slot, expanded, onExpand, onRemove }: {
         <Users size={18} aria-hidden="true" /><span className="text-[11px]">{label}</span>
       </div>)}
     </div>
+    </>}
     <footer className="flex flex-wrap items-center gap-2 p-2">
       <button type="button" className={ioButton} onClick={onExpand} aria-label={`${expanded ? "Collapse" : "Expand"} ${meeting?.name ?? `meeting slot ${slot}`}`}><Maximize2 size={14} aria-hidden="true" />{expanded ? "Back to grid" : "Expand"}</button>
       {meeting ? <>
@@ -69,7 +71,7 @@ export default function MeetingMultiview() {
 
   return <section className="space-y-5" aria-label="Meeting multiview">
     <div className="rounded-xl border border-amber-300/25 bg-amber-300/5 px-4 py-3 text-sm text-amber-100" role="status">
-      Live monitoring is not connected yet. Add meetings and arrange your multiview; participant and presentation feeds require the authorized Zoom media integration.
+      First meeting qualification: test the presentation and active-speaker return in the first tile after RTMS setup. Other tiles remain disconnected until qualified.
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-3"><span className="text-sm text-slate-300">Meetings per page</span><div className="flex flex-wrap gap-2" role="group" aria-label="Meetings per page">
