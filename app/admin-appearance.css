@@ -103,7 +103,13 @@
   & .event-directory-item__status { font-size: .6875rem; font-weight: 600; letter-spacing: .04em; color: var(--clean-accent); }
   & .event-directory-item__status.is-build { color: var(--clean-warning); }
   & .event-directory-item__status.is-live { color: var(--clean-positive); }
-  & :is(.events-editorial-create, .events-directory-filters button.is-active) {
+  & :is(.events-directory-filters button, .activity-range-option) {
+    color: var(--clean-muted);
+    box-shadow: none;
+  }
+  & .activity-range-option.is-selected::after { display: none; }
+  & :is(.events-editorial-create, .events-directory-filters button.is-active,
+    .activity-range-option[aria-pressed="true"], [data-variant="jupiterPrimary"]):not(:disabled) {
     background: var(--clean-accent) !important;
     color: var(--clean-action-ink) !important;
     box-shadow: none !important;
