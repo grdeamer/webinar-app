@@ -1,7 +1,7 @@
 "use client"
 
 import Link from "next/link"
-import { CSSProperties, ReactNode, useEffect, useState } from "react"
+import { CSSProperties, ReactNode, useEffect, useState, useSyncExternalStore } from "react"
 import { usePathname } from "next/navigation"
 import {
   ArrowLeft,
@@ -16,6 +16,37 @@ import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
 import { useAdminSessionGuard } from "@/components/admin/useAdminSessionGuard"
 
 type Appearance = "original" | "light" | "dark"
+
+const APPEARANCE_KEY = "jupiter-admin-appearance"
+const APPEARANCE_CHANGED = "jupiter-admin-appearance-changed"
+
+function subscribeToAppearance(notify: () => void) {
+  const systemTheme = window.matchMedia("(prefers-color-scheme: light)")
+  window.addEventListener("storage", notify)
+  window.addEventListener(APPEARANCE_CHANGED, notify)
+  systemTheme.addEventListener("change", notify)
+  return () => {
+    window.removeEventListener("storage", notify)
+    window.removeEventListener(APPEARANCE_CHANGED, notify)
+    systemTheme.removeEventListener("change", notify)
+  }
+}
+
+function readAppearance(): Appearance {
+  const value = window.localStorage.getItem(APPEARANCE_KEY)
+  return value === "light" || value === "dark" ? value : "original"
+}
+
+function readOriginalTheme() {
+  const value = window.localStorage.getItem("jupiter-admin-theme")
+  if (value === "light" || value === "dark") return value
+  return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"
+}
+
+function changeAppearance(value: Appearance) {
+  window.localStorage.setItem(APPEARANCE_KEY, value)
+  window.dispatchEvent(new Event(APPEARANCE_CHANGED))
+}
 
 function matches(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin"
@@ -104,25 +135,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isTeamAccess = pathname === "/admin/users"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const [appearance, setAppearance] = useState<Appearance>("original")
-  const [adminTheme, setAdminTheme] = useState<"dark" | "light">("dark")
+  const appearance = useSyncExternalStore(subscribeToAppearance, readAppearance, () => "original" as const)
+  const originalTheme = useSyncExternalStore(subscribeToAppearance, readOriginalTheme, () => "dark" as const)
   const compactNavigation = isEventWorkspace && !mobileNavOpen
-
-  useEffect(() => {
-    const savedAppearance = window.localStorage.getItem("jupiter-admin-appearance")
-    if (savedAppearance === "light" || savedAppearance === "dark") setAppearance(savedAppearance)
-    const savedTheme = window.localStorage.getItem("jupiter-admin-theme")
-    if (savedTheme === "light" || savedTheme === "dark") {
-      setAdminTheme(savedTheme)
-      return
-    }
-    setAdminTheme(window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
-  }, [])
-
-  function changeAppearance(value: Appearance) {
-    setAppearance(value)
-    window.localStorage.setItem("jupiter-admin-appearance", value)
-  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -200,7 +215,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div
-      data-admin-theme={appearance === "original" ? adminTheme : appearance}
+      data-admin-theme={appearance === "original" ? originalTheme : appearance}
       data-admin-appearance={appearance}
       className={`${
         isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
