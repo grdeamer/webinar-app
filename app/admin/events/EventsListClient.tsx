@@ -272,6 +272,7 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
               {selectedCalendarDay ? (selectedCalendarEvents.length ? selectedCalendarEvents.map((event) => <Link key={event.id} href={`/admin/events/${event.id}`}><span>{event.title}</span><ChevronRight size={14} /></Link>) : <small>No events scheduled for this date.</small>) : <small>Choose any day to review its schedule.</small>}
             </div>
           </section>
+          <div className="jupiter-appearance-space" aria-hidden="true" />
           <section className="events-activity-card">
             <div className="events-rail-heading"><span>Recent activity</span><Link href="/admin/activity">View all <ChevronRight size={14} /></Link></div>
             <div className="events-activity-list">{activeEvents.slice(0, 4).map((event) => <Link href={`/admin/events/${event.id}`} key={event.id}>

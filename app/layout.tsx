@@ -2,6 +2,7 @@ import "./globals.css"
 import { IBM_Plex_Sans, Geist, Instrument_Sans, Inter, Space_Grotesk } from "next/font/google"
 import type { Metadata, Viewport } from "next"
 import { cn } from "@/lib/utils";
+import { JupiterAppearanceBoundary } from "@/components/ui/JupiterAppearance"
 import { JupiterNotificationProvider } from "@/components/ui/JupiterNotificationProvider"
 
 const jupiterSans = IBM_Plex_Sans({ subsets:["latin"], weight:["400","500","600"], variable:"--font-jupiter", display:"swap" })
@@ -92,7 +93,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={cn("font-sans", jupiterSans.variable, geist.variable, inter.variable, instrumentSans.variable, spaceGrotesk.variable)}>
       <body className="jupiter-space-site min-h-dvh text-white antialiased">
-        <JupiterNotificationProvider>{children}</JupiterNotificationProvider>
+        <JupiterNotificationProvider><JupiterAppearanceBoundary>{children}</JupiterAppearanceBoundary></JupiterNotificationProvider>
       </body>
     </html>
   )

@@ -427,7 +427,7 @@ export default function WebinarsPage() {
     : "bg-gradient-to-r from-indigo-700 to-violet-700 bg-clip-text text-transparent"
 
   return (
-    <div className={["min-h-screen", pageBg].join(" ")}>
+    <div className={["jupiter-site-appearance-surface min-h-screen", pageBg].join(" ")}>
       {/* NAV */}
       <header className="max-w-6xl mx-auto px-6 py-8 flex items-center justify-between">
         <Link href="/" className="text-xl font-semibold">

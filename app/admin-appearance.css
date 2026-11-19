@@ -1,14 +1,14 @@
 /* Opt-in admin palettes. Original continues to use the legacy theme rules. */
 .admin-theme-shell[data-admin-theme][data-admin-appearance]:not([data-admin-appearance="original"]) {
-  --clean-canvas: light-dark(#f4f3ef, #16171b);
-  --clean-rail: light-dark(#ecebe6, #131418);
-  --clean-surface: light-dark(#fdfcf9, #1d1e24);
-  --clean-line: light-dark(#d7d5ce, #34353e);
-  --clean-ink: light-dark(#25242b, #f1f0f4);
-  --clean-muted: light-dark(#56545e, #abaab6);
-  --clean-accent: light-dark(#563a95, #c4b3f9);
-  --clean-action-ink: light-dark(#fff, #211936);
-  --clean-selected: light-dark(#e8e2f2, #272334);
+  --clean-canvas: light-dark(#fff, #000);
+  --clean-rail: light-dark(#fff, #080808);
+  --clean-surface: light-dark(#fff, #101010);
+  --clean-line: light-dark(#ddd, #2c2c2c);
+  --clean-ink: light-dark(#252525, #f4f4f4);
+  --clean-muted: light-dark(#565656, #aaa);
+  --clean-accent: light-dark(#315b88, #9bc2ff);
+  --clean-action-ink: light-dark(#fff, #091522);
+  --clean-selected: light-dark(#e3eaf1, #111d2b);
   --clean-positive: light-dark(#286044, #a4c8ae);
   --clean-warning: light-dark(#845314, #ddb27d);
   --clean-negative: light-dark(#a22d43, #ff9ba9);
@@ -75,7 +75,7 @@
     .events-command-search, .events-directory-filters, .events-metric-strip > div, .event-directory-item,
     .activity-editorial-page, .activity-range-control, .cloud-editorial-hero, .cloud-editorial-page article,
     .cloud-editorial-page section > div[class*="rounded-2xl"], .team-access-page, .team-access-header,
-    .dev-tools-workspace, .dev-tools-workspace__verification, .dev-tools-field, .io-panel, .io-runtime) {
+    .dev-tools-workspace, .dev-tools-workspace__verification, .dev-tools-field, .io-panel, .io-runtime, .dashboard-platform-health, .dashboard-status) {
     background: var(--clean-surface) !important;
     border-color: var(--clean-line) !important;
     border-radius: 6px;
@@ -87,7 +87,21 @@
     background: transparent;
   }
 
-  & .event-directory-item:hover { background: var(--clean-selected) !important; }
+  & .event-directory-item {
+    background: linear-gradient(90deg, rgba(var(--event-accent), .15), var(--clean-surface) 56%) !important;
+    box-shadow: 0 4px 10px rgb(0 0 0 / .12) !important;
+  }
+  & .event-directory-item::before { width: 4px; box-shadow: none; }
+  & .event-directory-item:hover { border-color: rgba(var(--event-accent), .58) !important; }
+  & .events-editorial-header { border-color: var(--clean-line); }
+  & .events-editorial-title { text-shadow: none; }
+  & .admin-navigation-rail :is(.text-white, [class*="text-white/"]) { color: var(--clean-muted) !important; }
+  & .admin-navigation-rail a[aria-current="page"] > span { color: var(--clean-accent) !important; }
+  & .jupiter-mobile-header .text-white { color: var(--clean-ink); }
+  & .dashboard-command-panel [class*="bg-[#070d1d]"] { background: var(--clean-rail) !important; }
+  & :is(.global-editorial-page, .io-console) :is(.text-blue-200, .text-blue-300, .text-cyan-300, .text-violet-200, .text-violet-300) {
+    color: var(--clean-accent) !important;
+  }
 
   & :is(.global-editorial-page a[class*="from-blue-600"], .global-editorial-page button[class*="bg-blue-600"], .io-start-server:enabled,
     .io-console:has([data-runtime-state="running"]) .io-start-receiving:enabled) {
@@ -164,5 +178,148 @@
   & :is([class*="bg-slate-950"], [class*="bg-[#081321]"], .io-tour-panel):not(.io-matrix *) {
     background: var(--clean-surface);
     border-color: var(--clean-line);
+  }
+}
+
+/* The root boundary shares the palette with public and event-workspace chrome.
+   Author-supplied event artwork and color remain owned by the event. */
+.jupiter-site-appearance { display: contents; }
+
+.jupiter-site-appearance:is([data-site-appearance="light"], [data-site-appearance="dark"]) {
+  --site-canvas: light-dark(#fff, #000);
+  --site-rail: light-dark(#fff, #080808);
+  --site-surface: light-dark(#fff, #101010);
+  --site-line: light-dark(#ddd, #2c2c2c);
+  --site-ink: light-dark(#252525, #f4f4f4);
+  --site-muted: light-dark(#565656, #aaa);
+  --site-accent: light-dark(#315b88, #9bc2ff);
+  --site-selected: light-dark(#e3eaf1, #111d2b);
+  --background: var(--site-canvas);
+  --foreground: var(--site-ink);
+  --card: var(--site-surface);
+  --card-foreground: var(--site-ink);
+  --border: var(--site-line);
+  --muted-foreground: var(--site-muted);
+  color: var(--site-ink);
+
+  & .jv1-shell {
+    --jv1-canvas: var(--site-canvas);
+    --jv1-navigation: var(--site-rail);
+    --jv1-surface: var(--site-surface);
+    --jv1-subtle: var(--site-rail);
+    --jv1-raised: var(--site-surface);
+    --jv1-border: var(--site-line);
+    --jv1-border-strong: var(--site-line);
+    --jv1-text: var(--site-ink);
+    --jv1-secondary: var(--site-muted);
+    --jv1-muted: var(--site-muted);
+    --jv1-primary: var(--site-selected);
+    --jv1-focus: var(--site-accent);
+  }
+
+  & :is(.jv1-atmospheric-header, .jv1-header-workspace-bar, .jv1-global-rail, .jv1-event-rail, .jv1-system-card) {
+    border-color: var(--site-line);
+    background: var(--site-rail);
+    box-shadow: none;
+  }
+  & .jv1-atmospheric-header::before, & .jv1-header-veil { display: none; }
+  & :is(.jv1-header-event-copy strong, .jv1-header-brand .text-white, .jv1-top-link, .jv1-global-rail .jv1-nav-item, .jv1-rail-logo, .jv1-system-status) { color: var(--site-ink); }
+  & :is(.jv1-header-event-copy > span, .jv1-rail-section-label, .jv1-rail-kicker, .jv1-system-label) { color: var(--site-muted); }
+  & :is(.jv1-top-link, .jv1-nav-item)[aria-current="page"] { color: var(--site-accent); background: var(--site-selected); border-color: var(--site-line); box-shadow: none; }
+  & .jv1-top-link--selected::after { background: var(--site-accent); }
+  & .jv1-global-rail .admin-theme-switch button { color: var(--site-muted); }
+  & .jv1-global-rail .admin-theme-switch button[aria-pressed="true"] { background: var(--site-selected); color: var(--site-accent); box-shadow: none; }
+
+  & :is(.jupiter-public-event-default, .jupiter-site-appearance-surface),
+  & > main:is(.bg-slate-950, .bg-gradient-to-br, [class*="bg-[#030817]"], [class*="bg-[#020617]"], [class*="bg-[#050b18]"]) {
+    background: var(--site-canvas) !important;
+    color: var(--site-ink) !important;
+  }
+  & > main[class*="bg-[#030817]"] > .absolute[aria-hidden="true"] { display: none; }
+  & > main > :is(div, section):is([class*="bg-[#080e1d]"], .bg-slate-900, .bg-white\/5),
+  & .jupiter-public-event-default > header {
+    background: var(--site-surface);
+    border-color: var(--site-line);
+    color: var(--site-ink);
+  }
+}
+
+.jupiter-site-appearance[data-site-appearance="light"] { color-scheme: light; }
+.jupiter-site-appearance[data-site-appearance="dark"] { color-scheme: dark; }
+
+body.jupiter-space-site:has(.jupiter-site-appearance[data-site-appearance="dark"]) { background: #000; }
+body.jupiter-space-site:has(.jupiter-site-appearance[data-site-appearance="light"]) { background: #fff; }
+body.jupiter-space-site:has(.jupiter-site-appearance:is([data-site-appearance="light"], [data-site-appearance="dark"]))::before,
+body.jupiter-space-site:has(.jupiter-site-appearance:is([data-site-appearance="light"], [data-site-appearance="dark"]))::after { display: none; }
+
+.jupiter-site-appearance[data-site-appearance="light"] {
+  & :is(.jv1-content, .jupiter-public-event-default, .jupiter-site-appearance-surface, main:is(.bg-slate-950, .bg-gradient-to-br, [class*="bg-[#030817]"], [class*="bg-[#050b18]"])) {
+    & :is(.text-white, .text-slate-100, .text-slate-200) { color: var(--site-ink); }
+    & :is([class*="text-white/"], .text-slate-300, .text-slate-400) { color: var(--site-muted); }
+    & :is([class*="border-white/"], .border-slate-800) { border-color: var(--site-line); }
+    & :is([class*="bg-[#080e1d]"], .bg-slate-950, .bg-slate-900, [class*="bg-slate-950/"], [class*="bg-slate-900/"]) { background: var(--site-surface); }
+    & :is(.text-blue-200,.text-blue-300,.text-sky-300,.text-violet-200) { color: var(--site-accent); }
+  }
+}
+
+.jupiter-appearance-space { display: none; }
+
+.admin-theme-shell[data-admin-appearance="dark"] {
+  & [data-dashboard-tour="live"].dashboard-command-panel {
+    border-color: #36577a !important;
+    box-shadow: 0 12px 30px #000b, 0 0 18px #4784dc20 !important;
+  }
+  & [data-dashboard-tour="live"] > div[aria-hidden="true"],
+  & [data-dashboard-tour="live"] > .absolute { display: none; }
+  & .io-panel.io-source {
+    border-color: #36577a !important;
+    box-shadow: 0 0 22px #4d9af328, 0 12px 24px #000b !important;
+  }
+  & .cloud-editorial-page article[data-cloud-state="unavailable"] { border-color: #775a35 !important; }
+  & .jupiter-appearance-space {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    height: clamp(108px, 16vw, 164px);
+    isolation: isolate;
+    background: radial-gradient(ellipse at 86% 100%, #0b1728, transparent 53%);
+    pointer-events: none;
+  }
+  & .jupiter-appearance-space::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 25%;
+    background:
+      radial-gradient(circle at 12% 43%, #7386a8 0 .65px, transparent 1.5px),
+      radial-gradient(circle at 27% 71%, #475669 0 .55px, transparent 1.4px),
+      radial-gradient(circle at 40% 16%, #7789a3 0 .65px, transparent 1.5px),
+      radial-gradient(circle at 59% 51%, #849cbb 0 .6px, transparent 1.5px),
+      radial-gradient(circle at 92% 81%, #566985 0 .6px, transparent 1.5px);
+  }
+  & .jupiter-appearance-space:not(.jupiter-appearance-space--stars)::after {
+    /* Cassini Jupiter Portrait PIA04866, NASA/JPL/Space Science Institute. */
+    content: "";
+    position: absolute;
+    width: clamp(142px, 65%, 260px);
+    aspect-ratio: 384 / 480;
+    right: -2%;
+    top: 12%;
+    background: url("/images/appearance/jupiter-cassini.jpg") center / contain no-repeat;
+    filter: saturate(.72) brightness(.60);
+    mix-blend-mode: screen;
+    mask-image: linear-gradient(#000 0 57%, transparent 93%);
+  }
+  & .jupiter-appearance-space--stars {
+    order: 2;
+    height: 44px;
+    background: radial-gradient(ellipse at 20% 94%, #101928, transparent 70%);
+  }
+  & .jupiter-appearance-space--stars::before { opacity: .48; }
+  & :is(.activity-editorial-page, .cloud-editorial-page) .jupiter-appearance-space::after {
+    top: 52%;
+    transform: translateY(-63%);
+    filter: saturate(.78) brightness(.49);
+    mask-image: linear-gradient(transparent 18%, #000 43% 74%, transparent 95%);
   }
 }

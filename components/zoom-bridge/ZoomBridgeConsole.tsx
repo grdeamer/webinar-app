@@ -82,7 +82,7 @@ export default function ZoomBridgeConsole() {
     </header>
     <IoRuntimePanel />
     <div className="io-workspace-grid">
-    <div className="io-source-column"><IoSetupHelp /><ZoomSourcePanel /></div>
+    <div className="io-source-column"><IoSetupHelp /><ZoomSourcePanel /><div className="jupiter-appearance-space jupiter-appearance-space--stars" aria-hidden="true" /></div>
     <div className="io-destination-column">
     <section data-io-tour="fleet" className="io-panel io-fleet p-5">
       <div className="flex flex-wrap items-center justify-between gap-4"><div><h2 className="text-lg font-semibold">Satellites</h2><p className="mt-1 text-xs text-white/45">Up to 50 satellite profiles</p></div><div className="flex items-end gap-3"><label className="text-xs text-white/65">Quantity to add<select aria-label="Quantity to add" disabled={busy || !loaded || !remainingSlots} value={quantityToAdd || 1} onChange={e => setAddCount(Number(e.target.value))} className={`${ioField} w-28`}>{Array.from({ length: Math.max(1, remainingSlots) }, (_, i) => <option key={i + 1} value={i + 1} className="bg-slate-950">{i + 1}</option>)}</select></label><button type="button" className={ioButton} disabled={busy || !loaded || !remainingSlots} onClick={addProfiles}><Plus size={16} />{quantityToAdd > 1 ? `Add ${quantityToAdd} satellites` : "Add satellite"}</button></div></div>

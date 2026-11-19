@@ -8,6 +8,7 @@ import { Activity, CalendarDate, Home03, Signal02, Tool02, Users01 } from "@unti
 import { BarChart3, CalendarClock, CloudCog, LayoutDashboard, ListChecks, Menu, MessagesSquare, Network, NotebookTabs, PanelsTopLeft, RadioTower, Rocket, UsersRound, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
+import { JupiterAppearanceSwitch, useJupiterAppearance, usesDefaultAppearance } from "@/components/ui/JupiterAppearance"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
 import type { EventFeature } from "@/lib/eventPermissions"
 
@@ -54,6 +55,8 @@ function TopLink({ href, label, icon, exact = false, disabled = false }: { href:
 export default function EventLayout({ children }: { children: ReactNode }) {
   const params = useParams()
   const pathname = usePathname()
+  const appearance = useJupiterAppearance()
+  const canChangeAppearance = !usesDefaultAppearance(pathname)
   const id = String(params.id)
   const base = `/admin/events/${id}`
   const isProducer = pathname.startsWith(`${base}/producer`)
@@ -126,7 +129,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
           <div className="jv1-rail-section-label">Global</div>
           <nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin" label="Dashboard" icon={<Home03 />} iconTone="112 169 255" exact /><NavLink href="/admin/events" label="Events" icon={<CalendarDate />} iconTone="174 108 255" /><NavLink href="/admin/activity" label="Live Activity" icon={<Activity />} iconTone="83 229 168" disabled={eventContext ? !eventContext.isGlobalAdmin : false} /></nav>
           {eventContext?.isGlobalAdmin ? <><div className="jv1-rail-section-label jv1-rail-section-label--administration">Administration</div><nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin/users" label="Team & Access" icon={<Users01 />} iconTone="91 211 255" /><NavLink href="/admin/dev-tools" label="Dev Tools" icon={<Tool02 />} iconTone="241 188 104" /></nav></> : null}
-          <div className="mt-auto pt-6"><AdminProfileMenu /></div>
+          <div className="mt-auto pt-6">{canChangeAppearance ? <JupiterAppearanceSwitch appearance={appearance} /> : null}<AdminProfileMenu /></div>
         </aside>
         <aside className="jv1-event-rail" aria-label="Mobile event workspace">
           <div className="jv1-event-rail-label"><span /> Event workspace</div>

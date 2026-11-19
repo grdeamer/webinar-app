@@ -112,7 +112,7 @@ export default async function AdminDashboardPage() {
         </div>
         <div className="flex flex-wrap items-center gap-3">
           <MissionControlTour userId={user.id} />
-          <div className="inline-flex h-11 items-center gap-2 rounded-full border border-white/10 bg-[#080e1d]/72 px-4 text-sm text-white/68">
+          <div className="inline-flex h-11 items-center gap-2 rounded-full border border-white/10 dashboard-status bg-[#080e1d]/72 px-4 text-sm text-white/68">
             <span className={`h-2 w-2 rounded-full ${healthy ? "bg-emerald-300" : "bg-amber-300"}`} />
             {healthy ? "Systems ready" : "Service check required"}
           </div>
@@ -172,11 +172,12 @@ export default async function AdminDashboardPage() {
         </section>
       </div>
 
-      <section className="flex flex-col gap-4 rounded-2xl border border-white/[.08] bg-[#080e1d]/52 px-6 py-4 lg:flex-row lg:items-center">
+      <section className="dashboard-platform-health flex flex-col gap-4 rounded-2xl border border-white/[.08] bg-[#080e1d]/52 px-6 py-4 lg:flex-row lg:items-center">
         <div className="flex shrink-0 items-center justify-between gap-5 lg:pr-5"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[.18em] text-white/55"><ShieldCheck size={16} />Platform health</div>{isGlobalAdmin ? <Link href="/admin/health" className="text-xs font-semibold text-blue-300 lg:hidden">View status</Link> : null}</div>
         <div className="grid flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4"><Health icon={<Radio size={17} />} label="Live signals" ok={!liveResult.error} /><Health icon={<Send size={17} />} label="Event delivery" ok={!eventsResult.error} /><Health icon={<Database size={17} />} label="Data services" ok={!sessionsResult.error} /><Health icon={<ServerCog size={17} />} label="Admin services" ok={healthy} /></div>
         {isGlobalAdmin ? <Link href="/admin/health" className="hidden shrink-0 text-xs font-semibold text-blue-300 lg:block">View status<ArrowUpRight size={13} className="ml-1 inline" /></Link> : null}
       </section>
+      <div className="jupiter-appearance-space" aria-hidden="true" />
     </div>
   )
 }

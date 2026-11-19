@@ -294,7 +294,7 @@ export default function ActivityTreeClient({
           <h2 className="text-sm font-semibold">Live signals</h2>
           <div className="mt-7 divide-y divide-white/[.085]">
             {rows.slice(0, 7).map((row, index) => <div key={`${row.session_id}-${row.updated_at}-${index}`} className="grid grid-cols-[32px_1fr_auto] items-start gap-3 py-5"><span className={`mt-1 flex h-8 w-8 items-center justify-center rounded-full border ${index === 0 ? "border-amber-200/20 bg-amber-300/[.08] text-amber-100" : "border-white/10 bg-white/[.035] text-white/55"}`}>{destinationFor(row.current_path).slice(0,1)}</span><div><div className="text-sm font-medium">{row.user_email || "Attendee"}</div><div className="mt-1 text-sm text-white/45">{shortPath(row.current_path)}</div></div><time className="pt-1 text-xs text-white/35">{new Date(row.updated_at).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit", timeZone: "America/New_York" })}</time></div>)}
-            {rows.length === 0 ? <div className="py-10 text-sm leading-6 text-white/42">The constellation is quiet. New audience movement will appear here automatically.</div> : null}
+            {rows.length === 0 ? <><div className="py-10 text-sm leading-6 text-white/42">No recent signals. New audience activity will appear here automatically.</div><div className="jupiter-appearance-space" aria-hidden="true" /></> : null}
           </div>
           <div className="mt-6 flex items-center justify-between border-t border-white/10 pt-5 text-xs text-white/38"><span>Showing latest signals</span><span className="flex items-center gap-2"><span className="h-1.5 w-1.5 rounded-full bg-emerald-300" />{paused ? "Paused" : "Live"}</span></div>
         </aside>

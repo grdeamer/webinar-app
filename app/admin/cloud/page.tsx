@@ -27,7 +27,7 @@ function StateBadge({ state }: { state: CloudServiceState }) {
 
 function ServiceCard({ service }: { service: CloudService }) {
   const Icon = serviceIcons[service.id as keyof typeof serviceIcons] || Cloud
-  return <article className="rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(13,23,43,.94),rgba(5,10,22,.94))] p-5 shadow-[inset_0_1px_rgba(255,255,255,.035)]">
+  return <article data-cloud-state={service.state} className="rounded-2xl border border-white/10 bg-[linear-gradient(145deg,rgba(13,23,43,.94),rgba(5,10,22,.94))] p-5 shadow-[inset_0_1px_rgba(255,255,255,.035)]">
     <div className="flex items-start justify-between gap-3"><span className="grid h-11 w-11 place-items-center rounded-2xl border border-violet-300/15 bg-violet-300/10 text-violet-200"><Icon size={20} /></span><StateBadge state={service.state} /></div>
     <div className="mt-5 text-xs font-semibold uppercase tracking-[.16em] text-white/34">{service.layer}</div>
     <h2 className="mt-2 text-lg font-semibold">{service.name}</h2>
@@ -65,6 +65,7 @@ export default async function JupiterCloudPage() {
         <div className="flex flex-wrap items-start justify-between gap-4"><div><div className="text-[10px] font-bold uppercase tracking-[.2em] text-white/32">Current deployment</div><h2 className="mt-2 text-xl font-semibold">Production control plane</h2></div><StateBadge state={snapshot.deployment.status === "ready" ? "operational" : "configured"} /></div>
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><CloudDetail label="Provider" value="Vercel" /><CloudDetail label="Environment" value={snapshot.deployment.environment} /><CloudDetail label="Region" value={snapshot.region} /><CloudDetail label="Commit" value={snapshot.deployment.commitSha?.slice(0, 8) || "Local build"} /></div>
         {snapshot.deployment.url ? <a href={snapshot.deployment.url} target="_blank" rel="noreferrer" className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-blue-300 hover:text-blue-200">Open production<ArrowUpRight size={15} /></a> : null}
+        <div className="jupiter-appearance-space" aria-hidden="true" />
       </div>
       <div className="rounded-2xl border border-white/10 bg-white/[.025] p-6"><div className="flex items-center gap-2 text-sm font-semibold"><Activity size={17} className="text-cyan-300" />Live capacity</div><div className="mt-6 grid grid-cols-2 gap-4"><UsageMetric value={snapshot.usage.activeAudience} label="Audience now" /><UsageMetric value={snapshot.usage.activeEvents} label="Active events" /><UsageMetric value={snapshot.usage.events} label="Workspaces" /><UsageMetric value={snapshot.usage.sessions} label="Sessions" /></div></div>
     </section>

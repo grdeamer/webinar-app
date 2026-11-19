@@ -41,7 +41,7 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
       }
 
   return (
-    <div className="min-h-dvh text-white" style={pageStyle}>
+    <div className={`min-h-dvh text-white ${theme?.background_image_url || theme?.bg_color || theme?.text_color ? "" : "jupiter-public-event-default"}`} style={pageStyle}>
       <EventLiveStateRedirect slug={slug} />
 
       <header className="border-b border-white/10 bg-black/30 backdrop-blur">

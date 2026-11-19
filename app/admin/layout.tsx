@@ -12,40 +12,24 @@ import { SharpDashboard, SharpCalendar, SharpCloud, SharpUsers, SharpBroadcast, 
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import { CleanAdminAppearance } from "@/components/admin/AdminAppearanceContext"
+import { JupiterAppearanceSwitch, useJupiterAppearance, usesDefaultAppearance } from "@/components/ui/JupiterAppearance"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
 import { useAdminSessionGuard } from "@/components/admin/useAdminSessionGuard"
 
-type Appearance = "original" | "light" | "dark"
-
-const APPEARANCE_KEY = "jupiter-admin-appearance"
-const APPEARANCE_CHANGED = "jupiter-admin-appearance-changed"
-
-function subscribeToAppearance(notify: () => void) {
+function subscribeToOriginalTheme(notify: () => void) {
   const systemTheme = window.matchMedia("(prefers-color-scheme: light)")
   window.addEventListener("storage", notify)
-  window.addEventListener(APPEARANCE_CHANGED, notify)
   systemTheme.addEventListener("change", notify)
   return () => {
     window.removeEventListener("storage", notify)
-    window.removeEventListener(APPEARANCE_CHANGED, notify)
     systemTheme.removeEventListener("change", notify)
   }
-}
-
-function readAppearance(): Appearance {
-  const value = window.localStorage.getItem(APPEARANCE_KEY)
-  return value === "light" || value === "dark" ? value : "original"
 }
 
 function readOriginalTheme() {
   const value = window.localStorage.getItem("jupiter-admin-theme")
   if (value === "light" || value === "dark") return value
   return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark"
-}
-
-function changeAppearance(value: Appearance) {
-  window.localStorage.setItem(APPEARANCE_KEY, value)
-  window.dispatchEvent(new Event(APPEARANCE_CHANGED))
 }
 
 function matches(pathname: string, href: string) {
@@ -135,8 +119,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isTeamAccess = pathname === "/admin/users"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
-  const appearance = useSyncExternalStore(subscribeToAppearance, readAppearance, () => "original" as const)
-  const originalTheme = useSyncExternalStore(subscribeToAppearance, readOriginalTheme, () => "dark" as const)
+  const savedAppearance = useJupiterAppearance()
+  const appearance = usesDefaultAppearance(pathname) ? "original" : savedAppearance
+  const originalTheme = useSyncExternalStore(subscribeToOriginalTheme, readOriginalTheme, () => "dark" as const)
   const compactNavigation = isEventWorkspace && !mobileNavOpen
 
   useEffect(() => {
@@ -210,7 +195,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   }
 
   if (isEventWorkspace) {
-    return <div className="min-h-dvh bg-[#030714] text-white"><AdminDocumentTitle />{children}</div>
+    return <div className="jupiter-site-appearance-surface min-h-dvh bg-[#030714] text-white"><AdminDocumentTitle />{children}</div>
   }
 
   return (
@@ -320,15 +305,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
             </div>
 
             <div className={`${compactNavigation ? "px-2" : "border-t border-white/10 p-4"} pb-[calc(1rem+env(safe-area-inset-bottom))]`}>
-              {!compactNavigation ? (
-                <fieldset className="admin-theme-switch mb-3 grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-black/15 p-1">
-                  <legend className="sr-only">Appearance</legend>
-                  {(["original", "light", "dark"] as const).map((option) => (
-                    <button key={option} type="button" onClick={() => changeAppearance(option)} aria-pressed={appearance === option} className="h-9 rounded-md px-1 text-xs font-semibold capitalize transition">
-                      {option}
-                    </button>
-                  ))}
-                </fieldset>
+              {!compactNavigation && !usesDefaultAppearance(pathname) ? (
+                <JupiterAppearanceSwitch appearance={appearance} />
               ) : null}
               <AdminProfileMenu compact={compactNavigation} />
             </div>
