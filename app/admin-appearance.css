@@ -5,7 +5,7 @@
   --clean-surface: light-dark(#fff, #101010);
   --clean-line: light-dark(#ddd, #2c2c2c);
   --clean-ink: light-dark(#252525, #f4f4f4);
-  --clean-muted: light-dark(#565656, #aaa);
+  --clean-muted: light-dark(#4e4e4e, #b8b8b8);
   --clean-accent: light-dark(#315b88, #9bc2ff);
   --clean-action-ink: light-dark(#fff, #091522);
   --clean-selected: light-dark(#e3eaf1, #111d2b);
@@ -88,13 +88,36 @@
   }
 
   & .event-directory-item {
-    background: linear-gradient(90deg, rgba(var(--event-accent), .15), var(--clean-surface) 56%) !important;
+    background: linear-gradient(90deg, color-mix(in srgb, rgb(var(--event-accent)) 14%, var(--clean-surface)), var(--clean-surface) 56%) !important;
     box-shadow: 0 4px 10px rgb(0 0 0 / .12) !important;
   }
   & .event-directory-item::before { width: 4px; box-shadow: none; }
   & .event-directory-item:hover { border-color: rgba(var(--event-accent), .58) !important; }
   & .events-editorial-header { border-color: var(--clean-line); }
   & .events-editorial-title { text-shadow: none; }
+  & :is(.global-editorial-page, .io-console) :is(h1, h2) { font-weight: 600; }
+  & :is(.events-editorial-description, .event-directory-item__date, .events-calendar-day,
+    .events-calendar-selection small, .events-activity-list small, .io-source-health) { font-weight: 500; }
+  & :is(.admin-navigation-rail nav a, .events-rail-heading, .event-directory-item__title) { font-weight: 600; }
+  & :is(.event-directory-item__slug, .event-directory-item__date) { font-size: .8125rem; }
+  & .event-directory-item__status { font-size: .6875rem; font-weight: 600; letter-spacing: .04em; color: var(--clean-accent); }
+  & .event-directory-item__status.is-build { color: var(--clean-warning); }
+  & .event-directory-item__status.is-live { color: var(--clean-positive); }
+  & :is(.events-editorial-create, .events-directory-filters button.is-active) {
+    background: var(--clean-accent) !important;
+    color: var(--clean-action-ink) !important;
+    box-shadow: none !important;
+  }
+  & .events-calendar-day:is(.has-event, .is-selected) {
+    background: var(--clean-selected);
+    border-color: var(--clean-accent);
+    color: var(--clean-accent);
+    font-weight: 600;
+  }
+  & :is(.events-command-tools > a, .events-calendar-month button, .events-directory-filters button:not(.is-active)) {
+    color: var(--clean-muted);
+  }
+  & .events-command-search input::placeholder { color: var(--clean-muted); }
   & .admin-navigation-rail :is(.text-white, [class*="text-white/"]) { color: var(--clean-muted) !important; }
   & .admin-navigation-rail a[aria-current="page"] > span { color: var(--clean-accent) !important; }
   & .jupiter-mobile-header .text-white { color: var(--clean-ink); }
@@ -191,7 +214,7 @@
   --site-surface: light-dark(#fff, #101010);
   --site-line: light-dark(#ddd, #2c2c2c);
   --site-ink: light-dark(#252525, #f4f4f4);
-  --site-muted: light-dark(#565656, #aaa);
+  --site-muted: light-dark(#4e4e4e, #b8b8b8);
   --site-accent: light-dark(#315b88, #9bc2ff);
   --site-selected: light-dark(#e3eaf1, #111d2b);
   --background: var(--site-canvas);
