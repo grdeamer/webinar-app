@@ -5,24 +5,26 @@ import { ExternalLink, Maximize2, Monitor, Users, X } from "lucide-react"
 import { meetingJoinLink } from "@/lib/zoom-bridge/meeting-link"
 import { ioButton, ioField } from "./SatelliteCard"
 import RtmsMeetingReturn from "./RtmsMeetingReturn"
+import LocalMeetingReturn from "./LocalMeetingReturn"
 
 interface Meeting { id: string; name: string; joinUrl: string }
 type Layout = 4 | 9 | 16
+type ReturnSource = "window" | "rtms"
 const grids: Record<Layout, string> = {
   4: "grid-cols-1 sm:grid-cols-2",
   9: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
   16: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
 }
 
-function MeetingTile({ meeting, slot, expanded, onExpand, onRemove }: {
-  meeting?: Meeting; slot: number; expanded: boolean; onExpand: () => void; onRemove: () => void
+function MeetingTile({ meeting, slot, expanded, onExpand, onRemove, source }: {
+  meeting?: Meeting; slot: number; expanded: boolean; onExpand: () => void; onRemove: () => void; source: ReturnSource
 }) {
   return <article className="min-w-0 overflow-hidden rounded-xl border border-white/15 bg-[#0d1c2a]" aria-label={meeting?.name ?? `Empty meeting slot ${slot}`}>
     <header className="flex min-h-12 flex-wrap items-center justify-between gap-2 px-3 py-2">
       <h2 className="min-w-0 break-words text-sm font-medium">{meeting?.name ?? `Meeting ${slot}`}</h2>
       <span className="text-xs text-slate-400">{meeting ? slot === 1 ? "Test receiver" : "○ Not connected" : "Empty slot"}</span>
     </header>
-    {meeting && slot === 1 ? <RtmsMeetingReturn joinUrl={meeting.joinUrl} /> : <><div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
+    {meeting && slot === 1 ? source === "window" ? <LocalMeetingReturn /> : <RtmsMeetingReturn joinUrl={meeting.joinUrl} /> : <><div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
       <Monitor size={24} aria-hidden="true" />
       <span className="text-sm">{meeting ? "Waiting for shared presentation" : "Shared presentation"}</span>
       <span className="text-xs">{meeting ? "Zoom media connection required" : "Add a meeting to this multiview"}</span>
@@ -45,6 +47,7 @@ function MeetingTile({ meeting, slot, expanded, onExpand, onRemove }: {
 
 export default function MeetingMultiview() {
   const [layout, setLayout] = useState<Layout>(4)
+  const [source, setSource] = useState<ReturnSource>("window")
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [page, setPage] = useState(0)
   const [expanded, setExpanded] = useState<number | null>(null)
@@ -71,7 +74,12 @@ export default function MeetingMultiview() {
 
   return <section className="space-y-5" aria-label="Meeting multiview">
     <div className="rounded-xl border border-amber-300/25 bg-amber-300/5 px-4 py-3 text-sm text-amber-100" role="status">
-      First meeting qualification: test the presentation and active-speaker return in the first tile after RTMS setup. Other tiles remain disconnected until qualified.
+      One-meeting pilot: select a Zoom window on this Mac, or use the separately configured RTMS receiver. Other tiles remain disconnected until qualified.
+    </div>
+    <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Meeting return source">
+      <span className="text-sm text-slate-300">First tile source</span>
+      <button type="button" className={ioButton} aria-pressed={source === "window"} onClick={() => setSource("window")}>This Mac · Zoom window</button>
+      <button type="button" className={ioButton} aria-pressed={source === "rtms"} onClick={() => setSource("rtms")}>Server · Zoom RTMS</button>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-3"><span className="text-sm text-slate-300">Meetings per page</span><div className="flex flex-wrap gap-2" role="group" aria-label="Meetings per page">
@@ -86,7 +94,7 @@ export default function MeetingMultiview() {
     </form>
     {error ? <p id="multiview-error" role="alert" className="text-sm text-amber-200">{error}</p> : null}
     <div className={`grid gap-3 ${expanded === null ? grids[layout] : "mx-auto max-w-4xl grid-cols-1"}`}>
-      {slots.map(slot => <MeetingTile key={meetings[slot]?.id ?? `empty-${slot}`} meeting={meetings[slot]} slot={slot + 1} expanded={expanded !== null} onExpand={() => setExpanded(expanded === null ? slot : null)} onRemove={() => { setMeetings(previous => previous.filter((_, i) => i !== slot)); setExpanded(null) }} />)}
+      {slots.map(slot => <MeetingTile key={meetings[slot]?.id ?? `empty-${slot}`} meeting={meetings[slot]} slot={slot + 1} source={source} expanded={expanded !== null} onExpand={() => setExpanded(expanded === null ? slot : null)} onRemove={() => { setMeetings(previous => previous.filter((_, i) => i !== slot)); setExpanded(null) }} />)}
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-xs text-slate-400">Shared presentation + active speaker + participant strip</p>
