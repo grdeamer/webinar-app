@@ -3,6 +3,19 @@
 import { useEffect, useRef, useState } from "react"
 import { ioButton } from "./SatelliteCard"
 
+function captureError(cause: unknown) {
+  const name = cause instanceof Error ? cause.name : "UnknownError"
+  const explanations: Record<string, string> = {
+    NotAllowedError: "The browser or macOS did not grant window capture. This can also happen after you select a window; it does not mean you selected it incorrectly.",
+    AbortError: "The browser or macOS could not start capturing the selected window.",
+    NotReadableError: "The selected window could not be read. Check macOS screen-recording access for this browser.",
+    InvalidStateError: "The browser could not start capture from this page. Keep this tab focused and use Select Zoom window directly.",
+    TypeError: "The browser rejected the capture request.",
+    NotFoundError: "The browser could not find an available window to capture.",
+  }
+  return `${explanations[name] ?? "Window capture failed before a picture could be displayed."} (${Object.hasOwn(explanations, name) ? name : "CaptureError"})`
+}
+
 /** Local display capture only: no upload, server session, or audio acquisition. */
 export default function LocalMeetingReturn() {
   const video = useRef<HTMLVideoElement>(null)
@@ -41,7 +54,7 @@ export default function LocalMeetingReturn() {
     setPending(true)
     try {
       const next = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 10, max: 15 } }, audio: false,
+        video: true, audio: false,
       })
       if (!mounted.current || token !== request.current) {
         next.getTracks().forEach(track => track.stop())
@@ -65,8 +78,8 @@ export default function LocalMeetingReturn() {
         })
       }
       setLive(true)
-    } catch {
-      if (mounted.current && token === request.current) setError("No new window was selected. Allow screen sharing in your browser and macOS, then select the meeting’s Zoom window.")
+    } catch (cause) {
+      if (mounted.current && token === request.current) setError(captureError(cause))
     } finally {
       if (mounted.current && token === request.current) setPending(false)
     }
