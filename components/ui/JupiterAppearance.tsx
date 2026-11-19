@@ -6,7 +6,7 @@ import { useSyncExternalStore, type ReactNode } from "react"
 const KEY = "jupiter-admin-appearance"
 const CHANGE_EVENT = "jupiter-admin-appearance-changed"
 
-type Appearance = "original" | "light" | "dark"
+type Appearance = "light" | "dark"
 
 function subscribe(notify: () => void) {
   window.addEventListener("storage", notify)
@@ -19,7 +19,7 @@ function subscribe(notify: () => void) {
 
 function readAppearance(): Appearance {
   const saved = window.localStorage.getItem(KEY)
-  return saved === "original" || saved === "light" ? saved : "dark"
+  return saved === "light" ? "light" : "dark"
 }
 
 export function useJupiterAppearance() {
@@ -46,9 +46,9 @@ export function JupiterAppearanceBoundary({ children }: { children: ReactNode })
 
 export function JupiterAppearanceSwitch({ appearance }: { appearance: Appearance }) {
   return (
-    <fieldset className="admin-theme-switch mb-3 grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-black/15 p-1">
+    <fieldset className="admin-theme-switch mb-3 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/15 p-1">
       <legend className="sr-only">Appearance</legend>
-      {(["original", "light", "dark"] as const).map(option => (
+      {(["light", "dark"] as const).map(option => (
         <button
           key={option}
           type="button"

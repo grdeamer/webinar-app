@@ -306,7 +306,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
             <div className={`${compactNavigation ? "px-2" : "border-t border-white/10 p-4"} pb-[calc(1rem+env(safe-area-inset-bottom))]`}>
               {!compactNavigation && !usesDefaultAppearance(pathname) ? (
-                <JupiterAppearanceSwitch appearance={appearance} />
+                <JupiterAppearanceSwitch appearance={savedAppearance} />
               ) : null}
               <AdminProfileMenu compact={compactNavigation} />
             </div>
