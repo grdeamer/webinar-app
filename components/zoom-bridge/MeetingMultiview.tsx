@@ -6,10 +6,11 @@ import { meetingJoinLink } from "@/lib/zoom-bridge/meeting-link"
 import { ioButton, ioField } from "./SatelliteCard"
 import RtmsMeetingReturn from "./RtmsMeetingReturn"
 import LocalMeetingReturn from "./LocalMeetingReturn"
+import DesktopMeetingReturn from "./DesktopMeetingReturn"
 
 interface Meeting { id: string; name: string; joinUrl: string }
 type Layout = 4 | 9 | 16
-type ReturnSource = "window" | "rtms"
+type ReturnSource = "window" | "rtms" | "desktop"
 const grids: Record<Layout, string> = {
   4: "grid-cols-1 sm:grid-cols-2",
   9: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3",
@@ -24,7 +25,7 @@ function MeetingTile({ meeting, slot, expanded, onExpand, onRemove, source }: {
       <h2 className="min-w-0 break-words text-sm font-medium">{meeting?.name ?? `Meeting ${slot}`}</h2>
       <span className="text-xs text-slate-400">{meeting ? slot === 1 ? "Test receiver" : "○ Not connected" : "Empty slot"}</span>
     </header>
-    {meeting && slot === 1 ? source === "window" ? <LocalMeetingReturn /> : <RtmsMeetingReturn joinUrl={meeting.joinUrl} /> : <><div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
+    {meeting && slot === 1 ? source === "window" ? <LocalMeetingReturn /> : source === "desktop" ? <DesktopMeetingReturn joinUrl={meeting.joinUrl} /> : <RtmsMeetingReturn joinUrl={meeting.joinUrl} /> : <><div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
       <Monitor size={24} aria-hidden="true" />
       <span className="text-sm">{meeting ? "Waiting for shared presentation" : "Shared presentation"}</span>
       <span className="text-xs">{meeting ? "Zoom media connection required" : "Add a meeting to this multiview"}</span>
@@ -79,6 +80,7 @@ export default function MeetingMultiview() {
     <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Meeting return source">
       <span className="text-sm text-slate-300">First tile source</span>
       <button type="button" className={ioButton} aria-pressed={source === "window"} onClick={() => setSource("window")}>This Mac · Zoom window</button>
+      <button type="button" className={ioButton} aria-pressed={source === "desktop"} onClick={() => setSource("desktop")}>Server · Zoom desktop</button>
       <button type="button" className={ioButton} aria-pressed={source === "rtms"} onClick={() => setSource("rtms")}>Server · Zoom RTMS</button>
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">

@@ -1,0 +1,26 @@
+[Unit]
+Description=Jupiter attended Zoom desktop qualification
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/jupiter-zoom-desktop
+RuntimeDirectory=jupiter-zoom-desktop
+RuntimeDirectoryMode=0700
+ExecStart=/usr/bin/python3 service.py
+Restart=no
+UMask=0077
+LimitCORE=0
+MemoryMax=3G
+TasksMax=512
+TimeoutStopSec=20
+KillMode=control-group
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/run/jupiter-zoom-desktop
+StandardOutput=null
+StandardError=null
