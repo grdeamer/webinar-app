@@ -192,8 +192,8 @@ export default function EventsListClient({ initialEvents, canManage = true }: { 
           <div className="events-directory-toolbar">
             <p className="events-directory-count">{showArchived ? "Archived events" : "Active events"}</p>
             <div className="events-directory-filters">
-              <Button type="button" variant={!showArchived ? "jupiterPrimary" : "jupiterQuiet"} size="sm" onClick={() => setShowArchived(false)} className={!showArchived ? "is-active" : ""}>All events</Button>
-              {canManage ? <Button type="button" variant={showArchived ? "jupiterPrimary" : "jupiterQuiet"} size="sm" onClick={() => { setShowArchived((current) => !current); setOpenMenuId(null) }}>
+              <Button type="button" variant={!showArchived ? "jupiterPrimary" : "jupiterQuiet"} size="sm" aria-pressed={!showArchived} onClick={() => setShowArchived(false)} className={!showArchived ? "is-active" : ""}>All events</Button>
+              {canManage ? <Button type="button" variant={showArchived ? "jupiterPrimary" : "jupiterQuiet"} size="sm" aria-pressed={showArchived} className={showArchived ? "is-active" : ""} onClick={() => { setShowArchived((current) => !current); setOpenMenuId(null) }}>
                 {showArchived ? <ArchiveRestore size={14} /> : <Archive size={14} />}{showArchived ? "Active" : "Archived"}
               </Button> : null}
             </div>
