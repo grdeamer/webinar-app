@@ -104,7 +104,26 @@
   & .io-header p { font-size: .875rem; letter-spacing: normal; }
   & .io-header [class*="rounded-full"][class*="border"] { background: var(--clean-surface); border-color: var(--clean-line); }
   & .io-fleet-grid { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
-  & .io-satellite-tile .io-satellite { height: auto; min-height: 60px; }
+  & .io-satellite-tile {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: .375rem;
+  }
+
+  & .io-satellite-tile .io-satellite {
+    grid-column: 1 / -1;
+    height: auto;
+    min-height: 60px;
+  }
+
+  & .io-satellite-tile > button:not(.io-satellite) {
+    padding-inline: .25rem;
+    font-size: .75rem;
+    white-space: normal;
+  }
+
+  & .io-satellite-tile > :not(button) { grid-column: 1 / -1; }
+  & .io-satellite > span:last-child { display: flex; }
   & .io-satellite-icon { background: var(--clean-rail); box-shadow: none; }
   & .io-satellite-icon::after { display: none; }
   & .io-satellite-icon.is-connected { color: var(--clean-positive); }
@@ -130,6 +149,7 @@
 }
 
 .admin-theme-shell[data-admin-appearance="light"] .io-console {
+  & :is(.text-blue-200, .text-blue-300, .text-sky-200, .text-sky-300) { color: var(--clean-accent); }
   & :is(select, option, input, textarea) {
     color: var(--clean-ink);
     background: var(--clean-surface);
