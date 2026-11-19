@@ -1,0 +1,148 @@
+/* Opt-in admin palettes. Original continues to use the legacy theme rules. */
+.admin-theme-shell[data-admin-theme][data-admin-appearance]:not([data-admin-appearance="original"]) {
+  --clean-canvas: light-dark(#f4f3ef, #16171b);
+  --clean-rail: light-dark(#ecebe6, #131418);
+  --clean-surface: light-dark(#fdfcf9, #1d1e24);
+  --clean-line: light-dark(#d7d5ce, #34353e);
+  --clean-ink: light-dark(#25242b, #f1f0f4);
+  --clean-muted: light-dark(#56545e, #abaab6);
+  --clean-accent: light-dark(#563a95, #c4b3f9);
+  --clean-action-ink: light-dark(#fff, #211936);
+  --clean-selected: light-dark(#e8e2f2, #272334);
+  --clean-positive: light-dark(#286044, #a4c8ae);
+  --clean-warning: light-dark(#845314, #ddb27d);
+  --clean-negative: light-dark(#a22d43, #ff9ba9);
+  color: var(--clean-ink);
+
+  & .admin-workspace,
+  & .events-editorial-page { background: var(--clean-canvas) !important; }
+  & .admin-workspace::before,
+  & .global-jupiter-backdrop,
+  & :is(.dashboard-command-header, .events-editorial-header, .team-access-header)::before,
+  & :is(.events-editorial-header, .team-access-header)::after,
+  & .cloud-editorial-hero > [aria-hidden="true"] { display: none; }
+
+  & :is(.admin-navigation-rail, .jupiter-mobile-header) {
+    background: var(--clean-rail) !important;
+    border-color: var(--clean-line) !important;
+    box-shadow: none;
+  }
+
+  & .admin-navigation-rail .main-nav-icon {
+    background: none;
+    border-color: transparent;
+    box-shadow: none;
+    color: inherit;
+  }
+
+  & .admin-navigation-rail a[aria-current="page"] {
+    background: var(--clean-selected) !important;
+    border-color: transparent !important;
+    color: var(--clean-accent) !important;
+    box-shadow: none;
+  }
+
+  & .admin-navigation-rail a[aria-current="page"] > span:first-child { background: var(--clean-accent); }
+
+  & .admin-theme-switch button[aria-pressed="true"] {
+    background: var(--clean-selected);
+    color: var(--clean-accent);
+    box-shadow: none;
+  }
+
+  & :is(.global-editorial-page, .io-console, .events-editorial-title, .event-directory-item__title) {
+    color: var(--clean-ink) !important;
+  }
+
+  & :is(.events-editorial-description, .events-editorial-kicker, .event-directory-item__slug, .event-directory-item__date) {
+    color: var(--clean-muted) !important;
+    text-shadow: none;
+  }
+
+  & :is(.global-editorial-page, .io-console) :is([class*="text-white/"], .text-slate-300, .text-slate-400) {
+    color: var(--clean-muted) !important;
+  }
+
+  & :is(.global-editorial-page, .io-console) :is(.text-white, .text-slate-100, .text-slate-200) {
+    color: var(--clean-ink) !important;
+  }
+
+  & :is(.global-editorial-page, .io-console) :is([class*="text-emerald-200"], [class*="text-emerald-300"]) { color: var(--clean-positive) !important; }
+  & :is(.global-editorial-page, .io-console) :is([class*="text-amber-200"], [class*="text-amber-300"]) { color: var(--clean-warning) !important; }
+  & :is(.global-editorial-page, .io-console) :is([class*="text-red-200"], [class*="text-rose-200"]) { color: var(--clean-negative) !important; }
+
+  & :is(.dashboard-command-panel, .events-directory-panel, .events-calendar-card, .events-activity-card,
+    .events-command-search, .events-directory-filters, .events-metric-strip > div, .event-directory-item,
+    .activity-editorial-page, .activity-range-control, .cloud-editorial-hero, .cloud-editorial-page article,
+    .cloud-editorial-page section > div[class*="rounded-2xl"], .team-access-page, .team-access-header,
+    .dev-tools-workspace, .dev-tools-workspace__verification, .dev-tools-field, .io-panel, .io-runtime) {
+    background: var(--clean-surface) !important;
+    border-color: var(--clean-line) !important;
+    border-radius: 6px;
+    box-shadow: none !important;
+  }
+
+  & :is(.dashboard-command-header, .events-editorial-header) {
+    min-height: 0;
+    background: transparent;
+  }
+
+  & .event-directory-item:hover { background: var(--clean-selected) !important; }
+
+  & :is(.global-editorial-page a[class*="from-blue-600"], .global-editorial-page button[class*="bg-blue-600"], .io-start-server:enabled,
+    .io-console:has([data-runtime-state="running"]) .io-start-receiving:enabled) {
+    background: var(--clean-accent) !important;
+    border-color: var(--clean-accent) !important;
+    color: var(--clean-action-ink) !important;
+    box-shadow: none !important;
+  }
+
+  & .io-source-column > [aria-label="Setup help"] { order: 1; }
+
+  & .io-header { min-height: 0; }
+  & .io-header h1 { font-size: 1.875rem; }
+  & .io-header p { font-size: .875rem; letter-spacing: normal; }
+  & .io-header [class*="rounded-full"][class*="border"] { background: var(--clean-surface); border-color: var(--clean-line); }
+  & .io-fleet-grid { grid-template-columns: minmax(0, 1fr); gap: .5rem; }
+  & .io-satellite-tile .io-satellite { height: auto; min-height: 60px; }
+  & .io-satellite-icon { background: var(--clean-rail); box-shadow: none; }
+  & .io-satellite-icon::after { display: none; }
+  & .io-satellite-icon.is-connected { color: var(--clean-positive); }
+  & .io-satellite-icon.is-disconnected { color: var(--clean-muted); }
+
+  & .io-satellite[aria-pressed="true"] {
+    border-color: var(--clean-accent) !important;
+    box-shadow: none;
+  }
+
+  & .io-console { container-type: inline-size; }
+}
+
+@container (min-width: 840px) {
+  .admin-theme-shell[data-admin-theme][data-admin-appearance]:not([data-admin-appearance="original"]) {
+    & .io-workspace-grid { grid-template-columns: minmax(0, .92fr) minmax(0, 1.18fr); align-items: start; }
+    & :is(.io-source, .io-fleet, .io-ingest) { display: block; }
+    & :is(.io-source-actions, .io-master) { justify-content: flex-start; margin-top: .75rem; }
+    & .io-fleet > div:first-child { display: flex; }
+    & .io-detail-grid { grid-template-columns: minmax(0, 1fr); }
+    & .io-detail-grid > div { border-left: 0; padding-left: 0; }
+  }
+}
+
+.admin-theme-shell[data-admin-appearance="light"] .io-console {
+  & :is(select, option, input, textarea) {
+    color: var(--clean-ink);
+    background: var(--clean-surface);
+    border-color: var(--clean-line);
+  }
+
+  & :is(button, summary):not(.io-start-server):not(.io-matrix-node) {
+    border-color: var(--clean-line);
+    color: var(--clean-ink);
+  }
+
+  & :is([class*="bg-slate-950"], [class*="bg-[#081321]"], .io-tour-panel):not(.io-matrix *) {
+    background: var(--clean-surface);
+    border-color: var(--clean-line);
+  }
+}

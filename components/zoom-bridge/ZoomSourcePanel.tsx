@@ -1,5 +1,6 @@
 "use client"
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useContext, useEffect, useState } from "react"
+import { CleanAdminAppearance } from "@/components/admin/AdminAppearanceContext"
 import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
 import { Radio, Play, Square, Save, Camera, Mic, Cable, Eye, EyeOff, Pencil } from "lucide-react"
 import SourceProfileEditor from "./SourceProfileEditor"
@@ -9,7 +10,9 @@ import type { ZoomSource } from "@/lib/zoom-bridge/types"
 import { ioButton, ioField } from "./SatelliteCard"
 import IngestConnectionManager, { type IngestInfo } from "./IngestConnectionManager"
 export default function ZoomSourcePanel() {
-  const [manageIngest, setManageIngest] = useState(true)
+  const cleanAppearance = useContext(CleanAdminAppearance)
+  const [ingestExpanded, setIngestExpanded] = useState<boolean | null>(null)
+  const manageIngest = ingestExpanded ?? !cleanAppearance
   const [profileEditing, setProfileEditing] = useState(false)
   const [source, setSource] = useState<ZoomSource | null>(null)
   const [ingest, setIngest] = useState<IngestInfo | null>(null)
@@ -87,8 +90,8 @@ export default function ZoomSourcePanel() {
     </div>
     {source && !editing ? <div className="io-source-actions flex flex-wrap items-center gap-3">
       <span className="sr-only"><Cable size={17} />{srt ? "HDMI / encrypted SRT" : `Meeting ${source.meetingId}`}</span>
-      {srt ? <><button type="button" className={ioButton} disabled={busy} onClick={() => setProfileEditing(v => !v)}><Pencil size={16} />Edit source</button><button type="button" className={ioButton} aria-expanded={manageIngest} onClick={() => setManageIngest(v => !v)}>Manage ingest</button></> : <button type="button" className={ioButton} disabled={busy} onClick={() => { setMeetingId(source.meetingId); setPasscode(""); setEditing(true) }}>Edit source</button>}
-      <button type="button" className={`${ioButton} ${source.running ? "io-stop" : ""}`} disabled={busy} onClick={() => { void mutate("POST", { action: source.running ? "stop" : "start" }) }}>{source.running ? <Square size={16} /> : <Play size={16} />}{source.running ? "Stop receiving" : "Start receiving"}</button>
+      {srt ? <><button type="button" className={ioButton} disabled={busy} onClick={() => setProfileEditing(v => !v)}><Pencil size={16} />Edit source</button><button type="button" className={ioButton} aria-expanded={manageIngest} onClick={() => setIngestExpanded(!manageIngest)}>Manage ingest</button></> : <button type="button" className={ioButton} disabled={busy} onClick={() => { setMeetingId(source.meetingId); setPasscode(""); setEditing(true) }}>Edit source</button>}
+      <button type="button" className={`${ioButton} ${source.running ? "io-stop" : "io-start-receiving"}`} disabled={busy} onClick={() => { void mutate("POST", { action: source.running ? "stop" : "start" }) }}>{source.running ? <Square size={16} /> : <Play size={16} />}{source.running ? "Stop receiving" : "Start receiving"}</button>
     </div> : null}
     {srt && profileEditing ? <SourceProfileEditor profile={profile} running={source.running} busy={busy} save={saveProfile} cancel={() => setProfileEditing(false)} /> : null}
     {srt && setupOpen ? <div className="mt-5 rounded-xl border border-white/10 bg-black/20 p-4 text-sm text-white/65">

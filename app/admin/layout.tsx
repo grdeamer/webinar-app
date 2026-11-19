@@ -7,12 +7,15 @@ import {
   ArrowLeft,
   Signal02,
 } from "@untitledui/icons"
-import { Menu, Moon, Sun, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import { SharpDashboard, SharpCalendar, SharpCloud, SharpUsers, SharpBroadcast, SharpActivity, SharpCode } from "@/components/icons/StreamlineSharp"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
+import { CleanAdminAppearance } from "@/components/admin/AdminAppearanceContext"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
 import { useAdminSessionGuard } from "@/components/admin/useAdminSessionGuard"
+
+type Appearance = "original" | "light" | "dark"
 
 function matches(pathname: string, href: string) {
   if (href === "/admin") return pathname === "/admin"
@@ -55,6 +58,7 @@ function NavLink({
   return (
     <Link
       href={href}
+      aria-current={active ? "page" : undefined}
       title={compact && typeof children === "string" ? children : undefined}
       className={`${navClass(active)} ${compact ? "flex-col justify-center gap-1 px-1 py-3 text-[10px]" : ""}`}
     >
@@ -100,10 +104,13 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const isTeamAccess = pathname === "/admin/users"
   const [isEventMember, setIsEventMember] = useState(false)
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
+  const [appearance, setAppearance] = useState<Appearance>("original")
   const [adminTheme, setAdminTheme] = useState<"dark" | "light">("dark")
   const compactNavigation = isEventWorkspace && !mobileNavOpen
 
   useEffect(() => {
+    const savedAppearance = window.localStorage.getItem("jupiter-admin-appearance")
+    if (savedAppearance === "light" || savedAppearance === "dark") setAppearance(savedAppearance)
     const savedTheme = window.localStorage.getItem("jupiter-admin-theme")
     if (savedTheme === "light" || savedTheme === "dark") {
       setAdminTheme(savedTheme)
@@ -112,9 +119,10 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     setAdminTheme(window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark")
   }, [])
 
-  useEffect(() => {
-    window.localStorage.setItem("jupiter-admin-theme", adminTheme)
-  }, [adminTheme])
+  function changeAppearance(value: Appearance) {
+    setAppearance(value)
+    window.localStorage.setItem("jupiter-admin-appearance", value)
+  }
 
   useEffect(() => {
     const controller = new AbortController()
@@ -192,7 +200,8 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
   return (
     <div
-      data-admin-theme={adminTheme}
+      data-admin-theme={appearance === "original" ? adminTheme : appearance}
+      data-admin-appearance={appearance}
       className={`${
         isPageEditorWorkspace ? "h-screen overflow-hidden" : "min-h-screen"
       } admin-theme-shell ${isIoWorkspace ? "io-workspace" : "bg-transparent"} text-white`}
@@ -297,10 +306,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
 
             <div className={`${compactNavigation ? "px-2" : "border-t border-white/10 p-4"} pb-[calc(1rem+env(safe-area-inset-bottom))]`}>
               {!compactNavigation ? (
-                <div className="admin-theme-switch mb-3 grid grid-cols-2 gap-1 rounded-xl border border-white/10 bg-black/15 p-1" aria-label="Appearance">
-                  <button type="button" onClick={() => setAdminTheme("light")} aria-pressed={adminTheme === "light"} className="flex h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition"><Sun className="h-3.5 w-3.5" />Light</button>
-                  <button type="button" onClick={() => setAdminTheme("dark")} aria-pressed={adminTheme === "dark"} className="flex h-9 items-center justify-center gap-2 rounded-lg text-xs font-semibold transition"><Moon className="h-3.5 w-3.5" />Dark</button>
-                </div>
+                <fieldset className="admin-theme-switch mb-3 grid grid-cols-3 gap-1 rounded-lg border border-white/10 bg-black/15 p-1">
+                  <legend className="sr-only">Appearance</legend>
+                  {(["original", "light", "dark"] as const).map((option) => (
+                    <button key={option} type="button" onClick={() => changeAppearance(option)} aria-pressed={appearance === option} className="h-9 rounded-md px-1 text-xs font-semibold capitalize transition">
+                      {option}
+                    </button>
+                  ))}
+                </fieldset>
               ) : null}
               <AdminProfileMenu compact={compactNavigation} />
             </div>
@@ -322,7 +335,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 isPageEditorWorkspace ? "h-full min-h-0 max-w-full overflow-hidden" : ""
               }`}
             >
-              {children}
+              <CleanAdminAppearance.Provider value={appearance !== "original"}>
+                {children}
+              </CleanAdminAppearance.Provider>
             </div>
           </main>
         </div>
