@@ -7,7 +7,7 @@ import {
   ArrowLeft,
   Signal02,
 } from "@untitledui/icons"
-import { Menu, X } from "lucide-react"
+import { Download, Menu, X } from "lucide-react"
 import { SharpDashboard, SharpCalendar, SharpCloud, SharpUsers, SharpBroadcast, SharpActivity, SharpCode } from "@/components/icons/StreamlineSharp"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
@@ -292,6 +292,9 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 {!isEventMember ? <NavLink compact={compactNavigation} href="/admin/jupiter-io" icon={<SharpBroadcast className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
                   Jupiter Io
                 </NavLink> : null}
+                <NavLink compact={compactNavigation} href="/admin/downloads" icon={<Download className="h-[17px] w-[17px]" strokeWidth={1.8} />}>
+                  Downloads
+                </NavLink>
               </Section>
 
               {!isEventMember ? <Section title="Administration" compact={compactNavigation}>
