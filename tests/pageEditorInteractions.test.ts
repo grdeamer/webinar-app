@@ -1,6 +1,7 @@
 import assert from "node:assert/strict"
 import test from "node:test"
-import { findInsertionY, getPreviewButtonHref, getSectionIntro, samePageSnapshot } from "../lib/page-editor/experienceLayout.ts"
+import type { EventPageSection } from "../lib/page-editor/sectionTypes.ts"
+import { findInsertionY, getPreviewButtonHref, getSectionIntro, samePageSnapshot, sameStarterSections } from "../lib/page-editor/experienceLayout.ts"
 
 import { calculateAlignmentGuides } from "../components/page-editor/alignmentGuides.ts"
 import { getElementAlignmentUpdates } from "../components/page-editor/elementAlignmentCommands.ts"
@@ -214,4 +215,11 @@ test("preview buttons support real destinations and ignore placeholders and scri
   assert.equal(getPreviewButtonHref("#registration"), "#registration")
   assert.equal(getPreviewButtonHref("#"), null)
   assert.equal(getPreviewButtonHref("javascript:alert(1)"), null)
+})
+
+
+test("old starter recovery copies ignore generated IDs while retaining edited content", () => {
+  const starter: EventPageSection[] = [{ id: "old", type: "hero", config: { title: "Sponsors" }, blocks: [] }]
+  assert.equal(sameStarterSections(starter, [{ ...starter[0], id: "new" }]), true)
+  assert.equal(sameStarterSections(starter, [{ ...starter[0], config: { title: "Edited" } }]), false)
 })

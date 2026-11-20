@@ -334,6 +334,7 @@ export default function usePageEditorAutosave({
       pageKey: string,
       revision: number,
       snapshot: PageEditorDocumentSnapshot,
+      materialize = false,
     ): Promise<boolean> => {
       clearDebounce(pageKey)
 
@@ -343,6 +344,7 @@ export default function usePageEditorAutosave({
       }
 
       if (
+        !(materialize && current.serverRevision === 0) &&
         revision <= current.lastSavedRevision &&
         (current.failedRevision === null ||
           current.failedRevision <= current.lastSavedRevision)
@@ -478,6 +480,7 @@ export default function usePageEditorAutosave({
       pageKey: string,
       revision: number,
       snapshot: PageEditorDocumentSnapshot,
+      materialize = false,
     ): Promise<boolean> => {
       latestSnapshotsRef.current[pageKey] = {
         revision,
@@ -487,7 +490,7 @@ export default function usePageEditorAutosave({
         ...state,
         localRevision: Math.max(state.localRevision, revision),
       }))
-      return enqueueSave(pageKey, revision, snapshot)
+      return enqueueSave(pageKey, revision, snapshot, materialize)
     },
     [enqueueSave, updatePageSaveState],
   )

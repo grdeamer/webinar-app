@@ -445,10 +445,7 @@ export default function EditorEventPageRenderer({
   isMobilePreview?: boolean
 }) {
   const visualSections = getRenderableSections(sections)
-  const resolvedSections =
-    visualSections && visualSections.length > 0
-      ? visualSections
-      : getFallbackSections(event)
+  const resolvedSections = sections ? visualSections : getFallbackSections(event)
 
   const experienceNodes: RendererExperienceNode[] = [
     ...resolvedSections.map((section, index) => sectionToExperienceNode(section, index)),

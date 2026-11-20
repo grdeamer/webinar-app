@@ -1,6 +1,6 @@
 "use client"
 
-import { findInsertionY, getPreviewButtonHref, samePageSnapshot } from "@/lib/page-editor/experienceLayout"
+import { findInsertionY, getPreviewButtonHref, samePageSnapshot, sameStarterSections } from "@/lib/page-editor/experienceLayout"
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
@@ -255,11 +255,35 @@ function getDefaultSections(
         },
       ]
 
-    default:
+    case "event_home":
       return createDefaultEventHomeSections({
         title: eventInfo.title,
         description: eventInfo.description ?? null,
       })
+    default: {
+      const page = EDITOR_PAGES.find(entry => entry.value === pageKey)
+      const modules: Partial<Record<string, SystemComponentKey>> = {
+        breakouts: "breakouts",
+        lobby: "access_gate",
+        on_demand: "resource_library",
+        sponsors: "sponsors",
+        chat: "chat",
+        networking: "networking",
+      }
+      const componentKey = modules[pageKey]
+      if (!page || !componentKey) return []
+      return [{
+        id: "hero",
+        type: "hero",
+        config: { ...getSafeDefaultSectionConfig("hero"), adminLabel: page.label, title: page.label },
+        blocks: [],
+      }, {
+        id: pageKey,
+        type: "content",
+        config: { ...getSafeDefaultSectionConfig("content"), adminLabel: page.label },
+        blocks: [{ ...createSystemBlock(componentKey), id: `starter-${componentKey}` }],
+      }]
+    }
   }
 }
 
@@ -534,14 +558,14 @@ const isEmbedded =
   })
   const documentReady =
     !loading && !loadError && loadedPageKey === selectedPageKey
-  const flushCurrentPage = useCallback(async (): Promise<boolean> => {
+  const flushCurrentPage = useCallback(async (materialize = false): Promise<boolean> => {
     if (!documentReady) return false
 
     const saved = await saveNow(selectedPageKey, documentRevision, {
       elements,
       sections,
       eventTheme,
-    })
+    }, materialize)
     if (!saved) return false
 
     return flushLatestPage(selectedPageKey)
@@ -660,13 +684,17 @@ const isEmbedded =
           throw new Error("The page editor returned an invalid document")
         }
 
+        const starterEvent = {
+          ...eventInfoRef.current,
+          title: typeof data.event_title === "string" && data.event_title.trim() ? data.event_title.trim() : eventInfoRef.current.title,
+        }
         const snapshot = {
           elements: normalizeEventPageElements(data.elements),
           sections:
-            data.sections.length > 0
+            serverRevision > 0 || data.sections.length > 0
               ? normalizeSections(data.sections)
               : normalizeSections(
-                  getDefaultSections(pageKey, eventInfoRef.current),
+                  getDefaultSections(pageKey, starterEvent),
                 ),
           eventTheme:
             data?.eventTheme && typeof data.eventTheme === "object"
@@ -686,7 +714,15 @@ const isEmbedded =
           sections: normalizeSections(recovery.snapshot.sections),
           eventTheme: recovery.snapshot.eventTheme && typeof recovery.snapshot.eventTheme === "object" ? recovery.snapshot.eventTheme as EventTheme : snapshot.eventTheme,
         } : null
-        const recoveredSnapshot = recovery && recoverySnapshot && !samePageSnapshot(recoverySnapshot, snapshot) &&
+        // Older builds wrote recovery copies for untouched pages. Unsaved starter
+        // block IDs were generated on each load, so compare their content instead.
+        const isUnchangedStarter = serverRevision === 0 && recoverySnapshot &&
+          samePageSnapshot(recoverySnapshot.elements, snapshot.elements) &&
+          samePageSnapshot(recoverySnapshot.eventTheme, snapshot.eventTheme) &&
+          [snapshot.sections, ...[pageKey, "event_home"].map(key =>
+            normalizeSections(getDefaultSections(key, eventInfoRef.current)),
+          )].some(sections => sameStarterSections(recoverySnapshot.sections, sections))
+        const recoveredSnapshot = recovery && recoverySnapshot && !isUnchangedStarter && !samePageSnapshot(recoverySnapshot, snapshot) &&
           window.confirm(`Recover unsaved changes from ${new Date(recovery.savedAt).toLocaleString()}? Choose Cancel to discard that local recovery copy.`)
           ? recoverySnapshot : null
         if (recovery && !recoveredSnapshot) clearRecoverySnapshot(pageKey)
@@ -1497,7 +1533,7 @@ const isEmbedded =
   }
 
   async function saveLayout() {
-    await flushCurrentPage()
+    await flushCurrentPage(true)
   }
 
   async function selectPage(pageKey: string) {
@@ -2926,7 +2962,7 @@ const selectedExperienceNode = experienceNodes.find(
               return
             }
             void (async () => {
-              if (!await flushCurrentPage()) return
+              if (!await flushCurrentPage(true)) return
               setSaveMessage("Publishing…")
               const revision = getPageSaveState(selectedPageKey).serverRevision
               const response = await fetch(`/api/admin/page-editor/event/${slug}/publish`, {
@@ -2986,7 +3022,7 @@ const selectedExperienceNode = experienceNodes.find(
           <span className="ml-auto text-xs text-white/40">Preview only · event access is unchanged</span>
         </div>
       ) : null}
-      {showingHoldScreen ? <HoldScreenEditor settings={getHoldScreen(sections)} eventTitle={eventInfo.title} saveStatus={saveStatusMessage} onChange={(settings) => setSections((current) => setHoldScreen(current, settings))} onSave={() => { void flushCurrentPage() }} onUpload={async (file, onProgress) => {
+      {showingHoldScreen ? <HoldScreenEditor settings={getHoldScreen(sections)} eventTitle={eventInfo.title} saveStatus={saveStatusMessage} onChange={(settings) => setSections((current) => setHoldScreen(current, settings))} onSave={() => { void flushCurrentPage(true) }} onUpload={async (file, onProgress) => {
         const uploaded = await uploadMediaFile(file, onProgress)
         setSections((current) => {
           const settings = getHoldScreen(current)
@@ -3926,7 +3962,7 @@ const selectedExperienceNode = experienceNodes.find(
         {documentReady && (isEmbedded || isEditing) && !isCodeEditorOpen && selectedSection?.config.liveAgendaLayout && selectedBlock ? <LiveAgendaBlockInspector
           block={selectedBlock} section={selectedSection}
           eventTitle={eventInfo.title} eventDescription={eventInfo.description}
-          saveStatus={saveMessage || saveStatusMessage} onSave={() => { void flushCurrentPage() }}
+          saveStatus={saveMessage || saveStatusMessage} onSave={() => { void flushCurrentPage(true) }}
           onSelect={(id) => setSelectedBlockId(id)}
           onUpdate={updateSelectedBlockProps}
           onDelete={deleteSelectedBlock}

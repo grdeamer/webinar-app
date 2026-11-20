@@ -50,3 +50,12 @@ export function getPreviewButtonHref(value: unknown) {
     return null
   }
 }
+
+export function sameStarterSections(left: readonly EventPageSection[], right: readonly EventPageSection[]) {
+  const withoutGeneratedIds = (sections: readonly EventPageSection[]) => sections.map(section => ({
+    type: section.type,
+    config: section.config,
+    blocks: section.blocks?.map(block => ({ type: block.type, props: block.props })) ?? [],
+  }))
+  return samePageSnapshot(withoutGeneratedIds(left), withoutGeneratedIds(right))
+}
