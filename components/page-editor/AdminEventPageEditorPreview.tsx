@@ -3157,7 +3157,7 @@ const selectedExperienceNode = experienceNodes.find(
                   ) : null}
                   {!isEmbedded && (
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2 px-1 text-xs text-white/50">
-                      <span>{isEditing ? "Select content to edit" : "Preview · current changes"}</span>
+                      <span>{isEditing ? "Double-click text to edit" : "Preview · current changes"}</span>
                       <span>Event components may show sample content</span>
                     </div>
                   )}
@@ -3347,6 +3347,7 @@ const selectedExperienceNode = experienceNodes.find(
   onSectionDragOver={handleSectionDragOver}
   onSectionDrop={handleSectionDrop}
   onSectionDragEnd={handleSectionDragEnd}
+  onEditSectionText={(id, field, value) => updateSectionConfig(id, { [field]: value })}
   onSelectSection={(id: string | null) => {
     const nextSection = sections.find((section) => section.id === id) ?? null
 
