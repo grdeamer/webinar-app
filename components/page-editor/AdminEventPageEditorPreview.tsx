@@ -1,5 +1,6 @@
 "use client"
 
+import { findInsertionY, getPreviewButtonHref, samePageSnapshot } from "@/lib/page-editor/experienceLayout"
 import { useParams, usePathname, useSearchParams } from "next/navigation"
 import { useCallback, useEffect, useRef, useState } from "react"
 import {
@@ -680,13 +681,15 @@ const isEmbedded =
         }
 
         const recovery = getRecoverySnapshot(pageKey)
-        const shouldRecover = recovery ? window.confirm(`Recover unsaved changes from ${new Date(recovery.savedAt).toLocaleString()}? Choose Cancel to discard that local recovery copy.`) : false
-        const recoveredSnapshot = shouldRecover && recovery ? {
+        const recoverySnapshot = recovery ? {
           elements: normalizeEventPageElements(recovery.snapshot.elements),
           sections: normalizeSections(recovery.snapshot.sections),
           eventTheme: recovery.snapshot.eventTheme && typeof recovery.snapshot.eventTheme === "object" ? recovery.snapshot.eventTheme as EventTheme : snapshot.eventTheme,
         } : null
-        if (recovery) clearRecoverySnapshot(pageKey)
+        const recoveredSnapshot = recovery && recoverySnapshot && !samePageSnapshot(recoverySnapshot, snapshot) &&
+          window.confirm(`Recover unsaved changes from ${new Date(recovery.savedAt).toLocaleString()}? Choose Cancel to discard that local recovery copy.`)
+          ? recoverySnapshot : null
+        if (recovery && !recoveredSnapshot) clearRecoverySnapshot(pageKey)
 
         resetHistory(pageKey, snapshot)
         registerLoadedPage(
@@ -1514,11 +1517,11 @@ const isEmbedded =
     switchPageState(pageKey)
   }
 
-  function toggleEditing() {
+  async function toggleEditing() {
     if (!documentReady) return
 
     if (isEditing) {
-      void flushCurrentPage()
+      if (!await flushCurrentPage()) return
       clearSelection()
       setHoveredExperienceNodeId(null)
       setToolPanelOpen(false)
@@ -2126,8 +2129,18 @@ function addRegistrationFormSection() {
       },
     }
 
+    const canvas = canvasRef.current
+    const heroIntro = canvas?.querySelector("[data-editor-hero-intro]")
+    const headerBottom = canvas && heroIntro
+      ? (heroIntro.getBoundingClientRect().bottom - canvas.getBoundingClientRect().top) / canvasScale
+      : 0
+    const positionedElement = {
+      ...nextElement,
+      y: findInsertionY(nextElement, elements.filter(element => element.visible !== false), headerBottom),
+    }
+
     setHasUnsavedChanges(true)
-    setElements((prev) => normalizeZIndexes([...prev, nextElement]))
+    setElements((prev) => normalizeZIndexes([...prev, positionedElement]))
     setSelectedId(id)
     setSelectedIds([id])
     setSelectedSectionId(null)
@@ -3465,6 +3478,8 @@ const selectedExperienceNode = experienceNodes.find(
                     .filter((el) => el.visible !== false)
                     .filter((el) => !((previewDevice === "mobile" && Boolean(el.props?.hideOnMobile)) || (previewDevice === "tablet" && Boolean(el.props?.hideOnTablet)) || (previewDevice === "desktop" && Boolean(el.props?.hideOnDesktop))))
                     .map((el) => {
+                        const previewHref = !isEditing && el.element_type === "button"
+                          ? getPreviewButtonHref(el.props?.href) : null
                         const isInlineEditing = isEditing && editingElementId === el.id
                         const isLayerHovered = isEditing && hoveredExperienceNodeId === el.id
                         const isLocked = el.locked === true
@@ -3849,12 +3864,20 @@ const selectedExperienceNode = experienceNodes.find(
                                 className="flex h-full w-full"
                                 style={getElementContentAlignmentStyle(el)}
                               >
-                                <button
-                                  type="button"
-                                  style={getButtonElementPresentationStyle(el)}
-                                >
-                                  {el.content || "Button"}
-                                </button>
+                                {previewHref ? (
+                                  <a
+                                    href={previewHref}
+                                    target={previewHref.startsWith("#") ? undefined : "_blank"}
+                                    rel="noopener noreferrer"
+                                    style={getButtonElementPresentationStyle(el)}
+                                  >
+                                    {el.content || "Button"}
+                                  </a>
+                                ) : (
+                                  <button type="button" style={getButtonElementPresentationStyle(el)}>
+                                    {el.content || "Button"}
+                                  </button>
+                                )}
                               </div>
                             ) : el.element_type === "spacer" ? (
                               <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">

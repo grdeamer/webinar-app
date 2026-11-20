@@ -429,6 +429,8 @@ export default function usePageEditorAutosave({
       revision: number,
       snapshot: PageEditorDocumentSnapshot,
     ): void => {
+      if (revision <= getPageSaveState(pageKey).lastSavedRevision) return
+
       const clonedSnapshot = cloneSnapshot(snapshot)
       latestSnapshotsRef.current[pageKey] = {
         revision,
@@ -468,7 +470,7 @@ export default function usePageEditorAutosave({
         void enqueueSave(pageKey, revision, clonedSnapshot)
       }, debounceMs)
     },
-    [clearDebounce, debounceMs, enqueueSave, persistRecoverySnapshot, updatePageSaveState],
+    [clearDebounce, debounceMs, enqueueSave, getPageSaveState, persistRecoverySnapshot, updatePageSaveState],
   )
 
   const saveNow = useCallback(

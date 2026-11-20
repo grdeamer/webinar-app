@@ -1,5 +1,6 @@
 "use client"
 
+import { getSectionIntro } from "@/lib/page-editor/experienceLayout"
 import type { LiveTimelineProps } from "@/components/events/LiveTimeline"
 import { cloneElement, isValidElement, type DragEvent, type ReactNode } from "react"
 import type {
@@ -643,7 +644,8 @@ export default function EditorEventPageRenderer({
         const headerAlignmentClass = getHeaderAlignmentClass(config.textAlign)
         const showTopDivider = hasTopDivider(config.divider)
         const showBottomDivider = hasBottomDivider(config.divider)
-        const hasHeader = Boolean(config.title || config.body)
+        const intro = getSectionIntro(section)
+        const hasHeader = Boolean(intro.title || intro.body)
         const isSelected = isEditing && selectedSectionId === section.id
 
         return (
@@ -722,50 +724,50 @@ export default function EditorEventPageRenderer({
             {showBottomDivider ? <div className={SECTION_BOTTOM_EDGE_CLASS} /> : null}
             <div className={`relative z-20 mx-auto ${widthClass}`}>
               {section.type === "hero" && hasHeader ? (
-                <div className={headerAlignmentClass}>
+                <div className={headerAlignmentClass} data-editor-hero-intro>
                   <div className={HERO_KICKER_CLASS}>
                     Jupiter Experience
                   </div>
 
-                  {config.title ? (
+                  {intro.title ? (
                     <h1
                       className={HERO_TITLE_CLASS}
                       style={{ color: sectionTextColor }}
                     >
-                      {config.title}
+                      {intro.title}
                     </h1>
                   ) : null}
 
-                  {config.body ? (
+                  {intro.body ? (
                     <p
                       className={`${HERO_BODY_CLASS} ${
                         config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"
                       }`}
                       style={{ color: sectionTextColor }}
                     >
-                      {config.body}
+                      {intro.body}
                     </p>
                   ) : null}
                 </div>
               ) : hasHeader ? (
                 <div className={headerAlignmentClass}>
-                  {config.title ? (
+                  {intro.title ? (
                     <h2
                       className={SECTION_TITLE_CLASS}
                       style={{ color: sectionTextColor }}
                     >
-                      {config.title}
+                      {intro.title}
                     </h2>
                   ) : null}
 
-                  {config.body ? (
+                  {intro.body ? (
                     <p
                       className={
-                        config.title ? SECTION_BODY_CLASS : SECTION_BODY_CLASS.replace("mt-4 ", "")
+                        intro.title ? SECTION_BODY_CLASS : SECTION_BODY_CLASS.replace("mt-4 ", "")
                       }
                       style={{ color: sectionTextColor }}
                     >
-                      {config.body}
+                      {intro.body}
                     </p>
                   ) : null}
                 </div>

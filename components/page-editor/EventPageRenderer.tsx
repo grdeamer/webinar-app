@@ -1,5 +1,6 @@
 "use client"
 
+import { getSectionIntro } from "@/lib/page-editor/experienceLayout"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import type Hls from "hls.js"
 import type {
@@ -796,6 +797,7 @@ export default function EventPageRenderer({
 >
 {resolvedSections.map((section, index) => {
   const config = section.config ?? {}
+  const intro = getSectionIntro(section)
 
   const themeMode =
     typeof config.themeMode === "string" && config.themeMode.trim()
@@ -991,7 +993,7 @@ export default function EventPageRenderer({
   }}
 >
           <div className={textAlignClass}>
-            {config.title ? (
+            {intro.title ? (
 <h2
   className="text-2xl font-semibold"
   onDoubleClick={(e) => {
@@ -1001,13 +1003,13 @@ export default function EventPageRenderer({
   }}
   style={{ color: sectionTextColor }}
 >
-                {config.title}
+                {intro.title}
               </h2>
             ) : null}
 
-            {config.body ? (
+            {intro.body ? (
 <div
-  className={config.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"}
+  className={intro.title ? "mt-4 whitespace-pre-wrap" : "whitespace-pre-wrap"}
   onDoubleClick={(e) => {
     e.stopPropagation()
     if (!isEditorClickable) return
@@ -1015,13 +1017,13 @@ export default function EventPageRenderer({
   }}
   style={{ color: sectionTextColor }}
 >
-                {config.body}
+                {intro.body}
               </div>
             ) : null}
           </div>
 
           {section.blocks?.length ? (
-            <div className={config.title || config.body ? "mt-6 space-y-4" : "space-y-4"}>
+            <div className={intro.title || intro.body ? "mt-6 space-y-4" : "space-y-4"}>
               {section.blocks.map((block) =>
                 renderSectionBlock(
                   block,
@@ -1031,7 +1033,7 @@ export default function EventPageRenderer({
                 )
               )}
             </div>
-          ) : !config.title && !config.body ? (
+          ) : !intro.title && !intro.body ? (
             <div className="text-white/30">Add blocks to this section from the editor.</div>
           ) : null}
         </div>

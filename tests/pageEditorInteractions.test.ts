@@ -1,5 +1,6 @@
 import assert from "node:assert/strict"
 import test from "node:test"
+import { findInsertionY, getPreviewButtonHref, getSectionIntro, samePageSnapshot } from "../lib/page-editor/experienceLayout.ts"
 
 import { calculateAlignmentGuides } from "../components/page-editor/alignmentGuides.ts"
 import { getElementAlignmentUpdates } from "../components/page-editor/elementAlignmentCommands.ts"
@@ -184,4 +185,33 @@ test("locked members are detected in a composite selection", () => {
 
   assert.equal(compositeSelectionHasLockedMember(elements, ["a"]), true)
   assert.equal(compositeSelectionHasLockedMember(elements, ["c"]), false)
+})
+
+test("new canvas elements clear the hero intro and neighboring elements", () => {
+  assert.equal(findInsertionY(
+    { x: 96, y: 120, width: 200, height: 56 },
+    [{ x: 96, y: 256, width: 200, height: 56 }, { x: 430, y: 328, width: 100, height: 80 }],
+    224,
+  ), 328)
+})
+
+test("recovery comparison ignores object key order but preserves real edits", () => {
+  assert.equal(samePageSnapshot({ theme: { a: 1, b: 2 }, elements: [] }, { elements: [], theme: { b: 2, a: 1 } }), true)
+  assert.equal(samePageSnapshot({ elements: [{ x: 12 }] }, { elements: [{ x: 13 }] }), false)
+})
+
+test("registration suppresses duplicate intro copy while keeping different copy", () => {
+  const section = {
+    id: "registration",
+    type: "system" as const,
+    config: { title: "Reserve Your Place", body: "Custom section introduction" },
+    blocks: [{ id: "form", type: "system_component" as const, props: { componentKey: "registration_form" as const, title: "Reserve your place", body: "Form details" } }],
+  }
+  assert.deepEqual(getSectionIntro(section), { title: undefined, body: "Custom section introduction" })
+})
+
+test("preview buttons support real destinations and ignore placeholders and scripts", () => {
+  assert.equal(getPreviewButtonHref("#registration"), "#registration")
+  assert.equal(getPreviewButtonHref("#"), null)
+  assert.equal(getPreviewButtonHref("javascript:alert(1)"), null)
 })
