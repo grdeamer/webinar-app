@@ -227,9 +227,13 @@ function hasBottomDivider(divider?: EventPageSection["config"]["divider"]) {
   return divider === "bottom" || divider === "both"
 }
 
+type CanvasTextField = "title" | "body"
+type CanvasTextTarget = { id: string; field: CanvasTextField; blockId?: string }
+
 function renderBlock(
   block: SectionBlock,
-  systemComponents: SystemComponentsMap
+  systemComponents: SystemComponentsMap,
+  editText: (field: CanvasTextField) => Partial<React.ComponentProps<typeof SectionText>>,
 ): ReactNode {
   if (block.type === "rich_text") {
     return (
@@ -238,17 +242,13 @@ function renderBlock(
         className={block.props.align === "center" ? "text-center" : "text-left"}
       >
         {block.props.title ? (
-          <h3 className={RICH_TEXT_TITLE_CLASS}>{block.props.title}</h3>
+          <SectionText as="h3" value={block.props.title} className={RICH_TEXT_TITLE_CLASS} {...editText("title")} />
         ) : null}
 
         {block.props.body ? (
-          <div
-            className={
-              block.props.title ? `mt-4 ${RICH_TEXT_BODY_CLASS}` : RICH_TEXT_BODY_CLASS
-            }
-          >
-            {block.props.body}
-          </div>
+          <SectionText as="p" value={block.props.body}
+            className={block.props.title ? `mt-4 ${RICH_TEXT_BODY_CLASS}` : RICH_TEXT_BODY_CLASS}
+            {...editText("body")} />
         ) : null}
       </div>
     )
@@ -298,6 +298,8 @@ variant={
 
     if (componentKey === "registration_form") return <div key={block.id}>{node}</div>
 
+    const title = block.props.title ?? (componentKey === "agenda" ? "Event Agenda" : undefined)
+    const body = block.props.body ?? (componentKey === "agenda" ? "Browse the event schedule." : undefined)
     const cardClass = getCardClass(block.props.containerStyle ?? "panel")
 
     return (
@@ -306,23 +308,17 @@ variant={
           <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/[0.09] to-transparent" />
         ) : null}
         <div className={SYSTEM_COMPONENT_CONTENT_CLASS}>
-          {block.props.title ? (
-            <h3 className="text-xl font-semibold tracking-[-0.03em] text-white">{block.props.title}</h3>
+          {title ? (
+            <SectionText as="h3" value={title} className="text-xl font-semibold tracking-[-0.03em] text-white" {...editText("title")} />
           ) : null}
 
-          {block.props.body ? (
-            <p
-              className={
-                block.props.title
-                  ? "mt-2 text-sm leading-7 text-white/56"
-                  : "text-sm leading-7 text-white/56"
-              }
-            >
-              {block.props.body}
-            </p>
+          {body ? (
+            <SectionText as="p" value={body}
+              className={title ? "mt-2 text-sm leading-7 text-white/56" : "text-sm leading-7 text-white/56"}
+              {...editText("body")} />
           ) : null}
 
-          <div className={block.props.title || block.props.body ? "mt-4" : ""}>
+          <div className={title || body ? "mt-4" : ""}>
             {node}
           </div>
         </div>
@@ -416,18 +412,20 @@ function SectionText({
   editing,
   onEditingChange,
   sectionId,
+  blockId,
 }: {
-  as: "h1" | "h2" | "p"
+  as: "h1" | "h2" | "h3" | "p"
   value: string
   className: string
   color?: string
   onCommit?: (value: string) => void
   editing?: boolean
   onEditingChange?: (editing: boolean) => void
-  sectionId: string
+  sectionId?: string
+  blockId?: string
 }) {
   const multiline = Tag === "p"
-  const label = multiline ? "Section body" : "Section title"
+  const label = `${blockId ? "Block" : "Section"} ${multiline ? "body" : "title"}`
 
   if (editing && onCommit) {
     const Field = multiline ? "textarea" : "input"
@@ -482,7 +480,7 @@ function SectionText({
       } : undefined}
     >
       {onCommit ? (
-        <span data-canvas-section-id={sectionId} data-canvas-section-field={multiline ? "body" : "title"}>
+        <span data-canvas-section-id={sectionId} data-canvas-block-id={blockId} data-canvas-section-field={multiline ? "body" : "title"}>
           {value}
         </span>
       ) : value}
@@ -499,6 +497,8 @@ export default function EditorEventPageRenderer({
   dragOverSectionId = null,
   onSelectSection,
   onEditSectionText,
+  onEditBlockText,
+  agendaAdminHref,
   activeSectionText,
   onActiveSectionTextChange,
   selectedBlockId, onSelectBlock, onMoveBlock,
@@ -520,8 +520,10 @@ export default function EditorEventPageRenderer({
   selectedBlockId?: string | null
   onSelectBlock?: (sectionId: string, blockId: string) => void
   onMoveBlock?: (sectionId: string, source: string, target: string) => void
-  activeSectionText?: { id: string; field: "title" | "body" } | null
-  onActiveSectionTextChange?: (target: { id: string; field: "title" | "body" } | null) => void
+  activeSectionText?: CanvasTextTarget | null
+  onActiveSectionTextChange?: (target: CanvasTextTarget | null) => void
+  onEditBlockText?: (sectionId: string, blockId: string, field: CanvasTextField, value: string) => void
+  agendaAdminHref?: string
   onEditSectionText?: (id: string, field: "title" | "body", value: string) => void
   onSelectSection?: (id: string | null) => void
   onSectionDragStart?: (id: string) => void
@@ -732,15 +734,20 @@ export default function EditorEventPageRenderer({
         const showBottomDivider = hasBottomDivider(config.divider)
         const intro = getSectionIntro(section)
         const hasHeader = Boolean(intro.title || intro.body)
-        const editText = (field: "title" | "body") => ({
+        const editText = (field: CanvasTextField, blockId?: string) => ({
           sectionId: section.id,
-          editing: activeSectionText?.id === section.id && activeSectionText.field === field,
-          onCommit: isEditing && onEditSectionText
-            ? (value: string) => onEditSectionText(section.id, field, value)
-            : undefined,
+          blockId,
+          editing: activeSectionText?.id === section.id && activeSectionText.field === field && activeSectionText.blockId === blockId,
+          onCommit: isEditing ? (value: string) => {
+            if (blockId) onEditBlockText?.(section.id, blockId, field, value)
+            else onEditSectionText?.(section.id, field, value)
+          } : undefined,
           onEditingChange: (editing: boolean) => {
-            if (editing) onSelectSection?.(section.id)
-            onActiveSectionTextChange?.(editing ? { id: section.id, field } : null)
+            if (editing) {
+              if (blockId) onSelectBlock?.(section.id, blockId)
+              else onSelectSection?.(section.id)
+            }
+            onActiveSectionTextChange?.(editing ? { id: section.id, field, blockId } : null)
           },
         })
         const isSelected = isEditing && selectedSectionId === section.id
@@ -857,7 +864,27 @@ export default function EditorEventPageRenderer({
 
               {section.blocks?.length ? (
                 <div className={hasHeader ? SECTION_BLOCK_STACK_WITH_HEADER_CLASS : SECTION_BLOCK_STACK_CLASS}>
-                  {section.blocks.map((block) => renderBlock(block, systemComponents))}
+                  {section.blocks.map((block) => (
+                    <div key={block.id} className={isEditing ? "relative" : undefined}>
+                      {isEditing && onSelectBlock ? (
+                        <div className="absolute right-0 top-0 z-20 flex -translate-y-full flex-wrap items-center gap-3 rounded-t bg-slate-950 px-2 text-xs text-slate-300">
+                          <button type="button" className="rounded border border-white/20 px-2 py-1 hover:bg-white/10"
+                            onPointerDown={(event) => event.stopPropagation()}
+                            onClick={() => onSelectBlock(section.id, block.id)}>
+                            {block.type === "rich_text" ? "Edit text block settings" :
+                              `Edit ${block.props.componentKey.replaceAll("_", " ")} settings`}
+                          </button>
+                          {block.type === "system_component" && block.props.componentKey === "agenda" && agendaAdminHref ? (
+                            <a className="underline" href={agendaAdminHref} target="_blank" rel="noreferrer"
+                              onPointerDown={(event) => event.stopPropagation()}>
+                              Manage agenda items
+                            </a>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {renderBlock(block, systemComponents, (field) => editText(field, block.id))}
+                    </div>
+                  ))}
                 </div>
               ) : null}
             </div>

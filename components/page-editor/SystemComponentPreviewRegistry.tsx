@@ -1,6 +1,7 @@
 "use client"
 
 import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
+import CanvasAgenda from "./CanvasAgenda"
 import RegistrationFlowPreview from "./RegistrationFlowPreview"
 import LiveTimeline from "@/components/events/LiveTimeline"
 import LetsLiveAgendaExperience from "@/components/events/LetsLiveAgendaExperience"
@@ -8,8 +9,12 @@ import LetsLiveAgendaExperience from "@/components/events/LetsLiveAgendaExperien
 export function createSystemComponentPreviewRegistry({
   sections,
   event,
+  agendaEventId,
+  editAgenda = false,
 }: {
   sections: EventPageSection[]
+  agendaEventId?: string
+  editAgenda?: boolean
   event?: {
     title: string
     description?: string | null
@@ -112,16 +117,6 @@ export function createSystemComponentPreviewRegistry({
           ? (agendaBlock.props as Record<string, unknown>)
           : {}
 
-      const title =
-        typeof agendaProps.title === "string"
-          ? agendaProps.title
-          : "Event Agenda"
-
-      const description =
-        typeof agendaProps.body === "string"
-          ? agendaProps.body
-          : "Browse the event schedule."
-
       const displayMode =
         typeof agendaProps.displayMode === "string"
           ? agendaProps.displayMode
@@ -136,6 +131,11 @@ export function createSystemComponentPreviewRegistry({
         typeof agendaProps.showDescriptions === "boolean"
           ? agendaProps.showDescriptions
           : true
+
+      if (agendaEventId) {
+        return <CanvasAgenda key={agendaEventId} eventId={agendaEventId} editable={editAgenda}
+          displayMode={displayMode} showTime={showTime} showDescriptions={showDescriptions} />
+      }
 
       const agendaItems = [
         {
@@ -157,13 +157,6 @@ export function createSystemComponentPreviewRegistry({
 
       return (
         <div className="space-y-3">
-          <div>
-            <div className="text-sm font-semibold text-white">{title}</div>
-            {description ? (
-              <div className="mt-1 text-sm text-white/55">{description}</div>
-            ) : null}
-          </div>
-
           <div
             className={
               displayMode === "cards"

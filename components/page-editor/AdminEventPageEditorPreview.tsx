@@ -459,6 +459,7 @@ const isEmbedded =
     pageKey: string
     id: string
     field: "title" | "body"
+    blockId?: string
   } | null>(null)
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
@@ -1638,6 +1639,17 @@ const isEmbedded =
     setEditingElementId(null)
     setEditorDetailsOpen(true)
     setRightRailTab("inspect")
+  }
+
+  const selectCanvasBlock = (sectionId: string, blockId: string) => {
+    setSections((current) => current.map((section) => section.id === sectionId ? materializeLiveAgendaSection(section) : section))
+    setSelectedSectionId(sectionId)
+    setSelectedBlockId(blockId)
+    setSelectedId(null)
+    setSelectedIds([])
+    setEditingElementId(null)
+    setRightRailTab("inspect")
+    setEditorDetailsOpen(true)
   }
 
   function commitInlineElementEdit(id: string, value: string) {
@@ -2887,6 +2899,8 @@ const selectedExperienceNode = experienceNodes.find(
   const systemComponents = createSystemComponentPreviewRegistry({
     sections,
     event: eventInfo,
+    agendaEventId: eventAdminId ?? undefined,
+    editAgenda: isEditing,
   })
   const saveStatusMessage =
     activePageSaveState.status === "saving"
@@ -3214,8 +3228,10 @@ const selectedExperienceNode = experienceNodes.find(
 
                       event.preventDefault()
                       event.stopPropagation()
-                      selectCanvasSection(id)
-                      setActiveSectionText({ pageKey: selectedPageKey, id, field })
+                      const blockId = text.dataset.canvasBlockId
+                      if (blockId) selectCanvasBlock(id, blockId)
+                      else selectCanvasSection(id)
+                      setActiveSectionText({ pageKey: selectedPageKey, id, field, blockId })
                     }}
                     onPointerDown={(e) => {
                       if (!isEditing) return
@@ -3368,15 +3384,7 @@ const selectedExperienceNode = experienceNodes.find(
   isEditing={isEditing}
   selectedSectionId={selectedSectionId}
   selectedBlockId={selectedBlockId}
-  onSelectBlock={(sectionId, blockId) => {
-    setSections((current) => current.map((section) => section.id === sectionId ? materializeLiveAgendaSection(section) : section))
-    setSelectedSectionId(sectionId)
-    setSelectedBlockId(blockId)
-    setSelectedId(null)
-    setSelectedIds([])
-    setRightRailTab("inspect")
-    setEditorDetailsOpen(true)
-  }}
+  onSelectBlock={selectCanvasBlock}
   onMoveBlock={(sectionId, source, target) => {
     setSections((current) => current.map((section) => section.id === sectionId ? moveLiveAgendaBlock(materializeLiveAgendaSection(section), source, target) : section))
   }}
@@ -3386,6 +3394,8 @@ const selectedExperienceNode = experienceNodes.find(
   onSectionDragOver={handleSectionDragOver}
   onSectionDrop={handleSectionDrop}
   onSectionDragEnd={handleSectionDragEnd}
+  agendaAdminHref={eventAdminId ? `/admin/events/${eventAdminId}/agenda` : undefined}
+  onEditBlockText={(sectionId, blockId, field, value) => updateBlockProps(sectionId, blockId, { [field]: value })}
   onEditSectionText={(id, field, value) => updateSectionConfig(id, { [field]: value })}
   activeSectionText={activeSectionText?.pageKey === selectedPageKey ? activeSectionText : null}
   onActiveSectionTextChange={(target) =>
@@ -3658,7 +3668,8 @@ const selectedExperienceNode = experienceNodes.find(
   setSelectedId(el.id)
   setSelectedIds(groupMemberIds)
   setSelectedSectionId(null)
-                                setRightRailTab("inspect")
+  setEditorDetailsOpen(true)
+  setRightRailTab("inspect")
   setSelectedBlockId(null)
 
   if (

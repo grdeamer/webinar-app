@@ -6,10 +6,11 @@ import SystemComponentInspector from "@/components/page-editor/experience-studio
 
 type AgendaInspectorProps = ComponentProps<typeof AgendaInspector>
 
-type Props = Omit<AgendaInspectorProps, "title" | "description"> & {
+type Props = Omit<AgendaInspectorProps, "title" | "description" | "onChange"> & {
   componentKey: string
   title?: string
   body?: string
+  onChange: (patch: Omit<Parameters<AgendaInspectorProps["onChange"]>[0], "description"> & { body?: string }) => void
 }
 
 export default function AgendaInspectorPanel({
@@ -33,7 +34,10 @@ export default function AgendaInspectorPanel({
         showDescriptions={showDescriptions}
         groupByDay={groupByDay}
         emptyStateText={emptyStateText}
-        onChange={onChange}
+        onChange={(patch) => {
+          const { description, ...settings } = patch
+          onChange(description === undefined ? settings : { ...settings, body: description })
+        }}
       />
     </SystemComponentInspector>
   )

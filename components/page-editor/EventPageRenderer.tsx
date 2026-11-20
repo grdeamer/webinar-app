@@ -551,6 +551,12 @@ function renderSectionBlock(
 
     return (
       <div key={block.id} className={cardClass || undefined}>
+        {block.props.componentKey === "agenda" && (block.props.title || block.props.body) ? (
+          <div className="mb-4 space-y-1">
+            {block.props.title ? <h3 className="text-xl font-semibold">{block.props.title}</h3> : null}
+            {block.props.body ? <p className="whitespace-pre-wrap text-sm opacity-70">{block.props.body}</p> : null}
+          </div>
+        ) : null}
         {liveComponent ?? <div className="text-sm text-white/50">{label}</div>}
 
         {isEditing ? (
