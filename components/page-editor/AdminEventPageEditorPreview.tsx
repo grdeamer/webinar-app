@@ -455,6 +455,11 @@ const isEmbedded =
   )
   const codeDraftDirty = useRef(false)
   const onCodeDraftChange = useCallback((dirty: boolean) => { codeDraftDirty.current = dirty }, [])
+  const [activeSectionText, setActiveSectionText] = useState<{
+    pageKey: string
+    id: string
+    field: "title" | "body"
+  } | null>(null)
   const [isCodeEditorOpen, setIsCodeEditorOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
@@ -1622,6 +1627,18 @@ const isEmbedded =
       document.removeEventListener("click", handleNavigationClick, true)
   }, [activePageIsDirty, flushCurrentPage])
 
+
+  const selectCanvasSection = (id: string | null) => {
+    const nextSection = sections.find((section) => section.id === id) ?? null
+
+    setSelectedSectionId(id)
+    setSelectedBlockId(nextSection?.blocks?.[0]?.id ?? null)
+    setSelectedId(null)
+    setSelectedIds([])
+    setEditingElementId(null)
+    setEditorDetailsOpen(true)
+    setRightRailTab("inspect")
+  }
 
   function commitInlineElementEdit(id: string, value: string) {
     updateElement(id, { content: value })
@@ -3178,6 +3195,28 @@ const selectedExperienceNode = experienceNodes.find(
     ? "min-h-screen rounded-none border-0 mt-0"
     : EXPERIENCE_EDITOR_CANVAS_FRAME_CLASS
 }`}
+                    onDoubleClickCapture={(event) => {
+                      if (!isEditing || event.altKey || !(event.target instanceof Element)) return
+                      if (!event.target.closest("[data-editor-element]") ||
+                          event.target.closest("[data-inline-editor], input, textarea, [contenteditable]")) return
+
+                      // Free-positioned layers can sit over structured text in older drafts.
+                      // Match the rendered text fragments so empty heading space stays clickable.
+                      const text = Array.from(event.currentTarget.querySelectorAll<HTMLElement>(
+                        "[data-canvas-section-id][data-canvas-section-field]",
+                      )).find((node) => Array.from(node.getClientRects()).some((rect) =>
+                        event.clientX >= rect.left && event.clientX < rect.right &&
+                        event.clientY >= rect.top && event.clientY < rect.bottom,
+                      ))
+                      const id = text?.dataset.canvasSectionId
+                      const field = text?.dataset.canvasSectionField
+                      if (!id || (field !== "title" && field !== "body")) return
+
+                      event.preventDefault()
+                      event.stopPropagation()
+                      selectCanvasSection(id)
+                      setActiveSectionText({ pageKey: selectedPageKey, id, field })
+                    }}
                     onPointerDown={(e) => {
                       if (!isEditing) return
                       if (
@@ -3348,17 +3387,11 @@ const selectedExperienceNode = experienceNodes.find(
   onSectionDrop={handleSectionDrop}
   onSectionDragEnd={handleSectionDragEnd}
   onEditSectionText={(id, field, value) => updateSectionConfig(id, { [field]: value })}
-  onSelectSection={(id: string | null) => {
-    const nextSection = sections.find((section) => section.id === id) ?? null
-
-    setSelectedSectionId(id)
-    setSelectedBlockId(nextSection?.blocks?.[0]?.id ?? null)
-    setSelectedId(null)
-    setSelectedIds([])
-    setEditingElementId(null)
-    setEditorDetailsOpen(true)
-    setRightRailTab("inspect")
-  }}
+  activeSectionText={activeSectionText?.pageKey === selectedPageKey ? activeSectionText : null}
+  onActiveSectionTextChange={(target) =>
+    setActiveSectionText(target ? { ...target, pageKey: selectedPageKey } : null)
+  }
+  onSelectSection={selectCanvasSection}
   eventTheme={eventTheme}
   experienceNodeCount={experienceNodes.length}
   isMobilePreview={isMobilePreview}
@@ -3512,7 +3545,7 @@ const selectedExperienceNode = experienceNodes.find(
 
                                 {normalizedElements
                     .map((el) => getResponsiveElement(el, previewDevice))
-                    .filter((el) => el.visible !== false)
+                    .filter((el) => el.visible !== false && (isEditing || el.element_type !== "spacer"))
                     .filter((el) => !((previewDevice === "mobile" && Boolean(el.props?.hideOnMobile)) || (previewDevice === "tablet" && Boolean(el.props?.hideOnTablet)) || (previewDevice === "desktop" && Boolean(el.props?.hideOnDesktop))))
                     .map((el) => {
                         const previewHref = !isEditing && el.element_type === "button"
@@ -3542,6 +3575,8 @@ const selectedExperienceNode = experienceNodes.find(
                             onPointerDown={(e) => {
                               e.stopPropagation()
                               if (!isEditing) return
+
+                              if (e.target instanceof Element && e.target.closest("input, textarea, [contenteditable]")) return
 
                               const isSelectionModifier =
                                 e.shiftKey || e.metaKey || e.ctrlKey
@@ -3618,7 +3653,7 @@ const selectedExperienceNode = experienceNodes.find(
                             }}
     onDoubleClick={(e) => {
   e.stopPropagation()
-  if (!isEditing) return
+  if (!isEditing || isLocked) return
 
   setSelectedId(el.id)
   setSelectedIds(groupMemberIds)
@@ -3706,7 +3741,7 @@ const selectedExperienceNode = experienceNodes.find(
                                 ? "bg-red-950/90 text-white"
                                 : el.element_type === "button"
                                 ? "bg-transparent"
-                                : el.element_type === "spacer"
+                                : el.element_type === "spacer" && isEditing
                                 ? "border border-dashed border-white/20 bg-white/5"
                                 : ""
                             }`}
@@ -3728,13 +3763,16 @@ const selectedExperienceNode = experienceNodes.find(
                                     defaultValue={el.content}
                                     onBlur={(e) => commitInlineElementEdit(el.id, e.target.value)}
                                     onKeyDown={(e) => {
+                                      e.stopPropagation()
+                                      if (e.nativeEvent.isComposing) return
                                       if (e.key === "Enter") {
-                                        commitInlineElementEdit(
-                                          el.id,
-                                          (e.target as HTMLInputElement).value
-                                        )
+                                        e.preventDefault()
+                                        e.currentTarget.blur()
                                       }
-                                      if (e.key === "Escape") setEditingElementId(null)
+                                      if (e.key === "Escape") {
+                                        e.preventDefault()
+                                        setEditingElementId(null)
+                                      }
                                     }}
                                     className="h-full w-full rounded-lg border border-black/10 bg-white/90 px-3 py-2 text-sm text-black outline-none"
                                   />
@@ -3916,7 +3954,7 @@ const selectedExperienceNode = experienceNodes.find(
                                   </button>
                                 )}
                               </div>
-                            ) : el.element_type === "spacer" ? (
+                            ) : el.element_type === "spacer" && isEditing ? (
                               <div className="flex h-full w-full items-center justify-center text-xs uppercase tracking-[0.18em] text-white/40">
                                 Spacer
                               </div>

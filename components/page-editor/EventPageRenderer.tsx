@@ -1043,7 +1043,7 @@ export default function EventPageRenderer({
 })}
 
         {elements
-          .filter((el) => !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
+          .filter((el) => (mode === "editor" || el.element_type !== "spacer") && !(isMobilePreview && Boolean(el.props?.hideOnMobile)))
           .map((el) => {
             const videoSource =
               el.element_type === "video" ? getVideoSource(el, generalSession) : null

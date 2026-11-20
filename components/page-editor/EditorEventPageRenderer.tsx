@@ -2,7 +2,7 @@
 
 import { getSectionIntro } from "@/lib/page-editor/experienceLayout"
 import type { LiveTimelineProps } from "@/components/events/LiveTimeline"
-import { cloneElement, isValidElement, useState, type DragEvent, type ReactNode } from "react"
+import { cloneElement, isValidElement, type DragEvent, type ReactNode } from "react"
 import type {
   EventPageSection,
   SectionBlock,
@@ -413,14 +413,19 @@ function SectionText({
   className,
   color,
   onCommit,
+  editing,
+  onEditingChange,
+  sectionId,
 }: {
   as: "h1" | "h2" | "p"
   value: string
   className: string
   color?: string
   onCommit?: (value: string) => void
+  editing?: boolean
+  onEditingChange?: (editing: boolean) => void
+  sectionId: string
 }) {
-  const [editing, setEditing] = useState(false)
   const multiline = Tag === "p"
   const label = multiline ? "Section body" : "Section title"
 
@@ -432,14 +437,14 @@ function SectionText({
         autoFocus
         aria-label={label}
         defaultValue={value}
-        className={`${className} block w-full rounded-sm bg-transparent outline outline-2 outline-sky-400`}
+        className={`${className} block w-full rounded-sm bg-slate-950 outline outline-2 outline-sky-400`}
         style={{ color }}
         onPointerDown={(event) => event.stopPropagation()}
         onDoubleClick={(event) => event.stopPropagation()}
         onBlur={(event) => {
           const next = event.currentTarget.value
           if (next !== value) onCommit(next)
-          setEditing(false)
+          onEditingChange?.(false)
         }}
         onKeyDown={(event) => {
           event.stopPropagation()
@@ -467,16 +472,20 @@ function SectionText({
       onDoubleClick={onCommit ? (event) => {
         event.preventDefault()
         event.stopPropagation()
-        setEditing(true)
+        onEditingChange?.(true)
       } : undefined}
       onKeyDown={onCommit ? (event) => {
         if (event.key !== "Enter") return
         event.preventDefault()
         event.stopPropagation()
-        setEditing(true)
+        onEditingChange?.(true)
       } : undefined}
     >
-      {value}
+      {onCommit ? (
+        <span data-canvas-section-id={sectionId} data-canvas-section-field={multiline ? "body" : "title"}>
+          {value}
+        </span>
+      ) : value}
     </Tag>
   )
 }
@@ -490,6 +499,8 @@ export default function EditorEventPageRenderer({
   dragOverSectionId = null,
   onSelectSection,
   onEditSectionText,
+  activeSectionText,
+  onActiveSectionTextChange,
   selectedBlockId, onSelectBlock, onMoveBlock,
   onSectionDragStart,
   onSectionDragOver,
@@ -509,6 +520,8 @@ export default function EditorEventPageRenderer({
   selectedBlockId?: string | null
   onSelectBlock?: (sectionId: string, blockId: string) => void
   onMoveBlock?: (sectionId: string, source: string, target: string) => void
+  activeSectionText?: { id: string; field: "title" | "body" } | null
+  onActiveSectionTextChange?: (target: { id: string; field: "title" | "body" } | null) => void
   onEditSectionText?: (id: string, field: "title" | "body", value: string) => void
   onSelectSection?: (id: string | null) => void
   onSectionDragStart?: (id: string) => void
@@ -719,8 +732,17 @@ export default function EditorEventPageRenderer({
         const showBottomDivider = hasBottomDivider(config.divider)
         const intro = getSectionIntro(section)
         const hasHeader = Boolean(intro.title || intro.body)
-        const editText = (field: "title" | "body") =>
-          isEditing && onEditSectionText ? (value: string) => onEditSectionText(section.id, field, value) : undefined
+        const editText = (field: "title" | "body") => ({
+          sectionId: section.id,
+          editing: activeSectionText?.id === section.id && activeSectionText.field === field,
+          onCommit: isEditing && onEditSectionText
+            ? (value: string) => onEditSectionText(section.id, field, value)
+            : undefined,
+          onEditingChange: (editing: boolean) => {
+            if (editing) onSelectSection?.(section.id)
+            onActiveSectionTextChange?.(editing ? { id: section.id, field } : null)
+          },
+        })
         const isSelected = isEditing && selectedSectionId === section.id
 
         return (
@@ -797,7 +819,10 @@ export default function EditorEventPageRenderer({
 
             {showTopDivider ? <div className={SECTION_TOP_EDGE_CLASS} /> : null}
             {showBottomDivider ? <div className={SECTION_BOTTOM_EDGE_CLASS} /> : null}
-            <div className={`relative z-20 mx-auto ${widthClass}`}>
+            <div
+              className={`relative z-20 mx-auto ${widthClass}`}
+              style={isEditing && activeSectionText?.id === section.id ? { zIndex: 2147483647 } : undefined}
+            >
               {section.type === "hero" && hasHeader ? (
                 <div className={headerAlignmentClass} data-editor-hero-intro>
                   <div className={HERO_KICKER_CLASS}>
@@ -806,26 +831,26 @@ export default function EditorEventPageRenderer({
 
                   {intro.title ? (
                     <SectionText as="h1" value={intro.title} className={HERO_TITLE_CLASS}
-                      color={sectionTextColor} onCommit={editText("title")} />
+                      color={sectionTextColor} {...editText("title")} />
                   ) : null}
 
                   {intro.body ? (
                     <SectionText as="p" value={intro.body}
                       className={`${HERO_BODY_CLASS} ${config.textAlign === "center" ? "mx-auto max-w-3xl" : "max-w-3xl"}`}
-                      color={sectionTextColor} onCommit={editText("body")} />
+                      color={sectionTextColor} {...editText("body")} />
                   ) : null}
                 </div>
               ) : hasHeader ? (
                 <div className={headerAlignmentClass}>
                   {intro.title ? (
                     <SectionText as="h2" value={intro.title} className={SECTION_TITLE_CLASS}
-                      color={sectionTextColor} onCommit={editText("title")} />
+                      color={sectionTextColor} {...editText("title")} />
                   ) : null}
 
                   {intro.body ? (
                     <SectionText as="p" value={intro.body}
                       className={intro.title ? SECTION_BODY_CLASS : SECTION_BODY_CLASS.replace("mt-4 ", "")}
-                      color={sectionTextColor} onCommit={editText("body")} />
+                      color={sectionTextColor} {...editText("body")} />
                   ) : null}
                 </div>
               ) : null}
