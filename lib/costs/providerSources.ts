@@ -19,11 +19,48 @@ async function limitedJson(response: Response, stage: string, allowError = false
   } finally { await reader.cancel().catch(() => {}) }
   return JSON.parse(Buffer.concat(chunks).toString('utf8'))
 }
-async function vercelEstimate(now: Date): Promise<CostEstimate> {
+function vercelInstallation() {
+  return {
+    clientId: process.env.COSTS_VERCEL_CLIENT_ID?.trim(),
+    clientSecret: process.env.COSTS_VERCEL_CLIENT_SECRET?.trim(),
+    installationId: process.env.COSTS_VERCEL_INSTALLATION_ID?.trim(),
+  }
+}
+async function vercelBillingCredential(team: string) {
+  const { clientId, clientSecret, installationId } = vercelInstallation()
+  if (clientId || clientSecret || installationId) {
+    if (!clientId || !clientSecret || !installationId || !/^icfg_[a-zA-Z0-9]+$/.test(installationId)) {
+      throw new CostSourceFailure('vercel_installation_configuration_incomplete')
+    }
+    const response = await fetch('https://api.vercel.com/v2/oauth/access_token', {
+      method: 'POST',
+      headers: {
+        Authorization: `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: new URLSearchParams({ grant_type: 'client_credentials', installation_id: installationId }),
+      cache: 'no-store',
+      redirect: 'error',
+      signal: AbortSignal.timeout(15_000),
+    })
+    const body = await limitedJson(response, 'vercel_installation_token')
+    if (body?.team_id !== team || body.installation_id !== installationId) {
+      throw new CostSourceFailure('vercel_installation_account_mismatch')
+    }
+    if (typeof body.access_token !== 'string' || !body.access_token || /\s/.test(body.access_token)) {
+      throw new CostSourceFailure('vercel_installation_token_missing')
+    }
+    return { token: body.access_token as string, inputDiagnostic: null }
+  }
   const { value: token, diagnostic: inputDiagnostic } = billingTokenInput(process.env.COSTS_VERCEL_BILLING_TOKEN)
-  const team = process.env.COSTS_VERCEL_TEAM_ID
-  if (!token || !team || !/^team_[a-zA-Z0-9]+$/.test(team)) throw new Error('Billing connection missing')
+  if (!token) throw new CostSourceFailure('vercel_billing_connection_missing')
   if (inputDiagnostic.placeholder || inputDiagnostic.integrationClientId) throw new CostSourceFailure('vercel_wrong_credential_value', { input: inputDiagnostic })
+  return { token, inputDiagnostic }
+}
+async function vercelEstimate(now: Date): Promise<CostEstimate> {
+  const team = process.env.COSTS_VERCEL_TEAM_ID?.trim()
+  if (!team || !/^team_[a-zA-Z0-9]+$/.test(team)) throw new CostSourceFailure('vercel_billing_team_missing')
+  const { token, inputDiagnostic } = await vercelBillingCredential(team)
   const url = new URL('https://api.vercel.com/v1/billing/charges')
   url.searchParams.set('teamId', team)
   url.searchParams.set('from', new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1)).toISOString())
@@ -114,7 +151,10 @@ async function supabaseEstimate(now: Date): Promise<CostEstimate> {
   }
 }
 async function cachedSource(id: 'vercel' | 'supabase', now: Date): Promise<ProviderSource> {
-  const connected = id === 'vercel' ? Boolean(process.env.COSTS_VERCEL_BILLING_TOKEN && process.env.COSTS_VERCEL_TEAM_ID) : Boolean(process.env.COSTS_SUPABASE_READ_TOKEN && process.env.COSTS_SUPABASE_ORG_SLUG)
+  const installation = vercelInstallation()
+  const connected = id === 'vercel'
+    ? Boolean(process.env.COSTS_VERCEL_TEAM_ID && (process.env.COSTS_VERCEL_BILLING_TOKEN || Object.values(installation).some(Boolean)))
+    : Boolean(process.env.COSTS_SUPABASE_READ_TOKEN && process.env.COSTS_SUPABASE_ORG_SLUG)
   const result = await supabaseAdmin.from('owner_provider_cost_cache').select('payload,fetched_at,attempt_day,last_error').eq('id', id).single<Snapshot>()
   if (result.error) return { id, connected, estimate: null, fetchedAt: null, stale: true, error: 'Provider cache unavailable.' }
   let row = result.data

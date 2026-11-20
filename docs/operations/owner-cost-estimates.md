@@ -3,7 +3,9 @@
 The dashboard and `/api/admin/costs` require the exact confirmed owner email plus an active administrator role. Provider snapshots are server-only tables with RLS and no anon/authenticated grants. No media services are started by a cost refresh.
 
 Production server configuration:
-- `COSTS_VERCEL_BILLING_TOKEN`: private integration token, Billing Read and installation metadata only.
+- `COSTS_VERCEL_CLIENT_ID` and `COSTS_VERCEL_CLIENT_SECRET`: credentials from the private integration's Vercel Console. Store the client secret as a Production Secret.
+- `COSTS_VERCEL_INSTALLATION_ID`: the private integration's `icfg_` configuration ID for the billing team. Jupiter requests a short-lived token with the approved Billing Read scope when refreshing the estimate.
+- `COSTS_VERCEL_BILLING_TOKEN`: legacy fallback when none of the three installation variables are set.
 - `COSTS_VERCEL_TEAM_ID`: explicitly selected team; billing is team-wide.
 - `COSTS_SUPABASE_READ_TOKEN`: organization-scoped metadata read token, no SQL, API secrets or writes. Current token expires January 31, 2027; renew before expiration.
 - `COSTS_SUPABASE_ORG_SLUG`: explicitly selected organization.
