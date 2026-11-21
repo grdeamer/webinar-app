@@ -68,7 +68,7 @@ export default function CommunicationsClient({ eventId, eventTitle, counts, hist
   }
 
   return (
-    <div className="mx-auto max-w-[1500px] space-y-5 text-white">
+    <div className="event-theme-workspace mx-auto max-w-[1500px] space-y-5 text-white">
       <section className="flex flex-col gap-5 border-b border-[#1d2b40] pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="editorial-eyebrow">Event &nbsp;/&nbsp; Communications</div>
@@ -144,7 +144,7 @@ export default function CommunicationsClient({ eventId, eventTitle, counts, hist
 }
 
 function Panel({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-2xl border border-[#1d2b40] bg-[linear-gradient(145deg,rgba(8,16,30,.98),rgba(4,10,21,.98))] p-4 shadow-[inset_0_1px_rgba(255,255,255,.025),0_18px_50px_rgba(0,0,0,.08)] sm:p-5 ${className}`}>{children}</div>
+  return <div className={`rounded-2xl border border-[#1d2b40] event-theme-panel bg-[linear-gradient(145deg,rgba(8,16,30,.98),rgba(4,10,21,.98))] p-4 shadow-[inset_0_1px_rgba(255,255,255,.025),0_18px_50px_rgba(0,0,0,.08)] sm:p-5 ${className}`}>{children}</div>
 }
 
 function PanelHeading({ number, title, subtitle }: { number: string; title: string; subtitle: string }) {

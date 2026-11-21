@@ -552,7 +552,7 @@ export default function PeopleClient({
     : ["email,first_name,last_name,tag,notes,session_code_1,session_code_2", "jane@company.com,Jane,Doe,Registrant,,KEYNOTE,WORKSHOP-A"].join("\n")
 
   return (
-    <div className="space-y-5 text-white">
+    <div className="event-theme-workspace space-y-5 text-white">
       <section className="border-b border-[#33405a] pb-7">
         <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
           <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; People</div><h1 className="mt-6 text-5xl font-medium tracking-[-.045em]">Bring everyone together.</h1><p className="mt-3 text-base text-white/55">Add and manage everyone connected to {eventTitle}.</p></div>

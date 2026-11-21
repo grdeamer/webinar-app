@@ -134,7 +134,7 @@ export default function MissionControlTour({ userId }: { userId: string }) {
 
       {mode === "intro" ? (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-[#02050d]/80 p-5 backdrop-blur-md" role="dialog" aria-modal="true" aria-labelledby="mission-control-tour-title">
-          <div className="relative w-full max-w-lg overflow-hidden rounded-[28px] border border-violet-300/20 bg-[radial-gradient(circle_at_86%_0%,rgba(123,83,255,.24),transparent_38%),#091020] p-7 shadow-[0_32px_100px_rgba(0,0,0,.6)] sm:p-9">
+          <div className="mission-tour-panel relative w-full max-w-lg overflow-hidden rounded-[28px] border border-violet-300/20 bg-[radial-gradient(circle_at_86%_0%,rgba(123,83,255,.24),transparent_38%),#091020] p-7 shadow-[0_32px_100px_rgba(0,0,0,.6)] sm:p-9">
             <button type="button" onClick={closeTour} className="absolute right-5 top-5 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 text-white/55 hover:bg-white/10 hover:text-white" aria-label="Skip guided tour"><X size={17} /></button>
             <span className="flex h-12 w-12 items-center justify-center rounded-2xl border border-violet-300/25 bg-violet-400/12 text-violet-200"><Sparkles size={21} /></span>
             <div className="mt-7 text-[11px] font-bold uppercase tracking-[.22em] text-violet-200/70">Welcome to Jupiter</div>
@@ -152,7 +152,7 @@ export default function MissionControlTour({ userId }: { userId: string }) {
         <div className="fixed inset-0 z-[80]" role="dialog" aria-modal="true" aria-label="Mission Control guided tour">
           <div className="absolute inset-0" />
           {spotlight ? <div className="pointer-events-none fixed z-[82] rounded-[22px] border-2 border-violet-300/80 shadow-[0_0_0_9999px_rgba(1,3,10,.72),0_0_36px_rgba(139,92,246,.42)] transition-all duration-300" style={spotlight} /> : null}
-          <div className="fixed bottom-4 left-4 right-4 z-[85] mx-auto w-auto max-w-md rounded-[24px] border border-violet-300/22 bg-[#091020]/98 p-5 shadow-[0_28px_90px_rgba(0,0,0,.58)] sm:bottom-7 sm:left-auto sm:right-7 sm:w-[420px] sm:p-6">
+          <div className="mission-tour-panel fixed bottom-4 left-4 right-4 z-[85] mx-auto w-auto max-w-md rounded-[24px] border border-violet-300/22 bg-[#091020]/98 p-5 shadow-[0_28px_90px_rgba(0,0,0,.58)] sm:bottom-7 sm:left-auto sm:right-7 sm:w-[420px] sm:p-6">
             <div className="flex items-start justify-between gap-4">
               <div><div className="text-[10px] font-bold uppercase tracking-[.22em] text-violet-200/70">{step.eyebrow}</div><h2 className="mt-2 text-xl font-semibold tracking-[-.025em]">{step.title}</h2></div>
               <button type="button" onClick={closeTour} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white/45 hover:bg-white/10 hover:text-white" aria-label="End guided tour"><X size={16} /></button>

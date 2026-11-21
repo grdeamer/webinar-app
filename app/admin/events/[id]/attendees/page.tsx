@@ -68,7 +68,7 @@ export default async function PeoplePage({ params }: { params: Promise<{ id: str
 
   return (
     <main className="event-editorial-page">
-      <Link className="mb-4 inline-block rounded-xl border border-white/20 px-4 py-2" href={`/admin/events/${id}/registrations`}>Review approvals and waitlist →</Link>
+      <Link className="event-theme-link mb-4 inline-block rounded-xl border border-white/20 px-4 py-2" href={`/admin/events/${id}/registrations`}>Review approvals and waitlist →</Link>
       <PeopleClient 
         eventId={event.id} 
         eventSlug={event.slug} 

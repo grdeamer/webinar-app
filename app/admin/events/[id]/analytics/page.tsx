@@ -147,7 +147,7 @@ export default async function AdminEventAnalyticsPage({
   const exportBase = `/api/admin/events/${event.id}/analytics/export`
 
   return (
-    <main className="relative min-h-screen overflow-hidden px-5 pb-16 pt-9 text-white sm:px-8 lg:px-12">
+    <main className="event-theme-workspace relative min-h-screen overflow-hidden px-5 pb-16 pt-9 text-white sm:px-8 lg:px-12">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_100%,rgba(118,46,38,0.1),transparent_35%)]" />
       <div className="relative mx-auto max-w-[1500px]">
         <header className="border-b border-white/[0.09] pb-9">

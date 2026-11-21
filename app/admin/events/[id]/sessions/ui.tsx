@@ -453,7 +453,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
   }
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden pb-16 text-white">
+    <div className="event-theme-workspace relative min-h-screen overflow-x-hidden pb-16 text-white">
       <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_82%_4%,rgba(41,105,190,0.12),transparent_30%),radial-gradient(circle_at_34%_100%,rgba(112,42,34,0.12),transparent_34%)]" />
 
       <header className="relative border-b border-[#273348] px-0 pb-7 pt-0">
@@ -839,7 +839,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         </div>
       </section>
 
-      <section className="rounded-[18px] border border-white/[0.13] bg-[linear-gradient(145deg,rgba(12,20,34,0.70),rgba(4,8,16,0.54))] px-5 py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_20px_70px_rgba(0,0,0,0.16)] ring-1 ring-inset ring-white/[0.018] sm:px-7 lg:px-8">
+      <section className="rounded-[18px] border border-white/[0.13] event-theme-panel bg-[linear-gradient(145deg,rgba(12,20,34,0.70),rgba(4,8,16,0.54))] px-5 py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_20px_70px_rgba(0,0,0,0.16)] ring-1 ring-inset ring-white/[0.018] sm:px-7 lg:px-8">
         <div className="flex flex-col gap-5 border-b border-white/[0.09] pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">Program sequence</div>
@@ -1447,7 +1447,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       >
         <DialogContent
           showCloseButton={false}
-          className="max-w-[440px] gap-0 overflow-hidden rounded-[18px] border border-white/[0.13] bg-[#07101d] p-0 text-white shadow-[0_36px_110px_rgba(0,0,0,0.7)] ring-1 ring-inset ring-white/[0.025]"
+          className="event-theme-dialog max-w-[440px] gap-0 overflow-hidden rounded-[18px] border border-white/[0.13] bg-[#07101d] p-0 text-white shadow-[0_36px_110px_rgba(0,0,0,0.7)] ring-1 ring-inset ring-white/[0.025]"
         >
           <DialogHeader className="px-6 pb-5 pt-6">
             <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-[10px] border border-red-400/20 bg-red-400/[0.08] text-red-300">
@@ -1496,7 +1496,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       >
         <DialogContent
           showCloseButton={false}
-          className="max-w-[480px] gap-0 overflow-hidden rounded-[20px] border border-red-200/[0.16] bg-[radial-gradient(circle_at_82%_0%,rgba(127,29,29,0.18),transparent_42%),linear-gradient(155deg,#0c1627,#03070f)] p-0 text-white shadow-[0_38px_120px_rgba(0,0,0,0.78),0_0_60px_rgba(239,68,68,0.08)]"
+          className="event-theme-dialog max-w-[480px] gap-0 overflow-hidden rounded-[20px] border border-red-200/[0.16] bg-[radial-gradient(circle_at_82%_0%,rgba(127,29,29,0.18),transparent_42%),linear-gradient(155deg,#0c1627,#03070f)] p-0 text-white shadow-[0_38px_120px_rgba(0,0,0,0.78),0_0_60px_rgba(239,68,68,0.08)]"
         >
           <DialogHeader className="px-6 pb-5 pt-6">
             <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-[13px] border border-red-300/25 bg-red-400/[0.10] text-red-200">
