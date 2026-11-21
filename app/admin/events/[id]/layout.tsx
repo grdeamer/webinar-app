@@ -5,12 +5,14 @@ import { startVisibilityPoll } from "@/lib/browser/visibilityPoll"
 import { useParams, usePathname } from "next/navigation"
 import { CSSProperties, ReactNode, useCallback, useEffect, useState } from "react"
 import { Activity, CalendarDate, Home03, Signal02, Tool02, Users01 } from "@untitledui/icons"
-import { BarChart3, CalendarClock, CloudCog, LayoutDashboard, ListChecks, Menu, MessagesSquare, Network, NotebookTabs, PanelsTopLeft, RadioTower, Rocket, UsersRound, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
 import JupiterLogo from "@/components/brand/JupiterLogo"
 import AdminProfileMenu from "@/components/admin/AdminProfileMenu"
 import { JupiterAppearanceSwitch, useJupiterAppearance, usesDefaultAppearance } from "@/components/ui/JupiterAppearance"
 import AdminDocumentTitle from "@/components/admin/AdminDocumentTitle"
 import type { EventFeature } from "@/lib/eventPermissions"
+import { EventWorkspaceNavigation, EventWorkspaceSection } from "./EventWorkspaceNavigation"
+import styles from "./event-workspace-navigation.module.css"
 
 type EventWorkspaceContext = {
   title: string
@@ -44,14 +46,6 @@ function NavLink({ href, label, icon, exact = false, badge, iconTone, disabled =
   return <Link href={href} className={`jv1-nav-item ${selected ? "jv1-nav-item--selected" : ""}`} aria-current={selected ? "page" : undefined}>{content}</Link>
 }
 
-function TopLink({ href, label, icon, exact = false, disabled = false }: { href: string; label: string; icon: ReactNode; exact?: boolean; disabled?: boolean }) {
-  const pathname = usePathname()
-  const selected = active(pathname, href, exact)
-  const content = <><span className="jv1-top-link-icon">{icon}</span><span>{label}</span></>
-  if (disabled) return <span className="jv1-top-link jv1-top-link--disabled" aria-disabled="true" title={`${label} — No access`}>{content}</span>
-  return <Link href={href} className={`jv1-top-link ${selected ? "jv1-top-link--selected" : ""}`} aria-current={selected ? "page" : undefined}>{content}</Link>
-}
-
 export default function EventLayout({ children }: { children: ReactNode }) {
   const params = useParams()
   const pathname = usePathname()
@@ -82,7 +76,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
 
   if (isProducer) return <>{documentTitle}{children}</>
 
-  const hasFeature = (feature: EventFeature) => !eventContext || eventContext.isGlobalAdmin || eventContext.features.includes(feature)
+  const route = pathname.slice(base.length).replace(/^\//, "")
   const eventTitle = eventContext?.title ?? "Loading event…"
   const eventStatus = eventContext
     ? `${formatEventDate(eventContext.startAt)} · ${eventContext.access === "closed" ? "Closed" : "Open"}`
@@ -91,35 +85,31 @@ export default function EventLayout({ children }: { children: ReactNode }) {
   return (
     <div className="jv1-shell">
       {documentTitle}
-      <header className="jv1-atmospheric-header">
-        <div className="jv1-header-veil" />
-        <div className="jv1-header-brand"><JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-[18px] font-semibold tracking-[.18em]" /></div>
-        <div className="jv1-header-workspace-bar">
-          <div className="jv1-header-event-context">
-            {eventContext?.badgeImageUrl ? <img className="jv1-header-event-thumbnail" src={eventContext.badgeImageUrl} alt="" /> : <span className="jv1-header-event-thumbnail jv1-header-event-thumbnail--default" aria-hidden="true" />}
-            <span className="jv1-header-event-copy" aria-busy={!eventContext}><strong>{eventTitle}</strong><span>{eventStatus}</span></span>
-          </div>
-          <nav className="jv1-top-navigation" aria-label="Event workspace">
-            <TopLink href={base} label="Overview" icon={<LayoutDashboard />} exact />
-            <TopLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} disabled={!hasFeature("event_details")} />
-            <TopLink href={`${base}/attendees`} label="People" icon={<UsersRound />} disabled={!hasFeature("people")} />
-            <TopLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} disabled={!hasFeature("program")} />
-            <TopLink href={`${base}/districts`} label="Districts" icon={<Network />} disabled={!hasFeature("districts")} />
-            <TopLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} disabled={!hasFeature("experience")} />
-            <TopLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} disabled={!hasFeature("communications")} />
-            <TopLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} disabled={!hasFeature("publishing")} />
-            <TopLink href={`${base}/infrastructure`} label="Cloud" icon={<CloudCog />} disabled={!hasFeature("event_details")} />
-            <TopLink href={`${base}/analytics`} label="Analytics" icon={<BarChart3 />} disabled={!hasFeature("analytics")} />
-            <TopLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} disabled={!hasFeature("run_of_show")} />
-            <TopLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} disabled={!hasFeature("producer_room")} />
-          </nav>
+      <header className={styles.header}>
+        <div className={styles.horizon}>
+          <JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-[18px] font-semibold tracking-[.18em]" />
+          <span className={styles.live}><span />{eventContext?.hasLiveSession ? "Event live" : "Live ready"}</span>
+          <button type="button" className={styles.mobileMenu} onClick={() => setMobileOpen((open) => !open)}
+            aria-label="Jupiter navigation" aria-expanded={mobileOpen} aria-controls="event-global-navigation">
+            {mobileOpen ? <X size={19} /> : <Menu size={19} />}
+          </button>
         </div>
-        <div className="jv1-live-badge"><span />{eventContext?.hasLiveSession ? "EVENT LIVE" : "LIVE READY"}</div>
-        <button className="jv1-mobile-menu" onClick={() => setMobileOpen((open) => !open)} aria-label="Toggle event navigation">{mobileOpen ? <X size={19} /> : <Menu size={19} />}</button>
+        <EventWorkspaceNavigation base={base} access={eventContext} route={route}>
+          <div className={styles.eventIdentity}>
+            {eventContext?.badgeImageUrl ? <img className="jv1-header-event-thumbnail" src={eventContext.badgeImageUrl} alt="" /> : <span className="jv1-header-event-thumbnail jv1-header-event-thumbnail--default" aria-hidden="true" />}
+            <div className={styles.eventCopy} aria-busy={!eventContext}><strong>{eventTitle}</strong><span>{eventStatus}</span></div>
+          </div>
+        </EventWorkspaceNavigation>
       </header>
 
-      <div className={`jv1-workspace ${mobileOpen ? "jv1-workspace--open" : ""}`} onClick={(event) => { if (mobileOpen && (event.target as HTMLElement).closest("a")) setMobileOpen(false) }}>
-        <aside className="jv1-global-rail">
+      <div className="jv1-workspace" onClick={(event) => { if (mobileOpen && (event.target as HTMLElement).closest("a")) setMobileOpen(false) }}>
+        <aside id="event-global-navigation" className={`jv1-global-rail ${mobileOpen ? styles.railOpen : ""}`}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              setMobileOpen(false)
+              document.querySelector<HTMLButtonElement>('[aria-controls="event-global-navigation"]')?.focus()
+            }
+          }}>
           <JupiterLogo className="jv1-rail-logo text-white" markClassName="h-9 w-9 shrink-0" wordmarkClassName="text-sm font-bold tracking-[0.18em]" />
           <div className="jv1-rail-kicker">MISSION CONTROL</div>
           <div className="jv1-system-card">
@@ -131,27 +121,10 @@ export default function EventLayout({ children }: { children: ReactNode }) {
           {eventContext?.isGlobalAdmin ? <><div className="jv1-rail-section-label jv1-rail-section-label--administration">Administration</div><nav className="jv1-global-navigation space-y-1.5"><NavLink href="/admin/users" label="Team & Access" icon={<Users01 />} iconTone="91 211 255" /><NavLink href="/admin/dev-tools" label="Dev Tools" icon={<Tool02 />} iconTone="241 188 104" /></nav></> : null}
           <div className="mt-auto pt-6">{canChangeAppearance ? <JupiterAppearanceSwitch appearance={appearance} /> : null}<AdminProfileMenu /></div>
         </aside>
-        <aside className="jv1-event-rail" aria-label="Mobile event workspace">
-          <div className="jv1-event-rail-label"><span /> Event workspace</div>
-          <div className="jv1-event-context" aria-busy={!eventContext}><h2>{eventTitle}</h2><p>{eventStatus}</p></div>
-          <nav className="jv1-event-navigation space-y-1">
-            <NavLink href={base} label="Overview" icon={<LayoutDashboard />} exact />
-            <NavLink href={`${base}/settings`} label="Event Details" icon={<NotebookTabs />} disabled={!hasFeature("event_details")} />
-            <NavLink href={`${base}/attendees`} label="People" icon={<UsersRound />} disabled={!hasFeature("people")} />
-            <NavLink href={`${base}/sessions`} label="Program" icon={<CalendarClock />} disabled={!hasFeature("program")} />
-            <NavLink href={`${base}/districts`} label="Districts" icon={<Network />} disabled={!hasFeature("districts")} />
-            <NavLink href={`${base}/page-editor`} label="Experience" icon={<PanelsTopLeft />} disabled={!hasFeature("experience")} />
-            <NavLink href={`${base}/emails`} label="Communications" icon={<MessagesSquare />} disabled={!hasFeature("communications")} />
-            <NavLink href={`${base}/publishing`} label="Publish" icon={<Rocket />} disabled={!hasFeature("publishing")} />
-            <NavLink href={`${base}/infrastructure`} label="Jupiter Cloud" icon={<CloudCog />} disabled={!hasFeature("event_details")} />
-            <NavLink href={`${base}/analytics`} label="Analytics" icon={<BarChart3 />} disabled={!hasFeature("analytics")} />
-            <NavLink href={`${base}/agenda`} label="Run of Show" icon={<ListChecks />} disabled={!hasFeature("run_of_show")} />
-            <NavLink href={`${base}/producer/room`} label="Producer Room" icon={<RadioTower />} disabled={!hasFeature("producer_room")} />
-            <NavLink href={`${base}/routing`} label="Audience Flow" icon={<Signal02 />} disabled={!hasFeature("run_of_show")} />
-          </nav>
-          <div className="mt-auto pt-5"><AdminProfileMenu /></div>
-        </aside>
-        <main className="jv1-content">{children}</main>
+        <main className="jv1-content">
+          <EventWorkspaceSection base={base} route={route} access={eventContext} eventId={id} eventTitle={eventTitle} />
+          {children}
+        </main>
       </div>
     </div>
   )

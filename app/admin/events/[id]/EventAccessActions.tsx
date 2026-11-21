@@ -12,7 +12,7 @@ const roleOptions: Array<{ value: EventRole; label: string; description: string 
   { value: "viewer", label: "Viewer", description: "View the event overview and analytics without making changes." },
 ]
 
-export default function EventAccessActions({ eventId, eventTitle }: { eventId: string; eventTitle: string }) {
+export default function EventAccessActions({ eventId, eventTitle, triggerClassName }: { eventId: string; eventTitle: string; triggerClassName?: string }) {
   const [open, setOpen] = useState(false)
   const [email, setEmail] = useState("")
   const [name, setName] = useState("")
@@ -47,9 +47,9 @@ export default function EventAccessActions({ eventId, eventTitle }: { eventId: s
 
   return (
     <>
-      <div className="mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-        <button type="button" onClick={() => { setOpen(true); setError(null); setNotice(null) }} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#3c75da]/65 bg-[#0d1a33]/85 px-6 text-sm font-semibold text-white transition hover:border-[#6da0ff] hover:bg-[#122344]">
-          <UserPlus01 className="h-4 w-4" />Invite to this event
+      <div className={triggerClassName ? undefined : "mt-5 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center"}>
+        <button type="button" onClick={() => { setOpen(true); setError(null); setNotice(null) }} className={triggerClassName ?? "inline-flex min-h-11 items-center justify-center gap-2 rounded-full border border-[#3c75da]/65 bg-[#0d1a33]/85 px-6 text-sm font-semibold text-white transition hover:border-[#6da0ff] hover:bg-[#122344]"}>
+          {triggerClassName ? "Invite team" : <><UserPlus01 className="h-4 w-4" />Invite to this event</>}
         </button>
       </div>
       {notice ? <div className="mt-3 text-sm text-emerald-200">{notice}</div> : null}
