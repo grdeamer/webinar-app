@@ -433,5 +433,10 @@ body:has(.jupiter-site-appearance[data-site-appearance="light"]) .event-theme-di
 
   & :is([class^="text-white/"], [class*=" text-white/"], .text-white) { color: #4d435d; }
   & :is(.text-violet-200, [class*="text-violet-200/"]) { color: #58348b; }
-  & button:is([class*="from-blue-600"], .bg-violet-600) { color: #fff; }
+  & button[class*="from-blue-600"] { color: #fff; }
+  & button.bg-violet-500 {
+    background: #6043b3;
+    color: #fff;
+  }
+  & button.bg-violet-500:hover { background: #513797; }
 }
