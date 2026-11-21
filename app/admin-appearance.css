@@ -28,13 +28,6 @@
     box-shadow: none;
   }
 
-  & .admin-navigation-rail .main-nav-icon {
-    background: none;
-    border-color: transparent;
-    box-shadow: none;
-    color: inherit;
-  }
-
   & .admin-navigation-rail a[aria-current="page"] {
     background: var(--clean-selected) !important;
     border-color: transparent !important;
@@ -125,7 +118,7 @@
   }
   & .events-command-search input::placeholder { color: var(--clean-muted); }
   & .admin-navigation-rail :is(.text-white, [class*="text-white/"]) { color: var(--clean-muted) !important; }
-  & .admin-navigation-rail a[aria-current="page"] > span { color: var(--clean-accent) !important; }
+  & .admin-navigation-rail a[aria-current="page"] > span:last-child { color: var(--clean-accent) !important; }
   & .jupiter-mobile-header .text-white { color: var(--clean-ink); }
   & .dashboard-command-panel [class*="bg-[#070d1d]"] { background: var(--clean-rail) !important; }
   & :is(.global-editorial-page, .io-console) :is(.text-blue-200, .text-blue-300, .text-cyan-300, .text-violet-200, .text-violet-300) {

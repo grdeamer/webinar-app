@@ -51,6 +51,8 @@ const NAV_ICON_TONES: Record<string, string> = {
   "/admin/events": "174 108 255",
   "/admin/activity": "83 229 168",
   "/admin/cloud": "118 165 255",
+  "/admin/jupiter-io": "240 139 191",
+  "/admin/downloads": "137 210 131",
   "/admin/users": "91 211 255",
   "/admin/dev-tools": "241 188 104",
 }
