@@ -212,7 +212,7 @@
     color: #29223b;
   }
 
-  & .horizon > :global(.text-white) { color: #fff; }
+  & .header .horizon > :global(.text-white) { color: #fff; }
   & .identity {
     border-color: #b6a3da;
     background: radial-gradient(ellipse at 8% 0%, #e9dcfa, transparent 72%),
