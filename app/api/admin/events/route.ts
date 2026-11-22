@@ -70,6 +70,8 @@ export async function POST(req: Request) {
   const row = {
     title: rawTitle,
     slug: finalSlug,
+    start_at: body.start_at || null,
+    end_at: body.end_at || null,
   }
 
   const { data, error } = await supabaseAdmin
