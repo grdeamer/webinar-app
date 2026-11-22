@@ -24,7 +24,8 @@ export default function NewEventPage() {
   const [slugTouched, setSlugTouched] = useState(false)
   const [template, setTemplate] = useState<EventTemplate>("webinar")
   const [startAt, setStartAt] = useState<string | null>(null)
-  const [endAt, setEndAt] = useState<string | null>(null)
+  const [customEndAt, setCustomEndAt] = useState<string | null>()
+  const endAt = customEndAt === undefined ? startAt : customEndAt
   const [busy, setBusy] = useState(false)
   const [scaffold, setScaffold] = useState(true)
   const [err, setErr] = useState<string | null>(null)
@@ -156,9 +157,9 @@ export default function NewEventPage() {
           <AdminDateTimeField
             label="Event end"
             value={endAt}
-            onChange={setEndAt}
+            onChange={setCustomEndAt}
             disabled={busy}
-            helperText="Optional, but recommended for homepage summaries and attendee-facing schedule context."
+            helperText="Follows the start date and time until you edit the end."
           />
         </div>
 
