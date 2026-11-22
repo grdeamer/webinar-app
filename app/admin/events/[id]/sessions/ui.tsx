@@ -179,6 +179,23 @@ async function parseApiResponse(res: Response) {
   }
 }
 
+const sessionAccessLabels: Record<string, string> = {
+  assigned: "Assigned attendees",
+  all: "Anyone with event access",
+  public: "Public",
+  registered: "Registered attendees",
+  hidden: "Hidden",
+  open: "Assigned attendees (legacy)",
+}
+
+const sessionStatusLabels: Record<string, string> = {
+  scheduled: "Scheduled",
+  holding: "Holding",
+  live: "Live session",
+  paused: "Paused",
+  ended: "Ended",
+}
+
 export default function SessionsEditor({
   event,
   eventSlug,
@@ -460,9 +477,9 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <div className="editorial-eyebrow">
-              Event &nbsp;/&nbsp; Program
+              Event &nbsp;/&nbsp; Schedule
             </div>
-            <h1 className="editorial-title mt-5 text-white">Program</h1>
+            <h1 className="editorial-title mt-5 text-white">Schedule</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-[#9aa6bb] sm:text-base">
               {sessions.length} {sessions.length === 1 ? "session" : "sessions"} in the event schedule. Build the agenda, assign presenters, and prepare every session.
             </p>
@@ -505,7 +522,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
           <div>
             <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">New moment</div>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">Add a session</h2>
-            <p className="mt-2 text-sm leading-6 text-white/42">Define where it appears, who presents it, and how attendees enter.</p>
+            <p className="mt-2 text-sm leading-6 text-white/42">Set what’s happening, who can join, and where attendees go.</p>
           </div>
           <div>
 
@@ -539,28 +556,28 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             />
           </Field>
 
-          <Field label="Session Kind">
+          <Field label="Session type" help="A session is a scheduled activity. Choose District session for an activity listed in the district directory.">
             <select
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.session_kind}
               onChange={(e) => setDraft((prev) => ({ ...prev, session_kind: e.target.value }))}
             >
-              <option value="session">session</option>
-              <option value="district">district</option>
-              <option value="general">general</option>
-              <option value="networking">networking</option>
-              <option value="backstage">backstage</option>
+              <option value="session">Standard session</option>
+              <option value="district">District session</option>
+              <option value="general">General session</option>
+              <option value="networking">Networking session</option>
+              <option value="backstage">Backstage session</option>
             </select>
           </Field>
 
-          {draft.session_kind === "district" ? <Field label="Parent District" help="Optional. Nest this district beneath another district in the attendee directory.">
+          {draft.session_kind === "district" ? <Field label="Parent district" help="Choose where this entry appears in the district directory. Set its room or join link separately.">
             <select className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#4c91ff]/70" value={draft.district_parent_id} onChange={(e) => setDraft((prev) => ({ ...prev, district_parent_id: e.target.value }))}>
               <option value="">Top-level district</option>
               {sessions.filter((item) => ["district", "breakout"].includes(item.session_kind || "")).map((item) => <option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}
             </select>
           </Field> : null}
 
-          <Field label="Visibility" help="Assigned limits access to selected attendees. All and Open make the session more broadly available.">
+          <Field label="Who can join?" help="Assigned attendees requires a session assignment. Anyone with event access can join without a session assignment. The event’s access rules still apply.">
             <select
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.visibility_mode}
@@ -568,13 +585,12 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                 setDraft((prev) => ({ ...prev, visibility_mode: e.target.value }))
               }
             >
-              <option value="assigned">assigned</option>
-              <option value="all">all</option>
-              <option value="open">open</option>
+              <option value="assigned">{sessionAccessLabels.assigned}</option>
+              <option value="all">{sessionAccessLabels.all}</option>
             </select>
           </Field>
 
-          <Field label="Delivery Mode" help="Choose whether attendees enter an external meeting, native live room, video playback, or RTMP stream.">
+          <Field label="How attendees join" help="Choose where the session happens: an external meeting, a Jupiter live room, video playback, or an RTMP stream.">
             <select
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.delivery_mode}
@@ -582,10 +598,10 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                 setDraft((prev) => ({ ...prev, delivery_mode: e.target.value }))
               }
             >
-              <option value="external">external</option>
-              <option value="video">video</option>
-              <option value="livekit">livekit</option>
-              <option value="rtmp">rtmp</option>
+              <option value="external">External meeting</option>
+              <option value="video">Video playback</option>
+              <option value="livekit">Jupiter live room</option>
+              <option value="rtmp">RTMP stream</option>
             </select>
           </Field>
 
@@ -646,7 +662,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
               </select>
             </Field>
 
-            <Field label="External Join URL" help="The secure destination attendees open when they enter this session.">
+            <Field label="External meeting link" help="Paste the attendee join link for the external room, such as a Zoom or Teams meeting.">
               <input
                 className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.external_join_url}
@@ -672,7 +688,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
         {draft.delivery_mode === "livekit" && (
           <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <Field label="Live Provider">
+            <Field label="Live room provider">
               <select
                 className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.live_provider}
@@ -680,11 +696,11 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                   setDraft((prev) => ({ ...prev, live_provider: e.target.value }))
                 }
               >
-                <option value="livekit">livekit</option>
+                <option value="livekit">LiveKit</option>
               </select>
             </Field>
 
-            <Field label="LiveKit Room Name">
+            <Field label="Jupiter live room name" help="The LiveKit room identifier for this session. The session title is what attendees see in the schedule.">
               <input
                 className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                 value={draft.live_room_name}
@@ -757,13 +773,13 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
               }
             >
               <option value="holding">holding</option>
-              <option value="live">live</option>
+              <option value="live">Live session</option>
               <option value="paused">paused</option>
               <option value="ended">ended</option>
             </select>
           </Field>
 
-          <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
+          <Field label="Sort Order" help="Controls where this session appears in the schedule sequence. Lower numbers appear first.">
             <input
               type="number"
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
@@ -790,7 +806,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </label>
           </Field>
 
-          <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Prefer External Join URL for new sessions.">
+          <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Use External meeting link for new sessions.">
             <input
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
               value={draft.join_link}
@@ -824,7 +840,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         <div className="sticky bottom-4 z-30 mt-6 flex flex-col gap-3 rounded-[14px] border border-white/[0.13] bg-[#07101d]/94 px-4 py-3.5 shadow-[0_22px_70px_rgba(0,0,0,0.48)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
           <div>
             <div className="text-xs font-semibold text-white/80">Ready to add this session?</div>
-            <div className="mt-0.5 text-[11px] text-white/38">Review the essentials, then add it to the program sequence.</div>
+            <div className="mt-0.5 text-[11px] text-white/38">Review the essentials, then add it to the schedule sequence.</div>
           </div>
           <button
             type="button"
@@ -842,7 +858,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       <section className="rounded-[18px] border border-white/[0.13] event-theme-panel bg-[linear-gradient(145deg,rgba(12,20,34,0.70),rgba(4,8,16,0.54))] px-5 py-7 shadow-[inset_0_1px_0_rgba(255,255,255,0.04),0_20px_70px_rgba(0,0,0,0.16)] ring-1 ring-inset ring-white/[0.018] sm:px-7 lg:px-8">
         <div className="flex flex-col gap-5 border-b border-white/[0.09] pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">Program sequence</div>
+            <div className="text-[10px] font-semibold uppercase tracking-[0.22em] text-[#7f90b3]">Session schedule</div>
             <h2 className="mt-3 text-2xl font-semibold tracking-[-0.03em]">The day, in order</h2>
           </div>
           <div className="flex flex-wrap items-center gap-2.5">
@@ -976,7 +992,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                     </div>
 
                     <div className="mt-1 text-sm text-white/50">
-                      {session.visibility_mode || "assigned"} {" • "} {session.runtime_status || "holding"}
+                      {sessionAccessLabels[session.visibility_mode || "assigned"] ?? sessionAccessLabels.assigned} {" • "} {sessionStatusLabels[session.runtime_status || "holding"] ?? sessionStatusLabels.holding}
                     </div>
                     </div>
                   </div>
@@ -1113,7 +1129,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         />
                       </Field>
 
-                      <Field label="Session Kind">
+                      <Field label="Session type" help="A session is a scheduled activity. Choose District session for an activity listed in the district directory.">
                         <select
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.session_kind || "session"}
@@ -1121,22 +1137,22 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                             patchSession(session.id, { session_kind: e.target.value })
                           }
                         >
-                          <option value="session">session</option>
-                          <option value="district">district</option>
-                          <option value="general">general</option>
-                          <option value="networking">networking</option>
-                          <option value="backstage">backstage</option>
+                          <option value="session">Standard session</option>
+                          <option value="district">District session</option>
+                          <option value="general">General session</option>
+                          <option value="networking">Networking session</option>
+                          <option value="backstage">Backstage session</option>
                         </select>
                       </Field>
 
-                      {["district", "breakout"].includes(session.session_kind || "") ? <Field label="Parent District" help="Optional. Nest this district beneath another district in the attendee directory.">
+                      {["district", "breakout"].includes(session.session_kind || "") ? <Field label="Parent district" help="Choose where this entry appears in the district directory. Set its room or join link separately.">
                         <select className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition focus:border-[#4c91ff]/70" value={session.district_parent_id || ""} onChange={(e) => patchSession(session.id, { district_parent_id: e.target.value || null })}>
                           <option value="">Top-level district</option>
                           {sessions.filter((item) => item.id !== session.id && ["district", "breakout"].includes(item.session_kind || "")).map((item) => <option key={item.id} value={item.id}>{item.code} · {item.title}</option>)}
                         </select>
                       </Field> : null}
 
-                      <Field label="Visibility" help="Assigned limits access to selected attendees. All and Open make the session more broadly available.">
+                      <Field label="Who can join?" help="Assigned attendees requires a session assignment. Anyone with event access can join without a session assignment. The event’s access rules still apply.">
                         <select
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.visibility_mode || "assigned"}
@@ -1144,13 +1160,15 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                             patchSession(session.id, { visibility_mode: e.target.value })
                           }
                         >
-                          <option value="assigned">assigned</option>
-                          <option value="all">all</option>
-                          <option value="open">open</option>
+                          <option value="assigned">{sessionAccessLabels.assigned}</option>
+                          <option value="all">{sessionAccessLabels.all}</option>
+                          {["public", "registered", "hidden", "open"].map((mode) => (
+                            <option key={mode} value={mode} hidden={session.visibility_mode !== mode}>{sessionAccessLabels[mode]}</option>
+                          ))}
                         </select>
                       </Field>
 
-                      <Field label="Delivery Mode" help="Choose whether attendees enter an external meeting, native live room, video playback, or RTMP stream.">
+                      <Field label="How attendees join" help="Choose where the session happens: an external meeting, a Jupiter live room, video playback, or an RTMP stream.">
                         <select
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.delivery_mode || "external"}
@@ -1158,10 +1176,10 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                             patchSession(session.id, { delivery_mode: e.target.value })
                           }
                         >
-                          <option value="external">external</option>
-                          <option value="video">video</option>
-                          <option value="livekit">livekit</option>
-                          <option value="rtmp">rtmp</option>
+                          <option value="external">External meeting</option>
+                          <option value="video">Video playback</option>
+                          <option value="livekit">Jupiter live room</option>
+                          <option value="rtmp">RTMP stream</option>
                         </select>
                       </Field>
 
@@ -1230,7 +1248,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                           </select>
                         </Field>
 
-                        <Field label="External Join URL" help="The secure destination attendees open when they enter this session.">
+                        <Field label="External meeting link" help="Paste the attendee join link for the external room, such as a Zoom or Teams meeting.">
                           <input
                             className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.external_join_url || ""}
@@ -1255,7 +1273,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
 
                     {session.delivery_mode === "livekit" && (
                       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                        <Field label="Live Provider">
+                        <Field label="Live room provider">
                           <select
                             className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.live_provider || "livekit"}
@@ -1263,11 +1281,11 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                               patchSession(session.id, { live_provider: e.target.value })
                             }
                           >
-                            <option value="livekit">livekit</option>
+                            <option value="livekit">LiveKit</option>
                           </select>
                         </Field>
 
-                        <Field label="LiveKit Room Name">
+                        <Field label="Jupiter live room name" help="The LiveKit room identifier for this session. The session title is what attendees see in the schedule.">
                           <input
                             className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                             value={session.live_room_name || ""}
@@ -1338,13 +1356,13 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                           }
                         >
                           <option value="holding">holding</option>
-                          <option value="live">live</option>
+                          <option value="live">Live session</option>
                           <option value="paused">paused</option>
                           <option value="ended">ended</option>
                         </select>
                       </Field>
 
-                      <Field label="Sort Order" help="Controls where this session appears in the program sequence. Lower numbers appear first.">
+                      <Field label="Sort Order" help="Controls where this session appears in the schedule sequence. Lower numbers appear first.">
                         <input
                           type="number"
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
@@ -1370,7 +1388,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         </label>
                       </Field>
 
-                      <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Prefer External Join URL for new sessions.">
+                      <Field label="Legacy Join Link" help="Compatibility field for older attendee experiences. Use External meeting link for new sessions.">
                         <input
                           className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
                           value={session.join_link || ""}
@@ -1407,7 +1425,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                     <div className="sticky bottom-4 z-20 mt-6 flex flex-col gap-3 rounded-[14px] border border-white/[0.13] bg-[#07101d]/94 px-4 py-3.5 shadow-[0_22px_70px_rgba(0,0,0,0.48)] backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
                       <div>
                         <div className="text-xs font-semibold text-white/80">Session controls</div>
-                        <div className="mt-0.5 text-[11px] text-white/38">Save changes or remove this session from the program.</div>
+                        <div className="mt-0.5 text-[11px] text-white/38">Save changes or remove this session from the schedule.</div>
                       </div>
                       <div className="flex flex-wrap gap-2">
                       <button
@@ -1460,7 +1478,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
               <span className="font-semibold text-white/76">
                 {deleteCandidate?.title || "Untitled session"}
               </span>{" "}
-              will be removed from the program. This action cannot be undone.
+              will be removed from the schedule. This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="m-0 flex-row justify-end gap-2 rounded-none border-t border-white/[0.09] bg-white/[0.025] px-6 py-4">
@@ -1507,7 +1525,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
               Delete {selectedSessions.length} selected {selectedSessions.length === 1 ? "session" : "sessions"}?
             </DialogTitle>
             <DialogDescription className="mt-2 text-sm leading-6 text-white/52">
-              These sessions will be removed from the program and can’t be recovered.
+              These sessions will be removed from the schedule and can’t be recovered.
               {selectedLiveCount ? (
                 <span className="mt-3 block rounded-[10px] border border-amber-300/20 bg-amber-400/[0.08] px-3 py-2 text-amber-100/80">
                   {selectedLiveCount} selected {selectedLiveCount === 1 ? "session is" : "sessions are"} currently marked live.

@@ -79,7 +79,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
   const route = pathname.slice(base.length).replace(/^\//, "")
   const eventTitle = eventContext?.title ?? "Loading event…"
   const eventStatus = eventContext
-    ? `${formatEventDate(eventContext.startAt)} · ${eventContext.access === "closed" ? "Closed" : "Open"}`
+    ? `${formatEventDate(eventContext.startAt)} · ${eventContext.access === "closed" ? "Event access closed" : "Event access open"}`
     : "Loading schedule…"
 
   return (
@@ -88,7 +88,7 @@ export default function EventLayout({ children }: { children: ReactNode }) {
       <header className={styles.header}>
         <div className={styles.horizon}>
           <JupiterLogo className="text-white" markClassName="h-8 w-8" wordmarkClassName="text-[18px] font-semibold tracking-[.18em]" />
-          <span className={styles.live}><span />{eventContext?.hasLiveSession ? "Event live" : "Live ready"}</span>
+          <span className={styles.live}><span />{eventContext?.hasLiveSession ? "Live cue active" : "Live ready"}</span>
           <button type="button" className={styles.mobileMenu} onClick={() => setMobileOpen((open) => !open)}
             aria-label="Jupiter navigation" aria-expanded={mobileOpen} aria-controls="event-global-navigation">
             {mobileOpen ? <X size={19} /> : <Menu size={19} />}

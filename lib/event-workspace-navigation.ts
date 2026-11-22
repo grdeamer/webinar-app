@@ -33,16 +33,16 @@ export const eventWorkspaceSections: readonly Section[] = [
   {
     id: "people",
     label: "People",
-    description: "Manage attendees, speakers, and your team.",
+    description: "Manage attendees, presenters, and your team.",
     destinations: [
-      { route: "attendees", label: "Attendees & speakers", feature: "people", aliases: ["import-attendees"] },
+      { route: "attendees", label: "Attendees & presenters", feature: "people", aliases: ["import-attendees"] },
       { route: "registrations", label: "Registration approvals", feature: "people" },
     ],
   },
   {
     id: "program",
-    label: "Program",
-    description: "Build the agenda and organize sessions.",
+    label: "Schedule",
+    description: "Set the event schedule and decide how attendees join each session.",
     destinations: [
       { route: "sessions", label: "Schedule & sessions", feature: "program", aliases: ["breakouts"] },
       { route: "page-editor", label: "Experience", feature: "experience", aliases: ["studio"] },
