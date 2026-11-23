@@ -42,6 +42,7 @@ type EventRow = {
   id: string
   slug: string
   title: string
+  start_at: string | null
 }
 
 function isUuid(value: string) {
@@ -60,7 +61,7 @@ export default async function AdminEventSessionsPage(props: {
   if (isUuid(id)) {
     const { data, error } = await supabaseAdmin
       .from("events")
-      .select("id,slug,title")
+      .select("id,slug,title,start_at")
       .eq("id", id)
       .maybeSingle()
 
@@ -69,7 +70,7 @@ export default async function AdminEventSessionsPage(props: {
   } else {
     const { data, error } = await supabaseAdmin
       .from("events")
-      .select("id,slug,title")
+      .select("id,slug,title,start_at")
       .eq("slug", id)
       .maybeSingle()
 

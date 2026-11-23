@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
 import { detectMeetingPlatform } from "@/lib/meetingPlatform"
 import {
@@ -55,6 +55,7 @@ type EventRow = {
   id: string
   slug: string
   title: string
+  start_at: string | null
 }
 
 type SessionRow = {
@@ -94,8 +95,8 @@ type DraftSession = {
   code: string
   title: string
   description: string
-  starts_at: string
-  ends_at: string
+  starts_at?: string
+  ends_at?: string
   presenter: string
   join_link: string
   room_key: string
@@ -128,8 +129,6 @@ function emptyDraft(eventId: string, sortOrder: number): DraftSession {
     code: "",
     title: "",
     description: "",
-    starts_at: "",
-    ends_at: "",
     presenter: "",
     join_link: "",
     room_key: "",
@@ -164,6 +163,10 @@ function toInputDateTime(v: string | null | undefined) {
   const min = pad(d.getMinutes())
   return `${year}-${month}-${day}T${hour}:${min}`
 }
+
+// Local datetime controls must use the operator's browser time zone.
+const subscribeToBrowserTime = () => () => {}
+const getServerStartDefault = () => ""
 
 function fromInputDateTime(v: string) {
   return v ? new Date(v).toISOString() : null
@@ -209,6 +212,13 @@ export default function SessionsEditor({
   const [draft, setDraft] = useState<DraftSession>(
     emptyDraft(event.id, initialSessions.length + 1)
   )
+  const eventStartDefault = useSyncExternalStore(
+    subscribeToBrowserTime,
+    () => toInputDateTime(event.start_at),
+    getServerStartDefault
+  )
+  const draftStart = draft.starts_at ?? eventStartDefault
+  const draftEnd = draft.ends_at ?? draftStart
   const [saving, setSaving] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
   const [busyCreate, setBusyCreate] = useState(false)
@@ -285,8 +295,8 @@ function toggleSessionOpen(id: string) {
         code: draft.code.trim().toUpperCase(),
         title: draft.title.trim(),
         description: draft.description.trim() || null,
-        starts_at: fromInputDateTime(draft.starts_at),
-        ends_at: fromInputDateTime(draft.ends_at),
+        starts_at: fromInputDateTime(draftStart),
+        ends_at: fromInputDateTime(draftEnd),
         presenter: draft.presenter.trim() || null,
         join_link: draft.join_link.trim() || null,
         room_key: draft.room_key.trim() || null,
@@ -605,20 +615,20 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
             </select>
           </Field>
 
-          <Field label="Start">
+          <Field label="Start" help="Defaults to the event start. You can change it for this session.">
             <input
               type="datetime-local"
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
-              value={draft.starts_at}
+              value={draftStart}
               onChange={(e) => setDraft((prev) => ({ ...prev, starts_at: e.target.value }))}
             />
           </Field>
 
-          <Field label="End">
+          <Field label="End" help="Follows the session start until you edit the end.">
             <input
               type="datetime-local"
               className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
-              value={draft.ends_at}
+              value={draftEnd}
               onChange={(e) => setDraft((prev) => ({ ...prev, ends_at: e.target.value }))}
             />
           </Field>
