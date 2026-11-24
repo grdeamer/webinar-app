@@ -53,3 +53,22 @@ test('readiness timeout does not restart and respects the existing near-term shu
   assert.equal(f.counts().connections,0)
   assert.ok(f.port.now()<14_000)
 })
+
+test('one click waits for the old shutdown to clear before starting EC2', async () => {
+  const f = fixture()
+  const prepare = f.port.prepare
+  let infrastructureReads = 0
+  await startAndConnect({
+    ...f.port,
+    prepare: async () => infrastructureReads === 0
+      ? { code: 'shutdown_pending', stopAtMs: 2_000 }
+      : prepare(),
+    infrastructure: async () => ({
+      state: 'stopped',
+      stopAtMs: ++infrastructureReads === 1 ? 2_000 : null,
+    }),
+  })
+  assert.equal(infrastructureReads, 2)
+  assert.deepEqual(f.counts(), { starts: 1, reads: 3, connections: 1 })
+  assert.ok(f.messages.some(message => message.includes('Previous automatic shutdown in 1s')))
+})

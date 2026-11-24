@@ -7,6 +7,15 @@ export type ProducerEc2Port = {
   start(): Promise<void>
   stop(): Promise<void>
 }
+export class ProducerEc2ShutdownPending extends Error {
+  readonly stopAtMs: number
+
+  constructor(stopAtMs: number) {
+    super('Waiting for the previous automatic EC2 shutdown to clear')
+    this.stopAtMs = stopAtMs
+  }
+}
+
 function validDeadline(deadline: number | null, now: number) {
   return deadline !== null && Number.isSafeInteger(deadline) && deadline > now + 60_000 && deadline <= now + PRODUCER_EC2_SESSION_MS
 }
@@ -20,6 +29,9 @@ export async function startProducerEc2(port: ProducerEc2Port, now = Date.now(), 
     // Cloud create is idempotently named. A concurrent conflicting start fails closed.
     await port.arm(now + PRODUCER_EC2_SESSION_MS)
     stopAtMs = await port.stopAt()
+  }
+  if (state === 'stopped' && stopAtMs !== null && Number.isSafeInteger(stopAtMs) && stopAtMs <= now + 60_000) {
+    throw new ProducerEc2ShutdownPending(stopAtMs)
   }
   if (!validDeadline(stopAtMs, now)) {
     if (state !== 'stopped') await port.stop()

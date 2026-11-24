@@ -49,3 +49,10 @@ test('fresh connection preparation runs after shutdown verification and before p
     assert.ok(!active.calls.includes('start'))
   }
 })
+
+test('a stopped engine with a shutdown about to fire can wait without starting or rearming', async () => {
+  const f = fixture()
+  f.deadline(130_000)
+  await assert.rejects(startProducerEc2(f.port, 100_000), { stopAtMs: 130_000 })
+  assert.deepEqual(f.calls, ['state', 'verify'])
+})

@@ -1,3 +1,4 @@
+import { ProducerEc2ShutdownPending } from '@/lib/production/ec2Lifecycle'
 import { producerBackend, ec2ProducerStatus, prepareEc2Producer, stopEc2Producer, validateEc2Scope } from '@/lib/production/hosted/ec2Worker'
 import {engineEndpoint} from '@/lib/production/hosted/protocol'
 import { sealEc2Configuration } from '@/lib/production/ec2SealedConfig'
@@ -68,6 +69,9 @@ async function handle(request: Request, context: Context) {
     if (Buffer.byteLength(body) > 80_000) return Response.json({ error: 'Request too large' }, { status: 413 })
     return await callHostedEngine({ scope: { eventId: access.eventId, sessionId, actorId: access.user.id }, path: operation, method: request.method as 'GET' | 'POST', body, ...(request.headers.has('x-input-capability') ? { inputCapability: request.headers.get('x-input-capability')! } : {}) })
   } catch (error) {
+    if (operation === '/prepare' && error instanceof ProducerEc2ShutdownPending) {
+      return Response.json({ code: 'shutdown_pending', stopAtMs: error.stopAtMs }, { status: 409 })
+    }
     if(producerBackend()==='ec2'&&operation==='/api/producer/status'){try{const infrastructure=await ec2ProducerStatus();if(infrastructure.state!=='running')return Response.json({error:`Producer engine is ${infrastructure.state}. Use Start producer engine, wait for startup, then connect.`,state:infrastructure.state},{status:503,headers:{'Cache-Control':'no-store'}})}catch{/* Preserve a safe generic error when AWS status is unavailable. */}}
     const value = error as { name?: string; status?: number; statusCode?: number; code?: string; message?: string; response?: { status?: number }; json?: { error?: { code?: string } } }
     const summary = (value?.message || '').split('\n')[0].replace(/https?:\/\/\S+|[A-Za-z0-9_=-]{24,}/g, '[redacted]').slice(0, 180)

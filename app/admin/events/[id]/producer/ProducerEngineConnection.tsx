@@ -30,7 +30,16 @@ export default function ProducerEngineConnection({ config, engine, receiver, soa
       await startAndConnect({
         prepare: async () => {
           const response = await fetch(`${config.root}/prepare`, {method:'POST', headers:{'Content-Type':'application/json'}, body:'{}', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(30_000)])})
+          if (response.status === 409) {
+            const pending = await response.json()
+            if (pending.code === 'shutdown_pending' && Number.isSafeInteger(pending.stopAtMs)) return pending
+          }
           if (!response.ok) throw new Error('EC2 start was not confirmed. Check status before trying again; shutdown was not extended.')
+          return response.json()
+        },
+        infrastructure: async () => {
+          const response = await fetch(`${config.root}/infrastructure`, {cache:'no-store', signal:AbortSignal.any([controller.signal, AbortSignal.timeout(10_000)])})
+          if (!response.ok) throw new Error('EC2 status unavailable')
           return response.json()
         },
         status: async () => {
