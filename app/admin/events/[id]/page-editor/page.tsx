@@ -28,18 +28,61 @@ export default async function EventPageEditorPage(props: {
     supabaseAdmin.from("event_page_manifest").select("page_key,title,status").eq("event_id", id).order("position"),
   ])
   const unavailable = Boolean(documents.error || manifest.error)
-  const pages = (manifest.data ?? []).map(page => [page.title, "Edit page content and appearance", unavailable ? "Unavailable" : publicationStatus(documents.data?.find(row => row.page_key === page.page_key), page.status), page.page_key])
-  const publishedCount = pages.filter(page => page[2] === "Published" || page[2] === "Unpublished changes").length
+  const documentsByPage = new Map(documents.data?.map((row) => [row.page_key, row]))
+  const pages = (manifest.data ?? []).map((page) => ({
+    key: page.page_key,
+    title: page.title,
+    status: unavailable ? "Unavailable" : publicationStatus(documentsByPage.get(page.page_key), page.status),
+  }))
+  const publishedCount = pages.filter(({ status }) => status === "Published" || status === "Unpublished changes").length
+  const editor = `/admin/page-editor/event/${event.slug}`
+  const focus = "focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--jv1-focus)]"
 
-  return <div className="space-y-6 text-white">
-    <header className="flex flex-col gap-5 border-b border-[#273348] pb-7 lg:flex-row lg:items-end lg:justify-between">
-      <div><div className="editorial-eyebrow">Event &nbsp;/&nbsp; Experience</div><h1 className="editorial-title mt-5">Experience Studio</h1><p className="mt-3 text-base text-white/55">Build and publish the attendee-facing event site.</p></div>
-      <div className="flex gap-2"><Link href={`/admin/page-editor/event/${event.slug}?mode=preview&page=event_home`} target="_blank" className="rounded-xl bg-[#3974df] px-4 py-2.5 text-sm font-semibold">Preview site →</Link><Link href={`/admin/page-editor/event/${event.slug}?mode=edit&page=event_home`} className="rounded-xl bg-[#6750d3] px-4 py-2.5 text-sm font-semibold">Edit experience →</Link></div>
-    </header>
-    <section className="flex flex-col gap-3 rounded-2xl border border-[#273348] bg-[#0d1422] p-5 sm:flex-row sm:items-center sm:justify-between"><div><h2 className="text-xl font-semibold">Published experience</h2><p className="mt-1 text-xs text-[#9aa6bb]">{unavailable ? "Publication status could not be loaded." : `${publishedCount} published pages · ${pages.length} total pages`}</p></div><span className="w-fit rounded-full border border-[#68758c] px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-[#c5cfdf]">{unavailable ? "Unavailable" : publishedCount ? "Published pages available" : "Not published"}</span></section>
-    <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_382px]">
-      <div className="rounded-2xl border border-[#273348] bg-[#070c16] p-5"><div className="flex items-center justify-between"><h2 className="text-xl font-semibold">Pages and moments</h2><Link href={`/admin/page-editor/event/${event.slug}?mode=edit`} className="text-xs text-[#9aa6bb]">Manage pages →</Link></div><div className="mt-4 space-y-3"><Link href={`/admin/page-editor/event/${event.slug}?mode=edit&page=event_home&screen=hold`} className="flex items-center justify-between gap-4 rounded-xl bg-[#1a2231] p-3 transition hover:bg-[#222c3d]"><div><div className="text-sm font-medium">Hold screen</div><div className="mt-1 text-xs text-[#9aa6bb]">Logo, message, and appearance while the event is closed</div></div><span className="text-xs text-violet-200">Edit →</span></Link>{pages.map(([name, detail, status, pageKey]) => <Link key={name} href={`/admin/page-editor/event/${event.slug}?mode=edit&page=${pageKey}`} className="flex items-center justify-between gap-4 rounded-xl bg-[#1a2231] p-3 transition hover:bg-[#222c3d]"><div><div className="text-sm font-medium">{name}</div><div className="mt-1 text-xs text-[#9aa6bb]">{detail}</div></div><span className={`rounded-full border px-2 py-1 text-[9px] font-semibold uppercase tracking-wider ${status === "Published" ? "border-[#54e5a5] text-[#54e5a5]" : "border-[#68758c] text-[#9aa6bb]"}`}>● {status}</span></Link>)}</div></div>
-      <div className="rounded-2xl border border-[#273348] bg-[#0d1422] p-5"><h2 className="text-xl font-semibold">Review your experience</h2><p className="mt-4 text-sm text-[#9aa6bb]">Open the editor preview to review draft content. The attendee site shows published content only.</p><Link href={`/admin/page-editor/event/${event.slug}?mode=preview&page=event_home`} className="mt-5 inline-flex rounded-xl bg-[#6750d3] px-5 py-3 text-sm font-semibold">Preview draft →</Link><Link href={`/events/${event.slug}`} target="_blank" className="mt-4 block text-sm text-[#9aa6bb]">Open attendee site →</Link></div>
-    </section>
-  </div>
+  return (
+    <div className="space-y-8 text-[var(--site-ink,var(--jv1-text))]">
+      <header className="flex flex-wrap items-end justify-between gap-4 border-b border-[var(--site-line,var(--jv1-border-strong))] pb-5">
+        <h1 className="text-3xl font-semibold tracking-tight">Event site</h1>
+        <div className="flex flex-wrap items-center gap-2 text-sm">
+          <Link href={`${editor}?mode=preview&page=event_home`} target="_blank" rel="noopener noreferrer" className={`rounded-md px-3 py-2 underline-offset-4 hover:underline ${focus}`}>Preview draft ↗</Link>
+          <Link href={`/events/${event.slug}`} target="_blank" rel="noopener noreferrer" className={`rounded-md px-3 py-2 underline-offset-4 hover:underline ${focus}`}>Open attendee site ↗</Link>
+          <Link href={`${editor}?mode=edit&page=event_home`} className={`rounded-md bg-[#6750d3] px-3 py-2 font-semibold !text-white hover:bg-[#5944bb] ${focus}`}>Open Page Builder</Link>
+        </div>
+      </header>
+
+      <section aria-labelledby="site-pages">
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pb-3">
+          <h2 id="site-pages" className="text-lg font-semibold">Site pages</h2>
+          <p className="text-sm tabular-nums text-[var(--site-muted,var(--jv1-secondary))]">
+            {unavailable ? "Publication status unavailable" : `${publishedCount} of ${pages.length} published`}
+          </p>
+        </div>
+        {pages.length ? (
+          <ul className="divide-y divide-[var(--site-line,var(--jv1-border-strong))] border-y border-[var(--site-line,var(--jv1-border-strong))]">
+            {pages.map(({ key, title, status }) => (
+              <li key={key}>
+                <Link href={`${editor}?mode=edit&page=${encodeURIComponent(key)}`}
+                  className={`grid min-h-12 grid-cols-[minmax(0,1fr)_minmax(0,9rem)_1rem] items-center gap-3 px-2 py-2.5 text-sm hover:bg-[var(--site-selected,var(--jv1-subtle))] sm:grid-cols-[minmax(0,1fr)_11rem_3rem] sm:px-3 ${focus}`}>
+                  <span className="break-words font-medium">{title}</span>
+                  <span className={status === "Published" ? "font-medium" : "text-[var(--site-muted,var(--jv1-secondary))]"}>{status}</span>
+                  <span aria-hidden="true" className="justify-self-end text-[var(--site-muted,var(--jv1-secondary))]">→</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        ) : <p className="border-t border-[var(--site-line,var(--jv1-border-strong))] py-4 text-sm text-[var(--site-muted,var(--jv1-secondary))]">{unavailable ? "Pages could not be loaded." : "No site pages yet."}</p>}
+      </section>
+
+      <section aria-labelledby="site-screens">
+        <h2 id="site-screens" className="pb-3 text-lg font-semibold">Event screens</h2>
+        <Link href={`${editor}?mode=edit&page=event_home&screen=hold`}
+          className={`flex min-h-12 items-center justify-between gap-3 border-y border-[var(--site-line,var(--jv1-border-strong))] px-2 py-3 text-sm hover:bg-[var(--site-selected,var(--jv1-subtle))] sm:px-3 ${focus}`}>
+          <span className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+            <span className="font-medium">Hold screen</span>
+            <span className="text-[var(--site-muted,var(--jv1-secondary))]">Shown while event access is closed</span>
+          </span>
+          <span aria-hidden="true" className="shrink-0 text-[var(--site-muted,var(--jv1-secondary))]">→</span>
+        </Link>
+      </section>
+    </div>
+  )
 }
