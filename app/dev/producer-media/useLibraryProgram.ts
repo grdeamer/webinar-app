@@ -10,8 +10,10 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {bindProgramMonitor,clearProgramMonitor,setProgramMonitorStream,type ProgramMonitorBinding} from '@/lib/producer/programMonitor'
 import {libraryEngineComposition} from '@/lib/producer/libraryEngineComposition'
 import type { PreviewBlock } from '@/app/admin/events/[id]/producer/useProducerBlocks'
-import { LibraryPublisher, connectProgram, engineCommand, engineStatus, engineRequest, LOCAL_STUDIO_TRANSPORT, type StudioTransport } from './localProgramTransport'
+import { LibraryPublisher, connectProgram, isLocalStudioTransport, engineCommand, engineStatus, engineRequest, LOCAL_STUDIO_TRANSPORT, type StudioTransport } from './localProgramTransport'
 export default function useLibraryProgram(preview:PreviewBlock[],transport:StudioTransport=LOCAL_STUDIO_TRANSPORT) {
+ const preserveOffAir=!isLocalStudioTransport(transport)
+ const [rehearsalAudio,setRehearsalAudio]=useState<{track:MediaStreamTrack;sourceId:string;revision:number}|null>(null)
  const [confirmedKey,setConfirmedKey]=useState<string|null>(null),[awaitingPicture,setAwaitingPicture]=useState(false)
  const [takeTiming,setTakeTiming]=useState<ProgramTakeTiming|null>(null)
  const timing=useRef<{start:number;startedAtMs:number;cancel?:()=>void}|null>(null)
@@ -26,7 +28,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
  const monitor=useRef<ProgramMonitorBinding>({element:null,stream:null})
  const attachVideo=useCallback((element:HTMLVideoElement|null)=>{bindProgramMonitor(monitor.current,element);video.current=element},[])
  // Disconnect owns browser inputs/monitor only. Off-air is an explicit operator command.
- const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);directTake.current=null;latestStatus.current=null;timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[])
+ const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);setRehearsalAudio(null);directTake.current=null;latestStatus.current=null;timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[])
  useEffect(()=>()=>{void stop()},[stop,transport])
  async function connect(signal?:AbortSignal){
   const generation=++connectionEpoch.current
@@ -52,7 +54,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
     const s=await engineStatus(transport)
     if(cancelled)return
     if(!s.runtime.running||s.runtime.runId!==run.current||Date.now()>=s.runtime.expiresAtMs){void stop();return}
-    if(!latestStatus.current||s.state.revision>=latestStatus.current.value.state.revision){latestStatus.current={value:s,readAtMs:Date.now()};setControlRevision(s.state.revision);setDirectEnabled(s.runtime.directTakeEnabled===true)}
+    if(!latestStatus.current||s.state.revision>=latestStatus.current.value.state.revision){latestStatus.current={value:s,readAtMs:Date.now()};setControlRevision(s.state.revision);setDirectEnabled(s.runtime.directTakeEnabled===true&&(!preserveOffAir||s.state.desiredLifecycle==='live'))}
     if(receipt.current){const confirmed=preparedProgramConfirmed(s,receipt.current);setConfirmedKey(confirmed?receipt.current.key:null);if(confirmed){if(timing.current){const ms=performance.now()-timing.current.start;setTakeTiming(previous=>previous&&previous.observerConfirmedMs===undefined?{...previous,observerConfirmedMs:ms}:previous)}setAwaitingPicture(false);if(cued.current?.key===receipt.current.key)setMessage('Program receiver confirmed the committed canvas. Verify the outgoing picture and audio.')}}
    }catch{if(!cancelled)void stop();return}
    if(!cancelled)timer=setTimeout(()=>void poll(),programStatusPollMs(awaitingPicture,cueKey,confirmedKey))
@@ -61,7 +63,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
   // Self-scheduling prevents overlapping status requests on slower connections.
   timer=setTimeout(()=>void poll(),awaitingPicture||(cueKey&&confirmedKey!==cueKey)?0:1500)
   return ()=>{cancelled=true;clearTimeout(timer)}
- },[connected,stop,transport,awaitingPicture,cueKey,confirmedKey])
+ },[connected,stop,transport,awaitingPicture,cueKey,confirmedKey,preserveOffAir])
  useEffect(()=>{
   if(!connected||!directEnabled||!transport.directTakeUrl)return
   const rearm=()=>{if(document.visibilityState==='visible'){directTake.current=null;setDirectArmedKey(null);setDirectEpoch(value=>value+1)}}
@@ -96,7 +98,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
    if(generation!==epoch.current)return
    const plan=libraryCanvasPlan(preview),composed=plan.length>1||plan[0].type==='text'
    const state=await engineStatus(transport)
-   const programSources=state.state.desiredLifecycle==='live' ? state.state.program.composition.layers.map((layer:{sourceId?:string})=>layer.sourceId) : []
+   const programSources=(preserveOffAir||state.state.desiredLifecycle==='live') ? state.state.program.composition.layers.map((layer:{sourceId?:string})=>layer.sourceId) : []
    if(programSources.includes('camera-a')&&programSources.includes('camera-b'))throw Error('Both inputs are on Program. Stop the current rehearsal output before cueing a library source.')
    const role=programSources.includes('camera-a')?'source-b':programSources.includes('camera-b')?'source-a':active.current==='source-a'?'source-b':'source-a'
    await publishers.current.get(role)?.stop();publishers.current.delete(role)
@@ -112,7 +114,7 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
     cued.current={role,key,composition,sid};setCueKey(key);setMessage(`${plan.length} canvas layer${plan.length===1?'':'s'} decoded by both candidates. Preview ready; TAKE to update the whole Program.`)
    }catch(e){await publisher.stop();throw e}
   }).catch(e=>{if(generation===epoch.current)setMessage(e instanceof Error?e.message:'Cue failed')}).finally(()=>{if(generation===epoch.current)setBusy(false)})
- },[preview,connected,transport])
+ },[preview,connected,transport,preserveOffAir])
  async function setLive(live:boolean){if(!connected)throw Error('Connect the Program engine first');await engineCommand(run.current,{type:'SET_LIVE',live},transport)}
  async function take(transition:{type:'cut'|'fade'|'warp'|'curtain';durationMs:number}={type:'cut',durationMs:0}){
   if(taking.current||busy||!connected||!cued.current||cued.current.key!==JSON.stringify(preview))return false
@@ -129,20 +131,29 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
    assertPreparedPreview(before,run.current,cue.composition)
    if(!libraryInputReady(before,role,cue.sid))throw Error('Prepared input changed or went stale; TAKE was blocked.')
    setTakeTiming(previous=>previous?{...previous,preflightMs:performance.now()-measured.start}:previous)
-   const picture=watchPresentedProgramRevision(video.current,before.state.revision+1)
-   measured.cancel=picture.cancel
-   const prepared=transition.type==='cut'&&directTakeIsCurrent(preparedAtClick,run.current,before.state.revision,cue.key,role,cue.sid)?preparedAtClick:null
-   if(transition.type==='cut'&&directEnabled&&transport.directTakeUrl&&!prepared){setDirectArmedKey(null);setDirectEpoch(value=>value+1);throw Error('Direct TAKE authorization expired or changed. Preview is rearming; Program was not changed.')}
+   const rehearse=preserveOffAir&&before.state.desiredLifecycle==='off-air'
+   const picture=rehearse?null:watchPresentedProgramRevision(video.current,before.state.revision+1)
+   measured.cancel=picture?.cancel
+   const prepared=!rehearse&&transition.type==='cut'&&directTakeIsCurrent(preparedAtClick,run.current,before.state.revision,cue.key,role,cue.sid)?preparedAtClick:null
+   if(!rehearse&&transition.type==='cut'&&directEnabled&&transport.directTakeUrl&&!prepared){setDirectArmedKey(null);setDirectEpoch(value=>value+1);throw Error('Direct TAKE authorization expired or changed. Preview is rearming; Program was not changed.')}
    await publishers.current.get(role)?.take()
    directTake.current=null
    setTakeTiming(previous=>previous?{...previous,controlRoute:prepared?'direct':'proxy'}:previous)
    const committed=prepared?await commitDirectTake(prepared):await engineCommand(run.current,{type:'TAKE',transition},transport,before.state.revision)
    setTakeTiming(previous=>previous?{...previous,acceptedMs:performance.now()-measured.start}:previous)
-   void picture.promise.then(value=>{if(timing.current!==measured)return;setTakeTiming(previous=>previous?{...previous,...(value.atMs===null?{pictureError:value.error}:{presentedMs:value.atMs-measured.start})}:previous)})
+   if (rehearse) {
+     const track=publishers.current.get(role)?.stream?.getAudioTracks()[0]
+     setRehearsalAudio(track?{track,sourceId:role==='source-a'?'camera-a':'camera-b',revision:committed.receipt.revision}:null)
+     setConfirmedKey(cue.key);setAwaitingPicture(false);active.current=role
+     setMessage('Program committed off air. Use the private rehearsal meter to check audio.')
+     return true
+   }
+   setRehearsalAudio(null)
+   void picture?.promise.then(value=>{if(timing.current!==measured)return;setTakeTiming(previous=>previous?{...previous,...(value.atMs===null?{pictureError:value.error}:{presentedMs:value.atMs-measured.start})}:previous)})
    receipt.current={runId:run.current,revision:committed.receipt.revision,key:cue.key,composition:cue.composition}
    setConfirmedKey(null);setAwaitingPicture(true);active.current=role
    try{
-    if(committed.currentState?.desiredLifecycle!=='live')await engineCommand(run.current,{type:'SET_LIVE',live:true},transport)
+    if(!preserveOffAir&&committed.currentState?.desiredLifecycle!=='live')await engineCommand(run.current,{type:'SET_LIVE',live:true},transport)
     setMessage('TAKE accepted. Waiting for the outgoing receiver to confirm this canvas; do not repeat TAKE.')
    }catch{setMessage('TAKE committed, but output activation was not confirmed. Check engine status and use Go Live; do not repeat the TAKE.')}
    return true
@@ -152,5 +163,5 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
 
  const needsDirect=Boolean(directEnabled&&transport.directTakeUrl&&confirmedKey!==cueKey)
  function setMonitorVolume(value:number){if(video.current)video.current.volume=Math.max(0,Math.min(1,value))}
- return {connected,busy,takeTiming,programMatched:confirmedKey===JSON.stringify(preview),ready:connected&&!busy&&!awaitingPicture&&cueKey===JSON.stringify(preview)&&(!needsDirect||directArmedKey===cueKey+':'+controlRevision),message,video:attachVideo,connect,stop,take,setLive,setMonitorVolume}
+ return {connected,busy,takeTiming,rehearsalAudio,programMatched:confirmedKey===JSON.stringify(preview),ready:connected&&!busy&&!awaitingPicture&&cueKey===JSON.stringify(preview)&&(!needsDirect||directArmedKey===cueKey+':'+controlRevision),message,video:attachVideo,connect,stop,take,setLive,setMonitorVolume}
 }

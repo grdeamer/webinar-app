@@ -6,7 +6,9 @@ export type ProgramMixerSnapshot = {
   channels: { sourceId: string; label: string }[]
   receiver: { revision: number | null; atMs: number; audioRms: number; dominantHz: number; width: number; height: number; fps: number | null } | null
 }
+export type RehearsalAudio = {track: MediaStreamTrack;sourceId:string;revision:number}
 export type ProgramMixerController = {
+  rehearsalAudio?: RehearsalAudio | null
   snapshot: ProgramMixerSnapshot | null; busy: boolean; error: string | null; allowPrepare?: boolean; stoppedMessage?: string
   apply: (mix: AudioMix, expected: { runId: string; revision: number }) => Promise<boolean>
   prepare: () => Promise<boolean>

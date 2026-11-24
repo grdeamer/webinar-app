@@ -427,7 +427,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
 
   const engineTransport = useMemo(() => engine ? {root: engine.root, relayUrl: engine.relayUrl,directTakeUrl:engine.directTakeUrl} : LOCAL_STUDIO_TRANSPORT, [engine]);
   const engineProgram = useLibraryProgram(previewBlocks, engineTransport);
-  const programMixer = useHostedProgramMixer(engineTransport, Boolean(engine && engineProgram.connected));
+  const programMixer = useHostedProgramMixer(engineTransport, Boolean(engine && engineProgram.connected), engineProgram.rehearsalAudio);
   const engineTake = useCallback(async (mode: "cut" | "auto", transitionType?: CinematicTransitionType, durationMs = 600): Promise<boolean> => {
     const type = mode === "cut" ? "cut" : transitionType ?? "fade";
     if (!["cut", "fade", "warp", "curtain"].includes(type)) { setError("This transition is not supported by the Program engine."); return false; }

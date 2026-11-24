@@ -1,7 +1,39 @@
 "use client"
 import { useEffect, useState } from 'react'
 import type { AudioMix } from '@/lib/production/contracts'
-import { editProgramAudioMix, type ProgramMixerController } from '@/lib/producer/programAudioMix'
+import { editProgramAudioMix, type ProgramMixerController, type RehearsalAudio } from '@/lib/producer/programAudioMix'
+function RehearsalMeter({ input, mix }: { input: RehearsalAudio; mix: AudioMix }) {
+  const [rms, setRms] = useState(0)
+  const [peak, setPeak] = useState(0)
+  const channel = mix.channels.find((item) => item.sourceId === input.sourceId)
+  const audible = channel && !channel.muted && !mix.muted &&
+    (channel.solo || !mix.channels.some((item) => item.solo))
+  const gain = audible ? 10 ** ((channel.gainDb + mix.masterGainDb) / 20) : 0
+
+  useEffect(() => {
+    const context = new AudioContext()
+    const source = context.createMediaStreamSource(new MediaStream([input.track]))
+    const analyser = context.createAnalyser()
+    source.connect(analyser)
+    void context.resume().catch(() => {})
+    const samples = new Float32Array(analyser.fftSize)
+    const timer = window.setInterval(() => {
+      analyser.getFloatTimeDomainData(samples)
+      const level = gain * Math.sqrt(samples.reduce((sum, value) => sum + value * value, 0) / samples.length)
+      setRms(level)
+      setPeak((previous) => Math.max(previous, level))
+    }, 200)
+    return () => {
+      window.clearInterval(timer)
+      source.disconnect()
+      void context.close().catch(() => {})
+    }
+  }, [input.track, gain])
+
+  const db = (level: number) => level < 0.0005 ? 'Silence' : `${(20 * Math.log10(level)).toFixed(1)} dBFS`
+  return <p className="my-2 text-sm text-emerald-200">Private rehearsal mix · {db(rms)} · loudest reading {db(peak)}</p>
+}
+
 export default function ProgramAudioMixer({ engine }: { engine: ProgramMixerController }) {
   const { snapshot, busy, error } = engine
   const [editing,setEditing] = useState<{runId:string; revision:number; mix:AudioMix} | null>(null)
@@ -16,7 +48,10 @@ export default function ProgramAudioMixer({ engine }: { engine: ProgramMixerCont
   return <section aria-label="Program audio engine mixer" className="rounded border border-violet-300/30 bg-slate-950 p-4 text-white">
     <h2 className="text-lg font-semibold">Program audio engine mixer</h2>
     <p role="status" className="my-2 text-sm">{!connected ? (engine.stoppedMessage ?? 'Local engine stopped. Start npm run production:producer:local to connect.') : `${snapshot!.live ? 'Live Program' : 'Off air'} · committed r${snapshot!.revision} · ${observed ? 'independent receiver confirmed' : 'waiting for fresh receiver confirmation'}`}</p>
-    {connected && snapshot?.receiver ? <p className="text-sm">Outgoing receive: {snapshot.receiver.width}×{snapshot.receiver.height} · {snapshot.receiver.fps ?? '—'} fps · {snapshot.receiver.audioRms > 0 ? (20*Math.log10(snapshot.receiver.audioRms)).toFixed(1)+' dBFS' : 'silence'} · dominant {Math.round(snapshot.receiver.dominantHz)} Hz</p> : null}
+    {connected && snapshot && !snapshot.live && engine.rehearsalAudio && snapshot.revision >= engine.rehearsalAudio.revision
+      ? <RehearsalMeter key={engine.rehearsalAudio.revision} input={engine.rehearsalAudio} mix={snapshot.mix} />
+      : null}
+    {connected && snapshot?.live && snapshot.receiver ? <p className="text-sm">Outgoing receive: {snapshot.receiver.width}×{snapshot.receiver.height} · {snapshot.receiver.fps ?? '—'} fps · {snapshot.receiver.audioRms > 0 ? (20*Math.log10(snapshot.receiver.audioRms)).toFixed(1)+' dBFS' : 'silence'} · dominant {Math.round(snapshot.receiver.dominantHz)} Hz</p> : null}
     {error ? <p role="alert" className="text-amber-200">{error}</p> : null}
     <fieldset disabled={!connected || busy} className="mt-3 flex flex-wrap gap-3 disabled:opacity-50">
       <legend className="sr-only">Program master and source channels</legend>
