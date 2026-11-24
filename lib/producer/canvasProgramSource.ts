@@ -5,7 +5,7 @@ import { renderProgramSlide } from './programSlideRender'
 type GeneratedTrack = MediaStreamTrack & { writable: WritableStream<VideoFrame> }
 type GeneratorConstructor = new (options: { kind: 'video' }) => GeneratedTrack
 type ProcessorConstructor = new (options: { track: MediaStreamTrack; maxBufferSize?: number }) => { readable: ReadableStream<VideoFrame> }
-type SourceOptions = { resolveSource: (block: PreviewBlock) => Promise<string> }
+type SourceOptions = { resolveSource: (block: PreviewBlock) => Promise<string>; deferOutput?: boolean }
 
 /** Ephemeral in-memory composition. No recording, canvas capture or page paint clock. */
 export async function canvasProgramSource(blocks: PreviewBlock[], options: SourceOptions) {
@@ -88,8 +88,14 @@ export async function canvasProgramSource(blocks: PreviewBlock[], options: Sourc
     }
     // WebRTC publishes one mixed audio track alongside the one finished canvas.
     if (audioBus) { stream.addTrack(audioBus.stream.getAudioTracks()[0]); captured.push(audioBus.stream) }
-    worker.postMessage({ layers, writable: track.writable }, transfers)
-    return { stream, layerCount:plan.length, videoLayerCount:plan.filter(block=>block.type==='video').length, audioLayerCount:plan.filter(block=>block.type==='audio'||block.type==='video').length, get progress() { return progress }, get failure() { return error },
+    let started = false
+    function startOutput() {
+      if (started || stopped) return
+      worker.postMessage({ layers, writable: track.writable }, transfers)
+      started = true
+    }
+    if (!options.deferOutput) startOutput()
+    return { stream, startOutput, layerCount:plan.length, videoLayerCount:plan.filter(block=>block.type==='video').length, audioLayerCount:plan.filter(block=>block.type==='audio'||block.type==='video').length, get progress() { return progress }, get failure() { return error },
       async take() { await takePreparedMedia(media) },
       stop: cleanup,
     }

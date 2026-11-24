@@ -103,13 +103,14 @@ scope.onmessage = event => {
         failureStage = 'Creating the canvas output frame'
         const frame = new VideoFrame(canvas, { timestamp: Math.round((performance.now() - started) * 1000), duration: 33333 })
         let timer: ReturnType<typeof setTimeout>
+        const writeTimeoutMs = written === 0 ? 10_000 : 1_000
         failureStage = 'Writing the canvas output frame'
         try {
           await Promise.race([writer.write(frame), new Promise<never>((_, reject) => {
             timer = setTimeout(() => {
-              failureStage = 'Canvas output writer stalled for one second'
+              failureStage = 'Canvas output writer timed out after ' + writeTimeoutMs / 1000 + ' seconds'
               reject(Error('Canvas writer stalled'))
-            }, 1000)
+            }, writeTimeoutMs)
           })])
         }
         finally { clearTimeout(timer); frame.close() }

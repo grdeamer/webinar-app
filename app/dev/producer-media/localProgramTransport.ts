@@ -58,7 +58,7 @@ export class LibraryPublisher {
  }
  async startCanvas(blocks:PreviewBlock[]) {
   this.runId=(await engineStatus(this.transport)).runtime.runId
-  this.canvasSource=await canvasProgramSource(blocks,{resolveSource:block=>this.resolveSource(block)})
+  this.canvasSource=await canvasProgramSource(blocks,{resolveSource:block=>this.resolveSource(block),deferOutput:true})
   this.stream=this.canvasSource.stream
   await this.publish()
  }
@@ -67,7 +67,9 @@ export class LibraryPublisher {
   const claim=await engineRequest('input',{runId:this.runId,action:'claim',role:this.role,kind:'file'},undefined,this.transport);this.capability=claim.capability
   if(claim.url!==this.transport.relayUrl)throw Error('Unexpected media relay')
   this.room=new Room({adaptiveStream:false,dynacast:false});await this.room.connect(claim.url,claim.token,{autoSubscribe:false,...(isLocalStudioTransport(this.transport)?{rtcConfig:{iceServers:[]}}:{})})
-  const video=await this.room.localParticipant.publishTrack(this.stream.getVideoTracks()[0],{source:Track.Source.Camera,simulcast:false,videoCodec:'h264',degradationPreference:'maintain-resolution',videoEncoding:{maxBitrate:6000000,maxFramerate:30}})
+  const videoPublication=this.room.localParticipant.publishTrack(this.stream.getVideoTracks()[0],{source:Track.Source.Camera,simulcast:false,videoCodec:'h264',degradationPreference:'maintain-resolution',videoEncoding:{maxBitrate:6000000,maxFramerate:30}})
+  this.canvasSource?.startOutput()
+  const video=await videoPublication
   for(const track of this.stream.getAudioTracks())await this.room.localParticipant.publishTrack(track,{source:Track.Source.Microphone,dtx:false,red:false})
   let pending=false
   const report=async()=>{if(pending||this.stopped)return;pending=true;try{if(this.staticSource?.failure||this.canvasSource?.failure)throw Error(this.staticSource?.failure||this.canvasSource?.failure);const counters=await senderStats(video);await engineRequest('input',{runId:this.runId,action:'report',role:this.role,frames:counters.frames,videoTrackSid:video.trackSid,encoding:{...counters,captureMode:this.canvasSource?'explicit-canvas-frames':this.staticSource?'explicit-static-frames':counters.captureMode,...(this.canvasSource?{canvasLayerCount:this.canvasSource.layerCount,canvasVideoLayerCount:this.canvasSource.videoLayerCount,canvasAudioLayerCount:this.canvasSource.audioLayerCount,canvasFramesWritten:this.canvasSource.progress.framesWritten,canvasSourceFrames:this.canvasSource.progress.sourceFrames}:{})}},this.capability,this.transport)}catch(e){this.failure=e instanceof Error?e.message:'Input lost'}finally{pending=false}}
