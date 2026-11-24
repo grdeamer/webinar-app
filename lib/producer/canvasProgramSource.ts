@@ -13,13 +13,14 @@ export async function canvasProgramSource(blocks: PreviewBlock[], options: Sourc
   const api = globalThis as unknown as { MediaStreamTrackGenerator?: GeneratorConstructor; MediaStreamTrackProcessor?: ProcessorConstructor }
   if (!api.MediaStreamTrackGenerator || !api.MediaStreamTrackProcessor) throw Error('Multi-source canvas requires current Chromium frame generation.')
   const track = new api.MediaStreamTrackGenerator({ kind: 'video' })
+  const writer = track.writable.getWriter()
   const worker = new Worker(new URL('./canvasProgramSource.worker.ts', import.meta.url), { type: 'module' })
   const media: { element: HTMLVideoElement; loop: boolean }[] = [], captured: MediaStream[] = [], bitmaps: ImageBitmap[] = []
   let audio: AudioContext | null = null, audioBus: MediaStreamAudioDestinationNode | null = null, stopped = false, error: string | null = null
   const stream = new MediaStream([track])
   const cleanup = () => {
     if (stopped) return
-    stopped = true; track.stop(); worker.terminate()
+    stopped = true; track.stop(); worker.terminate(); void writer.abort().catch(() => {})
     captured.forEach(source => source.getTracks().forEach(item => item.stop()))
     stream.getTracks().forEach(item => item.stop())
     media.forEach(({ element }) => { element.onended=null; element.pause(); element.removeAttribute('src'); element.load() })
@@ -27,7 +28,14 @@ export async function canvasProgramSource(blocks: PreviewBlock[], options: Sourc
   }
   let progress:{framesWritten:number;sourceFrames:Record<string,number>}={framesWritten:0,sourceFrames:{}}
   worker.onmessage = event => {
-    if (typeof event.data?.error === 'string') error ??= event.data.error
+    if (event.data?.frame instanceof VideoFrame) {
+      const frame = event.data.frame
+      const acknowledge = (frameAck: boolean) => {
+        if (!stopped) worker.postMessage({ frameAck })
+      }
+      void writer.write(frame).then(() => acknowledge(true), () => acknowledge(false))
+        .finally(() => frame.close())
+    } else if (typeof event.data?.error === 'string') error ??= event.data.error
     else if (event.data?.framesWritten) progress = event.data
   }
   worker.onerror = () => {
@@ -38,7 +46,7 @@ export async function canvasProgramSource(blocks: PreviewBlock[], options: Sourc
   worker.onmessageerror = () => { error ??= 'Canvas worker sent an unreadable status message' }
   try {
     const layers: { block: PreviewBlock; bitmap?: ImageBitmap; readable?: ReadableStream<VideoFrame> }[] = []
-    const transfers: Transferable[] = [track.writable]
+    const transfers: Transferable[] = []
     for (const block of plan) {
       if (block.type === 'text') { layers.push({ block }); continue }
       const source = await options.resolveSource(block)
@@ -91,7 +99,7 @@ export async function canvasProgramSource(blocks: PreviewBlock[], options: Sourc
     let started = false
     function startOutput() {
       if (started || stopped) return
-      worker.postMessage({ layers, writable: track.writable }, transfers)
+      worker.postMessage({ layers }, transfers)
       started = true
     }
     if (!options.deferOutput) startOutput()

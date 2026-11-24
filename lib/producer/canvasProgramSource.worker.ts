@@ -1,13 +1,24 @@
 import type { PreviewBlock } from '../../app/admin/events/[id]/producer/useProducerBlocks'
 type Layer = { block: PreviewBlock; bitmap?: ImageBitmap; readable?: ReadableStream<VideoFrame> }
-type Job = { layers: Layer[]; writable: WritableStream<VideoFrame> }
-const scope = self as unknown as { onmessage: ((event: MessageEvent<Job | {endedId:string}>) => void) | null; postMessage: (value: unknown) => void }
+type Job = { layers: Layer[]; writable?: WritableStream<VideoFrame> }
+type FrameAck = { frameAck: boolean }
+const bridgeClosed = () => Error('Video track writer rejected a frame')
+let pendingFrame: ((accepted: boolean) => void) | undefined
+
+function sendFrame(frame: VideoFrame) {
+  return new Promise<void>((resolve, reject) => {
+    pendingFrame = (accepted) => { pendingFrame = undefined; if (accepted) resolve(); else reject(bridgeClosed()) }
+    scope.postMessage({ frame }, [frame])
+  })
+}
+const scope = self as unknown as { onmessage: ((event: MessageEvent<Job | FrameAck | {endedId:string}>) => void) | null; postMessage: (value: unknown, transfer?: Transferable[]) => void }
 const naturallyEnded = new Set<string>()
 scope.onmessage = event => {
+  if ('frameAck' in event.data) { pendingFrame?.(event.data.frameAck); return }
   if ('endedId' in event.data) { naturallyEnded.add(event.data.endedId); return }
   const { layers, writable } = event.data
   const canvas = new OffscreenCanvas(1920, 1080), context = canvas.getContext('2d')!
-  const writer = writable.getWriter(), frames = new Map<string, VideoFrame>()
+  const writer = writable?.getWriter(), frames = new Map<string, VideoFrame>()
   // Composite each layer once: group opacity must not darken the layers beneath it twice.
   const surfaces=new Map(layers.filter(layer=>layer.block.type!=='audio').map(({block})=>[block.id,new OffscreenCanvas(Math.max(1,Math.min(1920,Math.ceil(block.width*3))),Math.max(1,Math.min(1080,Math.ceil(block.height*3))))]))
   let ended = false, written = 0, lastReport = 0
@@ -101,12 +112,14 @@ scope.onmessage = event => {
           context.restore()
         }
         failureStage = 'Creating the canvas output frame'
-        const frame = new VideoFrame(canvas, { timestamp: Math.round((performance.now() - started) * 1000), duration: 33333 })
+        const frame = new VideoFrame(canvas, {
+          timestamp: Math.round((performance.now() - started) * 1000), duration: 33333,
+        })
         let timer: ReturnType<typeof setTimeout>
         const writeTimeoutMs = written === 0 ? 10_000 : 1_000
         failureStage = 'Writing the canvas output frame'
         try {
-          await Promise.race([writer.write(frame), new Promise<never>((_, reject) => {
+          await Promise.race([writer ? writer.write(frame) : sendFrame(frame), new Promise<never>((_, reject) => {
             timer = setTimeout(() => {
               failureStage = 'Canvas output writer timed out after ' + writeTimeoutMs / 1000 + ' seconds'
               reject(Error('Canvas writer stalled'))
@@ -127,7 +140,8 @@ scope.onmessage = event => {
     }
     finally {
       ended = true; frames.forEach(frame => frame.close()); layers.forEach(layer => layer.bitmap?.close())
-      await writer.abort().catch(() => {})
+      pendingFrame = undefined
+      await writer?.abort().catch(() => {})
     }
   })()
 }
