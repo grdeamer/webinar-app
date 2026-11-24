@@ -51,6 +51,9 @@ import ElementVideoPlayer from "@/components/page-renderer/ElementVideoPlayer"
 import ExperienceInspectorRail from "./ExperienceInspectorRail"
 import usePageEditorAutosave from "./hooks/usePageEditorAutosave"
 import usePageEditorState from "@/components/page-editor/hooks/usePageEditorState"
+import EventTemplateGallery from "./EventTemplateGallery"
+import CanvasSelectionToolbar from "./CanvasSelectionToolbar"
+import type { SessionLayout } from "@/lib/page-editor/eventDesignPresets"
 import PageEditorToolbar from "./PageEditorToolbar"
 import SaveSharedTemplateDialog from "./SaveSharedTemplateDialog"
 import ExperienceJourneySidebar from "./ExperienceJourneySidebar"
@@ -102,6 +105,7 @@ import type {
 type PageEditorTemplate = {
   id: string
   name: string
+  description?: string | null
   sections_json: EventPageSection[]
   elements_json: EventPageElement[]
   event_theme?: Partial<EventTheme> | null
@@ -428,9 +432,11 @@ function elementToEditorExperienceNode(element: EditorElement): EditorExperience
 export default function AdminEventPageEditorPreview({
   eventSlug,
   eventAdminId: eventAdminIdOverride,
+  demoDocument,
 }: {
   eventSlug?: string
   eventAdminId?: string
+  demoDocument?: { elements: unknown[]; sections: unknown[]; revision: number }
 } = {}) {
 const { alert: showNotice } = useJupiterNotice()
 const params = useParams()
@@ -492,7 +498,8 @@ const isEmbedded =
   const [previewHoldScreen, setPreviewHoldScreen] = useState(searchParams.get("screen") === "hold")
   const [sectionsListOpen, setSectionsListOpen] = useState(true)
   const [editorDetailsOpen, setEditorDetailsOpen] = useState(true)
-  const [templateDraft, setTemplateDraft] = useState<{ sections: EventPageSection[]; elements: EventPageElement[]; eventTheme: EventTheme; pageTitle: string } | null>(null)
+  const [galleryOpen, setGalleryOpen] = useState(false)
+  const [templateDraft, setTemplateDraft] = useState<{ sections: EventPageSection[]; elements: EventPageElement[]; eventTheme: EventTheme; pageTitle: string; kind?: "section" } | null>(null)
   const [templates, setTemplates] = useState<PageEditorTemplate[]>([])
   const [generalSession, setGeneralSession] =
     useState<GeneralSessionPresentationSource>(null)
@@ -566,6 +573,7 @@ const isEmbedded =
     !loading && !loadError && loadedPageKey === selectedPageKey
   const flushCurrentPage = useCallback(async (materialize = false): Promise<boolean> => {
     if (!documentReady) return false
+    if (demoDocument) return true
 
     const saved = await saveNow(selectedPageKey, documentRevision, {
       elements,
@@ -576,6 +584,7 @@ const isEmbedded =
 
     return flushLatestPage(selectedPageKey)
   }, [
+    demoDocument,
     documentRevision,
     elements,
     eventTheme,
@@ -652,7 +661,7 @@ const isEmbedded =
       setSaveMessage(null)
 
       try {
-        const res = await fetch(
+        const res = demoDocument ? Response.json(demoDocument) : await fetch(
           `/api/admin/page-editor/event/${slug}/elements?pageKey=${encodeURIComponent(pageKey)}`,
           {
             cache: "no-store",
@@ -714,7 +723,7 @@ const isEmbedded =
           if (typeof data.event_stage === "string" && data.event_stage.trim()) setEventStage(data.event_stage.trim())
         }
 
-        const recovery = getRecoverySnapshot(pageKey)
+        const recovery = demoDocument ? null : getRecoverySnapshot(pageKey)
         const recoverySnapshot = recovery ? {
           elements: normalizeEventPageElements(recovery.snapshot.elements),
           sections: normalizeSections(recovery.snapshot.sections),
@@ -776,6 +785,7 @@ const isEmbedded =
     clearRecoverySnapshot,
     getDocumentRevision,
     getRecoverySnapshot,
+    demoDocument,
     loadAttempt,
     markDocumentDirty,
     registerLoadedPage,
@@ -798,8 +808,8 @@ const isEmbedded =
       }
     }
 
-    void loadTemplates()
-  }, [])
+    if (!demoDocument) void loadTemplates()
+  }, [demoDocument])
 
   useEffect(() => {
     async function loadPageManifest() {
@@ -813,8 +823,8 @@ const isEmbedded =
         setSaveMessage("Using built-in pages until page management is available")
       }
     }
-    void loadPageManifest()
-  }, [slug])
+    if (!demoDocument) void loadPageManifest()
+  }, [demoDocument, slug])
 
   async function persistPageOrder(pages: EditorPageManifestItem[]) {
     const previousPages = editorPages
@@ -882,7 +892,7 @@ const isEmbedded =
   }, [activeToolPanel, eventAdminId])
 
   useEffect(() => {
-    if (!documentReady) return
+    if (!documentReady || demoDocument) return
 
     scheduleSave(selectedPageKey, documentRevision, {
       elements,
@@ -892,6 +902,7 @@ const isEmbedded =
   }, [
     documentRevision,
     documentReady,
+    demoDocument,
     elements,
     eventTheme,
     scheduleSave,
@@ -2221,6 +2232,20 @@ function addRegistrationFormSection() {
     const template = templates.find((item) => item.id === templateId)
     if (!template) return
     const nextSections = normalizeSections(Array.isArray(template.sections_json) ? template.sections_json : [])
+    if (template.description === "jupiter:shared-section") {
+      const original = nextSections[0]
+      if (!original || original.type === "hero") return
+      const section = { ...original, id: crypto.randomUUID(), blocks: original.blocks?.map((block) => ({ ...block, id: crypto.randomUUID() })) }
+      runTransaction(() => {
+        setSections((current) => [...current, section])
+        setSelectedSectionId(section.id)
+        setSelectedBlockId(null)
+        setSelectedId(null)
+        setSelectedIds([])
+      })
+      setSaveMessage("Shared section inserted")
+      return
+    }
     runTransaction(() => {
       setSections(nextSections)
       setElements(Array.isArray(template.elements_json) ? template.elements_json : [])
@@ -2672,6 +2697,17 @@ function addRegistrationFormSection() {
     setTemplateDraft(structuredClone({ sections, elements, eventTheme, pageTitle: editorPages.find(page => page.pageKey === selectedPageKey)?.title || "Current page" }))
   }
 
+  function saveSelectedSectionTemplate() {
+    if (!selectedSection || selectedSection.type === "hero") return
+    setTemplateDraft(structuredClone({
+      sections: [selectedSection],
+      elements: [],
+      eventTheme,
+      pageTitle: selectedSection.config.adminLabel || selectedSection.config.title || "this section",
+      kind: "section",
+    }))
+  }
+
   async function persistSharedTemplate(name: string) {
     if (!templateDraft) throw new Error("Reopen the template dialog and try again.")
     const response = await fetch("/api/admin/page-editor/templates", {
@@ -2681,6 +2717,7 @@ function addRegistrationFormSection() {
       },
       body: JSON.stringify({
         name,
+        kind: templateDraft.kind,
         sections: templateDraft.sections,
         elements: templateDraft.elements,
         eventTheme: templateDraft.eventTheme,
@@ -2779,6 +2816,19 @@ function addRegistrationFormSection() {
     }
     setEditorDetailsOpen(true)
     setRightRailTab("inspect")
+  }
+
+  async function applyEventDesign(presetId: string, accentColor?: string, sessionLayout?: SessionLayout, brand?: Partial<EventTheme>) {
+    if (!eventAdminId) throw new Error("Open an event to apply a theme.")
+    const response = await fetch(`/api/admin/events/${eventAdminId}/design`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ presetId, accentColor, sessionLayout, ...brand }),
+    })
+    const result = await response.json()
+    if (!response.ok) throw new Error(result.error ?? "Theme update failed.")
+    const { pageBackgroundImageUrl, pageBackgroundImageFit, pageBackgroundImagePosition, pageBackgroundOverlay, pageFontStyle } = eventTheme
+    updateEventTheme({ ...result.theme, pageBackgroundImageUrl, pageBackgroundImageFit, pageBackgroundImagePosition, pageBackgroundOverlay, pageFontStyle })
   }
 
   function updateEventTheme(nextTheme: Partial<EventTheme>) {
@@ -2901,6 +2951,7 @@ const selectedExperienceNode = experienceNodes.find(
     event: eventInfo,
     agendaEventId: eventAdminId ?? undefined,
     editAgenda: isEditing,
+    theme: eventTheme,
   })
   const saveStatusMessage =
     activePageSaveState.status === "saving"
@@ -2937,7 +2988,9 @@ const selectedExperienceNode = experienceNodes.find(
 
   return (
     <div className={EXPERIENCE_EDITOR_ROOT_CLASS}>
-      {templateDraft ? <SaveSharedTemplateDialog pageTitle={templateDraft.pageTitle} elementCount={templateDraft.elements.length} onClose={() => setTemplateDraft(null)} onSave={persistSharedTemplate} preview={<EditorEventPageRenderer event={eventInfo} sections={templateDraft.sections} eventTheme={templateDraft.eventTheme} systemComponents={createSystemComponentPreviewRegistry({ sections: templateDraft.sections, event: eventInfo })} />} /> : null}
+      {demoDocument && <p className="bg-violet-950 px-4 py-1 text-xs text-violet-100">Local demo · Drag the sample elements on the canvas. Changes are temporary.</p>}
+      {galleryOpen && <EventTemplateGallery onApply={(template, themeId, fontStyle) => applyEventDesign(themeId, undefined, template.sessions, { fontStyle })} onClose={() => setGalleryOpen(false)} />}
+      {templateDraft ? <SaveSharedTemplateDialog kind={templateDraft.kind} pageTitle={templateDraft.pageTitle} elementCount={templateDraft.elements.length} onClose={() => setTemplateDraft(null)} onSave={persistSharedTemplate} preview={<EditorEventPageRenderer event={eventInfo} sections={templateDraft.sections} eventTheme={templateDraft.eventTheme} systemComponents={createSystemComponentPreviewRegistry({ sections: templateDraft.sections, event: eventInfo, theme: templateDraft.eventTheme })} />} /> : null}
       {!isEmbedded && (
         <PageEditorToolbar
           isEmbedded={isEmbedded}
@@ -2945,7 +2998,7 @@ const selectedExperienceNode = experienceNodes.find(
           eventAdminHref={eventAdminId ? `/admin/events/${eventAdminId}` : null}
           selectedPageKey={selectedPageKey}
           pages={editorPages}
-          templates={documentReady ? templates : []}
+          templates={documentReady ? templates.filter((template) => template.description !== "jupiter:shared-section") : []}
           canUndo={documentReady && canUndo}
           canRedo={documentReady && canRedo}
           canvasZoom={canvasZoom}
@@ -2985,9 +3038,15 @@ const selectedExperienceNode = experienceNodes.find(
           onAlignElements={executeElementAlignmentCommand}
           onGroupElements={groupSelectedElements}
           onUngroupElements={ungroupSelectedElements}
+          onOpenEventTemplates={() => setGalleryOpen(true)}
+          attendeeHref={getPublicEditorPageUrl(slug, selectedPageKey)}
           onPreview={toggleEditing}
           onShare={() => setCollaborationOpen(true)}
           onPublish={() => {
+            if (demoDocument) {
+              setSaveMessage("This local demo cannot publish.")
+              return
+            }
             if (codeDraftDirty.current) {
               setSaveMessage("Apply your HTML/CSS changes before publishing.")
               return
@@ -3098,9 +3157,14 @@ const selectedExperienceNode = experienceNodes.find(
                   onRestoreAsset={restoreUploadedAsset}
                   onPermanentlyDeleteAsset={permanentlyDeleteUploadedAsset}
                   onUpdateTheme={updateEventTheme}
+                  onApplyEventDesign={(id, accent, brand) => applyEventDesign(id, accent, undefined, brand)}
                   onAddApp={addAppSection}
                   onAddSection={(type, label) => {
-                    const appByLabel: Partial<Record<string, SystemComponentKey>> = { Agenda: "agenda", Speakers: "speaker_cards", Sponsors: "sponsors", Resources: "resource_library" }
+                    if (label === "Registration") {
+                      addRegistrationFormSection()
+                      return
+                    }
+                    const appByLabel: Partial<Record<string, SystemComponentKey>> = { Agenda: "agenda", Sessions: "sessions_list", Speakers: "speaker_cards", Sponsors: "sponsors", Resources: "resource_library" }
                     const app = appByLabel[label]
                     if (app) addAppSection(app)
                     else addSectionTemplate(type, label)
@@ -3177,6 +3241,25 @@ const selectedExperienceNode = experienceNodes.find(
                 </div>
               ) : (
                 <div className={canvasViewportClass}>
+                  {isEditing && selectedElement && selectedElement.element_type !== "text" && (
+                    <CanvasSelectionToolbar
+                      label={selectedElement.element_type}
+                      actions={[
+                        { label: "Duplicate", onClick: duplicateSelectedElement, disabled: !canDuplicateElement },
+                        { label: selectedElement.locked ? "Unlock" : "Lock", onClick: () => updateElement(selectedElement.id, { locked: !selectedElement.locked }) },
+                        { label: "Delete", onClick: deleteSelectedElement, disabled: !canDeleteElement },
+                      ]}
+                      onReplaceImage={selectedElement.element_type === "image" && !selectedElement.locked ? (file) => { void uploadSelectedImage(file) } : undefined}
+                    />
+                  )}
+                  {isEditing && !selectedElement && selectedSection && selectedSection.type !== "hero" && (
+                    <CanvasSelectionToolbar label={selectedSection.config.adminLabel || "Section"} actions={[
+                      { label: "Move up", onClick: () => moveSelectedSection("up"), disabled: !canMoveUp },
+                      { label: "Move down", onClick: () => moveSelectedSection("down"), disabled: !canMoveDown },
+                      { label: "Duplicate", onClick: duplicateSelectedSection },
+                      { label: "Save to library", onClick: saveSelectedSectionTemplate },
+                    ]} />
+                  )}
                   {isEditing && selectedElement?.element_type === "text" ? (
                     <TextContextToolbar
                       element={selectedElement}

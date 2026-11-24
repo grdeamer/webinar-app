@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
+import { eventDesignTemplates, findEventDesignTemplate } from "@/lib/page-editor/eventDesignPresets"
 import AdminDateTimeField from "@/components/admin/AdminDateTimeField"
 
 function slugify(v: string) {
@@ -15,7 +16,7 @@ function slugify(v: string) {
     .slice(0, 120)
 }
 
-type EventTemplate = "blank" | "webinar" | "pharma" | "conference"
+type EventTemplate = "blank" | "webinar" | "pharma" | "conference" | typeof eventDesignTemplates[number]["id"]
 
 export default function NewEventPage() {
   const r = useRouter()
@@ -61,7 +62,7 @@ export default function NewEventPage() {
   const scaffoldRes = await fetch(`/api/admin/events/${json.id}/scaffold`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ template }),
+    body: JSON.stringify({ template: findEventDesignTemplate(template)?.base ?? template }),
   })
 
   const scaffoldJson = await scaffoldRes.json().catch((): null => null)
@@ -140,6 +141,9 @@ export default function NewEventPage() {
             <option value="webinar">Webinar Template</option>
             <option value="pharma">Pharma Summit Template</option>
             <option value="conference">Conference Template</option>
+            <optgroup label="Designed event templates">
+              {eventDesignTemplates.map((option) => <option key={option.id} value={option.id}>{option.name}</option>)}
+            </optgroup>
           </select>
           <div className="mt-1 text-xs text-white/40">
             Start with a prebuilt event structure instead of building everything manually.

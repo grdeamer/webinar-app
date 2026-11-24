@@ -267,6 +267,7 @@ function renderBlock(
     const baseNode =
       componentKey === "registration_form" ? (
         <RegistrationFlowPreview
+          renderTitle={(title) => <SectionText as="h2" value={title} className="text-2xl font-semibold" {...editText("title")} />}
           registrationSettings={block.props.registrationSettings}
           title={typeof block.props.title === "string" ? block.props.title : undefined}
           body={typeof block.props.body === "string" ? block.props.body : undefined}

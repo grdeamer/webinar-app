@@ -1,3 +1,5 @@
+import { resolveEventFont, findEventDesignPreset } from "@/lib/page-editor/eventDesignPresets"
+import designStyles from "./EventDesign.module.css"
 import RegistrationForm from "@/components/registration/RegistrationForm"
 import { normalizeRegistrationConfig } from "@/lib/registration/schema"
 import { isLiveAgendaSection, materializeLiveAgendaSection } from "@/lib/page-editor/liveAgendaLayout"
@@ -774,6 +776,16 @@ export default function EventPageRenderer({
     gradientAngle: eventTheme?.gradientAngle || "135deg",
   }
 
+  const design = findEventDesignPreset(eventTheme?.presetId)
+  const accent = eventTheme?.accentColor ?? design?.accent
+  const designStyle = design ? {
+    "--event-design-font": resolveEventFont(eventTheme),
+    "--event-design-ink": design.ink,
+    "--event-design-panel": design.panel,
+    "--event-design-accent": accent,
+    "--event-design-action-ink": design.background,
+  } as CSSProperties : undefined
+
   if (customCode.enabled) {
     return (
       <main className="min-h-screen bg-[#050816]">
@@ -789,8 +801,8 @@ export default function EventPageRenderer({
 
     return (
       <main
-        className="relative min-h-screen text-white"
-        style={getCardStackPageStyle(cardStackTheme)}
+        className={`relative min-h-screen ${design ? designStyles.design : "text-white"}`}
+        style={{ ...getCardStackPageStyle(cardStackTheme), ...designStyle }}
       >
         {beforeSections}
         <div
@@ -818,9 +830,10 @@ export default function EventPageRenderer({
 
   const fullBleedContent = (
     <div
-      className="relative overflow-hidden rounded-3xl border text-white"
+      className={`relative overflow-hidden rounded-3xl border ${design ? designStyles.design : "text-white"}`}
       style={{
-        ...getPageBackgroundStyle(resolvedEventTheme),
+        ...getPageBackgroundStyle(design && eventTheme ? eventTheme : resolvedEventTheme),
+        ...designStyle,
         borderColor: resolvedEventTheme.panelBorderColor,
         color: resolvedEventTheme.textColor,
       }}

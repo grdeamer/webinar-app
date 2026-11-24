@@ -1,3 +1,4 @@
+import type { EventTheme } from "@/lib/page-editor/sectionTypes"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 
 export type EventRow = {
@@ -8,12 +9,13 @@ export type EventRow = {
   start_at: string | null
   end_at: string | null
   district_directory_enabled: boolean
+  event_theme?: EventTheme | null
 }
 
 export async function getEventBySlug(slug: string): Promise<EventRow> {
   const { data, error } = await supabaseAdmin
     .from("events")
-    .select("id,slug,title,description,start_at,end_at,district_directory_enabled")
+    .select("id,slug,title,description,start_at,end_at,district_directory_enabled,event_theme")
     .eq("slug", slug)
     .order("start_at", { ascending: false, nullsFirst: true })
     .limit(1)

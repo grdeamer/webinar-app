@@ -1,11 +1,11 @@
 "use client"
-import { useEffect, useId, useState, type FormEvent } from "react"
+import { useEffect, useId, useState, type FormEvent, type ReactNode } from "react"
 import { normalizeRegistrationConfig, validateRegistration, type RegistrationConfig } from "@/lib/registration/schema"
 type Session = { id: string; title: string; starts_at?: string | null }
-type Props = { slug?: string; preview?: boolean; config?: RegistrationConfig; sessions?: Session[]; previewState?: string }
+type Props = { slug?: string; preview?: boolean; config?: RegistrationConfig; sessions?: Session[]; previewState?: string; renderPreviewTitle?: (title: string) => ReactNode }
 const INPUT = "mt-1 w-full rounded-xl border border-white/20 bg-black/25 px-3 py-3 text-white outline-none focus:border-sky-300"
 const BUTTON = "rounded-xl bg-violet-600 px-5 py-3 font-semibold text-white disabled:opacity-50"
-export default function RegistrationForm({ slug, preview = false, config: initialConfig, sessions: initialSessions = [], previewState }: Props) {
+export default function RegistrationForm({ slug, preview = false, config: initialConfig, sessions: initialSessions = [], previewState, renderPreviewTitle }: Props) {
   const id = useId()
   const [loading, setLoading] = useState(!preview)
   const [liveConfig, setConfig] = useState(() => normalizeRegistrationConfig({}, false))
@@ -45,7 +45,7 @@ export default function RegistrationForm({ slug, preview = false, config: initia
   const active = result && ["registered", "approved", "checked_in"].includes(result.status)
   return <section id="registration" className={config.variant === "minimal" ? "rounded-xl border border-white/15 bg-slate-950/80 p-4 text-white" : "rounded-3xl border border-white/15 bg-slate-950/80 p-6 text-white"}>
     {preview ? <p className="mb-4 text-xs text-sky-200">Preview only · no attendee is created and no email is sent</p> : null}
-    <h2 className="text-2xl font-semibold">{config.title}</h2><p className="mt-2 text-sm text-white/70">{config.body}</p>
+    {preview && renderPreviewTitle ? renderPreviewTitle(config.title) : <h2 className="text-2xl font-semibold">{config.title}</h2>}<p className="mt-2 text-sm text-white/70">{config.body}</p>
     {closed ? <p role="status" className="mt-5">Registration is currently closed. Contact the organizer for help.</p> : displayedStep === 4 ? <div role="status" className="mt-6 space-y-3">
       <h3 className="text-xl">{result?.status === "pending_approval" ? "Awaiting organizer approval" : result?.status === "waitlisted" ? "You’re on the waitlist" : result?.status === "cancelled" || result?.status === "declined" ? "Contact the organizer" : config.confirmationTitle}</h3>
       <p>{result?.status === "pending_approval" ? "Your registration is saved. Event access will be available after approval." : result?.status === "waitlisted" ? "Your request is saved. A seat has not been confirmed yet." : config.confirmationBody}</p>

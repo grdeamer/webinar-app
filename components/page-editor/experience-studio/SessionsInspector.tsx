@@ -2,7 +2,9 @@
 
 "use client"
 
-export type SessionsDisplayMode = "list" | "cards" | "featured"
+import { sessionLayouts, type SessionLayout } from "@/lib/page-editor/eventDesignPresets"
+
+export type SessionsDisplayMode = SessionLayout
 
 type Props = {
   title: string
@@ -24,15 +26,6 @@ type Props = {
     emptyStateText?: string
   }) => void
 }
-
-const DISPLAY_MODES: ReadonlyArray<{
-  value: SessionsDisplayMode
-  label: string
-}> = [
-  { value: "list", label: "List" },
-  { value: "cards", label: "Cards" },
-  { value: "featured", label: "Featured" },
-]
 
 export default function SessionsInspector({
   title,
@@ -79,18 +72,18 @@ export default function SessionsInspector({
 
       <div className="rounded-2xl border border-white/10 bg-black/20 p-3">
         <div className="text-[10px] font-black uppercase tracking-[0.16em] text-white/34">
-          Display Mode
+          Sessions layout
         </div>
 
-        <div className="mt-3 grid grid-cols-3 gap-2">
-          {DISPLAY_MODES.map((option) => {
-            const active = displayMode === option.value
+        <div className="mt-3 grid gap-2">
+          {sessionLayouts.map((option) => {
+            const active = displayMode === option.id
 
             return (
               <button
-                key={option.value}
+                key={option.id}
                 type="button"
-                onClick={() => onChange({ displayMode: option.value })}
+                onClick={() => onChange({ displayMode: option.id })}
                 className={`rounded-xl border px-3 py-2 text-[10px] font-black uppercase tracking-[0.12em] transition ${
                   active
                     ? "border-sky-300/30 bg-sky-400/10 text-sky-100"

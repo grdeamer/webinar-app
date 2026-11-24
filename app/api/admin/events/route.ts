@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
+import { findEventDesignTemplate } from "@/lib/page-editor/eventDesignPresets"
 import { recordAuditEvent } from "@/lib/cloud/audit"
 
 export const runtime = "nodejs"
@@ -67,11 +68,13 @@ export async function POST(req: Request) {
     return json({ error: err instanceof Error ? err.message : "Slug generation failed" }, 500)
   }
 
+  const designTemplate = findEventDesignTemplate(body.template)
   const row = {
     title: rawTitle,
     slug: finalSlug,
     start_at: body.start_at || null,
     end_at: body.end_at || null,
+    ...(designTemplate ? { event_theme: { presetId: designTemplate.themeId, sessionLayout: designTemplate.sessions } } : {}),
   }
 
   const { data, error } = await supabaseAdmin

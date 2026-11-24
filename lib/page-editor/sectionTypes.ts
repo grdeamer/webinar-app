@@ -125,6 +125,13 @@ export type ExperienceNode = {
   children?: ExperienceNode[]
 }
 export type EventTheme = {
+  presetId?: string
+  accentColor?: string
+  fontStyle?: import("./eventDesignPresets").EventFont | ""
+  pageFontStyle?: import("./eventDesignPresets").EventFont | ""
+  buttonStyle?: import("./eventDesignPresets").EventButtonStyle
+  logoUrl?: string
+  sessionLayout?: import("./eventDesignPresets").SessionLayout
   pageBackgroundColor?: string
   pageBackgroundImageUrl?: string
   pageBackgroundImageFit?: "cover" | "contain"

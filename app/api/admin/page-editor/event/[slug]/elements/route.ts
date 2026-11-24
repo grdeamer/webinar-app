@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { supabaseAdmin } from "@/lib/supabase/admin"
+import { resolveEventDesign } from "@/lib/page-editor/eventDesignPresets"
 import { normalizeEventPageElements } from "@/lib/page-editor/elements"
 import type { EventTheme } from "@/lib/page-editor/sectionTypes"
 import { requireEventOperatorAccess } from "@/lib/eventTeamAccess"
@@ -142,7 +143,7 @@ export async function GET(
     event_title: event.title,
     event_stage: event.lifecycle_stage,
     pageKey,
-    eventTheme: normalizeTheme(pageRow?.page_theme) ?? normalizeTheme(event.event_theme),
+    eventTheme: resolveEventDesign(normalizeTheme(event.event_theme), normalizeTheme(pageRow?.page_theme)),
     elements: normalizeEventPageElements(pageRow?.elements),
     sections: normalizeSections(pageRow?.sections),
     revision: normalizeRevision(pageRow?.document_revision),

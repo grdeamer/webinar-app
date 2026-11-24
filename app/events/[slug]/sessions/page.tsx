@@ -1,8 +1,8 @@
-import Link from "next/link"
+import { SessionLayouts } from "@/components/events/SessionLayouts"
+import { sanitizeMeetingUrl } from "@/lib/meetingLinks"
 import { redirect } from "next/navigation"
 import EventPageRenderer from "@/components/page-renderer/EventPageRenderer"
 import { getEventBySlug } from "@/lib/events"
-import { supabaseAdmin } from "@/lib/supabase/admin"
 import { canViewerAccessSession } from "@/lib/domain/access"
 import { listEventSessions } from "@/lib/repos/sessionsRepo"
 import { buildEventViewerContext } from "@/lib/services/events/buildEventViewerContext"
@@ -11,47 +11,10 @@ import {
   normalizeEventPageSections,
   withRequiredSystemComponent,
 } from "@/lib/page-editor/normalizeEventPageSections"
-import type { EventPageSection, EventTheme } from "@/lib/page-editor/sectionTypes"
+import type { EventPageSection } from "@/lib/page-editor/sectionTypes"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-
-function formatDatePretty(iso: string | null) {
-  if (!iso) return null
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return null
-  return d.toLocaleDateString(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  })
-}
-
-function isUpcoming(iso: string | null) {
-  if (!iso) return false
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return false
-  return d.getTime() >= Date.now()
-}
-
-function sessionBadge(iso: string | null) {
-  if (isUpcoming(iso)) {
-    return {
-      label: "UPCOMING",
-      cls: "bg-indigo-500/15 text-indigo-200 ring-1 ring-indigo-500/30",
-    }
-  }
-
-  return {
-    label: "ASSIGNED",
-    cls: "bg-emerald-500/15 text-emerald-200 ring-1 ring-emerald-500/30",
-  }
-}
-
-function normalizeTheme(input: unknown): EventTheme | null {
-  if (!input || typeof input !== "object") return null
-  return input as EventTheme
-}
 
 async function getVisibleEventSessions(
   eventId: string,
@@ -73,75 +36,9 @@ async function getVisibleEventSessions(
   return visibleSessions
 }
 
-function renderSessionsGrid(
-  sessions: Awaited<ReturnType<typeof getVisibleEventSessions>>,
-  slug: string
-) {
-  if (sessions.length === 0) {
-    return (
-      <div className="rounded-3xl border border-white/10 bg-white/5 p-10 text-center">
-        <h2 className="text-xl font-semibold">No sessions available</h2>
-        <p className="mt-2 text-white/60">
-          If you think this is a mistake, contact the event admin.
-        </p>
-      </div>
-    )
-  }
-
-  return (
-    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-      {sessions.map((session) => {
-        const badge = sessionBadge(session.startsAt)
-        const datePretty = formatDatePretty(session.startsAt)
-        const joinHref = session.externalJoinUrl || session.joinLink || null
-
-        return (
-          <div
-            key={session.id}
-            className="rounded-3xl border border-white/10 bg-white/5 p-7"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span
-                className={`inline-flex rounded-full px-3 py-1 text-xs font-semibold ${badge.cls}`}
-              >
-                {badge.label}
-              </span>
-
-              {datePretty ? (
-                <span className="text-xs text-white/60">{datePretty}</span>
-              ) : null}
-            </div>
-
-            <h3 className="mt-4 text-xl font-semibold">{session.title}</h3>
-
-            {session.description ? (
-              <p className="mt-3 text-white/65">{session.description}</p>
-            ) : null}
-
-            <div className="mt-6 flex flex-wrap gap-3">
-              <Link
-                href={`/events/${slug}/sessions/${session.id}`}
-                className="rounded-xl bg-white px-5 py-3 font-medium text-slate-950"
-              >
-                View Session
-              </Link>
-
-              {session.deliveryMode === "external" && joinHref ? (
-                <a
-                  href={joinHref}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rounded-xl bg-indigo-600 px-5 py-3 font-medium text-white hover:bg-indigo-500"
-                >
-                  Join session
-                </a>
-              ) : null}
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
+function meetingHref(value?: string | null) {
+  try { return sanitizeMeetingUrl(value ?? "") }
+  catch { return null }
 }
 
 function getSessionsFallbackSections(eventTitle: string): EventPageSection[] {
@@ -206,15 +103,8 @@ export default async function EventSessionsPage(props: {
 
   const sessions = await getVisibleEventSessions(event.id, viewer)
 
-  const { data: eventRow } = await supabaseAdmin
-    .from("events")
-    .select("event_theme")
-    .eq("id", event.id)
-    .maybeSingle()
-
   const pageDocument = await loadEventPageDocument(event.id, "sessions")
-
-  const eventTheme = pageDocument.eventTheme ?? normalizeTheme(eventRow?.event_theme)
+  const eventTheme = pageDocument.eventTheme
   const savedSections = normalizeEventPageSections(pageDocument.sections)
   const baseSections =
     savedSections.length > 0
@@ -229,13 +119,31 @@ export default async function EventSessionsPage(props: {
     },
   )
 
+  const settings = sections.flatMap((section) => section.blocks ?? []).find((block) =>
+    block.type === "system_component" && block.props.componentKey === "sessions_list"
+  )?.props
+  const items = sessions.map((session) => {
+    const start = session.startsAt ? new Date(session.startsAt) : null
+    return {
+      id: session.id,
+      title: session.title,
+      description: session.description,
+      presenter: session.presenter,
+      date: start?.toLocaleDateString("en-US", { timeZone: "America/New_York", month: "short", day: "numeric" }),
+      time: start?.toLocaleTimeString("en-US", { timeZone: "America/New_York", hour: "numeric", minute: "2-digit", timeZoneName: "short" }),
+      status: session.runtimeStatus === "live" ? "Live now" : session.runtimeStatus === "ended" ? "Ended" : start && +start > Date.now() ? "Upcoming" : undefined,
+      detailsHref: `/events/${slug}/sessions/${session.id}`,
+      joinHref: session.deliveryMode === "external" ? meetingHref(session.externalJoinUrl || session.joinLink) : null,
+    }
+  })
+
   return (
     <EventPageRenderer
       event={event}
       elements={pageDocument.elements}
       sections={sections}
       systemComponents={{
-        sessions_list: renderSessionsGrid(sessions, slug),
+        sessions_list: <SessionLayouts items={items} theme={eventTheme} settings={settings as Record<string, unknown> | undefined} />,
       }}
       eventTheme={eventTheme ?? undefined}
       layout="card-stack"

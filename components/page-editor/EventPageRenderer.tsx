@@ -1,5 +1,6 @@
 "use client"
 
+import { resolveEventFont } from "@/lib/page-editor/eventDesignPresets"
 import { getSectionIntro } from "@/lib/page-editor/experienceLayout"
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import type Hls from "hls.js"
@@ -796,6 +797,7 @@ export default function EventPageRenderer({
       <div
   className="relative min-h-[900px] overflow-hidden rounded-3xl border text-white"
   style={{
+    fontFamily: resolveEventFont(eventTheme),
     backgroundColor: resolvedEventTheme.pageBackgroundColor,
     borderColor: resolvedEventTheme.panelBorderColor,
     color: resolvedEventTheme.textColor,

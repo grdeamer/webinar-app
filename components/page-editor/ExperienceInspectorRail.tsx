@@ -2231,7 +2231,7 @@ onDragEnd={handleLayerDragEnd}
         : undefined
     }
     displayMode={
-      ((selectedBlock.props.displayMode ??
+      ((selectedBlock.props.displayMode ?? eventTheme.sessionLayout ??
         "cards") as SessionsDisplayMode)
     }
     showTime={

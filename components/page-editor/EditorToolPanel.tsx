@@ -1,10 +1,12 @@
 "use client"
 
+import { eventDesignFonts } from "@/lib/page-editor/eventDesignPresets"
+import EventDesignPicker from "./EventDesignPicker"
 import { useRef, useState } from "react"
 import type { EditorToolPanel } from "./EditorToolDock"
 import type { EventTheme, SystemComponentKey } from "@/lib/page-editor/sectionTypes"
 
-type Template = { id: string; name?: string }
+type Template = { id: string; name?: string; description?: string | null }
 type Asset = { id: string; path: string; url: string; name: string; type: string; trashed?: boolean; originalPath?: string }
 type ElementType = "text" | "image" | "pdf" | "video" | "button" | "spacer"
 type TextPreset = "heading" | "subheading" | "body"
@@ -37,7 +39,7 @@ export default function EditorToolPanel({
   onDeleteAsset,
   onRestoreAsset,
   onPermanentlyDeleteAsset,
-  onUpdateTheme,
+  onUpdateTheme, onApplyEventDesign,
   onAddApp,
   onAddSection,
   onClose,
@@ -57,6 +59,7 @@ export default function EditorToolPanel({
   onRestoreAsset: (asset: Asset) => Promise<void>
   onPermanentlyDeleteAsset: (asset: Asset) => Promise<void>
   onUpdateTheme: (theme: Partial<EventTheme>) => void
+  onApplyEventDesign: (presetId: string, accentColor: string, brand?: Partial<EventTheme>) => Promise<void>
   onAddApp: (key: SystemComponentKey) => void
   onAddSection: (type: SectionPreset, label: string) => void
   onClose: () => void
@@ -102,10 +105,10 @@ export default function EditorToolPanel({
               <span className="mt-1 block text-[10px] font-normal leading-4 text-white/40">ZIP with index.html · up to 20 MB</span>
             </button>
             <PanelLabel>Shared & built-in templates</PanelLabel>
-            {visibleTemplates.length ? visibleTemplates.map((template) => <button key={template.id} type="button" className={`${CONTROL} overflow-hidden p-0`} onClick={() => { if (window.confirm(`Apply “${template.name || "Untitled template"}” to this page? You can undo this change.`)) onApplyTemplate(template.id) }}><span className="block h-20 bg-[radial-gradient(circle_at_75%_35%,rgba(139,92,246,.65),transparent_30%),linear-gradient(135deg,#071426,#101328)]" /><span className="block px-3 py-2">{template.name || "Untitled template"}</span></button>) : <Empty>No matching templates.</Empty>}
+            {visibleTemplates.length ? visibleTemplates.map((template) => <button key={template.id} type="button" className={`${CONTROL} overflow-hidden p-0`} onClick={() => { if (template.description === "jupiter:shared-section" || window.confirm(`Apply “${template.name || "Untitled template"}” to this page? You can undo this change.`)) onApplyTemplate(template.id) }}><span className="block h-20 bg-[radial-gradient(circle_at_75%_35%,rgba(139,92,246,.65),transparent_30%),linear-gradient(135deg,#071426,#101328)]" /><span className="block px-3 py-2">{template.name || "Untitled template"}{template.description === "jupiter:shared-section" ? <span className="block text-white/50">Insert section</span> : null}</span></button>) : <Empty>No matching templates.</Empty>}
           </> : <>
             <PanelLabel>Page sections</PanelLabel>
-            <div className="grid grid-cols-2 gap-2">{([['hero','Hero'],['content','CTA'],['grid','Features'],['grid','Stats'],['system','Agenda'],['system','Speakers'],['system','Sponsors'],['system','Resources']] as Array<[SectionPreset,string]>).map(([type,label]) => <button key={label} type="button" className={CONTROL} onClick={() => onAddSection(type,label)}>{label}</button>)}</div>
+            <div className="grid grid-cols-2 gap-2">{([['hero','Hero'],['content','CTA'],['grid','Features'],['grid','Stats'],['system','Agenda'],['system','Speakers'],['system','Sponsors'],['system','Resources'],['system','Sessions'],['system','Registration']] as Array<[SectionPreset,string]>).map(([type,label]) => <button key={label} type="button" className={CONTROL} onClick={() => onAddSection(type,label)}>{label}</button>)}</div>
           </>}
           <PanelLabel>Canvas color</PanelLabel>
           <ColorControl label="Background" value={eventTheme.pageBackgroundColor ?? "#020617"} onChange={(value) => onUpdateTheme({ pageBackgroundColor: value })} />
@@ -132,11 +135,14 @@ export default function EditorToolPanel({
         </> : null}
 
         {activePanel === "brand" ? <>
-          <PanelLabel>Brand kit</PanelLabel>
-          <button type="button" className={CONTROL} onClick={() => onUpdateTheme({ pageBackgroundColor: "#020617", panelBackgroundColor: "#0f172a", textColor: "#ffffff", gradientColorA: "#0f172a", gradientColorB: "#6d28d9" })}>Jupiter Night</button>
-          <button type="button" className={CONTROL} onClick={() => onUpdateTheme({ pageBackgroundColor: "#07111f", panelBackgroundColor: "#10243d", textColor: "#f8fafc", gradientColorA: "#0c4a6e", gradientColorB: "#2563eb" })}>Orbit Blue</button>
-          <button type="button" className={CONTROL} onClick={() => onUpdateTheme({ pageBackgroundColor: "#120c18", panelBackgroundColor: "#2a1731", textColor: "#fff7ed", gradientColorA: "#7c2d12", gradientColorB: "#a21caf" })}>Solar Event</button>
+          <EventDesignPicker key={JSON.stringify([eventTheme.presetId, eventTheme.accentColor, eventTheme.fontStyle])} theme={eventTheme} onApply={onApplyEventDesign} />
           <PanelLabel>Custom colors</PanelLabel>
+          <label className="grid gap-1 text-xs text-white/75">This page’s typeface
+            <select value={eventTheme.pageFontStyle ?? ""} onChange={(event) => onUpdateTheme({ pageFontStyle: event.target.value as EventTheme["pageFontStyle"] })} className={CONTROL}>
+              <option value="">Inherit event typeface</option>
+              {Object.entries(eventDesignFonts).map(([id, font]) => <option key={id} value={id}>{font.label}</option>)}
+            </select>
+          </label>
           <ColorControl label="Text" value={eventTheme.textColor ?? "#ffffff"} onChange={(value) => onUpdateTheme({ textColor: value })} />
           <ColorControl label="Accent A" value={eventTheme.gradientColorA ?? "#0f172a"} onChange={(value) => onUpdateTheme({ gradientColorA: value })} />
           <ColorControl label="Accent B" value={eventTheme.gradientColorB ?? "#1d4ed8"} onChange={(value) => onUpdateTheme({ gradientColorB: value })} />

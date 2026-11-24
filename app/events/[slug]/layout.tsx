@@ -1,5 +1,7 @@
 import Link from "next/link"
-import { ReactNode } from "react"
+import type { CSSProperties, ReactNode } from "react"
+import { resolveEventFont, safeEventLogo, findEventDesignPreset } from "@/lib/page-editor/eventDesignPresets"
+import designStyles from "@/components/page-renderer/EventDesign.module.css"
 import { getEventBySlug } from "@/lib/events"
 import { getEventUserOrNull } from "@/lib/eventAuth"
 import EventLiveStateRedirect from "@/components/EventLiveStateRedirect"
@@ -40,13 +42,28 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
         color: theme?.text_color || "#ffffff",
       }
 
+  const preset = findEventDesignPreset(event.event_theme?.presetId)
+  const designStyle = preset ? {
+    ...pageStyle,
+    backgroundColor: preset.background,
+    color: preset.ink,
+    "--event-design-font": resolveEventFont(event.event_theme),
+    "--event-design-ink": preset.ink,
+    "--event-design-panel": preset.panel,
+    "--event-design-accent": event.event_theme?.accentColor ?? preset.accent,
+    "--event-design-action-ink": preset.background,
+  } satisfies CSSProperties & Record<`--${string}`, string> : pageStyle
+
+  const logo = safeEventLogo(event.event_theme?.logoUrl)
+
   return (
-    <div className={`min-h-dvh text-white ${theme?.background_image_url || theme?.bg_color || theme?.text_color ? "" : "jupiter-public-event-default"}`} style={pageStyle}>
+    <div data-event-button={event.event_theme?.buttonStyle} className={`min-h-dvh text-white ${preset ? designStyles.design : theme?.background_image_url || theme?.bg_color || theme?.text_color ? "" : "jupiter-public-event-default"}`} style={designStyle}>
       <EventLiveStateRedirect slug={slug} />
 
-      <header className="border-b border-white/10 bg-black/30 backdrop-blur">
+      <header className="border-b border-white/10 bg-black/30 backdrop-blur" style={preset ? { backgroundColor: preset.panel, borderColor: preset.border } : undefined}>
         <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-4 sm:px-6 sm:py-5">
-          <div className="min-w-0">
+          {logo && <img src={logo} alt="" className="h-10 max-w-24 shrink-0 object-contain" />}
+          <div className="min-w-0 flex-1">
             <div className="text-xs uppercase tracking-[0.22em] text-white/40">
               Event portal
             </div>
@@ -55,7 +72,7 @@ export default async function EventLayout(props: { params: Promise<{ slug: strin
 
           <div className="flex items-center gap-3">
             {authed ? (
-              <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 sm:block">
+              <div className="hidden rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1 text-xs text-emerald-200 sm:block" style={preset ? { color: preset.ink } : undefined}>
                 Signed in as {authed.user.email}
               </div>
             ) : (

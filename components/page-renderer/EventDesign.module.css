@@ -1,0 +1,28 @@
+.design {
+  font-family: var(--event-design-font);
+  color: var(--event-design-ink);
+}
+
+.design :is(:global(.text-white), [class^="text-white/"], [class*=" text-white/"]) {
+  color: var(--event-design-ink);
+}
+
+.design :is([class^="text-white/"], [class*=" text-white/"]) {
+  color: color-mix(in srgb, var(--event-design-ink) 78%, var(--event-design-panel));
+}
+
+.design :is(a, button):is(:global(.bg-indigo-600), :global(.bg-blue-600), :global(.bg-violet-600)) {
+  background: var(--event-design-accent);
+  color: var(--event-design-action-ink);
+}
+
+:global([data-event-button="outline"]) .design :is(a, button):is(:global(.bg-indigo-600), :global(.bg-blue-600), :global(.bg-violet-600)),
+.design:global([data-event-button="outline"]) :is(a, button):is(:global(.bg-indigo-600), :global(.bg-blue-600), :global(.bg-violet-600)) {
+  background: transparent;
+  color: var(--event-design-ink);
+  box-shadow: inset 0 0 0 1px var(--event-design-accent);
+}
+
+.design:global([data-event-button="pill"]) :is(a, button):is(:global(.bg-indigo-600), :global(.bg-blue-600), :global(.bg-violet-600)) {
+  border-radius: 999px;
+}

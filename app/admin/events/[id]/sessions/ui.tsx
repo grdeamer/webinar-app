@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useSyncExternalStore } from "react"
 import Link from "next/link"
+import { sanitizeMeetingUrl } from "@/lib/meetingLinks"
 import { detectMeetingPlatform } from "@/lib/meetingPlatform"
 import {
   Tooltip,
@@ -37,6 +38,7 @@ import {
   ArrowRight,
   CalendarDays,
   Clock3,
+  ExternalLink,
   Plus,
   Video,
   Radio,
@@ -199,6 +201,30 @@ const sessionStatusLabels: Record<string, string> = {
   ended: "Ended",
 }
 
+const meetingNames: Record<string, string> = {
+  zoom: "Zoom",
+  teams: "Teams",
+  webex: "Webex",
+  meet: "Google Meet",
+}
+
+const sessionActionClassName = "inline-flex h-9 items-center gap-2 rounded-[9px] border border-cyan-300/20 bg-cyan-300/[0.08] px-3.5 text-xs font-semibold text-cyan-100 transition hover:border-cyan-200/30 hover:bg-cyan-300/[0.13]"
+
+function getSessionDestination(session: SessionRow) {
+  if ((session.delivery_mode || "external") !== "external") return null
+
+  let href = ""
+  try {
+    href = sanitizeMeetingUrl(session.external_join_url?.trim() || session.join_link || "")
+  } catch {
+    // An invalid saved link can be corrected in the session editor.
+  }
+
+  const platform = detectMeetingPlatform(href)
+  const name = meetingNames[platform]
+  return { href, label: name ? `Open ${name} meeting` : "Open external meeting" }
+}
+
 export default function SessionsEditor({
   event,
   eventSlug,
@@ -209,6 +235,9 @@ export default function SessionsEditor({
   initialSessions: SessionRow[]
 }) {
   const [sessions, setSessions] = useState<SessionRow[]>(initialSessions)
+  const [savedSessions, setSavedSessions] = useState(() =>
+    new Map(initialSessions.map((session) => [session.id, session]))
+  )
   const [draft, setDraft] = useState<DraftSession>(
     emptyDraft(event.id, initialSessions.length + 1)
   )
@@ -333,6 +362,7 @@ function toggleSessionOpen(id: string) {
 
       const created = json.session as SessionRow
 
+      setSavedSessions((previous) => new Map(previous).set(created.id, created))
       setSessions((prev) => [...prev, created].sort(sortSessions))
       setOpenSessionIds((prev) => ({ ...prev, [created.id]: true }))
       setSessionNotice(created.id, { type: "success", text: "Session created" })
@@ -397,8 +427,10 @@ function toggleSessionOpen(id: string) {
       if (!res.ok) throw new Error(json?.error || `Failed to save session (${res.status})`)
       if (!json?.session) throw new Error("API did not return a session")
 
+      const saved = json.session as SessionRow
+      setSavedSessions((previous) => new Map(previous).set(saved.id, saved))
       setSessions((prev) =>
-        prev.map((s) => (s.id === row.id ? json.session : s)).sort(sortSessions)
+        prev.map((s) => (s.id === row.id ? saved : s)).sort(sortSessions)
       )
       setSessionNotice(row.id, { type: "success", text: "Saved" })
       clearSessionNoticeLater(row.id)
@@ -412,6 +444,12 @@ function toggleSessionOpen(id: string) {
     } finally {
       setSaving(null)
     }
+  }
+
+  function forgetSavedSessions(ids: Set<string>) {
+    setSavedSessions((previous) =>
+      new Map([...previous].filter(([id]) => !ids.has(id)))
+    )
   }
 
   async function deleteSession(id: string) {
@@ -428,6 +466,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       const json = await parseApiResponse(res)
       if (!res.ok) throw new Error(json?.error || `Failed to delete session (${res.status})`)
 
+      forgetSavedSessions(new Set([id]))
       setSessions((prev) => prev.filter((s) => s.id !== id))
       setSelectedSessionIds((existing) => existing.filter((sessionId) => sessionId !== id))
       setDeleteCandidate(null)
@@ -459,10 +498,11 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
       const json = await parseApiResponse(res)
       if (!res.ok) throw new Error(json?.error || `Failed to delete sessions (${res.status})`)
 
-      const deletedIds = Array.isArray(json?.deleted_ids)
+      const deletedIds: string[] = Array.isArray(json?.deleted_ids)
         ? json.deleted_ids.filter((value: unknown): value is string => typeof value === "string")
         : selectedSessions.map((session) => session.id)
       const deleted = new Set(deletedIds)
+      forgetSavedSessions(deleted)
 
       setSessions((existing) => existing.filter((session) => !deleted.has(session.id)))
       setSelectedSessionIds([])
@@ -1007,23 +1047,16 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 items-center gap-2">
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Link
-                            href={`/admin/events/${event.id}/sessions/${session.id}/producer`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex h-9 items-center gap-2 rounded-[9px] border border-cyan-300/20 bg-cyan-300/[0.08] px-3.5 text-xs font-semibold text-cyan-100 transition hover:border-cyan-200/30 hover:bg-cyan-300/[0.13]"
-                          >
-                            <Presentation className="h-3.5 w-3.5" />
-                            Produce
-                          </Link>
-                        </TooltipTrigger>
-                        <TooltipContent>Open this session’s production controls in a new tab.</TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                  <div className="flex shrink-0 flex-wrap items-center gap-2">
+                    <SessionPrimaryAction
+                      session={savedSessions.get(session.id) ?? session}
+                      onEditLink={() => {
+                        patchSession(session.id, { delivery_mode: "external" })
+                        requestAnimationFrame(() =>
+                          document.getElementById(`session-meeting-link-${session.id}`)?.focus()
+                        )
+                      }}
+                    />
 
                     <button
                       type="button"
@@ -1261,6 +1294,7 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
                         <Field label="External meeting link" help="Paste the attendee join link for the external room, such as a Zoom or Teams meeting.">
                           <input
                             className="w-full rounded-[10px] border border-white/[0.11] bg-[#050a14]/80 px-3 py-2.5 text-sm text-white outline-none transition placeholder:text-white/24 focus:border-[#4c91ff]/70 focus:bg-[#07101f]"
+                            id={`session-meeting-link-${session.id}`}
                             value={session.external_join_url || ""}
                             onChange={(e) => {
                               const url = e.target.value
@@ -1577,6 +1611,41 @@ const res = await fetch(`/api/admin/sessions/${id}?event_id=${encodeURIComponent
         </DialogContent>
       </Dialog>
     </div>
+  )
+}
+
+function SessionPrimaryAction({ session, onEditLink }: {
+  session: SessionRow
+  onEditLink: () => void
+}) {
+  const destination = getSessionDestination(session)
+
+  if (destination && !destination.href) {
+    return (
+      <button type="button" onClick={onEditLink} className={sessionActionClassName}>
+        <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+        Add meeting link
+      </button>
+    )
+  }
+
+  return (
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <a
+            href={destination?.href ?? `/admin/events/${session.event_id}/sessions/${session.id}/producer`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={sessionActionClassName}
+          >
+            {destination ? <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> : <Presentation className="h-3.5 w-3.5" aria-hidden="true" />}
+            {destination?.label ?? "Produce"}
+          </a>
+        </TooltipTrigger>
+        <TooltipContent>{destination ? "Open the saved attendee join link in a new tab." : "Open this session’s production controls in a new tab."}</TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   )
 }
 

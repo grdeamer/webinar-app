@@ -20,13 +20,16 @@ export async function POST(req: Request) {
   await requireAdmin()
   const body = await req.json()
   const name = String(body?.name ?? "").trim().slice(0, 100)
+  if (body?.kind === "section" && (!Array.isArray(body.sections) || body.sections.length !== 1 || body.sections[0]?.type === "hero")) {
+    return NextResponse.json({ error: "Choose one reusable content section." }, { status: 400 })
+  }
   if (!name) return NextResponse.json({ error: "Template name required" }, { status: 400 })
 
   const { data, error } = await supabaseAdmin
     .from("page_templates")
     .insert({
       name,
-      description: null,
+      description: body?.kind === "section" ? "jupiter:shared-section" : null,
       sections_json: Array.isArray(body?.sections) ? body.sections : [],
       elements_json: Array.isArray(body?.elements) ? body.elements : [],
       event_theme: body?.eventTheme && typeof body.eventTheme === "object" && !Array.isArray(body.eventTheme) ? body.eventTheme : {},

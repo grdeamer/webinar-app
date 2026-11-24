@@ -49,6 +49,8 @@ type Props = {
   onAlignElements: (command: ElementAlignmentCommand) => void
   onGroupElements: () => void
   onUngroupElements: () => void
+  onOpenEventTemplates: () => void
+  attendeeHref: string
   onPreview: () => void
   onShare: () => void
   onPublish: () => void
@@ -113,6 +115,8 @@ export default function PageEditorToolbar(props: Props) {
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          {props.isEditing && <button type="button" onClick={props.onOpenEventTemplates} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Event templates</button>}
+          {!props.isEditing && <a href={props.attendeeHref} target="_blank" rel="noopener noreferrer" className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Open attendee page ↗</a>}
           <button type="button" onClick={props.onShare} className={EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS}>Share</button>
           <button type="button" disabled={props.isCodeEditorOpen} onClick={props.onPreview} className={`${EXPERIENCE_EDITOR_GHOST_BUTTON_CLASS} disabled:opacity-35`}>{props.isEditing ? "Preview" : "Back to editor"}</button>
           <button type="button" onClick={props.onPublish} className="rounded-xl bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(124,58,237,0.28)] transition hover:bg-violet-500">Publish page</button>
