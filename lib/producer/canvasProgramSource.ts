@@ -26,8 +26,16 @@ export async function canvasProgramSource(blocks: PreviewBlock[], options: Sourc
     bitmaps.forEach(bitmap => bitmap.close()); if (audio) void audio.close()
   }
   let progress:{framesWritten:number;sourceFrames:Record<string,number>}={framesWritten:0,sourceFrames:{}}
-  worker.onmessage = event => { if (event.data?.error) error = 'Canvas input frame generation stopped'; else if(event.data?.framesWritten)progress=event.data }
-  worker.onerror = () => { error = 'Canvas input frame generation stopped' }
+  worker.onmessage = event => {
+    if (typeof event.data?.error === 'string') error ??= event.data.error
+    else if (event.data?.framesWritten) progress = event.data
+  }
+  worker.onerror = () => {
+    error ??= progress.framesWritten
+      ? 'Canvas worker crashed after producing frames'
+      : 'Canvas worker failed to load or initialize before its first frame'
+  }
+  worker.onmessageerror = () => { error ??= 'Canvas worker sent an unreadable status message' }
   try {
     const layers: { block: PreviewBlock; bitmap?: ImageBitmap; readable?: ReadableStream<VideoFrame> }[] = []
     const transfers: Transferable[] = [track.writable]

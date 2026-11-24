@@ -12,7 +12,12 @@ scope.onmessage = event => {
   const surfaces=new Map(layers.filter(layer=>layer.block.type!=='audio').map(({block})=>[block.id,new OffscreenCanvas(Math.max(1,Math.min(1920,Math.ceil(block.width*3))),Math.max(1,Math.min(1080,Math.ceil(block.height*3))))]))
   let ended = false, written = 0, lastReport = 0
   const received = new Map<string, {frames:number;atMs:number}>()
-  const fail = () => { if (!ended) { ended = true; scope.postMessage({ error: 'Canvas input frame generation stopped' }) } }
+  const fail = (reason: string) => {
+    if (ended) return
+    ended = true
+    scope.postMessage({ error: reason + ' (' + written + ' output frames)' })
+  }
+  const layerNumber = (layer: Layer) => layers.indexOf(layer) + 1
   for (const layer of layers) if (layer.readable) {
     const reader = layer.readable.getReader()
     void (async () => {
@@ -24,27 +29,39 @@ scope.onmessage = event => {
           frames.set(layer.block.id, value)
           received.set(layer.block.id,{frames:(received.get(layer.block.id)?.frames??0)+1,atMs:performance.now()})
         }
-      } catch { fail() }
+      } catch { fail('Could not read decoded video from layer ' + layerNumber(layer)) }
       finally { await reader.cancel().catch(() => {}) }
     })()
   }
   void (async () => {
     const started = performance.now(), interval = 1000 / 30
     let deadline = started
+    let failureStage = 'Canvas video startup'
     try {
       const videoLayers = layers.filter(layer => layer.readable)
       while (videoLayers.some(layer => !frames.has(layer.block.id))) {
-        if (ended || performance.now() - started > 10000) throw Error('Canvas video never decoded')
+        if (ended) return
+        if (performance.now() - started > 10000) {
+          const missing = videoLayers.filter(layer => !frames.has(layer.block.id)).map(layerNumber)
+          fail('No decoded video frame from canvas layer(s) ' + missing.join(', ') + ' within 10 seconds')
+          return
+        }
         await new Promise(resolve => setTimeout(resolve, 10))
       }
       deadline = performance.now()
       while (!ended) {
         if (performance.now() < deadline) await new Promise(resolve => setTimeout(resolve, deadline - performance.now()))
-        if (videoLayers.some(layer=>!naturallyEnded.has(layer.block.id)&&performance.now()-(received.get(layer.block.id)?.atMs??0)>2500)) throw Error('Canvas video stopped progressing')
+        const stalled = videoLayers.filter(layer => !naturallyEnded.has(layer.block.id) && performance.now() - (received.get(layer.block.id)?.atMs ?? 0) > 2500)
+        if (stalled.length) {
+          fail('Decoded video stopped for 2.5 seconds on canvas layer(s) ' + stalled.map(layerNumber).join(', '))
+          return
+        }
+        failureStage = 'Canvas compositing'
         context.resetTransform(); context.globalAlpha = 1; context.globalCompositeOperation = 'source-over'; context.filter = 'none'
         context.fillStyle = '#000'; context.fillRect(0, 0, 1920, 1080)
         for (const layer of layers) {
           const block = layer.block
+          failureStage = 'Canvas compositing on layer ' + layerNumber(layer)
           if (block.type === 'audio') continue
           const image = frames.get(block.id) ?? layer.bitmap
           context.save()
@@ -83,9 +100,18 @@ scope.onmessage = event => {
           context.drawImage(surface,-block.width/2,-block.height/2,block.width,block.height)
           context.restore()
         }
+        failureStage = 'Creating the canvas output frame'
         const frame = new VideoFrame(canvas, { timestamp: Math.round((performance.now() - started) * 1000), duration: 33333 })
         let timer: ReturnType<typeof setTimeout>
-        try { await Promise.race([writer.write(frame), new Promise<never>((_, reject) => { timer = setTimeout(() => reject(Error('Canvas writer stalled')), 1000) })]) }
+        failureStage = 'Writing the canvas output frame'
+        try {
+          await Promise.race([writer.write(frame), new Promise<never>((_, reject) => {
+            timer = setTimeout(() => {
+              failureStage = 'Canvas output writer stalled for one second'
+              reject(Error('Canvas writer stalled'))
+            }, 1000)
+          })])
+        }
         finally { clearTimeout(timer); frame.close() }
         written++
         if (performance.now()-lastReport>=1000) {
@@ -95,7 +121,9 @@ scope.onmessage = event => {
         deadline += interval
         if (deadline < performance.now() - interval) deadline = performance.now()
       }
-    } catch { fail() }
+    } catch (error) {
+      fail(failureStage + ' failed' + (error instanceof DOMException ? ' [' + error.name + ']' : ''))
+    }
     finally {
       ended = true; frames.forEach(frame => frame.close()); layers.forEach(layer => layer.bitmap?.close())
       await writer.abort().catch(() => {})
