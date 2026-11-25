@@ -917,6 +917,9 @@ export default function CenterSwitcherColumn({
     }
   }
 
+  const showOutgoingProgram = Boolean(engineProgramMonitor && programState?.is_live);
+  const showRehearsalProgram = Boolean(engineProgramMonitor && !showOutgoingProgram && healthSnapshot.programReady);
+
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden xl:col-start-2">
       <div className="hidden"><LiveProductionStatusPanel
@@ -1294,7 +1297,7 @@ export default function CenterSwitcherColumn({
                 </span>
               </div>
               <span className="inline-flex items-center rounded-[8px] border border-red-400/25 bg-red-500/[0.08] px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-red-300">
-                {programState?.is_live ? "Live" : "Idle"}
+                {programState?.is_live ? "Live" : showRehearsalProgram ? "Rehearsal" : "Idle"}
               </span>
             </div>
 
@@ -1333,7 +1336,11 @@ export default function CenterSwitcherColumn({
               <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-14 bg-gradient-to-t from-black/22 to-transparent" />
 
               <div className="relative z-10 h-full">
-                {engineProgramMonitor ? <div className="absolute inset-0 z-50 bg-black">{engineProgramMonitor}</div> : null}
+                {engineProgramMonitor ? (
+                  <div className="absolute inset-0 z-50 bg-black" hidden={!showOutgoingProgram}>
+                    {engineProgramMonitor}
+                  </div>
+                ) : null}
                 {!programState?.stage_participant_ids?.length &&
                 !programBlocks.some((block) => !block.hidden) ? (
                   <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
@@ -1354,12 +1361,12 @@ export default function CenterSwitcherColumn({
                   />
                 ) : null}
 
-                {!engineProgramMonitor && renderPlacedBlocks({
+                {(!engineProgramMonitor || showRehearsalProgram) && renderPlacedBlocks({
                   blocks: programBlocks,
                   opts: {
                     selectable: false,
                     showChrome: false,
-                    liveRemove: true,
+                    liveRemove: !engineProgramMonitor,
                     renderCameraSlotContent,
                   },
                   selectedBlockId,
@@ -1411,10 +1418,10 @@ export default function CenterSwitcherColumn({
 
               <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-30 flex min-h-14 items-center border-t border-white/10 bg-[#07111d]/90 px-5 text-left backdrop-blur-md">
                 <div className="text-[14px] font-medium tracking-[-0.01em] text-white/90">
-                  Program Output
+                  {showRehearsalProgram ? "Program Rehearsal" : "Program Output"}
                 </div>
                 <div className="ml-3 text-[11px] font-medium text-white/38">
-                  {programState?.is_live ? engineProgramMonitor ? "Engine output live" : "Live to audience" : "Program standby"}
+                  {programState?.is_live ? engineProgramMonitor ? "Engine output live" : "Live to audience" : showRehearsalProgram ? "Off air" : "Program standby"}
                 </div>
               </div>
 
