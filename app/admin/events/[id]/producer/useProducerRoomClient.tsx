@@ -451,6 +451,7 @@ updateShadowColor: updateSelectedBlockShadowColor,
     previewBlocks,
     setProgramState: updateProgramState,
     setProgramBlocks,
+    setPreviewBlocks,
     setError,
   });
 

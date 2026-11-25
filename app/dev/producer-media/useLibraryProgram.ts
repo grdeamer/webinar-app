@@ -2,7 +2,7 @@
 import {programStatusPollMs} from '@/lib/producer/statusPollCadence'
 import {prepareDirectTake,commitDirectTake,directTakeIsCurrent,directTakeInput,type PreparedDirectTake} from '@/lib/producer/preparedDirectTake'
 import {watchPresentedProgramRevision,type ProgramTakeTiming} from '@/lib/producer/programTakeTiming'
-import {assertPreparedPreview,preparedProgramConfirmed,freshPreparedTakeStatus,type ProgramTakeReceipt} from '@/lib/producer/preparedProgramTake'
+import {assertPreparedPreview,preparedProgramConfirmed,freshPreparedTakeStatus,samePreparedComposition,type ProgramTakeReceipt} from '@/lib/producer/preparedProgramTake'
 import {libraryInputReady} from '@/lib/producer/libraryInputReady'
 import type {Composition} from '@/lib/production/contracts'
 import {libraryCanvasPlan,libraryCanvasInputBlock} from '@/lib/producer/libraryCanvasPlan'
@@ -11,6 +11,8 @@ import {bindProgramMonitor,clearProgramMonitor,setProgramMonitorStream,type Prog
 import {libraryEngineComposition} from '@/lib/producer/libraryEngineComposition'
 import type { PreviewBlock } from '@/app/admin/events/[id]/producer/useProducerBlocks'
 import { LibraryPublisher, connectProgram, isLocalStudioTransport, engineCommand, engineStatus, engineRequest, LOCAL_STUDIO_TRANSPORT, type StudioTransport } from './localProgramTransport'
+type PreparedInput = {role:'source-a'|'source-b';key:string;composition:Composition;sid:string}
+
 export default function useLibraryProgram(preview:PreviewBlock[],transport:StudioTransport=LOCAL_STUDIO_TRANSPORT) {
  const preserveOffAir=!isLocalStudioTransport(transport)
  const [rehearsalAudio,setRehearsalAudio]=useState<{track:MediaStreamTrack;sourceId:string;revision:number}|null>(null)
@@ -24,11 +26,12 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
  const receipt=useRef<ProgramTakeReceipt|null>(null),connectionEpoch=useRef(0)
  const [cueKey,setCueKey]=useState<string|null>(null)
  const [connected,setConnected]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState('Connect the Program engine to begin.')
- const video=useRef<HTMLVideoElement>(null),run=useRef(''),active=useRef<string|null>(null),cued=useRef<{role:'source-a'|'source-b';key:string;composition:Composition;sid:string}|null>(null),publishers=useRef(new Map<string,LibraryPublisher>()),viewer=useRef<null|(()=>Promise<void>)>(null),epoch=useRef(0),queue=useRef(Promise.resolve()),taking=useRef(false)
+ const video=useRef<HTMLVideoElement>(null),run=useRef(''),active=useRef<string|null>(null),cued=useRef<PreparedInput|null>(null),publishers=useRef(new Map<string,LibraryPublisher>()),viewer=useRef<null|(()=>Promise<void>)>(null),epoch=useRef(0),queue=useRef(Promise.resolve()),taking=useRef(false)
+ const preparedInputs=useRef(new Map<PreparedInput['role'],PreparedInput>())
  const monitor=useRef<ProgramMonitorBinding>({element:null,stream:null})
  const attachVideo=useCallback((element:HTMLVideoElement|null)=>{bindProgramMonitor(monitor.current,element);video.current=element},[])
  // Disconnect owns browser inputs/monitor only. Off-air is an explicit operator command.
- const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);setRehearsalAudio(null);directTake.current=null;latestStatus.current=null;timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[])
+ const stop=useCallback(async()=>{epoch.current++;connectionEpoch.current++;setConnected(false);setRehearsalAudio(null);directTake.current=null;latestStatus.current=null;timing.current?.cancel?.();timing.current=null;receipt.current=null;setConfirmedKey(null);setAwaitingPicture(false);cued.current=null;setCueKey(null);active.current=null;await queue.current.catch(():void=>{});await Promise.all([...publishers.current.values()].map(p=>p.stop()));publishers.current.clear();preparedInputs.current.clear();await viewer.current?.();viewer.current=null;clearProgramMonitor(monitor.current);setBusy(false);setMessage('Studio inputs and outgoing monitor disconnected.')},[])
  useEffect(()=>()=>{void stop()},[stop,transport])
  async function connect(signal?:AbortSignal){
   const generation=++connectionEpoch.current
@@ -101,7 +104,26 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
    const programSources=(preserveOffAir||state.state.desiredLifecycle==='live') ? state.state.program.composition.layers.map((layer:{sourceId?:string})=>layer.sourceId) : []
    if(programSources.includes('camera-a')&&programSources.includes('camera-b'))throw Error('Both inputs are on Program. Stop the current rehearsal output before cueing a library source.')
    const role=programSources.includes('camera-a')?'source-b':programSources.includes('camera-b')?'source-a':active.current==='source-a'?'source-b':'source-a'
-   await publishers.current.get(role)?.stop();publishers.current.delete(role)
+   const cached=preparedInputs.current.get(role)
+   const previousPublisher=publishers.current.get(role)
+   if(cached?.key===key&&previousPublisher&&!previousPublisher.failure&&libraryInputReady(state,role,cached.sid)){
+    await engineCommand(run.current,{type:'SET_PREVIEW',composition:cached.composition},transport)
+    const previousProgram=state.state.transition?.from
+    const audio=previousProgram&&samePreparedComposition(previousProgram.composition,cached.composition)
+     ? previousProgram.audio
+     : {masterGainDb:0,muted:false,channels:[{sourceId:role==='source-a'?'camera-a':'camera-b',gainDb:0,muted:false,solo:false}]}
+    await engineCommand(run.current,{type:'SET_AUDIO',bus:'preview',audio},transport)
+    if(generation!==epoch.current)return
+    const prepared=await engineStatus(transport)
+    assertPreparedPreview(prepared,run.current,cached.composition)
+    if(!libraryInputReady(prepared,role,cached.sid))throw Error('Previous Program input is no longer decoded by both candidates')
+    if(generation!==epoch.current)return
+    latestStatus.current={value:prepared,readAtMs:Date.now()}
+    cued.current=cached;setCueKey(key);setMessage('Previous Program is ready in Preview.')
+    return
+   }
+   preparedInputs.current.delete(role)
+   await previousPublisher?.stop();publishers.current.delete(role)
    const publisher=new LibraryPublisher(role,transport);publishers.current.set(role,publisher)
    try {if(composed)await publisher.startCanvas(plan);else await publisher.start(plan[0]);if(generation!==epoch.current){await publisher.stop();return}
     const sourceId=role==='source-a'?'camera-a':'camera-b'
@@ -111,7 +133,8 @@ export default function useLibraryProgram(preview:PreviewBlock[],transport:Studi
     const owned=await engineStatus(transport),sid=owned.state.bindings[sourceId]?.trackSid
     if(!sid||!libraryInputReady(owned,role,sid))throw Error('Prepared input is no longer decoded by both candidates')
     latestStatus.current={value:owned,readAtMs:Date.now()}
-    cued.current={role,key,composition,sid};setCueKey(key);setMessage(`${plan.length} canvas layer${plan.length===1?'':'s'} decoded by both candidates. Preview ready; TAKE to update the whole Program.`)
+    if(generation!==epoch.current)return
+    cued.current={role,key,composition,sid};preparedInputs.current.set(role,cued.current);setCueKey(key);setMessage(`${plan.length} canvas layer${plan.length===1?'':'s'} decoded by both candidates. Preview ready; TAKE to update the whole Program.`)
    }catch(e){await publisher.stop();throw e}
   }).catch(e=>{if(generation===epoch.current)setMessage(e instanceof Error?e.message:'Cue failed')}).finally(()=>{if(generation===epoch.current)setBusy(false)})
  },[preview,connected,transport,preserveOffAir])

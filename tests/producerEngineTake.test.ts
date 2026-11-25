@@ -11,17 +11,22 @@ function transitions(ack:()=>Promise<boolean>) {
   let take: ReturnType<typeof useProducerTransitions>['runTake']
   let legacyWrites=0, program:PreviewBlock[]=[]
   const preview=[{id:'slide',type:'pdf',src:'blob:test',pdfPage:2}] as PreviewBlock[]
+  let queued=preview
   function Probe():null{
     take=useProducerTransitions({
       api:{takeProgram:async()=>{legacyWrites++;throw Error('Legacy output must not be used')},setEventTransition:async()=>{legacyWrites++}},
-      engineTake:ack,programState:null,previewState:null,programBlocks:[],previewBlocks:preview,
+      engineTake:ack,programState:null,previewState:null,programBlocks:program,previewBlocks:queued,
       setProgramState:()=>{throw Error('Legacy Program state must not be committed')},
-      setProgramBlocks:next=>{assert.ok(Array.isArray(next));program=next},setError:()=>{},
+      setProgramBlocks:next=>{assert.ok(Array.isArray(next));program=next},
+      setPreviewBlocks:next=>{queued=typeof next==='function'?next(queued):next},setError:()=>{},
     }).runTake
     return null
   }
-  renderToString(createElement(Probe))
-  return {take:()=>take('auto','fade',600), state:()=>({legacyWrites,program,preview})}
+  return {
+    take:()=>{renderToString(createElement(Probe));return take('cut')},
+    cue:(blocks:PreviewBlock[])=>{queued=blocks},
+    state:()=>({legacyWrites,program,preview,queued}),
+  }
 }
 
 test('engine TAKE acknowledgement commits the original room only after success, without legacy output writes', async()=>{
@@ -43,10 +48,24 @@ test('rejected or failed engine TAKE cannot update the room Program or fall back
     const probe=transitions(ack)
     assert.equal(await probe.take(),false)
     assert.deepEqual(probe.state().program,[])
+    assert.equal(probe.state().queued,probe.state().preview)
     assert.equal(probe.state().legacyWrites,0)
   }
 })
 
+
+test('successive cuts alternate Program and Preview without cueing either source again',async()=>{
+  const probe=transitions(async()=>true)
+  const red=probe.state().preview
+  const teal=[{...red[0],id:'teal',type:'image',src:'blob:teal'}] as PreviewBlock[]
+  assert.equal(await probe.take(),true)
+  probe.cue(teal)
+  for(const [program,preview] of [[teal,red],[red,teal],[teal,red]]){
+    assert.equal(await probe.take(),true)
+    assert.deepEqual(probe.state().program,program)
+    assert.deepEqual(probe.state().queued,preview)
+  }
+})
 
 test('a cold engine can TAKE the same saved canvas again after the previous successful TAKE',async()=>{
   const probe=transitions(async()=>true)

@@ -46,6 +46,7 @@ export default function useProducerTransitions({
   previewBlocks,
   setProgramState,
   setProgramBlocks,
+  setPreviewBlocks,
   setError,
 }: {
   engineTake?: (mode: TakeMode, transitionType?: CinematicTransitionType, durationMs?: number) => Promise<boolean>
@@ -56,6 +57,7 @@ export default function useProducerTransitions({
   previewBlocks: PreviewBlock[]
   setProgramState: React.Dispatch<React.SetStateAction<StageState | null>>
   setProgramBlocks: React.Dispatch<React.SetStateAction<PreviewBlock[]>>
+  setPreviewBlocks: React.Dispatch<React.SetStateAction<PreviewBlock[]>>
   setError: React.Dispatch<React.SetStateAction<string | null>>
 }) {
   const [takeBusy, setTakeBusy] = useState(false)
@@ -136,6 +138,7 @@ export default function useProducerTransitions({
           const committed = await engineTake(mode, transitionType, resolvedDurationMs)
           if (!committed) return false
           setProgramBlocks(structuredClone(previewBlocks))
+          setPreviewBlocks((current) => current === previewBlocks ? programBlocks : current)
           return true
         }
 
@@ -168,7 +171,7 @@ export default function useProducerTransitions({
         setTakeBusy(false)
       }
     },
-    [api, engineTake, previewBlocks, takeBusy, setError, setProgramBlocks, takeProgram]
+    [api, engineTake, previewBlocks, programBlocks, takeBusy, setError, setProgramBlocks, setPreviewBlocks, takeProgram]
   )
 
   return {
