@@ -2,11 +2,12 @@ import asyncio
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 from protocol import AUDIO_CHUNK, parse_request
 from service import Desktop
 
 ID = '12345678-1234-1234-1234-123456789abc'
+NEXT_ID = '98765432-1234-1234-1234-123456789abc'
 
 
 class ProtocolTests(unittest.TestCase):
@@ -69,6 +70,32 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
             result, _ = await desktop.request({'action': 'stop', 'sessionId': 'other'})
         self.assertIn('error', result)
         self.assertEqual(desktop.state, 'desktop_ready')
+
+    async def test_disconnect_clears_media_and_keeps_the_existing_deadline(self):
+        desktop = Desktop(clock=lambda: 10)
+        desktop.id, desktop.state = ID, 'desktop_ready'
+        desktop.deadline, desktop.lease = 100, 40
+        desktop.frame = b'old-frame'
+        desktop.audio.append((1, b'old-audio'))
+        with tempfile.TemporaryDirectory() as directory, patch('service.ROOT', Path(directory)), patch('service.network_total', return_value=0):
+            result, _ = await desktop.request({'action': 'disconnect', 'sessionId': ID})
+        self.assertEqual(result['state'], 'idle')
+        self.assertEqual(desktop.deadline, 100)
+        self.assertIsNone(desktop.frame)
+        self.assertFalse(desktop.audio)
+
+    async def test_replace_is_scoped_to_the_current_session(self):
+        desktop = Desktop(clock=lambda: 10)
+        desktop.id, desktop.state = ID, 'desktop_ready'
+        desktop.deadline, desktop.lease = 100, 40
+        with tempfile.TemporaryDirectory() as directory, patch('service.ROOT', Path(directory)), patch('service.network_total', return_value=0), patch.object(desktop, 'start', new_callable=AsyncMock) as start:
+            request = {'action': 'replace', 'sessionId': 'other', 'nextSessionId': NEXT_ID, 'meetingId': '12345678901'}
+            denied, _ = await desktop.request(request)
+            self.assertIn('error', denied)
+            start.assert_not_awaited()
+            await desktop.request({**request, 'sessionId': ID})
+            start.assert_awaited_once_with({'sessionId': NEXT_ID, 'meetingId': '12345678901'})
+        self.assertEqual(desktop.deadline, 100)
 
     async def test_same_start_does_not_extend_deadline(self):
         desktop = Desktop(clock=lambda: 10)

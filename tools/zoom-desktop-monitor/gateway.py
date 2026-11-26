@@ -16,7 +16,7 @@ def run():
     body = json.loads(raw)
     request = {'action': parts[1], **({'sessionId': parts[2]} if len(parts) == 3 else {}), **body}
     # Never let stdin override the fixed command identity or action.
-    if set(body) != {'start': {'joinUrl'}, 'audio': {'after'}}.get(parts[1], set()):
+    if set(body) != {'start': {'joinUrl'}, 'audio': {'after'}, 'replace': {'joinUrl', 'nextSessionId'}}.get(parts[1], set()):
         raise ValueError('Invalid fields')
     parse_request(request)
     with socket.socket(socket.AF_UNIX) as connection:

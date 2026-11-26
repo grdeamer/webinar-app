@@ -33,8 +33,15 @@ export async function POST(request: Request) {
     const raw = await request.text()
     if (raw.length > 4096) return new Response(null, { status: 413, headers })
     const body = JSON.parse(raw)
-    if (!["start", "stop"].includes(body.action) || !RETURN_SESSION.test(body.sessionId)) return new Response(null, { status: 400, headers })
-    const result = await desktopReturn(body.action, body.sessionId, body.action === "start" ? { joinUrl: meetingJoinLink(body.joinUrl) } : {}, request.signal)
+    if (!["start", "stop", "disconnect", "replace"].includes(body.action) ||
+        typeof body.sessionId !== "string" || !RETURN_SESSION.test(body.sessionId)) return new Response(null, { status: 400, headers })
+    if (body.action === "replace" && (typeof body.nextSessionId !== "string" || !RETURN_SESSION.test(body.nextSessionId) ||
+        body.nextSessionId === body.sessionId)) return new Response(null, { status: 400, headers })
+    const join = body.action === "start" || body.action === "replace"
+    const result = await desktopReturn(body.action, body.sessionId, {
+      ...(join ? { joinUrl: meetingJoinLink(body.joinUrl) } : {}),
+      ...(body.action === "replace" ? { nextSessionId: body.nextSessionId } : {}),
+    }, request.signal)
     return Response.json(result.status, { status: result.status.error ? 409 : 200, headers })
   } catch { return Response.json({ error: "Desktop request failed. Check server status before retrying." }, { status: 400, headers }) }
 }

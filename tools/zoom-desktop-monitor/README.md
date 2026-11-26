@@ -11,10 +11,12 @@ CAPTCHA handling, automated retry, or automatic agreement acceptance.
 
 The intended qualification is one existing EC2 host, a separately approved $1
 allowance and an independently verified 30-minute cloud stop. The service starts
-idle, is not enabled at boot, and launches a desktop only after an administrator
-explicitly starts the test. The unit exits after stop, failure or expiry;
+idle and launches a desktop only after an administrator
+explicitly starts the test. A legacy stop, failure or expiry ends the unit;
 systemd's control-group cleanup also terminates detached vendor subprocesses.
-Another test requires an explicit service start. Fifteen minutes is a hard desktop deadline. Any
+A room disconnect closes Zoom and leaves the receiver idle until the original
+deadline. Reconnect and meeting replacement reuse that deadline and the original
+traffic budget. They require an operator to join Zoom in the console again. Fifteen minutes is a hard desktop deadline. Any
 authenticated viewer refreshes the shared 30-second lease; closing one viewer
 does not disconnect the others. A 1.5 GB whole-host traffic delta also expires
 the desktop. Installation traffic occurs before the monitor starts.
@@ -26,7 +28,9 @@ calling the test qualified. There is no recording. Room playback can be monitore
 HOME, preferences, caches, logs, X11 cookie and console password are private
 ephemeral `/run` data and are removed on stop. The receiver returns the latest JPEG and up to four seconds of in-memory audio.
 
-Install `sudo bash install.sh --install`. The installer adds the official Zoom
+Install `sudo bash install.sh --install`. Add `--enable-on-boot` if the
+admin Monitor page should find the idle receiver whenever the shared VM is
+started. Enabling the service does not start the VM or start a Zoom meeting. The installer adds the official Zoom
 Debian package and standard Ubuntu desktop/console dependencies. It preserves
 the existing forced-command gateway and adds only the `desktop-return` command
 family. No SSH key, inbound firewall rule, instance, public VNC endpoint or

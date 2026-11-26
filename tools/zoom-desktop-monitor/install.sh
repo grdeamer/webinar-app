@@ -1,6 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 test "${1:-}" = --install && test "$(id -u)" = 0
+case "${2:-}" in ""|--enable-on-boot) ;; *) exit 2 ;; esac
 source_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 target=/home/ubuntu/jupiter-zoom-desktop
 install -d -o ubuntu -g ubuntu -m 0700 "$target"
@@ -52,7 +53,10 @@ if marker not in text:
 PY
 install -m 0644 "$source_dir/jupiter-zoom-desktop.service" /etc/systemd/system/jupiter-zoom-desktop.service
 systemctl daemon-reload
-# This qualification service is deliberately not enabled at boot.
+# Starting the unit only opens its private control socket. Zoom starts on an explicit room request.
+if test "${2:-}" = --enable-on-boot; then
+  systemctl enable jupiter-zoom-desktop.service
+fi
 systemctl start jupiter-zoom-desktop.service
 systemctl is-active --quiet jupiter-zoom-desktop.service
 printf 'Idle attended Zoom desktop service installed. No meeting joined.\n'

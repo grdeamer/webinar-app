@@ -41,7 +41,7 @@ class Desktop:
     def status(self):
         return {'sessionId': self.id, 'meetingId': self.meeting, 'state': self.state,
                 'remainingSeconds': max(0, int(self.deadline - self.clock())),
-                'recording': False, 'audio': self.audio_task is not None and not self.audio_task.done()}
+                'recording': False, 'reusable': True, 'audio': self.audio_task is not None and not self.audio_task.done()}
 
     async def spawn(self, args, input=None):
         process = await asyncio.create_subprocess_exec(*args, env=self.env, cwd=self.home,
@@ -98,8 +98,10 @@ class Desktop:
             raise ValueError('Another desktop is active')
         await self.stop()
         self.id, self.meeting = request['sessionId'], request['meetingId']
-        self.deadline, self.lease = self.clock() + MAX_SECONDS, self.clock() + 30
-        self.traffic = network_total()
+        if not self.deadline:
+            self.deadline = self.clock() + MAX_SECONDS
+            self.traffic = network_total()
+        self.lease = min(self.deadline, self.clock() + 30)
         self.state = 'starting'
         self.home = ROOT / ('session-' + self.id)
         self.home.mkdir(mode=0o700)
@@ -149,19 +151,32 @@ class Desktop:
 
     async def request(self, request):
         async with self.lock:
-            if self.state in ('starting', 'desktop_ready'):
+            if self.state in ('starting', 'desktop_ready', 'idle'):
                 total = network_total() - self.traffic
-                if self.clock() >= min(self.deadline, self.lease) or not 0 <= total <= 1_500_000_000:
+                deadline = self.deadline if self.state == 'idle' else min(self.deadline, self.lease)
+                if self.clock() >= deadline or not 0 <= total <= 1_500_000_000:
                     await self.stop('expired')
             action = request['action']
             if action == 'status':
                 return self.status(), b''
+            if self.state in ('failed', 'expired') or (self.id and self.state == 'stopped'):
+                return {'error': 'The desktop qualification window has ended'}, b''
             if action == 'start':
                 await self.start(request)
             elif request['sessionId'] != self.id:
                 return {'error': 'Desktop session unavailable'}, b''
             elif action == 'stop':
                 await self.stop()
+            elif action == 'disconnect':
+                await self.stop('idle')
+            elif action == 'replace':
+                if self.state not in ('starting', 'desktop_ready'):
+                    return {'error': 'No active desktop to reconnect'}, b''
+                await self.stop('idle')
+                if self.clock() >= self.deadline:
+                    await self.stop('expired')
+                    return {'error': 'The desktop qualification window has ended'}, b''
+                await self.start({'sessionId': request['nextSessionId'], 'meetingId': request['meetingId']})
             elif action == 'audio' and self.state == 'desktop_ready':
                 self.lease = self.clock() + 30
                 chunks = [item for item in self.audio if item[0] > request['after']]

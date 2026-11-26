@@ -14,7 +14,9 @@ def parse_request(value):
         raise ValueError('Invalid request')
     action = value.get('action')
     allowed = {'status': {'action'}, 'start': {'action', 'sessionId', 'joinUrl'},
-               'frame': {'action', 'sessionId'}, 'audio': {'action', 'sessionId', 'after'}, 'stop': {'action', 'sessionId'}}
+               'frame': {'action', 'sessionId'}, 'audio': {'action', 'sessionId', 'after'},
+               'stop': {'action', 'sessionId'}, 'disconnect': {'action', 'sessionId'},
+               'replace': {'action', 'sessionId', 'nextSessionId', 'joinUrl'}}
     if action not in allowed or set(value) != allowed[action]:
         raise ValueError('Invalid fields')
     if action != 'status' and (not isinstance(value['sessionId'], str) or not SESSION.fullmatch(value['sessionId'])):
@@ -22,7 +24,11 @@ def parse_request(value):
     if action == 'audio' and (type(value['after']) is not int or not 0 <= value['after'] <= MAX_SECONDS):
         raise ValueError('Invalid audio cursor')
     result = dict(value)
-    if action == 'start':
+    if action == 'replace':
+        next_id = value['nextSessionId']
+        if not isinstance(next_id, str) or not SESSION.fullmatch(next_id) or next_id == value['sessionId']:
+            raise ValueError('Invalid replacement session')
+    if action in ('start', 'replace'):
         link = value['joinUrl']
         if not isinstance(link, str) or len(link) > 2048:
             raise ValueError('Invalid meeting')

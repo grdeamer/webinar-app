@@ -24,3 +24,6 @@ ProtectHome=read-only
 ReadWritePaths=/run/jupiter-zoom-desktop
 StandardOutput=null
 StandardError=null
+
+[Install]
+WantedBy=multi-user.target

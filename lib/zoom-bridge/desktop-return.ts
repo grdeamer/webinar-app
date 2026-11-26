@@ -3,10 +3,10 @@ import { Client } from "ssh2"
 import { RETURN_SESSION } from "./server-return"
 
 export function desktopConfigured() { return process.env.JUPITER_IO_DESKTOP_MONITOR_ENABLED === "true" }
-export type DesktopStatus = { state?: string; error?: string; remainingSeconds?: number; sessionId?: string; meetingId?: string; audio?: boolean }
-export async function desktopReturn(action: "status" | "start" | "frame" | "audio" | "stop", sessionId: string | null, body: Record<string, unknown>, signal: AbortSignal): Promise<{ status: DesktopStatus; jpeg?: Buffer; audio?: Buffer; audioSequence?: number }> {
+export type DesktopStatus = { state?: string; error?: string; remainingSeconds?: number; sessionId?: string; meetingId?: string; audio?: boolean; reusable?: boolean }
+export async function desktopReturn(action: "status" | "start" | "frame" | "audio" | "stop" | "disconnect" | "replace", sessionId: string | null, body: Record<string, unknown>, signal: AbortSignal): Promise<{ status: DesktopStatus; jpeg?: Buffer; audio?: Buffer; audioSequence?: number }> {
   if (action !== "status" && (!sessionId || !RETURN_SESSION.test(sessionId))) throw new Error("Invalid session")
-  if (!["status", "start", "frame", "audio", "stop"].includes(action)) throw new Error("Invalid action")
+  if (!["status", "start", "frame", "audio", "stop", "disconnect", "replace"].includes(action)) throw new Error("Invalid action")
   const host = process.env.JUPITER_IO_SNAPSHOT_HOST, privateKey = process.env.JUPITER_IO_SNAPSHOT_KEY, fingerprint = process.env.JUPITER_IO_SNAPSHOT_HOST_HASH
   if (!desktopConfigured() || !host || !privateKey || !fingerprint) throw new Error("Desktop is not configured")
   const input = JSON.stringify(body) + "\n"
@@ -40,6 +40,7 @@ export async function desktopReturn(action: "status" | "start" | "frame" | "audi
           sessionId: typeof header.sessionId === "string" && RETURN_SESSION.test(header.sessionId) ? header.sessionId : undefined,
           meetingId: typeof header.meetingId === "string" && /^\d{9,11}$/.test(header.meetingId) ? header.meetingId : undefined,
           audio: header.audio === true,
+          reusable: header.reusable === true,
         }, ...(media.length && (audio ? { audio: media, audioSequence: header.audioSequence } : { jpeg: media })) })
       } catch { reject(new Error("Invalid Desktop return")) }
     }
