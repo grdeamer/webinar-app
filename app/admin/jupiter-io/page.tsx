@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import { requireAdmin } from "@/lib/requireAdmin"
+import { canStartProducerEngine } from "@/lib/producer/engineOwner"
 import RoomMonitorConsole from "@/components/zoom-bridge/RoomMonitorConsole"
 import ZoomBridgeConsole from "@/components/zoom-bridge/ZoomBridgeConsole"
 
@@ -8,7 +9,8 @@ export const metadata = { title: { absolute: "Jupiter Io" } }
 export const dynamic = "force-dynamic"
 
 export default async function JupiterIoPage({ searchParams }: { searchParams: Promise<{ view?: string | string[] }> }) {
-  if ((await requireAdmin()).profile.role !== "admin") notFound()
+  const access = await requireAdmin()
+  if (access.profile.role !== "admin") notFound()
   const { view } = await searchParams
   const sending = view === "send"
   const tab = "rounded-md px-3 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline focus-visible:outline-2"
@@ -21,6 +23,6 @@ export default async function JupiterIoPage({ searchParams }: { searchParams: Pr
       <Link href="/admin/jupiter-io?view=send" aria-current={sending ? "page" : undefined}
         className={`${tab} ${sending ? "bg-white/10 text-white" : "text-zinc-400"}`}>Program send</Link>
     </nav>
-    {sending ? <ZoomBridgeConsole /> : <RoomMonitorConsole />}
+    {sending ? <ZoomBridgeConsole /> : <RoomMonitorConsole canStartSharedServer={canStartProducerEngine(access.user, true)} />}
   </div>
 }

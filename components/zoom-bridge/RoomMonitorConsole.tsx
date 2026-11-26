@@ -114,7 +114,7 @@ function RoomTile({ room, number, status, picture, listening, audioAvailable, bu
   </article>
 }
 
-export default function RoomMonitorConsole() {
+export default function RoomMonitorConsole({ canStartSharedServer = false }: { canStartSharedServer?: boolean }) {
   const rooms = useMonitorRooms()
   const receiver = useRoomReceiver()
   const audio = useRoomAudio()
@@ -181,7 +181,15 @@ export default function RoomMonitorConsole() {
   return <section aria-label="Room monitoring" className={`min-h-[65vh] rounded-lg border border-white/10 bg-[#151619] text-zinc-100 ${rooms.length === 0 ? "io-monitor-empty" : ""}`}>
     <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-6">
       <h1 className="text-lg font-semibold tracking-tight">Monitor</h1>
+      <div className="flex flex-wrap items-center gap-2">
+        {canStartSharedServer ? <details className="relative">
+          <summary className={`${button} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>Shared server</summary>
+          <div className="absolute right-0 top-full z-30 mt-2 w-[min(24rem,calc(100vw-3rem))] rounded-lg border border-white/15 bg-[#18191b] p-2 shadow-xl">
+            <IoRuntimePanel purpose="monitor" />
+          </div>
+        </details> : null}
       {rooms.length > 0 && rooms.length < monitorRoomLimit ? <button type="button" className={button} onClick={() => setAdding(value => !value)} aria-expanded={adding}>{adding ? "Close" : "Connect room"}</button> : null}
+      </div>
     </header>
     <div className="space-y-4 p-4 sm:p-6">
       {rooms.length === 0 || adding ? <div className="max-w-3xl">
@@ -219,7 +227,7 @@ export default function RoomMonitorConsole() {
         </div>
         {visible.length === 0 ? <p className="text-sm text-zinc-400">No rooms on this page.</p> : null}
       </> : null}
-      {rooms.length > 0 ? <details className="max-w-3xl text-sm text-zinc-400">
+      {rooms.length > 0 && !canStartSharedServer ? <details className="max-w-3xl text-sm text-zinc-400">
         <summary className="cursor-pointer rounded-md py-2">Shared server options</summary>
         <IoRuntimePanel purpose="monitor" />
       </details> : null}
