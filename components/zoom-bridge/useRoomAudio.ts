@@ -7,13 +7,36 @@ const sampleRate = 24000
 const bytesPerSecond = sampleRate * 2
 
 type Room = { id: string; name: string; meetingNumber?: string }
-type Playback = { room: Room; context: AudioContext; abort: AbortController; timer?: ReturnType<typeof setTimeout> }
+type Playback = {
+  room: Room
+  context: AudioContext
+  abort: AbortController
+  timer?: ReturnType<typeof setTimeout>
+  restoreAudioSession?: () => void
+}
+
+function selectPlaybackAudioSession() {
+  const session = (navigator as Navigator & { audioSession?: { type: string } }).audioSession
+  if (!session) return
+  const previousType = session.type
+  if (previousType === "playback") return
+  try {
+    session.type = "playback"
+  } catch {
+    // Browsers that do not support selecting the audio session still play normally.
+    return
+  }
+  return () => {
+    if (session.type === "playback") session.type = previousType
+  }
+}
 
 function closePlayback(playback: Playback | null) {
   if (!playback) return
   playback.abort.abort()
   clearTimeout(playback.timer)
   void playback.context.close().catch(() => {})
+  playback.restoreAudioSession?.()
 }
 
 export function useRoomAudio() {
@@ -37,7 +60,12 @@ export function useRoomAudio() {
 
     try {
       const context = new AudioContext()
-      const playback = { room: next, context, abort: new AbortController() }
+      const playback: Playback = {
+        room: next,
+        context,
+        abort: new AbortController(),
+        restoreAudioSession: selectPlaybackAudioSession(),
+      }
       current.current = playback
       setRoom(next)
       setMessage("Connecting audio…")
