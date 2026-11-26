@@ -1,12 +1,19 @@
 "use client"
 import { useEffect, useRef, useState } from "react"
+import { useRoomAudio } from "./useRoomAudio"
 import { ioButton } from "./SatelliteCard"
 
 const endpoint = "/api/admin/zoom-bridge/desktop-return"
 const active = ["starting", "desktop_ready"]
 const labels: Record<string, string> = { starting: "Starting the dedicated Zoom desktop", desktop_ready: "Live server desktop · verify the Zoom meeting view", stopped: "Server monitor stopped", failed: "Server desktop failed", expired: "Server test expired" }
 
-export default function DesktopMeetingReturn({ joinUrl }: { joinUrl?: string }) {
+export default function DesktopMeetingReturn({ joinUrl, listening, onListen }: {
+  joinUrl?: string
+  listening?: boolean
+  onListen?: () => void
+}) {
+  const audio = useRoomAudio()
+
   const [configured, setConfigured] = useState(false)
   const [session, setSession] = useState<string | null>(null)
   const [state, setState] = useState("stopped")
@@ -89,18 +96,28 @@ export default function DesktopMeetingReturn({ joinUrl }: { joinUrl?: string }) 
     } finally { if (mounted.current) setBusy(false) }
   }
 
+  const selected = listening ?? Boolean(audio.room)
+  const listen = onListen ?? (() => audio.toggle({ id: "shared-desktop", name: "Zoom room" }))
+
   return <div className="space-y-3 pb-3">
-    <div className="relative aspect-video bg-[#14283d]">
+    <div className={`relative aspect-video bg-[#14283d] ${selected ? "ring-2 ring-inset ring-emerald-400" : ""}`}>
       {/* eslint-disable-next-line @next/next/no-img-element -- ephemeral, authenticated server frame */}
       {picture ? <img src={picture} alt="Live Zoom desktop on the Jupiter server" className="h-full w-full object-contain" /> : <div className="absolute inset-0 grid place-content-center px-5 text-center text-sm text-slate-300">{labels[state] ?? state}</div>}
+      {picture || selected ? <button type="button" aria-pressed={selected}
+        aria-label={selected ? "Mute room audio" : "Listen to room audio"}
+        onClick={listen}
+        className={`absolute inset-0 flex items-end justify-end rounded-sm p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-white ${selected ? "ring-2 ring-inset ring-emerald-400" : ""}`}>
+        <span className={`rounded px-2 py-1 text-xs ${selected ? "bg-emerald-900 text-emerald-100" : "bg-slate-950/85 text-white"}`}>{selected ? "Listening" : "Listen"}</span>
+      </button> : null}
     </div>
+    {!onListen && audio.message ? <p role="status" className="px-3 text-sm text-slate-300">{audio.message}</p> : null}
     <div className="flex flex-wrap gap-2 px-3">
       {joinUrl && !session ? <button type="button" className={ioButton} disabled={!configured || busy} onClick={() => void control("start")}>Start server desktop</button> : null}
       {session ? <button type="button" className={ioButton} disabled={busy} onClick={() => void control("stop")}>Stop monitor for all viewers</button> : null}
       <a href="/admin/jupiter-io/server-return" target="_blank" rel="noopener noreferrer" className={ioButton}>Open shared viewer</a>
     </div>
     <p role="status" className="px-3 text-sm text-slate-300">{!configured ? "Server desktop setup pending" : labels[state] ?? state}{session && remaining > 0 ? ` · ${Math.ceil(remaining / 60)} min remaining` : ""}</p>
-    <p className="px-3 text-sm leading-5 text-slate-400">One dedicated server desktop. The pilot requires an operator to join and verify Zoom through its private console. Other computers can view this page after signing in as a Jupiter administrator. No local Zoom window is captured. Camera devices are unavailable; microphone input is a muted silent source. No captured audio or recording. Hard 15-minute test; expires after 30 seconds without viewers.</p>
+    <p className="px-3 text-sm leading-5 text-slate-400">One dedicated server desktop. The pilot requires an operator to join and verify Zoom through its private console. Other computers can view this page after signing in as a Jupiter administrator. No local Zoom window is captured. Camera devices are unavailable; microphone input is a muted silent source. Click the picture to listen when Zoom playback is connected on the server. No recording. Hard 15-minute test; expires after 30 seconds without viewers.</p>
     {error ? <p role="alert" className="px-3 text-sm text-amber-200">{error}</p> : null}
   </div>
 }

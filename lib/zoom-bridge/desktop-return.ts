@@ -3,10 +3,10 @@ import { Client } from "ssh2"
 import { RETURN_SESSION } from "./server-return"
 
 export function desktopConfigured() { return process.env.JUPITER_IO_DESKTOP_MONITOR_ENABLED === "true" }
-export type DesktopStatus = { state?: string; error?: string; remainingSeconds?: number; sessionId?: string; meetingId?: string }
-export async function desktopReturn(action: "status" | "start" | "frame" | "stop", sessionId: string | null, body: Record<string, unknown>, signal: AbortSignal): Promise<{ status: DesktopStatus; jpeg?: Buffer }> {
+export type DesktopStatus = { state?: string; error?: string; remainingSeconds?: number; sessionId?: string; meetingId?: string; audio?: boolean }
+export async function desktopReturn(action: "status" | "start" | "frame" | "audio" | "stop", sessionId: string | null, body: Record<string, unknown>, signal: AbortSignal): Promise<{ status: DesktopStatus; jpeg?: Buffer; audio?: Buffer; audioSequence?: number }> {
   if (action !== "status" && (!sessionId || !RETURN_SESSION.test(sessionId))) throw new Error("Invalid session")
-  if (!["status", "start", "frame", "stop"].includes(action)) throw new Error("Invalid action")
+  if (!["status", "start", "frame", "audio", "stop"].includes(action)) throw new Error("Invalid action")
   const host = process.env.JUPITER_IO_SNAPSHOT_HOST, privateKey = process.env.JUPITER_IO_SNAPSHOT_KEY, fingerprint = process.env.JUPITER_IO_SNAPSHOT_HOST_HASH
   if (!desktopConfigured() || !host || !privateKey || !fingerprint) throw new Error("Desktop is not configured")
   const input = JSON.stringify(body) + "\n"
@@ -21,15 +21,26 @@ export async function desktopReturn(action: "status" | "start" | "frame" | "stop
       try {
         const data = Buffer.concat(chunks), split = data.indexOf(10)
         if (split < 0 || split > 4096) throw new Error("Invalid header")
-        const header = JSON.parse(data.subarray(0, split).toString()), jpeg = data.subarray(split + 1)
-        if ((header.jpegBytes ?? 0) !== jpeg.length || (jpeg.length && (jpeg[0] !== 255 || jpeg[1] !== 216 || jpeg.at(-2) !== 255 || jpeg.at(-1) !== 217))) throw new Error("Invalid frame")
+        const header = JSON.parse(data.subarray(0, split).toString())
+        const media = data.subarray(split + 1)
+        const audio = action === "audio"
+        if (audio) {
+          if ((header.audioBytes ?? 0) !== media.length || media.length > 192000 || media.length % 48000 !== 0 ||
+              (media.length && (!Number.isInteger(header.audioSequence) || header.audioSequence < 1 || header.audioSequence > 900))) {
+            throw new Error("Invalid audio")
+          }
+        } else if ((header.jpegBytes ?? 0) !== media.length ||
+            (media.length && (media[0] !== 255 || media[1] !== 216 || media.at(-2) !== 255 || media.at(-1) !== 217))) {
+          throw new Error("Invalid frame")
+        }
         resolve({ status: {
           state: typeof header.state === "string" ? header.state.slice(0, 32) : undefined,
           error: header.error ? "Desktop receiver unavailable or busy" : undefined,
           remainingSeconds: typeof header.remainingSeconds === "number" ? header.remainingSeconds : 0,
           sessionId: typeof header.sessionId === "string" && RETURN_SESSION.test(header.sessionId) ? header.sessionId : undefined,
           meetingId: typeof header.meetingId === "string" && /^\d{9,11}$/.test(header.meetingId) ? header.meetingId : undefined,
-        }, jpeg: jpeg.length ? jpeg : undefined })
+          audio: header.audio === true,
+        }, ...(media.length && (audio ? { audio: media, audioSequence: header.audioSequence } : { jpeg: media })) })
       } catch { reject(new Error("Invalid Desktop return")) }
     }
     function abort() { finish(true) }

@@ -3,7 +3,7 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from protocol import parse_request
+from protocol import AUDIO_CHUNK, parse_request
 from service import Desktop
 
 ID = '12345678-1234-1234-1234-123456789abc'
@@ -37,6 +37,29 @@ class LifecycleTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['state'], 'expired')
         self.assertIsNone(desktop.frame)
         self.assertEqual(frame, b'')
+
+    async def test_audio_cursor_returns_new_chunks_and_renews_receiver_lease(self):
+        desktop = Desktop(clock=lambda: 10)
+        desktop.id, desktop.state = ID, 'desktop_ready'
+        desktop.deadline, desktop.lease = 100, 15
+        reader = asyncio.StreamReader()
+        for index in range(1, 7):
+            reader.feed_data(bytes([index]) * AUDIO_CHUNK)
+        collection = asyncio.create_task(desktop.collect_audio(reader))
+        try:
+            await asyncio.sleep(0)
+            self.assertEqual([index for index, _ in desktop.audio], [3, 4, 5, 6])
+            with patch('service.network_total', return_value=0):
+                status, pcm = await desktop.request({'action': 'audio', 'sessionId': ID, 'after': 4})
+                rejected, unavailable = await desktop.request({'action': 'audio', 'sessionId': 'other', 'after': 0})
+            self.assertEqual(status['audioSequence'], 6)
+            self.assertEqual(pcm, bytes([5]) * AUDIO_CHUNK + bytes([6]) * AUDIO_CHUNK)
+            self.assertEqual(desktop.lease, 40)
+            self.assertIn('error', rejected)
+            self.assertEqual(unavailable, b'')
+        finally:
+            collection.cancel()
+            await asyncio.gather(collection, return_exceptions=True)
 
     async def test_wrong_viewer_cannot_stop_active_session(self):
         desktop = Desktop(clock=lambda: 10)

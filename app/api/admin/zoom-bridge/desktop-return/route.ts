@@ -10,10 +10,16 @@ const headers = { "Cache-Control": "no-store, private, max-age=0", "X-Content-Ty
 export async function GET(request: Request) {
   if ((await requireAdmin()).profile.role !== "admin" || request.headers.get("sec-fetch-site") === "cross-site") return new Response(null, { status: 403, headers })
   if (!desktopConfigured()) return Response.json({ configured: false, state: "stopped" }, { headers })
-  const id = new URL(request.url).searchParams.get("sessionId")
+  const params = new URL(request.url).searchParams
+  const id = params.get("sessionId")
+  const cursor = params.get("after")
   if (id !== null && !RETURN_SESSION.test(id)) return new Response(null, { status: 400, headers })
+  if (cursor !== null && (!id || !/^\d{1,3}$/.test(cursor) || Number(cursor) > 900)) return new Response(null, { status: 400, headers })
   try {
-    const result = await desktopReturn(id ? "frame" : "status", id, {}, request.signal)
+    const result = await desktopReturn(cursor !== null ? "audio" : id ? "frame" : "status", id, cursor === null ? {} : { after: Number(cursor) }, request.signal)
+    if (result.audio) return new Response(new Uint8Array(result.audio), { headers: {
+      ...headers, "Content-Type": "application/octet-stream", "X-Audio-Sequence": String(result.audioSequence),
+    } })
     if (!result.jpeg) return Response.json({ configured: true, ...result.status }, { headers })
     return new Response(new Uint8Array(result.jpeg), { headers: { ...headers, "Content-Type": "image/jpeg", "X-Return-State": result.status.state ?? "desktop_ready", "X-Return-Remaining": String(result.status.remainingSeconds ?? 0) } })
   } catch { return Response.json({ error: "Server desktop unavailable. Check the shared server." }, { status: 503, headers }) }

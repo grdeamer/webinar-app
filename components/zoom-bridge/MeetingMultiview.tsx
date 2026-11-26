@@ -6,6 +6,7 @@ import { meetingJoinLink } from "@/lib/zoom-bridge/meeting-link"
 import { ioButton, ioField } from "./SatelliteCard"
 import RtmsMeetingReturn from "./RtmsMeetingReturn"
 import LocalMeetingReturn from "./LocalMeetingReturn"
+import { useRoomAudio } from "./useRoomAudio"
 import DesktopMeetingReturn from "./DesktopMeetingReturn"
 
 interface Meeting { id: string; name: string; joinUrl: string }
@@ -17,15 +18,15 @@ const grids: Record<Layout, string> = {
   16: "grid-cols-1 sm:grid-cols-2 lg:grid-cols-4",
 }
 
-function MeetingTile({ meeting, slot, expanded, onExpand, onRemove, source }: {
-  meeting?: Meeting; slot: number; expanded: boolean; onExpand: () => void; onRemove: () => void; source: ReturnSource
+function MeetingTile({ meeting, slot, expanded, onExpand, onRemove, source, listening, onListen }: {
+  meeting?: Meeting; slot: number; expanded: boolean; onExpand: () => void; onRemove: () => void; source: ReturnSource; listening: boolean; onListen: () => void
 }) {
-  return <article className="min-w-0 overflow-hidden rounded-xl border border-white/15 bg-[#0d1c2a]" aria-label={meeting?.name ?? `Empty meeting slot ${slot}`}>
+  return <article className={`min-w-0 overflow-hidden rounded-xl border bg-[#0d1c2a] ${listening ? "border-emerald-400 ring-2 ring-emerald-400" : "border-white/15"}`} aria-label={meeting?.name ?? `Empty meeting slot ${slot}`}>
     <header className="flex min-h-12 flex-wrap items-center justify-between gap-2 px-3 py-2">
       <h2 className="min-w-0 break-words text-sm font-medium">{meeting?.name ?? `Meeting ${slot}`}</h2>
       <span className="text-xs text-slate-400">{meeting ? slot === 1 ? "Test receiver" : "○ Not connected" : "Empty slot"}</span>
     </header>
-    {meeting && slot === 1 ? source === "window" ? <LocalMeetingReturn /> : source === "desktop" ? <DesktopMeetingReturn joinUrl={meeting.joinUrl} /> : <RtmsMeetingReturn joinUrl={meeting.joinUrl} /> : <><div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
+    {meeting && slot === 1 ? source === "window" ? <LocalMeetingReturn /> : source === "desktop" ? <DesktopMeetingReturn joinUrl={meeting.joinUrl} listening={listening} onListen={onListen} /> : <RtmsMeetingReturn joinUrl={meeting.joinUrl} /> : <><div className="flex aspect-video flex-col items-center justify-center gap-2 bg-[#14283d] px-4 text-center text-slate-400">
       <Monitor size={24} aria-hidden="true" />
       <span className="text-sm">{meeting ? "Waiting for shared presentation" : "Shared presentation"}</span>
       <span className="text-xs">{meeting ? "Zoom media connection required" : "Add a meeting to this multiview"}</span>
@@ -47,7 +48,8 @@ function MeetingTile({ meeting, slot, expanded, onExpand, onRemove, source }: {
 }
 
 export default function MeetingMultiview() {
-  const [layout, setLayout] = useState<Layout>(4)
+  const [layout, setLayout] = useState<Layout>(16)
+  const audio = useRoomAudio()
   const [source, setSource] = useState<ReturnSource>("window")
   const [meetings, setMeetings] = useState<Meeting[]>([])
   const [page, setPage] = useState(0)
@@ -55,7 +57,7 @@ export default function MeetingMultiview() {
   const [name, setName] = useState("")
   const [link, setLink] = useState("")
   const [error, setError] = useState("")
-  const pages = Math.max(1, Math.ceil(meetings.length / layout))
+  const pages = Math.max(source === "desktop" && layout === 16 ? 3 : 1, Math.ceil(meetings.length / layout))
   const currentPage = Math.min(page, pages - 1)
   const start = currentPage * layout
   const slots = expanded === null ? Array.from({ length: layout }, (_, i) => start + i) : [expanded]
@@ -79,10 +81,14 @@ export default function MeetingMultiview() {
     </div>
     <div className="flex flex-wrap items-center gap-3" role="group" aria-label="Meeting return source">
       <span className="text-sm text-slate-300">First tile source</span>
-      <button type="button" className={ioButton} aria-pressed={source === "window"} onClick={() => setSource("window")}>This Mac · Zoom window</button>
+      <button type="button" className={ioButton} aria-pressed={source === "window"} onClick={() => { audio.stop(); setSource("window") }}>This Mac · Zoom window</button>
       <button type="button" className={ioButton} aria-pressed={source === "desktop"} onClick={() => setSource("desktop")}>Server · Zoom desktop</button>
-      <button type="button" className={ioButton} aria-pressed={source === "rtms"} onClick={() => setSource("rtms")}>Server · Zoom RTMS</button>
+      <button type="button" className={ioButton} aria-pressed={source === "rtms"} onClick={() => { audio.stop(); setSource("rtms") }}>Server · Zoom RTMS</button>
     </div>
+    {audio.room || audio.message ? <div className="flex items-center gap-3 text-sm">
+      <span role="status">{audio.message || `Listening to ${audio.room?.name}`}</span>
+      {audio.room ? <button type="button" className={ioButton} onClick={audio.stop}>Mute room</button> : null}
+    </div> : null}
     <div className="flex flex-wrap items-center justify-between gap-3">
       <div className="flex flex-wrap items-center gap-3"><span className="text-sm text-slate-300">Meetings per page</span><div className="flex flex-wrap gap-2" role="group" aria-label="Meetings per page">
         {([4, 9, 16] as const).map(value => <button key={value} type="button" className={`${ioButton} ${layout === value ? "!border-blue-400 !bg-blue-500/20 !text-blue-100" : ""}`} aria-pressed={layout === value} onClick={() => { setLayout(value); setPage(0); setExpanded(null) }}>{value} · {Math.sqrt(value)}×{Math.sqrt(value)}</button>)}
@@ -96,7 +102,10 @@ export default function MeetingMultiview() {
     </form>
     {error ? <p id="multiview-error" role="alert" className="text-sm text-amber-200">{error}</p> : null}
     <div className={`grid gap-3 ${expanded === null ? grids[layout] : "mx-auto max-w-4xl grid-cols-1"}`}>
-      {slots.map(slot => <MeetingTile key={meetings[slot]?.id ?? `empty-${slot}`} meeting={meetings[slot]} slot={slot + 1} source={source} expanded={expanded !== null} onExpand={() => setExpanded(expanded === null ? slot : null)} onRemove={() => { setMeetings(previous => previous.filter((_, i) => i !== slot)); setExpanded(null) }} />)}
+      {slots.map(slot => <MeetingTile key={meetings[slot]?.id ?? `empty-${slot}`} meeting={meetings[slot]} slot={slot + 1} source={source} listening={Boolean(audio.room && audio.room.id === meetings[slot]?.id)} onListen={() => {
+        const meeting = meetings[slot]
+        if (meeting) audio.toggle({ id: meeting.id, name: meeting.name, meetingNumber: new URL(meeting.joinUrl).pathname.split("/")[2] })
+      }} expanded={expanded !== null} onExpand={() => setExpanded(expanded === null ? slot : null)} onRemove={() => { if (audio.room?.id === meetings[slot]?.id) audio.stop(); setMeetings(previous => previous.filter((_, i) => i !== slot)); setExpanded(null) }} />)}
     </div>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <p className="text-xs text-slate-400">Shared presentation + active speaker + participant strip</p>

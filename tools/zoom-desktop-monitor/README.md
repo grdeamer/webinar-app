@@ -20,9 +20,9 @@ the desktop. Installation traffic occurs before the monitor starts.
 `PrivateDevices` removes camera/sound devices. An isolated PulseAudio server
 provides a muted silent microphone source, with no hardware input. The operator
 must also verify Zoom camera off and microphone disconnected/muted before
-calling the test qualified. There is no recording or captured audio. Zoom's
+calling the test qualified. There is no recording. Room playback can be monitored from the private PulseAudio sink. Zoom's
 HOME, preferences, caches, logs, X11 cookie and console password are private
-ephemeral `/run` data and are removed on stop. Only a latest JPEG is returned.
+ephemeral `/run` data and are removed on stop. The receiver returns the latest JPEG and up to four seconds of in-memory audio.
 
 Install `sudo bash install.sh --install`. The installer adds the official Zoom
 Debian package and standard Ubuntu desktop/console dependencies. It preserves

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Private, receive-only desktop qualification. No automatic joins or retries."""
 import asyncio
+from collections import deque
 import contextlib
 import json
 import os
@@ -9,7 +10,7 @@ import secrets
 import shutil
 import signal
 import time
-from protocol import MAX_FRAME, MAX_SECONDS, parse_request
+from protocol import AUDIO_CHUNK, MAX_FRAME, MAX_SECONDS, parse_request
 
 ROOT = Path('/run/jupiter-zoom-desktop')
 
@@ -32,13 +33,15 @@ class Desktop:
         self.env = None
         self.frame = None
         self.frame_at = 0
+        self.audio = deque(maxlen=4)
+        self.audio_task = None
         self.traffic = 0
         self.lock = asyncio.Lock()
 
     def status(self):
         return {'sessionId': self.id, 'meetingId': self.meeting, 'state': self.state,
                 'remainingSeconds': max(0, int(self.deadline - self.clock())),
-                'recording': False, 'audio': False}
+                'recording': False, 'audio': self.audio_task is not None and not self.audio_task.done()}
 
     async def spawn(self, args, input=None):
         process = await asyncio.create_subprocess_exec(*args, env=self.env, cwd=self.home,
@@ -53,7 +56,23 @@ class Desktop:
                 raise RuntimeError('Desktop setup failed')
         return process
 
+    async def collect_audio(self, reader):
+        index = 0
+        try:
+            while True:
+                data = await reader.readexactly(AUDIO_CHUNK)
+                index += 1
+                self.audio.append((index, data))
+        except asyncio.IncompleteReadError:
+            self.audio.clear()
+
     async def stop(self, state='stopped'):
+        if self.audio_task:
+            self.audio_task.cancel()
+            with contextlib.suppress(asyncio.CancelledError):
+                await self.audio_task
+            self.audio_task = None
+        self.audio.clear()
         self.frame = None
         self.frame_at = 0
         for process in reversed(self.children):
@@ -91,7 +110,7 @@ class Desktop:
             'XDG_CACHE_HOME': str(self.home / 'cache'), 'XDG_RUNTIME_DIR': str(self.home / 'xdg'),
             'TMPDIR': str(self.home / 'tmp'), 'DISPLAY': ':108', 'XAUTHORITY': auth,
             'QT_QPA_PLATFORM': 'xcb', 'QT_X11_NO_MITSHM': '1', 'LIBGL_ALWAYS_SOFTWARE': '1',
-            'PULSE_SERVER': 'unix:' + str(self.home / 'pulse.sock'), 'PULSE_SOURCE': 'disabled_mic',
+            'PULSE_SERVER': 'unix:' + str(self.home / 'pulse.sock'), 'PULSE_SOURCE': 'disabled_mic', 'PULSE_SINK': 'disabled_output',
             'DBUS_SESSION_BUS_ADDRESS': 'unix:path=' + str(self.home / 'bus')}
         try:
             await self.spawn(['xauth', '-f', auth, 'source', '-'],
@@ -116,6 +135,13 @@ class Desktop:
             # Launch an ordinary Zoom desktop. Join/admission/terms/layout happen
             # through the attended console; no web-bot detection is bypassed.
             await self.spawn(['/usr/bin/zoom'])
+            capture = await asyncio.create_subprocess_exec(
+                'ffmpeg', '-v', 'error', '-nostdin', '-f', 'pulse', '-i', 'disabled_output.monitor',
+                '-ac', '1', '-ar', '24000', '-f', 's16le', '-flush_packets', '1', 'pipe:1',
+                env=self.env, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL,
+                start_new_session=True)
+            self.children.append(capture)
+            self.audio_task = asyncio.create_task(self.collect_audio(capture.stdout))
             self.state = 'desktop_ready'
         except BaseException:
             await self.stop('failed')
@@ -136,6 +162,12 @@ class Desktop:
                 return {'error': 'Desktop session unavailable'}, b''
             elif action == 'stop':
                 await self.stop()
+            elif action == 'audio' and self.state == 'desktop_ready':
+                self.lease = self.clock() + 30
+                chunks = [item for item in self.audio if item[0] > request['after']]
+                if chunks:
+                    data = b''.join(chunk for _, chunk in chunks)
+                    return {**self.status(), 'audioBytes': len(data), 'audioSequence': chunks[-1][0]}, data
             elif action == 'frame' and self.state == 'desktop_ready':
                 self.lease = self.clock() + 30
                 if self.frame is None or self.clock() - self.frame_at >= 1:
