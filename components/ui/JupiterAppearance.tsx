@@ -44,9 +44,9 @@ export function JupiterAppearanceBoundary({ children }: { children: ReactNode })
   )
 }
 
-export function JupiterAppearanceSwitch({ appearance }: { appearance: Appearance }) {
+export function JupiterAppearanceSwitch({ appearance, compact = false }: { appearance: Appearance; compact?: boolean }) {
   return (
-    <fieldset className="admin-theme-switch mb-3 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/15 p-1">
+    <fieldset className={compact ? "io-appearance-switch" : "admin-theme-switch mb-3 grid grid-cols-2 gap-1 rounded-lg border border-white/10 bg-black/15 p-1"}>
       <legend className="sr-only">Appearance</legend>
       {(["light", "dark"] as const).map(option => (
         <button
@@ -57,7 +57,7 @@ export function JupiterAppearanceSwitch({ appearance }: { appearance: Appearance
             window.dispatchEvent(new Event(CHANGE_EVENT))
           }}
           aria-pressed={appearance === option}
-          className="h-9 rounded-md px-1 text-xs font-semibold capitalize transition"
+          className={compact ? "io-view-tab capitalize" : "h-9 rounded-md px-1 text-xs font-semibold capitalize transition"}
         >
           {option}
         </button>

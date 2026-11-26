@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { requireAdmin } from "@/lib/requireAdmin"
 import { canStartProducerEngine } from "@/lib/producer/engineOwner"
 import RoomMonitorConsole from "@/components/zoom-bridge/RoomMonitorConsole"
+import IoAppearanceSwitch from "@/components/zoom-bridge/IoAppearanceSwitch"
 import ZoomBridgeConsole from "@/components/zoom-bridge/ZoomBridgeConsole"
 
 export const metadata = { title: { absolute: "Jupiter Io" } }
@@ -13,15 +14,15 @@ export default async function JupiterIoPage({ searchParams }: { searchParams: Pr
   if (access.profile.role !== "admin") notFound()
   const { view } = await searchParams
   const sending = view === "send"
-  const tab = "rounded-md px-3 py-2 text-sm font-medium hover:bg-white/10 focus-visible:outline focus-visible:outline-2"
 
-  return <div className="mx-auto max-w-[1920px] px-3 pb-6 pt-3 sm:px-5">
-    <nav aria-label="Jupiter IO views" className="mb-3 flex items-center gap-2 border-b border-white/10 pb-3">
+  return <div className="io-monitor-shell mx-auto max-w-[1920px] rounded-xl px-3 pb-6 pt-3 sm:px-5">
+    <nav aria-label="Jupiter IO views" className="io-rule mb-3 flex flex-wrap items-center gap-2 border-b pb-3">
       <span className="mr-2 whitespace-nowrap text-base font-semibold">Jupiter IO</span>
       <Link href="/admin/jupiter-io" aria-current={sending ? undefined : "page"}
-        className={`${tab} ${sending ? "text-zinc-400" : "bg-white/10 text-white"}`}>Monitor</Link>
+        className="io-view-tab">Monitor</Link>
       <Link href="/admin/jupiter-io?view=send" aria-current={sending ? "page" : undefined}
-        className={`${tab} ${sending ? "bg-white/10 text-white" : "text-zinc-400"}`}>Program send</Link>
+        className="io-view-tab">Program send</Link>
+      <IoAppearanceSwitch />
     </nav>
     {sending ? <ZoomBridgeConsole /> : <RoomMonitorConsole canStartSharedServer={canStartProducerEngine(access.user, true)} />}
   </div>
