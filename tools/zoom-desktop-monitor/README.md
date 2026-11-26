@@ -4,7 +4,9 @@ This is a separate implementation from the web-client monitor Zoom rejected on
 16 November. It launches the official Zoom Linux desktop app on a private X11
 desktop. An operator uses a localhost-only noVNC console through the existing
 authenticated SSH connection to join, handle consent/admission, and arrange the
-meeting. There is no SDK raw-media subscription, web-bot join, detection bypass,
+meeting. If Zoom extends past the desktop edges, double-click the meeting
+window’s top bar to enter Zoom full screen and verify its whole toolbar in the
+shared viewer. There is no SDK raw-media subscription, web-bot join, detection bypass,
 CAPTCHA handling, automated retry, or automatic agreement acceptance.
 
 The intended qualification is one existing EC2 host, a separately approved $1

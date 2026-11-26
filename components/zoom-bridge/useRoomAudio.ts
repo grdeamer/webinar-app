@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState } from "react"
+import { nextRoomAudioStart } from "@/lib/zoom-bridge/room-audio-timing"
 
 const endpoint = "/api/admin/zoom-bridge/desktop-return"
 const sampleRate = 24000
@@ -119,7 +120,7 @@ export function useRoomAudio() {
           source.buffer = samples
           source.connect(context.destination)
           source.onended = () => source.disconnect()
-          startAt = Math.max(startAt, context.currentTime + 0.75)
+          startAt = nextRoomAudioStart(startAt, context.currentTime)
           source.start(startAt)
           startAt += samples.duration
           cursor = sequence
