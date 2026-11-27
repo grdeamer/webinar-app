@@ -1,82 +1,39 @@
 "use client"
 
-import { type FormEvent, useId, useRef, useState } from "react"
+import { useRef, useState } from "react"
 import { Ellipsis } from "lucide-react"
 import { type MonitorRoom, monitorMeetingNumber, monitorPageCount, monitorPageSize, monitorRoomLimit, planMonitorRoomImport } from "@/lib/zoom-bridge/monitor-rooms"
+import { planMonitorRoomCsv } from "@/lib/zoom-bridge/monitor-room-csv"
+import RoomForm, { roomButton as button, primaryRoomButton as primary } from "./RoomForm"
 import IoRuntimePanel from "./IoRuntimePanel"
 import { activeReceiver, useRoomReceiver } from "./useRoomReceiver"
 import { updateMonitorRooms, useMonitorRooms } from "./useMonitorRooms"
 import { useRoomAudio } from "./useRoomAudio"
 import "./room-monitor.css"
 
-const button = "io-room-button rounded-md border px-3 py-2 text-sm font-medium focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-45"
-const primary = `${button} io-room-primary`
-const field = "mt-1 block w-full rounded-md io-room-input border px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+type RoomAccess = { passcode?: string; joinLink?: string }
+type ImportedRoom = Pick<MonitorRoom, "name" | "meetingNumber"> & { access?: RoomAccess }
 
-function RoomForm({ room, busy, onSave, onBulkSave, onCancel }: {
-  room?: MonitorRoom
-  busy: boolean
-  onSave: (name: string, meeting: string) => Promise<void>
-  onBulkSave?: (meetings: string) => void
-  onCancel?: () => void
-}) {
-  const formId = useId()
-  const [bulk, setBulk] = useState(false)
-  const [error, setError] = useState("")
-  async function submit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const form = new FormData(event.currentTarget)
-    setError("")
-    try {
-      const meetings = String(form.get("meeting") ?? "")
-      if (bulk && onBulkSave) onBulkSave(meetings)
-      else await onSave(String(form.get("name") ?? ""), meetings)
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : "Unable to save the room.")
-    }
-  }
-
-  return <form onSubmit={submit} aria-label={room ? "Edit room" : bulk ? "Add rooms" : "Connect room"} className="space-y-3">
-    {bulk ? <div>
-      <label htmlFor={`${formId}-meeting`} className="block text-sm io-secondary">Zoom links or meeting IDs</label>
-      <textarea id={`${formId}-meeting`} name="meeting" rows={5} required
-        aria-describedby={`${formId}-bulk-help`} className={`${field} resize-y`}
-        autoComplete="off" spellCheck={false} />
-      <p id={`${formId}-bulk-help`} className="mt-1.5 text-sm io-muted">
-        One link or ID per line. Rooms are saved to this browser for connecting later.
-      </p>
-      <button className={`mt-3 ${primary}`} type="submit" disabled={busy}>Add rooms</button>
-    </div> : <div className={room ? "space-y-3" : "flex flex-wrap items-end gap-3"}>
-      <label className="block flex-[2_1_15rem] text-sm io-secondary" htmlFor={`${formId}-meeting`}>
-        Zoom link or meeting ID
-        <input id={`${formId}-meeting`} name="meeting" type="text" className={field} required maxLength={2048}
-          placeholder="https://zoom.us/j/…" defaultValue={room?.meetingNumber} autoComplete="off" spellCheck={false} />
-      </label>
-      <label className="block flex-[1_1_9rem] text-sm io-secondary" htmlFor={`${formId}-name`}>
-        Room name <span className="io-muted">(optional)</span>
-        <input id={`${formId}-name`} name="name" className={field} maxLength={100} defaultValue={room?.name} autoComplete="off" />
-      </label>
-      <button type="submit" className={primary} disabled={busy}>{room ? "Save changes" : "Connect room"}</button>
-      {onCancel ? <button type="button" className={button} onClick={onCancel} disabled={busy}>Cancel</button> : null}
-    </div>}
-    {onBulkSave ? <button type="button" className="rounded-sm text-sm io-secondary underline underline-offset-4 hover:no-underline"
-      disabled={busy} onClick={() => { setError(""); setBulk(value => !value) }}>
-      {bulk ? "Back to one room" : "Add multiple rooms"}
-    </button> : null}
-    {error ? <p role="alert" className="text-sm io-error">{error}</p> : null}
-  </form>
-}
-
-function RoomTile({ room, number, status, picture, listening, audioAvailable, busy, onListen, onSave, onCommand }: {
-  room: MonitorRoom; number: number; status: string; picture?: string; listening: boolean; audioAvailable: boolean; busy: boolean
+function RoomTile({ room, access, number, status, picture, listening, audioAvailable, busy, onListen, onSave, onCommand }: {
+  room: MonitorRoom; access?: RoomAccess; number: number; status: string; picture?: string; listening: boolean; audioAvailable: boolean; busy: boolean
   onListen: () => void
   onSave: (name: string, meeting: string) => Promise<void>
   onCommand: (action: "reconnect" | "disconnect") => Promise<boolean>
 }) {
   const [face, setFace] = useState<"video" | "details" | "edit">("video")
   const menu = useRef<HTMLDetailsElement>(null)
+  const [copyStatus, setCopyStatus] = useState("")
+  async function copy(value: string, label: string) {
+    try {
+      await navigator.clipboard.writeText(value)
+      setCopyStatus(`${label} copied.`)
+    } catch {
+      setCopyStatus(`Couldn’t copy the ${label.toLowerCase()}.`)
+    }
+  }
   function select(next: typeof face) {
     if (menu.current) menu.current.open = false
+    setCopyStatus("")
     setFace(next)
   }
   async function command(action: "reconnect" | "disconnect") {
@@ -115,7 +72,14 @@ function RoomTile({ room, number, status, picture, listening, audioAvailable, bu
         <dt className="io-muted">Audio</dt><dd>{listening ? "Listening" : "Muted"}</dd>
         <dt className="io-muted">Meeting ID</dt><dd className="tabular-nums">{room.meetingNumber}</dd>
       </dl>
-      <button type="button" className={`mt-3 ${button}`} onClick={() => setFace("video")}>Back to video</button>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {access?.passcode ? <button type="button" className={button}
+          onClick={() => { if (access.passcode) void copy(access.passcode, "Passcode") }}>Copy passcode</button> : null}
+        {access?.joinLink ? <button type="button" className={button}
+          onClick={() => { if (access.joinLink) void copy(access.joinLink, "Zoom link") }}>Copy Zoom link</button> : null}
+        <button type="button" className={button} onClick={() => select("video")}>Back to video</button>
+      </div>
+      {copyStatus ? <p role="status" className="mt-2 io-muted">{copyStatus}</p> : null}
     </div> : <div className="relative aspect-video overflow-hidden rounded-b-lg bg-[#0c0d0f]">
       {/* eslint-disable-next-line @next/next/no-img-element -- ephemeral authenticated camera return */}
       {picture ? <img src={picture} alt={`Zoom return for ${room.name}`} className="h-full w-full object-contain" />
@@ -139,6 +103,7 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState("")
+  const [roomAccess, setRoomAccess] = useState<Record<string, RoomAccess & { meetingNumber: string }>>({})
   const activeMeeting = activeReceiver(receiver.status) ? receiver.status?.meetingId : undefined
   const start = page * monitorPageSize
   const visible = rooms.slice(start, start + monitorPageSize)
@@ -177,24 +142,36 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
     await connect("connect", room)
   }
 
-  function addRooms(input: string) {
+  function importRooms(planImport: (savedMeetingNumbers: string[]) => {
+    rooms: ImportedRoom[]
+    duplicates: number
+  }) {
     let firstIndex = 0
     let added = 0
     let duplicates = 0
+    const importedAccess: typeof roomAccess = {}
     updateMonitorRooms(current => {
-      const plan = planMonitorRoomImport(input, current.map(room => room.meetingNumber))
+      const plan = planImport(current.map(room => room.meetingNumber))
       firstIndex = current.length
-      added = plan.meetingNumbers.length
+      added = plan.rooms.length
       duplicates = plan.duplicates
-      return [...current, ...plan.meetingNumbers.map((meetingNumber, index) => ({
-        id: crypto.randomUUID(),
-        name: `Room ${firstIndex + index + 1}`,
-        meetingNumber,
-      }))]
+      return [...current, ...plan.rooms.map((room, index) => {
+        const id = crypto.randomUUID()
+        if (room.access) importedAccess[id] = { ...room.access, meetingNumber: room.meetingNumber }
+        return { id, name: room.name || `Room ${firstIndex + index + 1}`, meetingNumber: room.meetingNumber }
+      })]
     })
+    if (Object.keys(importedAccess).length) setRoomAccess(current => ({ ...current, ...importedAccess }))
     setPage(Math.floor(firstIndex / monitorPageSize))
     setAdding(false)
     setNotice(`Added ${added} ${added === 1 ? "room" : "rooms"}.${duplicates ? ` Skipped ${duplicates} ${duplicates === 1 ? "duplicate" : "duplicates"}.` : ""}`)
+  }
+
+  function addRooms(input: string) {
+    importRooms(savedMeetingNumbers => {
+      const { meetingNumbers, duplicates } = planMonitorRoomImport(input, savedMeetingNumbers)
+      return { rooms: meetingNumbers.map(meetingNumber => ({ name: "", meetingNumber })), duplicates }
+    })
   }
 
   async function editRoom(room: MonitorRoom, name: string, meeting: string) {
@@ -213,6 +190,13 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
       }
     }
     updateMonitorRooms(current => current.map(item => item.id === room.id ? next : item))
+    if (meetingNumber !== room.meetingNumber && roomAccess[room.id]) {
+      setRoomAccess(current => {
+        const nextAccess = { ...current }
+        delete nextAccess[room.id]
+        return nextAccess
+      })
+    }
   }
 
   return <section aria-label="Room monitoring" className={`min-h-[65vh] io-room-monitor rounded-lg border ${rooms.length === 0 ? "io-monitor-empty" : ""}`}>
@@ -230,7 +214,8 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
     </header>
     <div className="space-y-4 p-4 sm:p-6">
       {rooms.length === 0 || adding ? <div className="max-w-3xl">
-        <RoomForm busy={busy} onSave={addRoom} onBulkSave={addRooms} />
+        <RoomForm busy={busy} onSave={addRoom} onBulkSave={addRooms}
+          onCsvSave={csv => importRooms(saved => planMonitorRoomCsv(csv, saved))} />
         {rooms.length === 0 ? <p className="mt-3 text-sm io-muted">No rooms connected</p> : null}
       </div> : null}
       {notice ? <p role="status" className="text-sm io-secondary">{notice}</p> : null}
@@ -255,7 +240,9 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
             const attached = activeMeeting === room.meetingNumber
             const picture = attached ? receiver.picture : undefined
             const roomStatus = attached ? (picture ? "Receiver active" : "Waiting for Zoom video") : "Disconnected"
-            return <RoomTile key={room.id} room={room} number={start + index + 1} busy={busy}
+            const access = roomAccess[room.id]
+            return <RoomTile key={room.id} room={room} access={access?.meetingNumber === room.meetingNumber ? access : undefined}
+              number={start + index + 1} busy={busy}
               status={roomStatus} picture={picture} audioAvailable={Boolean(receiver.status?.audio && attached)}
               listening={audio.room?.id === room.id} onListen={() => audio.toggle(room)}
               onSave={(name, meeting) => editRoom(room, name, meeting)}
