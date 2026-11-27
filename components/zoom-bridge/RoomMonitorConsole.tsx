@@ -2,7 +2,7 @@
 
 import { type FormEvent, useId, useRef, useState } from "react"
 import { Ellipsis } from "lucide-react"
-import { type MonitorRoom, monitorMeetingNumber, monitorPageCount, monitorPageSize, monitorRoomLimit } from "@/lib/zoom-bridge/monitor-rooms"
+import { type MonitorRoom, monitorMeetingNumber, monitorPageCount, monitorPageSize, monitorRoomLimit, planMonitorRoomImport } from "@/lib/zoom-bridge/monitor-rooms"
 import IoRuntimePanel from "./IoRuntimePanel"
 import { activeReceiver, useRoomReceiver } from "./useRoomReceiver"
 import { updateMonitorRooms, useMonitorRooms } from "./useMonitorRooms"
@@ -13,27 +13,40 @@ const button = "io-room-button rounded-md border px-3 py-2 text-sm font-medium f
 const primary = `${button} io-room-primary`
 const field = "mt-1 block w-full rounded-md io-room-input border px-3 py-2 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
 
-function RoomForm({ room, busy, onSave, onCancel }: {
+function RoomForm({ room, busy, onSave, onBulkSave, onCancel }: {
   room?: MonitorRoom
   busy: boolean
   onSave: (name: string, meeting: string) => Promise<void>
+  onBulkSave?: (meetings: string) => void
   onCancel?: () => void
 }) {
   const formId = useId()
+  const [bulk, setBulk] = useState(false)
   const [error, setError] = useState("")
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = new FormData(event.currentTarget)
     setError("")
     try {
-      await onSave(String(form.get("name") ?? ""), String(form.get("meeting") ?? ""))
+      const meetings = String(form.get("meeting") ?? "")
+      if (bulk && onBulkSave) onBulkSave(meetings)
+      else await onSave(String(form.get("name") ?? ""), meetings)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Unable to save the room.")
     }
   }
 
-  return <form onSubmit={submit} aria-label={room ? "Edit room" : "Connect room"} className="space-y-3">
-    <div className={room ? "space-y-3" : "flex flex-wrap items-end gap-3"}>
+  return <form onSubmit={submit} aria-label={room ? "Edit room" : bulk ? "Add rooms" : "Connect room"} className="space-y-3">
+    {bulk ? <div>
+      <label htmlFor={`${formId}-meeting`} className="block text-sm io-secondary">Zoom links or meeting IDs</label>
+      <textarea id={`${formId}-meeting`} name="meeting" rows={5} required
+        aria-describedby={`${formId}-bulk-help`} className={`${field} resize-y`}
+        autoComplete="off" spellCheck={false} />
+      <p id={`${formId}-bulk-help`} className="mt-1.5 text-sm io-muted">
+        One link or ID per line. Rooms are saved to this browser for connecting later.
+      </p>
+      <button className={`mt-3 ${primary}`} type="submit" disabled={busy}>Add rooms</button>
+    </div> : <div className={room ? "space-y-3" : "flex flex-wrap items-end gap-3"}>
       <label className="block flex-[2_1_15rem] text-sm io-secondary" htmlFor={`${formId}-meeting`}>
         Zoom link or meeting ID
         <input id={`${formId}-meeting`} name="meeting" type="text" className={field} required maxLength={2048}
@@ -45,7 +58,11 @@ function RoomForm({ room, busy, onSave, onCancel }: {
       </label>
       <button type="submit" className={primary} disabled={busy}>{room ? "Save changes" : "Connect room"}</button>
       {onCancel ? <button type="button" className={button} onClick={onCancel} disabled={busy}>Cancel</button> : null}
-    </div>
+    </div>}
+    {onBulkSave ? <button type="button" className="rounded-sm text-sm io-secondary underline underline-offset-4 hover:no-underline"
+      disabled={busy} onClick={() => { setError(""); setBulk(value => !value) }}>
+      {bulk ? "Back to one room" : "Add multiple rooms"}
+    </button> : null}
     {error ? <p role="alert" className="text-sm io-error">{error}</p> : null}
   </form>
 }
@@ -160,6 +177,26 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
     await connect("connect", room)
   }
 
+  function addRooms(input: string) {
+    let firstIndex = 0
+    let added = 0
+    let duplicates = 0
+    updateMonitorRooms(current => {
+      const plan = planMonitorRoomImport(input, current.map(room => room.meetingNumber))
+      firstIndex = current.length
+      added = plan.meetingNumbers.length
+      duplicates = plan.duplicates
+      return [...current, ...plan.meetingNumbers.map((meetingNumber, index) => ({
+        id: crypto.randomUUID(),
+        name: `Room ${firstIndex + index + 1}`,
+        meetingNumber,
+      }))]
+    })
+    setPage(Math.floor(firstIndex / monitorPageSize))
+    setAdding(false)
+    setNotice(`Added ${added} ${added === 1 ? "room" : "rooms"}.${duplicates ? ` Skipped ${duplicates} ${duplicates === 1 ? "duplicate" : "duplicates"}.` : ""}`)
+  }
+
   async function editRoom(room: MonitorRoom, name: string, meeting: string) {
     const meetingNumber = monitorMeetingNumber(meeting)
     ensureUnique(meetingNumber, room.id)
@@ -193,7 +230,7 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
     </header>
     <div className="space-y-4 p-4 sm:p-6">
       {rooms.length === 0 || adding ? <div className="max-w-3xl">
-        <RoomForm busy={busy} onSave={addRoom} />
+        <RoomForm busy={busy} onSave={addRoom} onBulkSave={addRooms} />
         {rooms.length === 0 ? <p className="mt-3 text-sm io-muted">No rooms connected</p> : null}
       </div> : null}
       {notice ? <p role="status" className="text-sm io-secondary">{notice}</p> : null}

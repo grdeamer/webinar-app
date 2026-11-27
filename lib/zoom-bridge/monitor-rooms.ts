@@ -10,6 +10,39 @@ export function monitorMeetingNumber(input: string): string {
   return new URL(meetingJoinLink(input)).pathname.split("/")[2]
 }
 
+export function planMonitorRoomImport(input: string, savedMeetingNumbers: readonly string[]) {
+  const seen = new Set(savedMeetingNumbers)
+  const meetingNumbers: string[] = []
+  let duplicates = 0
+  for (const [index, line] of input.split(/\r\n|[\r\n]/).entries()) {
+    const value = line.trim()
+    if (!value) continue
+
+    let meetingNumber: string
+    try {
+      if (value.length > 2048) throw new Error("Link too long")
+      meetingNumber = monitorMeetingNumber(value)
+    } catch {
+      throw new Error(`Line ${index + 1}: enter a Zoom join link or a 9–11 digit meeting ID.`)
+    }
+    if (seen.has(meetingNumber)) {
+      duplicates++
+      continue
+    }
+    meetingNumbers.push(meetingNumber)
+    seen.add(meetingNumber)
+  }
+
+  if (meetingNumbers.length === 0) {
+    throw new Error(duplicates ? "All of these meetings are already in the room list." : "Paste at least one Zoom link or meeting ID.")
+  }
+  const available = monitorRoomLimit - savedMeetingNumbers.length
+  if (meetingNumbers.length > available) {
+    throw new Error(`Only ${available} of the 48 room slots are available. Shorten the list and try again.`)
+  }
+  return { meetingNumbers, duplicates }
+}
+
 export function readMonitorRooms(raw: string): MonitorRoom[] {
   try {
     const value: unknown = JSON.parse(raw)
