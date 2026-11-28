@@ -9,7 +9,7 @@ for file in protocol.py gateway.py service.py; do
   install -o ubuntu -g ubuntu -m 0600 "$source_dir/$file" "$target/$file"
 done
 apt-get update -qq
-DEBIAN_FRONTEND=noninteractive apt-get install -y xvfb xauth openbox x11vnc novnc websockify dbus-x11 pulseaudio pulseaudio-utils ffmpeg curl ca-certificates
+DEBIAN_FRONTEND=noninteractive apt-get install -y xvfb xauth x11-utils openbox x11vnc novnc websockify dbus-x11 pulseaudio pulseaudio-utils ffmpeg curl ca-certificates
 if ! dpkg-query -W zoom >/dev/null 2>&1; then
   package=$(mktemp /tmp/jupiter-zoom-XXXXXX.deb)
   trap 'rm -f "$package"' EXIT

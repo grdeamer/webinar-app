@@ -6,6 +6,7 @@ import contextlib
 import json
 import os
 from pathlib import Path
+import re
 import secrets
 import shutil
 import signal
@@ -13,6 +14,9 @@ import time
 from protocol import AUDIO_CHUNK, MAX_FRAME, MAX_SECONDS, parse_request
 
 ROOT = Path('/run/jupiter-zoom-desktop')
+ZOOM_WINDOW = re.compile(
+    rb'^[ \t]*(0x[0-9a-f]+)[ \t]+[^\n]*?\("[^"\n]*" "zoom(?:\.real)? *"\)'
+    rb'[ \t]+(\d+)x(\d+)[+-]-?\d+[+-]-?\d+[ \t]+[+-]-?\d+[+-]-?\d+[ \t]*$', re.I | re.M)
 
 
 def network_total():
@@ -65,6 +69,43 @@ class Desktop:
                 self.audio.append((index, data))
         except asyncio.IncompleteReadError:
             self.audio.clear()
+
+    async def x11_info(self, *args):
+        try:
+            process = await asyncio.create_subprocess_exec(*args, env={**self.env, 'LC_ALL': 'C'},
+                stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.DEVNULL)
+        except OSError:
+            return b''
+        try:
+            data, _ = await asyncio.wait_for(process.communicate(), 0.5)
+            return data if process.returncode == 0 else b''
+        except asyncio.TimeoutError:
+            return b''
+        finally:
+            if process.returncode is None:
+                with contextlib.suppress(ProcessLookupError):
+                    process.kill()
+                await process.wait()
+
+    async def zoom_window(self):
+        tree = await self.x11_info('xwininfo', '-root', '-tree')
+        for match in ZOOM_WINDOW.finditer(tree):
+            window_id, width, height = match.groups()
+            if int(width) < 240 or int(height) < 150:
+                continue
+            info = await self.x11_info('xwininfo', '-id', window_id.decode('ascii'))
+            if b'Map State: IsViewable' not in info:
+                continue
+            properties = await self.x11_info('xprop', '-id', window_id.decode('ascii'), 'WM_STATE', '_NET_WM_WINDOW_TYPE')
+            if b'window state: Normal' in properties and b'_NET_WM_WINDOW_TYPE_SPLASH' not in properties:
+                return window_id
+        return None
+
+    async def preview_window(self):
+        try:
+            return await asyncio.wait_for(self.zoom_window(), 1)
+        except asyncio.TimeoutError:
+            return None
 
     async def stop(self, state='stopped'):
         if self.audio_task:
@@ -186,6 +227,10 @@ class Desktop:
             elif action == 'frame' and self.state == 'desktop_ready':
                 self.lease = self.clock() + 30
                 if self.frame is None or self.clock() - self.frame_at >= 1:
+                    window = await self.preview_window()
+                    if not window:
+                        self.frame = None
+                        return self.status(), b''
                     process = await asyncio.create_subprocess_exec('ffmpeg', '-v', 'error', '-nostdin',
                         '-threads', '1', '-f', 'x11grab', '-draw_mouse', '0', '-video_size', '1280x720',
                         '-framerate', '1', '-i', ':108', '-frames:v', '1', '-threads', '1',
@@ -200,6 +245,11 @@ class Desktop:
                     if process.returncode or not 4 <= len(data) <= MAX_FRAME or not (data.startswith(b'\xff\xd8') and data.endswith(b'\xff\xd9')):
                         self.frame = None
                         raise ValueError('No fresh desktop image')
+                    # A window can close while FFmpeg is collecting the frame.
+                    info = await self.x11_info('xwininfo', '-id', window.decode('ascii'))
+                    if b'Map State: IsViewable' not in info:
+                        self.frame = None
+                        return self.status(), b''
                     self.frame, self.frame_at = data, self.clock()
                 return {**self.status(), 'jpegBytes': len(self.frame)}, self.frame
             return self.status(), b''

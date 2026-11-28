@@ -1,0 +1,61 @@
+.jupiter-receiver-loading {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: .6rem;
+  padding: .5rem;
+  color: #e2e2e7;
+  font-size: .8125rem;
+  line-height: 1.3;
+  text-align: center;
+}
+
+.jupiter-receiver-globe {
+  position: relative;
+  width: 2.25rem;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border-radius: 50%;
+  background: linear-gradient(
+    #968477 0%, #bba28d 14%, #d4b59c 22%, #a67058 29%,
+    #c99e7c 35%, #e7c9a6 42%, #bd8c69 49%, #a46951 55%,
+    #d6ac8a 60%, #e6bc9a 68%, #c3957d 75%, #d0ac9a 84%,
+    #a78b81 91%, #766961 100%
+  );
+}
+
+.jupiter-receiver-globe::before,
+.jupiter-receiver-globe::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+}
+
+.jupiter-receiver-globe::before {
+  background-image:
+    radial-gradient(ellipse 10% 5% at 30% 69%, #c77258 34%, #9a4d37 58%, transparent 98%),
+    radial-gradient(ellipse 20% 4% at 61% 34%, #edd2a9b3 26%, transparent 91%),
+    radial-gradient(ellipse 13% 3% at 70% 52%, #884c3880 20%, transparent 98%),
+    radial-gradient(ellipse 21% 3% at 17% 80%, #f4d9be99 29%, transparent 90%);
+  background-size: 4rem 100%;
+}
+
+.jupiter-receiver-globe::after {
+  background: radial-gradient(
+    circle at 29% 29%, #fff5dd26, transparent 39%, #39281c48 62%, #0b0807dd 94%
+  );
+  box-shadow: inset -.15rem -.2rem .4rem #21161799;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .jupiter-receiver-globe::before {
+    animation: jupiter-receiver-turn 4.8s linear infinite;
+  }
+}
+
+@keyframes jupiter-receiver-turn {
+  from { background-position: 0 0; }
+  to { background-position: -4rem 0; }
+}

@@ -6,6 +6,7 @@ import { type MonitorRoom, monitorMeetingNumber, monitorPageCount, monitorPageSi
 import { planMonitorRoomCsv } from "@/lib/zoom-bridge/monitor-room-csv"
 import RoomForm, { roomButton as button, primaryRoomButton as primary } from "./RoomForm"
 import IoRuntimePanel from "./IoRuntimePanel"
+import JupiterReceiverLoading from "./JupiterReceiverLoading"
 import { activeReceiver, useRoomReceiver } from "./useRoomReceiver"
 import { updateMonitorRooms, useMonitorRooms } from "./useMonitorRooms"
 import { useRoomAudio } from "./useRoomAudio"
@@ -14,8 +15,8 @@ import "./room-monitor.css"
 type RoomAccess = { passcode?: string; joinLink?: string }
 type ImportedRoom = Pick<MonitorRoom, "name" | "meetingNumber"> & { access?: RoomAccess }
 
-function RoomTile({ room, access, number, status, picture, listening, audioAvailable, busy, onListen, onSave, onCommand }: {
-  room: MonitorRoom; access?: RoomAccess; number: number; status: string; picture?: string; listening: boolean; audioAvailable: boolean; busy: boolean
+function RoomTile({ room, access, number, status, picture, loading, listening, audioAvailable, busy, onListen, onSave, onCommand }: {
+  room: MonitorRoom; access?: RoomAccess; number: number; status: string; picture?: string; loading: boolean; listening: boolean; audioAvailable: boolean; busy: boolean
   onListen: () => void
   onSave: (name: string, meeting: string) => Promise<void>
   onCommand: (action: "reconnect" | "disconnect") => Promise<boolean>
@@ -83,6 +84,7 @@ function RoomTile({ room, access, number, status, picture, listening, audioAvail
     </div> : <div className="relative aspect-video overflow-hidden rounded-b-lg bg-[#0c0d0f]">
       {/* eslint-disable-next-line @next/next/no-img-element -- ephemeral authenticated camera return */}
       {picture ? <img src={picture} alt={`Zoom return for ${room.name}`} className="h-full w-full object-contain" />
+        : loading ? <JupiterReceiverLoading />
         : <p className="absolute inset-0 grid place-items-center px-2 text-center text-sm text-zinc-400">{status}</p>}
       {picture && (audioAvailable || listening) ? <button
         type="button"
@@ -102,6 +104,7 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
   const [page, setPage] = useState(0)
   const [adding, setAdding] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [pendingRoomId, setPendingRoomId] = useState<string>()
   const [notice, setNotice] = useState("")
   const [roomAccess, setRoomAccess] = useState<Record<string, RoomAccess & { meetingNumber: string }>>({})
   const activeMeeting = activeReceiver(receiver.status) ? receiver.status?.meetingId : undefined
@@ -116,6 +119,7 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
 
   async function connect(action: "connect" | "reconnect" | "disconnect", room: MonitorRoom) {
     setBusy(true)
+    if (action !== "disconnect") setPendingRoomId(room.id)
     setNotice("")
     try {
       await receiver.command(action, room.meetingNumber)
@@ -128,6 +132,7 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
       return false
     } finally {
       setBusy(false)
+      setPendingRoomId(undefined)
     }
   }
 
@@ -238,12 +243,14 @@ export default function RoomMonitorConsole({ canStartSharedServer = false }: { c
         <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
           {visible.map((room, index) => {
             const attached = activeMeeting === room.meetingNumber
-            const picture = attached ? receiver.picture : undefined
-            const roomStatus = attached ? (picture ? "Receiver active" : "Waiting for Zoom video") : "Disconnected"
+            const pending = pendingRoomId === room.id
+            const picture = attached && !pending ? receiver.picture : undefined
+            const loading = !picture && (attached || pending)
+            const roomStatus = picture ? "Receiver active" : loading ? "Starting Zoom" : "Disconnected"
             const access = roomAccess[room.id]
             return <RoomTile key={room.id} room={room} access={access?.meetingNumber === room.meetingNumber ? access : undefined}
               number={start + index + 1} busy={busy}
-              status={roomStatus} picture={picture} audioAvailable={Boolean(receiver.status?.audio && attached)}
+              status={roomStatus} picture={picture} loading={loading} audioAvailable={Boolean(receiver.status?.audio && attached)}
               listening={audio.room?.id === room.id} onListen={() => audio.toggle(room)}
               onSave={(name, meeting) => editRoom(room, name, meeting)}
               onCommand={action => connect(action, room)} />

@@ -2,7 +2,7 @@ import asyncio
 from pathlib import Path
 import tempfile
 import unittest
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, call, patch
 from protocol import AUDIO_CHUNK, parse_request
 from service import Desktop
 
@@ -26,6 +26,59 @@ class ProtocolTests(unittest.TestCase):
 
 
 class LifecycleTests(unittest.IsolatedAsyncioTestCase):
+    async def test_zoom_window_excludes_hidden_utility_and_splash_windows(self):
+        desktop = Desktop()
+        tree = (
+            b'  0x1 "Other app": ("xterm" "XTerm")  700x500+5+5  +5+5\n'
+            b'  0x2 "Tray": ("zoom" "zoom")  32x32+0+0  +0+0\n'
+            b'  0x3 "Hidden": ("zoom" "zoom")  900x650+0+0  +10+20\n'
+            b'  0x4 "Splash": ("zoom" "zoom")  500x300+0+0  +10+20\n'
+            b'  0x5 "Zoom Workplace": ("zoom " "Zoom")  640x480+0+0  +-10+20\n'
+        )
+        with patch.object(desktop, 'x11_info', side_effect=[
+            tree,
+            b'Map State: IsUnMapped',
+            b'Map State: IsViewable', b'window state: Normal\n_NET_WM_WINDOW_TYPE_SPLASH',
+            b'Map State: IsViewable', b'window state: Normal\n_NET_WM_WINDOW_TYPE: not found.',
+        ]) as inspect:
+            self.assertEqual(await desktop.zoom_window(), b'0x5')
+        self.assertNotIn(call('xwininfo', '-id', '0x1'), inspect.await_args_list)
+        self.assertNotIn(call('xwininfo', '-id', '0x2'), inspect.await_args_list)
+
+    async def test_hidden_zoom_window_clears_the_preview_and_renews_lease(self):
+        desktop = Desktop(clock=lambda: 10)
+        desktop.id, desktop.state = ID, 'desktop_ready'
+        desktop.deadline, desktop.lease = 100, 30
+        desktop.frame, desktop.frame_at = b'old-frame', 8
+        with patch('service.network_total', return_value=0), patch.object(desktop, 'x11_info', return_value=b''), \
+                patch('service.asyncio.create_subprocess_exec') as capture:
+            result, frame = await desktop.request({'action': 'frame', 'sessionId': ID})
+        capture.assert_not_awaited()
+        self.assertEqual(result['state'], 'desktop_ready')
+        self.assertNotIn('jpegBytes', result)
+        self.assertIsNone(desktop.frame)
+        self.assertEqual(desktop.lease, 40)
+        self.assertEqual(frame, b'')
+
+    async def test_capture_only_returns_picture_if_zoom_is_still_visible(self):
+        desktop = Desktop(clock=lambda: 10)
+        desktop.id, desktop.state = ID, 'desktop_ready'
+        desktop.deadline, desktop.lease = 100, 30
+        jpeg = b'\xff\xd8picture\xff\xd9'
+        process = AsyncMock()
+        process.returncode = 0
+        process.communicate.return_value = (jpeg, b'')
+        request = {'action': 'frame', 'sessionId': ID}
+        with patch('service.network_total', return_value=0), patch.object(desktop, 'preview_window', return_value=b'0x5'), \
+                patch.object(desktop, 'x11_info', side_effect=[b'Map State: IsUnMapped', b'Map State: IsViewable']), \
+                patch('service.asyncio.create_subprocess_exec', return_value=process):
+            waiting, hidden = await desktop.request(request)
+            visible, picture = await desktop.request(request)
+        self.assertNotIn('jpegBytes', waiting)
+        self.assertEqual(hidden, b'')
+        self.assertEqual(visible['jpegBytes'], len(jpeg))
+        self.assertEqual(picture, jpeg)
+
     async def test_viewer_lease_expires_without_persisted_media(self):
         clock = [10]
         desktop = Desktop(clock=lambda: clock[0])

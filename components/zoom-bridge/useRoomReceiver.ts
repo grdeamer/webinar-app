@@ -23,6 +23,22 @@ async function readStatus(signal?: AbortSignal): Promise<ReceiverStatus> {
   return response.json()
 }
 
+export async function decodeReceiverFrame(response: Response, signal: AbortSignal) {
+  const blob = await response.blob()
+  if (signal.aborted) return null
+  const url = URL.createObjectURL(blob)
+  const image = new Image()
+  image.src = url
+  try {
+    await image.decode()
+    if (!signal.aborted) return url
+  } catch {
+    // Wait for the next frame if the JPEG cannot be displayed.
+  }
+  URL.revokeObjectURL(url)
+  return null
+}
+
 export function useRoomReceiver() {
   const [status, setStatus] = useState<ReceiverStatus | null>(null)
   const [picture, setPicture] = useState<{ sessionId: string; url: string } | null>(null)
@@ -65,12 +81,17 @@ export function useRoomReceiver() {
     async function frame() {
       try {
         const response = await fetch(`${endpoint}?sessionId=${encodeURIComponent(id)}`, { cache: "no-store", signal: abort.signal })
-        if (!response.ok || !response.headers.get("content-type")?.startsWith("image/jpeg")) throw new Error("No picture")
-        const blob = await response.blob()
-        if (abort.signal.aborted) return
+        if (!response.ok) throw new Error("No picture")
+        const next = response.headers.get("content-type")?.startsWith("image/jpeg")
+          ? await decodeReceiverFrame(response, abort.signal)
+          : null
+        if (abort.signal.aborted) {
+          if (next) URL.revokeObjectURL(next)
+          return
+        }
         if (url) URL.revokeObjectURL(url)
-        url = URL.createObjectURL(blob)
-        setPicture({ sessionId: id, url })
+        url = next ?? undefined
+        setPicture(next ? { sessionId: id, url: next } : null)
       } catch {
         if (abort.signal.aborted) return
         if (url) URL.revokeObjectURL(url)
